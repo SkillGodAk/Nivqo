@@ -4,6 +4,10 @@
 
 Nivqo is an independent third-party open-source project focused on Facebook / Messenger localization and feature integration. It is based on Morphe Manager, HushFacebook, and HushMessenger, with Traditional Chinese support, Facebook / Messenger integration, and HushMessenger settings embedded directly inside Messenger.
 
+The main reason this project exists is that the upstream projects currently do not provide complete Chinese language support. Nivqo therefore adds a Traditional Chinese interface and related usability adjustments so Chinese-speaking users can more easily use the Facebook / Messenger plugin features.
+
+Nivqo is not intended to replace the upstream projects. Its purpose is to fill the current gap for Chinese-speaking users. **If the upstream projects later provide official Chinese plugin support and HushMessenger settings/features are officially integrated directly into Messenger, this project will be discontinued and removed.**
+
 > Nivqo is not an official product of Meta, Facebook, Messenger, Morphe, or SysAdminDoc. Those names are used only to describe compatibility and upstream sources.
 
 ## Highlights

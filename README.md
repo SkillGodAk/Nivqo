@@ -4,6 +4,10 @@
 
 Nivqo 是一個以 Facebook / Messenger 中文化與功能整合為主的第三方開源專案。專案基於 Morphe Manager、HushFacebook 與 HushMessenger 進行調整，重點是繁體中文介面、Facebook / Messenger 使用體驗整合，以及將 HushMessenger 設定直接整合到 Messenger 內。
 
+這個專案成立的主要原因，是目前原專案尚未提供完整的中文支援，因此額外整理了繁體中文介面與相關使用體驗，讓中文使用者可以更方便地使用 Facebook / Messenger 的相關插件功能。
+
+Nivqo 的目的不是取代原專案，而是補足目前中文使用者需要的功能與介面。**如果未來原專案正式支援中文插件內容，並且 HushMessenger 的設定與功能也正式內建在 Messenger 裡，本專案將停止維護並刪除／廢止。**
+
 > Nivqo 是獨立第三方專案，並非 Meta、Facebook、Messenger、Morphe 或 SysAdminDoc 官方產品。Facebook、Messenger、Meta、Morphe 等名稱僅用於說明相容性與上游來源。
 
 ## 主要內容
