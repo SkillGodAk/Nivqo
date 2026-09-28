@@ -76,6 +76,17 @@ Meta 可能在同一個版本名稱下發布多個不同 build。它們的 DEX /
 - 重裝 Manager 或清除資料前，請先匯出自己的 signing key。
 - 遺失原本的 key 後，新簽出的 APK 通常無法直接覆蓋舊版本。
 
+## 更新機制
+
+從 Nivqo v1.32.1 開始，更新分成兩層：
+
+- **HushFacebook / HushMessenger 插件核心**：由 Nivqo 自己的 GitHub 更新通道提供。之後原作者核心有更新時，會先拉回 Nivqo、合併繁體中文與本專案修改並測試，接著更新 GitHub 上的 patch bundle。已安裝的 Nivqo 可自動取得新版插件核心，不需要因為只有插件更新就重新安裝 Manager。
+- **Nivqo Manager 本體**：只有 Manager 本身有修改時才發布新的 APK，更新來源為 `SkillGodAk/Nivqo` 的 GitHub Releases。
+
+Manager APK 仍內建一份 HushFacebook / HushMessenger bundle 作為離線或第一次啟動的初始版本；**內建版本只在本機尚未有 bundle 時使用，不會覆蓋從 GitHub 更新過的新核心。**
+
+> 從舊的 Nivqo v1.32.0 升級到 v1.32.1 需要手動安裝一次 v1.32.1，因為 v1.32.0 當時尚未啟用 Manager 自我更新。完成這次過渡後，後續 Manager 更新才可由 Nivqo 自己的更新通道檢查。
+
 ## Release
 
 GitHub Releases 只提供 **Nivqo Manager 正式 APK**。
@@ -86,7 +97,7 @@ GitHub Releases 只提供 **Nivqo Manager 正式 APK**。
 
 - App：Nivqo
 - Package：`app.nivqo.manager`
-- Manager base version：`1.32.0`
+- Manager base version：`1.32.1`
 
 ## 原始碼
 

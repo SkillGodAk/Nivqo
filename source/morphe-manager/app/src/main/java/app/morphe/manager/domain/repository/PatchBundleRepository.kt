@@ -454,40 +454,44 @@ class PatchBundleRepository(
         val all = dao.all()
         val present = all.asSequence().map { it.uid }.toSet()
 
-        // Keep the stock Morphe API source available, but the Hush sources in this custom
-        // distribution are bundled with the APK. They must not silently resolve to upstream
-        // SysAdminDoc remotes or the phone would patch with the untranslated/unmodified modules.
+        // Keep the stock Morphe API source available. Nivqo's Hush sources use Nivqo-owned
+        // remote manifests so translated/custom bundles can update independently of the Manager.
+        // The copies embedded in the APK are only offline/first-run seeds and never overwrite a
+        // bundle that has already been installed or updated from GitHub.
         val missingDefaults = listOf(createDefaultEntity(now)).filter { it.uid !in present }
         missingDefaults.forEach { dao.upsert(it) }
-        ensureBundledHushSources(now)
+        ensureNivqoHushSources(now)
 
         return dao.all()
     }
 
-    private suspend fun ensureBundledHushSources(now: Long) {
-        ensureBundledSource(
+    private suspend fun ensureNivqoHushSources(now: Long) {
+        ensureNivqoRemoteSource(
             uid = HUSHFACEBOOK_SOURCE_UID,
             name = "Hushfacebook",
             displayName = "HushFacebook",
             sortOrder = 1,
+            endpoint = HUSHFACEBOOK_UPDATE_ENDPOINT,
             assetPath = HUSHFACEBOOK_BUNDLED_ASSET,
             now = now,
         )
-        ensureBundledSource(
+        ensureNivqoRemoteSource(
             uid = HUSHMESSENGER_SOURCE_UID,
             name = "HushMessenger",
             displayName = "HushMessenger",
             sortOrder = 2,
+            endpoint = HUSHMESSENGER_UPDATE_ENDPOINT,
             assetPath = HUSHMESSENGER_BUNDLED_ASSET,
             now = now,
         )
     }
 
-    private suspend fun ensureBundledSource(
+    private suspend fun ensureNivqoRemoteSource(
         uid: Int,
         name: String,
         displayName: String,
         sortOrder: Int,
+        endpoint: String,
         assetPath: String,
         now: Long,
     ) {
@@ -497,16 +501,19 @@ class PatchBundleRepository(
                 uid = uid,
                 name = existing?.name?.takeUnless { it.isBlank() } ?: name,
                 displayName = existing?.displayName?.takeUnless { it.isBlank() } ?: displayName,
-                versionHash = null,
-                source = SourceInfo.Local,
-                autoUpdate = false,
+                versionHash = existing?.versionHash,
+                source = SourceInfo.Remote(Url(endpoint)),
+                autoUpdate = true,
                 enabled = existing?.enabled ?: true,
                 sortOrder = sortOrder,
                 createdAt = existing?.createdAt ?: now,
-                updatedAt = now,
+                updatedAt = existing?.updatedAt ?: now,
             )
         )
-        installBundledPatchBundle(uid, assetPath)
+
+        // Seed only when no bundle exists yet. Never replace a remote-updated bundle on launch.
+        val target = directoryOf(uid).resolve("patches.jar")
+        if (!target.exists()) installBundledPatchBundle(uid, assetPath)
     }
 
     private suspend fun installBundledPatchBundle(uid: Int, assetPath: String) = withContext(Dispatchers.IO) {
@@ -2368,6 +2375,11 @@ class PatchBundleRepository(
         internal const val HUSHMESSENGER_BUNDLED_ASSET =
             "morphe-hush/hushmessenger-0.4.2.mpp"
 
+        internal const val HUSHFACEBOOK_UPDATE_ENDPOINT =
+            "https://raw.githubusercontent.com/SkillGodAk/Nivqo/refs/heads/main/updates/hushfacebook.json"
+        internal const val HUSHMESSENGER_UPDATE_ENDPOINT =
+            "https://raw.githubusercontent.com/SkillGodAk/Nivqo/refs/heads/main/updates/hushmessenger.json"
+
         // Create default entity with sortOrder 0
         fun createDefaultEntity(now: Long = System.currentTimeMillis()) = PatchBundleEntity(
             uid = DEFAULT_SOURCE_UID,
@@ -2389,8 +2401,8 @@ class PatchBundleRepository(
                 name = "Hushfacebook",
                 displayName = "HushFacebook",
                 versionHash = null,
-                source = Source.Local,
-                autoUpdate = false,
+                source = Source.Remote(Url(HUSHFACEBOOK_UPDATE_ENDPOINT)),
+                autoUpdate = true,
                 enabled = true,
                 sortOrder = 1,
                 createdAt = now,
@@ -2401,8 +2413,8 @@ class PatchBundleRepository(
                 name = "HushMessenger",
                 displayName = "HushMessenger",
                 versionHash = null,
-                source = Source.Local,
-                autoUpdate = false,
+                source = Source.Remote(Url(HUSHMESSENGER_UPDATE_ENDPOINT)),
+                autoUpdate = true,
                 enabled = true,
                 sortOrder = 2,
                 createdAt = now,
