@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="other">%s 个补丁</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="other">%s 个补丁选项</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="other">适用于 %s 个应用的补丁源</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="other">已隐藏 %s 个来源。点按以显示</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="other">%s 个匹配的补丁</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="other">%s 个源</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="other">%s 个包</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="other">执行了 %s 个补丁</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="other">%s 个 APK 文件</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="other">已安装 %s 个应用</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="other">已重新安装 %s 个应用</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="other">已卸载 %s 个应用</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="other">卸载 %s 个应用？</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="other">有 %s 个应用可供补丁</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="other">%s 个应用可以重新修补</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="other">已跳过 %s 个应用</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="other">从保存的选择中移除了 %s 个过期补丁</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="other">已安装 %s 个源</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="other">%s 个隐藏的应用</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="other">%s 个应用</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="other">已选择 %s</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="other">已复制来自选定包的 %s 个补丁</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="other">%s 个核心</item>
+    </plurals>
+</resources>

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s Patch</item>
+        <item quantity="other">%s Patches</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s Patch-Option</item>
+        <item quantity="other">%s Patch-Optionen</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Patch-Quellen für %s App</item>
+        <item quantity="other">Patch-Quellen für %s Apps</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s Quelle ausgeblendet. Zum Anzeigen tippen</item>
+        <item quantity="other">%s Quellen ausgeblendet. Zum Anzeigen tippen</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s passender Patch</item>
+        <item quantity="other">%s passende Patches</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s Quelle</item>
+        <item quantity="other">%s Quellen</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s Paket</item>
+        <item quantity="other">%s Pakete</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">%s Patch angewendet</item>
+        <item quantity="other">%s Patches angewendet</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK-Datei</item>
+        <item quantity="other">%s APK-Dateien</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">%s App installiert</item>
+        <item quantity="other">%s Apps installiert</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">%s App erneut installiert</item>
+        <item quantity="other">%s Apps erneut installiert</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">%s App deinstalliert</item>
+        <item quantity="other">%s Apps deinstalliert</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">%s App deinstallieren?</item>
+        <item quantity="other">%s Apps deinstallieren?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s App bereit zum Patchen</item>
+        <item quantity="other">%s Apps bereit zum Patchen</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s App kann erneut gepatcht werden</item>
+        <item quantity="other">%s Apps können erneut gepatcht werden</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">%s App übersprungen</item>
+        <item quantity="other">%s Apps übersprungen</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Veralteten %s Patch von der gespeicherten Auswahl entfernt</item>
+        <item quantity="other">Entfernt %s veraltete Patches von der gespeicherten Auswahl</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s Quelle installiert</item>
+        <item quantity="other">%s Quellen installiert</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s ausgeblendete App</item>
+        <item quantity="other">%s ausgeblendete Apps</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s App</item>
+        <item quantity="other">%s Apps</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s ausgewählt</item>
+        <item quantity="other">%s ausgewählt</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">%s Patch von ausgewähltem Paket kopiert</item>
+        <item quantity="other">%s Patches von ausgewähltem Paket kopiert</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s Kern</item>
+        <item quantity="other">%s Kerne</item>
+    </plurals>
+</resources>

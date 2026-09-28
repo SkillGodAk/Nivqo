@@ -1,0 +1,427 @@
+# Traditional Chinese (Taiwan) for Hushfacebook: English key, TAB, translation.
+"Pages you may like" cards and the cards Facebook uses to push its own features. In-feed surveys go too.	「你可能會喜歡的粉絲專頁」卡片，以及 Facebook 用來推廣自家功能的卡片。動態消息中的問卷也會隱藏。
+%1$d item in that file isn't a setting this version of Hushfacebook knows, so it'll be left out.	該檔案中有 %1$d 個項目不是此版本 Hushfacebook 可識別的設定，因此會略過。
+%1$d items in that file aren't settings this version of Hushfacebook knows, so they'll be left out.	該檔案中有 %1$d 個項目不是此版本 Hushfacebook 可識別的設定，因此會略過。
+%1$d switch will change.	將變更 %1$d 個開關。
+%1$d switches will change.	將變更 %1$d 個開關。
+%1$s of %2$s	%1$s / %2$s
+%1$s so far	目前 %1$s
+%1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s。這是在套用補丁時設定的，因此暫停功能無法將它關閉。若要排除它，請重新套用補丁並不要選擇該補丁。
+%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s。這些是在套用補丁時設定的，因此暫停功能無法將它們關閉。若要排除其中一項，請重新套用補丁並不要選擇其後方括號內的補丁。
+A diagnostic report is already being saved.	診斷報告已正在儲存。
+Add a Download button to reels, using your download quality. Off or paused, Facebook's own buttons return.	在 Reels 加入「下載」按鈕，並使用你設定的下載畫質。關閉或暫停時會恢復 Facebook 原本的按鈕。
+A file named %1$s in %2$s paused Hushfacebook.	%2$s 中名為 %1$s 的檔案已讓 Hushfacebook 暫停。
+About	關於
+Ad cards between the stories people posted.	隱藏使用者限時動態之間的廣告卡片。
+Ad telemetry blocked	已封鎖廣告遙測
+Add Download to phone to feed and Watch video menus. Uses the quality below. Off or paused, Facebook's menu returns.	在動態消息與 Watch 影片選單加入「下載到手機」。使用下方設定的畫質。關閉或暫停時會恢復 Facebook 原本的選單。
+Add Save to every story menu, using your download quality. Off or paused, Facebook only saves your own stories.	在所有限時動態選單加入「儲存」，並使用你設定的下載畫質。關閉或暫停時，Facebook 只會儲存你自己的限時動態。
+Ads inside Reels, starting with the next batch Facebook loads. Banners, mid-rolls and app-inserted ads stay blocked even while paused.	隱藏 Reels 內的廣告，從 Facebook 下一批載入的內容開始生效。橫幅廣告、影片中插廣告及 App 插入的廣告，即使暫停 Hushfacebook 仍會持續封鎖。
+AMOLED black theme	AMOLED 純黑主題
+Appearance	外觀
+Audience Network off	已關閉 Audience Network
+Back	返回
+Background ad prefetch blocked	已封鎖背景廣告預載
+Cancel	取消
+Changing these	將變更以下項目
+Choose a settings file. Before anything is imported, you'll see how many switches it changes and any new download settings.	選擇設定檔。正式匯入前，你會先看到將變更多少個開關，以及新的下載設定。
+Clear diagnostic data	清除診斷資料
+Copy a quick report or save the full one to Download/Morphe. Names, IDs, links and cookies are omitted.	可複製簡要報告，或將完整報告儲存至 Download/Morphe。名稱、ID、連結與 Cookie 都會省略。
+Copy quick report	複製簡要報告
+Couldn't import every setting. Check the switches on this screen.	部分設定無法匯入。請檢查此畫面的開關。
+Couldn't import the settings. Nothing was changed.	無法匯入設定。未做任何變更。
+Couldn't open that file. Nothing was changed.	無法開啟該檔案。未做任何變更。
+Couldn't open the file picker. Try again.	無法開啟檔案選擇器。請再試一次。
+Couldn't put back the diagnostic data. Try again.	無法還原診斷資料。請再試一次。
+Couldn't save the settings file. Try again.	無法儲存設定檔。請再試一次。
+Couldn't save this video. Play it for a moment, then try again.	無法儲存這部影片。請先播放一下，再重試。
+Couldn't start that. Try again in a moment.	無法啟動。請稍後再試。
+Couldn't start the report export. Try again shortly.	無法開始匯出報告。請稍後再試。
+Dark mode draws black instead of dark grey. Turn on dark mode in Facebook to see it.	深色模式會以純黑取代深灰。請先在 Facebook 開啟深色模式。
+Debug logging	偵錯記錄
+Diagnostic data cleared. Tap again to put it back.	診斷資料已清除。再點一次可還原。
+Diagnostic data put back.	診斷資料已還原。
+Diagnostic report copied to the clipboard.	診斷報告已複製到剪貼簿。
+Download	下載
+Download button on reels	Reels 下載按鈕
+Download failed	下載失敗
+Download feed and Watch videos	下載動態消息與 Watch 影片
+Download to phone	下載到手機
+Downloads	下載
+Empties the log and the filter counts a report would include.	清空報告中會包含的記錄與篩選計數。
+Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	除了偵錯記錄外，所有開關都會暫時視為關閉；套用補丁時固定的項目仍會保留。你的設定值不會被改動。
+Export diagnostic report	匯出診斷報告
+Export settings	匯出設定
+Facebook crashed or froze within a minute of starting three times in a row, so Hushfacebook paused itself.	Facebook 連續三次在啟動後一分鐘內當機或凍結，因此 Hushfacebook 已自動暫停。
+Facebook doesn't download ads or its ad model in the background.	Facebook 不會在背景下載廣告或廣告模型。
+Facebook doesn't serve ads to other apps on this phone.	Facebook 不會向此手機上的其他 App 提供廣告。
+Facebook dark mode and this screen use your wallpaper colours. Android 11 uses blue instead. Turn on Facebook dark mode to see it.	Facebook 深色模式與此畫面會使用桌布配色。Android 11 則使用藍色。請開啟 Facebook 深色模式以查看效果。
+Use your phone's emoji. Reactions and stickers stay the same. Restart Facebook after changing it.	使用手機系統的 Emoji。表情回應與貼圖維持不變。變更後請重新啟動 Facebook。
+Use your phone's font or a file chosen below. Restart Facebook after changing it.	使用手機系統字型，或使用下方選擇的字型檔。變更後請重新啟動 Facebook。
+Font file	字型檔
+Use your phone's font	使用手機系統字型
+Stops using the font file and goes back to your phone's font.	停止使用字型檔並恢復手機系統字型。
+None chosen, so your phone's font is used. Choose a TrueType or OpenType file of up to %1$d MB.	尚未選擇，因此目前使用手機系統字型。可選擇最大 %1$d MB 的 TrueType 或 OpenType 字型檔。
+Hushfacebook's copy of %1$s is gone, so your phone's font is used. Choose the file again.	Hushfacebook 保存的 %1$s 已不存在，因此改用手機系統字型。請重新選擇該檔案。
+Using %1$s. Choose another file to replace it.	目前使用 %1$s。選擇其他檔案即可取代。
+Copying the font file	正在複製字型檔
+Font set to %1$s. Restart Facebook to see it.	字型已設為 %1$s。重新啟動 Facebook 後生效。
+That isn't a TrueType or OpenType font file. Your font didn't change.	該檔案不是 TrueType 或 OpenType 字型。字型沒有變更。
+That font file is over %1$d MB. Your font didn't change.	該字型檔超過 %1$d MB。字型沒有變更。
+Android couldn't draw with that font file. Your font didn't change.	Android 無法使用該字型檔顯示內容。字型沒有變更。
+Couldn't save a copy of that font. Check that the phone has room, then try again.	無法儲存該字型的副本。請確認手機有足夠空間後再試。
+Couldn't open that file. Your font didn't change.	無法開啟該檔案。字型沒有變更。
+Back to your phone's font. Restart Facebook to see it.	已恢復手機系統字型。重新啟動 Facebook 後生效。
+Couldn't go back to your phone's font. Try again.	無法恢復手機系統字型。請再試一次。
+Pause runtime features from the next start. Your choices stay saved. Debug logging and patches applied during installation keep working.	從下次啟動起暫停執行期功能。你的選擇仍會保留。偵錯記錄及安裝時套用的補丁仍會繼續運作。
+Full report saved to %1$s	完整報告已儲存至 %1$s
+GPL-3.0, with the notices of the projects this is built on	GPL-3.0，並附上本專案所採用各專案的聲明
+Hide "People you may know"	隱藏「你可能認識的人」
+Hide "Suggested for you" posts	隱藏「為你推薦」貼文
+Hide AI-detected posts	隱藏 AI 偵測貼文
+Hide promoted posts	隱藏推廣貼文
+Hide Reels in the feed	隱藏動態消息中的 Reels
+Hide sponsored posts	隱藏贊助貼文
+Hide sponsored reels	隱藏贊助 Reels
+Hide sponsored stories	隱藏贊助限時動態
+Hide page suggestions and Facebook's own promos	隱藏粉絲專頁推薦與 Facebook 自家推廣
+Hide the Stories tray	隱藏限時動態列
+How far a photo or video you're saving has got, with a button to cancel it	顯示正在儲存的相片或影片進度，並提供取消按鈕
+Hushfacebook %1$s on Facebook %2$s	Hushfacebook %1$s / Facebook %2$s
+Hushfacebook is on	Hushfacebook 已啟用
+Hushfacebook is paused	Hushfacebook 已暫停
+Hushfacebook saves	Hushfacebook 儲存
+Hushfacebook settings	Hushfacebook 設定
+Hushfacebook settings couldn't open	無法開啟 Hushfacebook 設定
+Hushfacebook turns back on when Facebook restarts.	Facebook 重新啟動後，Hushfacebook 會恢復啟用。
+Import	匯入
+Import settings	匯入設定
+Importing settings	正在匯入設定
+Licenses	授權條款
+Link expired. Reopen the item and try again	連結已失效。請重新開啟該項目後再試
+Links	連結
+Material You theme	Material You 主題
+News feed	動態消息
+There's nothing to report yet. Turn on Debug logging, repeat what went wrong, then export again.	目前沒有可回報的資料。請開啟偵錯記錄，重現問題後再重新匯出。
+No screenshot watching for ads, and no reports of which apps you install.	不監控廣告截圖，也不回報你安裝了哪些 App。
+Not saved: that isn't a Facebook photo or video	未儲存：這不是 Facebook 相片或影片
+Not saved: the file is over 512 MB	未儲存：檔案超過 512 MB
+OK	確定
+Choose a folder name under Movies and Pictures. Invalid characters become underscores. Leave it blank to use the default folder, %1$s.	選擇 Movies 與 Pictures 下的資料夾名稱。無效字元會改成底線。留白則使用預設資料夾 %1$s。
+Open links in your browser	使用瀏覽器開啟連結
+Paid ads in the feed. They're dropped before Facebook adds them, so no gap is left.	動態消息中的付費廣告。會在 Facebook 加入前移除，因此不會留下空白。
+Pause Hushfacebook	暫停 Hushfacebook
+Posts Facebook files as promotions rather than as ads.	Facebook 歸類為推廣內容而不是廣告的貼文。
+Posts Facebook slips into your feed from people and pages you don't follow and groups you haven't joined.	Facebook 插入動態消息中、來自你未追蹤的使用者與粉絲專頁，以及尚未加入社團的貼文。
+Posts that Facebook's own detection marks as made with AI. A post that only its creator labelled as AI stays. It's off by default because it hasn't been tested on a real feed yet.	Facebook 自身偵測為 AI 產生的貼文。只有作者自行標註為 AI 的貼文仍會保留。此功能預設關閉，因為尚未在真實動態消息上完成測試。
+Profiles and some Settings pages open again on this re-signed build.	讓重新簽章版本中的個人檔案與部分設定頁面恢復正常開啟。
+Re-signed build fix	重新簽章版本修復
+Reading the settings file	正在讀取設定檔
+Reels and Watch	Reels 與 Watch
+Remove tracking from shared links	移除分享連結中的追蹤參數
+Retry	重試
+Save any story	儲存任何限時動態
+Save cancelled	已取消儲存
+Save folder	儲存資料夾
+Save full report	儲存完整報告
+Saved to %1$s	已儲存至 %1$s
+Saved to the gallery	已儲存到媒體庫
+Saved. Restart Facebook to apply this change.	已儲存。重新啟動 Facebook 後套用此變更。
+Save your switches and download settings to a file. Pause and Debug logging aren't included, and neither is the release check.	將開關與下載設定儲存到檔案。暫停、偵錯記錄與版本檢查不會包含在內。
+Check for new Hushfacebook releases	檢查 Hushfacebook 新版本
+Ask GitHub once a day at startup and show newer releases on the overview. Off by default. Nothing is downloaded.	每天啟動時向 GitHub 檢查一次，並在總覽顯示較新版本。預設關閉，不會下載任何內容。
+Check now	立即檢查
+Asks GitHub for the newest release right now, even with the switch above off.	立即向 GitHub 查詢最新版本，即使上方開關為關閉也會執行。
+Checking GitHub now.	正在檢查 GitHub。
+Hushfacebook %1$s is out. Update it in Morphe Manager.	Hushfacebook %1$s 已發布。請在 Morphe Manager 中更新。
+It targets Facebook %1$s.	適用於 Facebook %1$s。
+Hushfacebook %1$s targets Facebook %2$s.	Hushfacebook %1$s 適用於 Facebook %2$s。
+You have the newest Hushfacebook release.	你目前使用的是最新 Hushfacebook。
+The newest Hushfacebook release is %1$s.	最新 Hushfacebook 版本為 %1$s。
+Couldn't reach GitHub. Try again later.	無法連線至 GitHub。請稍後再試。
+GitHub is turning away checks from this network for now. Try again later.	GitHub 目前暫時拒絕來自此網路的檢查。請稍後再試。
+GitHub's answer couldn't be used. Try again later.	無法使用 GitHub 的回應。請稍後再試。
+Saves will go to a folder named %1$s.	儲存內容將放入名為 %1$s 的資料夾。
+Saving a photo	正在儲存相片
+Saving a video	正在儲存影片
+Saving the settings file	正在儲存設定檔
+Saving...	正在儲存…
+Set when you patched	套用補丁時設定
+Settings couldn't open	無法開啟設定
+Settings couldn't refresh completely. Reopen settings and try again.	設定無法完整重新整理。請重新開啟設定後再試。
+Settings exported.	設定已匯出。
+Settings imported. %1$d switch changed.	設定已匯入。已變更 %1$d 個開關。
+Settings imported. %1$d switches changed.	設定已匯入。已變更 %1$d 個開關。
+Settings imported. Saves will go to a folder named %1$s.	設定已匯入。儲存內容將放入名為 %1$s 的資料夾。
+Source code and issues	原始碼與問題回報
+Stays in while paused	暫停時仍保持啟用
+Stories	限時動態
+Takes tracking tags such as mibextid off the links you share or copy. A facebook.com/share/ link is made for one share, so Facebook can still trace it back to you.	從你分享或複製的連結移除 mibextid 等追蹤標籤。facebook.com/share/ 連結是為單次分享建立，因此 Facebook 仍可能追溯來源。
+Tap to turn it back on.	點一下即可重新啟用。
+That file is too large to be a settings file. Nothing was changed.	該檔案太大，不可能是設定檔。未做任何變更。
+That file isn't readable text, so it may have been damaged on the way. Nothing was changed.	該檔案不是可讀文字，可能在傳輸過程中損壞。未做任何變更。
+That file lists a setting twice, so there's no telling which value to use. Nothing was changed.	該檔案重複列出同一設定，無法判斷要使用哪個值。未做任何變更。
+That isn't a Hushfacebook settings file. Nothing was changed.	這不是 Hushfacebook 設定檔。未做任何變更。
+That settings file holds a value Hushfacebook can't read. Nothing was changed.	該設定檔包含 Hushfacebook 無法讀取的值。未做任何變更。
+That settings file is damaged or only partly downloaded. Nothing was changed.	該設定檔已損壞或僅下載部分內容。未做任何變更。
+That settings file was written by a newer Hushfacebook than this one. Nothing was changed.	該設定檔由較新版 Hushfacebook 建立。未做任何變更。
+the Audience Network block	Audience Network 封鎖
+the black background in dark mode	深色模式的純黑背景
+the block on downloading ads in the background	背景廣告下載封鎖
+the block on reports of ad screenshots and app installs	廣告截圖與 App 安裝回報封鎖
+The diagnostic report couldn't be saved yet. Try again in a moment.	目前尚無法儲存診斷報告。請稍後再試。
+The diagnostic report couldn't be saved. Try again.	無法儲存診斷報告。請再試一次。
+The file %1$s couldn't be removed. Delete it from %2$s to turn Hushfacebook back on.	無法移除檔案 %1$s。請從 %2$s 手動刪除，以重新啟用 Hushfacebook。
+the part of the Reels ad block patched into the app	已直接套入 App 的 Reels 廣告封鎖部分
+the re-signed build fix	重新簽章版本修復
+the recoloured dark mode	重新配色的深色模式
+The row of friend suggestions between posts, and the one on your own profile.	貼文之間的好友推薦列，以及你個人檔案上的好友推薦列。
+The row of stories at the top of the feed, Create story included.	動態消息頂端的限時動態列，包括「建立限時動態」。
+The rows of reels between posts, and the reels Facebook adds where your feed ends.	貼文之間的 Reels 列，以及 Facebook 在動態消息結尾加入的 Reels。
+The setting couldn't finish updating. Its saved value is shown.	設定無法完成更新，目前顯示已儲存的值。
+There's no diagnostic data to clear.	沒有可清除的診斷資料。
+There's no diagnostic data to put back.	沒有可還原的診斷資料。
+They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.	這些項目是在 Morphe Manager 套用補丁時選擇的，暫停功能不會關閉它們。若要變更，請重新套用補丁。
+This phone has no file picker, so there's no way to choose a file here.	此手機沒有檔案選擇器，因此無法在此選擇檔案。
+Try again, or go back to Facebook.	請再試一次，或返回 Facebook。
+The switch takes effect when Facebook restarts.	此開關會在 Facebook 重新啟動後生效。
+Use the system font	使用系統字型
+Use the phone's emoji	使用手機 Emoji
+Version	版本
+Version %1$s for Facebook %2$s	版本 %1$s，適用 Facebook %2$s
+Videos go to %1$s and photos to %2$s.	影片會儲存到 %1$s，相片則儲存到 %2$s。
+Open web links in your browser. Facebook's own pages stay in the app.	在瀏覽器中開啟網頁連結。Facebook 自己的頁面仍留在 App 內開啟。
+Record patch activity and show errors for a bug report. Leave off during normal use.	記錄補丁活動並顯示錯誤，供問題回報使用。一般使用時建議關閉。
+You paused Hushfacebook.	你已暫停 Hushfacebook。
+Your switches already match that file, so nothing will change.	目前開關已與該檔案相同，因此不會變更任何內容。
+Keep feed position on return	返回時保留動態消息位置
+Returning to Facebook within ten minutes keeps your place. Pull to refresh still works.	在十分鐘內返回 Facebook 會保留原本瀏覽位置。下拉重新整理仍可正常使用。
+A finished story stays on screen until you tap or swipe. Turn this off for Facebook's timing.	限時動態播放完後會停留在畫面，直到你點擊或滑動。關閉此功能可恢復 Facebook 原本的自動切換。
+Stop Story auto-advance	停止限時動態自動切換
+Copy a short report to the clipboard.	將簡短報告複製到剪貼簿。
+Save the full report in Download/Morphe.	將完整報告儲存到 Download/Morphe。
+Folder set to %1$s.	資料夾已設為 %1$s。
+Save	儲存
+Folder name	資料夾名稱
+Hide prompts and promos under reels	隱藏 Reels 下方的提示與推廣
+Remix, Use template, Add yours and Edits buttons, plus Stars, games, partner apps and outside links. The song and other labels stay.	隱藏「Remix」、「使用範本」、「輪到你了」、「Edits」按鈕，以及星星、遊戲、合作 App 與外部連結。歌曲與其他標籤會保留。
+Hide the Follow button on reels	隱藏 Reels 的追蹤按鈕
+The Follow button next to the reel's author. You can still follow them from their profile.	隱藏 Reel 作者旁的「追蹤」按鈕。你仍可從對方個人檔案追蹤。
+Hide comment and reaction previews	隱藏留言與表情回應預覽
+The comment Facebook previews under a reel and the bubbles of friends who reacted. Open the comments to see them all.	隱藏 Facebook 在 Reel 下方預覽的留言，以及有表情回應的好友泡泡。開啟留言仍可查看全部內容。
+Download quality	下載畫質
+Best	最佳
+Smallest	最小
+Each video saves at the best quality the player streams.	每部影片都以播放器串流提供的最佳畫質儲存。
+Each video saves at its lowest quality, for the smallest file.	每部影片都以最低畫質儲存，以取得最小檔案。
+Each video saves at %1$s or the closest quality below it. A video with nothing that low saves at the closest quality above.	每部影片會以 %1$s 或最接近且較低的畫質儲存。若沒有那麼低的畫質，則使用最接近且較高的畫質。
+Videos will save at the best quality.	影片將以最佳畫質儲存。
+Videos will save at their lowest quality, for the smallest files.	影片將以最低畫質儲存，以取得最小檔案。
+Videos will save at %1$s or the closest quality below it. A video with nothing that low will save at the closest quality above.	影片將以 %1$s 或最接近且較低的畫質儲存。若沒有那麼低的畫質，則使用最接近且較高的畫質。
+Settings imported.	設定已匯入。
+Video file name	影片檔名
+%1$s becomes the date and time of the save, %2$s the video's number on Facebook, %3$s who posted it and %4$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %5$s.	%1$s 會替換成儲存日期與時間，%2$s 是影片在 Facebook 的編號，%3$s 是發布者，%4$s 是發布日期。無法取得的資訊會省略；若名稱中完全沒有這些欄位，會自動加入日期。若資料夾內已有同名檔案，會在結尾加入儲存時間。無效字元會改成底線。留白則使用預設值 %5$s。
+Videos are named %1$s. Photos keep Facebook's own %2$s names.	影片會命名為 %1$s。相片則保留 Facebook 原本的 %2$s 名稱。
+Saved videos will be named %1$s.	儲存的影片將命名為 %1$s。
+File name	檔案名稱
+File name set to %1$s.	檔案名稱已設為 %1$s。
+Hide AI-detected reels and videos	隱藏 AI 偵測的 Reels 與影片
+No app on this phone can open the link. The address is %1$s.	此手機沒有 App 可以開啟該連結。網址為 %1$s。
+Hushfacebook pauses when Facebook restarts.	Facebook 重新啟動後，Hushfacebook 會進入暫停狀態。
+Pause, backup and diagnostics	暫停、備份與診斷
+Updates	更新
+Stop update prompts	停止更新提示
+Facebook stops asking you to update through Meta App Manager and stops having it look for one. Chat promotions aimed at older versions go too. A patched build can't install Meta's updates anyway.	Facebook 不再要求你透過 Meta App Manager 更新，也不再讓它搜尋更新。針對舊版本的聊天升級推廣也會移除。套用補丁的版本本來就無法安裝 Meta 官方更新。
+Reels and Watch videos that Facebook's own detection marks as made with AI, starting with the next batch Facebook loads. One that only its creator labelled as AI stays. It's off by default because it hasn't been tested on a real account yet.	隱藏 Facebook 自身偵測為 AI 產生的 Reels 與 Watch 影片，從下一批載入內容開始生效。只有作者自行標註為 AI 的內容會保留。此功能預設關閉，因為尚未在真實帳號完成測試。
+Don't send reel watch history	不要傳送 Reel 觀看紀錄
+Stop sending watched-reel lists to Facebook. It uses them to rank your feed, so watched reels may return.	停止向 Facebook 傳送已觀看 Reel 清單。Facebook 會用它排序你的內容，因此看過的 Reel 可能再次出現。
+the rename of the shared permissions	共用權限重新命名
+Room for Meta's apps	與 Meta App 共存
+Messenger, Facebook Lite, Business Suite and Workplace install beside this Facebook. It gives the two permissions they share with it names of its own.	讓 Messenger、Facebook Lite、Business Suite 與 Workplace 可與此 Facebook 同時安裝。Facebook 會將與它們共用的兩個權限改成自己的名稱。
+Opening Facebook	開啟 Facebook
+Open on a chosen tab	從指定分頁開啟
+Choose where Facebook opens from its icon. Notifications and links still open their destination.	選擇從 Facebook 圖示啟動時要開啟的分頁。通知與連結仍會開啟其原本目的地。
+Tab to open on	啟動分頁
+Home	首頁
+Feeds	動態消息
+Video	影片
+Friends	朋友
+Marketplace	Marketplace
+Notifications	通知
+Menu	功能表
+Facebook opens on %1$s. If your tab bar doesn't have it, Facebook opens on Home.	Facebook 會開啟 %1$s。若分頁列沒有此項目，則開啟首頁。
+Facebook will open on %1$s.	Facebook 將開啟 %1$s。
+Jump to a section	跳至設定區段
+Go straight to one group of settings. Back returns to where you were.	直接前往某一組設定。按返回會回到原本位置。
+Save videos other apps can open	以其他 App 可開啟的格式儲存影片
+Prefer H.264 video with AAC sound for apps such as WhatsApp. Quality may be lower than AV1. Without a compatible version, save as usual.	優先使用 H.264 影片搭配 AAC 音訊，以便 WhatsApp 等 App 開啟。畫質可能低於 AV1。若沒有相容版本，則照一般方式儲存。
+Chats	聊天室
+Hide the Get Messenger card	隱藏「取得 Messenger」卡片
+The card at the top of Chats that asks you to get the Messenger app goes while Messenger is installed. Without Messenger it stays, so you can still install it from there.	安裝 Messenger 後，聊天室頂端要求你取得 Messenger App 的卡片會隱藏。若未安裝 Messenger，卡片仍會保留，方便直接從該處安裝。
+Playback	播放
+Tap to play	點擊播放
+Videos, reels, stories and music wait for your tap. Facebook's Autoplay setting temporarily reads Off.	影片、Reels、限時動態與音樂都會等待你點擊後才播放。Facebook 的「自動播放」設定會暫時顯示為關閉。
+Marketplace only	僅保留 Marketplace
+Hide Upgrades	隱藏「升級」
+The Upgrades section and its offers leave Facebook's Menu. Settings, Help and support and the rest of the Menu stay.	從 Facebook 功能表移除「升級」區段及其優惠內容。「設定」、「使用說明和支援」及其他功能表項目都會保留。
+Hide Also from Meta	隱藏「Meta 旗下其他產品」
+The Also from Meta section leaves Facebook's Menu, with its links to Meta's other apps and its ads for Meta's devices. Your own shortcuts stay.	從 Facebook 功能表移除「Meta 旗下其他產品」區段，包括其他 Meta App 連結與 Meta 裝置廣告。你自己的捷徑會保留。
+Search	搜尋
+Hide Meta AI in search	在搜尋中隱藏 Meta AI
+Search results lose the Meta AI answer and the Ask Meta AI prompts, and a suggestion no longer sends your search to Meta AI. People, groups, pages and posts stay, and the Meta AI button still opens Meta AI.	搜尋結果不再顯示 Meta AI 回答與「詢問 Meta AI」提示，搜尋建議也不會再把你的搜尋導向 Meta AI。人物、社團、粉絲專頁與貼文仍會保留，Meta AI 按鈕本身仍可開啟 Meta AI。
+Comments	留言
+Default comment order	預設留言排序
+Use the order below. A choice made on a post lasts until restart. Links to comments keep Facebook's order.	使用下方設定的排序。在貼文中手動選擇的排序會維持到重新啟動為止。從留言連結進入時仍使用 Facebook 原本的排序。
+Comment order	留言排序
+Facebook's choice	由 Facebook 決定
+Most relevant	最相關
+Newest	最新
+All comments	所有留言
+Comments open in the order Facebook picks, which is usually Most relevant.	留言會依 Facebook 選擇的排序開啟，通常為「最相關」。
+A post's comments open with %1$s picked in their sort menu, where the post offers it.	若該貼文支援此排序，留言會以排序選單中的 %1$s 開啟。
+Comments will open in the order Facebook picks.	留言將依 Facebook 選擇的順序開啟。
+Comments will open with %1$s picked in their sort menu.	留言將以排序選單中的 %1$s 開啟。
+Hide sponsored search results	隱藏贊助搜尋結果
+Ads between the results when you search Facebook. What you searched for stays.	隱藏 Facebook 搜尋結果之間的廣告。真正的搜尋結果會保留。
+Hide sponsored profile posts	隱藏個人檔案中的贊助貼文
+Ads between the posts on someone's profile or a Page. Their own posts stay.	隱藏個人檔案或粉絲專頁貼文之間的廣告。原本的貼文會保留。
+the settings row in Facebook's Menu	Facebook 功能表中的設定列
+Hushfacebook settings can't open here. Long-press the Facebook logo instead.	無法從此處開啟 Hushfacebook 設定。請改為長按 Facebook 標誌。
+Hide suggested groups	隱藏建議社團
+The row of groups to join between posts, with its Discover more groups button. Posts from groups you're in stay.	隱藏貼文之間的加入社團推薦列及「探索更多社團」按鈕。你已加入社團的貼文仍會保留。
+Hide "Stories you might like"	隱藏「你可能會喜歡的限時動態」
+The row of Stories from people you aren't connected to that Facebook puts between posts. Your friends' Stories and the Stories tray stay.	隱藏 Facebook 插入貼文之間、來自你未連結對象的限時動態。好友限時動態與頂端限時動態列會保留。
+Block trending video notifications	封鎖熱門影片通知
+Trending videos and the reels Facebook picked for you stop showing up in your notifications.	停止顯示熱門影片及 Facebook 為你挑選的 Reels 通知。
+Block memory notifications	封鎖回顧通知
+Facebook's "On this day" memories stop showing up in your notifications.	停止顯示 Facebook「這一天」回顧通知。
+Block birthday notifications	封鎖生日通知
+No more reminders that it's a friend's birthday.	不再顯示朋友生日提醒。
+Block group and Page highlights	封鎖社團與粉絲專頁精選通知
+Digests of what's going on in groups, Pages and creators you follow stop. Comments, replies and mentions still come through.	停止顯示你追蹤的社團、粉絲專頁與創作者動態摘要。留言、回覆與提及通知仍會正常送達。
+Block "People you may know"	封鎖「你可能認識的人」
+Friend suggestions stop showing up in your notifications. Friend requests still come through.	停止顯示好友推薦通知。交友邀請仍會正常送達。
+Block nearby and weather notifications	封鎖附近地點與天氣通知
+Alerts about places near you and about the weather stop.	停止顯示附近地點及天氣相關通知。
+What always comes through	永遠保留的通知
+Messages, friend requests, comments, mentions, calls and login alerts, and any kind Hushfacebook doesn't know. Android's own settings for Facebook's notification categories work too, since Facebook drops a notification whose category you turned off. Facebook's server decides which categories you get, though, so they may not split these kinds out.	訊息、交友邀請、留言、提及、通話、登入警示，以及 Hushfacebook 尚未識別的通知類型都會保留。Android 對 Facebook 的通知分類設定也照常有效，因為 Facebook 會捨棄你關閉分類的通知。不過實際提供哪些通知分類由 Facebook 伺服器決定，因此不一定會將這些類型分開。
+Hide suggested stories	隱藏建議限時動態
+Keep friends and followed Pages in the Stories tray. Applies when Facebook next loads the tray.	限時動態列只保留好友與已追蹤粉絲專頁。Facebook 下次載入限時動態列時生效。
+Hide sponsored Marketplace listings	隱藏 Marketplace 贊助刊登
+Ads and boosted listings in Marketplace's feed. The other listings stay.	隱藏 Marketplace 動態中的廣告與付費推廣刊登。其他刊登內容會保留。
+Hide posts with words you choose	依指定文字隱藏貼文
+Posts whose text has a word or phrase from your list below. A post with a word from your keep list stays, and so does a post with no text. Your words only leave the phone in a settings file you export.	隱藏文字中包含下方清單指定單字或片語的貼文。若貼文含有保留清單中的文字則不隱藏，沒有文字的貼文也會保留。只有在你主動匯出設定檔時，這些文字才會離開手機。
+Words to hide	要隱藏的文字
+Words that keep a post	保留貼文的文字
+One word or phrase per line, up to %1$d, each %2$d to %3$d characters long. Capital letters don't matter, and a phrase matches anywhere in a post's text, inside longer words too.	每行一個單字或片語，最多 %1$d 個，每個長度需為 %2$d 到 %3$d 個字元。不分大小寫，而且片語出現在貼文文字的任何位置都會符合，包括較長單字內部。
+A post with any of these stays, even when it also has a word to hide. One per line, up to %1$d, each %2$d to %3$d characters long.	只要貼文包含其中任一文字，即使同時命中隱藏文字也會保留。每行一個，最多 %1$d 個，每個長度需為 %2$d 到 %3$d 個字元。
+One word or phrase per line	每行一個單字或片語
+%1$d line was left out. A phrase needs %2$d to %3$d characters, one given twice counts once, and a list holds %4$d.	已略過 %1$d 行。片語長度需為 %2$d 到 %3$d 個字元；重複項目只計一次；清單最多可容納 %4$d 個。
+%1$d lines were left out. A phrase needs %2$d to %3$d characters, one given twice counts once, and a list holds %4$d.	已略過 %1$d 行。片語長度需為 %2$d 到 %3$d 個字元；重複項目只計一次；清單最多可容納 %4$d 個。
+No words yet, so no post is hidden.	尚未設定任何文字，因此不會隱藏貼文。
+No words yet.	尚未設定任何文字。
+%1$d word or phrase.	%1$d 個單字或片語。
+%1$d words or phrases.	%1$d 個單字或片語。
+Hid %1$d post since Facebook started.	Facebook 啟動後已隱藏 %1$d 篇貼文。
+Hid %1$d posts since Facebook started.	Facebook 啟動後已隱藏 %1$d 篇貼文。
+Your list of words to hide will be empty.	你的隱藏文字清單將清空。
+Your list of words to hide will hold %1$d word or phrase.	你的隱藏文字清單將包含 %1$d 個單字或片語。
+Your list of words to hide will hold %1$d words or phrases.	你的隱藏文字清單將包含 %1$d 個單字或片語。
+Your list of words that keep a post will be empty.	你的保留貼文文字清單將清空。
+Your list of words that keep a post will hold %1$d word or phrase.	你的保留貼文文字清單將包含 %1$d 個單字或片語。
+Your list of words that keep a post will hold %1$d words or phrases.	你的保留貼文文字清單將包含 %1$d 個單字或片語。
+Writing	撰寫
+Tag suggestions only after @	只有輸入 @ 後才顯示標註建議
+Type @ before Facebook suggests someone to tag in posts or comments. Your text stays unchanged.	在貼文或留言中先輸入 @，Facebook 才會建議可標註的人。你的文字內容不會被修改。
+Resume long videos	續播長影片
+Resume videos over two minutes where you left off. Seek to start elsewhere. Reels, live videos and ads start as usual.	超過兩分鐘的影片會從上次離開的位置繼續播放。你仍可拖曳進度條從其他位置開始。Reels、直播與廣告仍照原本方式開始播放。
+Also hide posts labelled as AI	也隱藏標註為 AI 的貼文
+Posts whose creator marked them as made with AI. Facebook puts its AI label next to the name on these as well as on the posts its detection found, and with this on, both kinds go. It's off by default because it hasn't been tested on a real feed yet.	隱藏作者自行標註為 AI 製作的貼文。Facebook 會在這類貼文及其自行偵測出的 AI 貼文名稱旁顯示 AI 標籤；開啟後兩者都會隱藏。此功能預設關閉，因為尚未在真實動態消息完成測試。
+Return to regular Facebook	恢復一般 Facebook
+Restore the normal tabs at the next restart. Your other settings stay saved.	下次重新啟動時恢復一般分頁。其他設定仍會保留。
+Marketplace mode is off. Restart Facebook to restore its normal tabs.	Marketplace 模式已關閉。重新啟動 Facebook 後恢復一般分頁。
+Couldn't save the change. Try again.	無法儲存變更。請再試一次。
+Marketplace mode chooses the opening tab. Your previous choice stays saved.	Marketplace 模式會決定啟動分頁。你先前的選擇仍會保留。
+Restart needed. Marketplace mode will turn on the next time Facebook starts.	需要重新啟動。Facebook 下次啟動時會開啟 Marketplace 模式。
+Restart needed. The normal tabs will return the next time Facebook starts.	需要重新啟動。Facebook 下次啟動時會恢復一般分頁。
+Marketplace is hidden in Facebook's tab settings. Show it under Settings, Tab bar, Customize the bar. Your normal tabs stay available.	Marketplace 在 Facebook 分頁設定中被隱藏。請到「設定 → 頁籤列 → 自訂頁籤列」將它顯示。一般分頁仍可使用。
+Marketplace unavailable. Facebook hasn't supplied a Marketplace tab for this account. Your normal tabs stay available.	Marketplace 無法使用。Facebook 尚未為此帳號提供 Marketplace 分頁。一般分頁仍可使用。
+Couldn't check the tab bar. Your normal tabs stay available. Restart Facebook to try again.	無法檢查分頁列。一般分頁仍可使用。重新啟動 Facebook 後再試。
+Waiting for Facebook's tab bar. Marketplace mode will apply when Facebook builds it.	正在等待 Facebook 建立分頁列。建立完成後會套用 Marketplace 模式。
+Off. Turn on to open Marketplace and hide the feed and other social tabs after restarting Facebook.	目前關閉。開啟後，重新啟動 Facebook 將直接進入 Marketplace，並隱藏動態消息及其他社交分頁。
+Quiet social notifications	靜音社交通知
+Skip feed preloading	略過動態消息預載
+Marketplace mode is off.	Marketplace 模式已關閉。
+Paused with Hushfacebook. Your Marketplace choice stays saved. Tabs already hidden return after a restart while paused.	Hushfacebook 已暫停。Marketplace 選擇仍會保留；暫停期間重新啟動後，已隱藏的分頁會恢復。
+Silence video suggestions, memories, birthdays and friend suggestions while this mode is on. Messages and trading updates stay. Your other notification choices stay saved.	此模式開啟時，將影片推薦、回顧、生日與好友推薦通知靜音。訊息與交易更新仍會保留。其他通知設定不會改變。
+Reduce background feed loading while Marketplace mode is active. Some loading can still happen during startup.	Marketplace 模式啟用時減少背景動態消息載入。啟動期間仍可能有部分載入。
+Active. Marketplace, Notifications and Profile/Menu stay. Find Hushfacebook settings in Menu, under Settings and privacy.	已啟用。保留 Marketplace、通知及個人檔案／功能表。Hushfacebook 設定位於功能表的「設定和隱私」中。
+Marketplace mode and your start tab	Marketplace 模式與啟動分頁
+Ads, suggestions and word filters	廣告、推薦與文字篩選
+Suggestions, saving and auto-advance	推薦、儲存與自動切換
+Cleaner reels and video controls	Reels 清理與影片控制
+Tap to play and resume	點擊播放與續播
+Quality, format and file names	畫質、格式與檔案名稱
+Browse settings	瀏覽設定
+More settings	更多設定
+Additional Facebook preferences	其他 Facebook 偏好設定
+No matching settings	找不到符合的設定
+Try a different word or clear the search.	請嘗試其他關鍵字或清除搜尋。
+Search settings	搜尋設定
+Clear search	清除搜尋
+Your controls are active.	你的控制功能目前已啟用。
+Your choices are saved. Resume after restarting Facebook.	你的選擇已儲存。重新啟動 Facebook 後恢復運作。
+Pause	暫停
+Resume	恢復
+Undo	復原
+Example without post details	不含貼文詳細資料的範例
+Follow system	跟隨系統
+Interface language	介面語言
+Follow Facebook	跟隨 Facebook
+Traditional Chinese	繁體中文
+English	英文
+Open Chats in Messenger	使用 Messenger 開啟聊天室
+When Messenger is installed, opening Facebook's Chats sends you to Messenger. Turn this off to use Facebook's own Chats.	安裝 Messenger 時，開啟 Facebook 的聊天室會跳轉到 Messenger。關閉此功能則使用 Facebook 內建聊天室。
+A change here applies after Facebook restarts.	這裡的變更會在重新啟動 Facebook 後套用。
+Cancel saving this photo	取消儲存這張照片
+Cancel saving this video	取消儲存這段影片
+Copy a quick report or save the full one to Download/Morphe. Links, IDs, cookies and sign-in tokens are left out. Check it for other private text before you share it.	複製快速報告，或將完整報告儲存到 Download/Morphe。連結、ID、Cookie 與登入權杖會被移除。分享前請檢查是否還有其他私密文字。
+Copying to the gallery	正在複製到相簿
+Couldn't import the settings, and couldn't put back the ones you had. Check the switches on this screen.	無法匯入設定，也無法還原原本的設定。請檢查此畫面上的開關。
+Couldn't turn Hushfacebook back on. Try again.	無法重新啟用 Hushfacebook。請再試一次。
+Downloading	正在下載
+Joining the picture and sound	正在合併影像與聲音
+From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	從下次啟動開始，除「偵錯記錄」外的每個開關都會像關閉一樣運作。套用補丁時做出的變更仍會保留，你的選擇也會儲存。
+Settings exported. The app holding the file wouldn't let Hushfacebook read it back, so it wasn't checked.	設定已匯出。持有該檔案的應用程式不允許 Hushfacebook 讀回，因此尚未檢查。
+The app holding that file is taking too long, so Hushfacebook stopped waiting. Nothing was changed.	持有該檔案的應用程式回應太久，Hushfacebook 已停止等待。未變更任何內容。
+The app holding the last settings file still hasn't answered. Try again later.	持有上一個設定檔的應用程式仍未回應。請稍後再試。
+The app holding the settings file is taking too long, so Hushfacebook stopped waiting. That app may still finish saving it, so check the file before you rely on it.	持有設定檔的應用程式回應太久，Hushfacebook 已停止等待。該應用程式可能仍會完成儲存，使用前請先檢查檔案。
+The file %1$s couldn't be removed. Delete it from %2$s, then tap Resume again.	無法移除檔案 %1$s。請從 %2$s 刪除它，然後再次點選「恢復」。
+The settings file was saved, but it doesn't read back as what was written. Save it again as a new file.	設定檔已儲存，但讀回時與寫入內容不一致。請另存成新檔案。
+Until you resume, every switch but Debug logging acts as if it were off. Changes made when you patched stay in.	在你恢復之前，除「偵錯記錄」外的每個開關都會像關閉一樣運作。套用補丁時做出的變更仍會保留。
+How to block Reels	如何封鎖 Reels
+Reels show up in four places, and each one has its own control.	Reels 會出現在四個地方，每個地方都有自己的控制項。
+Reels in the feed	動態消息中的 Reels
+In News feed, Hide Reels in the feed blocks the rows of reels between posts.	在「動態消息」中，「隱藏動態消息中的 Reels」會封鎖貼文之間的 Reels 列。
+Reels that play by themselves	會自動播放的 Reels
+In Playback, Tap to play blocks autoplay, so reels and other videos wait for your tap.	在「播放」中，「點按播放」會封鎖自動播放，讓 Reels 與其他影片等待你點按。
+The Reels tab	Reels 分頁
+Facebook's own setting blocks it. Open Settings, Tab bar, Customize the bar and choose Hide next to Reels, which some accounts call Video. If neither is listed, Facebook hasn't given your account that option, and Hushfacebook has no switch for the tab.	Facebook 自己的設定可以封鎖它。請開啟「設定」、「分頁列」、「自訂分頁列」，並在 Reels 旁選擇「隱藏」；有些帳號會稱為 Video。如果兩者都沒有列出，代表 Facebook 尚未給你的帳號此選項，Hushfacebook 也沒有此分頁的開關。
+Everything except Marketplace	除 Marketplace 外的所有內容
+In Opening Facebook, Marketplace only blocks the feed, the Reels tab and the other social tabs after a restart.	在「開啟 Facebook」中，「僅使用 Marketplace」會在重新啟動後封鎖動態消息、Reels 分頁與其他社交分頁。
+Not in this build. To block this, choose the %1$s patch in Morphe Manager and patch again.	此建置未包含。若要封鎖這項內容，請在 Morphe Manager 選擇 %1$s 補丁並重新套用補丁。
+No time limit	無時間限制
+With the switch above on, your place stays however long you're away. Pull to refresh and a fresh start still load new posts.	開啟上方開關後，無論離開多久都會保留你的位置。下拉重新整理與全新啟動仍會載入新貼文。
+%1$d setting found	找到 %1$d 個設定
+%1$d settings found	找到 %1$d 個設定
+Supported links	支援的連結
+Android verified this app for Facebook's web addresses, so their links open here.	Android 已將此應用程式驗證為 Facebook 網址的處理程式，因此這些連結會在這裡開啟。
+Facebook's web addresses are selected for this app in Android's settings, so their links open here.	Facebook 的網址已在 Android 設定中選給此應用程式，因此這些連結會在這裡開啟。
+Only some of Facebook's web addresses are selected for this app, and links to the rest open elsewhere. Tap to select them in Android's settings.	只有部分 Facebook 網址選給此應用程式，其餘連結會在其他地方開啟。點一下可在 Android 設定中選取。
+None of Facebook's web addresses are selected for this app, so their links open elsewhere. Tap to select them in Android's settings.	沒有任何 Facebook 網址選給此應用程式，因此這些連結會在其他地方開啟。點一下可在 Android 設定中選取。
+Opening supported links is off for this app in Android's settings. Tap to turn it on.	此應用程式的「開啟支援的連結」已在 Android 設定中關閉。點一下可開啟。
+Android didn't say which links open here. Tap to check in Android's settings.	Android 沒有說明哪些連結會在這裡開啟。點一下可在 Android 設定中檢查。
+Android 11 doesn't say which links open here. Tap to open this app's settings, then Open by default.	Android 11 不會說明哪些連結會在這裡開啟。點一下可開啟此應用程式的設定，然後前往「預設開啟」。
+Selecting links by hand	手動選擇連結
+Android checks Facebook's links against Meta's signing key, which a re-signed build doesn't have. Selecting the addresses sends their links here again. It doesn't restore Meta's verification, and your other link settings stay as they are.	Android 會用 Meta 的簽署金鑰檢查 Facebook 連結，而重新簽署的建置沒有這把金鑰。選取這些網址可再次讓其連結在這裡開啟。這不會恢復 Meta 的驗證，你的其他連結設定也會保留。
+Android's settings for this app didn't open. Open App info from Facebook's icon, then Open by default.	無法開啟此應用程式的 Android 設定。請從 Facebook 圖示開啟「應用程式資訊」，再前往「預設開啟」。

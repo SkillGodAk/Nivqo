@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s patch</item>
+        <item quantity="other">%s patcher</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s patch-alternativ</item>
+        <item quantity="other">%s patch-alternativer</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Patchkilder for %s app</item>
+        <item quantity="other">Patchkilder for %s apper</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s kilde er skjult. Trykk for å vise</item>
+        <item quantity="other">%s kilder er skjult. Trykk for å vise</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s matchende patch</item>
+        <item quantity="other">%s matchende patcher</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s kilde</item>
+        <item quantity="other">%s kilder</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s pakke</item>
+        <item quantity="other">%s pakker</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">Utførte %s patch</item>
+        <item quantity="other">Utførte %s patcher</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK-fil</item>
+        <item quantity="other">%s APK-filer</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">Installerte %s app</item>
+        <item quantity="other">Installerte %s apper</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">Installerte %s app på nytt</item>
+        <item quantity="other">Installerte %s apper på nytt</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">Avinstallerte %s app</item>
+        <item quantity="other">Avinstallerte %s apper</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Avinstallere %s app?</item>
+        <item quantity="other">Avinstallere %s apper?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s app klar for patching</item>
+        <item quantity="other">%s apper klare for patching</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s app kan patches på nytt</item>
+        <item quantity="other">%s apper kan patches på nytt</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">Hoppet over %s app</item>
+        <item quantity="other">Hoppet over %s apper</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Fjernet %s utdatert patch fra lagret valg</item>
+        <item quantity="other">Fjernet %s utdaterte patcher fra lagret valg</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s kilde installert</item>
+        <item quantity="other">%s kilder installert</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s skjult app</item>
+        <item quantity="other">%s skjulte apper</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s app</item>
+        <item quantity="other">%s apper</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s valgt</item>
+        <item quantity="other">%s valgte</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Kopierte %s patch fra valgt pakke</item>
+        <item quantity="other">Kopierte %s patcher fra valgt pakke</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s kjerne</item>
+        <item quantity="other">%s kjerner</item>
+    </plurals>
+</resources>

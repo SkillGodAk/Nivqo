@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s yamaq</item>
+        <item quantity="other">%s yamaq</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s yamaq seçimi</item>
+        <item quantity="other">%s yamaq seçimi</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">%s tətbiq üçün yamaq mənbələri</item>
+        <item quantity="other">%s tətbiq üçün yamaq mənbələri</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s mənbə gizlidir. Göstərmək üçün toxun</item>
+        <item quantity="other">%s mənbə gizlidir. Göstərmək üçün toxun</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s uyğun yamaq</item>
+        <item quantity="other">%s uyğun yamaq</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s mənbə</item>
+        <item quantity="other">%s mənbə</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s paket</item>
+        <item quantity="other">%s paket</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">%s yamaq icra olundu</item>
+        <item quantity="other">%s yamaq icra olundu</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK faylı</item>
+        <item quantity="other">%s APK faylı</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">%s tətbiq quraşdırıldı</item>
+        <item quantity="other">%s tətbiq quraşdırıldı</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">%s tətbiq yenidən quraşdırıldı</item>
+        <item quantity="other">%s tətbiq yenidən quraşdırıldı</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">%s tətbiq silindi</item>
+        <item quantity="other">%s tətbiq silindi</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">%s tətbiq silinsin?</item>
+        <item quantity="other">%s tətbiq silinsin?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s tətbiq yamaqlanmağa hazırdır</item>
+        <item quantity="other">%s tətbiq yamaqlanmağa hazırdır</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s tətbiq yenidən yamaqlana bilər</item>
+        <item quantity="other">%s tətbiq yenidən yamaqlana bilər</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">%s tətbiq ötürüldü</item>
+        <item quantity="other">%s tətbiq ötürüldü</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Saxlanılan seçimdən %s köhnəlmiş yamaq silindi</item>
+        <item quantity="other">Saxlanılan seçimdən %s köhnəlmiş yamaq silindi</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s mənbə quraşdırılıb</item>
+        <item quantity="other">%s mənbə quraşdırılıb</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s gizli tətbiq</item>
+        <item quantity="other">%s gizli tətbiq</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s tətbiq</item>
+        <item quantity="other">%s tətbiq</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s seçildi</item>
+        <item quantity="other">%s seçildi</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Seçilmiş paketdən %s yamaq köçürüldü</item>
+        <item quantity="other">Seçilmiş paketdən %s yamaq köçürüldü</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s nüvə</item>
+        <item quantity="other">%s nüvə</item>
+    </plurals>
+</resources>

@@ -1,0 +1,21 @@
+package app.morphe.manager.di
+
+import app.morphe.manager.ui.viewmodel.*
+import org.koin.core.module.dsl.viewModelOf
+import org.koin.dsl.module
+
+val viewModelModule = module {
+    viewModelOf(::MainViewModel)
+    viewModelOf(::HomeViewModel)
+    viewModelOf(::ThemeSettingsViewModel)
+    viewModelOf(::SettingsViewModel)
+    viewModelOf(::PatcherViewModel)
+    viewModelOf(::BatchPatcherViewModel)
+    viewModelOf(::InstallViewModel)
+    viewModelOf(::UpdateViewModel)
+    viewModelOf(::ImportExportViewModel)
+    viewModelOf(::AboutViewModel)
+    viewModelOf(::InstalledAppInfoViewModel)
+    viewModelOf(::PatchOptionsViewModel)
+    viewModelOf(::StorageManagementViewModel)
+}

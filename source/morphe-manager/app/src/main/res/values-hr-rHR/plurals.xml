@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s patch</item>
+        <item quantity="few">%s patcheva </item>
+        <item quantity="other">%s patcheva </item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s opcija patchanja</item>
+        <item quantity="few">%s opcije patchanja</item>
+        <item quantity="other">%s opcija patchanja</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Izvori zakrpa za %s aplikaciju</item>
+        <item quantity="few">Izvori zakrpa za %s aplikacije</item>
+        <item quantity="other">Izvori zakrpa za %s aplikacija</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s izvor skriven. Dodirnite za prikaz</item>
+        <item quantity="few">%s izvora skrivena. Dodirnite za prikaz</item>
+        <item quantity="other">%s izvora skriveno. Dodirnite za prikaz</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s odgovarajuća zakrpa</item>
+        <item quantity="few">%s odgovarajuće zakrpe</item>
+        <item quantity="other">%s odgovarajućih zakrpa</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s izvor</item>
+        <item quantity="few">%s izvori patcheva</item>
+        <item quantity="other">%s izvora patcheva</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s paket</item>
+        <item quantity="few">%s paketa</item>
+        <item quantity="other">%s paketa</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">Izvršen %s patch</item>
+        <item quantity="few">Executed %s patcheva</item>
+        <item quantity="other">Executed  %s patcheva</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s aplikacija</item>
+        <item quantity="few">%s aplikacija</item>
+        <item quantity="other">%s aplikacija</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">Instalirana %s aplikacija</item>
+        <item quantity="few">Instalirano %s aplikacija</item>
+        <item quantity="other">Instalirano %s aplikacija</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">Ponovno instalirana %s aplikacija</item>
+        <item quantity="few">Ponovno instalirano %s aplikacija</item>
+        <item quantity="other">Ponovno instalirano %s aplikacija</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">Deinstalirana %s aplikacija</item>
+        <item quantity="few">Deinstalirano %s aplikacija</item>
+        <item quantity="other">Deinstalirano %s aplikacija</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Deinstalirati %s aplikaciju?</item>
+        <item quantity="few">Deinstalirati %s aplikacija?</item>
+        <item quantity="other">Deinstalirati %s aplikacija?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s aplikacija spremna za patchanje</item>
+        <item quantity="few">%s aplikacije spremne za patchanje</item>
+        <item quantity="other">%s aplikacija spremno za patchanje</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s aplikacija može biti ponovno patchana</item>
+        <item quantity="few">%s aplikacije mogu biti ponovno patchane</item>
+        <item quantity="other">%s aplikacija može biti ponovno patchano</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">Preskočena %s aplikacija</item>
+        <item quantity="few">Preskočeno %s aplikacija</item>
+        <item quantity="other">Preskočeno %s aplikacija</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Uklonjen je %s zastario patch iz spremljenog odabira</item>
+        <item quantity="few">Uklonjeno %s zastarjelih patcheva iz spremljenog odabira</item>
+        <item quantity="other">Uklonjeno %s zastarjelih patcheva iz spremljenog odabira</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s izvor instaliran</item>
+        <item quantity="few">%s izvora instalirano</item>
+        <item quantity="other">%s izvora instalirano</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s skrivena aplikacija</item>
+        <item quantity="few">%s skrivenih aplikacija</item>
+        <item quantity="other">%s skrivenih aplikacija</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s aplikacija</item>
+        <item quantity="few">%s aplikacija</item>
+        <item quantity="other">%s aplikacija</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s odabrana</item>
+        <item quantity="few">%s odabrane</item>
+        <item quantity="other">%s odabrano</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Kopiran je %s patch iz odabranog paketa</item>
+        <item quantity="few">Kopirana su %s patcha iz odabranog paketa</item>
+        <item quantity="other">Kopirano je %s patcheva iz odabranog paketa</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s jezgra</item>
+        <item quantity="few">%s jezgre</item>
+        <item quantity="other">%s jezgri</item>
+    </plurals>
+</resources>

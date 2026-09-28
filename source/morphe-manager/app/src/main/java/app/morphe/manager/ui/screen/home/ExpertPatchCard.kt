@@ -1,0 +1,380 @@
+/*
+ * Copyright 2026 Morphe.
+ * https://github.com/MorpheApp/morphe-manager
+ */
+
+package app.morphe.manager.ui.screen.home
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import app.morphe.manager.R
+import app.morphe.manager.patcher.patch.PatchInfo
+import app.morphe.manager.patcher.patch.PatchLockState
+import app.morphe.manager.patcher.patch.blocksToggle
+import app.morphe.manager.ui.screen.shared.*
+import app.morphe.manager.util.toast
+
+/**
+ * Bundle controls: pill row with per-bundle bulk actions.
+ *
+ * A null [onCopyFromBundle] drops that pill, for the callers where a selection has nowhere
+ * to be copied from.
+ */
+@Composable
+internal fun BundlePatchControls(
+    enabledCount: Int,
+    totalCount: Int,
+    holdsUniversalPatches: Boolean,
+    onSelectAll: () -> Unit,
+    onDeselectAll: () -> Unit,
+    onResetToDefault: () -> Unit,
+    onRestoreSaved: () -> Unit,
+    onCopyFromBundle: (() -> Unit)?,
+    hasSavedSelection: Boolean,
+    modifier: Modifier = Modifier,
+    /** True when this "Enable all" tap would also enable the universal patches. */
+    warnOnUniversalAll: Boolean = false
+) {
+    val selectAllLabel = stringResource(R.string.expert_mode_enable_all)
+    val defaultLabel = stringResource(R.string.expert_mode_reset_to_default)
+    val restoreLabel = stringResource(R.string.expert_mode_restore_saved)
+    val deselectAllLabel = stringResource(R.string.expert_mode_disable_all)
+
+    // The second "Enable all" tap applies every universal patch at once, which is a common
+    // cause of conflicts and failed patching. Confirmation makes that risk explicit.
+    var showUniversalAllWarning by remember { mutableStateOf(false) }
+
+    // Universal patches stay off until a second tap, so the first one must not claim otherwise
+    val enabledDone = if (holdsUniversalPatches) {
+        stringResource(R.string.expert_mode_enable_all_universal_pending)
+    } else {
+        stringResource(R.string.expert_mode_enable_all_done)
+    }
+    val disabledDone = stringResource(R.string.expert_mode_disable_all_done)
+    val resetDone = stringResource(R.string.expert_mode_reset_to_default_done)
+    val restoredDone = stringResource(R.string.expert_mode_restore_saved_done)
+
+    // Played by hand rather than on tap, since the tap may only open the warning below
+    val selectAllConfirmation = rememberPillConfirmationState()
+    val selectAll = {
+        onSelectAll()
+        selectAllConfirmation.show(enabledDone)
+    }
+
+    ActionPillRow(modifier = modifier) {
+        ActionPillButton(
+            onClick = {
+                if (warnOnUniversalAll) showUniversalAllWarning = true else selectAll()
+            },
+            icon = Icons.Outlined.DoneAll,
+            contentDescription = selectAllLabel,
+            tooltip = selectAllLabel,
+            confirmationState = selectAllConfirmation,
+            enabled = enabledCount < totalCount,
+            colors = tonalIconColors(
+                container = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                content = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        )
+        ActionPillButton(
+            onClick = onResetToDefault,
+            icon = Icons.Outlined.Recommend,
+            contentDescription = defaultLabel,
+            tooltip = defaultLabel,
+            confirmation = resetDone,
+            colors = tonalIconColors(
+                container = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                content = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        )
+        ActionPillButton(
+            onClick = onRestoreSaved,
+            icon = Icons.Outlined.History,
+            contentDescription = restoreLabel,
+            tooltip = restoreLabel,
+            confirmation = restoredDone,
+            enabled = hasSavedSelection,
+            colors = tonalIconColors(
+                container = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                content = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        )
+        if (onCopyFromBundle != null) {
+            val copyLabel = stringResource(R.string.expert_mode_copy_from_bundle)
+            ActionPillButton(
+                onClick = onCopyFromBundle,
+                icon = Icons.Outlined.ContentCopy,
+                contentDescription = copyLabel,
+                tooltip = copyLabel,
+                colors = tonalIconColors(
+                    container = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+                    content = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            )
+        }
+        ActionPillButton(
+            onClick = onDeselectAll,
+            icon = Icons.Outlined.ClearAll,
+            contentDescription = deselectAllLabel,
+            tooltip = deselectAllLabel,
+            confirmation = disabledDone,
+            enabled = enabledCount > 0,
+            colors = tonalIconColors(
+                container = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                content = MaterialTheme.colorScheme.error
+            )
+        )
+    }
+
+    if (showUniversalAllWarning) {
+        ConfirmDialog(
+            title = stringResource(R.string.expert_mode_universal_all_warning_title),
+            message = stringResource(R.string.expert_mode_universal_all_warning_message),
+            primaryText = stringResource(R.string.enable),
+            isPrimaryDestructive = false,
+            onDismiss = { showUniversalAllWarning = false },
+            onConfirm = {
+                showUniversalAllWarning = false
+                selectAll()
+            }
+        )
+    }
+}
+
+/**
+ * Tonal button colors for this screen: only the tint carries meaning, the disabled pair is the
+ * same washed-out surface everywhere.
+ */
+@Composable
+private fun tonalIconColors(
+    container: Color,
+    content: Color,
+    disabledContent: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+) = IconButtonDefaults.filledTonalIconButtonColors(
+    containerColor = container,
+    contentColor = content,
+    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+    disabledContentColor = disabledContent
+)
+
+/**
+ * Individual patch card with toggle and options button.
+ */
+@Composable
+internal fun PatchCard(
+    patch: PatchInfo,
+    isEnabled: Boolean,
+    modifier: Modifier = Modifier,
+    isNew: Boolean = false,
+    buildsClone: Boolean = false,
+    hasRequiredOptionsMissing: Boolean = false,
+    hasCustomOptions: Boolean = false,
+    lockState: PatchLockState = PatchLockState.NONE,
+    onToggle: () -> Unit,
+    onConfigureOptions: () -> Unit,
+    hasOptions: Boolean
+) {
+    // Localized strings for accessibility
+    val settings = stringResource(R.string.settings)
+    val enabledState = stringResource(R.string.enabled)
+    val disabledState = stringResource(R.string.disabled)
+    val patchState = if (isEnabled) enabledState else disabledState
+    val newLabel = stringResource(R.string.expert_mode_new_patches)
+    val cloneLabel = stringResource(R.string.clone)
+    val customizedLabel = stringResource(R.string.expert_mode_options_customized)
+    // The card speaks for its whole contents, so the badges have to be read out here or not at all
+    val badges = listOfNotNull(newLabel.takeIf { isNew }, cloneLabel.takeIf { buildsClone })
+    val contentDesc = remember(patch.displayName, patchState, badges) {
+        (listOf(patch.displayName, patchState) + badges).joinToString(", ")
+    }
+
+    val context = LocalContext.current
+    val lockedMessage = when (lockState) {
+        PatchLockState.LOCKED_ON  -> stringResource(R.string.expert_mode_patch_required_by_installer)
+        PatchLockState.LOCKED_OFF -> stringResource(R.string.expert_mode_patch_unavailable_for_installer)
+        PatchLockState.NONE       -> null
+    }
+    val onCardClick: () -> Unit = if (lockState.blocksToggle(isEnabled) && lockedMessage != null) {
+        { context.toast(lockedMessage) }
+    } else onToggle
+
+    val colors = MaterialTheme.colorScheme
+    val showMissingRequired = hasRequiredOptionsMissing && isEnabled
+    // A missing required option blocks the run, so it outranks the tint that only reports
+    // that the defaults were changed
+    val showCustomOptions = hasCustomOptions && isEnabled && !showMissingRequired
+    val optionsDesc = remember(patch.displayName, settings, customizedLabel, showCustomOptions) {
+        listOfNotNull(patch.displayName, settings, customizedLabel.takeIf { showCustomOptions })
+            .joinToString(", ")
+    }
+    val containerColor = when {
+        isNew && isEnabled -> colors.tertiaryContainer.copy(alpha = 0.55f)
+        isNew -> colors.tertiaryContainer.copy(alpha = 0.25f)
+        isEnabled -> colors.surfaceColorAtElevation(2.dp)
+        else -> colors.surfaceColorAtElevation(1.dp).copy(alpha = 0.5f)
+    }
+
+    SettingsItemCard(
+        onClick = onCardClick,
+        color = containerColor,
+        borderWidth = 1.dp,
+        borderColor = when {
+            showMissingRequired -> colors.error.copy(alpha = 0.6f)
+            !isEnabled -> colors.outlineVariant.copy(alpha = 0.5f)
+            else -> colors.outlineVariant
+        },
+        modifier = modifier.semantics {
+            stateDescription = patchState
+            contentDescription = contentDesc
+        }
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Defaults.ContentPadding),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Patch info
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = if (hasOptions) 8.dp else 0.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Name row: patch name + "New" badge inline
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = patch.displayName,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isEnabled)
+                                LocalDialogTextColor.current
+                            else
+                                LocalDialogSecondaryTextColor.current.copy(alpha = 0.5f),
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (isNew) {
+                            StatusBadge(
+                                text = newLabel,
+                                tone = SemanticTone.Primary
+                            )
+                        }
+                        // Read from how the patch declares its option, so it warns early without
+                        // being relied on: the run itself is checked against the APK it produced
+                        if (buildsClone) {
+                            StatusBadge(
+                                text = cloneLabel,
+                                icon = Icons.Outlined.ContentCopy,
+                                tone = SemanticTone.Warning
+                            )
+                        }
+                    }
+
+                    if (!patch.description.isNullOrBlank()) {
+                        Text(
+                            text = patch.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isEnabled)
+                                LocalDialogSecondaryTextColor.current
+                            else
+                                LocalDialogSecondaryTextColor.current.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+
+                // Options button (only enabled if patch is enabled)
+                if (hasOptions) {
+                    FilledTonalIconButton(
+                        onClick = {
+                            // Prevent click propagation to card
+                            onConfigureOptions()
+                        },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .semantics {
+                                contentDescription = optionsDesc
+                            },
+                        enabled = isEnabled,
+                        colors = tonalIconColors(
+                            container = when {
+                                showMissingRequired -> colors.errorContainer.copy(alpha = 0.8f)
+                                showCustomOptions -> colors.primaryContainer.copy(alpha = 0.7f)
+                                else -> colors.secondaryContainer.copy(alpha = 0.6f)
+                            },
+                            content = when {
+                                showMissingRequired -> colors.error
+                                showCustomOptions -> colors.onPrimaryContainer
+                                else -> colors.onSecondaryContainer
+                            },
+                            disabledContent = colors.onSurfaceVariant.copy(alpha = 0.3f)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Settings,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+
+            if (lockedMessage != null) {
+                HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.5f))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.onSurface.copy(alpha = 0.06f))
+                        .padding(
+                            horizontal = Defaults.ContentPadding,
+                            vertical = Defaults.ContentPaddingSmall,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(
+                            imageVector = when (lockState) {
+                                PatchLockState.LOCKED_ON  -> Icons.Outlined.Lock
+                                PatchLockState.LOCKED_OFF -> Icons.Outlined.Block
+                                PatchLockState.NONE       -> Icons.Outlined.Lock
+                            },
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = colors.onSurfaceVariant,
+                        )
+                        Text(
+                            text = lockedMessage,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colors.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

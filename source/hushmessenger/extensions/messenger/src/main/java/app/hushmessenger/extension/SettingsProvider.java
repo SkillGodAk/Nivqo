@@ -1,0 +1,23 @@
+package app.hushmessenger.extension;
+
+import android.app.Application;
+import android.content.ContentProvider;
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+
+/** Initializes preferences before the main process executes UI hooks. Never exported. */
+public final class SettingsProvider extends ContentProvider {
+    @Override public boolean onCreate() {
+        Context context = getContext();
+        Settings.initialize(context);
+        SettingsEntry.installProcess(context);
+        return true;
+    }
+    @Override public Cursor query(Uri uri, String[] projection, String selection, String[] args, String order) { return null; }
+    @Override public String getType(Uri uri) { return null; }
+    @Override public Uri insert(Uri uri, ContentValues values) { throw new UnsupportedOperationException(); }
+    @Override public int delete(Uri uri, String selection, String[] args) { throw new UnsupportedOperationException(); }
+    @Override public int update(Uri uri, ContentValues values, String selection, String[] args) { throw new UnsupportedOperationException(); }
+}

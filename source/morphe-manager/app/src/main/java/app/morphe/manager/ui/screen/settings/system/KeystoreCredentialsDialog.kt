@@ -1,0 +1,126 @@
+/*
+ * Copyright 2026 Morphe.
+ * https://github.com/MorpheApp/morphe-manager
+ */
+
+package app.morphe.manager.ui.screen.settings.system
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.FolderZip
+import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import app.morphe.manager.R
+import app.morphe.manager.ui.screen.shared.*
+import app.morphe.manager.util.KeystoreInputFormat
+
+/**
+ * Keystore Credentials Dialog.
+ * Allows entering alias and password for keystore import.
+ */
+@Composable
+fun KeystoreCredentialsDialog(
+    onDismiss: () -> Unit,
+    initialFormat: KeystoreInputFormat = KeystoreInputFormat.KEYSTORE,
+    onSubmit: (alias: String, keyPassword: String, storePassword: String, format: KeystoreInputFormat) -> Unit
+) {
+    var alias by rememberSaveable { mutableStateOf("") }
+    var pass by rememberSaveable { mutableStateOf("") }
+    var format by rememberSaveable(initialFormat) { mutableStateOf(initialFormat) }
+
+    AppDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.settings_system_import_keystore_dialog_title),
+        footer = {
+            AppDialogButtonRow(
+                primaryText = stringResource(R.string.import_),
+                onPrimaryClick = { onSubmit(alias, pass, "", format) },
+                secondaryText = stringResource(android.R.string.cancel),
+                onSecondaryClick = onDismiss
+            )
+        }
+    ) {
+        val textColor = LocalDialogTextColor.current
+        val secondaryColor = LocalDialogSecondaryTextColor.current
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
+        ) {
+            Text(
+                text = stringResource(R.string.settings_system_import_keystore_dialog_description),
+                style = MaterialTheme.typography.bodyLarge,
+                color = secondaryColor,
+                textAlign = TextAlign.Center
+            )
+
+            // Format selector
+            val formatItems = remember {
+                KeystoreInputFormat.entries.associate { it.displayName to it.name }
+            }
+            AppDialogDropdownTextField(
+                value = format.name,
+                onValueChange = { name ->
+                    format = KeystoreInputFormat.entries.firstOrNull { it.name == name } ?: format
+                },
+                dropdownItems = formatItems,
+                allowCustomValue = false,
+                label = { Text(stringResource(R.string.settings_system_import_keystore_dialog_format_field)) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.FolderZip,
+                        contentDescription = null,
+                        tint = textColor.copy(alpha = 0.7f)
+                    )
+                }
+            )
+
+            // Alias Input
+            AppDialogTextField(
+                value = alias,
+                onValueChange = { alias = it },
+                label = {
+                    Text(stringResource(R.string.settings_system_import_keystore_dialog_alias_field))
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Person,
+                        contentDescription = null,
+                        tint = textColor.copy(alpha = 0.7f)
+                    )
+                },
+                showClearButton = true
+            )
+
+            // Password Input
+            AppDialogTextField(
+                value = pass,
+                onValueChange = { pass = it },
+                label = {
+                    Text(stringResource(R.string.settings_system_import_keystore_dialog_password_field))
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Key,
+                        contentDescription = null,
+                        tint = textColor.copy(alpha = 0.7f)
+                    )
+                },
+                isPassword = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            )
+        }
+    }
+}

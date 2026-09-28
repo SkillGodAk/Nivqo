@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s ta tuzatish</item>
+        <item quantity="other">%s ta tuzatishlar</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s ta tuzatish imkoniyati</item>
+        <item quantity="other">%s ta tuzatish imkoniyatlari</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s manba</item>
+        <item quantity="other">%s manbalar</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s paket</item>
+        <item quantity="other">%s paketlar</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">%s ta tuzatish bajarildi</item>
+        <item quantity="other">%s ta tuzatishlar bajarildi</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK fayli</item>
+        <item quantity="other">%s APK fayllari</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">%s ilova o‘rnatildi</item>
+        <item quantity="other">%s ta ilova o‘rnatildi</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">%s ilova qayta o‘rnatildi</item>
+        <item quantity="other">%s ta ilova qayta o‘rnatildi</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">%s ilova o‘chirildi</item>
+        <item quantity="other">%s ta ilova o‘chirildi</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">%s ilovani o‘chirmoqchimisiz?</item>
+        <item quantity="other">%s ta ilovani o‘chirmoqchimisiz?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s ilova yangilanishga tayyor</item>
+        <item quantity="other">%s ta ilova yangilanishga tayyor</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s ta ilova qayta yamoqlanishi mumkin</item>
+        <item quantity="other">%s ta ilova qayta yamoqlanishi mumkin</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">%s ilova o‘tkazib yuborildi</item>
+        <item quantity="other">%s ta ilova o‘tkazib yuborildi</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Saqlangan tanlamadan %s eskirgan tuzatish oʻchirildi</item>
+        <item quantity="other">Saqlangan tanlamadan %s ta eskirgan tuzatish oʻchirildi</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s manba oʻrnatildi</item>
+        <item quantity="other">%s manbalar oʻrnatildi</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s ta yashirin ilova</item>
+        <item quantity="other">%s ta yashirin ilovalar</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s ta ilova</item>
+        <item quantity="other">%s ta ilova</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Tanlangan to\'plamdan %s qo\'shimcha nusxalandi</item>
+        <item quantity="other">Tanlangan to\'plamdan %s qo\'shimcha nusxalandi</item>
+    </plurals>
+</resources>

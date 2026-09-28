@@ -1,0 +1,748 @@
+/*
+ * Copyright 2026 Morphe.
+ * https://github.com/MorpheApp/morphe-manager
+ */
+
+package app.morphe.manager.ui.screen.home
+
+import android.view.HapticFeedbackConstants
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.morphe.manager.R
+import app.morphe.manager.domain.repository.PatchBundleRepository
+import app.morphe.manager.domain.repository.SourceMuteRepository
+import app.morphe.manager.domain.repository.appsToKeepFrom
+import app.morphe.manager.patcher.patch.PatchInfo
+import app.morphe.manager.ui.model.HomeAppItem
+import app.morphe.manager.ui.screen.shared.*
+import app.morphe.manager.util.toast
+import app.morphe.manager.util.withToast
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
+import java.util.Locale
+
+/**
+ * Dialog that shows available patches for a specific app.
+ * Shown when the user swipes right on a home app card.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppPatchesDialog(
+    item: HomeAppItem,
+    patchesByBundle: Map<Int, List<PatchInfo>>,
+    bundleNames: Map<Int, String>,
+    onDismiss: () -> Unit,
+    isLoading: Boolean = false
+) {
+    // Flatten to a list of (bundleUid, patch).
+    // Bundle ordering: bundles with at least one specific patch come first (by name),
+    // then bundles with only universal patches (by name).
+    // Within each bundle: specific patches first (alphabetically), universal patches last (alphabetically).
+    val allPatches = remember(patchesByBundle, bundleNames) {
+        patchesByBundle.entries
+            .sortedWith(
+                compareBy(
+                    { (_, patches) -> patches.all { it.isUniversal } },
+                    { (uid, _) -> bundleNames[uid] ?: uid.toString() }
+                )
+            )
+            .flatMap { (uid, patches) ->
+                val (universal, specific) = patches.partition { it.isUniversal }
+                (specific.sortedBy { it.name } + universal.sortedBy { it.name })
+                    .map { patch -> uid to patch }
+            }
+    }
+
+    val isMultiBundle = patchesByBundle.size > 1
+
+    // Per-bundle accent color for multi-bundle mode only.
+    // Generated deterministically from uid via multiplicative hash → HSL,
+    // so the same uid always produces the same color.
+    // Returns null for single-bundle (no coloring needed).
+    val bundleAccentColors: Map<Int, Color> = remember(patchesByBundle, isMultiBundle) {
+        if (!isMultiBundle) return@remember emptyMap()
+        patchesByBundle.keys.associateWith { uid ->
+            val hue = ((uid.hashCode() * 2654435761L) and 0xFFFFFFFFL).toFloat() % 360f
+            Color.hsl(hue = hue, saturation = 0.55f, lightness = 0.60f)
+        }
+    }
+    val searchQuery = remember { mutableStateOf("") }
+    val selectedBundle = remember { mutableStateOf<Int?>(null) }
+    val showFilterSheet = remember { mutableStateOf(false) }
+    val collapsedBundles = remember { mutableStateOf(emptySet<Int>()) }
+    val patchSections = rememberPatchSectionState()
+    val patchFolds = patchSections.folds
+
+    val filteredPatches = remember(allPatches, searchQuery.value, selectedBundle.value) {
+        allPatches.filter { (uid, patch) ->
+            val bundleMatch = selectedBundle.value == null || uid == selectedBundle.value
+            bundleMatch && patch.matchesQuery(searchQuery.value)
+        }
+    }
+
+    val isFiltering = searchQuery.value.isNotBlank() || selectedBundle.value != null
+    val totalCount = allPatches.size
+
+    // Group filtered patches by bundle, preserving order. Consumed by the collapsible list below
+    val groupedFilteredPatches: List<Pair<Int, List<PatchInfo>>> = remember(filteredPatches) {
+        if (filteredPatches.isEmpty()) return@remember emptyList()
+        val result = mutableListOf<Pair<Int, MutableList<PatchInfo>>>()
+        filteredPatches.forEach { (uid, patch) ->
+            val last = result.lastOrNull()
+            if (last?.first == uid) {
+                last.second.add(patch)
+            } else {
+                result.add(uid to mutableListOf(patch))
+            }
+        }
+        result.map { it.first to it.second.toList() }
+    }
+
+    // Every bundle's rows are grouped up front, so the list builder below stays free of the
+    // preference read and the resource lookup that grouping needs
+    val groupingOptions = rememberPatchGroupingOptions()
+    val bundleGroups: List<Pair<Int, List<PatchGroup<PatchInfo>>>> =
+        remember(groupedFilteredPatches, groupingOptions) {
+            groupedFilteredPatches.map { (uid, bundlePatches) ->
+                uid to buildPatchGroups(
+                    patches = bundlePatches,
+                    options = groupingOptions,
+                    infoOf = { patch -> patch }
+                )
+            }
+        }
+
+    AppDialog(
+        onDismissRequest = onDismiss,
+        dismissOnClickOutside = true,
+        title = null,
+        padding = DialogPadding.Compact,
+        scrollable = false,
+        contentArrangement = Arrangement.Top,
+        fillContentHeight = true,
+        footer = {
+            AppDialogOutlinedButton(
+                text = stringResource(R.string.close),
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    ) {
+        // Back unwinds the active filters before the dialog itself. Registered last so the
+        // query clears first, and kept off onDismissRequest so an outside tap still dismisses.
+        BackHandler(enabled = selectedBundle.value != null) { selectedBundle.value = null }
+        BackHandler(enabled = searchQuery.value.isNotBlank()) { searchQuery.value = "" }
+
+        val listState = rememberLazyListState()
+        val activeBundleLabel = remember { mutableStateOf("") }
+        LaunchedEffect(selectedBundle.value) {
+            val uid = selectedBundle.value ?: return@LaunchedEffect
+            activeBundleLabel.value = bundleNames[uid] ?: uid.toString()
+        }
+
+        // A list read from the database arrives a frame or two late, and the search row over an
+        // empty list reads as "this app has no patches" until it does
+        AnimatedContent(
+            targetState = isLoading,
+            transitionSpec = Animations.fadeCrossfade(),
+            label = "app_patches_loading"
+        ) { loading ->
+            if (loading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    PulsingLogoIndicator()
+                }
+                return@AnimatedContent
+            }
+
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
+            ) {
+                PatchesListSearchRow(
+                    searchQuery = searchQuery.value,
+                    onSearchQueryChange = { searchQuery.value = it },
+                    showFilterButton = isMultiBundle,
+                    isFilterActive = selectedBundle.value != null,
+                    onFilterClick = { showFilterSheet.value = true }
+                )
+
+                AnimatedVisibility(
+                    visible = selectedBundle.value != null,
+                    enter = Animations.expandFadeEnter,
+                    exit = Animations.shrinkFadeExit
+                ) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        InputChip(
+                            selected = true,
+                            onClick = { selectedBundle.value = null },
+                            label = { Text(activeBundleLabel.value) },
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Close,
+                                    contentDescription = stringResource(R.string.remove),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        )
+                    }
+                }
+
+                Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
+                    ) {
+                        // App header
+                        item {
+                            PatchesListHeaderCard(
+                                title = item.displayName,
+                                totalCount = totalCount,
+                                filteredCount = filteredPatches.size,
+                                isFiltering = isFiltering
+                            )
+                        }
+
+                        if (filteredPatches.isEmpty()) {
+                            item(key = "empty_state") {
+                                PatchesListEmptyState(
+                                    modifier = Modifier.animateItem()
+                                )
+                            }
+                        }
+
+                        // Patch cards grouped by bundle
+                        bundleGroups.forEach { (uid, groups) ->
+                            // Bundle section header (collapsible) - only for multi-bundle
+                            if (isMultiBundle) {
+                                item(key = "header_$uid") {
+                                    val isCollapsed = uid in collapsedBundles.value
+                                    PatchGroupHeader(
+                                        title = bundleNames[uid] ?: uid.toString(),
+                                        count = groups.sumOf { it.items.size },
+                                        isExpanded = !isCollapsed,
+                                        onToggle = {
+                                            collapsedBundles.value = if (isCollapsed) {
+                                                collapsedBundles.value - uid
+                                            } else {
+                                                collapsedBundles.value + uid
+                                            }
+                                        },
+                                        icon = Icons.Outlined.Layers,
+                                        accentColor = bundleAccentColors[uid],
+                                        modifier = Modifier.animatedListItem(this)
+                                    )
+                                }
+                            }
+
+                            if (uid !in collapsedBundles.value) {
+                                patchGroupRows(
+                                    sectionKey = uid,
+                                    groups = groups,
+                                    key = { patch: PatchInfo ->
+                                        "$uid:${patch.name}:${patch.compatiblePackages?.joinToString { it.packageName.orEmpty() }.orEmpty()}"
+                                    },
+                                    isFiltering = isFiltering,
+                                    folds = patchFolds,
+                                    onToggle = { group -> patchSections.toggle(uid, group) },
+                                    accentColor = bundleAccentColors[uid]
+                                ) { patch ->
+                                    PatchItemCard(
+                                        patch = patch,
+                                        saveStateKey = "app_patches_${item.id}_$uid",
+                                        accentColor = bundleAccentColors[uid],
+                                        modifier = Modifier.animatedListItem(this)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    ListScrollbar(
+                        listState = listState,
+                        modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
+                    )
+
+                    ScrollToTopButton(
+                        listState = listState,
+                        modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
+                    )
+                }
+            }
+        }
+    }
+
+    // Bundle filter bottom sheet (multi-bundle only)
+    if (showFilterSheet.value && isMultiBundle) {
+        AppBottomSheet(
+            onDismissRequest = { showFilterSheet.value = false }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+            ) {
+                PanelHeader(title = { PanelTitle(text = stringResource(R.string.filter)) })
+                FlowRow(
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // "All" chip
+                    AppFilterChip(
+                        selected = selectedBundle.value == null,
+                        onClick = { selectedBundle.value = null },
+                        label = stringResource(R.string.all),
+                        selectedIcon = Icons.Outlined.DoneAll
+                    )
+                    // Per-bundle chips
+                    bundleNames.entries
+                        .sortedBy { it.value }
+                        .forEach { (uid, name) ->
+                            val isSelected = uid == selectedBundle.value
+                            AppFilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    selectedBundle.value = if (isSelected) null else uid
+                                    showFilterSheet.value = false
+                                },
+                                label = name
+                            )
+                        }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Confirmation dialog asking user whether to hide the app.
+ */
+@Composable
+internal fun HideAppDialog(
+    item: HomeAppItem,
+    onDismiss: () -> Unit,
+    onHide: () -> Unit
+) {
+    AppDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.home_app_hide_title),
+        footer = {
+            AppDialogButtonRow(
+                primaryText = stringResource(R.string.hide),
+                primaryIcon = Icons.Outlined.VisibilityOff,
+                onPrimaryClick = onHide,
+                secondaryText = stringResource(android.R.string.cancel),
+                onSecondaryClick = onDismiss
+            )
+        },
+        padding = DialogPadding.Compact
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            // Original app card preview
+            AppCardLayout(
+                gradientColors = item.gradientColors,
+                onClick = {},
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                AppCardContent(
+                    packageName = item.id,
+                    packageInfo = item.packageInfo,
+                    displayName = item.displayName,
+                    subtitle = stringResource(R.string.home_app_will_be_hidden),
+                    gradientColors = item.gradientColors,
+                )
+            }
+
+            // Explanation text
+            Text(
+                text = stringResource(R.string.home_app_hide_message),
+                style = MaterialTheme.typography.bodyLarge,
+                color = LocalDialogSecondaryTextColor.current,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+/**
+ * Dialog listing all hidden apps.
+ *
+ * Swipe gestures (disabled in multi-select mode):
+ * - Swipe LEFT  → Patches dialog
+ * - Swipe RIGHT → Unhide
+ *
+ * Long-press enters multi-select; bulk unhide via footer button.
+ */
+@Composable
+internal fun HiddenAppsDialog(
+    hiddenAppItems: List<HomeAppItem>,
+    onUnhide: (String) -> Unit,
+    onUnhideMultiple: (Set<String>) -> Unit = {},
+    onShowPatches: (HomeAppItem) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val itemSpacing = rememberWindowSize().itemSpacing
+    val isMultiSelectMode = remember { mutableStateOf(false) }
+    val selectedPackages = rememberSelectionState<String>()
+
+    // Sync selection with current item list; exit mode if no items remain
+    LaunchedEffect(hiddenAppItems) {
+        val currentPackages = hiddenAppItems.mapTo(mutableSetOf()) { it.id }
+        selectedPackages.retain { it in currentPackages }
+        if (selectedPackages.isEmpty) isMultiSelectMode.value = false
+    }
+
+    val view = LocalView.current
+    val density = LocalDensity.current
+    val actionThresholdPx = with(density) { 90.dp.toPx() }
+
+    val patchesLabel = stringResource(R.string.patches)
+    val unhideLabel = stringResource(R.string.unhide)
+    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
+    val onPrimaryContainer = MaterialTheme.colorScheme.onPrimaryContainer
+    val tertiaryContainer = MaterialTheme.colorScheme.tertiaryContainer
+    val onTertiaryContainer = MaterialTheme.colorScheme.onTertiaryContainer
+
+    val startConfig = remember(unhideLabel, tertiaryContainer, onTertiaryContainer) {
+        SwipeActionConfig(
+            icon = Icons.Outlined.Visibility,
+            label = unhideLabel,
+            containerColor = tertiaryContainer,
+            contentColor = onTertiaryContainer
+        )
+    }
+    val endConfig = remember(patchesLabel, primaryContainer, onPrimaryContainer) {
+        SwipeActionConfig(
+            icon = Icons.Outlined.Extension,
+            label = patchesLabel,
+            containerColor = primaryContainer,
+            contentColor = onPrimaryContainer
+        )
+    }
+
+    AppDialog(
+        onDismissRequest = onDismiss,
+        dismissOnClickOutside = !isMultiSelectMode.value,
+        title = stringResource(R.string.home_app_hidden_apps_title),
+        footer = {
+            AppDialogOutlinedButton(
+                text = stringResource(R.string.close),
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        bottomBar = if (isMultiSelectMode.value) {
+            {
+                MultiSelectShell(
+                    visible = true,
+                    onBack = {
+                        isMultiSelectMode.value = false
+                        selectedPackages.clear()
+                    }
+                ) {
+                    SelectionActionBar(
+                        selectedCount = selectedPackages.size,
+                        totalCount = hiddenAppItems.size,
+                        onSelectAll = {
+                            selectedPackages.setAll(hiddenAppItems.map { it.id })
+                        },
+                        onDeselectAll = { selectedPackages.clear() },
+                        actions = listOf(
+                            SelectionAction(
+                                icon = Icons.Outlined.Visibility,
+                                label = stringResource(R.string.unhide),
+                                onClick = context.withToast(stringResource(R.string.unhide_done)) {
+                                    onUnhideMultiple(selectedPackages.keys.toSet())
+                                    isMultiSelectMode.value = false
+                                    selectedPackages.clear()
+                                },
+                                tone = ActionTone.Tertiary
+                            )
+                        ),
+                        onCancel = {
+                            isMultiSelectMode.value = false
+                            selectedPackages.clear()
+                        }
+                    )
+                }
+            }
+        } else null,
+        padding = DialogPadding.Compact,
+        scrollable = false
+    ) {
+        if (hiddenAppItems.isEmpty()) {
+            HomeEmptyState(
+                icon = Icons.Outlined.Visibility,
+                title = stringResource(R.string.home_app_no_hidden)
+            )
+        } else {
+            val listState = rememberLazyListState()
+            Box(modifier = Modifier.fillMaxWidth()) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(itemSpacing)
+                ) {
+                    items(
+                        items = hiddenAppItems,
+                        key = { it.id }
+                    ) { item ->
+                        val isSelected = selectedPackages.contains(item.id)
+                        val offsetX = remember(item.id) { Animatable(0f) }
+
+                        // Snap card back when entering multi-select
+                        LaunchedEffect(isMultiSelectMode.value) {
+                            if (isMultiSelectMode.value) offsetX.animateTo(0f, tween(200))
+                        }
+
+                        SelectableCard(
+                            modifier = Modifier.animatedListItem(this),
+                            isSelected = isSelected,
+                            isSelectionMode = isMultiSelectMode.value
+                        ) {
+                            SwipeableCardContainer(
+                                offsetX = offsetX,
+                                actionThresholdPx = actionThresholdPx,
+                                onSwipeToStart = { onUnhide(item.id) },
+                                onSwipeToEnd = { onShowPatches(item) },
+                                startHaptic = HapticFeedbackConstants.LONG_PRESS,
+                                endHaptic = HapticFeedbackConstants.VIRTUAL_KEY,
+                                enabled = !isMultiSelectMode.value,
+                                background = { startProgress, endProgress ->
+                                    SwipeBackground(
+                                        startProgress = startProgress,
+                                        endProgress = endProgress,
+                                        startConfig = startConfig,
+                                        endConfig = endConfig,
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .clip(RoundedCornerShape(24.dp))
+                                    )
+                                }
+                            ) {
+                                AppCardLayout(
+                                    gradientColors = item.gradientColors,
+                                    onClick = {
+                                        if (isMultiSelectMode.value) {
+                                            selectedPackages.toggle(item.id)
+                                        } else {
+                                            onUnhide(item.id)
+                                        }
+                                    },
+                                    onLongClick = {
+                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                        isMultiSelectMode.value = true
+                                        selectedPackages.toggle(item.id)
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    AppCardContent(
+                                        packageName = item.id,
+                                        packageInfo = item.packageInfo,
+                                        displayName = item.displayName,
+                                        subtitle = if (isMultiSelectMode.value) null
+                                        else stringResource(R.string.home_app_hidden_apps_hint),
+                                        gradientColors = item.gradientColors,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                ListScrollbar(
+                    listState = listState,
+                    modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
+                )
+
+                ScrollToTopButton(
+                    listState = listState,
+                    modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Which sources the selected apps are patched from.
+ *
+ * Asked of the apps rather than of the sources, which is the way round the question comes up: the
+ * user is looking at apps, and several of them usually want the same answer. A source stays on
+ * everywhere else - this only decides whether these apps are offered it.
+ */
+@Composable
+fun AppPatchSourcesDialog(
+    packages: Set<String>,
+    onDismiss: () -> Unit
+) {
+    val patchBundleRepository: PatchBundleRepository = koinInject()
+    val sourceMuteRepository: SourceMuteRepository = koinInject()
+    val scope = rememberCoroutineScope()
+
+    val context = LocalContext.current
+    val lastSourceMessage = stringResource(R.string.home_app_patch_sources_last)
+
+    val bundleInfo by patchBundleRepository.bundleInfoFlow.collectAsStateWithLifecycle(emptyMap())
+    val sources by patchBundleRepository.sources.collectAsStateWithLifecycle()
+    // Keyed by app, the way every rule below asks the question
+    val keptFrom by sourceMuteRepository.mutedSources.collectAsStateWithLifecycle(emptyMap())
+
+    // Which sources have anything to offer each app. A universal patch names no app, so the source
+    // carrying it reaches every one of them
+    val coveredBy: Map<String, Set<Int>> = remember(bundleInfo, packages) {
+        packages.associateWith { packageName ->
+            bundleInfo.entries.mapNotNullTo(mutableSetOf()) { (uid, info) ->
+                uid.takeIf {
+                    info.patches.any { patch ->
+                        patch.isUniversal ||
+                                patch.compatiblePackages?.any { it.packageName == packageName } == true
+                    }
+                }
+            }
+        }
+    }
+
+    // Read the other way round for the list, and named the way the source list names them
+    val sourcesByUid = remember(sources) { sources.associateBy { it.uid } }
+    val rows = remember(coveredBy, keptFrom, sourcesByUid, packages) {
+        coveredBy.values.flatten().distinct()
+            .map { uid ->
+                val reaches = packages.filter { uid in coveredBy[it].orEmpty() }
+                val held = reaches.count { uid in keptFrom[it].orEmpty() }
+                Triple(uid, sourcesByUid[uid]?.displayTitle ?: uid.toString(), held to reaches.size)
+            }
+            .sortedBy { (_, title, _) -> title.lowercase(Locale.ROOT) }
+    }
+
+    AppDialog(
+        onDismissRequest = onDismiss,
+        title = pluralStringResource(
+            R.plurals.home_app_patch_sources_title,
+            packages.size,
+            packages.size.toString()
+        ),
+        footer = {
+            AppDialogOutlinedButton(
+                text = stringResource(R.string.close),
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        padding = DialogPadding.Compact,
+        scrollable = false
+    ) {
+        Text(
+            text = stringResource(R.string.home_app_patch_sources_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = LocalDialogSecondaryTextColor.current,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = Defaults.ContentPaddingSmall)
+        )
+
+        val listState = rememberLazyListState()
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
+        ) {
+            items(items = rows, key = { (uid, _, _) -> uid }) { (uid, title, counts) ->
+                val (held, reaches) = counts
+                val state = when (held) {
+                    0 -> ToggleableState.On
+                    reaches -> ToggleableState.Off
+                    else -> ToggleableState.Indeterminate
+                }
+
+                RadioSelectionCard(
+                    selected = state == ToggleableState.On,
+                    onSelect = {
+                        scope.launch {
+                            // Anything but "offered to all of them" is answered by offering it to
+                            // all of them, so one tap always has a result the row can show
+                            if (state == ToggleableState.On) {
+                                val reached = appsToKeepFrom(uid, packages, coveredBy, keptFrom)
+                                // Refusing to leave an app with nothing to patch from would
+                                // otherwise read as a checkbox that does nothing
+                                if (reached.isEmpty()) {
+                                    context.toast(lastSourceMessage)
+                                }
+                                reached.forEach { sourceMuteRepository.mute(it, uid) }
+                            } else {
+                                packages.forEach { sourceMuteRepository.unmute(it, uid) }
+                            }
+                        }
+                    },
+                    role = Role.Checkbox,
+                    leadingContent = { SelectionCheckIndicator(state) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animatedListItem(this)
+                ) {
+                    IconTextRow(
+                        modifier = Modifier.weight(1f),
+                        // Drawn the way the source list draws it, so a source is recognized at a glance
+                        leadingContent = sourcesByUid[uid]?.let { source ->
+                            { BundleIcon(bundle = source, modifier = Modifier.size(40.dp)) }
+                        },
+                        title = title,
+                        // Two things the box alone cannot say: that the selected apps disagree, and
+                        // that a source only has patches for some of them, which is what decides how
+                        // far a tap on it reaches
+                        description = when {
+                            state == ToggleableState.Indeterminate -> stringResource(
+                                R.string.home_app_patch_sources_mixed,
+                                (reaches - held).toString(),
+                                reaches.toString()
+                            )
+
+                            reaches < packages.size -> stringResource(
+                                R.string.home_app_patch_sources_covers,
+                                reaches.toString(),
+                                packages.size.toString()
+                            )
+
+                            else -> null
+                        }
+                    )
+                }
+            }
+        }
+    }
+}

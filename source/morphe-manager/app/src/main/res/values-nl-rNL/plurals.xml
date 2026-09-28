@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s patch</item>
+        <item quantity="other">%s patches</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s patch optie</item>
+        <item quantity="other">%s patch opties</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Patchbronnen voor %s app</item>
+        <item quantity="other">Patchbronnen voor %s apps</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s bron verborgen. Tik om te tonen</item>
+        <item quantity="other">%s bronnen verborgen. Tik om te tonen</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s overeenkomende patch</item>
+        <item quantity="other">%s overeenkomende patches</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s bron</item>
+        <item quantity="other">%s bronnen</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s pakket</item>
+        <item quantity="other">%s pakketten</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">%s patch uitgevoerd</item>
+        <item quantity="other">%s patches uitgevoerd</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK-bestand</item>
+        <item quantity="other">%s APK-bestanden</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">%s app geïnstalleerd</item>
+        <item quantity="other">%s apps geïnstalleerd</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">%s app opnieuw geïnstalleerd</item>
+        <item quantity="other">%s apps opnieuw geïnstalleerd</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">%s app verwijderd</item>
+        <item quantity="other">%s apps verwijderd</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">%s app verwijderen?</item>
+        <item quantity="other">%s apps verwijderen?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s app klaar om te patchen</item>
+        <item quantity="other">%s apps klaar om te patchen</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s app kan opnieuw worden gepatcht</item>
+        <item quantity="other">%s apps kunnen opnieuw worden gepatcht</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">%s app overgeslagen</item>
+        <item quantity="other">%s apps overgeslagen</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">%s verouderde patch uit opgeslagen selectie verwijderd</item>
+        <item quantity="other">%s verouderde patches uit opgeslagen selectie verwijderd</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s bron geïnstalleerd</item>
+        <item quantity="other">%s bronnen geïnstalleerd</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s verborgen app</item>
+        <item quantity="other">%s verborgen apps</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s app</item>
+        <item quantity="other">%s apps</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s geselecteerd</item>
+        <item quantity="other">%s geselecteerd</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">%s patch gekopieerd van het geselecteerde pakket</item>
+        <item quantity="other">%s patches gekopieerd van het geselecteerde pakket</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s kern</item>
+        <item quantity="other">%s kernen</item>
+    </plurals>
+</resources>

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s módosítás</item>
+        <item quantity="other">%s módosítás</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s módosítási opció</item>
+        <item quantity="other">%s módosítási opció</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Patch-források %s alkalmazáshoz</item>
+        <item quantity="other">Patch-források %s alkalmazáshoz</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s forrás elrejtve. Koppintson a megjelenítéshez</item>
+        <item quantity="other">%s forrás elrejtve. Koppintson a megjelenítéshez</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s egyező patch</item>
+        <item quantity="other">%s egyező patch</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s forrás</item>
+        <item quantity="other">%s forrás</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s csomag</item>
+        <item quantity="other">%s csomag</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">%s módosítás alkalmazva</item>
+        <item quantity="other">%s módosítás alkalmazva</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK fájl</item>
+        <item quantity="other">%s APK fájl</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">%s alkalmazás telepítve</item>
+        <item quantity="other">%s alkalmazás telepítve</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">%s alkalmazás újra telepítve</item>
+        <item quantity="other">%s alkalmazás újra telepítve</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">%s alkalmazás eltávolítva</item>
+        <item quantity="other">%s alkalmazás eltávolítva</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Eltávolítja az %s alkalmazást?</item>
+        <item quantity="other">Eltávolítja az %s alkalmazásokat?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s alkalmazás javításra kész</item>
+        <item quantity="other">%s alkalmazás javításra kész</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s alkalmazás újrafoltozható</item>
+        <item quantity="other">%s alkalmazás újrafoltozható</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">%s alkalmazás kihagyva</item>
+        <item quantity="other">%s alkalmazás kihagyva</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">%s elavult módosítás eltávolítva a mentett kiválasztásból</item>
+        <item quantity="other">%s elavult módosítás eltávolítva a mentett kiválasztásból</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s forrás telepítve</item>
+        <item quantity="other">%s forrás telepítve</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s rejtett alkalmazás</item>
+        <item quantity="other">%s rejtett alkalmazás</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s alkalmazás</item>
+        <item quantity="other">%s alkalmazások</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s kiválasztva</item>
+        <item quantity="other">%s kiválasztva</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Másolta a kiválasztott csomagból a(z) %s javítást</item>
+        <item quantity="other">Másolta a kiválasztott csomagból a(z) %s javításokat</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s mag</item>
+        <item quantity="other">%s mag</item>
+    </plurals>
+</resources>

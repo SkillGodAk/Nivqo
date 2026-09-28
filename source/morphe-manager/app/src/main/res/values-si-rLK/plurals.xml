@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s පැච් එක</item>
+        <item quantity="other">%s පැච්</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s පැච් විකල්පය</item>
+        <item quantity="other">%s පැච් විකල්ප</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s මූලාශ්‍රය</item>
+        <item quantity="other">%s මූලාශ්‍ර</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s පැකේජය</item>
+        <item quantity="other">%s පැකේජ</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">%s පැකේජයක් ක්‍රියාත්මක කරන ලදි</item>
+        <item quantity="other">පැකේජ %sක් ක්‍රියාත්මක කරන ලදි</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK ෆයිල් එකක්</item>
+        <item quantity="other">APK ෆයිල් %sක්</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">ඇප් %sක් ඉන්ස්ටෝල් කලා</item>
+        <item quantity="other">ඇප් %sක් ඉන්ස්ටෝල් කලා</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">ඇප් %sක් නැවත ඉන්ස්ටෝල් කලා</item>
+        <item quantity="other">ඇප් %sක් නැවත ඉන්ස්ටෝල් කලා</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">ඇප් %sක් අන්ඉන්ස්ටෝල් කලා</item>
+        <item quantity="other">ඇප් %sක් අන්ඉන්ස්ටෝල් කලා</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">ඇප් %s අන්ඉන්ස්ටෝල් කරන්නද?</item>
+        <item quantity="other">ඇප් %s අන්ඉන්ස්ටෝල් කරන්නද?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">ඇප් %sක් පැච් කිරීමට සූදානම්</item>
+        <item quantity="other">ඇප් %sක් පැච් කිරීමට සූදානම්</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">ඇප් %sක් මගහැරියා</item>
+        <item quantity="other">ඇප් %sක් මගහැරියා</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">සුරකින ලද තෝරාගැනීමෙන් යල්පැනගිය පැච් %sක් ඉවත් කලා</item>
+        <item quantity="other">සුරකින ලද තෝරාගැනීමෙන් යල්පැනගිය පැච් %sක් ඉවත් කලා</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one"> මූලාශ්‍ර %sක් ඉන්ස්ටෝල් කලා</item>
+        <item quantity="other">මූලාශ්‍ර %sක් ඉන්ස්ටෝල් කලා</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">හංගපු ඇප් %sක්</item>
+        <item quantity="other">හංගපු ඇප් %sක්</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">ඇප් %sක්</item>
+        <item quantity="other">ඇප් %sක්</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">තෝරගත්තු බන්ඩලයෙන් පැච් %sක් පිටපත් කලා</item>
+        <item quantity="other">තෝරගත්තු බන්ඩලයෙන් පැච් %sක් පිටපත් කලා</item>
+    </plurals>
+</resources>

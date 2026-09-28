@@ -1,0 +1,144 @@
+package app.morphe.manager.data.room.selection
+
+import androidx.room.ColumnInfo
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.MapColumn
+import androidx.room.Query
+import androidx.room.Transaction
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+@Dao
+abstract class SelectionDao {
+    /** Get all selections for a package grouped by bundle. */
+    @Transaction
+    @Query(
+        "SELECT patch_bundle, patch_name FROM patch_selections" +
+                " LEFT JOIN selected_patches ON uid = selected_patches.selection" +
+                " WHERE package_name = :packageName"
+    )
+    abstract suspend fun getAllSelectionsForPackage(packageName: String): Map<@MapColumn("patch_bundle") Int, List<@MapColumn(
+        "patch_name"
+    ) String>>
+
+    /**
+     * Get summary of selections per package and bundle.
+     * Returns: Map<PackageName, Map<BundleUid, PatchCount>>.
+     */
+    @Transaction
+    @Query(
+        "SELECT ps.package_name, ps.patch_bundle, COUNT(sp.patch_name) as patch_count " +
+                "FROM patch_selections ps " +
+                "INNER JOIN selected_patches sp ON ps.uid = sp.selection " +
+                "GROUP BY ps.package_name, ps.patch_bundle " +
+                "HAVING patch_count > 0"
+    )
+    abstract fun getSelectionsSummaryRawFlow(): Flow<List<SelectionSummaryItem>>
+
+    fun getSelectionsSummaryFlow(): Flow<Map<String, Map<Int, Int>>> {
+        return getSelectionsSummaryRawFlow().map { raw ->
+            raw.groupBy { it.packageName }
+                .mapValues { (_, items) ->
+                    items.associate { it.patchBundle to it.patchCount }
+                }
+        }
+    }
+
+    /** Export selection for a specific bundle. */
+    @Transaction
+    @Query(
+        "SELECT package_name, patch_name FROM patch_selections" +
+                " LEFT JOIN selected_patches ON uid = selected_patches.selection" +
+                " WHERE patch_bundle = :bundleUid"
+    )
+    abstract suspend fun exportSelection(bundleUid: Int): Map<@MapColumn("package_name") String, List<@MapColumn(
+        "patch_name"
+    ) String>>
+
+    /** Export selection for a specific package and bundle. */
+    @Transaction
+    @Query(
+        "SELECT sp.patch_name FROM patch_selections ps" +
+                " INNER JOIN selected_patches sp ON ps.uid = sp.selection" +
+                " WHERE ps.package_name = :packageName AND ps.patch_bundle = :bundleUid"
+    )
+    abstract suspend fun exportSelectionForPackageAndBundle(packageName: String, bundleUid: Int): List<String>
+
+    @Query("SELECT uid FROM patch_selections WHERE patch_bundle = :bundleUid AND package_name = :packageName")
+    abstract suspend fun getSelectionId(bundleUid: Int, packageName: String): Int?
+
+    @Insert
+    abstract suspend fun createSelection(selection: PatchSelection)
+
+    @Query(
+        "SELECT DISTINCT ps.package_name FROM patch_selections ps" +
+                " INNER JOIN selected_patches sp ON ps.uid = sp.selection"
+    )
+    abstract fun getPackagesWithSelection(): Flow<List<String>>
+
+    @Query("SELECT DISTINCT patch_bundle FROM patch_selections")
+    abstract suspend fun getAllBundleUids(): List<Int>
+
+    @Transaction
+    @Query("DELETE FROM patch_selections WHERE patch_bundle = :uid")
+    abstract suspend fun resetForPatchBundle(uid: Int)
+
+    @Transaction
+    @Query("DELETE FROM patch_selections WHERE package_name = :packageName")
+    abstract suspend fun resetForPackage(packageName: String)
+
+    @Transaction
+    @Query("DELETE FROM patch_selections WHERE package_name = :packageName AND patch_bundle = :bundleUid")
+    abstract suspend fun resetForPackageAndBundle(packageName: String, bundleUid: Int)
+
+    @Transaction
+    @Query("DELETE FROM patch_selections")
+    abstract suspend fun reset()
+
+    @Insert
+    protected abstract suspend fun selectPatches(patches: List<SelectedPatch>)
+
+    @Query("DELETE FROM selected_patches WHERE selection = :selectionId")
+    protected abstract suspend fun clearSelection(selectionId: Int)
+
+    /** Delete patch_selection rows that have no selected patches (orphaned rows). */
+    @Query(
+        "DELETE FROM patch_selections WHERE uid NOT IN" +
+                " (SELECT DISTINCT selection FROM selected_patches)"
+    )
+    protected abstract suspend fun deleteEmptySelections()
+
+    @Transaction
+    open suspend fun updateSelections(selections: Map<Int, Set<String>>) {
+        selections.forEach { (selectionUid, patches) ->
+            clearSelection(selectionUid)
+            selectPatches(patches.map { SelectedPatch(selectionUid, it) })
+        }
+        deleteEmptySelections()
+    }
+
+    // Seen patches (full bundle snapshot at patch time)
+    @Query("SELECT patch_name FROM seen_patches WHERE patch_bundle = :bundleUid AND package_name = :packageName")
+    abstract suspend fun getSeenPatches(packageName: String, bundleUid: Int): List<String>
+
+    @Query("DELETE FROM seen_patches WHERE patch_bundle = :bundleUid AND package_name = :packageName")
+    protected abstract suspend fun clearSeenPatches(packageName: String, bundleUid: Int)
+
+    @Insert
+    protected abstract suspend fun insertSeenPatches(patches: List<SeenPatch>)
+
+    @Transaction
+    open suspend fun updateSeenPatches(packageName: String, bundleUid: Int, patchNames: Set<String>) {
+        clearSeenPatches(packageName, bundleUid)
+        insertSeenPatches(patchNames.map { SeenPatch(bundleUid, packageName, it) })
+    }
+
+}
+
+/** Data class for selection summary query result. */
+data class SelectionSummaryItem(
+    @ColumnInfo(name = "package_name") val packageName: String,
+    @ColumnInfo(name = "patch_bundle") val patchBundle: Int,
+    @ColumnInfo(name = "patch_count") val patchCount: Int
+)

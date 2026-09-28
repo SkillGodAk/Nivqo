@@ -1,0 +1,265 @@
+package app.morphe.manager.domain.bundles
+
+import androidx.compose.runtime.Stable
+import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.gitlabAvatarUrl
+import app.morphe.manager.domain.repository.PatchBundleHeldBackException
+import app.morphe.manager.patcher.patch.PatchBundle
+import app.morphe.manager.util.hasZipHeader
+import app.morphe.manager.util.isPatcherOutdated
+import java.io.File
+import java.io.IOException
+
+/**
+ * A [PatchBundle] source.
+ */
+@Stable
+sealed class PatchBundleSource(
+    val name: String,
+    val uid: Int,
+    val displayName: String?,
+    val createdAt: Long?,
+    val updatedAt: Long?,
+    error: Throwable?,
+    protected val directory: File,
+    val enabled: Boolean
+) {
+    protected val patchesFile = directory.resolve("patches.jar")
+    internal val patchesJarFile: File get() = patchesFile
+
+    val state = runCatching {
+        when {
+            error != null -> State.Failed(error)
+            !hasInstalled() -> State.Missing
+            else -> State.Available(PatchBundle(patchesFile.absolutePath))
+        }
+    }.getOrElse { throwable ->
+        State.Failed(throwable)
+    }
+
+    val patchBundle get() = (state as? State.Available)?.bundle
+
+    /**
+     * Manifest of the installed patches.jar. Read straight from the file instead of going through
+     * [patchBundle] so name, version and patcher requirements stay visible when the patches
+     * themselves cannot be loaded, which is exactly the case a patcher mismatch produces.
+     */
+    private val manifestAttributes by lazy {
+        (patchBundle ?: patchesFile.takeIf { it.exists() }?.let { PatchBundle(it.absolutePath) })
+            ?.manifestAttributes
+    }
+
+    val version get() = manifestAttributes?.version
+    val isNameOutOfDate get() = manifestAttributes?.name?.let { it != name } == true
+    val error get() = (state as? State.Failed)?.throwable
+    val displayTitle get() = displayName?.takeUnless { it.isBlank() } ?: name
+
+    /** Patcher version this bundle was built for, null for bundles built before the attribute existed. */
+    val requiredPatcherVersion get() = manifestAttributes?.patcherVersion
+
+    /**
+     * True when the bundle was built for a newer patcher than the one shipped in this manager.
+     * Such bundles either fail to load outright or break during patching, so the manager has to
+     * be updated first.
+     */
+    val requiresManagerUpdate get() = requiredPatcherVersion?.let { isPatcherOutdated(it) } == true
+
+    abstract fun copy(
+        error: Throwable? = this.error,
+        name: String = this.name,
+        displayName: String? = this.displayName,
+        createdAt: Long? = this.createdAt,
+        updatedAt: Long? = this.updatedAt,
+        enabled: Boolean = this.enabled
+    ): PatchBundleSource
+
+    protected fun hasInstalled() = patchesFile.exists()
+
+    /**
+     * Installs a new patches.jar by writing it to a staging file that replaces the installed one
+     * only once it is complete. Metadata is reloaded while downloads are still running, and a
+     * reader must never observe the container half-written or writable - Android 14+ rejects a
+     * writable dex container outright.
+     *
+     * [write] receives the staging file and is responsible for filling it.
+     */
+    protected suspend fun installPatchBundle(context: String, write: suspend (staging: File) -> Unit) {
+        val staging = directory.resolve(STAGING_FILE_NAME)
+        try {
+            directory.mkdirs()
+            runCatching { staging.setWritable(true, true) }
+            runCatching { staging.delete() }
+            write(staging)
+            requireNonEmptyBundleFile(staging, context)
+            staging.setReadOnly()
+            // Replaces the installed bundle in a single step, so readers see either the old
+            // file or the new one
+            if (!staging.renameTo(patchesFile)) {
+                throw IOException("$context could not replace the installed patch bundle")
+            }
+        } catch (t: Throwable) {
+            runCatching { staging.setWritable(true, true) }
+            runCatching { staging.delete() }
+            throw t
+        }
+    }
+
+    protected fun requireNonEmptyBundleFile(file: File, context: String) {
+        val length = runCatching { file.length() }.getOrDefault(0L)
+        if (length < MIN_PATCH_BUNDLE_BYTES) {
+            runCatching { file.delete() }
+            throw IOException("$context produced an empty or truncated patch bundle (size=$length)")
+        }
+
+        // Patch bundles are zip archives whether they arrive as .mpp or .jar, so a response that
+        // transferred cleanly but is not one must not be installed
+        if (!file.hasZipHeader()) {
+            runCatching { file.delete() }
+            throw IOException("$context produced a file that is not a patch bundle archive")
+        }
+    }
+
+    sealed interface State {
+        data object Missing : State
+        data class Failed(val throwable: Throwable) : State
+        data class Available(val bundle: PatchBundle) : State
+    }
+
+    companion object Extensions {
+        private const val MIN_PATCH_BUNDLE_BYTES = 8L
+        private const val STAGING_FILE_NAME = "patches.jar.tmp"
+        private const val JSON_EXTENSION = ".json"
+        val PatchBundleSource.isDefault inline get() = uid == 0
+        val PatchBundleSource.asRemoteOrNull inline get() = this as? RemotePatchBundle
+
+        /**
+         * True while the source is set to fetch pre-release builds. Only the two remote kinds
+         * carry the flag, so anything else can never be on a pre-release branch.
+         */
+        val PatchBundleSource.usesPrerelease: Boolean
+            get() = (this as? JsonPatchBundle)?.usePrerelease == true ||
+                    (this as? APIPatchBundle)?.usePrerelease == true
+
+        /**
+         * True while the source is skipped because reading it took the process down with it.
+         * Distinct from every other failure in that nothing about the source itself is wrong
+         * yet: it is held back until the file changes.
+         */
+        val PatchBundleSource.isHeldBack: Boolean get() = error is PatchBundleHeldBackException
+
+        /** Classifies a [PatchBundleSource] into its user-visible type. */
+        val PatchBundleSource.sourceType: BundleSourceType get() = when {
+            isDefault -> BundleSourceType.PreInstalled
+            this is RemotePatchBundle -> BundleSourceType.Remote
+            else -> BundleSourceType.Local
+        }
+
+        /**
+         * Resolved avatar URLs for a source in preference order. [primary] is the URL to try
+         * first; [fallback] is what to load if the primary fails (or null when no second
+         * candidate exists).
+         */
+        data class AvatarUrls(
+            val primary: String?,
+            val fallback: String?
+        )
+
+        /**
+         * Pick the best avatar URLs for a source. Preference order is custom bundle avatar,
+         * then GitHub, then GitLab; whichever is chosen as [AvatarUrls.primary], the next
+         * available one becomes [AvatarUrls.fallback].
+         */
+        val PatchBundleSource.avatarUrls: AvatarUrls get() {
+            val bundle = bundleAvatarUrl
+            val github = githubAvatarUrl
+            val gitlab = gitlabAvatarUrl
+            return AvatarUrls(
+                primary = bundle ?: github ?: gitlab,
+                fallback = when {
+                    bundle != null -> github ?: gitlab
+                    github != null -> gitlab
+                    else -> null
+                }
+            )
+        }
+
+        /**
+         * Get custom bundle avatar URL (the PNG named after the bundle JSON, next to it).
+         * Returns null if the endpoint does not point to a JSON file.
+         */
+        val PatchBundleSource.bundleAvatarUrl: String? get() {
+            val remote = this as? RemotePatchBundle ?: return null
+            val path = remote.endpoint.substringBefore('?').substringBefore('#')
+            if (!path.endsWith(JSON_EXTENSION, ignoreCase = true)) return null
+            // Keep the query and fragment, they can carry the credentials of a private host
+            return path.dropLast(JSON_EXTENSION.length) + ".png" + remote.endpoint.substring(path.length)
+        }
+
+        /**
+         * Get GitHub avatar URL if this bundle is from a GitHub repository.
+         * Returns null for GitLab bundles (use [gitlabAvatarUrl] instead).
+         */
+        val PatchBundleSource.githubAvatarUrl: String? get() {
+            val remote = this as? RemotePatchBundle ?: return null
+            return extractGitHubOwner(remote.endpoint)?.let { owner ->
+                "https://github.com/$owner.png"
+            }
+        }
+
+        /**
+         * Get GitLab avatar URL via unavatar.io if this bundle is from a GitLab repository.
+         */
+        val PatchBundleSource.gitlabAvatarUrl: String? get() {
+            val remote = this as? RemotePatchBundle ?: return null
+            return extractGitLabOwner(remote.endpoint)?.let { owner ->
+                "https://unavatar.io/gitlab/$owner"
+            }
+        }
+
+        /**
+         * Extract GitHub owner/organization name from endpoint URL.
+         */
+        private fun extractGitHubOwner(endpoint: String): String? {
+            return try {
+                val uri = java.net.URI(endpoint)
+                val host = uri.host?.lowercase(java.util.Locale.US) ?: return null
+                val segments = uri.path?.trim('/')?.split('/')?.filter { it.isNotBlank() } ?: return null
+
+                when (host) {
+                    // raw.githubusercontent.com/owner/repo/...
+                    "raw.githubusercontent.com" if segments.isNotEmpty() -> segments[0]
+
+                    // github.com/owner/repo/...
+                    "github.com" if segments.isNotEmpty() -> segments[0]
+                    else -> null
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        /**
+         * Extract GitLab owner/namespace from endpoint URL.
+         * Supports:
+         * - gitlab.com/owner/repo/-/raw/branch/file
+         * - gitlab.com/owner/repo (short form)
+         */
+        private fun extractGitLabOwner(endpoint: String): String? {
+            return try {
+                val uri = java.net.URI(endpoint)
+                val host = uri.host?.lowercase(java.util.Locale.US) ?: return null
+                if (host != "gitlab.com") return null
+                val segments = uri.path?.trim('/')?.split('/')?.filter { it.isNotBlank() } ?: return null
+                segments.firstOrNull()
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+}
+
+/** User-visible classification of a [PatchBundleSource]. */
+enum class BundleSourceType {
+    PreInstalled,
+    Remote,
+    Local
+}

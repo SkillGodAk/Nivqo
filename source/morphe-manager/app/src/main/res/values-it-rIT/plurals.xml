@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s modifica</item>
+        <item quantity="other">%s modifiche</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s opzione modifica</item>
+        <item quantity="other">%s opzioni modifiche</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Fonti delle modifiche per %s applicazione</item>
+        <item quantity="other">Sorgenti patch per %s app</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s sorgente nascosta. Tocca per mostrare</item>
+        <item quantity="other">%s sorgenti nascoste. Tocca per mostrare</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s modifica corrispondente</item>
+        <item quantity="other">%s modifiche corrispondenti</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s fonte</item>
+        <item quantity="other">%s fonti</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s pacchetto</item>
+        <item quantity="other">%s pacchetti</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">Eseguita %s modifica</item>
+        <item quantity="other">Eseguite %s modifiche</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s pacchetto APK</item>
+        <item quantity="other">%s pacchetti APK</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">Installata %s applicazione</item>
+        <item quantity="other">Installate %s applicazioni</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">Reinstallata %s applicazione</item>
+        <item quantity="other">Reinstallate %s applicazioni</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">Disinstallata %s applicazione</item>
+        <item quantity="other">Disinstallate %s applicazioni</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Disinstallare %s applicazione?</item>
+        <item quantity="other">Disinstallare %s applicazioni?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s applicazione pronta per la modifica</item>
+        <item quantity="other">%s applicazioni pronte per le modifiche</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s applicazione può essere rimodificata</item>
+        <item quantity="other">%s applicazioni possono essere rimodificate</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">Saltata %s applicazione</item>
+        <item quantity="other">Saltate %s applicazioni</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Rimossa %s modifica obsoleta dalla selezione salvata</item>
+        <item quantity="other">Rimosse %s modifiche obsolete dalla selezione salvata</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s fonte installata</item>
+        <item quantity="other">%s fonti installate</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s applicazione nascosta</item>
+        <item quantity="other">%s app nascoste</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s applicazione</item>
+        <item quantity="other">%s applicazioni</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s selezionato</item>
+        <item quantity="other">%s selezionati</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Copiata %s modifica dal bundle selezionato</item>
+        <item quantity="other">Copiate %s modifiche dal bundle selezionato</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s nucleo</item>
+        <item quantity="other">%s nuclei</item>
+    </plurals>
+</resources>

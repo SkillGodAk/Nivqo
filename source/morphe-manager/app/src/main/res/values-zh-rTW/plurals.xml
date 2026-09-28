@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="other">%s 個修補程式</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="other">%s 個修補選項</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="other">適用於 %s 個應用程式的修補程式來源</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="other">已隱藏 %s 個來源。輕觸即可顯示</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="other">%s個相符的修補程式</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="other">%s 個來源</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="other">%s 個套件</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="other">已執行 %s 項修補程式</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="other">%s 個 APK 檔案</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="other">已安裝 %s 個應用程式</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="other">已重新安裝 %s 個應用程式</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="other">已解除安裝 %s 個應用程式</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="other">解除安裝 %s 個應用程式？</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="other">%s 個應用程式已準備好進行修補</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="other">有 %s 個應用程式可以重新修補</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="other">已跳過 %s 個應用程式</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="other">已從儲存的選取項目移除 %s 項過時修補程式</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="other">已安裝 %s 個來源</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="other">%s 個隱藏的應用程式</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="other">%s 個應用程式</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="other">已選取 %s 個項目</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="other">已從選取套件複製 %s 個修補程式</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="other">%s 個核心</item>
+    </plurals>
+</resources>

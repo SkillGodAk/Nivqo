@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s yama</item>
+        <item quantity="other">%s yama</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s yama seçeneği</item>
+        <item quantity="other">%s yama seçeneği</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">%s uygulama için yama kaynakları</item>
+        <item quantity="other">%s uygulama için yama kaynakları</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s kaynak gizlendi. Göstermek için dokunun</item>
+        <item quantity="other">%s kaynak gizlendi. Göstermek için dokunun</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s eşleşen yama</item>
+        <item quantity="other">%s eşleşen yamalar</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s kaynak</item>
+        <item quantity="other">%s kaynak</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s paket</item>
+        <item quantity="other">%s paket</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">%s yama uygulandı</item>
+        <item quantity="other">%s yama uygulandı</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK dosyası</item>
+        <item quantity="other">%s APK dosyası</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">%s uygulama yüklendi</item>
+        <item quantity="other">%s uygulama yüklendi</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">%s uygulama yeniden yüklendi</item>
+        <item quantity="other">%s uygulama yeniden yüklendi</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">%s uygulama kaldırıldı</item>
+        <item quantity="other">%s uygulama kaldırıldı</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">%s uygulama kaldırılsın mı?</item>
+        <item quantity="other">%s uygulama kaldırılsın mı?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s uygulama yamalanmaya hazır</item>
+        <item quantity="other">%s uygulama yamalanmaya hazır</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s uygulama yeniden yamalanabilir</item>
+        <item quantity="other">%s uygulama yeniden yamalanabilir</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">%s uygulama atlandı</item>
+        <item quantity="other">%s uygulama atlandı</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Kaydedilmiş seçimden %s eskimiş yama kaldırıldı</item>
+        <item quantity="other">Kaydedilmiş seçimden %s eskimiş yama kaldırıldı</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s kaynak yüklendi</item>
+        <item quantity="other">%s kaynak yüklendi</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s gizli uygulama</item>
+        <item quantity="other">%s gizli uygulama</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s uygulama</item>
+        <item quantity="other">%s uygulama</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s seçili</item>
+        <item quantity="other">%s seçili</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Seçili bundle\'dan %s yama kopyalandı</item>
+        <item quantity="other">Seçili bundle\'dan %s yama kopyalandı</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s çekirdek</item>
+        <item quantity="other">%s çekirdek</item>
+    </plurals>
+</resources>
