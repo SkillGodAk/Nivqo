@@ -96,7 +96,6 @@ GitHub Releases 只提供 **Nivqo Manager 正式 APK**。
 - `source/morphe-library`
 - `source/jadb`
 
-編譯方式請參考 [BUILD.md](docs/BUILD.md)。
 
 ## 上游專案與感謝
 

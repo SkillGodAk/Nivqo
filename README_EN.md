@@ -96,7 +96,6 @@ Main source trees:
 - `source/morphe-library`
 - `source/jadb`
 
-Build instructions: [BUILD.md](docs/BUILD.md).
 
 ## Upstream projects and thanks
 
