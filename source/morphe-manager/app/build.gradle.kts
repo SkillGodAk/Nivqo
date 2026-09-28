@@ -11,7 +11,6 @@ plugins {
     alias(libs.plugins.devtools)
     alias(libs.plugins.about.libraries)
     alias(libs.plugins.about.libraries.android)
-    alias(libs.plugins.google.services)
     signing
 }
 
@@ -97,9 +96,6 @@ dependencies {
     implementation(libs.ktor.content.negotiation)
     implementation(libs.ktor.serialization)
 
-    // Firebase Cloud Messaging
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.messaging)
     implementation(libs.play.services.base)
 
     // Markdown

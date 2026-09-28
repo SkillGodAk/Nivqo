@@ -39,3 +39,6 @@ Thumbs.db
 
 # Node
 **/node_modules/
+# Google/Firebase local config (never commit real credentials/config)
+**/google-services.json
+

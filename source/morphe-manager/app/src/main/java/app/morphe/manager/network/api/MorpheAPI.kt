@@ -389,7 +389,7 @@ class MorpheAPI(
     /**
      * Returns a newer [MorpheAsset] if one is available, or null if the app is up to date.
      *
-     * Channel selection logic (mirrors FCM subscription matrix in [app.morphe.manager.util.syncFcmTopics]):
+     * Channel selection logic for stable/prerelease Manager updates:
      *  - `usePrereleases == true` OR current build is dev → use `dev` branch / prerelease channel
      *  - Otherwise → use `main` branch / stable channel
      *

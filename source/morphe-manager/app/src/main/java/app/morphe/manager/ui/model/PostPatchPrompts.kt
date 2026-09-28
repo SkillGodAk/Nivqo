@@ -7,11 +7,7 @@ package app.morphe.manager.ui.model
 
 import android.app.Application
 import app.morphe.manager.domain.manager.PreferencesManager
-import app.morphe.manager.domain.repository.PatchBundleRepository.Companion.DEFAULT_SOURCE_UID
-import app.morphe.manager.util.syncFcmTopics
 import app.morphe.manager.worker.UpdateCheckWorker
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,9 +27,6 @@ class PostPatchPrompts(
     private val prefs: PreferencesManager,
     private val scope: CoroutineScope
 ) {
-    private val hasGms = GoogleApiAvailability.getInstance()
-        .isGooglePlayServicesAvailable(app) == ConnectionResult.SUCCESS
-
     private val _notification = MutableStateFlow(false)
 
     /** True while the notification permission dialog should be on screen. */
@@ -68,22 +61,14 @@ class PostPatchPrompts(
 
     /**
      * Records the user's answer to the notification dialog, dismissal included, and sets up
-     * FCM topics or the update worker when notifications were granted.
+     * the update worker when notifications were granted.
      */
     fun onNotificationResult(granted: Boolean) {
         scope.launch {
             prefs.notificationPermissionRequested.update(true)
             if (granted) {
                 prefs.backgroundUpdateNotifications.update(true)
-                val useManagerPrereleases = prefs.useManagerPrereleases.get()
-                val usePatchesPrereleases = prefs.bundlePrereleasesEnabled.get()
-                    .contains(DEFAULT_SOURCE_UID.toString())
-                syncFcmTopics(
-                    notificationsEnabled = true,
-                    useManagerPrereleases = useManagerPrereleases,
-                    usePatchesPrereleases = usePatchesPrereleases
-                )
-                if (!hasGms) UpdateCheckWorker.schedule(app, prefs.updateCheckInterval.get())
+                UpdateCheckWorker.schedule(app, prefs.updateCheckInterval.get())
             }
         }
         _notification.value = false

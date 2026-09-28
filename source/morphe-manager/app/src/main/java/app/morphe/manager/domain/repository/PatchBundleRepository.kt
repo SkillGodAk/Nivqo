@@ -1055,16 +1055,6 @@ class PatchBundleRepository(
             ready.copy(sources = ready.sources.putting(uid, updated))
         }
 
-        // If this is the default Morphe Patches bundle, sync FCM patches topic
-        if (uid == DEFAULT_SOURCE_UID) {
-            val notificationsEnabled = prefs.backgroundUpdateNotifications.get()
-            syncFcmTopics(
-                notificationsEnabled = notificationsEnabled,
-                useManagerPrereleases = prefs.useManagerPrereleases.get(),
-                usePatchesPrereleases = usePrerelease,
-            )
-        }
-
         // Skip download if the bundle is disabled - it will be downloaded when re-enabled
         // via disable() which triggers startRemoteUpdateJob for newly enabled bundles.
         val isEnabled = (store.state.value as? BundleState.Ready)?.sources?.get(uid)?.enabled == true
