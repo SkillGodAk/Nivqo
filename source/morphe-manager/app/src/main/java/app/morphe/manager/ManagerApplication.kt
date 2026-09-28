@@ -26,8 +26,6 @@ import app.morphe.manager.util.*
 import app.morphe.manager.worker.UpdateCheckWorker
 import coil.Coil
 import coil.ImageLoader
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.GoogleApiAvailability
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -140,31 +138,20 @@ class ManagerApplication : Application() {
             // (Application + Activity) can read the language without touching DataStore
             saveLanguageToPrefs(this@ManagerApplication, prefs.appLanguage.get().ifBlank { "system" })
 
-            // Schedule/cancel WorkManager fallback AND sync FCM topic subscriptions.
-            // FCM is the primary delivery path (bypasses Doze); WorkManager is the fallback
-            // for non-GMS devices. syncFcmTopics() subscribes to the correct stable/dev
-            // topics based on user preferences, or unsubscribes from all when disabled.
+            // Schedule/cancel Nivqo background update polling through WorkManager.
             val notificationsEnabled = prefs.backgroundUpdateNotifications.get()
             val useManagerPrereleases = prefs.useManagerPrereleases.get()
             // Patches FCM topic is determined by the default bundle (uid=0) prerelease toggle
             val usePatchesPrereleases = prefs.bundlePrereleasesEnabled.get().contains(DEFAULT_SOURCE_UID.toString())
 
-            // On GMS devices FCM is the primary delivery channel - WorkManager is not needed.
-            // Cancel any previously scheduled jobs on GMS devices
-            val hasGms = GoogleApiAvailability.getInstance()
-                .isGooglePlayServicesAvailable(this@ManagerApplication) == ConnectionResult.SUCCESS
-
-            if (notificationsEnabled && !hasGms) {
+            // Nivqo does not use the upstream Morphe Firebase project. Background update
+            // notifications are delivered through WorkManager polling on all devices.
+            if (notificationsEnabled) {
                 UpdateCheckWorker.schedule(this@ManagerApplication, prefs.updateCheckInterval.get())
             } else {
                 UpdateCheckWorker.cancel(this@ManagerApplication)
             }
             WorkManager.getInstance(this@ManagerApplication).cancelUniqueWork(LEGACY_AUTO_PATCH_WORK)
-            syncFcmTopics(
-                notificationsEnabled = notificationsEnabled,
-                useManagerPrereleases = useManagerPrereleases,
-                usePatchesPrereleases = usePatchesPrereleases,
-            )
         }
 
         // First touch of the repository builds the Ktor client, which costs seconds on a cold

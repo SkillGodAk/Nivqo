@@ -148,7 +148,7 @@ class UpdateNotificationManager(private val context: Context) {
     /**
      * Post a notification that a new Morphe Manager version is available.
      * Called from [app.morphe.manager.worker.UpdateCheckWorker] on non-GMS devices
-     * and from [app.morphe.manager.service.MorpheFcmService] on GMS devices.
+     *.
      *
      * The changelog action opens what the pending release changes, not the installed one.
      */
@@ -174,7 +174,7 @@ class UpdateNotificationManager(private val context: Context) {
     /**
      * Post a notification that new patch bundle updates are available.
      * Called from [app.morphe.manager.worker.UpdateCheckWorker] on non-GMS devices
-     * and from [app.morphe.manager.service.MorpheFcmService] on GMS devices.
+     *.
      *
      * The changelog action opens [bundleUid], the default source when FCM does not name one.
      */

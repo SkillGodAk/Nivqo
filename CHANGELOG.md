@@ -6,6 +6,7 @@
 - 插件核心預設啟用自動更新。
 - APK 內建 `.mpp` 改為離線／首次啟動 seed，不再覆蓋遠端更新後的核心。
 - Nivqo Manager 啟用自我更新，來源改為 `SkillGodAk/Nivqo` 的 `app-release.json` 與 GitHub Releases。
+- 移除原 Morphe Firebase / Google Services 設定；Nivqo 背景更新通知改由 WorkManager 輪詢，不再包含或使用原專案的 Google API key。
 
 ## 初始公開內容
 

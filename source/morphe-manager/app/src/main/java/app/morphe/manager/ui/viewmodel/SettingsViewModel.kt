@@ -17,7 +17,6 @@ import app.morphe.manager.domain.manager.PreferencesManager
 import app.morphe.manager.domain.manager.filterOptionsForTarget
 import app.morphe.manager.domain.manager.loadCopySelectionCandidates as loadCopySelectionCandidatesShared
 import app.morphe.manager.domain.repository.PatchBundleRepository
-import app.morphe.manager.domain.repository.PatchBundleRepository.Companion.DEFAULT_SOURCE_UID
 import app.morphe.manager.domain.repository.PatchOptionsRepository
 import app.morphe.manager.domain.repository.PatchSelectionRepository
 import app.morphe.manager.domain.repository.SourceMuteRepository
@@ -26,11 +25,8 @@ import app.morphe.manager.ui.screen.settings.system.CopyTarget
 import app.morphe.manager.ui.screen.shared.CopySelectionCandidate
 import app.morphe.manager.util.AppDataResolver
 import app.morphe.manager.util.AppDataSource
-import app.morphe.manager.util.syncFcmTopics
 import app.morphe.manager.worker.UpdateCheckInterval
 import app.morphe.manager.worker.UpdateCheckWorker
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -48,9 +44,8 @@ class SettingsViewModel(
     private val appDataResolver: AppDataResolver,
     private val appContext: Context,
 ) : ViewModel() {
-    /** True when Google Play Services is available; FCM handles notifications on these devices. */
-    val hasGms: Boolean = GoogleApiAvailability.getInstance()
-        .isGooglePlayServicesAvailable(appContext) == ConnectionResult.SUCCESS
+    /** Nivqo uses WorkManager polling instead of the upstream Morphe Firebase project. */
+    val hasGms: Boolean = false
 
     /** True when POST_NOTIFICATIONS is granted (always true below Android 13). */
     fun hasNotificationPermission(): Boolean =
@@ -65,7 +60,7 @@ class SettingsViewModel(
 
     /**
      * Called when the user flips the manager prereleases switch.
-     * Syncs FCM topics and triggers the update check via [onCheckUpdate].
+     * Triggers the update check via [onCheckUpdate].
      */
     fun toggleManagerPrereleases(
         currentValue: Boolean,
@@ -75,11 +70,6 @@ class SettingsViewModel(
     ) = viewModelScope.launch {
         val newValue = !currentValue
         prefs.useManagerPrereleases.update(newValue)
-        syncFcmTopics(
-            notificationsEnabled = backgroundNotificationsEnabled,
-            useManagerPrereleases = newValue,
-            usePatchesPrereleases = patchesPrereleaseIds.contains(DEFAULT_SOURCE_UID.toString())
-        )
         onCheckUpdate()
     }
 
@@ -100,12 +90,7 @@ class SettingsViewModel(
             onShowPermissionDialog()
         } else {
             prefs.backgroundUpdateNotifications.update(newValue)
-            syncFcmTopics(
-                notificationsEnabled = newValue,
-                useManagerPrereleases = useManagerPrereleases,
-                usePatchesPrereleases = patchesPrereleaseIds.contains(DEFAULT_SOURCE_UID.toString())
-            )
-            if (newValue && !hasGms) UpdateCheckWorker.schedule(appContext, updateCheckInterval)
+            if (newValue) UpdateCheckWorker.schedule(appContext, updateCheckInterval)
             else UpdateCheckWorker.cancel(appContext)
         }
     }
@@ -121,12 +106,7 @@ class SettingsViewModel(
         updateCheckInterval: UpdateCheckInterval
     ) = viewModelScope.launch {
         if (granted) {
-            syncFcmTopics(
-                notificationsEnabled = true,
-                useManagerPrereleases = useManagerPrereleases,
-                usePatchesPrereleases = patchesPrereleaseIds.contains(DEFAULT_SOURCE_UID.toString())
-            )
-            if (!hasGms) UpdateCheckWorker.schedule(appContext, updateCheckInterval)
+            UpdateCheckWorker.schedule(appContext, updateCheckInterval)
         } else {
             prefs.backgroundUpdateNotifications.update(false)
         }
@@ -137,10 +117,10 @@ class SettingsViewModel(
         prefs.backgroundUpdateNotifications.update(false)
     }
 
-    /** Persists the selected update check interval and reschedules the worker on non-GMS devices. */
+    /** Persists the selected update check interval and reschedules the worker. */
     fun selectUpdateInterval(interval: UpdateCheckInterval) = viewModelScope.launch {
         prefs.updateCheckInterval.update(interval)
-        if (!hasGms) UpdateCheckWorker.schedule(appContext, interval)
+        UpdateCheckWorker.schedule(appContext, interval)
     }
 
     /** Persists the allow-metered-updates preference. */
