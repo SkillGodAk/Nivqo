@@ -1,0 +1,772 @@
+/*
+ * Forked from:
+ * https://github.com/andrewliang25/morphe-patches/blob/5db2e57e133aede5297c48b419168cf30fd89953/extensions/extension/src/main/java/app/andrewliang/extension/MediaDownload.java
+ * Copyright 2026 Andrew Liang (GPL-3.0).
+ *
+ * Modified for Hushfacebook (Facebook), 2026.
+ */
+package app.morphe.extension.facebook.download;
+
+import android.content.Context;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import app.morphe.extension.facebook.settings.FamilyNames;
+import app.morphe.extension.facebook.settings.Settings;
+import app.morphe.extension.shared.L10n;
+import app.morphe.extension.shared.Logger;
+import app.morphe.extension.shared.Utils;
+import app.morphe.extension.shared.diagnostics.DiagnosticCategory;
+import app.morphe.extension.shared.diagnostics.HookStatus;
+
+/**
+ * Saves the picture or the video that the app is showing, without asking the app to do it.
+ *
+ * <p>Facebook ships a save feature and refuses to run it for most content. The refusal is not
+ * about the address: the story or the reel is on the screen, so the app holds an address that it
+ * can fetch. This takes that address and fetches it.
+ *
+ * <p>For a story that is the point of the whole thing. Facebook's own save runs a check for
+ * licensed music first. On a story that has any, it shows a warning and then saves nothing,
+ * whatever the user answers (issue #110). The patch replaces the body of that handler, so the
+ * check never runs and the video arrives complete, with its sound.
+ *
+ * <h2>What the patch hands over</h2>
+ *
+ * <p>The object that holds the media, and nothing else. Each entry point is called with the object
+ * of the item that the user tapped, so the file saved is always the item on the screen. There is
+ * deliberately <b>no static holding the last address seen</b>. Facebook prepares the next reels
+ * while the current one plays, and a measurement counted six of them built in about fifteen
+ * seconds of scrolling. Anything remembered rather than passed in saves the wrong video, and
+ * still reports success.
+ *
+ * <p>Every step goes to the diagnostic report under Downloads, and to logcat as
+ * {@code morphe: MediaDownload}. Addresses are logged as kind of file and quality only.
+ */
+public final class MediaDownload {
+
+    private MediaDownload() {}
+
+    /** The source every save event carries in the diagnostic report. */
+    static final String SOURCE = "MediaDownload";
+
+    /** A step of a save, always kept: a save is rare and each one is worth a line. */
+    static void info(Logger.LogMessage message) {
+        Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, message);
+    }
+
+    /** A save that ended without a file, or a step that failed. */
+    static void failure(Logger.LogMessage message, Throwable cause) {
+        Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE, message, cause);
+    }
+
+    /** A guard against a rapid tap, not a work queue. */
+    private static final int MAX_IN_FLIGHT = 3;
+
+    private static final AtomicInteger IN_FLIGHT = new AtomicInteger();
+
+    /** Saves still running. A test waits on this for the ones it started through a hook. */
+    static int savesInFlight() {
+        return IN_FLIGHT.get();
+    }
+
+    /**
+     * Save the media of the story that is open.
+     *
+     * <p>[host] is the story card. Its address is read by value, because the fields that hold it
+     * are renamed on every release of the app while the addresses in them keep their shape.
+     *
+     * @return whether a download started. {@code false} lets the caller fall back to the app.
+     */
+    /**
+     * The answer the story viewer's menu gets when it asks whether a story can be saved, where
+     * Facebook's own [facebooks] means "it's yours". With Save any story on, every story can be.
+     * Off, paused, or before the settings are ready, Facebook's answer stands, so only your own
+     * stories offer Save. Never throws.
+     */
+    public static boolean offersSave(boolean facebooks) {
+        if (facebooks) return true;
+        try {
+            return Utils.settingsReady() && Settings.DOWNLOAD_STORIES.get();
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "save item", t);
+            failure(() -> "could not decide whether the story menu offers Save", t);
+            return false;
+        }
+    }
+
+    public static boolean saveStory(Context context, Object host) {
+        HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
+        try {
+            // Off, or before the settings are ready, Facebook's own save runs, as it
+            // would unpatched.
+            if (!Utils.settingsReady() || !Settings.DOWNLOAD_STORIES.get()) return false;
+
+            List<String> urls = collectStoryUrls(host);
+
+            // The card holds one video address, and it is 360p. The player of the same video can
+            // hold a better one. So the save tries the recorded source of the player first. The
+            // id it was recorded under is the video's, for the file name, and the card's own tree
+            // says who posted the story and when.
+            PlayerSources.Source source = PlayerSources.find(host);
+            PostDetails details = PostDetails.ofCard(source == null ? null : source.videoId, host);
+            if (source != null) {
+                addIfUsable(urls, source.hdUrl);
+                if (source.manifest != null) return beginDash(context, "the story video", source.manifest, urls, details);
+            }
+
+            return begin(context, urls, true, details);
+        } catch (Throwable t) {
+            // Throwable and not Exception. A renamed field surfaces as NoSuchFieldError, and a
+            // reflective call on a changed class surfaces as a LinkageError. Neither is an
+            // Exception, and either one that reaches Facebook's click handler ends the app.
+            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story save", t);
+            failure(() -> "the story save could not start", t);
+            return false;
+        }
+    }
+
+    /**
+     * Save the video that the player is streaming.
+     *
+     * <p>[hdField] and [sdField] are the real names of the two fields of the source that hold a
+     * single file address. [manifestField] is the real name of the field that holds the DASH
+     * manifest. The patch reads those names out of the app while patching, so this file names no
+     * field of its own and neither does the patch. The save tries the manifest first, because it
+     * can list a better track than the two single files.
+     *
+     * <p>Asking by name matters here in a way that it does not for a story. The source carries a
+     * third address of the same type, and it holds the subtitles. So "the first address on the
+     * object" is a real way to save the wrong thing.
+     *
+     * @return whether a download started. {@code false} lets the caller fall back to the app.
+     */
+    public static boolean saveVideo(
+        Context context,
+        Object host,
+        String hdField,
+        String sdField,
+        String manifestField
+    ) {
+        return saveVideo(context, host, hdField, sdField, manifestField, PostDetails.NONE);
+    }
+
+    /** The same, with the video's id on Facebook for the file name, or null when it isn't known. */
+    static boolean saveVideo(
+        Context context,
+        Object host,
+        String hdField,
+        String sdField,
+        String manifestField,
+        String videoId
+    ) {
+        return saveVideo(context, host, hdField, sdField, manifestField, PostDetails.of(videoId));
+    }
+
+    /** The same, with everything the save knows of the post for the file name. */
+    static boolean saveVideo(
+        Context context,
+        Object host,
+        String hdField,
+        String sdField,
+        String manifestField,
+        PostDetails details
+    ) {
+        try {
+            List<String> urls = collectVideoUrls(host, hdField, sdField);
+
+            String manifest = RenditionPicker.fieldValue(host, manifestField);
+            if (manifest != null) return beginDash(context, "the reel", manifest, urls, details);
+
+            return begin(context, urls, true, details);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel save", t);
+            failure(() -> "the video save could not start", t);
+            return false;
+        }
+    }
+
+    /**
+     * Save the video of a post in the feed or in Watch: the item the video patch adds to the
+     * post's menu calls this when it's tapped.
+     *
+     * <p>[videoId] is the id the post's media carries, and the player Facebook built for the same
+     * video recorded its source under it ({@link PlayerSources#rememberVideo}). That source holds
+     * the DASH manifest, which lists better tracks than the single files, so it goes first, as
+     * for a story. [hdUrl] and [sdUrl] are the single files the post itself names. They're the
+     * fallback, and the whole answer when Facebook never built a player for the video.
+     *
+     * <p>Only a video is saved. The post also reaches its thumbnail, and saving a picture from a
+     * tap on a video item would look like it worked.
+     *
+     * @return whether a download started. {@code false} means nothing was saved, and the report
+     *     says why.
+     */
+    static boolean saveFeedVideo(Context context, String videoId, String hdUrl, String sdUrl) {
+        return saveFeedVideo(context, PostDetails.of(videoId), hdUrl, sdUrl);
+    }
+
+    /** The same, with everything the post's menu read of the post for the file name. */
+    static boolean saveFeedVideo(Context context, PostDetails details, String hdUrl, String sdUrl) {
+        try {
+            // The item was added while the switch was on; the menu can stay open past a change.
+            if (!Utils.settingsReady() || !Settings.DOWNLOAD_VIDEOS.get()) return false;
+            if (details == null) details = PostDetails.NONE;
+
+            List<String> urls = new ArrayList<>();
+            PlayerSources.Source source = PlayerSources.byId(details.videoId);
+            if (source != null) addIfUsable(urls, source.hdUrl);
+            addIfUsable(urls, hdUrl);
+            addIfUsable(urls, sdUrl);
+
+            if (source == null && urls.isEmpty()) {
+                failure(() -> "nothing to save: no player of this video was recorded and the post names no file", null);
+                return false;
+            }
+
+            if (source != null && source.manifest != null) {
+                return beginDash(context, "the video", source.manifest, urls, details);
+            }
+
+            return begin(context, urls, false, details);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "video save", t);
+            failure(() -> "the video save could not start", t);
+            return false;
+        }
+    }
+
+    // ---------------------------------------------------------------- internals
+
+    /** The named fields first, then whatever else the object can reach. */
+    private static List<String> collectVideoUrls(Object host, String hdField, String sdField) {
+        List<String> urls = new ArrayList<>();
+
+        addIfUsable(urls, RenditionPicker.fieldValue(host, hdField));
+        addIfUsable(urls, RenditionPicker.fieldValue(host, sdField));
+
+        // Either the object is not the source itself, or the release moved the fields. Ranking
+        // by value still answers, and it is the reason this is not only a pair of reads.
+        if (urls.isEmpty()) urls.addAll(RenditionPicker.harvest(host, 1));
+
+        return urls;
+    }
+
+    /**
+     * Every address the story card can reach.
+     *
+     * <p>{@code getMedia} is one of the few names on this class that Facebook keeps, so it is
+     * worth trying before the walk. When it answers, the walk starts from the media rather than
+     * from the card, which keeps it away from everything else the card holds.
+     */
+    private static List<String> collectStoryUrls(Object host) {
+        Object media = call(host, "getMedia");
+        Object from = media != null ? media : host;
+
+        return RenditionPicker.harvest(from, media != null ? 1 : 2);
+    }
+
+    private static void addIfUsable(List<String> urls, String url) {
+        if (url != null && RenditionPicker.isHttpUrl(url)) urls.add(url);
+    }
+
+    private static Object call(Object host, String method) {
+        if (host == null) return null;
+
+        try {
+            return host.getClass().getMethod(method).invoke(host);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /**
+     * Pick the best address of those found and fetch it.
+     *
+     * <p>This ranks the item both ways and keeps the better answer. It does not read the type of
+     * the item from the app. The app records that type in an enum whose constants move between
+     * releases, and one constant mistaken for another saves the wrong file without a word.
+     *
+     * <p>[imagesToo] is false for a caller that knows the item is a video, so a thumbnail can't
+     * stand in for a video it couldn't find. [details] is what the save knows of the post for the
+     * file name.
+     */
+    private static boolean begin(Context context, List<String> urls, boolean imagesToo, PostDetails details) {
+        if (urls == null || urls.isEmpty()) {
+            failure(() -> "nothing to save: the item carried no address", null);
+            return false;
+        }
+
+        // The walk collects any address the object can reach, a link in a caption included. Only
+        // Meta's media servers are candidates, so a foreign address can't outrank a real one.
+        final int found = urls.size();
+        urls = metaOnly(urls);
+        if (urls.isEmpty()) {
+            failure(() -> "nothing to save: none of the " + found + " addresses was on Meta's media servers", null);
+            return false;
+        }
+
+        DownloadQuality quality = quality();
+        String video = RenditionPicker.bestVideo(urls, quality);
+        String image = imagesToo ? RenditionPicker.bestOf(urls, false) : null;
+
+        boolean isVideo = video != null;
+        String chosen = isVideo ? video : image;
+
+        if (chosen == null) {
+            final int candidates = urls.size();
+            final String kind = imagesToo ? "a file" : "a video file";
+            failure(() -> "nothing to save: none of the " + candidates + " addresses was " + kind, null);
+            return false;
+        }
+
+        Context safe = ready(context);
+        if (safe == null) return false;
+
+        saving(isVideo, chosen, urls, quality, Dash.SINGLE_FILE);
+        Downloader.Kind kind = isVideo ? Downloader.Kind.VIDEO : Downloader.Kind.IMAGE;
+        start(safe, isVideo, details, fileJob(safe, chosen, kind));
+        return true;
+    }
+
+    /**
+     * The report line of a single file's save: [chosen] and every candidate of [urls]. Every one,
+     * so a saved file that is smaller than expected can be told apart from a ranking that chose
+     * badly. Each as its kind of file and quality, never its name or address: a whole address is a
+     * signed, working handle to the user's content, a CDN file name carries the object's id, and
+     * the report is pasted into public issues.
+     */
+    private static void saving(boolean isVideo, String chosen, List<String> urls, DownloadQuality quality, Dash dash) {
+        StringBuilder all = new StringBuilder();
+        for (String url : urls) {
+            if (all.length() > 0) all.append(", ");
+            all.append(describe(url));
+        }
+
+        final int candidates = urls.size();
+        info(() -> "saving " + (isVideo ? "video" : "image")
+            + " " + describe(chosen)
+            + " from " + candidates + " candidate(s): " + all
+            + (isVideo ? qualityNote(quality) + singleFileNote(dash) : ""));
+    }
+
+    /**
+     * The quality the save starting now asks for. Read once per save, when it starts, so a save
+     * already running keeps the one it began with. Never throws: before the settings are ready,
+     * or when they can't be read, it's the best, as every save was before the setting existed.
+     */
+    static DownloadQuality quality() {
+        try {
+            if (!Utils.settingsReady()) return DownloadQuality.BEST;
+            DownloadQuality chosen = Settings.DOWNLOAD_QUALITY.get();
+            return chosen == null ? DownloadQuality.BEST : chosen;
+        } catch (Throwable t) {
+            return DownloadQuality.BEST;
+        }
+    }
+
+    /** What the report adds to a save line for a quality below the best. */
+    private static String qualityNote(DownloadQuality quality) {
+        return quality == DownloadQuality.BEST ? "" : ", quality setting " + quality.fileValue;
+    }
+
+    /**
+     * Whether the save starting now keeps to files other apps can open
+     * ({@link Settings#DOWNLOAD_COMPATIBLE}). Read when the save starts, like the quality. Never
+     * throws: before the settings are ready, or when they can't be read, it's off, as every save
+     * was before the switch existed.
+     */
+    static boolean compatibleSaves() {
+        try {
+            return Utils.settingsReady() && Settings.DOWNLOAD_COMPATIBLE.get();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** What the report adds to a DASH save line whose tracks were kept to what other apps can open. */
+    private static String compatibleNote(boolean compatible) {
+        return compatible ? ", kept to files other apps can open" : "";
+    }
+
+    /**
+     * What the report adds to a single file's save line when saves other apps can open took it over
+     * tracks the manifest would otherwise have saved. The single file's own formats aren't read, so
+     * the line says why it was taken, not what it holds.
+     */
+    private static String singleFileNote(Dash dash) {
+        return dash == Dash.SINGLE_FILE_FOR_OTHER_APPS
+            ? ", taken over the manifest's better tracks, which aren't H.264 with AAC-LC or HE-AAC sound"
+            : "";
+    }
+
+    /** Why a save with a manifest took the single file. */
+    enum Dash {
+        /** As it would with saves other apps can open off. */
+        SINGLE_FILE,
+        /** It's left to the single file because saves other apps can open ruled out the tracks that beat it. */
+        SINGLE_FILE_FOR_OTHER_APPS
+    }
+
+    /** The save of one single file at [url]: the job every save of a single file runs. */
+    static Job fileJob(Context application, String url, Downloader.Kind kind) {
+        return (writer, progress) -> saveFile(application, url, kind, null, writer, progress);
+    }
+
+    /**
+     * One checked file, fetched into the cache and then published. Its work file keeps, with those
+     * of every other running save, to the free space ({@link DashSave#fetchWork}). A saved video's
+     * report line says what the file holds, and [why] when a manifest's tracks were passed over
+     * for it (bounded; null when the file was simply the pick).
+     */
+    private static Downloader.Result saveFile(Context application, String url, Downloader.Kind kind, String why,
+            MediaStoreWriter writer, Downloader.Progress progress) {
+        java.io.File folder = DashSave.workFolder(application);
+        if (folder == null) return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "no cache folder");
+        java.io.File file = null;
+        try {
+            file = java.io.File.createTempFile(kind.name().toLowerCase(Locale.US), ".part", folder);
+            Downloader.Result fetched = DashSave.fetchWork(url, kind, file, policyFor(application), Downloader.MAX_BYTES,
+                progress);
+            if (!fetched.ok()) return fetched;
+            Downloader.Result published = Downloader.publish(file, fetched.mime, writer, progress);
+            if (published.ok() && kind == Downloader.Kind.VIDEO) {
+                String holds = DashSave.savedFormat(file);
+                info(() -> "the saved file holds " + holds + (why == null ? "" : ". Saved in place of the manifest's "
+                    + "tracks because " + bounded(why)));
+            }
+            return published;
+        } catch (Throwable t) {
+            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "the cache could not hold the file");
+        } finally {
+            DashSave.discard(file);
+        }
+    }
+
+    /** The policy every save a test drives uses in place of the real one. Never set on a phone. */
+    static volatile MediaUrlPolicy policyForTests;
+
+    /**
+     * Meta's address rules, with the lookup fence up only while the socket goes straight to the
+     * answer: no proxy for the address and no VPN on the network. See {@link MediaUrlPolicy}.
+     */
+    static MediaUrlPolicy policyFor(Context application) {
+        MediaUrlPolicy forced = policyForTests;
+        if (forced != null) return forced;
+        return new MediaUrlPolicy(MediaUrlPolicy.DNS, url -> !MediaUrlPolicy.proxied(url) && !onVpn(application));
+    }
+
+    /**
+     * Whether the network a save would use runs through a VPN, a fake-IP proxy client's among
+     * them. Facebook holds ACCESS_NETWORK_STATE. No answer keeps the fence up.
+     */
+    private static boolean onVpn(Context context) {
+        try {
+            android.net.ConnectivityManager manager =
+                (android.net.ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (manager == null) return false;
+            android.net.Network active = manager.getActiveNetwork();
+            android.net.NetworkCapabilities capabilities = active == null ? null : manager.getNetworkCapabilities(active);
+            return capabilities != null && capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    private static List<String> metaOnly(List<String> urls) {
+        List<String> kept = new ArrayList<>();
+        for (String url : urls) {
+            if (MediaUrlPolicy.shapeRefusal(url) == null) kept.add(url);
+        }
+        return kept;
+    }
+
+    /**
+     * Save the best video track and audio track of a DASH manifest, if the video track is larger
+     * than all single-file addresses of the item.
+     *
+     * <p>The manifest can list tracks that no single file has. A story card and its player hold
+     * only 360p files, but the manifest lists tracks up to 1080p. The device joins the two tracks
+     * into one file. If this fails, the save gets the best single file, so the user still gets a
+     * file.
+     *
+     * <p>Below the best quality, the track and the single file are each the one that suits the
+     * setting ({@link DashManifest#pickVideo}, {@link RenditionPicker#bestVideo}), and the manifest
+     * is used only when its track suits it better than the file does. On a tie the single file
+     * wins: one fetch and no join.
+     *
+     * <p>With saves other apps can open on ({@link #compatibleSaves}), a known H.264 and AAC-LC or
+     * HE-AAC pair ({@link DashManifest#pick}) wins over the unchecked single file, even if that
+     * file has a higher quality label. A manifest with no such pair leaves the
+     * save to the single file, Facebook's own MP4, whose formats aren't read here. With no single
+     * file either, the save takes the tracks it would take with the switch off and the report says
+     * so, since a file some apps turn down beats no file.
+     *
+     * <p>All of that happens on the save's own worker. Read on the tap, the manifest held the thread
+     * that draws Facebook for as long as the parse took. One over {@link DashManifest#withinLimits}
+     * isn't read at all, and the single file is saved.
+     *
+     * @return whether a save started. With a manifest there's always something to try, so only too
+     *     many saves at once stops one. A manifest that turns out to offer nothing, beside no single
+     *     file, then ends as a failed save rather than in Facebook's own handling.
+     */
+    private static boolean beginDash(Context context, String label, String manifest, List<String> urls,
+            PostDetails details) {
+        Context safe = ready(context);
+        if (safe == null) return false;
+        List<String> candidates = new ArrayList<>(urls);
+        start(safe, true, details, (writer, progress) -> saveDash(safe, label, manifest, candidates, writer, progress));
+        return true;
+    }
+
+    /** {@link #beginDash}'s save, on the worker: the manifest's tracks or the single file. */
+    private static Downloader.Result saveDash(Context application, String label, String manifest, List<String> urls,
+            MediaStoreWriter writer, Downloader.Progress progress) {
+        if (!DashManifest.withinLimits(manifest)) {
+            info(() -> "the manifest of " + label + " is over the limits a save reads (" + manifest.length()
+                + " characters), saving the single file");
+            return saveSingleVideo(application, urls, Dash.SINGLE_FILE, "the manifest is over the limits a save reads",
+                writer, progress);
+        }
+        List<DashManifest.Track> tracks = new ArrayList<>();
+        for (DashManifest.Track track : DashManifest.parse(manifest)) {
+            if (MediaUrlPolicy.shapeRefusal(track.url) == null) tracks.add(track);
+        }
+        urls = metaOnly(urls);
+        DownloadQuality quality = quality();
+        boolean compatible = compatibleSaves();
+        boolean allowAv1 = DashSave.canWriteAv1();
+
+        // What the pick below chose from, as each track's type, codec, size and bitrate. Never its
+        // address: the report is pasted into public issues.
+        Logger.diagnosticDebug(DiagnosticCategory.DOWNLOADS, SOURCE,
+            () -> "the manifest of " + label + " offers " + tracks.size() + " track(s): " + tracks);
+
+        String fallback = RenditionPicker.bestVideo(urls, quality);
+        int fallbackQuality = fallback == null ? 0 : RenditionPicker.qualityOf(fallback);
+        DashManifest.Pick kept = DashManifest.pick(tracks, allowAv1, quality, compatible);
+        DashManifest.Pick pick = kept;
+        // What the switch off would pick: when that beats the single file and the kept pick
+        // doesn't, the switch is why the single file is saved.
+        DashManifest.Pick usual = compatible ? DashManifest.pick(tracks, allowAv1, quality, false) : kept;
+        Dash leftToFile = compatible && usual != null && beatsFile(usual.video, fallback, fallbackQuality, quality)
+            ? Dash.SINGLE_FILE_FOR_OTHER_APPS : Dash.SINGLE_FILE;
+
+        if (kept == null && compatible) {
+            if (usual != null && fallback != null) {
+                info(() -> "the manifest of " + label + " has no H.264 video with AAC-LC or HE-AAC sound, "
+                    + "saving the single file instead");
+                return saveSingleVideo(application, urls, leftToFile,
+                    "the manifest has no H.264 video with AAC-LC or HE-AAC sound", writer, progress);
+            }
+            if (usual != null) {
+                info(() -> "nothing of " + label + " is in a format other apps can open, saving it as the switch "
+                    + "off would: " + usual.video + (usual.audio == null ? "" : " + " + usual.audio));
+                pick = usual;
+            }
+        }
+
+        if (pick == null) {
+            info(() -> "the manifest of " + label + " has no track to save: " + tracks);
+            return saveSingleVideo(application, urls, Dash.SINGLE_FILE, "the manifest has no track to save", writer,
+                progress);
+        }
+
+        DashManifest.Track video = pick.video;
+        DashManifest.Track audio = pick.audio;
+        boolean keptCompatible = kept != null && compatible;
+
+        if (!keptCompatible && !beatsFile(video, fallback, fallbackQuality, quality)) {
+            return saveSingleVideo(application, urls, Dash.SINGLE_FILE, null, writer, progress);
+        }
+
+        info(() -> "saving " + label + " from its DASH manifest: " + video
+            + (audio == null ? ", no sound track" : " + " + audio)
+            + ", instead of " + (fallback == null ? "nothing" : describe(fallback))
+            + qualityNote(quality) + compatibleNote(keptCompatible));
+
+        return dashJob(application, video, audio, fallback).run(writer, progress);
+    }
+
+    /**
+     * The best single video file of [urls], for a save whose manifest didn't win: [dash] says why
+     * for the save line, and [why] for the line of what was saved, or null when the file was simply
+     * the better pick. A video only, since the save was started as one.
+     */
+    private static Downloader.Result saveSingleVideo(Context application, List<String> urls, Dash dash, String why,
+            MediaStoreWriter writer, Downloader.Progress progress) {
+        List<String> meta = metaOnly(urls);
+        DownloadQuality quality = quality();
+        String video = RenditionPicker.bestVideo(meta, quality);
+        if (video == null) {
+            final int found = urls.size();
+            failure(() -> "nothing to save: the manifest gave no track and none of the " + found
+                + " addresses was a video file on Meta's media servers", null);
+            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "nothing to save");
+        }
+        saving(true, video, meta, quality, dash);
+        return saveFile(application, video, Downloader.Kind.VIDEO, why, writer, progress);
+    }
+
+    /**
+     * Whether [video] suits [quality] better than the single file [fallback] of quality
+     * [fallbackQuality]: at the best quality a larger picture, below it a nearer fit. On a tie the
+     * single file wins, one fetch and no join.
+     */
+    private static boolean beatsFile(DashManifest.Track video, String fallback, int fallbackQuality,
+            DownloadQuality quality) {
+        if (quality == DownloadQuality.BEST) return video.shortSide() > fallbackQuality;
+        return fallback == null || quality.compare(video.quality(), fallbackQuality) < 0;
+    }
+
+    /**
+     * The DASH save of [video] and [audio], then the single file [fallback] when that fails. Not
+     * when the person cancelled it, though: the fallback would start the save over.
+     */
+    static Job dashJob(Context application, DashManifest.Track video, DashManifest.Track audio, String fallback) {
+        return (writer, progress) -> {
+            Downloader.Result result = DashSave.save(application, video, audio, writer, policyFor(application),
+                Downloader.MAX_BYTES, progress);
+            if (result.ok() || fallback == null || result.status == Downloader.Status.CANCELLED) return result;
+
+            failure(() -> "the DASH save ended with " + result + ", saving " + describe(fallback), null);
+            return saveFile(application, fallback, Downloader.Kind.VIDEO, "the DASH save ended with " + result, writer,
+                progress);
+        };
+    }
+
+    /**
+     * The context to save with, or {@code null} when a save cannot start now.
+     *
+     * <p>Never the Activity. A download outlives the screen that started it, and holding the
+     * Activity across it is a leak, and Facebook's own tooling reports it.
+     */
+    private static Context ready(Context context) {
+        if (context == null) return null;
+
+        if (IN_FLIGHT.get() >= MAX_IN_FLIGHT) {
+            failure(() -> "too many saves at once", null);
+            return null;
+        }
+
+        Context application = context.getApplicationContext();
+        return application != null ? application : context;
+    }
+
+    /**
+     * One save on the worker thread. It writes through [writer], tells [progress] how far it has
+     * got, stops when [progress] says it was cancelled, and returns the result.
+     */
+    interface Job {
+        Downloader.Result run(MediaStoreWriter writer, Downloader.Progress progress);
+    }
+
+    /**
+     * Runs [job] on its own worker thread, and hands the thread back so a test can wait for it.
+     * The save shows a notification with its progress and a Cancel button while it runs.
+     */
+    static Thread start(Context application, boolean video, Job job) {
+        return start(application, video, PostDetails.NONE, job);
+    }
+
+    /** As above, naming a video from [videoId] when the file name asks for it. */
+    static Thread start(Context application, boolean video, String videoId, Job job) {
+        return start(application, video, PostDetails.of(videoId), job);
+    }
+
+    /** Hands each save's details to a test, which can't see the name of a save that fails. Never set on a phone. */
+    static volatile java.util.function.Consumer<PostDetails> detailsForTests;
+
+    /** As above, naming the video from whatever of the post [details] holds and the file name asks for. */
+    static Thread start(Context application, boolean video, PostDetails details, Job job) {
+        final PostDetails known = details == null ? PostDetails.NONE : details;
+        java.util.function.Consumer<PostDetails> watching = detailsForTests;
+        if (watching != null) watching.accept(known);
+        IN_FLIGHT.incrementAndGet();
+        Feedback.show(application, L10n.t(application, "Saving..."), false);
+        SaveControl.Save save = SaveControl.begin(application, video);
+
+        Thread worker = new Thread(() -> {
+            MediaStoreWriter writer = new MediaStoreWriter(application, video, known);
+
+            try {
+                // What a save in a process Android ended left behind goes before this one makes
+                // anything. It runs once per process.
+                SaveLeftovers.sweepOnce(application);
+
+                Downloader.Result result = job.run(writer, save);
+                boolean cancelled = result.status == Downloader.Status.CANCELLED;
+                if (result.ok() || cancelled) info(() -> "save finished: " + result);
+                else failure(() -> "save finished: " + result, null);
+                Feedback.show(application, message(application, result.status, writer.savedLocation()),
+                    !result.ok() && !cancelled);
+            } catch (Throwable t) {
+                // Nothing can leave this thread. Facebook installs its own handler for uncaught
+                // exceptions and reports them as its own crashes.
+                failure(() -> "the save failed", t);
+                Feedback.show(application, L10n.t(application, "Download failed"), true);
+            } finally {
+                save.end();
+                IN_FLIGHT.decrementAndGet();
+            }
+        }, "hushfacebook-save");
+
+        // A thread that ends when the copy ends leaves nothing behind in a process that is not
+        // ours. A pool parks a thread there for as long as Facebook runs.
+        worker.setDaemon(true);
+        worker.setPriority(Thread.NORM_PRIORITY - 1);
+        worker.start();
+        return worker;
+    }
+
+    /** A reason for the report, cut to 160 characters. */
+    private static String bounded(String reason) {
+        return reason.length() <= 160 ? reason : reason.substring(0, 157) + "...";
+    }
+
+    /** What the toast at the end of a save says, in the phone's language. */
+    static String message(Context application, Downloader.Status status, String location) {
+        switch (status) {
+            case OK:
+                return location == null
+                    ? L10n.t(application, "Saved to the gallery")
+                    : L10n.f(application, "Saved to %1$s", L10n.isolate(location));
+            case EXPIRED:
+                return L10n.t(application, "Link expired. Reopen the item and try again");
+            case REFUSED:
+                return L10n.t(application, "Not saved: that isn't a Facebook photo or video");
+            case TOO_LARGE:
+                return L10n.t(application, "Not saved: the file is over 512 MB");
+            case CANCELLED:
+                return L10n.t(application, "Save cancelled");
+            default:
+                return L10n.t(application, "Download failed");
+        }
+    }
+
+    /**
+     * Enough of an address to tell one candidate from another in a report: its kind of file and
+     * its quality, and no more.
+     *
+     * <p>A whole address is a signed, working handle to the content of the user, and the log can
+     * be read by anything else on the device. The file name isn't safe either: on Meta's CDN it
+     * carries the object's own id ({@code 475148478_1134540631592283_..._n.jpg}), and the report
+     * is pasted into public issues.
+     */
+    static String describe(String url) {
+        int query = url.indexOf('?');
+        String withoutQuery = query < 0 ? url : url.substring(0, query);
+
+        int slash = withoutQuery.lastIndexOf('/');
+        String file = slash < 0 ? withoutQuery : withoutQuery.substring(slash + 1);
+        int dot = file.lastIndexOf('.');
+        String extension = dot < 0 ? "" : file.substring(dot + 1).toLowerCase(Locale.US);
+        if (!extension.matches("[a-z0-9]{1,5}")) extension = "file";
+
+        int quality = RenditionPicker.qualityOf(url);
+        return extension + " (" + (quality > 0 ? quality + "p" : "unknown") + ")";
+    }
+}

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="other">%s 개의 패치</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="other">%s 개의 패치 옵션</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="other">%s 개의 앱에 대한 패치 소스</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="other">%s 개의 소스가 숨겨져 있습니다. 표시하려면 탭하세요</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="other">%s 개의 일치하는 패치</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="other">%s 개의 소스</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="other">%s 개의 패키지</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="other">%s 개의 패치 실행</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="other">%s 개의 APK 파일</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="other">%s 개의 앱을 설치하였습니다</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="other">%s 개의 앱을 다시 설치하였습니다</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="other">%s 개의 앱을 제거하였습니다</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="other">%s 개의 앱을 제거하시겠습니까?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="other">%s 개의 앱을 패치할 준비 완료</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="other">%s 개의 앱을 다시 패치할 수 있음</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="other">%s 개의 앱을 건너뛰었습니다</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="other">저장된 선택 목록에서 %s 개의 오래된 패치를 제거하였습니다</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="other">%s 개의 소스 설치됨</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="other">%s 개의 숨겨진 앱</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="other">%s 개의 앱</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="other">%s 개 선택됨</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="other">선택된 번들에서 %s 개의 패치를 복사하였습니다</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="other">%s 개의 코어</item>
+    </plurals>
+</resources>

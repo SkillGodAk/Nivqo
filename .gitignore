@@ -1,0 +1,41 @@
+# Local/private
+LOCAL_PRIVATE/
+private/
+secrets/
+.env
+.env.*
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+
+# Android / Gradle generated
+.gradle/
+**/.gradle/
+**/.kotlin/
+**/build/
+**/out/
+**/local.properties
+**/.idea/
+**/*.iml
+source/android-sdk/
+
+# Release/generated packages
+outputs/
+dist/
+*.apk
+*.aab
+*.apks
+*.xapk
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# Node
+**/node_modules/

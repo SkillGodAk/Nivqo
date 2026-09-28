@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s modyfikacja</item>
+        <item quantity="few">%s modyfikacje</item>
+        <item quantity="many">%s modyfikacji</item>
+        <item quantity="other">%s modyfikacji</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s opcja modyfikacji</item>
+        <item quantity="few">%s opcje modyfikacji</item>
+        <item quantity="many">%s opcji modyfikacji</item>
+        <item quantity="other">%s opcji modyfikacji</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Źródła modyfikacji dla %s aplikacji</item>
+        <item quantity="few">Źródła modyfikacji dla %s aplikacji</item>
+        <item quantity="many">Źródła modyfikacji dla %s aplikacji</item>
+        <item quantity="other">Źródła modyfikacji dla %s aplikacji</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">Ukryto %s źródło. Dotknij, aby pokazać</item>
+        <item quantity="few">Ukryto %s źródła. Dotknij, aby pokazać</item>
+        <item quantity="many">Ukryto %s źródła. Dotknij, aby pokazać</item>
+        <item quantity="other">Ukryto %s źródła. Dotknij, aby pokazać</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s pasująca modyfikacja</item>
+        <item quantity="few">%s pasujące modyfikacje</item>
+        <item quantity="many">%s pasujących modyfikacji</item>
+        <item quantity="other">%s pasujących modyfikacji</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s źródło</item>
+        <item quantity="few">%s źródła</item>
+        <item quantity="many">%s źródeł</item>
+        <item quantity="other">%s źródeł</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s pakiet</item>
+        <item quantity="few">%s pakiety</item>
+        <item quantity="many">%s pakietów</item>
+        <item quantity="other">%s pakietów</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">Zastosowano %s modyfikację</item>
+        <item quantity="few">Zastosowano %s modyfikacje</item>
+        <item quantity="many">Zastosowano %s modyfikacji</item>
+        <item quantity="other">Zastosowano %s modyfikacji</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s plik APK</item>
+        <item quantity="few">%s pliki APK</item>
+        <item quantity="many">%s plików APK</item>
+        <item quantity="other">%s plików APK</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">Zainstalowano %s aplikację</item>
+        <item quantity="few">Zainstalowano %s aplikacje</item>
+        <item quantity="many">Zainstalowano %s aplikacji</item>
+        <item quantity="other">Zainstalowano %s aplikacji</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">Ponownie zainstalowano %s aplikację</item>
+        <item quantity="few">Ponownie zainstalowano %s aplikacje</item>
+        <item quantity="many">Ponownie zainstalowano %s aplikacji</item>
+        <item quantity="other">Ponownie zainstalowano %s aplikacji</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">Odinstalowano %s aplikację</item>
+        <item quantity="few">Odinstalowano %s aplikacje</item>
+        <item quantity="many">Odinstalowano %s aplikacji</item>
+        <item quantity="other">Odinstalowano %s aplikacji</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Odinstalować %s aplikację?</item>
+        <item quantity="few">Odinstalować %s aplikacje?</item>
+        <item quantity="many">Odinstalować %s aplikacji?</item>
+        <item quantity="other">Odinstalować %s aplikacji?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s aplikacja gotowa do modyfikacji</item>
+        <item quantity="few">%s aplikacje gotowe do modyfikacji</item>
+        <item quantity="many">%s aplikacji gotowych do modyfikacji</item>
+        <item quantity="other">%s aplikacji gotowych do modyfikacji</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s aplikacja może zostać ponownie zmodyfikowana</item>
+        <item quantity="few">%s aplikacje mogą zostać ponownie zmodyfikowane</item>
+        <item quantity="many">%s aplikacji może zostać ponownie zmodyfikowanych</item>
+        <item quantity="other">%s aplikacji może zostać ponownie zmodyfikowanych</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">Pominięto %s aplikację</item>
+        <item quantity="few">Pominięto %s aplikacje</item>
+        <item quantity="many">Pominięto %s aplikacji</item>
+        <item quantity="other">Pominięto %s aplikacji</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Usunięto %s przestarzałą modyfikację z zapisanych wyborów</item>
+        <item quantity="few">Usunięto %s przestarzałe modyfikacje z zapisanych wyborów</item>
+        <item quantity="many">Usunięto %s przestarzałych modyfikacji z zapisanych wyborów</item>
+        <item quantity="other">Usunięto %s przestarzałych modyfikacji z zapisanych wyborów</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s zainstalowane źródło</item>
+        <item quantity="few">%s zainstalowane źródła</item>
+        <item quantity="many">%s zainstalowanych źródeł</item>
+        <item quantity="other">%s zainstalowanych źródeł</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s ukryta aplikacja</item>
+        <item quantity="few">%s ukryte aplikacje</item>
+        <item quantity="many">%s ukrytych aplikacji</item>
+        <item quantity="other">%s ukrytych aplikacji</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s aplikacja</item>
+        <item quantity="few">%s aplikacje</item>
+        <item quantity="many">%s aplikacji</item>
+        <item quantity="other">%s aplikacji</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s wybrany</item>
+        <item quantity="few">%s wybrane</item>
+        <item quantity="many">%s wybranych</item>
+        <item quantity="other">%s wybranych</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Skopiowano %s modyfikację z wybranego pakietu</item>
+        <item quantity="few">Skopiowano %s modyfikacje z wybranego pakietu</item>
+        <item quantity="many">Skopiowano %s modyfikacji z wybranego pakietu</item>
+        <item quantity="other">Skopiowano %s modyfikacji z wybranego pakietu</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s rdzeń</item>
+        <item quantity="few">%s rdzenie</item>
+        <item quantity="many">%s rdzeni</item>
+        <item quantity="other">%s rdzeni</item>
+    </plurals>
+</resources>

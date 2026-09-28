@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s lisäosa</item>
+        <item quantity="other">%s lisäosaa</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s lisäosa-asetus</item>
+        <item quantity="other">%s lisäosa-asetusta</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Paikkauslähteet %s sovellukselle</item>
+        <item quantity="other">Paikkauslähteet %s sovellukselle</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s lähde piilotettu. Napauta näyttääksesi</item>
+        <item quantity="other">%s lähdettä piilotettu. Napauta näyttääksesi</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s vastaava korjaus</item>
+        <item quantity="other">%s vastaavaa korjausta</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s lähde</item>
+        <item quantity="other">%s lähdettä</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s paketti</item>
+        <item quantity="other">%s pakettia</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">Suoritettiin %s lisäosa</item>
+        <item quantity="other">Suoritettiin %s lisäosaa</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK-tiedosto</item>
+        <item quantity="other">%s APK-tiedostoa</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">Asennettu %s sovellus</item>
+        <item quantity="other">Asennettu %s sovellusta</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">Asennettu uudelleen %s sovellus</item>
+        <item quantity="other">Asennettu uudelleen %s sovellusta</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">Poistettu %s sovellus</item>
+        <item quantity="other">Poistettu %s sovellusta</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Poista %s sovellus?</item>
+        <item quantity="other">Poista %s sovellusta?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s sovellus valmis päivitykseen</item>
+        <item quantity="other">%s sovellusta valmis päivitykseen</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s sovellus voidaan paikata uudelleen</item>
+        <item quantity="other">%s sovellusta voidaan paikata uudelleen</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">Ohitettu %s sovellus</item>
+        <item quantity="other">Ohitettu %s sovellusta</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Poistettiin %s vanhentunut lisäosa tallennetusta valinnasta</item>
+        <item quantity="other">Poistettiin %s vanhentunutta lisäosaa tallennetusta valinnasta</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s asennettu lähde</item>
+        <item quantity="other">%s asennettua lähdettä</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s piilotettu sovellus</item>
+        <item quantity="other">%s piilotettua sovellusta</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s sovellus</item>
+        <item quantity="other">%s sovellusta</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s valittu</item>
+        <item quantity="other">%s valittua</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Kopioitiin %s korjaustiedosto valitusta paketista</item>
+        <item quantity="other">Kopioitiin %s korjaustiedostoa valitusta paketista</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s ydin</item>
+        <item quantity="other">%s ydintä</item>
+    </plurals>
+</resources>

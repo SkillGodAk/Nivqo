@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="other">%s แพตซ์</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="other">%s ตัวเลือกแพตซ์</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="other">แหล่งที่มาของแพตช์สำหรับ %s แอป</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="other">ซ่อนแหล่งที่มาไว้ %s รายการ แตะเพื่อแสดง</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="other">%s แพตช์ที่ตรงกัน</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="other">%s แหล่งที่มา</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="other">%s แพ็คเกจ</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="other">ดำเนินการแพตช์ %s รายการแล้ว</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="other">APK %s ไฟล์</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="other">ติดตั้ง %s แอปแล้ว</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="other">ติดตั้งใหม่ %s แอปแล้ว</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="other">ถอนการติดตั้ง %s แอปแล้ว</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="other">ถอนการติดตั้ง %s แอป?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="other">%s แอปพร้อมสำหรับการแพตช์</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="other">%s แอปสามารถแพตช์ใหม่ได้</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="other">ข้ามแอป %s แอปแล้ว</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="other">ลบ %s แพตช์เก่าไปจากตัวเลือกที่ถูกบันทึกไว้แล้ว</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="other">ติดตั้ง %s ที่มาแล้ว</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="other">แอปที่ซ่อนอยู่ %s แอป</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="other">%s แอป</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="other">เลือกแล้ว %s</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="other">คัดลอกแพตช์ %s จากชุดที่เลือกแล้ว</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="other">%s คอร์</item>
+    </plurals>
+</resources>

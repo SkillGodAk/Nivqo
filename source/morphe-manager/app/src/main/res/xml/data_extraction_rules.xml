@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+
+    <!--
+       Saved archives and patch bundles run to gigabytes and are downloaded again on demand, so
+       carrying them would push every backup past the quota it is given and abort it outright.
+    -->
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
+        <exclude domain="root" path="app_original-apks" />
+        <exclude domain="root" path="app_patched-apps" />
+        <exclude domain="root" path="app_patch_bundles" />
+        <exclude domain="root" path="app_ephemeral" />
+        <exclude domain="root" path="app_ui_ephemeral" />
+
+        <!-- The signing key answers for every app patched on this device, so it stays on it -->
+        <exclude domain="root" path="app_signing" />
+    </cloud-backup>
+
+    <!-- The signing key does travel here: a phone being replaced keeps updating its patched apps -->
+    <device-transfer>
+        <exclude domain="root" path="app_original-apks" />
+        <exclude domain="root" path="app_patched-apps" />
+        <exclude domain="root" path="app_patch_bundles" />
+        <exclude domain="root" path="app_ephemeral" />
+        <exclude domain="root" path="app_ui_ephemeral" />
+    </device-transfer>
+
+</data-extraction-rules>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s патч</item>
+        <item quantity="few">%s патча</item>
+        <item quantity="many">%s патчаў</item>
+        <item quantity="other">%s патчаў</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s опцыя патча</item>
+        <item quantity="few">%s опцыі патчаў</item>
+        <item quantity="many">%s параметраў патчаў</item>
+        <item quantity="other">%s параметраў патчаў</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s крыніца</item>
+        <item quantity="few">%s крыніцы</item>
+        <item quantity="many">%s крыніц</item>
+        <item quantity="other">%s крыніц</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s пакет</item>
+        <item quantity="few">%s пакета</item>
+        <item quantity="many">%s пакетаў</item>
+        <item quantity="other">%s пакетаў</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">Выкананы %s патч</item>
+        <item quantity="few">Выканана %s патча</item>
+        <item quantity="many">Выканана %s патчаў</item>
+        <item quantity="other">Выканана %s патчаў</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK файл</item>
+        <item quantity="few">%s APK файла</item>
+        <item quantity="many">%s APK файлаў</item>
+        <item quantity="other">%s APK файлаў</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">Усталявана %s праграма</item>
+        <item quantity="few">Усталявана %s праграмы</item>
+        <item quantity="many">Усталявана %s праграм</item>
+        <item quantity="other">Усталявана %s праграм</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">Пераусталявана %s праграма</item>
+        <item quantity="few">Пераусталявана %s праграмы</item>
+        <item quantity="many">Пераусталявана %s праграм</item>
+        <item quantity="other">Пераусталявана %s праграм</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">Выдалена %s праграма</item>
+        <item quantity="few">Выдалена %s праграмы</item>
+        <item quantity="many">Выдалена %s праграм</item>
+        <item quantity="other">Выдалена %s праграм</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Выдаліць %s праграму?</item>
+        <item quantity="few">Выдаліць %s праграмы?</item>
+        <item quantity="many">Выдаліць %s праграм?</item>
+        <item quantity="other">Выдаліць %s праграм?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s праграма, гатовая да патчынгу</item>
+        <item quantity="few">%s праграмы, гатовыя да патчынгу</item>
+        <item quantity="many">%s праграм, гатовых да патчынгу</item>
+        <item quantity="other">%s праграм, гатовых да патчынгу</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">Прапушчана %s праграма</item>
+        <item quantity="few">Прапушчана %s праграмы</item>
+        <item quantity="many">Прапушчана %s праграм</item>
+        <item quantity="other">Прапушчана %s праграм</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Выдалены %s састарэлы патч з захаванага выбару</item>
+        <item quantity="few">Выдалена %s састарэлых патча з захаванага выбару</item>
+        <item quantity="many">Выдалена %s састарэлых патчаў з захаванага выбару</item>
+        <item quantity="other">Выдалена %s састарэлых патчаў з захаванага выбару</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s крыніца ўсталявана</item>
+        <item quantity="few">%s крыніцы ўсталявана</item>
+        <item quantity="many">%s крыніц ўсталявана</item>
+        <item quantity="other">%s крыніц ўсталявана</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s схаваная праграма</item>
+        <item quantity="few">%s схаваныя праграмы</item>
+        <item quantity="many">%s схаваных праграм</item>
+        <item quantity="other">%s схаваных праграм</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s праграма</item>
+        <item quantity="few">%s праграмы</item>
+        <item quantity="many">%s праграм</item>
+        <item quantity="other">%s праграм</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Скапіяваны %s патч з абранага набору</item>
+        <item quantity="few">Скапіявана %s патча з абранага набору</item>
+        <item quantity="many">Скапіявана %s патчаў з абранага набору</item>
+        <item quantity="other">Скапіявана %s патчаў з абранага набору</item>
+    </plurals>
+</resources>

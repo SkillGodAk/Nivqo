@@ -1,0 +1,336 @@
+package app.morphe.manager.patcher.patch
+
+import java.util.Locale
+
+/**
+ * Display-only Traditional Chinese translations for Morphe, HushFacebook and HushMessenger patch metadata.
+ *
+ * Patch keys stay exactly as declared by the bundle. Unknown/new patches fall back to the bundle's
+ * English metadata, so source updates remain usable before this table is refreshed.
+ */
+object PatchMetadataLocalizer {
+    private data class Zh(val name: String, val description: String)
+
+    private val categories = mapOf(
+        "Interface" to "介面",
+        "Privacy" to "隱私",
+        "Ads" to "廣告",
+        "Feed" to "動態消息",
+        "Downloads" to "下載",
+        "Settings" to "設定",
+        "Fixes" to "修正",
+        "Links and bubbles" to "連結與聊天泡泡",
+        "Stickers" to "貼圖",
+        "Navigation" to "導覽",
+        "Inbox" to "收件匣",
+        "Conversations" to "對話",
+    )
+
+    private val zh = mapOf(
+        // Morphe universal patches
+        "Clone app" to Zh(
+            "複製應用程式",
+            "變更應用程式套件名稱，讓同一個 App 可同時安裝多份。預設會在套件名稱後加上 .morphe；每份複製版本必須使用不同套件名稱。並非所有 App 都支援，可能造成當機或其他非預期行為。"
+        ),
+        "Enable Android debugging" to Zh(
+            "啟用 Android 偵錯",
+            "啟用 Android 開發者偵錯功能。套用此補丁可能讓 App 執行速度變慢。"
+        ),
+        "Remove link verification" to Zh(
+            "移除連結驗證",
+            "移除 App 的網頁連結驗證設定，讓支援的連結可改由其他 App 開啟。"
+        ),
+        "Change installer source" to Zh(
+            "變更安裝來源",
+            "偽裝安裝來源，讓 App 看起來像是從應用程式商店安裝。"
+        ),
+        "Override certificate pinning" to Zh(
+            "覆寫憑證綁定",
+            "覆寫憑證綁定，允許透過 Proxy 檢查網路流量。"
+        ),
+        "Disable Play Store updates" to Zh(
+            "停用 Play 商店更新",
+            "將版本代碼設為允許的最大值，避免 Play 商店更新此 App。部分 App 可能出現非預期問題，而且使用 Root Mount 安裝時無效。"
+        ),
+
+        // HushFacebook
+        "AMOLED black theme" to Zh(
+            "AMOLED 純黑主題",
+            "將 Facebook 深色模式的深灰背景改為純黑。請先在 Facebook 開啟深色模式。"
+        ),
+        "Block ad telemetry" to Zh(
+            "封鎖廣告遙測",
+            "阻止 Facebook 偵測廣告截圖，以及回報你安裝哪些 App 來進行廣告歸因。"
+        ),
+        "Block background ad prefetch" to Zh(
+            "封鎖背景廣告預載",
+            "阻止 Facebook 在背景下載廣告與廣告模型，可節省流量、電量與儲存空間。"
+        ),
+        "Block background-return feed refresh" to Zh(
+            "返回時保留動態消息位置",
+            "在十分鐘內返回 Facebook 時保留原本的動態消息位置。下拉重新整理與重新啟動 App 仍會正常刷新。"
+        ),
+        "Block promotional notifications" to Zh(
+            "封鎖推廣通知",
+            "阻擋你選擇的推廣通知類型，例如熱門影片、回顧與生日。各類型都有獨立開關且預設關閉；訊息、交友邀請、留言、提及與登入警示永遠保留。"
+        ),
+        "Clean up Reels" to Zh(
+            "清理 Reels 介面",
+            "隱藏 Reels 的追蹤按鈕、留言與表情回應預覽，以及 Remix、使用範本、輪到你了、Stars 等按鈕；各項都有獨立開關。"
+        ),
+        "Default comment order" to Zh(
+            "預設留言排序",
+            "以 Hushfacebook 設定中選擇的「最相關／最新／所有留言」順序開啟留言，而不是使用 Facebook 自行選擇的排序。"
+        ),
+        "Disable Audience Network" to Zh(
+            "停用 Audience Network",
+            "阻止 Facebook 向其他 App 提供廣告。其他 App 可能改顯示自己的廣告或不顯示廣告，獎勵式廣告也可能無法使用。"
+        ),
+        "Don't send reel watch history" to Zh(
+            "不要傳送 Reel 觀看紀錄",
+            "停止把你看過的 Reels 清單傳給 Facebook。此資料會用於排序 Reels；已看過的 Reel 可能因此再次出現。"
+        ),
+        "Download any reel" to Zh(
+            "下載任何 Reel",
+            "在每個 Reel 旁加入下載按鈕。影片會依你設定的下載畫質儲存，預設為最佳畫質。"
+        ),
+        "Download any story" to Zh(
+            "下載任何限時動態",
+            "在任何限時動態選單加入儲存功能，包括含音樂的限時動態。影片會依你設定的下載畫質儲存。"
+        ),
+        "Download any video" to Zh(
+            "下載任何影片",
+            "在動態消息與 Watch 的影片選單加入「下載到手機」。影片會依你設定的下載畫質儲存。"
+        ),
+        "Hide AI-detected posts" to Zh(
+            "隱藏 AI 偵測內容",
+            "移除 Facebook 自行偵測為 AI 產生的貼文、Reels 與 Watch 影片；另有開關可移除作者自行標註為 AI 的貼文。所有開關預設關閉。"
+        ),
+        "Hide Menu promotions" to Zh(
+            "隱藏功能表推廣內容",
+            "隱藏 Facebook 功能表中的「升級」與「Meta 旗下其他產品」區段。設定、使用說明、捷徑及其他功能表內容仍會保留。"
+        ),
+        "Hide Meta AI in search" to Zh(
+            "在搜尋中隱藏 Meta AI",
+            "移除搜尋結果中的 Meta AI 回答與提示，並阻止搜尋建議自行開啟 Meta AI。人物、社團、粉絲專頁、貼文與 Meta AI 按鈕仍保留。"
+        ),
+        "Hide Reels in the feed" to Zh(
+            "隱藏動態消息中的 Reels",
+            "移除動態消息貼文之間與末尾加入的 Reels。好友直接發布的 Reel 仍會保留。"
+        ),
+        "Hide Stories tray" to Zh(
+            "隱藏限時動態列",
+            "移除動態消息頂端的限時動態列，包括「建立限時動態」。"
+        ),
+        "Hide posts by words" to Zh(
+            "依指定文字隱藏貼文",
+            "隱藏文字中包含你指定單字或片語的動態消息貼文；若同時包含保留清單中的文字則保留。你的文字清單不會傳送出去。"
+        ),
+        "Hide sponsored Marketplace listings" to Zh(
+            "隱藏 Marketplace 贊助刊登",
+            "移除 Marketplace 動態中的廣告與付費推廣刊登，並阻止只用於抓取廣告的請求。一般刊登仍會保留。"
+        ),
+        "Hide sponsored posts" to Zh(
+            "隱藏贊助貼文",
+            "移除動態消息中的贊助與推廣貼文，不留下空白間隔。"
+        ),
+        "Hide sponsored profile posts" to Zh(
+            "隱藏個人檔案贊助貼文",
+            "移除個人檔案或粉絲專頁貼文之間的廣告，原本貼文仍會保留。"
+        ),
+        "Hide sponsored reels" to Zh(
+            "隱藏贊助 Reels",
+            "移除 Reels 與 Watch 中的廣告，包括覆蓋在 Reel 上的商品橫幅與影片內廣告。"
+        ),
+        "Hide sponsored search results" to Zh(
+            "隱藏贊助搜尋結果",
+            "移除 Facebook 搜尋結果中的贊助貼文與廣告卡片，真正的搜尋結果仍會保留。"
+        ),
+        "Hide sponsored stories" to Zh(
+            "隱藏贊助限時動態",
+            "移除限時動態檢視器中的廣告卡片，滑動時只顯示使用者發布的限時動態。"
+        ),
+        "Hide suggested and promoted posts" to Zh(
+            "隱藏建議與推廣內容",
+            "移除 Facebook 加入動態消息中的非廣告推薦，例如「為你推薦」、「你可能認識的人」、建議社團、建議限時動態、粉絲專頁推薦、自家推廣與問卷；各類型都有獨立開關。"
+        ),
+        "Hide suggested stories" to Zh(
+            "隱藏建議限時動態",
+            "移除限時動態列中來自你未追蹤人物或粉絲專頁的建議限時動態。好友、已追蹤粉絲專頁與「建立限時動態」仍會保留。"
+        ),
+        "Hide the Get Messenger card" to Zh(
+            "隱藏「取得 Messenger」卡片",
+            "安裝 Messenger 後隱藏聊天室頂端的「取得 Messenger App」卡片。重新簽章 Facebook 也能正確辨識 Messenger；另提供可選開關，讓 Facebook 聊天室直接跳轉到已安裝的 Messenger。"
+        ),
+        "Hushfacebook in the Menu" to Zh(
+            "在功能表加入 Hushfacebook",
+            "在 Facebook「設定和隱私」底部加入 Hushfacebook 設定入口；長按 Facebook 標誌與啟動器捷徑仍可開啟設定。"
+        ),
+        "Hushfacebook settings" to Zh(
+            "Hushfacebook 設定",
+            "在 Facebook 中加入完整 Hushfacebook 設定，可開關功能、暫停、匯入／匯出設定與診斷資訊，並查看授權資訊。"
+        ),
+        "Install beside Meta's apps" to Zh(
+            "與 Meta App 共存",
+            "讓官方 Messenger、Facebook Lite、Business Suite 與 Workplace 可與重新簽章的 Facebook 同時安裝。此補丁會重新命名 Facebook 共用的兩個簽章權限。Root Mount 不需要此補丁。"
+        ),
+        "Marketplace only" to Zh(
+            "僅保留 Marketplace",
+            "分頁列只保留 Marketplace、通知與個人檔案／功能表，並直接從 Marketplace 啟動 Facebook。通知與連結仍會開啟原本目的地。"
+        ),
+        "Material You theme" to Zh(
+            "Material You 主題",
+            "Android 12 以上讓 Facebook 深色模式使用桌布配色；Android 11 使用固定藍色調。淺色模式不變。請先開啟 Facebook 深色模式。"
+        ),
+        "Open links in external browser" to Zh(
+            "使用外部瀏覽器開啟連結",
+            "用預設瀏覽器開啟網頁連結，而不是 Facebook 內建瀏覽器，並移除 Facebook 點擊追蹤與 fbclid。Facebook 自己的頁面仍在 App 內開啟。"
+        ),
+        "Open on a chosen tab" to Zh(
+            "從指定分頁開啟",
+            "從 Facebook 圖示啟動時開啟你在 Hushfacebook 設定中選擇的分頁，預設為 Marketplace。通知與連結仍會開啟原本目的地。"
+        ),
+        "Restore screens on re-signed builds" to Zh(
+            "修復重新簽章版本畫面",
+            "讓重新簽章版本中的個人檔案與部分設定頁面恢復正常開啟。Root Mount 不需要此補丁。"
+        ),
+        "Resume long videos" to Zh(
+            "續播長影片",
+            "超過兩分鐘的影片下次播放時會從上次離開的位置繼續。Reels、直播與廣告仍照原本方式開始播放。此開關預設關閉。"
+        ),
+        "Sanitize sharing links" to Zh(
+            "清除分享連結追蹤",
+            "移除分享或複製連結中的 mibextid 等 Facebook 追蹤參數，連結本身指向的貼文或 Reel 不變。"
+        ),
+        "Stop Story auto-advance" to Zh(
+            "停止限時動態自動切換",
+            "讓每則限時動態停留在畫面，直到你點擊或滑動。關閉開關即可恢復 Facebook 原本的自動切換時間。"
+        ),
+        "Stop update prompts" to Zh(
+            "停止更新提示",
+            "停止重新簽章版本中的 Facebook 更新提示、Meta App Manager 更新推廣及要求檢查更新的推播，也移除針對舊版本的聊天升級推廣。"
+        ),
+        "Tag suggestions only after @" to Zh(
+            "只有輸入 @ 後才顯示標註建議",
+            "在貼文與留言輸入一般文字時不再自動推薦標註對象；輸入 @ 仍會顯示建議清單。相片標註與文字內容不受影響。"
+        ),
+        "Tap to play" to Zh(
+            "點擊播放",
+            "影片、Reels、限時動態與音樂會等待你點擊後才播放。開啟時 Facebook 的自動播放設定會顯示為關閉。"
+        ),
+        "Use the phone's emoji" to Zh(
+            "使用手機 Emoji",
+            "使用手機系統 Emoji 字型取代 Meta Emoji，貼文、留言與聊天會更接近鍵盤顯示；表情回應與貼圖不變。變更後需重新啟動 Facebook。"
+        ),
+        "Use the system font" to Zh(
+            "使用系統字型",
+            "使用手機系統字型取代 Meta 的 Optimistic 字型，或使用 Hushfacebook 設定中選擇的 TrueType／OpenType 字型。圖示、Emoji 與限時動態文字不受影響。"
+        ),
+
+        // HushMessenger
+        "Allow chat bubbles" to Zh(
+            "允許聊天泡泡",
+            "移除 Android 11 以上的低記憶體資格限制。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide AI sticker tools" to Zh(
+            "隱藏 AI 貼圖工具",
+            "隱藏 AI 產生貼圖分頁與 AI 貼圖建議。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide Chat Moments" to Zh(
+            "隱藏 Chat Moments",
+            "隱藏功能表中的 Chat Moments 項目。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide Facebook shortcuts" to Zh(
+            "隱藏 Facebook 捷徑",
+            "隱藏 Facebook 工具列、個人檔案與分享捷徑。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide Meta AI buttons" to Zh(
+            "隱藏 Meta AI 按鈕",
+            "隱藏浮動按鈕、工具列按鈕與 AI 功能表項目；搜尋仍可使用。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide People You May Know" to Zh(
+            "隱藏「你可能認識的人」",
+            "隱藏聊天列表與通知分頁中的好友建議。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide Reels badge" to Zh(
+            "隱藏 Reels 徽章",
+            "隱藏 Reels 通知徽章。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide avatar stickers" to Zh(
+            "隱藏虛擬替身貼圖",
+            "隱藏貼圖鍵盤中的虛擬替身分頁。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide business reply suggestions" to Zh(
+            "隱藏商家回覆建議",
+            "隱藏商家對話中的建議回覆。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide business typing suggestions" to Zh(
+            "隱藏商家輸入建議",
+            "輸入文字時隱藏商家相關建議。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide chat promotions" to Zh(
+            "隱藏聊天推廣",
+            "隱藏對話中的 Messenger 快速推廣橫幅。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide event prompts" to Zh(
+            "隱藏活動提示",
+            "隱藏聊天中的活動快速推廣提示。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide friend request cards" to Zh(
+            "隱藏交友邀請卡片",
+            "隱藏收件匣中的交友邀請卡片。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide growth prompts" to Zh(
+            "隱藏成長推廣提示",
+            "隱藏收件匣中鼓勵加入更多聯絡人的推廣單元。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide inbox ads" to Zh(
+            "隱藏收件匣廣告",
+            "過濾收件匣中的廣告項目。仍需要有實際廣告帳號進一步驗證即時移除效果。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide inbox promotions" to Zh(
+            "隱藏收件匣推廣",
+            "隱藏聊天列表中的 Messenger 快速推廣橫幅。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide inbox tabs" to Zh(
+            "隱藏收件匣分頁",
+            "隱藏首頁與頻道子分頁。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide stories and notes" to Zh(
+            "隱藏限時動態與便利貼",
+            "隱藏聊天上方的橫向限時動態／便利貼列。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide typing indicator" to Zh(
+            "隱藏輸入中狀態",
+            "阻止傳送你的「正在輸入」狀態。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Install beside Meta apps" to Zh(
+            "與 Meta App 共存",
+            "在已驗證的 Messenger 580 build 中重新命名兩個共用簽章權限。作者目前標示：S25 的簽署版本曾出現聊天無法開啟，使用前請保留可復原方式。"
+        ),
+        "Open web links externally" to Zh(
+            "使用外部瀏覽器開啟網頁連結",
+            "HTTP 與 HTTPS 連結使用 Messenger 原生的外部瀏覽器分支。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+    )
+
+    fun name(original: String): String =
+        if (isTraditionalChinese()) zh[original]?.name ?: original else original
+
+    fun description(name: String, original: String?): String? =
+        if (isTraditionalChinese()) zh[name]?.description ?: original else original
+
+    fun category(original: String?): String? =
+        if (isTraditionalChinese() && original != null) categories[original] ?: original else original
+
+    private fun isTraditionalChinese(): Boolean {
+        val locale = Locale.getDefault()
+        if (!locale.language.equals("zh", ignoreCase = true)) return false
+        val script = locale.script
+        val country = locale.country
+        return script.equals("Hant", ignoreCase = true) ||
+            country.equals("TW", ignoreCase = true) ||
+            country.equals("HK", ignoreCase = true) ||
+            country.equals("MO", ignoreCase = true)
+    }
+}

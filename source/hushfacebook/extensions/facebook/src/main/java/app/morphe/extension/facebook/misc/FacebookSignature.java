@@ -1,0 +1,89 @@
+/*
+ * Forked from:
+ * https://github.com/andrewliang25/morphe-patches/blob/5db2e57e133aede5297c48b419168cf30fd89953/extensions/extension/src/main/java/app/andrewliang/extension/FacebookSignature.java
+ * Copyright 2026 Andrew Liang (GPL-3.0).
+ *
+ * Modified for Hushfacebook (Facebook), 2026.
+ */
+package app.morphe.extension.facebook.misc;
+
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.Signature;
+import android.os.Process;
+import android.util.Base64;
+
+import java.util.Collections;
+import java.util.List;
+
+import app.morphe.extension.facebook.settings.FamilyNames;
+import app.morphe.extension.shared.diagnostics.HookStatus;
+
+/**
+ * Helper for the Facebook "[Fix] Restore screens on re-signed builds" patch.
+ *
+ * <p>Facebook's security code compares the signing certificate of a package with a table of Meta
+ * certificates, and it does this for its own package too. A re-signed build has a different
+ * certificate, so Facebook does not trust itself and drops a tap on some screens without a message.
+ * The patch gives the check the original certificate of Facebook when the package is this app.
+ *
+ * <p>The name alone doesn't say that. Morphe's Clone app patch renames the package, and the stock
+ * Facebook it was cloned from can stay installed beside it (#16). The uid does: Android gives every
+ * installed app its own (Facebook's manifest shares it with no other), and the process has it before
+ * any code runs, so the check needs no context even while content providers start.
+ */
+public final class FacebookSignature {
+
+    private FacebookSignature() {}
+
+    private static final String PACKAGE = "com.facebook.katana";
+
+    /** The original signing certificate of Facebook, DER in Base64. Its SHA-1 is 8a3c4b26…fa2b9. */
+    private static final String CERTIFICATE =
+        "MIICaDCCAdECBEqcRhAwDQYJKoZIhvcNAQEEBQAwejELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRIwEAYDVQQH"
+        + "EwlQYWxvIEFsdG8xGDAWBgNVBAoTD0ZhY2Vib29rIE1vYmlsZTERMA8GA1UECxMIRmFjZWJvb2sxHTAbBgNVBAMT"
+        + "FEZhY2Vib29rIENvcnBvcmF0aW9uMCAXDTA5MDgzMTIxNTIxNloYDzIwNTAwOTI1MjE1MjE2WjB6MQswCQYDVQQG"
+        + "EwJVUzELMAkGA1UECBMCQ0ExEjAQBgNVBAcTCVBhbG8gQWx0bzEYMBYGA1UEChMPRmFjZWJvb2sgTW9iaWxlMREw"
+        + "DwYDVQQLEwhGYWNlYm9vazEdMBsGA1UEAxMURmFjZWJvb2sgQ29ycG9yYXRpb24wgZ8wDQYJKoZIhvcNAQEBBQAD"
+        + "gY0AMIGJAoGBAMIH1R3464yX2TugyMEALJKPqwDcG0L8peZumcwwI+0tIU2CK8WejjXdz19Ex66K3lDX4MQ09QDm"
+        + "wTH0ooNPmH/EZAYRXeIBjruw1aPCYb2XWBzP73avxxNabVnohV7NfqzI+HN+eUxgp2HFNrcrEfrI5gP12hotVKoQ"
+        + "O4oTwNvBAgMBAAEwDQYJKoZIhvcNAQEEBQADgYEAXum+i8uyUGSNO3QSkKgqHJ3C52oK8vIijx2fnEAHUpxEanAX"
+        + "XFqQDVFBgShm20a+ZVniFBYWSDmYIR9KZzFJ+yIyoQ0kdmOyapAx4V+EvBx00UH/mKAtdvhbLIqyVxtkabIy2Odo"
+        + "p/fKBPer5Kd1YVkWwHlAZWtYcXRXtCvZKKI=";
+
+    private static volatile List<Signature> original;
+
+    /**
+     * The original signers of Facebook if [info] is this app, or {@code null} to keep the signers
+     * that the system reports.
+     */
+    public static List<Signature> originalSigners(PackageInfo info) {
+        if (!isThisApp(info)) return null;
+
+        // Counted only when it answers for this app, which is the whole of its job. The name is a
+        // compile-time constant: this can run while content providers start, before Hushfacebook
+        // has a context, and Hook status reads no setting.
+        HookStatus.invoked(FamilyNames.RESTORE_TRUST);
+        List<Signature> signers = original;
+        if (signers == null) {
+            signers = Collections.singletonList(new Signature(Base64.decode(CERTIFICATE, Base64.DEFAULT)));
+            original = signers;
+        }
+        return signers;
+    }
+
+    /**
+     * Whether [info] describes the running app, under Facebook's name or a clone's. A package with
+     * another uid is another app, whatever its name. PackageManager always fills in the
+     * ApplicationInfo; without one only the name is known, and the answer stays the one builds
+     * before the clone fix gave. The same goes for an isolated process, like the browser's
+     * renderers or a service from Facebook's app zygote: it runs under a uid of its own, not the
+     * app's, so a clone can't be told apart there.
+     */
+    private static boolean isThisApp(PackageInfo info) {
+        if (info == null || info.packageName == null) return false;
+        ApplicationInfo app = info.applicationInfo;
+        if (app == null || Process.isIsolated()) return PACKAGE.equals(info.packageName);
+        return app.uid == Process.myUid() && info.packageName.equals(app.packageName);
+    }
+}

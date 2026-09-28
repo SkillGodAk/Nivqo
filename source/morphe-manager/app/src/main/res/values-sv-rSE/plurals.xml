@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s tillägg</item>
+        <item quantity="other">%s tillägg</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s tilläggsalternativ</item>
+        <item quantity="other">%s tilläggsalternativ</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Tilläggskällor för %s app</item>
+        <item quantity="other">Tilläggskällor för %s appar</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s källa har dolts. Tryck för att visa</item>
+        <item quantity="other">%s källor har dolts. Tryck för att visa</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s matchande tillägg</item>
+        <item quantity="other">%s matchande tillägg</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s källa</item>
+        <item quantity="other">%s källor</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s paket</item>
+        <item quantity="other">%s paket</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">Körde %s tillägg</item>
+        <item quantity="other">Körde %s tillägg</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK-fil</item>
+        <item quantity="other">%s APK-filer</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">Installerade %s app</item>
+        <item quantity="other">Installerade %s appar</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">Installerade om %s app</item>
+        <item quantity="other">Installerade om %s appar</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">Avinstallerade %s app</item>
+        <item quantity="other">Avinstallerade %s appar</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Avinstallera %s app?</item>
+        <item quantity="other">Avinstallera %s appar?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s app är redo att modifieras</item>
+        <item quantity="other">%s appar är redo att modifieras</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s app kan modifieras igen</item>
+        <item quantity="other">%s appar kan modifieras igen</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">Hoppade över %s app</item>
+        <item quantity="other">Hoppade över %s appar</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Tog bort %s inaktuellt tillägg från det sparade urvalet</item>
+        <item quantity="other">Tog bort %s inaktuella tillägg från det sparade urvalet</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s installerad källa</item>
+        <item quantity="other">%s installerade källor</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s dold app</item>
+        <item quantity="other">%s dolda appar</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s app</item>
+        <item quantity="other">%s appar</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s vald</item>
+        <item quantity="other">%s valda</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Kopierade %s tillägg från det valda paketet</item>
+        <item quantity="other">Kopierade %s tillägg från det valda paketet</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s kärna</item>
+        <item quantity="other">%s kärnor</item>
+    </plurals>
+</resources>
