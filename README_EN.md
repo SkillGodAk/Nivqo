@@ -78,14 +78,12 @@ Each user should sign patched APKs with their own Manager key.
 
 ## Update model
 
-Starting with Nivqo v1.32.1, updates are split into two layers:
+Starting with Nivqo v1.32.0, updates are split into two layers:
 
 - **HushFacebook / HushMessenger patch cores** are served by Nivqo's own GitHub update channel. When upstream changes are adopted, they are merged with Nivqo's Traditional Chinese/custom changes and tested before the patch bundle is updated on GitHub. Installed Nivqo clients can then receive the new patch core without reinstalling Manager just for a patch update.
 - **Nivqo Manager itself** is released only when Manager code changes, and future Manager updates are resolved from `SkillGodAk/Nivqo` GitHub Releases.
 
 The Manager APK still contains fallback HushFacebook / HushMessenger bundles for offline or first-run use. **Those bundled copies are used only when no local bundle exists and never overwrite a core that has already been updated from GitHub.**
-
-> Upgrading from Nivqo v1.32.0 to v1.32.1 requires one manual v1.32.1 installation because v1.32.0 did not yet enable Manager self-update. After this transition, future Manager releases can be detected through the Nivqo update channel.
 
 ## Releases
 
@@ -97,7 +95,7 @@ Current Manager:
 
 - App: Nivqo
 - Package: `app.nivqo.manager`
-- Manager base version: `1.32.1`
+- Manager base version: `1.32.0`
 
 ## Source code
 

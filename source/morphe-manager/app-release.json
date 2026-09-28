@@ -1,7 +1,7 @@
 {
   "created_at": "2026-09-29T06:02:00",
-  "description": "Nivqo v1.32.1 enables Nivqo-owned automatic patch-core updates for HushFacebook and HushMessenger, keeps bundled patch files only as offline seeds, and enables future Nivqo Manager self-updates from SkillGodAk/Nivqo Releases.",
-  "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v1.32.1/Nivqo-Manager-1.32.1-20260929-release.apk",
+  "description": "Nivqo v1.32.0 enables Nivqo-owned automatic patch-core updates for HushFacebook and HushMessenger, keeps bundled patch files only as offline seeds, and enables future Nivqo Manager self-updates from SkillGodAk/Nivqo Releases.",
+  "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v1.32.0/Nivqo-Manager-1.32.0-20260929-release.apk",
   "signature_download_url": "",
-  "version": "1.32.1"
+  "version": "1.32.0"
 }
