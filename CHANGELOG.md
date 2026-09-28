@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-29 — v1.32.1
+
+- HushFacebook / HushMessenger 改用 Nivqo GitHub 遠端更新通道。
+- 插件核心預設啟用自動更新。
+- APK 內建 `.mpp` 改為離線／首次啟動 seed，不再覆蓋遠端更新後的核心。
+- Nivqo Manager 啟用自我更新，來源改為 `SkillGodAk/Nivqo` 的 `app-release.json` 與 GitHub Releases。
+- v1.32.0 → v1.32.1 為一次性手動過渡；v1.32.1 之後才具備 Nivqo 自有的 Manager 更新能力。
+
 ## 2026-09-29
 
 首個 Nivqo 公開版本。

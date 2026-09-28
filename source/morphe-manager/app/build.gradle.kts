@@ -166,7 +166,7 @@ android {
         // Official release builds may update themselves. Custom/debug distributions must not
         // offer the official APK because it has a different application id/signing identity and
         // would install beside this app with a separate database and signing keystore.
-        buildConfigField("boolean", "ALLOW_MANAGER_SELF_UPDATE", "false")
+        buildConfigField("boolean", "ALLOW_MANAGER_SELF_UPDATE", "true")
 
         vectorDrawables.useSupportLibrary = true
     }
