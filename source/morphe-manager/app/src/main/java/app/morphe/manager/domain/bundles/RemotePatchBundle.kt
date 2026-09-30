@@ -1,4 +1,4 @@
-package app.morphe.manager.domain.bundles
+﻿package app.morphe.manager.domain.bundles
 
 import app.morphe.manager.domain.bundles.RemotePatchBundle.Companion.CHANGELOG_CACHE_TTL
 import app.morphe.manager.domain.manager.PreferencesManager
@@ -441,11 +441,17 @@ class JsonPatchBundle(
         }
     }
 
+    private suspend fun resolveChangelogUrl(endpointUrl: String, api: MorpheAPI): String? {
+        val explicit = runCatching {
+            http.request<MorpheAsset> { url(endpointUrl) }.getOrThrow().changelogUrl
+        }.getOrNull()?.takeIf { it.isNotBlank() }
+        return explicit ?: api.changelogUrlFromBundleEndpoint(endpointUrl)
+    }
     override suspend fun fetchChangelogEntries(sinceVersion: String?): List<ChangelogEntry> {
         // endpoint stores the original branch - rebuild the URL for the active branch
         val api: MorpheAPI by inject()
         val activeEndpoint = resolveBranchUrl(endpoint)
-        val changelogUrl = api.changelogUrlFromBundleEndpoint(activeEndpoint) ?: return emptyList()
+        val changelogUrl = resolveChangelogUrl(activeEndpoint, api) ?: return emptyList()
         return fetchAndCacheEntries("$uid|$changelogUrl", sinceVersion) {
             api.fetchChangelogFromUrl(changelogUrl, stopAfterFirstStable = usePrerelease)
         }
@@ -454,7 +460,7 @@ class JsonPatchBundle(
     override suspend fun fetchFullChangelogEntries(): List<ChangelogEntry> {
         val api: MorpheAPI by inject()
         val stableEndpoint = switchBranchInUrl(endpoint, BRANCH_STABLE)
-        val changelogUrl = api.changelogUrlFromBundleEndpoint(stableEndpoint) ?: return emptyList()
+        val changelogUrl = resolveChangelogUrl(stableEndpoint, api) ?: return emptyList()
         return fetchAndCacheEntries("$uid|$changelogUrl|full", sinceVersion = null) {
             api.fetchChangelogFromUrl(changelogUrl, stopAfterFirstStable = false)
         }
