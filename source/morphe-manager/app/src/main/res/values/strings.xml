@@ -1243,7 +1243,7 @@ Details: %2$s"</string>
 
     <!-- Settings - System Tab - About Section -->
     <string name="settings_system_about">About</string>
-    <string name="settings_system_manager_description">Nivqo is an independent third-party open-source patch manager. It is not affiliated with or endorsed by Meta, Facebook, Messenger, Morphe, or SysAdminDoc. Compatibility names are used only for identification; upstream licenses and notices remain available under Open-source licenses.</string>
+    <string name="settings_system_manager_description">Nivqo is an independent third-party derivative based on Morphe Manager (GPLv3) and integrates upstream open-source patches including HushFacebook and HushMessenger. Nivqo is not affiliated with or endorsed by Meta, Facebook, Messenger, Morphe, or SysAdminDoc. Those names are used only for compatibility and upstream attribution; upstream licenses and notices remain available under Open-source licenses and Credits.</string>
     <string name="credits">Credits</string>
     <string name="credits_current_development">Current development</string>
     <string name="credits_prior_development">Prior development</string>

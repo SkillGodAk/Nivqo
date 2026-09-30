@@ -1,11 +1,11 @@
-﻿package app.morphe.manager.network.dto
+package app.morphe.manager.network.dto
 
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class MorpheAsset (
+data class MorpheAsset(
     @SerialName("download_url")
     val downloadUrl: String,
     @SerialName("created_at")
@@ -16,6 +16,8 @@ data class MorpheAsset (
     val pageUrl: String? = null,
     @SerialName("changelog_url")
     val changelogUrl: String? = null,
+    @SerialName("version_code")
+    val versionCode: Long? = null,
     val description: String,
     val version: String,
 )

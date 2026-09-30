@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright 2026 Morphe.
  * https://github.com/MorpheApp/morphe-manager
  */
@@ -345,7 +345,14 @@ private fun SourceCategoryIcon(
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
     ) {
         when {
-            group.sourceIsDefault -> MorpheLauncherLogo(modifier = Modifier.fillMaxSize())
+            group.sourceIsDefault -> {
+                Icon(
+                    imageVector = Icons.Outlined.Source,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(4.dp)
+                )
+            }
 
             group.sourceAvatarUrl != null -> {
                 RemoteAvatar(

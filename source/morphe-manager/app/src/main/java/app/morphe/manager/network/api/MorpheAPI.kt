@@ -109,6 +109,36 @@ internal fun changelogUrlFromBundleEndpointUrl(endpoint: String): String? {
 }
 
 /**
+ * Manager update comparison used by Nivqo replacement builds.
+ *
+ * When version_code is present it is authoritative. Legacy Nivqo builds do not know that field and
+ * continue to compare the transport version string, so a current v1.33.0 can still discover a
+ * replacement. The replacement APK keeps versionName 1.33.0 but stops offering itself once its
+ * Android versionCode matches the published version_code.
+ */
+internal fun managerUpdateAvailable(
+    installedVersion: String,
+    installedVersionCode: Long,
+    remoteVersion: String,
+    remoteVersionCode: Long?,
+): Boolean {
+    remoteVersionCode?.let { return it > installedVersionCode }
+    return managerVersionWeight(remoteVersion.removePrefix("v")) >
+        managerVersionWeight(installedVersion.removePrefix("v"))
+}
+
+private fun managerVersionWeight(version: String): Long {
+    val dashIdx = version.indexOf('-')
+    val core = if (dashIdx >= 0) version.substring(0, dashIdx) else version
+    val pre = if (dashIdx >= 0) version.substring(dashIdx + 1) else null
+    val parts = core.split('.').map { it.toIntOrNull() ?: 0 }
+    val major = parts.getOrElse(0) { 0 }.toLong()
+    val minor = parts.getOrElse(1) { 0 }.toLong()
+    val patch = parts.getOrElse(2) { 0 }.toLong()
+    val preWeight = if (pre == null) 100_000L else pre.split('.').lastOrNull()?.toLongOrNull() ?: 0L
+    return major * 1_000_000_000L + minor * 1_000_000L + patch * 100_000L + preWeight
+}
+/**
  * High-level network layer for Morphe.
  *
  * Responsible for:
@@ -326,6 +356,7 @@ class MorpheAPI(
             createdAt = parseTimestamp(releaseInfo.createdAt),
             signatureDownloadUrl = releaseInfo.signatureDownloadUrl,
             pageUrl = releasePageUrl(config.htmlUrl, version),
+            versionCode = releaseInfo.versionCode,
             description = releaseInfo.description,
             version = version
         )
@@ -449,7 +480,6 @@ class MorpheAPI(
      */
     suspend fun getAppUpdate(): MorpheAsset? {
         val usePrereleases = prefs.useManagerPrereleases.get()
-        val currentWeight = versionWeight(BuildConfig.VERSION_NAME.removePrefix("v"))
         val branch = if (usePrereleases) "dev" else "main"
 
         val candidate = if (USE_MANAGER_DIRECT_JSON) {
@@ -461,9 +491,16 @@ class MorpheAPI(
             getManagerFromGitHub()
         }.getOrNull()
 
-        // Return only if the remote version is strictly newer than what's installed
+        // Legacy Nivqo builds only understood the version string. Replacement builds also publish
+        // version_code, letting us replace the v1.33.0 APK in place without making the newly
+        // installed replacement offer itself again forever.
         val update = candidate?.takeIf {
-            versionWeight(it.version.removePrefix("v")) > currentWeight
+            managerUpdateAvailable(
+                installedVersion = BuildConfig.VERSION_NAME,
+                installedVersionCode = BuildConfig.VERSION_CODE.toLong(),
+                remoteVersion = it.version,
+                remoteVersionCode = it.versionCode,
+            )
         } ?: return null
 
         // Only a definitive "not there" hides the update: a check that could not run at all
@@ -476,27 +513,6 @@ class MorpheAPI(
         return update
     }
 
-    /**
-     * Converts a semver-like version string to a comparable [Long] weight.
-     *
-     * Format: `MAJOR.MINOR.PATCH[-prerelease.N]`
-     *
-     * Stable releases rank strictly above pre-releases with the same core version:
-     * e.g. `1.2.3` > `1.2.3-beta.5`.
-     */
-    private fun versionWeight(version: String): Long {
-        val dashIdx = version.indexOf('-')
-        val core = if (dashIdx >= 0) version.substring(0, dashIdx) else version
-        val pre = if (dashIdx >= 0) version.substring(dashIdx + 1) else null
-        val parts = core.split('.').map { it.toIntOrNull() ?: 0 }
-        val major = parts.getOrElse(0) { 0 }.toLong()
-        val minor = parts.getOrElse(1) { 0 }.toLong()
-        val patch = parts.getOrElse(2) { 0 }.toLong()
-        // Stable gets a 100_000 bonus so it always beats any pre-release of the same version
-        val preWeight = if (pre == null) 100_000L
-        else pre.split('.').lastOrNull()?.toLongOrNull() ?: 0L
-        return major * 1_000_000_000L + minor * 1_000_000L + patch * 100_000L + preWeight
-    }
 
     /**
      * Fetches patches update from the Morphe backend API.
@@ -596,7 +612,10 @@ class MorpheAPI(
      */
     suspend fun fetchChangelogFromUrl(changelogUrl: String, stopAfterFirstStable: Boolean = false): List<ChangelogEntry> {
         Log.d(tag, "fetchChangelogFromUrl: $changelogUrl")
-        return parseChangelog(client.request<String> { url(changelogUrl) }, stopAfterFirstStable, changelogUrl)
+        return parseChangelog(client.request<String> {
+            url(changelogUrl)
+            header("Cache-Control", "no-cache")
+        }, stopAfterFirstStable, changelogUrl)
     }
 
     private suspend fun fetchChangelogFromRepo(

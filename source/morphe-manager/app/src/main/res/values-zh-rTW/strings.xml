@@ -1155,7 +1155,7 @@ morphe_header_custom_dark.png
     <string name="file_picker_show_hidden_files">顯示隱藏的檔案</string>
     <!-- Settings - System Tab - About Section -->
     <string name="settings_system_about">關於</string>
-    <string name="settings_system_manager_description">Nivqo 是獨立第三方開源修補管理器，與 Meta、Facebook、Messenger、Morphe 或 SysAdminDoc 無官方隸屬、授權、贊助或認可關係。相關名稱僅用於相容性與上游來源說明；上游授權與 NOTICE 可於「開源授權」查看。</string>
+    <string name="settings_system_manager_description">Nivqo 是基於 Morphe Manager（GPLv3）的獨立第三方衍生專案，並整合 HushFacebook／HushMessenger 等上游開源 patch。Nivqo 與 Meta、Facebook、Messenger、Morphe 或 SysAdminDoc 無官方隸屬、授權、贊助或認可關係；相關名稱僅用於相容性與上游來源說明。上游授權與 NOTICE 可於「開源授權」與「鳴謝」查看。</string>
     <string name="credits">鳴謝</string>
     <string name="credits_current_development">目前開發</string>
     <string name="credits_prior_development">先前開發</string>

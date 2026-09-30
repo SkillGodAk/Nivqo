@@ -4,6 +4,18 @@
 
 Nivqo 是獨立第三方開源專案，不是 Meta、Facebook、Messenger、Morphe、HushFacebook 或 HushMessenger 的官方產品，也未宣稱獲得上述專案或公司的授權、贊助或認可。
 
+## 上游來源與標示原則
+
+Nivqo Manager 是 **Morphe Manager 的衍生版本**，並保留 Morphe Manager 的 GPLv3 與 NOTICE 義務。HushFacebook 與 HushMessenger 亦各自保留其 LICENSE / NOTICE 與上游來源鏈。
+
+因此 Nivqo 的對外標示原則是：
+
+- 產品名稱、圖示、package 與官方入口使用 Nivqo 自己的品牌。
+- About 明確標示「基於 Morphe Manager（GPLv3）衍生」。
+- Morphe、HushFacebook、HushMessenger、ReVanced 等上游名稱只作來源、授權、相容性與鳴謝用途。
+- 上游 GitHub、LICENSE、NOTICE 保留在「鳴謝／開源授權／法律說明」；不把 Morphe Website、Reddit、Crowdin 當成 Nivqo 官方入口。
+- 不使用 Morphe logo 作為 Nivqo 的主要識別。
+
 ## Nivqo 發布什麼
 
 Nivqo 發布：

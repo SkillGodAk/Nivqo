@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright 2026 Morphe.
  * https://github.com/MorpheApp/morphe-manager
  */
@@ -55,9 +55,6 @@ object AvatarCache {
     class Accent(val color: Color?)
 }
 
-/** [accentColor] of the app's own icon, which never changes while the app runs. */
-@Volatile
-private var launcherAccent: AvatarCache.Accent? = null
 
 /**
  * Load a remote avatar image from [url], storing the result in [AvatarCache].
@@ -139,24 +136,13 @@ fun rememberAvatarAccent(url: String?, fallbackUrl: String? = null): Color? {
 }
 
 /**
- * [accentColor] of a source's icon: the app's own for the source that ships with it, the avatar's
- * for the rest. Null while the avatar loads, or where the icon has no color of its own.
+ * Accent of a source icon. The preinstalled upstream source is intentionally neutral so it does
+ * not inherit Nivqo's launcher branding; third-party sources may still use their remote avatar.
  */
 @Composable
 fun rememberSourceAccent(isDefault: Boolean, avatarUrl: String?, fallbackAvatarUrl: String?): Color? {
-    val context = LocalContext.current
-    val defaultAccent = remember(isDefault) {
-        if (isDefault) {
-            (launcherAccent ?: AvatarCache.Accent(
-                AppCompatResources.getDrawable(context, R.drawable.ic_launcher_foreground)?.toBitmap()?.accentColor()
-            ).also { launcherAccent = it }).color
-        } else null
-    }
-    val avatarAccent = rememberAvatarAccent(
-        url = avatarUrl.takeUnless { isDefault },
-        fallbackUrl = fallbackAvatarUrl.takeUnless { isDefault }
-    )
-    return defaultAccent ?: avatarAccent
+    if (isDefault) return null
+    return rememberAvatarAccent(url = avatarUrl, fallbackUrl = fallbackAvatarUrl)
 }
 
 /**
