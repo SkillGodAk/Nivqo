@@ -263,7 +263,7 @@ object PatchMetadataLocalizer {
         ),
         "Open Messenger from the top bar" to Zh(
             "從頂部列開啟 Messenger",
-            "讓 Facebook 頂部的 Messenger 圖示直接開啟 Messenger App，而不是 Facebook 內建聊天。未安裝 Messenger 時仍照原本方式開啟聊天；長按圖示仍保留 Facebook 原本行為。此開關預設關閉，需到 Hushfacebook 的聊天設定中開啟。"
+            "Facebook 頂部的 Messenger 圖示可在兩種路徑間切換：開啟此選項時直接開啟 Messenger App；關閉時由 Nivqo 明確開啟 Facebook 內建聊天，略過 Meta 的 Messenger 跳轉詢問。長按圖示仍保留 Facebook 原本行為。此開關預設關閉。"
         ),
         "Turn off double tap to like" to Zh(
             "關閉雙擊按讚",

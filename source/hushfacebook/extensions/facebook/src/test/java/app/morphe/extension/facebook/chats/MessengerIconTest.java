@@ -43,8 +43,9 @@ import app.morphe.extension.shared.settings.PauseForTests;
 
 /**
  * The hook first in the Messenger icon's tap: while the switch is on and Messenger is installed, a
- * tap starts Messenger's launcher entry and Facebook's own Chats doesn't open. Every other time,
- * Facebook handles the tap.
+ * tap starts Messenger's launcher entry. While the switch is off, Nivqo opens Facebook's own
+ * InboxActivity directly, bypassing Meta's server-side Messenger redirect prompt. Long presses,
+ * pauses and failures still fall back to Facebook.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)
@@ -120,14 +121,35 @@ public class MessengerIconTest {
         ShadowSystemClock.advanceBy(ms, TimeUnit.MILLISECONDS);
     }
 
-    /** Off until it's turned on: a tap with Messenger right there still opens Facebook's Chats. */
+    /** Off until it's turned on: a plain tap opens Facebook's own Chats directly. */
     @Test
-    public void theSwitchStartsOffAndLeavesTheTapToFacebook() {
+    public void theSwitchStartsOffAndOpensFacebookChats() {
         assertFalse("the switch starts on", Settings.OPEN_MESSENGER_APP.get());
-        MessengerIconForTests.install();
-        assertFalse(MessengerIcon.open(app, false));
-        assertNull("something was started", MessengerIconForTests.nextStarted());
-        assertEquals(FamilyNames.MESSENGER_ICON + ": invoked 1, 0 found, 0 missing", statusLine());
+
+        assertTrue(MessengerIcon.open(app, false));
+        Intent started = MessengerIconForTests.nextStarted();
+        assertNotNull("Facebook Chats wasn't started", started);
+        assertEquals(app.getPackageName(), started.getComponent().getPackageName());
+        assertEquals("com.facebook.messaginginblue.inbox.activities.InboxActivity",
+                started.getComponent().getClassName());
+        assertTrue("application context needs a new task",
+                (started.getFlags() & Intent.FLAG_ACTIVITY_NEW_TASK) != 0);
+        assertEquals(FamilyNames.MESSENGER_ICON + ": invoked 1, 0 found, 0 missing. Counted: "
+                + MessengerIcon.OPENED_CHATS + " 1", statusLine());
+    }
+
+    /** If the explicit Facebook Chats activity refuses to start, Facebook gets its own tap back. */
+    @Test
+    public void builtInChatsFailureFallsBackToFacebook() {
+        Context refusing = new ContextWrapper(app) {
+            @Override
+            public void startActivity(Intent intent) {
+                throw new ActivityNotFoundException("No Activity found to handle " + intent);
+            }
+        };
+        assertFalse(MessengerIcon.open(refusing, false));
+        assertEquals(FamilyNames.MESSENGER_ICON + ": invoked 1, 0 found, 0 missing. Counted: "
+                + MessengerIcon.CHATS_REFUSED + " 1", statusLine());
     }
 
     /**
@@ -228,7 +250,7 @@ public class MessengerIconTest {
         assertTrue(MessengerIcon.open(app, false));
     }
 
-    /** With the switch off, a held press is Facebook's like everything else, and nothing is counted. */
+    /** With the switch off, a held press remains Facebook's own gesture and nothing is started. */
     @Test
     public void offAHeldPressIsFacebooksAndUncounted() {
         MessengerIconForTests.install();

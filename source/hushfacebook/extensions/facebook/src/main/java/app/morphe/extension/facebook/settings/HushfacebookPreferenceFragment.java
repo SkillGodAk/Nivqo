@@ -603,8 +603,9 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             }
             if (build.contains(PatchFamily.MESSENGER_ICON)) {
                 chats.addPreference(toggle(context, Settings.OPEN_MESSENGER_APP, L10n.t("Open the Messenger app"),
-                        L10n.t("A tap on the Messenger icon at the top of Facebook opens the Messenger app instead "
-                                + "of Chats. Without Messenger installed, Chats opens as before.")));
+                        L10n.t("Turn this on to open the Messenger app from Facebook's top Messenger icon. Turn it "
+                                + "off to open Facebook's built-in Chats directly instead of Meta's Messenger redirect "
+                                + "prompt. A long press keeps Facebook's own behavior.")));
             }
         }
 

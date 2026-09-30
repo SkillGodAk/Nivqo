@@ -21,6 +21,7 @@ import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.diagnostics.DiagnosticCategory;
 import app.morphe.extension.shared.diagnostics.HookStatus;
+import app.morphe.extension.shared.settings.Setting;
 
 /**
  * What the Open Messenger from the top bar patch asks before Facebook handles a tap on its
@@ -28,13 +29,14 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  *
  * <p>The icon at the top of the feed and of the other tabs opens Facebook's own Chats. The patch
  * runs {@link #open} first in the icon's tap, and in the Messenger button handler the older title
- * bar shares with it. While the switch is on and Messenger is installed, a tap starts Messenger's
- * launcher entry, the intent its home screen icon sends, and Facebook's own handling is skipped.
- * Any app may start a launcher entry, so nothing about the key Messenger is signed with matters.
+ * bar shares with it. Nivqo keeps its two-way routing: while the switch is on and Messenger is
+ * installed, a tap starts Messenger's launcher entry; while the switch is off, a plain tap starts
+ * Facebook's own InboxActivity directly. The direct Chats route bypasses Facebook's server-side
+ * "open Messenger?" prompt, which some accounts receive after Messenger is installed.
  *
- * <p>It fails open: with the switch off, a pause, settings that aren't ready, a long press (Facebook
- * has its own use for that), no Messenger with a launcher entry, a start Messenger turns down, or
- * any failure in here, Facebook handles the tap as it always did.
+ * <p>It fails open while Hushfacebook is paused, settings are not ready, a long press is used
+ * (Facebook has its own use for that), the requested activity refuses to start, or an unexpected
+ * failure occurs. In those cases Facebook handles the tap as it normally would.
  *
  * <p>A long press comes in two ways. Where Facebook gives the icon a long-click listener, which a
  * MobileConfig flag decides, the tap is told so. Where it doesn't, the top bar takes a press held on
@@ -46,6 +48,12 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
 public final class MessengerIcon {
     /** Counted under the patch's name when a tap opened Messenger. */
     static final String OPENED = "opened Messenger";
+
+    /** Counted when the switch was off and Nivqo opened Facebook's built-in Chats directly. */
+    static final String OPENED_CHATS = "opened Facebook Chats";
+
+    /** Counted when Facebook's built-in Chats activity refused to start. */
+    static final String CHATS_REFUSED = "Facebook Chats refused to start";
 
     /** Counted when the switch was on but no enabled Messenger had a launcher entry to start. */
     static final String NO_MESSENGER = "no Messenger to open";
@@ -153,8 +161,9 @@ public final class MessengerIcon {
     }
 
     /**
-     * Injection point, first thing in the icon's tap. True when Messenger was started, so Facebook
-     * skips its own handling of the tap. Never throws.
+     * Injection point, first thing in the icon's tap. True when Nivqo handled the tap, so Facebook
+     * skips its own routing. With the switch on this opens Messenger; with it off this opens
+     * Facebook's own Chats directly. Never throws.
      *
      * @param context   what Facebook would start Chats from
      * @param longPress whether the icon was long-pressed rather than tapped
@@ -162,12 +171,16 @@ public final class MessengerIcon {
     public static boolean open(@Nullable Context context, boolean longPress) {
         try {
             HookStatus.invoked(FamilyNames.MESSENGER_ICON);
-            if (context == null) return false;
-            if (!Utils.settingsReady() || !Settings.OPEN_MESSENGER_APP.get()) return false;
+            if (context == null || !Utils.settingsReady() || Setting.isPaused()) return false;
+
+            boolean openMessenger = Settings.OPEN_MESSENGER_APP.get();
             if (longPress || heldPressJustLifted(SystemClock.uptimeMillis())) {
-                countDecline(LONG_PRESS);
+                if (openMessenger) countDecline(LONG_PRESS);
                 return false;
             }
+
+            if (!openMessenger) return openFacebookChats(context);
+
             // Null unless Messenger is installed, enabled and has a MAIN/LAUNCHER (or INFO) activity.
             // The intent comes with FLAG_ACTIVITY_NEW_TASK, so Messenger opens in its own task.
             Intent launch = context.getPackageManager().getLaunchIntentForPackage(MessengerCard.MESSENGER);
@@ -190,6 +203,31 @@ public final class MessengerIcon {
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.MESSENGER_ICON, "Messenger icon", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Opens Facebook's built-in InboxActivity directly. Some accounts replace the normal Chats
+     * route with a server-side Messenger redirect prompt once Messenger is installed; using the
+     * concrete activity here restores Nivqo's explicit built-in Chats behavior.
+     */
+    private static boolean openFacebookChats(Context context) {
+        Intent inbox = new Intent();
+        inbox.setClassName(context.getPackageName(),
+                "com.facebook.messaginginblue.inbox.activities.InboxActivity");
+        if (!(context instanceof android.app.Activity)) {
+            inbox.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        }
+        try {
+            context.startActivity(inbox);
+            HookStatus.counted(FamilyNames.MESSENGER_ICON, OPENED_CHATS);
+            return true;
+        } catch (ActivityNotFoundException | SecurityException refused) {
+            if (!countDecline(CHATS_REFUSED)) return false;
+            final String kind = refused.getClass().getSimpleName();
+            Logger.diagnosticError(DiagnosticCategory.FEED_AND_NAVIGATION, SOURCE,
+                    () -> "Facebook Chats didn't start (" + kind + "). Facebook handles the tap instead.", null);
             return false;
         }
     }

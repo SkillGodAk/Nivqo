@@ -293,7 +293,7 @@ Chats	聊天室
 Hide the Get Messenger card	隱藏「取得 Messenger」卡片
 The card at the top of Chats that asks you to get the Messenger app goes while Messenger is installed. Without Messenger it stays, so you can still install it from there.	安裝 Messenger 後，聊天室頂端要求你取得 Messenger App 的卡片會隱藏。若未安裝 Messenger，卡片仍會保留，方便直接從該處安裝。
 Open the Messenger app	開啟 Messenger 應用程式
-A tap on the Messenger icon at the top of Facebook opens the Messenger app instead of Chats. Without Messenger installed, Chats opens as before.	點擊 Facebook 頂部的 Messenger 圖示時，改為開啟 Messenger 應用程式，而不是 Facebook 的「聊天」。未安裝 Messenger 時仍照原本方式開啟「聊天」。
+Turn this on to open the Messenger app from Facebook's top Messenger icon. Turn it off to open Facebook's built-in Chats directly instead of Meta's Messenger redirect prompt. A long press keeps Facebook's own behavior.	開啟時，點擊 Facebook 頂部的 Messenger 圖示會直接開啟 Messenger 應用程式。關閉時則直接開啟 Facebook 內建「聊天」，略過 Meta 的 Messenger 跳轉詢問。長按仍保留 Facebook 原本行為。
 Playback	播放
 Tap to play	點擊播放
 Videos, reels, stories and music wait for your tap. Facebook's Autoplay setting temporarily reads Off.	影片、Reels、限時動態與音樂都會等待你點擊後才播放。Facebook 的「自動播放」設定會暫時顯示為關閉。
