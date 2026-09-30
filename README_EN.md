@@ -141,15 +141,15 @@ If Nivqo is useful to you, you can support the author.
 
 ### International
 
-[Buy Me a Coffee](https://buymeacoffee.com/SkillGodAK)
+<a href="https://buymeacoffee.com/SkillGodAK"><img src="assets/donate-buymeacoffee.svg" alt="Buy Me a Coffee" width="180"></a>
 
 ### Bank transfer
 
-<img src="assets/donate-bank.jpg" alt="Bank donation QR code" width="360">
+<img src="assets/donate-bank.jpg" alt="Bank donation QR code" width="180">
 
 ### WeChat
 
-<img src="assets/donate-wechat.jpg" alt="WeChat donation QR code" width="360">
+<img src="assets/donate-wechat.jpg" alt="WeChat donation QR code" width="180">
 
 ## License
 

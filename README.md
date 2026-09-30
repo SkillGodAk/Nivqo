@@ -143,15 +143,15 @@ Nivqo 的中文化、整合與修改不代表任何上游作者對本專案提�
 
 ### 國外贊助
 
-[Buy Me a Coffee](https://buymeacoffee.com/SkillGodAK)
+<a href="https://buymeacoffee.com/SkillGodAK"><img src="assets/donate-buymeacoffee.svg" alt="Buy Me a Coffee" width="180"></a>
 
 ### 銀行收款
 
-<img src="assets/donate-bank.jpg" alt="銀行收款 QR Code" width="360">
+<img src="assets/donate-bank.jpg" alt="銀行收款 QR Code" width="180">
 
 ### 微信收款
 
-<img src="assets/donate-wechat.jpg" alt="微信收款 QR Code" width="360">
+<img src="assets/donate-wechat.jpg" alt="微信收款 QR Code" width="180">
 
 ## 授權
 
