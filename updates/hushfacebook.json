@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-09-29T06:02:00",
-  "description": "Nivqo HushFacebook Traditional Chinese/custom bundle. Managed by SkillGodAk/Nivqo; upstream HushFacebook changes are merged and tested before this channel is updated.",
-  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/refs/heads/main/updates/bundles/hushfacebook.mpp",
-  "signature_download_url": "",
-  "version": "0.4.0-nivqo.1"
+    "created_at":  "2026-09-30T23:02:47",
+    "description":  "HushFacebook v0.5.0 Nivqo 繁中核心；跟進上游 main 6d312196，54 個補丁。改用作者正式「開啟 Messenger 應用程式」開關取代舊 Nivqo 跳轉 hook，並補齊最新版所有新增設定繁中。",
+    "signature_download_url":  "",
+    "download_url":  "https://raw.githubusercontent.com/SkillGodAk/Nivqo/refs/heads/main/updates/bundles/hushfacebook.mpp",
+    "version":  "0.5.0-nivqo.1"
 }

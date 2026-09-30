@@ -58,6 +58,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean storySeen() {
+        return false;
+    }
+
     public static boolean sponsoredReels() {
         return false;
     }
@@ -74,11 +78,27 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean affiliateLinks() {
+        return false;
+    }
+
     public static boolean reelDeclutter() {
         return false;
     }
 
     public static boolean reelWatchHistory() {
+        return false;
+    }
+
+    public static boolean doubleTapLike() {
+        return false;
+    }
+
+    public static boolean keepReelSpeed() {
+        return false;
+    }
+
+    public static boolean reelHold() {
         return false;
     }
 
@@ -91,6 +111,10 @@ public final class SettingsStatus {
     }
 
     public static boolean resumeLongVideos() {
+        return false;
+    }
+
+    public static boolean defaultPlaybackQuality() {
         return false;
     }
 
@@ -162,7 +186,27 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean reelsTab() {
+        return false;
+    }
+
+    public static boolean reelsTabDot() {
+        return false;
+    }
+
+    public static boolean postPrompts() {
+        return false;
+    }
+
+    public static boolean reelPrompts() {
+        return false;
+    }
+
     public static boolean messengerCard() {
+        return false;
+    }
+
+    public static boolean messengerIcon() {
         return false;
     }
 

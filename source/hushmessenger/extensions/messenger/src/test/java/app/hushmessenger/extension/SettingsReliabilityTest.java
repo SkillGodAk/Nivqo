@@ -6,6 +6,7 @@ import android.graphics.Insets;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Looper;
+import android.view.DisplayCutout;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
@@ -15,6 +16,7 @@ import android.widget.OverScroller;
 import android.widget.ScrollView;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 import java.time.Duration;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,6 +26,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowToast;
 import org.robolectric.util.ReflectionHelpers;
 import static org.junit.Assert.*;
 
@@ -41,6 +44,8 @@ public class SettingsReliabilityTest {
             View root = screen.get().getWindow().getDecorView();
             assertTrue(((Switch) root.findViewWithTag("bubbles")).isChecked());
             assertFalse(root.findViewWithTag("bubbles").isEnabled());
+            // The custom track has no disabled drawable, so the switch itself must look unavailable.
+            assertEquals(0.4f, root.findViewWithTag("bubbles").getAlpha(), 0.001f);
             assertTrue(Settings.preferences.getBoolean("bubbles", false));
             assertFalse(Settings.enableBubbles());
             assertEquals("0 controls enabled", ((TextView) root.findViewWithTag("enabled_count")).getText().toString());
@@ -52,14 +57,21 @@ public class SettingsReliabilityTest {
             View root = screen.get().getWindow().getDecorView();
             Switch bubbles = root.findViewWithTag("bubbles");
             assertTrue(bubbles.isEnabled());
+            assertEquals(1f, bubbles.getAlpha(), 0f);
             assertFalse(Settings.enableBubbles());
             bubbles.performClick();
+            Toast first = ShadowToast.getLatestToast();
+            assertEquals("Allow chat bubbles on", ShadowToast.getTextOfLatestToast());
             assertTrue(Settings.enableBubbles());
             assertEquals("1 control enabled", ((TextView) root.findViewWithTag("enabled_count")).getText().toString());
             root.findViewWithTag("paused").performClick();
+            // A newer toast replaces the old one instead of queueing behind it.
+            assertTrue(Shadows.shadowOf(first).isCancelled());
+            assertEquals("Changes paused", ShadowToast.getTextOfLatestToast());
             assertTrue(bubbles.isChecked());
             assertFalse(Settings.enableBubbles());
             root.findViewWithTag("paused").performClick();
+            assertEquals("Changes resumed", ShadowToast.getTextOfLatestToast());
             assertTrue(Settings.enableBubbles());
         }
     }
@@ -152,6 +164,34 @@ public class SettingsReliabilityTest {
         }
     }
 
+    @Test @Config(sdk = {28, 36}) public void quickAccessTextWithTheMenuRowStaysWholeAtLargeText() throws Exception {
+        var app = RuntimeEnvironment.getApplication();
+        var info = app.getPackageManager().getPackageInfo(app.getPackageName(), android.content.pm.PackageManager.GET_META_DATA);
+        info.applicationInfo.metaData.putBoolean("hush.feature.menu_row", true);
+        Shadows.shadowOf(app.getPackageManager()).installPackage(info);
+        RuntimeEnvironment.setFontScale(2f);
+        // A short window only has to keep every line; a phone-sized one shows the whole card text.
+        for (int[] size : new int[][] {{320, 360}, {411, 891}}) for (boolean light : new boolean[] {false, true}) {
+            RuntimeEnvironment.setQualifiers("w" + size[0] + "dp-h" + size[1] + "dp-mdpi");
+            Settings.preferences.edit().putBoolean("light", light).commit();
+            try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+                View root = layout(screen.get(), size[0], size[1]);
+                root.findViewWithTag("tab_app").performClick();
+                layout(screen.get(), size[0], size[1]);
+                TextView help = root.findViewWithTag("access_help");
+                assertTrue(help.getText().toString().contains("Menu tab"));
+                assertEquals(0, help.getLayout().getEllipsisCount(help.getLineCount() - 1));
+                assertEquals(help.getLayout().getHeight(), help.getHeight() - help.getPaddingTop() - help.getPaddingBottom());
+                if (size[1] > 360) {
+                    Rect visible = new Rect();
+                    assertTrue(help.getGlobalVisibleRect(visible));
+                    assertEquals(help.getHeight(), visible.height());
+                }
+                assertReachable(screen.get(), root.findViewWithTag("restart_messenger"), size[0], size[1]);
+            }
+        }
+    }
+
     @Test @Config(sdk = {28, 36}) public void keyboardSizedWindowKeepsSearchReadableAndRestoresNavigation() {
         RuntimeEnvironment.setQualifiers("w320dp-h360dp-mdpi");
         RuntimeEnvironment.setFontScale(2f);
@@ -239,6 +279,29 @@ public class SettingsReliabilityTest {
                 controls.scrollTo(0, 0);
                 layout(screen.get(), 320, 360);
                 assertEquals("Later manual scrolling is preserved", 0, controls.getScrollY());
+            }
+        }
+    }
+
+    @Test @Config(sdk = {29, 36}) public void cutoutInsetsKeepTheScreenClearOnEitherSide() {
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View content = ((ViewGroup) screen.get().findViewById(android.R.id.content)).getChildAt(0);
+            // System bars, cutout safe insets, then the padding the root should take.
+            int[][] cases = {
+                {0, 24, 0, 24, 0, 0, 0, 0, 0, 24, 0, 24},
+                {0, 24, 0, 24, 80, 0, 0, 0, 80, 24, 0, 24},
+                {0, 24, 0, 24, 0, 0, 80, 0, 0, 24, 80, 24},
+                {0, 24, 0, 24, 0, 90, 0, 0, 0, 90, 0, 24},
+                {0, 24, 0, 254, 0, 0, 80, 40, 0, 24, 80, 254},
+            };
+            for (int[] c : cases) {
+                WindowInsets.Builder insets = new WindowInsets.Builder().setSystemWindowInsets(Insets.of(c[0], c[1], c[2], c[3]));
+                if (c[4] + c[5] + c[6] + c[7] > 0)
+                    insets.setDisplayCutout(new DisplayCutout(Insets.of(c[4], c[5], c[6], c[7]), null, null, null, null));
+                WindowInsets left = content.dispatchApplyWindowInsets(insets.build());
+                assertArrayEquals(java.util.Arrays.toString(c), new int[] {c[8], c[9], c[10], c[11]},
+                    new int[] {content.getPaddingLeft(), content.getPaddingTop(), content.getPaddingRight(), content.getPaddingBottom()});
+                assertNull("The cutout is handled here, not passed on", left.getDisplayCutout());
             }
         }
     }

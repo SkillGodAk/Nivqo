@@ -17,8 +17,7 @@ import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 
-private const val HIDE_OR_REDIRECT =
-    "$EXTENSION_PACKAGE/chats/MessengerRedirect;->hideOrRedirect(Landroid/content/Context;)Z"
+private const val HIDE = "$EXTENSION_PACKAGE/chats/MessengerCard;->hide()Z"
 
 /**
  * Has the Messenger card's show question answer no while Messenger is installed and the switch is
@@ -31,8 +30,7 @@ val hideGetMessengerCardPatch = bytecodePatch(
     name = "Hide the Get Messenger card",
     description = "Hides the \"Get the Messenger app\" card at the top of Chats while Messenger is installed. " +
         "Facebook only counts a Messenger signed with its own key, so a re-signed Facebook shows the card even " +
-        "with Messenger right there. Without Messenger the card stays. It also adds an optional Hushfacebook " +
-        "switch that opens Facebook Chats in the installed Messenger app.",
+        "with Messenger right there. Without Messenger the card stays.",
     default = true,
 ) {
     category("Interface")
@@ -47,7 +45,7 @@ val hideGetMessengerCardPatch = bytecodePatch(
         )
         mutableClassDefBy(question.definingClass).methods.single {
             it.name == question.name && it.parameterTypes.map(Any::toString) == question.parameterTypes.map(Any::toString)
-        }.answerNoWhileHiddenOrRedirected()
+        }.answerNoWhileHidden()
         enableStatus("messengerCard")
     }
 }
@@ -56,12 +54,12 @@ val hideGetMessengerCardPatch = bytecodePatch(
  * First thing in the card's show question: ask the extension, and answer no when it says the card
  * goes. Otherwise Facebook's own question runs from its first instruction.
  */
-internal fun MutableMethod.answerNoWhileHiddenOrRedirected() {
+internal fun MutableMethod.answerNoWhileHidden() {
     requireLocals(PATCH, 1)
     addInstructionsWithLabels(
         0,
         """
-            invoke-static { p1 }, $HIDE_OR_REDIRECT
+            invoke-static { }, $HIDE
             move-result v0
             if-eqz v0, :facebook
             const/4 v0, 0x0

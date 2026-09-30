@@ -140,7 +140,16 @@ In News feed, Hide Reels in the feed blocks the rows of reels between posts.	En 
 Reels that play by themselves	Reels que se reproducen solos
 In Playback, Tap to play blocks autoplay, so reels and other videos wait for your tap.	En Reproducción, “Toca para reproducir” bloquea la reproducción automática, así que los reels y otros vídeos esperan a que toques.
 The Reels tab	La pestaña Reels
-Facebook's own setting blocks it. Open Settings, Tab bar, Customize the bar and choose Hide next to Reels, which some accounts call Video. If neither is listed, Facebook hasn't given your account that option, and Hushfacebook has no switch for the tab.	La bloquea el propio ajuste de Facebook. Abre Configuración, Barra de pestañas, Personalizar la barra y elige Ocultar junto a Reels, que en algunas cuentas se llama Video. Si no aparece ninguna de las dos, Facebook no le ha dado esa opción a tu cuenta, y Hushfacebook no tiene ningún interruptor para la pestaña.
+# context: map line without the patch; %1$s is the patch's English name in Morphe Manager
+Facebook's own setting blocks it. Open Settings, Tab bar, Customize the bar and choose Hide next to Reels, which some accounts call Video. If neither is listed, choose the %1$s patch in Morphe Manager and patch again.	La bloquea el propio ajuste de Facebook. Abre Configuración, Barra de pestañas, Personalizar la barra y elige Ocultar junto a Reels, que en algunas cuentas se llama Video. Si no aparece ninguna de las dos, elige el parche %1$s en Morphe Manager y vuelve a parchear.
+# context: map line with the patch; Reels and Watch is this settings section, Hide the Reels tab is the switch below
+In Reels and Watch, Hide the Reels tab blocks it after a restart.	En “Reels y Watch”, “Ocultar la pestaña Reels” la bloquea tras un reinicio.
+# context: switch title under Reels and Watch; the tab some accounts call Video
+Hide the Reels tab	Ocultar la pestaña Reels
+# context: summary of that switch
+Take the Reels tab, called Video on some accounts, off the tab bar. Reel links and reels in the feed still open. Changes show after Facebook restarts.	Quita de la barra de pestañas la pestaña Reels, que en algunas cuentas se llama Video. Los enlaces a reels y los reels del feed se siguen abriendo. Los cambios se ven al reiniciar Facebook.
+# context: start tab row summary when Video is the chosen tab and Hide the Reels tab is on; Home and Video are tab names
+Facebook opens on Home while Hide the Reels tab is on, since Video is off the tab bar. Your choice stays saved.	Facebook se abre en Inicio mientras “Ocultar la pestaña Reels” esté activado, porque Video no está en la barra de pestañas. Tu selección se conserva.
 Everything except Marketplace	Todo menos Marketplace
 In Opening Facebook, Marketplace only blocks the feed, the Reels tab and the other social tabs after a restart.	En “Al abrir Facebook”, “Solo Marketplace” bloquea el feed, la pestaña Reels y las demás pestañas sociales tras un reinicio.
 Not in this build. To block this, choose the %1$s patch in Morphe Manager and patch again.	No está en esta compilación. Para bloquearlo, elige el parche %1$s en Morphe Manager y vuelve a parchear.
@@ -152,6 +161,8 @@ Save folder	Carpeta de guardado
 Save full report	Guardar informe completo
 Saved to %1$s	Se guardó en %1$s
 Saved to the gallery	Se guardó en la galería
+Saved to %1$s in lower quality than on Facebook	Se guardó en %1$s con menos calidad que en Facebook
+Saved to the gallery in lower quality than on Facebook	Se guardó en la galería con menos calidad que en Facebook
 Saved. Restart Facebook to apply this change.	Guardado. Reinicia Facebook para aplicar este cambio.
 Save your switches and download settings to a file. Pause and Debug logging aren't included, and neither is the release check.	Guarda tus interruptores y los ajustes de descarga en un archivo. La pausa y el Registro de depuración no se incluyen, y la búsqueda de nuevas versiones tampoco.
 # The release check: its switch and Check now row under Updates, the status card's line about a newer release, and what a failed try says.
@@ -226,6 +237,8 @@ Returning to Facebook within ten minutes keeps your place. Pull to refresh still
 No time limit	Sin límite de tiempo
 With the switch above on, your place stays however long you're away. Pull to refresh and a fresh start still load new posts.	Con el interruptor de arriba activado, tu lugar se mantiene sin importar cuánto tiempo estés fuera. Deslizar para actualizar y abrir la app de nuevo siguen cargando publicaciones nuevas.
 A finished story stays on screen until you tap or swipe. Turn this off for Facebook's timing.	Una historia terminada permanece en pantalla hasta que toques o deslices. Desactiva esto para usar el tiempo de Facebook.
+View stories anonymously	Ver historias de forma anónima
+Facebook isn't told which stories you watch, so you stay off their viewer lists. Replying or reacting still shows you, and stories you've watched keep their unwatched ring.	Facebook no sabe qué historias ves, así que no apareces en sus listas de espectadores. Si respondes o reaccionas, se te sigue viendo, y las historias que ya viste conservan el círculo de historia sin ver.
 Stop Story auto-advance	Detener el avance automático de historias
 Copy a short report to the clipboard.	Copia un informe breve en el portapapeles.
 Save the full report in Download/Morphe.	Guarda el informe completo en Download/Morphe.
@@ -290,14 +303,18 @@ Jump to a section	Ir a una sección
 Go straight to one group of settings. Back returns to where you were.	Ve directo a un grupo de ajustes. Atrás te devuelve a donde estabas.
 # context: switch title under Downloads; on, every video save keeps to formats other apps accept
 Save videos other apps can open	Guardar videos que otras apps puedan abrir
-# context: summary of that switch; H.264, AAC, AV1 and WhatsApp are names and stay as they are
-Prefer H.264 video with AAC sound for apps such as WhatsApp. Quality may be lower than AV1. Without a compatible version, save as usual.	Prefiere vídeo H.264 con audio AAC para apps como WhatsApp. La calidad puede ser inferior a AV1. Sin versión compatible, guarda como siempre.
+# context: summary of that switch; WhatsApp is a name and stays as it is, and saves are the videos the user saved to the phone
+For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves without sound. May lower quality.	Para WhatsApp, editores de video como CapCut e InShot, o una galería o un reproductor que reproduzca sin sonido los videos guardados. Puede bajar la calidad.
 # context: section title for the Chats settings, named like Facebook's own Chats screen
 Chats	Chats
 # context: switch title under Chats; the card is Facebook's own "Get the Messenger app" card
 Hide the Get Messenger card	Ocultar la tarjeta para obtener Messenger
 # context: summary of that switch; Messenger is the app's name and stays as it is
 The card at the top of Chats that asks you to get the Messenger app goes while Messenger is installed. Without Messenger it stays, so you can still install it from there.	La tarjeta de la parte superior de Chats que te pide que descargues la app de Messenger desaparece mientras Messenger esté instalado. Sin Messenger, se queda para que puedas seguir instalándolo desde ahí.
+# context: switch title under Chats; on, Facebook's Messenger icon opens the Messenger app
+Open the Messenger app	Abrir la app de Messenger
+# context: summary of that switch; Messenger is the app's name, Chats is Facebook's own chat screen as named above
+A tap on the Messenger icon at the top of Facebook opens the Messenger app instead of Chats. Without Messenger installed, Chats opens as before.	Al tocar el icono de Messenger de la parte superior de Facebook se abre la app de Messenger en lugar de Chats. Si Messenger no está instalado, Chats se abre como antes.
 # context: settings section heading for the Tap to play switch
 Playback	Reproducción
 # context: switch title; on, videos and music wait for a tap before they play
@@ -400,7 +417,7 @@ Keep friends and followed Pages in the Stories tray. Applies when Facebook next 
 # context: switch title under Marketplace; the ads Facebook puts between the things people sell in Marketplace's feed
 Hide sponsored Marketplace listings	Ocultar artículos publicitarios de Marketplace
 # context: summary of that switch; a boosted listing is one its seller paid Facebook to show to more people
-Ads and boosted listings in Marketplace's feed. The other listings stay.	Anuncios y artículos promocionados en el feed de Marketplace. Los demás artículos se quedan.
+Ads and boosted listings in Marketplace's feed and search results. The other listings stay.	Anuncios y artículos promocionados en el feed y en los resultados de búsqueda de Marketplace. Los demás artículos se quedan.
 # context: switch title under News feed; hides posts whose text holds a word or phrase the person listed
 Hide posts with words you choose	Ocultar publicaciones con las palabras que elijas
 # context: summary of that switch; the keep list is the second list under it, and a settings file is the one Export settings writes
@@ -410,15 +427,15 @@ Words to hide	Palabras para ocultar
 # context: title of the row and dialog holding the list of words and phrases that keep a post even when it has a word to hide
 Words that keep a post	Palabras que mantienen una publicación
 # context: message of the Words to hide dialog; %1$d is how many phrases a list holds (50), %2$d and %3$d the shortest and longest phrase in characters (2 and 60)
-One word or phrase per line, up to %1$d, each %2$d to %3$d characters long. Capital letters don't matter, and a phrase matches anywhere in a post's text, inside longer words too.	Una palabra o frase por línea, hasta %1$d, cada una de %2$d a %3$d caracteres. Las mayúsculas no importan, y una frase coincide en cualquier parte del texto de una publicación, también dentro de palabras más largas.
+One word or phrase per line, up to %1$d, each %2$d to %3$d characters long, or just one for an emoji, a Chinese character, a kana or a Hangul syllable. Capital letters don't matter, and a phrase matches anywhere in a post's text, inside longer words too.	Una palabra o frase por línea, hasta %1$d, cada una de %2$d a %3$d caracteres, o solo uno si es un emoji, un carácter chino, un kana o una sílaba hangul. Las mayúsculas no importan, y una frase coincide en cualquier parte del texto de una publicación, también dentro de palabras más largas.
 # context: message of the Words that keep a post dialog; %1$d is how many phrases a list holds (50), %2$d and %3$d the shortest and longest phrase in characters (2 and 60)
-A post with any of these stays, even when it also has a word to hide. One per line, up to %1$d, each %2$d to %3$d characters long.	Una publicación con cualquiera de estas se mantiene, aunque también tenga una palabra para ocultar. Una por línea, hasta %1$d, cada una de %2$d a %3$d caracteres.
+A post with any of these stays, even when it also has a word to hide. One per line, up to %1$d, each %2$d to %3$d characters long, or just one for an emoji, a Chinese character, a kana or a Hangul syllable.	Una publicación con cualquiera de estas se mantiene, aunque también tenga una palabra para ocultar. Una por línea, hasta %1$d, cada una de %2$d a %3$d caracteres, o solo uno si es un emoji, un carácter chino, un kana o una sílaba hangul.
 # context: hint in the empty text box of both word list dialogs
 One word or phrase per line	Una palabra o frase por línea
 # context: toast after saving a word list, one line left out; %2$d and %3$d are the shortest and longest phrase in characters, %4$d how many a list holds
-%1$d line was left out. A phrase needs %2$d to %3$d characters, one given twice counts once, and a list holds %4$d.	Se omitió %1$d línea. Una frase necesita de %2$d a %3$d caracteres, una repetida cuenta una sola vez y una lista admite %4$d.
+%1$d line was left out. A phrase needs %2$d to %3$d characters, or just one for an emoji, a Chinese character, a kana or a Hangul syllable. One given twice counts once, and a list holds %4$d.	Se omitió %1$d línea. Una frase necesita de %2$d a %3$d caracteres, o solo uno si es un emoji, un carácter chino, un kana o una sílaba hangul. Una repetida cuenta una sola vez y una lista admite %4$d.
 # context: toast after saving a word list, several lines left out; %2$d and %3$d are the shortest and longest phrase in characters, %4$d how many a list holds
-%1$d lines were left out. A phrase needs %2$d to %3$d characters, one given twice counts once, and a list holds %4$d.	Se omitieron %1$d líneas. Una frase necesita de %2$d a %3$d caracteres, una repetida cuenta una sola vez y una lista admite %4$d.
+%1$d lines were left out. A phrase needs %2$d to %3$d characters, or just one for an emoji, a Chinese character, a kana or a Hangul syllable. One given twice counts once, and a list holds %4$d.	Se omitieron %1$d líneas. Una frase necesita de %2$d a %3$d caracteres, o solo uno si es un emoji, un carácter chino, un kana o una sílaba hangul. Una repetida cuenta una sola vez y una lista admite %4$d.
 # context: summary of the Words to hide row while it's empty
 No words yet, so no post is hidden.	Todavía no hay palabras, así que no se oculta ninguna publicación.
 # context: summary of the Words that keep a post row while it's empty
@@ -480,9 +497,9 @@ Active. Marketplace, Notifications and Profile/Menu stay. Find Hushfacebook sett
 # context: Settings overview, category navigation and search.
 Marketplace mode and your start tab	Modo Marketplace y pestaña de inicio
 Ads, suggestions and word filters	Anuncios, sugerencias y filtros de palabras
-Suggestions, saving and auto-advance	Sugerencias, guardado y avance automático
+Suggestions, saving, auto-advance and viewing anonymously	Sugerencias, guardado, avance automático y visualización anónima
 Cleaner reels and video controls	Reels más limpios y controles de vídeo
-Tap to play and resume	Tocar para reproducir y reanudar
+Tap to play, quality and resume	Tocar para reproducir, calidad y reanudar
 Quality, format and file names	Calidad, formato y nombres de archivo
 Browse settings	Explorar ajustes
 More settings	Más ajustes
@@ -494,7 +511,7 @@ Try a different word or clear the search.	Prueba otra palabra o borra la búsque
 Search settings	Buscar ajustes
 Clear search	Borrar búsqueda
 Your controls are active.	Tus controles están activos.
-Your choices are saved. Resume after restarting Facebook.	Tus preferencias están guardadas. Reanuda tras reiniciar Facebook.
+Your choices are saved. Tap Resume, then restart Facebook.	Tus preferencias están guardadas. Toca Reanudar y luego reinicia Facebook.
 Pause	Pausar
 Resume	Reanudar
 Undo	Deshacer
@@ -514,16 +531,118 @@ Android 11 doesn't say which links open here. Tap to open this app's settings, t
 Selecting links by hand	Seleccionar enlaces a mano
 Android checks Facebook's links against Meta's signing key, which a re-signed build doesn't have. Selecting the addresses sends their links here again. It doesn't restore Meta's verification, and your other link settings stay as they are.	Android comprueba los enlaces de Facebook con la clave de firma de Meta, que una versión firmada de nuevo no tiene. Al seleccionar las direcciones, sus enlaces vuelven a llegar aquí. Eso no recupera la verificación de Meta, y tus otros ajustes de enlaces se quedan como están.
 Android's settings for this app didn't open. Open App info from Facebook's icon, then Open by default.	No se abrieron los ajustes de Android para esta app. Abre Información de la app desde el icono de Facebook y luego Abrir de forma predeterminada.
-
-# context: Local Morphe Hush additions.
-Copy a quick report or save the full one to Download/Morphe. Names, IDs, links and cookies are omitted.	Copia un informe rápido o guarda el completo en Download/Morphe. Se omiten nombres, ID, enlaces y cookies.
-Couldn't import every setting. Check the switches on this screen.	No se pudieron importar todos los ajustes. Revisa los interruptores de esta pantalla.
-Pause runtime features from the next start. Your choices stay saved. Debug logging and patches applied during installation keep working.	Pausa las funciones desde el próximo inicio. Tus preferencias quedan guardadas. El registro de depuración y los parches aplicados al instalar siguen activos.
-There's nothing to report yet. Turn on Debug logging, repeat what went wrong, then export again.	Todavía no hay nada que informar. Activa el Registro de depuración, repite lo que falló y vuelve a exportar.
-Follow system	Seguir el sistema
-Interface language	Idioma de la interfaz
-Follow Facebook	Seguir Facebook
-Traditional Chinese	Chino tradicional
-English	Inglés
-Open Chats in Messenger	Abrir Chats en Messenger
-When Messenger is installed, opening Facebook's Chats sends you to Messenger. Turn this off to use Facebook's own Chats.	Si Messenger está instalado, al abrir Chats de Facebook se abrirá Messenger. Desactiva esta opción para usar los Chats de Facebook.
+# context: message when a save starts and its notification can't show (Facebook's notifications or the saves channel are off); Downloads is the settings section that lists running saves, each with its own Cancel
+Saving... Cancel: Downloads in Hushfacebook.	Guardando... Cancelar: Descargas en Hushfacebook.
+# context: switch title under Reels and Watch; on, a double tap on a reel or a video doesn't like it
+Turn off double tap to like	Desactivar tocar dos veces para dar Me gusta
+# context: summary of that switch; Like is the name of Facebook's own button, as Facebook shows it in this language
+A double tap on a reel or video no longer likes it or shows a heart. A single tap and the Like button work as before.	Tocar dos veces un reel o un vídeo ya no le da Me gusta ni muestra un corazón. Un toque y el botón Me gusta funcionan como antes.
+Keep the reel speed	Mantener la velocidad de los reels
+# context: summary of that switch
+A playback speed you pick in a reel's menu stays for the next reels until you pick another or Facebook restarts. Off, every reel starts at normal speed.	La velocidad de reproducción que elijas en el menú de un reel se mantiene en los siguientes reels hasta que elijas otra o Facebook se reinicie. Desactivado, cada reel empieza a velocidad normal.
+Hold a reel for 2x	Mantener pulsado un reel para 2x
+# context: summary of that switch; more button is the reel's own button with three dots
+Holding a reel plays it at double speed until you let go, in place of Facebook's long-press menu. The reel's more button still opens that menu.	Mantener pulsado un reel lo reproduce al doble de velocidad hasta que lo sueltes, en lugar de abrir el menú de pulsación larga de Facebook. El botón Más del reel sigue abriendo ese menú.
+Default playback quality	Calidad de reproducción predeterminada
+Play videos, reels and stories at the quality below. A quality picked in a video's own menu still wins.	Reproduce vídeos, reels e historias en la calidad de abajo. Una calidad elegida en el menú de un vídeo sigue teniendo prioridad.
+Playback quality	Calidad de reproducción
+Auto	Automática
+Data saver	Ahorro de datos
+Up to %1$s	Hasta %1$s
+Highest	La más alta
+Facebook picks the quality as each video plays, from your connection.	Facebook elige la calidad mientras se reproduce cada vídeo, según tu conexión.
+Videos play at the lowest quality Facebook offers for each.	Los vídeos se reproducen en la calidad más baja que Facebook ofrece para cada uno.
+Videos play at the best quality up to %1$s that Facebook offers for each, or the closest above.	Los vídeos se reproducen en la mejor calidad hasta %1$s que Facebook ofrece para cada uno, o en la más cercana por encima.
+Videos play at the highest quality Facebook offers for each.	Los vídeos se reproducen en la calidad más alta que Facebook ofrece para cada uno.
+Facebook will pick the quality videos play at.	Facebook elegirá la calidad de reproducción de los vídeos.
+Playback quality will be set to %1$s.	La calidad de reproducción será %1$s.
+# context: row title under Pause, backup and diagnostics, shown only while Debug logging is on
+Test the Messenger link	Probar la conexión con Messenger
+# context: summary of that row; Debug logging is the switch's name as this table gives it
+Runs the two reads Facebook makes of Messenger at startup, now, and shows whether each one answered. Shown while Debug logging is on.	Hace ahora las dos lecturas que Facebook hace de Messenger al iniciarse y muestra si cada una respondió. Visible mientras Registro de depuración está activado.
+# context: toast when the test can't begin
+The Messenger link test couldn't start.	La prueba de la conexión con Messenger no pudo empezar.
+# context: toast on a build without the test
+This build can't run the Messenger link test.	Esta versión no puede hacer la prueba de la conexión con Messenger.
+# context: toast when Facebook has no signed-in account
+No signed-in account to test with.	No hay ninguna cuenta con sesión iniciada para la prueba.
+# context: toast with the test's result; each placeholder is one of: answered, no answer, failed (...)
+Opt-out read: %1$s. Triggered read: %2$s.	Lectura de exclusión: %1$s. Lectura de activación: %2$s.
+# context: a read's result in that toast
+no answer	sin respuesta
+# context: a read's result in that toast
+answered	respondió
+# context: a read's result in that toast; the placeholder is an error's class name, left in English
+failed (%1$s)	falló (%1$s)
+# context: switch title under Reels and Watch; the dot is the tab bar's new-item badge
+Hide the Reels tab dot	Ocultar el punto de la pestaña Reels
+# context: summary of that switch; Video is Facebook's name for the tab on some accounts
+No dot or new count on the Reels tab, called Video on some accounts. Other tabs keep theirs.	Sin punto ni recuento de novedades en la pestaña Reels, llamada Video en algunas cuentas. Las demás pestañas conservan los suyos.
+# context: title of the overview row under the status card when the build lacks one patch Morphe Manager selects by default
+%1$d default patch isn't in this build	%1$d parche predeterminado no está en esta compilación
+# context: title of that row when several default patches are missing
+%1$d default patches aren't in this build	%1$d parches predeterminados no están en esta compilación
+# context: summary of that row while its list of patch names is closed; a tap opens it
+Tap to see which.	Toca para ver cuáles.
+# context: that row's summary once opened, one patch missing; the placeholder is the patch's English name as Morphe Manager lists it
+Not in this build: %1$s. Morphe Manager selects it by default. Patch again with it selected to get what it does.	No está en esta compilación: %1$s. Morphe Manager lo selecciona por defecto. Selecciónalo y vuelve a parchear para obtener lo que hace.
+# context: that row's summary once opened, several patches missing; the placeholder is their English names joined as a list
+Not in this build: %1$s. Morphe Manager selects them by default. Patch again with them selected to get what they do.	No están en esta compilación: %1$s. Morphe Manager los selecciona por defecto. Selecciónalos y vuelve a parchear para obtener lo que hacen.
+# context: Toast at the end of a video save whose file uses a codec WhatsApp and some video editors can't open (AV1, VP9, HEVC or xHE-AAC). A notification with a button to the fix is showing too. Keep it short: Android shows two lines at most.
+Saved, but WhatsApp and some editors may refuse it	Se guardó, pero WhatsApp y algunos editores podrían rechazarlo
+# context: Toast at the end of a video save whose file WhatsApp may not open, when no notification can be shown. Downloads is the section of Hushfacebook settings with the fix. Two lines at most.
+Saved, but WhatsApp may refuse it. Fix: Downloads in Hushfacebook.	Se guardó, pero WhatsApp podría rechazarlo. Solución: Descargas en Hushfacebook.
+# context: Second line of the notification after such a save. %1$s is the switch's name, Save videos other apps can open. They: WhatsApp and the editors.
+Turn on %1$s to save videos they all play.	Activa %1$s para guardar videos que todos puedan reproducir.
+# context: Title of the notification after a video save whose file uses a codec WhatsApp and some video editors can't open.
+WhatsApp and some editors may refuse this video	WhatsApp y algunos editores podrían rechazar este video
+# context: Button on that notification. It opens Hushfacebook settings at the switch Save videos other apps can open.
+Open the setting	Abrir la configuración
+# context: switch title under News feed; the prompts are the strip Facebook puts under some posts, such as "Are you interested in this post?"
+Hide post prompts	Ocultar las preguntas bajo las publicaciones
+# context: description of that switch; the quoted texts are Facebook's own prompts, so use Facebook's wording in your language if you know it
+The strip on some posts, like "Are you interested in this post?", "Show less" or who recently commented, and the follow and chat suggestions in the same place. The post stays.	La franja en algunas publicaciones, como “¿Te interesa esta publicación?”, “Mostrar menos” o quién comentó hace poco, y las sugerencias para seguir o chatear en el mismo lugar. La publicación se queda.
+# context: switch title under Reels and Watch; the prompt is Facebook's "Are you interested in this reel?" question on a reel
+Hide reel interest prompts	Ocultar la pregunta de interés en los reels
+# context: description of that switch; the quoted text is Facebook's own prompt, so use Facebook's wording in your language if you know it
+No "Are you interested in this reel?" prompt on reels. The reel plays as usual.	Sin la pregunta “¿Te interesa este reel?” en los reels. El reel se reproduce como siempre.
+# context: switch title under News feed; affiliate product links are the shop links creators add to their posts to earn a commission
+Hide affiliate product links	Ocultar los enlaces de productos de afiliados
+# context: description of that switch; "Commission eligible" is Facebook's own label, so use Facebook's wording in your language if you know it
+The product cards of shop links creators add to posts, on reels, under feed posts and in the comments. The "Commission eligible" label stays.	Las tarjetas de producto de los enlaces de tienda que los creadores añaden a sus publicaciones, en los reels, bajo las publicaciones del feed y en los comentarios. La etiqueta “Apto para comisión” se queda.
+# context: The reel button and the video menu item while links are sent to another app (#41)
+Send to app	Enviar a una app
+# context: Title of Android's app chooser when a video's link is sent
+Send the link to	Enviar el enlace a
+# context: Toast when no app could take a video's link
+Couldn't open an app for this link	No se pudo abrir una app para este enlace
+# context: Clipboard label of a copied video link
+Video link	Enlace del video
+# context: Toast after a long press on the reel button copied its link
+Link copied	Enlace copiado
+# context: Toast when a reel's link can't be built
+Couldn't find this reel's link	No se encontró el enlace de este reel
+# context: Toast when a feed video's link can't be built
+Couldn't find this video's link	No se encontró el enlace de este video
+# context: Settings row title: what the Download button does
+When you tap Download	Al tocar Descargar
+# context: Choice of the download action row
+Save to phone	Guardar en el teléfono
+# context: Choice of the download action row
+Send the link to an app	Enviar el enlace a una app
+# context: Summary of the download action row while links are sent
+Reels and videos go to the app below as a facebook.com link. Hold the reel Download button to copy the link instead. Stories still save to this phone.	Los reels y videos van a la app de abajo como un enlace de facebook.com. Mantén pulsado el botón Descargar de un reel para copiar el enlace. Las historias se siguen guardando en este teléfono.
+# context: Summary of the download action row while saving, the default
+Reels, videos and stories save to this phone.	Los reels, videos e historias se guardan en este teléfono.
+# context: Settings row title: the app links are sent to
+App to send to	App de destino
+# context: Dialog message of the send-to app row; %1$s and %2$s are package names
+The package name of the app that gets the links, such as %1$s for YTDLnis or %2$s for Seal. Leave it blank to pick an app each time.	El nombre de paquete de la app que recibe los enlaces, como %1$s para YTDLnis o %2$s para Seal. Déjalo en blanco para elegir una app cada vez.
+# context: Hint in the send-to app field
+Package name	Nombre de paquete
+# context: Toast when what was typed in the send-to app row isn't a package name; %1$s is what was typed
+%1$s isn't a package name, so the app stays as it was.	%1$s no es un nombre de paquete, así que la app no cambia.
+# context: Summary of the send-to app row with no app named
+Android asks which app each time.	Android pregunta qué app usar cada vez.
+# context: Summary of the send-to app row; %1$s is the package name
+Links go to %1$s. When it isn't installed, Android asks which app.	Los enlaces van a %1$s. Si no está instalada, Android pregunta qué app usar.

@@ -52,6 +52,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.settings.preference.LogBufferManager;
 
@@ -85,6 +86,8 @@ public class MediaSaveTest {
             }
         };
         context = RuntimeEnvironment.getApplication();
+        // A save of one file reads its policy through MediaDownload, as every save does.
+        MediaDownload.policyForTests = policy;
         gallery = Robolectric.setupContentProvider(Gallery.class, MediaStore.AUTHORITY);
         ShadowContentResolver resolver = Shadows.shadowOf(context.getContentResolver());
         resolver.registerOutputStream(gallery.videoUri(1), published);
@@ -94,6 +97,13 @@ public class MediaSaveTest {
     @After
     public void tearDown() throws IOException {
         server.close();
+        MediaDownload.policyForTests = null;
+        MediaDownload.capForTests = 0;
+        DashSave.usableForTests = null;
+        // A saved setting outlives the test method that wrote it (the preference store survives
+        // this sandbox, not just this class's Application instance), and a quality other than the
+        // default changes what the writable-track and DASH-pick checks judge later saves against.
+        Settings.DOWNLOAD_QUALITY.resetToDefault();
         LogBufferManager.clearLogBuffer();
         // The join cases tell Robolectric's extractor about their work files, and it keeps that
         // in a static map. Cleared here rather than left to Robolectric's own reset.
@@ -112,11 +122,22 @@ public class MediaSaveTest {
         return body;
     }
 
-    private Downloader.Result save(String path, long max) {
-        File folder = DashSave.workFolder(context);
-        assertNotNull(folder);
-        return Downloader.save(origin + path, Downloader.Kind.VIDEO, folder,
-                new MediaStoreWriter(context, true), policy, max);
+    /** The save of one video file at [path], on the path every single-file save takes. */
+    private Downloader.Result save(String path) {
+        return save(path, new MediaStoreWriter(context, true));
+    }
+
+    private Downloader.Result save(String path, MediaStoreWriter writer) {
+        return MediaDownload.fileJob(context, origin + path, Downloader.Kind.VIDEO).run(writer, Downloader.SILENT);
+    }
+
+    /** The DASH save of [video] and [audio], on the path every DASH save takes, with no single file after it. */
+    private Downloader.Result saveDash(DashManifest.Track video, DashManifest.Track audio) {
+        return saveDash(video, audio, Downloader.SILENT);
+    }
+
+    private Downloader.Result saveDash(DashManifest.Track video, DashManifest.Track audio, Downloader.Progress progress) {
+        return MediaDownload.dashJob(context, video, audio, null).run(new MediaStoreWriter(context, true), progress);
     }
 
     private void assertNothingWasCreated(String what, Downloader.Result result) {
@@ -130,17 +151,30 @@ public class MediaSaveTest {
     public void refusedAndBrokenFetchesNeverCreateARow() {
         byte[] page = "<html><body>Log in</body></html>".getBytes(StandardCharsets.UTF_8);
         serve("/page.mp4", "video/mp4", page, page.length);
-        assertNothingWasCreated("a page sent as video", save("/page.mp4", Downloader.MAX_BYTES));
+        assertNothingWasCreated("a page sent as video", save("/page.mp4"));
 
+        serve("/login", "text/html", page, page.length);
+        Downloader.Result login = save("/login");
+        assertEquals(login.toString(), Downloader.Status.REFUSED, login.status);
+        assertNothingWasCreated("a login page", login);
+
+        server.serve("/part.mp4", 206, "video/mp4", mp4(4000), 4000);
+        Downloader.Result part = save("/part.mp4");
+        assertEquals(part.toString(), Downloader.Status.HTTP_ERROR, part.status);
+        assertNothingWasCreated("part of a file nobody asked for", part);
+
+        // The work file may grow to 1024 bytes, and a stream with no announced length runs past it.
+        DashSave.usableForTests = () -> DashSave.KEEP_FREE + 1024;
         serve("/big.mp4", "video/mp4", mp4(4096), -1);
-        assertNothingWasCreated("an oversized stream", save("/big.mp4", 1024));
+        assertNothingWasCreated("an oversized stream", save("/big.mp4"));
+        DashSave.usableForTests = null;
 
         serve("/short.mp4", "video/mp4", mp4(1000), 5000);
-        assertNothingWasCreated("a truncated body", save("/short.mp4", Downloader.MAX_BYTES));
+        assertNothingWasCreated("a truncated body", save("/short.mp4"));
 
         server.redirect("/away", "https://scontent.xx.fbcdn.net/v.mp4");
         // The lookup answers 10.9.8.7 for every Meta name here.
-        assertNothingWasCreated("a redirect to a Meta name on a private address", save("/away", Downloader.MAX_BYTES));
+        assertNothingWasCreated("a redirect to a Meta name on a private address", save("/away"));
     }
 
     @Test
@@ -148,7 +182,7 @@ public class MediaSaveTest {
         byte[] body = mp4(64_000);
         serve("/v.mp4", "video/mp4", body, body.length);
 
-        Downloader.Result result = save("/v.mp4", Downloader.MAX_BYTES);
+        Downloader.Result result = save("/v.mp4");
 
         assertEquals(result.toString(), Downloader.Status.OK, result.status);
         assertEquals(1, gallery.inserts.size());
@@ -167,11 +201,13 @@ public class MediaSaveTest {
         serve("/not-published.mp4", "video/mp4", body, body.length);
         gallery.refuseUpdate = true;
 
-        Downloader.Result result = save("/not-published.mp4", Downloader.MAX_BYTES);
+        Downloader.Result result = save("/not-published.mp4");
 
         assertEquals(result.toString(), Downloader.Status.WRITE_ERROR, result.status);
         assertEquals(1, gallery.inserts.size());
         assertTrue("the unpublished row was left behind", gallery.rows.isEmpty());
+        String[] left = DashSave.workFolder(context).list();
+        assertEquals("the work file outlived a failed publish", 0, left == null ? 0 : left.length);
     }
 
     @Test
@@ -186,7 +222,7 @@ public class MediaSaveTest {
             @Override public void close() throws IOException { throw new IOException("gallery write did not finish"); }
         });
 
-        Downloader.Result result = save("/close-fails.mp4", Downloader.MAX_BYTES);
+        Downloader.Result result = save("/close-fails.mp4");
 
         assertEquals(result.toString(), Downloader.Status.WRITE_ERROR, result.status);
         assertEquals(1, gallery.inserts.size());
@@ -200,7 +236,9 @@ public class MediaSaveTest {
         DashManifest.Track audio = new DashManifest.Track("audio/mp4", "mp4a.40.2", 0, 0, 128_000,
                 "http://scontent.xx.fbcdn.net/a.mp4");
 
-        Downloader.Result result = DashSave.save(context, video, audio, new MediaStoreWriter(context, true));
+        // Meta's own rules, as a phone runs them.
+        MediaDownload.policyForTests = null;
+        Downloader.Result result = saveDash(video, audio);
 
         assertEquals(result.toString(), Downloader.Status.REFUSED, result.status);
         assertNothingWasCreated("a foreign DASH track", result);
@@ -227,7 +265,7 @@ public class MediaSaveTest {
 
             for (String url : new String[] { foreign.origin() + "/a.mp4", origin + "/away.mp4" }) {
                 DashManifest.Track audio = new DashManifest.Track("audio/mp4", "mp4a.40.2", 0, 0, 128_000, url);
-                Downloader.Result result = DashSave.save(context, video, audio, new MediaStoreWriter(context, true), policy);
+                Downloader.Result result = saveDash(video, audio);
                 assertEquals(url + ": " + result, Downloader.Status.REFUSED, result.status);
                 assertNothingWasCreated("a DASH save whose sound is at " + url, result);
             }
@@ -245,7 +283,8 @@ public class MediaSaveTest {
         serve("/a.mp4", "audio/mp4", sound, sound.length);
         DashManifest.Track audio = new DashManifest.Track("audio/mp4", "mp4a.40.2", 0, 0, 128_000, origin + "/a.mp4");
 
-        Downloader.Result result = DashSave.save(context, video, audio, new MediaStoreWriter(context, true), policy, 100_000);
+        MediaDownload.capForTests = 100_000;
+        Downloader.Result result = saveDash(video, audio);
 
         assertEquals(result.toString(), Downloader.Status.TOO_LARGE, result.status);
         assertNothingWasCreated("a DASH pair over the cap", result);
@@ -267,7 +306,8 @@ public class MediaSaveTest {
                 origin + "/v60.mp4");
         DashManifest.Track audio = new DashManifest.Track("audio/mp4", "mp4a.40.2", 0, 0, 128_000, origin + "/a40.mp4");
 
-        Downloader.Result result = DashSave.save(context, video, audio, new MediaStoreWriter(context, true), policy, 100_000);
+        MediaDownload.capForTests = 100_000;
+        Downloader.Result result = saveDash(video, audio);
 
         assertEquals("WRITE_ERROR (the tracks could not be joined)", result.toString());
         assertEquals("the sound track wasn't fetched", 1, server.hits("/a40.mp4"));
@@ -277,7 +317,7 @@ public class MediaSaveTest {
         serve("/v100.mp4", "video/mp4", whole, whole.length);
         DashManifest.Track wholeCap = new DashManifest.Track("video/mp4", "avc1.64001f", 1280, 720, 2_000_000,
                 origin + "/v100.mp4");
-        result = DashSave.save(context, wholeCap, audio, new MediaStoreWriter(context, true), policy, 100_000);
+        result = saveDash(wholeCap, audio);
         assertEquals(result.toString(), Downloader.Status.TOO_LARGE, result.status);
         assertTrue(result.toString(), result.reason.endsWith("more than 0"));
         assertNothingWasCreated("a picture that took the whole cap", result);
@@ -314,7 +354,7 @@ public class MediaSaveTest {
             }
         };
 
-        DashSave.save(context, video, audio, new MediaStoreWriter(context, true), policy, 100_000, watching);
+        saveDash(video, audio, watching);
 
         assertFalse("nothing was reported", told.isEmpty());
         for (int i = 1; i < told.size(); i++) {
@@ -350,7 +390,9 @@ public class MediaSaveTest {
                 return super.refusal(url);
             }
         };
-        return DashSave.save(context, video, audio, new MediaStoreWriter(context, true), describing, 10_000);
+        MediaDownload.policyForTests = describing;
+        MediaDownload.capForTests = 10_000;
+        return saveDash(video, audio);
     }
 
     /** Each work file, found by the name DashSave starts it with, gets its one sample. */
@@ -489,9 +531,7 @@ public class MediaSaveTest {
         byte[] body = mp4(4096);
         serve("/v.mp4", "video/mp4", body, body.length);
 
-        Downloader.Result result = Downloader.save(origin + "/v.mp4", Downloader.Kind.VIDEO,
-                DashSave.workFolder(context), new MediaStoreWriter(new BrokenLedger(context, throwing), true), policy,
-                Downloader.MAX_BYTES);
+        Downloader.Result result = save("/v.mp4", new MediaStoreWriter(new BrokenLedger(context, throwing), true));
 
         assertEquals(result.toString(), Downloader.Status.WRITE_ERROR, result.status);
         assertEquals("bytes were copied into a row the list doesn't hold", 0, copied.size());
@@ -511,9 +551,7 @@ public class MediaSaveTest {
         byte[] body = mp4(4096);
         serve("/v.mp4", "video/mp4", body, body.length);
 
-        Downloader.Result result = Downloader.save(origin + "/v.mp4", Downloader.Kind.VIDEO,
-                DashSave.workFolder(context), new MediaStoreWriter(new BrokenLedger(context, false), true), policy,
-                Downloader.MAX_BYTES);
+        Downloader.Result result = save("/v.mp4", new MediaStoreWriter(new BrokenLedger(context, false), true));
 
         assertEquals(result.toString(), Downloader.Status.WRITE_ERROR, result.status);
         assertEquals(0, copied.size());
@@ -529,8 +567,8 @@ public class MediaSaveTest {
         serve("/v.mp4", "video/mp4", body, body.length);
         Context broken = new BrokenLedger(context, false);
 
-        Thread worker = MediaDownload.start(broken, true, (writer, progress) -> Downloader.save(origin + "/v.mp4",
-                Downloader.Kind.VIDEO, DashSave.workFolder(context), writer, policy, Downloader.MAX_BYTES, progress));
+        Thread worker = MediaDownload.start(broken, true, MediaDownload.fileJob(broken, origin + "/v.mp4",
+                Downloader.Kind.VIDEO));
         worker.join(30_000);
         assertFalse("the save never finished", worker.isAlive());
         Shadows.shadowOf(Looper.getMainLooper()).idle();
@@ -538,6 +576,286 @@ public class MediaSaveTest {
         assertEquals("Download failed", ShadowToast.getTextOfLatestToast());
         assertTrue("the unlisted row was left in the gallery", gallery.rows.isEmpty());
         assertEquals(0, published.size());
+    }
+
+    /**
+     * A DASH save whose tracks couldn't be fetched falls back to the single file, which is below the
+     * picture the manifest offered. The person saving is told it's lower than on Facebook, not just
+     * that it was saved; a single file that was simply the pick is told nothing more. The "lower"
+     * note is weighed against what the saved file actually measures, so the policy here tells the
+     * shadow extractor what the fetched file holds, the way a real save's own read of it would.
+     */
+    @Test
+    public void aSaveBelowTheManifestsPictureSaysSoWhenItEnds() throws InterruptedException {
+        byte[] body = mp4(4096);
+        serve("/clip_360p.mp4", "video/mp4", body, body.length);
+        DashManifest.Track video = new DashManifest.Track("video/mp4", "avc1.64001f", 1080, 1920, 3_000_000,
+                origin + "/gone.mp4", 1080);
+        int port = server.port();
+        MediaUrlPolicy measuring = new MediaUrlPolicy(host -> new InetAddress[] { InetAddress.getByName("10.9.8.7") }) {
+            @Override
+            Refusal refusal(URL url) {
+                if (url.getPath().equals("/clip_360p.mp4")) describeSavedVideoWorkFile(640, 360);
+                if (url.getHost().equals("127.0.0.1") && url.getPort() == port) return null;
+                return super.refusal(url);
+            }
+        };
+        MediaDownload.policyForTests = measuring;
+
+        Thread worker = MediaDownload.start(context, true, MediaDownload.dashJob(context, video, null,
+                origin + "/clip_360p.mp4"));
+        worker.join(30_000);
+        assertFalse("the save never finished", worker.isAlive());
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+        assertEquals(1, gallery.inserts.size());
+        String toast = String.valueOf(ShadowToast.getTextOfLatestToast());
+        assertTrue(toast, toast.startsWith("Saved to ") && toast.endsWith(" in lower quality than on Facebook"));
+        String report = LogBufferManager.buildExportText();
+        assertTrue(report, report.contains("below the manifest's video/mp4 avc1.64001f 1080x1920 3000kbps 1080p, "
+                + "the best it offers within the Download quality"));
+
+        ShadowToast.reset();
+        Shadows.shadowOf(context.getContentResolver()).registerOutputStream(gallery.videoUri(2),
+                new ByteArrayOutputStream());
+        Thread plain = MediaDownload.start(context, true, MediaDownload.fileJob(context, origin + "/clip_360p.mp4",
+                Downloader.Kind.VIDEO));
+        plain.join(30_000);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        toast = String.valueOf(ShadowToast.getTextOfLatestToast());
+        assertTrue(toast, toast.startsWith("Saved to ") && !toast.contains("lower quality"));
+    }
+
+    /**
+     * The single-file path used to weigh the report's "below the manifest's" note only against a
+     * guess read off the chosen address ({@link RenditionPicker#qualityOf}), before anything was
+     * fetched. Here the fallback's address claims 1080p, exactly what the manifest's own track
+     * states too, so that guess-based compare found nothing above it and the note never appeared,
+     * even though the file that's actually fetched measures 360p. The old assertion below pinned
+     * that gap as if it were correct; the note must appear, built from what the file measures, not
+     * the address it happened to be named after.
+     */
+    @Test
+    public void aMisleadingFileNameDoesNotHideAShortfall() throws InterruptedException {
+        byte[] body = mp4(4096);
+        serve("/clip_1080p.mp4", "video/mp4", body, body.length);
+        DashManifest.Track video = new DashManifest.Track("video/mp4", "vp09.00.40.08", 1080, 1920, 2_000_000,
+                origin + "/vp9.mp4", 1080);
+        int port = server.port();
+        MediaUrlPolicy measuring = new MediaUrlPolicy(host -> new InetAddress[] { InetAddress.getByName("10.9.8.7") }) {
+            @Override
+            Refusal refusal(URL url) {
+                if (url.getPath().equals("/clip_1080p.mp4")) describeSavedVideoWorkFile(640, 360);
+                if (url.getHost().equals("127.0.0.1") && url.getPort() == port) return null;
+                return super.refusal(url);
+            }
+        };
+        MediaDownload.policyForTests = measuring;
+
+        Thread worker = MediaDownload.start(context, true, MediaDownload.dashJob(context, video, null,
+                origin + "/clip_1080p.mp4"));
+        worker.join(30_000);
+        assertFalse("the save never finished", worker.isAlive());
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+        assertEquals(1, gallery.inserts.size());
+        String toast = String.valueOf(ShadowToast.getTextOfLatestToast());
+        assertTrue(toast, toast.startsWith("Saved to ") && toast.endsWith(" in lower quality than on Facebook"));
+        String report = LogBufferManager.buildExportText();
+        assertTrue("the report now measures the saved file instead of trusting the address it was fetched from",
+                report.contains("below the manifest's video/mp4 vp09.00.40.08 1080x1920 2000kbps 1080p"));
+    }
+
+    /**
+     * A DASH save of a writable H.264 track can fail for reasons that have nothing to do with what
+     * the phone can write, such as a dropped connection ({@link #aSaveBelowTheManifestsPictureSaysSoWhenItEnds}).
+     * The fallback single file here measures exactly two thirds of that track's picture, the exact
+     * boundary {@link MediaDownload#noticeablyLower} leaves alone for a picture nothing could have
+     * written. That tolerance doesn't apply here: the phone could write the 1080p track, so the
+     * person saving is told regardless of where the boundary falls.
+     */
+    @Test
+    public void aWritableTracksShortfallIsToldEvenAtTheTwoThirdsBoundary() throws InterruptedException {
+        byte[] body = mp4(4096);
+        serve("/clip_720p.mp4", "video/mp4", body, body.length);
+        DashManifest.Track video = new DashManifest.Track("video/mp4", "avc1.64001f", 1080, 1920, 3_000_000,
+                origin + "/gone.mp4", 1080);
+        int port = server.port();
+        MediaUrlPolicy measuring = new MediaUrlPolicy(host -> new InetAddress[] { InetAddress.getByName("10.9.8.7") }) {
+            @Override
+            Refusal refusal(URL url) {
+                if (url.getPath().equals("/clip_720p.mp4")) describeSavedVideoWorkFile(1280, 720);
+                if (url.getHost().equals("127.0.0.1") && url.getPort() == port) return null;
+                return super.refusal(url);
+            }
+        };
+        MediaDownload.policyForTests = measuring;
+
+        Thread worker = MediaDownload.start(context, true, MediaDownload.dashJob(context, video, null,
+                origin + "/clip_720p.mp4"));
+        worker.join(30_000);
+        assertFalse("the save never finished", worker.isAlive());
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+        assertEquals(1, gallery.inserts.size());
+        String toast = String.valueOf(ShadowToast.getTextOfLatestToast());
+        assertTrue(toast, toast.startsWith("Saved to ") && toast.endsWith(" in lower quality than on Facebook"));
+    }
+
+    /**
+     * A file the phone couldn't read back measures 0 on its short side ({@link
+     * DashSave#savedVideoShortSide}). The writable-track check used to compare that straight
+     * against the track's picture, which is always above zero, so an unreadable save was told it
+     * fell short of Facebook's picture no matter what it actually held.
+     */
+    @Test
+    public void anUnreadableSavedFileIsNotToldLower() throws InterruptedException {
+        byte[] body = mp4(4096);
+        serve("/clip_unread.mp4", "video/mp4", body, body.length);
+        DashManifest.Track video = new DashManifest.Track("video/mp4", "avc1.64001f", 1080, 1920, 3_000_000,
+                origin + "/gone.mp4", 1080);
+        int port = server.port();
+        MediaUrlPolicy measuring = new MediaUrlPolicy(host -> new InetAddress[] { InetAddress.getByName("10.9.8.7") }) {
+            @Override
+            Refusal refusal(URL url) {
+                // Deliberately no describeSavedVideoWorkFile call: the shadow extractor knows
+                // nothing of this file, the way it wouldn't for one it truly couldn't read.
+                if (url.getHost().equals("127.0.0.1") && url.getPort() == port) return null;
+                return super.refusal(url);
+            }
+        };
+        MediaDownload.policyForTests = measuring;
+
+        Thread worker = MediaDownload.start(context, true, MediaDownload.dashJob(context, video, null,
+                origin + "/clip_unread.mp4"));
+        worker.join(30_000);
+        assertFalse("the save never finished", worker.isAlive());
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+        assertEquals(1, gallery.inserts.size());
+        String toast = String.valueOf(ShadowToast.getTextOfLatestToast());
+        assertTrue(toast, toast.startsWith("Saved to ") && !toast.contains("lower quality"));
+    }
+
+    /**
+     * A saved file that measures a couple of pixels short of a writable track's picture, such as a
+     * 1080x1920 track against a saved 1920x1078 file, is a rounding or a container quirk, not a real
+     * shortfall: the same gap {@link MediaDownload#noticeablyLower} tolerates for a picture nothing
+     * could have written applies here too, held to a plain pixel margin instead of a fraction.
+     */
+    @Test
+    public void aFewPixelsShortOfAWritableTrackIsNotTold() throws InterruptedException {
+        byte[] body = mp4(4096);
+        serve("/clip_close.mp4", "video/mp4", body, body.length);
+        DashManifest.Track video = new DashManifest.Track("video/mp4", "avc1.64001f", 1080, 1920, 3_000_000,
+                origin + "/gone.mp4", 1080);
+        int port = server.port();
+        MediaUrlPolicy measuring = new MediaUrlPolicy(host -> new InetAddress[] { InetAddress.getByName("10.9.8.7") }) {
+            @Override
+            Refusal refusal(URL url) {
+                if (url.getPath().equals("/clip_close.mp4")) describeSavedVideoWorkFile(1920, 1078);
+                if (url.getHost().equals("127.0.0.1") && url.getPort() == port) return null;
+                return super.refusal(url);
+            }
+        };
+        MediaDownload.policyForTests = measuring;
+
+        Thread worker = MediaDownload.start(context, true, MediaDownload.dashJob(context, video, null,
+                origin + "/clip_close.mp4"));
+        worker.join(30_000);
+        assertFalse("the save never finished", worker.isAlive());
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+        assertEquals(1, gallery.inserts.size());
+        String toast = String.valueOf(ShadowToast.getTextOfLatestToast());
+        assertTrue(toast, toast.startsWith("Saved to ") && !toast.contains("lower quality"));
+    }
+
+    /**
+     * At a 480p ceiling, a manifest whose H.264 tracks are all above it picks the nearest one over,
+     * 540p here. The single file fits the ceiling and the picked track doesn't, so the single file
+     * wins and the 540p track becomes the writable track the fallback is judged against. A save that
+     * is exactly what the ceiling asks for must not be told it's lower just because 540 outranks the
+     * measured 360.
+     */
+    @Test
+    public void aWritableTrackOverTheCeilingIsNotTold() throws InterruptedException {
+        Settings.DOWNLOAD_QUALITY.save(DownloadQuality.P480);
+        byte[] body = mp4(4096);
+        serve("/clip_360p.mp4", "video/mp4", body, body.length);
+        DashManifest.Track video = new DashManifest.Track("video/mp4", "avc1.64001f", 960, 1920, 3_000_000,
+                origin + "/gone.mp4", 540);
+        int port = server.port();
+        MediaUrlPolicy measuring = new MediaUrlPolicy(host -> new InetAddress[] { InetAddress.getByName("10.9.8.7") }) {
+            @Override
+            Refusal refusal(URL url) {
+                if (url.getPath().equals("/clip_360p.mp4")) describeSavedVideoWorkFile(640, 360);
+                if (url.getHost().equals("127.0.0.1") && url.getPort() == port) return null;
+                return super.refusal(url);
+            }
+        };
+        MediaDownload.policyForTests = measuring;
+
+        Thread worker = MediaDownload.start(context, true, MediaDownload.dashJob(context, video, null,
+                origin + "/clip_360p.mp4"));
+        worker.join(30_000);
+        assertFalse("the save never finished", worker.isAlive());
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+        assertEquals(1, gallery.inserts.size());
+        String toast = String.valueOf(ShadowToast.getTextOfLatestToast());
+        assertTrue(toast, toast.startsWith("Saved to ") && !toast.contains("lower quality"));
+    }
+
+    /**
+     * Below the best quality, a track's picture is its label, not its measured picture ({@link
+     * MediaDownload#picture}). An ultrawide track can carry a label far above its own short side: a
+     * 1280x536 track labelled 720p measures 536 on its short side, the same as a save that actually
+     * holds that picture. Judging the writable check by the label rather than the pixels told a save
+     * of exactly that picture it was lower.
+     */
+    @Test
+    public void anUltrawideLabelDoesNotOutrankItsOwnMeasuredPicture() throws InterruptedException {
+        Settings.DOWNLOAD_QUALITY.save(DownloadQuality.P720);
+        byte[] body = mp4(4096);
+        serve("/clip_wide.mp4", "video/mp4", body, body.length);
+        DashManifest.Track video = new DashManifest.Track("video/mp4", "avc1.64001f", 1280, 536, 1_500_000,
+                origin + "/gone.mp4", 720);
+        int port = server.port();
+        MediaUrlPolicy measuring = new MediaUrlPolicy(host -> new InetAddress[] { InetAddress.getByName("10.9.8.7") }) {
+            @Override
+            Refusal refusal(URL url) {
+                if (url.getPath().equals("/clip_wide.mp4")) describeSavedVideoWorkFile(1280, 536);
+                if (url.getHost().equals("127.0.0.1") && url.getPort() == port) return null;
+                return super.refusal(url);
+            }
+        };
+        MediaDownload.policyForTests = measuring;
+
+        Thread worker = MediaDownload.start(context, true, MediaDownload.dashJob(context, video, null,
+                origin + "/clip_wide.mp4"));
+        worker.join(30_000);
+        assertFalse("the save never finished", worker.isAlive());
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+        assertEquals(1, gallery.inserts.size());
+        String toast = String.valueOf(ShadowToast.getTextOfLatestToast());
+        assertTrue(toast, toast.startsWith("Saved to ") && !toast.contains("lower quality"));
+    }
+
+    /**
+     * Gives the next single-file save's temp video the measured size a real save reads back, the
+     * way {@link #describeWorkFiles} does for a join's own work files.
+     */
+    private void describeSavedVideoWorkFile(int width, int height) {
+        File[] files = DashSave.workFolder(context).listFiles();
+        if (files == null) return;
+        for (File file : files) {
+            if (file.getName().startsWith("video")) {
+                ShadowMediaExtractor.addTrack(DataSource.toDataSource(file.getPath()),
+                        MediaFormat.createVideoFormat("video/avc", width, height), new byte[0]);
+            }
+        }
     }
 
     /** A save the list can hold has its row on it before the first byte, as a stopped save needs. */
@@ -557,7 +875,7 @@ public class MediaSaveTest {
         byte[] body = mp4(4096);
         serve("/v.mp4", "video/mp4", body, body.length);
 
-        Downloader.Result result = save("/v.mp4", Downloader.MAX_BYTES);
+        Downloader.Result result = save("/v.mp4");
 
         assertEquals(result.toString(), Downloader.Status.OK, result.status);
         assertEquals(java.util.Collections.singletonList(java.util.Collections.singleton(gallery.videoUri(1).toString())),
@@ -617,6 +935,8 @@ public class MediaSaveTest {
     public static final class Gallery extends ContentProvider {
         final Map<Long, ContentValues> rows = new HashMap<>();
         final List<Uri> inserts = new ArrayList<>();
+        /** Every new entry is turned down, the way a full or locked MediaStore does. */
+        boolean refuseInsert;
         boolean refuseUpdate;
         boolean refuseDeletion;
         private long nextId = 1;
@@ -630,6 +950,7 @@ public class MediaSaveTest {
         }
 
         @Override public Uri insert(Uri uri, ContentValues values) {
+            if (refuseInsert) return null;
             long id = nextId++;
             rows.put(id, new ContentValues(values));
             Uri item = ContentUris.withAppendedId(uri, id);

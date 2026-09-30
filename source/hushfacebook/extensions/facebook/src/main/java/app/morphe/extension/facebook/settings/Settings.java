@@ -13,6 +13,8 @@ import app.morphe.extension.facebook.comments.CommentOrder;
 import app.morphe.extension.facebook.download.DownloadQuality;
 import app.morphe.extension.facebook.download.FileNameTemplate;
 import app.morphe.extension.facebook.download.SaveFolder;
+import app.morphe.extension.facebook.download.SendLink;
+import app.morphe.extension.facebook.media.PlaybackQuality;
 import app.morphe.extension.facebook.navigation.StartTab;
 import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.BooleanSetting;
@@ -22,13 +24,11 @@ import app.morphe.extension.shared.settings.StringSetting;
 /**
  * The switches behind the hooks that ask before they act.
  *
- * <p>All but five of them are on by default. Picking a patch in Morphe Manager is the choice to use
- * it, and the switch is the way to turn it off again without patching a second time. The two GenAI
- * switches start off until each rule has been checked on a signed-in feed, the release check
- * starts off because it's the only request Hushfacebook makes for itself, saves other apps can
- * open start off because they can come out below the sharpest version, and the word filter starts
- * off because it has nothing to hide by until someone lists words. While Hushfacebook is
- * paused, or in safe mode after three crashed starts, each switch answers off and the hook behind
+ * <p>A switch's default is the second argument of its {@link BooleanSetting}. Picking a patch in
+ * Morphe Manager is the choice to use it, and the switch is the way to turn it off again without
+ * patching a second time. While Hushfacebook is paused, safe mode included
+ * ({@link app.morphe.extension.shared.settings.HushfacebookPause}), a switch answers off unless
+ * {@link app.morphe.extension.shared.settings.Setting#keepWhenPaused} marks it, and the hook behind
  * it takes Facebook's own path.
  */
 @SuppressWarnings("unused")
@@ -158,6 +158,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting BLOCK_STORY_AUTO_ADVANCE =
             new BooleanSetting("hushfacebook_block_story_auto_advance", TRUE);
 
+    /**
+     * The batches of viewed story cards the story viewer sends as DirectSeenMutation, which put you
+     * on each story's viewer list. Held back, replies and reactions still show you, and stories you
+     * viewed keep their unwatched ring.
+     */
+    public static final BooleanSetting VIEW_STORIES_ANONYMOUSLY =
+            new BooleanSetting("hushfacebook_view_stories_anonymously", TRUE);
+
     /** The two page filters that take server-inlined ads out of Reels and Watch. */
     public static final BooleanSetting HIDE_SPONSORED_REELS =
             new BooleanSetting("hushfacebook_hide_sponsored_reels", TRUE);
@@ -176,6 +184,15 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting HIDE_SPONSORED_MARKETPLACE_LISTINGS =
             new BooleanSetting("hushfacebook_hide_sponsored_marketplace_listings", TRUE);
+
+    /**
+     * The product cards of the shop links a creator attaches to a post go: on a reel, under a feed
+     * post and floating over the comment box ({@link app.morphe.extension.facebook.ads.AffiliateLinks}).
+     * The "Commission eligible" label stays. A change shows on the reels, posts and comment sheets
+     * built after it.
+     */
+    public static final BooleanSetting HIDE_AFFILIATE_LINKS =
+            new BooleanSetting("hushfacebook_hide_affiliate_links", TRUE);
 
     /**
      * The chips under a reel that prompt you to make something (Remix, Use template, Add yours,
@@ -207,6 +224,32 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting DONT_SEND_REEL_WATCH_HISTORY =
             new BooleanSetting("hushfacebook_dont_send_reel_watch_history", TRUE);
+
+    /**
+     * A double tap on a reel or a video left without Facebook's like: no heart, no like sent. A
+     * single tap and the Like button do what they always did. On once the patch is picked, since
+     * picking it is the choice.
+     */
+    public static final BooleanSetting TURN_OFF_DOUBLE_TAP_LIKE =
+            new BooleanSetting("hushfacebook_turn_off_double_tap_like", TRUE);
+
+    /**
+     * A speed picked in a reel's menu stays for the next reels where it was picked, ads and live
+     * videos aside, until another is picked or Facebook restarts
+     * ({@link app.morphe.extension.facebook.media.ReelSpeed}). Nothing is
+     * stored. Off or paused, each reel starts at the speed Facebook starts it at.
+     */
+    public static final BooleanSetting KEEP_REEL_SPEED =
+            new BooleanSetting("hushfacebook_keep_reel_speed", TRUE);
+
+    /**
+     * A reel you hold plays at double speed until you let go, through the speed-up Facebook's Reels
+     * controls already have, in place of Facebook's long-press menu
+     * ({@link app.morphe.extension.facebook.reels.ReelHold}). On once the patch is picked, since
+     * picking it is the choice. Off or paused, a long press opens Facebook's menu.
+     */
+    public static final BooleanSetting HOLD_REEL_FOR_2X =
+            new BooleanSetting("hushfacebook_hold_reel_for_2x", TRUE);
 
     /**
      * Comment sheets ask for the order in {@link #COMMENT_ORDER} where Facebook's servers would
@@ -246,6 +289,16 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting RESUME_LONG_VIDEOS =
             new BooleanSetting("hushfacebook_resume_long_videos", FALSE);
+
+    /**
+     * Videos, reels and video stories start at the quality in {@link #PLAYBACK_QUALITY}, through
+     * the same per-video choice Facebook's own quality menu makes
+     * ({@link app.morphe.extension.facebook.media.QualityChoice}). A pick in that menu still wins
+     * for its video. With the quality left as Facebook's, the switch changes nothing, and off or
+     * paused, Facebook picks the quality as it plays.
+     */
+    public static final BooleanSetting DEFAULT_PLAYBACK_QUALITY =
+            new BooleanSetting("hushfacebook_default_playback_quality", TRUE);
 
     /**
      * Facebook's own text, React Native screens' included, drawn in the font {@link #FONT_SOURCE}
@@ -289,13 +342,12 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_hide_get_messenger_card", TRUE);
 
     /**
-     * Opens Meta's installed Messenger when Facebook's own Chats surface is entered. Off by
-     * default so a patched build keeps upstream Hushfacebook behaviour until the person asks for
-     * the redirect. Messenger's signing key is irrelevant; only its package and enabled state are
-     * checked.
+     * A tap on the Messenger icon at the top of Facebook opens the Messenger app, while it's
+     * installed, instead of Facebook's own Chats. Starts off. Without Messenger, Chats opens as it
+     * always did.
      */
-    public static final BooleanSetting OPEN_CHATS_IN_MESSENGER =
-            new BooleanSetting("hushfacebook_open_chats_in_messenger", FALSE);
+    public static final BooleanSetting OPEN_MESSENGER_APP =
+            new BooleanSetting("hushfacebook_open_messenger_app", FALSE);
 
     /**
      * The Upgrades section of Facebook's Menu, the group Facebook types UPSELL, with its offers.
@@ -405,6 +457,39 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_marketplace_skip_feed_prefetch", FALSE);
 
     /**
+     * The Reels tab, which some accounts call Video, stays off the tab bar, and a start sent to
+     * it by {@link #START_TAB} opens Home. Facebook builds the bar once, so a change shows when it
+     * restarts. A Reels tab Facebook's own tab bar settings hide stays hidden either way.
+     */
+    public static final BooleanSetting HIDE_REELS_TAB =
+            new BooleanSetting("hushfacebook_hide_reels_tab", TRUE, true);
+
+    /**
+     * The Reels tab, which some accounts call Video, shows no new-item dot or count
+     * ({@link app.morphe.extension.facebook.navigation.ReelsTabDot}). Off or paused, Facebook's
+     * count comes back when the tab bar next asks for it.
+     */
+    public static final BooleanSetting HIDE_REELS_TAB_DOT =
+            new BooleanSetting("hushfacebook_hide_reels_tab_dot", TRUE);
+
+    /**
+     * The strip some posts carry ("Are you interested in this post?", "Show less", who recently
+     * commented, follow and chat suggestions) goes, and so does the room kept for it
+     * ({@link app.morphe.extension.facebook.feed.PostPrompts}). A change shows on the posts drawn
+     * after it.
+     */
+    public static final BooleanSetting HIDE_POST_PROMPTS =
+            new BooleanSetting("hushfacebook_hide_post_prompts", TRUE);
+
+    /**
+     * Reels come without the "Are you interested in this reel?" prompt
+     * ({@link app.morphe.extension.facebook.reels.ReelPrompts}). A change shows on the reels built
+     * after it.
+     */
+    public static final BooleanSetting HIDE_REEL_PROMPTS =
+            new BooleanSetting("hushfacebook_hide_reel_prompts", TRUE);
+
+    /**
      * The folder every save goes to, under Movies for a video and Pictures for a photo. The
      * settings row and an import keep it clean, and {@link SaveFolder#sanitize} cleans it again
      * wherever it's read, so whatever wrote the store, a save lands in one folder under each.
@@ -444,6 +529,21 @@ public class Settings extends BaseSettings {
             new StringSetting("hushfacebook_filename_template", FileNameTemplate.DEFAULT);
 
     /**
+     * What a tap on Download does for a reel or a feed or Watch video: save it here, the default,
+     * or send its link to another app ({@link SendLink}, #41). Stories always save. Like the
+     * quality, it isn't a switch.
+     */
+    public static final EnumSetting<SendLink.Action> DOWNLOAD_ACTION =
+            new EnumSetting<>("hushfacebook_download_action", SendLink.Action.SAVE);
+
+    /**
+     * The app {@link #DOWNLOAD_ACTION} sends links to, by package name. Blank, or anything that
+     * isn't a package name, leaves the choice to Android's chooser each time.
+     */
+    public static final StringSetting SEND_TO_APP =
+            new StringSetting("hushfacebook_send_to_app", "");
+
+    /**
      * The tab a start from the launcher icon opens on while {@link #OPEN_ON_CHOSEN_TAB} is on:
      * Marketplace, the one people asked for, unless it's changed. A tab this account's tab bar
      * hasn't got opens Home, which is what Facebook does with a notification about such a tab. It
@@ -460,6 +560,14 @@ public class Settings extends BaseSettings {
      */
     public static final EnumSetting<CommentOrder> COMMENT_ORDER =
             new EnumSetting<>("hushfacebook_comment_order", CommentOrder.FACEBOOK);
+
+    /**
+     * The quality videos start at while {@link #DEFAULT_PLAYBACK_QUALITY} is on: Facebook's own
+     * choice until someone picks another, so picking the patch changes nothing on its own. It isn't
+     * a switch, and a paused Facebook picks the quality itself.
+     */
+    public static final EnumSetting<PlaybackQuality> PLAYBACK_QUALITY =
+            new EnumSetting<>("hushfacebook_playback_quality", PlaybackQuality.AUTO);
 
     /**
      * Where {@link #USE_SYSTEM_FONT} takes its font from: empty for the phone's own, or the name of

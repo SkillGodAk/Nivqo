@@ -8,6 +8,7 @@ package app.morphe.extension.facebook.settings;
 
 import android.app.Activity;
 import android.app.Application;
+import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.ComponentName;
 import android.content.Context;
@@ -28,20 +29,19 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 
+import androidx.annotation.Nullable;
+
 import java.lang.ref.WeakReference;
 import java.util.List;
-import java.util.Collections;
-import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
-import app.morphe.extension.facebook.chats.MessengerRedirect;
 import app.morphe.extension.facebook.download.SaveLeftovers;
 import app.morphe.extension.facebook.feed.ReturnRefresh;
 import app.morphe.extension.facebook.media.ResumePlayback;
+import app.morphe.extension.facebook.navigation.ReelsTab;
 
 /**
  * How the Hushfacebook screen is reached.
@@ -59,6 +59,8 @@ import app.morphe.extension.facebook.media.ResumePlayback;
 @SuppressWarnings("unused")
 public final class SettingsEntry {
     public static final String EXTRA_OPEN_SETTINGS = "app.morphe.extension.facebook.OPEN_SETTINGS";
+    /** With {@link #EXTRA_OPEN_SETTINGS}: the key of the setting whose row the screen opens at. */
+    public static final String EXTRA_SHOW_SETTING = "app.morphe.extension.facebook.SHOW_SETTING";
     static final String SHORTCUT_ID = "hushfacebook_settings";
 
     /**
@@ -73,6 +75,8 @@ public final class SettingsEntry {
 
     private static volatile boolean openPending;
     private static volatile long requestedAt;
+    /** The setting the pending request opens at, or null for the overview. */
+    private static volatile String requestedSetting;
     private static volatile boolean callbacksRegistered;
     /** The activity the screen was last shown over, while the person hasn't closed it. */
     private static WeakReference<Activity> host;
@@ -81,9 +85,6 @@ public final class SettingsEntry {
     private static volatile String publishedLabel;
     /** A check of the shortcut's place is waiting for the background thread. */
     private static final AtomicBoolean keepFirstQueued = new AtomicBoolean();
-    /** Views already given the optional Messenger-logo redirect touch bridge. */
-    private static final Set<View> MESSENGER_ICON_WATCHED =
-            Collections.newSetFromMap(new WeakHashMap<View, Boolean>());
 
     private SettingsEntry() {
     }
@@ -112,9 +113,16 @@ public final class SettingsEntry {
         publishShortcut(context);
     }
 
-    private static void publishShortcut(Context context) {
+    /**
+     * Checks the launcher shortcut on a background thread. First, with Hide the Reels tab on, a Reels
+     * shortcut Facebook published before goes. Package-visible for tests.
+     */
+    static void publishShortcut(Context context) {
         final Context app = context.getApplicationContext() != null ? context.getApplicationContext() : context;
-        Utils.runOnBackgroundThread(() -> publishShortcutNow(app));
+        Utils.runOnBackgroundThread(() -> {
+            ReelsTab.removePublished(app);
+            publishShortcutNow(app);
+        });
     }
 
     /**
@@ -187,11 +195,29 @@ public final class SettingsEntry {
         return null;
     }
 
-    private static ShortcutInfo shortcut(Context app, CharSequence longLabel) {
-        Intent intent = new Intent(Intent.ACTION_VIEW)
+    /** What the launcher shortcut sends: Facebook's launcher entry, asked to show the screen. */
+    private static Intent openIntent(Context app) {
+        return new Intent(Intent.ACTION_VIEW)
                 .setComponent(new ComponentName(app.getPackageName(), LAUNCHER_ALIAS))
                 .putExtra(EXTRA_OPEN_SETTINGS, true)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    }
+
+    /** The same, opening the screen at [key]'s row, for a notification's button. */
+    public static Intent settingIntent(Context app, String key) {
+        return openIntent(app).putExtra(EXTRA_SHOW_SETTING, key);
+    }
+
+    /** The setting the request that opened the screen asked for, once, or null. */
+    @Nullable
+    static String takeRequestedSetting() {
+        String key = requestedSetting;
+        requestedSetting = null;
+        return key;
+    }
+
+    private static ShortcutInfo shortcut(Context app, CharSequence longLabel) {
+        Intent intent = openIntent(app);
         return new ShortcutInfo.Builder(app, SHORTCUT_ID)
                 .setShortLabel("Hushfacebook")
                 .setLongLabel(longLabel)
@@ -208,28 +234,29 @@ public final class SettingsEntry {
     // notifies about, each at rank 0, and the platform puts the newest push first. So the
     // Hushfacebook shortcut sank to the end of the list, where a launcher showing three or four,
     // or two beside a notification, cut it off (#2). Facebook's call runs as it did, with the same
-    // answer and the same exceptions, and then the Hushfacebook shortcut goes back in front.
+    // answer and the same exceptions, and then the Hushfacebook shortcut goes back in front. With
+    // Hide the Reels tab on, Facebook's Reels shortcut is left out of each call first (ReelsTab).
 
     public static void pushDynamicShortcut(ShortcutManager manager, ShortcutInfo shortcut) {
-        manager.pushDynamicShortcut(shortcut);
+        if (!ReelsTab.dropsShortcut(manager, shortcut)) manager.pushDynamicShortcut(shortcut);
         keepFirst();
     }
 
     public static boolean addDynamicShortcuts(ShortcutManager manager, List<ShortcutInfo> shortcuts) {
-        boolean added = manager.addDynamicShortcuts(shortcuts);
+        boolean added = manager.addDynamicShortcuts(ReelsTab.withoutShortcut(manager, shortcuts));
         keepFirst();
         return added;
     }
 
     /** Replaces every dynamic shortcut, the Hushfacebook one too, which is published again after. */
     public static boolean setDynamicShortcuts(ShortcutManager manager, List<ShortcutInfo> shortcuts) {
-        boolean set = manager.setDynamicShortcuts(shortcuts);
+        boolean set = manager.setDynamicShortcuts(ReelsTab.withoutShortcut(manager, shortcuts));
         keepFirst();
         return set;
     }
 
     public static boolean updateShortcuts(ShortcutManager manager, List<ShortcutInfo> shortcuts) {
-        boolean updated = manager.updateShortcuts(shortcuts);
+        boolean updated = manager.updateShortcuts(ReelsTab.withoutShortcut(manager, shortcuts));
         keepFirst();
         return updated;
     }
@@ -405,149 +432,13 @@ public final class SettingsEntry {
             return false;
         }
         requestedAt = SystemClock.elapsedRealtime();
+        requestedSetting = null;
         openPending = true;
         Logger.printInfo(() -> "Settings requested by a long press on the Facebook logo");
         OpenWhenResumed.openWhenSettled(activity);
         return true;
     }
 
-
-    /** Tag used to mark Facebook's real Messenger button after Hushfacebook installed a click handler. */
-    private static final String MESSENGER_ICON_HOOK_TAG = "hushfacebook_messenger_redirect_hook";
-
-    /**
-     * Installs a click handler on Facebook's own top-right Messenger button.
-     *
-     * <p>Do not add a transparent overlay and do not calculate bounds. Overlay was proven wrong on
-     * different devices: it can cover the second-row profile tab or keep firing on other screens.
-     * This hook is attached to the actual Button view only, so other screen positions cannot trigger
-     * it. The OFF behavior explicitly opens Facebook's built-in InboxActivity; it does not depend on
-     * Facebook's original click listener, which is unreliable in the re-signed/coexist build.
-     */
-    static void watchMessengerIcon(Activity activity) {
-        if (activity == null) return;
-        View root = activity.getWindow() == null ? null : activity.getWindow().getDecorView();
-        if (root == null) return;
-        root.postDelayed(() -> installMessengerIconClickHook(activity), 120L);
-        root.postDelayed(() -> installMessengerIconClickHook(activity), 700L);
-        root.postDelayed(() -> installMessengerIconClickHook(activity), 1800L);
-    }
-
-    private static void installMessengerIconClickHook(Activity activity) {
-        try {
-            View decor = activity.getWindow() == null ? null : activity.getWindow().getDecorView();
-            View target = findMessengerIcon(decor);
-            if (target == null) return;
-            if (MESSENGER_ICON_HOOK_TAG.equals(target.getTag())) return;
-            target.setTag(MESSENGER_ICON_HOOK_TAG);
-            target.setOnClickListener(view -> handleMessengerIconClick(activity));
-            Logger.printInfo(() -> "Messenger redirect: click hook installed on Facebook Messenger button");
-        } catch (Throwable failure) {
-            Logger.printException(() -> "Messenger redirect: could not install Facebook Messenger button click hook", failure);
-        }
-    }
-
-    private static void handleMessengerIconClick(Activity activity) {
-        try {
-            if (Utils.settingsReady() && Settings.OPEN_CHATS_IN_MESSENGER.get()) {
-                if (MessengerRedirect.openMessenger(activity)) return;
-                Logger.printInfo(() -> "Messenger redirect: external Messenger launch failed; falling back to Facebook inbox");
-            }
-            openFacebookInbox(activity);
-        } catch (Throwable failure) {
-            Logger.printException(() -> "Messenger redirect: button click failed", failure);
-        }
-    }
-
-    private static boolean openFacebookInbox(Context context) {
-        try {
-            Intent inbox = new Intent();
-            inbox.setClassName("com.facebook.katana",
-                    "com.facebook.messaginginblue.inbox.activities.InboxActivity");
-            inbox.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(inbox);
-            Logger.printInfo(() -> "Messenger redirect: opened Facebook built-in inbox");
-            return true;
-        } catch (Throwable inboxFailure) {
-            Logger.printException(() -> "Messenger redirect: could not open Facebook built-in inbox", inboxFailure);
-            return false;
-        }
-    }
-
-    private static View findMessengerIcon(View root) {
-        if (root == null || root.getVisibility() != View.VISIBLE) return null;
-        android.graphics.Rect rootBounds = new android.graphics.Rect();
-        if (!root.getGlobalVisibleRect(rootBounds)) return null;
-        Candidate best = new Candidate();
-        scanMessengerIconCandidate(root, rootBounds, best);
-        return best.view;
-    }
-
-    /**
-     * Find only Facebook's first-row Messenger button. Do not fall back to the "rightmost"
-     * clickable view: the second-row profile/account tab can sit near the same X position and must
-     * not be hijacked. The view is selected by resource id/content description and first header-row
-     * constraints only; there is no transparent overlay and no screen coordinate click area.
-     */
-    private static void scanMessengerIconCandidate(View view, android.graphics.Rect root, Candidate best) {
-        if (view == null || !view.isShown()) return;
-        android.graphics.Rect bounds = new android.graphics.Rect();
-        if (view.getGlobalVisibleRect(bounds) && isFacebookTopMessengerButton(view, bounds, root)) {
-            int score = messengerButtonScore(view);
-            int centerY = bounds.centerY() - root.top;
-            if (best.view == null || score > best.score ||
-                    (score == best.score && centerY < best.centerY)) {
-                best.view = view;
-                best.score = score;
-                best.centerY = centerY;
-            }
-        }
-        if (view instanceof android.view.ViewGroup) {
-            android.view.ViewGroup group = (android.view.ViewGroup) view;
-            for (int i = 0; i < group.getChildCount(); i++) {
-                scanMessengerIconCandidate(group.getChildAt(i), root, best);
-            }
-        }
-    }
-
-    private static boolean isFacebookTopMessengerButton(View view, android.graphics.Rect bounds, android.graphics.Rect root) {
-        int rootWidth = Math.max(1, root.width());
-        int rootHeight = Math.max(1, root.height());
-        int centerX = bounds.centerX() - root.left;
-        int top = bounds.top - root.top;
-        int bottom = bounds.bottom - root.top;
-        boolean firstHeaderRow = top >= 0 && bottom <= rootHeight * 14 / 100;
-        boolean onRightSide = centerX >= rootWidth * 70 / 100;
-        boolean buttonLike = view instanceof android.widget.Button || view.isClickable() || view.isLongClickable();
-        return firstHeaderRow && onRightSide && buttonLike && messengerButtonScore(view) > 0;
-    }
-
-    private static int messengerButtonScore(View view) {
-        String resource = resourceName(view);
-        if (resource.endsWith(":id/id_0x7f0a15d6") || resource.endsWith("/id_0x7f0a15d6")) return 100;
-        CharSequence description = view.getContentDescription();
-        if (description == null) return 0;
-        String text = description.toString().trim().toLowerCase(java.util.Locale.ROOT);
-        if (text.equals("發訊息") || text.equals("訊息")) return 90;
-        if (text.equals("messenger") || text.equals("messages") || text.equals("message")) return 90;
-        return 0;
-    }
-
-    private static String resourceName(View view) {
-        try {
-            int id = view.getId();
-            if (id == View.NO_ID) return "";
-            return view.getResources().getResourceName(id);
-        } catch (Throwable ignored) {
-            return "";
-        }
-    }
-
-    private static final class Candidate {
-        View view;
-        int score;
-        int centerY = Integer.MAX_VALUE;
-    }
     /** The activity a view's context wraps, or null. The depth guards against a wrapper that wraps itself. */
     private static Activity activityOf(Context context) {
         for (int depth = 0; context != null && depth < 20; depth++) {
@@ -567,7 +458,6 @@ public final class SettingsEntry {
             resumed = new WeakReference<>(activity);
             if (openPending) openWhenSettled(activity);
             relabelIfStale(activity);
-            watchMessengerIcon(activity);
         }
 
         @Override
@@ -609,6 +499,7 @@ public final class SettingsEntry {
                 if (!openPending) return;
                 if (SystemClock.elapsedRealtime() - requestedAt > REQUEST_LIFETIME_MS) {
                     openPending = false;
+                    requestedSetting = null;
                     Logger.printInfo(() -> "Settings request expired before a Facebook screen could show it");
                     return;
                 }
@@ -631,7 +522,12 @@ public final class SettingsEntry {
                 return false;
             }
             FragmentManager fragments = activity.getFragmentManager();
-            if (fragments.findFragmentByTag(DIALOG_TAG) != null) return true;
+            Fragment shown = fragments.findFragmentByTag(DIALOG_TAG);
+            if (shown != null) {
+                // Already up: a notification's button still takes it to the row it names.
+                if (shown instanceof SettingsDialog) ((SettingsDialog) shown).showRequestedSetting();
+                return true;
+            }
             if (fragments.isStateSaved()) {
                 Logger.printInfo(() -> "Settings wait: " + name + " has saved its state");
                 return false;
@@ -656,9 +552,15 @@ public final class SettingsEntry {
     private static void noteIntent(Intent intent) {
         if (intent != null && intent.getBooleanExtra(EXTRA_OPEN_SETTINGS, false)) {
             intent.removeExtra(EXTRA_OPEN_SETTINGS);
+            String asked = intent.getStringExtra(EXTRA_SHOW_SETTING);
+            intent.removeExtra(EXTRA_SHOW_SETTING);
+            // The launcher entry is open to every app, so only a key's shape gets as far as the log.
+            String key = asked != null && asked.matches("[a-z0-9_]{1,64}") ? asked : null;
             requestedAt = SystemClock.elapsedRealtime();
+            requestedSetting = key;
             openPending = true;
-            Logger.printInfo(() -> "Settings requested by the launcher shortcut");
+            Logger.printInfo(() -> key == null ? "Settings requested by the launcher shortcut"
+                    : "Settings requested at " + key);
         }
     }
 
@@ -681,4 +583,3 @@ public final class SettingsEntry {
         return bitmap;
     }
 }
-

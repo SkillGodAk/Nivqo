@@ -51,12 +51,16 @@ public enum PatchFamily {
             Settings.HIDE_AI_DETECTED_POSTS, Settings.HIDE_AI_LABELLED_POSTS, Settings.HIDE_AI_DETECTED_REELS),
     POST_WORDS(FamilyNames.POST_WORDS, "postWords", null,
             Settings.HIDE_POSTS_WITH_WORDS),
+    POST_PROMPTS(FamilyNames.POST_PROMPTS, "postPrompts", null,
+            Settings.HIDE_POST_PROMPTS),
     SPONSORED_STORIES(FamilyNames.SPONSORED_STORIES, "sponsoredStories", null,
             Settings.HIDE_SPONSORED_STORIES),
     SUGGESTED_STORIES(FamilyNames.SUGGESTED_STORIES, "suggestedStories", null,
             Settings.HIDE_SUGGESTED_STORIES),
     STORY_AUTO_ADVANCE(FamilyNames.STORY_AUTO_ADVANCE, "storyAutoAdvance", null,
             Settings.BLOCK_STORY_AUTO_ADVANCE),
+    STORY_SEEN(FamilyNames.STORY_SEEN, "storySeen", null,
+            Settings.VIEW_STORIES_ANONYMOUSLY),
     SPONSORED_REELS(FamilyNames.SPONSORED_REELS, "sponsoredReels",
             "the part of the Reels ad block patched into the app",
             Settings.HIDE_SPONSORED_REELS),
@@ -66,10 +70,20 @@ public enum PatchFamily {
             Settings.HIDE_SPONSORED_PROFILE_POSTS),
     SPONSORED_MARKETPLACE(FamilyNames.SPONSORED_MARKETPLACE, "sponsoredMarketplace", null,
             Settings.HIDE_SPONSORED_MARKETPLACE_LISTINGS),
+    AFFILIATE_LINKS(FamilyNames.AFFILIATE_LINKS, "affiliateLinks", null,
+            Settings.HIDE_AFFILIATE_LINKS),
     REEL_DECLUTTER(FamilyNames.REEL_DECLUTTER, "reelDeclutter", null,
             Settings.HIDE_REEL_CHIPS, Settings.HIDE_REEL_FOLLOW_BUTTON, Settings.HIDE_REEL_SOCIAL_FOOTER),
+    REEL_PROMPTS(FamilyNames.REEL_PROMPTS, "reelPrompts", null,
+            Settings.HIDE_REEL_PROMPTS),
     REEL_WATCH_HISTORY(FamilyNames.REEL_WATCH_HISTORY, "reelWatchHistory", null,
             Settings.DONT_SEND_REEL_WATCH_HISTORY),
+    DOUBLE_TAP_LIKE(FamilyNames.DOUBLE_TAP_LIKE, "doubleTapLike", null,
+            Settings.TURN_OFF_DOUBLE_TAP_LIKE),
+    KEEP_REEL_SPEED(FamilyNames.KEEP_REEL_SPEED, "keepReelSpeed", null,
+            Settings.KEEP_REEL_SPEED),
+    REEL_HOLD(FamilyNames.HOLD_REEL_FOR_2X, "reelHold", null,
+            Settings.HOLD_REEL_FOR_2X),
     DEFAULT_COMMENT_ORDER(FamilyNames.DEFAULT_COMMENT_ORDER, "defaultCommentOrder", null,
             Settings.DEFAULT_COMMENT_ORDER),
     TAG_SUGGESTIONS(FamilyNames.TAG_SUGGESTIONS, "tagSuggestions", null,
@@ -78,6 +92,8 @@ public enum PatchFamily {
             Settings.TAP_TO_PLAY),
     RESUME_LONG_VIDEOS(FamilyNames.RESUME_LONG_VIDEOS, "resumeLongVideos", null,
             Settings.RESUME_LONG_VIDEOS),
+    PLAYBACK_QUALITY(FamilyNames.PLAYBACK_QUALITY, "defaultPlaybackQuality", null,
+            Settings.DEFAULT_PLAYBACK_QUALITY),
     SYSTEM_FONT(FamilyNames.SYSTEM_FONT, "systemFont", null,
             Settings.USE_SYSTEM_FONT),
     SYSTEM_EMOJI(FamilyNames.SYSTEM_EMOJI, "systemEmoji", null,
@@ -98,8 +114,14 @@ public enum PatchFamily {
             Settings.OPEN_ON_CHOSEN_TAB),
     MARKETPLACE_ONLY(FamilyNames.MARKETPLACE_ONLY, "marketplaceOnly", null,
             Settings.MARKETPLACE_ONLY, Settings.MARKETPLACE_QUIET_NOTIFICATIONS, Settings.MARKETPLACE_SKIP_FEED_PREFETCH),
+    REELS_TAB(FamilyNames.REELS_TAB, "reelsTab", null,
+            Settings.HIDE_REELS_TAB),
+    REELS_TAB_DOT(FamilyNames.REELS_TAB_DOT, "reelsTabDot", null,
+            Settings.HIDE_REELS_TAB_DOT),
     MESSENGER_CARD(FamilyNames.MESSENGER_CARD, "messengerCard", null,
-            Settings.HIDE_GET_MESSENGER_CARD, Settings.OPEN_CHATS_IN_MESSENGER),
+            Settings.HIDE_GET_MESSENGER_CARD),
+    MESSENGER_ICON(FamilyNames.MESSENGER_ICON, "messengerIcon", null,
+            Settings.OPEN_MESSENGER_APP),
     MENU_PROMOTIONS(FamilyNames.MENU_PROMOTIONS, "menuPromotions", null,
             Settings.HIDE_MENU_UPGRADES, Settings.HIDE_MENU_ALSO_FROM_META),
     META_AI_SEARCH(FamilyNames.META_AI_SEARCH, "metaAiSearch", null,
@@ -162,6 +184,22 @@ public enum PatchFamily {
     static final Set<PatchFamily> DOWNLOADS = Collections.unmodifiableSet(
             EnumSet.of(STORY_DOWNLOAD, REEL_DOWNLOAD, VIDEO_DOWNLOAD));
 
+    /**
+     * The patches Morphe Manager selects by default. One of them left out is the usual answer to a
+     * report of ads or suggestions that still show (#29, #35), so the overview and the report name
+     * the ones a build lacks. PatchFamilyTest holds this to the "use" flags in patches-list.json, so
+     * a new default patch fails it until it's listed here.
+     */
+    static final Set<PatchFamily> DEFAULT_SELECTION = Collections.unmodifiableSet(EnumSet.of(
+            SPONSORED_POSTS, SUGGESTED_POSTS, AI_DETECTED_POSTS, POST_WORDS, POST_PROMPTS, SPONSORED_STORIES,
+            SUGGESTED_STORIES, REEL_PROMPTS,
+            SPONSORED_REELS, SPONSORED_SEARCH, SPONSORED_PROFILE_POSTS, SPONSORED_MARKETPLACE, AFFILIATE_LINKS,
+            KEEP_REEL_SPEED,
+            RESUME_LONG_VIDEOS, EXTERNAL_BROWSER, SANITIZE_SHARING_LINKS, UPDATE_PROMPTS, STORY_DOWNLOAD,
+            REEL_DOWNLOAD, MARKETPLACE_ONLY, REELS_TAB_DOT, MESSENGER_CARD, MESSENGER_ICON, MENU_PROMOTIONS,
+            META_AI_SEARCH, PROMO_NOTIFICATIONS, AD_PREFETCH, AD_TELEMETRY, AUDIENCE_NETWORK, RESTORE_TRUST,
+            INSTALL_BESIDE_META_APPS, MENU_SETTINGS_ROW));
+
     /** The families a test says this build carries, instead of asking {@link SettingsStatus}. */
     @Nullable
     static volatile Set<PatchFamily> inBuildForTests;
@@ -195,6 +233,15 @@ public enum PatchFamily {
         return found;
     }
 
+    /** The names of the default patches this build doesn't carry, in declaration order. */
+    static List<String> missingDefaults(Set<PatchFamily> inBuild) {
+        List<String> names = new ArrayList<>();
+        for (PatchFamily family : values()) {
+            if (DEFAULT_SELECTION.contains(family) && !inBuild.contains(family)) names.add(family.patchName);
+        }
+        return names;
+    }
+
     /**
      * What of these families stays in while Hushfacebook is paused, as a sentence in the phone's
      * language, or null when a pause turns every one of them off. The list leads the sentence, so
@@ -224,7 +271,8 @@ public enum PatchFamily {
     /**
      * One line per family in this build, saying whether a switch runs it, what the switch is set
      * to and what stays in while paused, then the switches every download shares when a download
-     * patch is in, then the families this build doesn't carry.
+     * patch is in, then the families this build doesn't carry, and which of those Morphe Manager
+     * selects by default.
      */
     static List<String> reportLines(Set<PatchFamily> inBuild, boolean paused) {
         List<String> lines = new ArrayList<>();
@@ -235,6 +283,8 @@ public enum PatchFamily {
         }
         if (!Collections.disjoint(inBuild, DOWNLOADS)) lines.add(downloadSwitchesLine(paused));
         if (!absent.isEmpty()) lines.add("not in this build: " + String.join(", ", absent));
+        List<String> defaults = missingDefaults(inBuild);
+        if (!defaults.isEmpty()) lines.add("left out of Manager's default selection: " + String.join(", ", defaults));
         return lines;
     }
 

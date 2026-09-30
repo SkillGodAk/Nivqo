@@ -55,7 +55,7 @@ Use one of the supported builds below.
 
 | Version name | Supported versionCode | Architecture |
 | --- | --- | --- |
-| 580.0.0.49.91 | `346013387` / `346013440` / `346013442` | arm64-v8a |
+| 580.0.0.49.91 | `346013354` / `346013355` / `346013356` / `346013357` / `346013358` / `346013359` / `346013370`<br>`346013372` / `346013374` / `346013375` / `346013387` / `346013391` / `346013394` / `346013423`<br>`346013427` / `346013440` / `346013441` / `346013442` / `346013443` / `346013444` / `346013445` | arm64-v8a |
 
 > **The same versionName does not guarantee compatibility. Use the versionCode as the deciding value.**  
 > If Manager reports an unsupported build, verify that the original APK matches one of the exact build codes above.
@@ -79,6 +79,11 @@ Each user should sign patched APKs with their own Manager key.
 ## Update model
 
 Starting with Nivqo v1.32.0, updates are split into two layers:
+
+Current core channels:
+
+- HushFacebook `0.5.0-nivqo.1` (upstream `6d312196bc9ae8a7c9bd77f936c60b6e6de579d2`)
+- HushMessenger `0.6.0-nivqo.1` (upstream `4b259a712e1b3c90edb7d0262d2b7d23bf45b093`)
 
 - **HushFacebook / HushMessenger patch cores** are served by Nivqo's own GitHub update channel. When upstream changes are adopted, they are merged with Nivqo's Traditional Chinese/custom changes and tested before the patch bundle is updated on GitHub. Installed Nivqo clients can then receive the new patch core without reinstalling Manager just for a patch update.
 - **Nivqo Manager itself** is released only when Manager code changes, and future Manager updates are resolved from `SkillGodAk/Nivqo` GitHub Releases.

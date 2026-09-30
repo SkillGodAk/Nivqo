@@ -11,16 +11,20 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.preference.Preference;
 import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
+import android.widget.TextView;
 
 import app.morphe.extension.facebook.comments.CommentOrder;
 import app.morphe.extension.facebook.download.DownloadQuality;
+import app.morphe.extension.facebook.download.SendLink;
 import app.morphe.extension.facebook.feed.PostWordsForTests;
+import app.morphe.extension.facebook.media.PlaybackQuality;
 import app.morphe.extension.facebook.navigation.StartTab;
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.SettingsContextRule;
@@ -37,8 +41,10 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 
@@ -81,6 +87,8 @@ public class HushfacebookPreferenceFragmentTest {
         Settings.SAVE_FOLDER.resetToDefault();
         Settings.DOWNLOAD_QUALITY.resetToDefault();
         Settings.FILENAME_TEMPLATE.resetToDefault();
+        Settings.DOWNLOAD_ACTION.resetToDefault();
+        Settings.SEND_TO_APP.resetToDefault();
         Settings.HIDDEN_WORDS.resetToDefault();
         Settings.KEPT_WORDS.resetToDefault();
     }
@@ -302,9 +310,86 @@ public class HushfacebookPreferenceFragmentTest {
     }
 
     /**
+     * Send to an app (#41): with a reel or video download in the build, Downloads ends with what a
+     * tap on Download does, saving by default, and the app the links go to. The app row keeps a
+     * package name trimmed and turns down anything else. A story-only build has neither, since a
+     * story always saves.
+     */
+    @Test
+    public void theSendRowsChooseWhatDownloadDoesAndWhichAppGetsTheLink() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(controller);
+            int nameAt = -1;
+            int actionAt = -1;
+            int appAt = -1;
+            for (int i = 0; i < rows.size(); i++) {
+                if (rows.get(i) instanceof HushfacebookPreferenceFragment.FileNameRow) nameAt = i;
+                if (rows.get(i) instanceof HushfacebookPreferenceFragment.DownloadActionRow) actionAt = i;
+                if (rows.get(i) instanceof HushfacebookPreferenceFragment.SendAppRow) appAt = i;
+            }
+            assertTrue("no download action row with a reel download in the build", actionAt >= 0);
+            assertEquals("the action row isn't under the file name", nameAt + 1, actionAt);
+            assertEquals("the app row isn't under the action", actionAt + 1, appAt);
+
+            HushfacebookPreferenceFragment.DownloadActionRow action =
+                    (HushfacebookPreferenceFragment.DownloadActionRow) rows.get(actionAt);
+            assertEquals(Settings.DOWNLOAD_ACTION.key, action.getKey());
+            assertEquals("When you tap Download", String.valueOf(action.getTitle()));
+            assertEquals(Arrays.asList("Save to phone", "Send the link to an app"),
+                    Arrays.asList(String.valueOf(action.getEntries()[0]), String.valueOf(action.getEntries()[1])));
+            assertEquals(Arrays.asList("SAVE", "SEND"),
+                    Arrays.asList(String.valueOf(action.getEntryValues()[0]), String.valueOf(action.getEntryValues()[1])));
+            assertEquals("SAVE", action.getValue());
+            assertEquals("Reels, videos and stories save to this phone.", String.valueOf(action.getSummary()));
+
+            action.setValue("SEND");
+            ShadowLooper.idleMainLooper();
+            assertEquals(SendLink.Action.SEND, Settings.DOWNLOAD_ACTION.savedValue());
+            assertEquals(HushfacebookPreferenceFragment.downloadActionSummary(SendLink.Action.SEND),
+                    String.valueOf(action.getSummary()));
+
+            HushfacebookPreferenceFragment.SendAppRow app = (HushfacebookPreferenceFragment.SendAppRow) rows.get(appAt);
+            assertEquals(Settings.SEND_TO_APP.key, app.getKey());
+            assertEquals("App to send to", String.valueOf(app.getTitle()));
+            assertEquals("Android asks which app each time.", String.valueOf(app.getSummary()));
+            String message = String.valueOf(app.getDialogMessage());
+            assertTrue(message, message.contains(L10n.isolate(SendLink.YTDLNIS)) && message.contains(L10n.isolate(SendLink.SEAL)));
+
+            Preference.OnPreferenceChangeListener ok = app.getOnPreferenceChangeListener();
+            assertFalse("a name with spaces round it was kept as typed", ok.onPreferenceChange(app, " com.junkfood.seal "));
+            ShadowLooper.idleMainLooper();
+            assertEquals(SendLink.SEAL, app.getText());
+            assertEquals(SendLink.SEAL, Settings.SEND_TO_APP.savedValue());
+            assertEquals("Links go to " + L10n.isolate(SendLink.SEAL) + ". When it isn't installed, Android asks which app.",
+                    String.valueOf(app.getSummary()));
+
+            assertFalse("something that isn't a package name was kept", ok.onPreferenceChange(app, "seal --exec"));
+            ShadowLooper.idleMainLooper();
+            assertEquals(SendLink.SEAL, Settings.SEND_TO_APP.savedValue());
+            assertEquals(L10n.isolate("seal --exec") + " isn't a package name, so the app stays as it was.",
+                    ShadowToast.getTextOfLatestToast());
+
+            assertTrue("a clean name was changed", ok.onPreferenceChange(app, SendLink.YTDLNIS));
+            assertTrue("a blank name was turned down", ok.onPreferenceChange(app, ""));
+        }
+
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.STORY_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            for (Preference row : rowsOf(controller)) {
+                assertFalse("a send row with only story downloads in the build",
+                        row instanceof HushfacebookPreferenceFragment.DownloadActionRow
+                                || row instanceof HushfacebookPreferenceFragment.SendAppRow);
+            }
+        }
+    }
+
+    /**
      * The word filter's switch sits in News feed with its two lists under it. Each list keeps what
-     * the filter will read, whatever is typed, and a toast says how many lines were left out,
-     * never which. The rows are there only with the patch in the build.
+     * the filter will read, whatever is typed, and says how many lines were left out, never which.
+     * That's a dialog rather than a toast: Android 12 and later cut a toast to two lines, and the
+     * reasons run past that, most of all at a large text size. The rows are there only with the
+     * patch in the build.
      */
     @Test
     public void theWordRowsKeepCleanListsAndSayHowManyPhrasesTheyHold() {
@@ -323,6 +408,7 @@ public class HushfacebookPreferenceFragmentTest {
             assertFalse("the list's field is one line", hide.getEditText().getMaxLines() == 1);
 
             ShadowToast.reset();
+            ShadowAlertDialog.reset();
             Preference.OnPreferenceChangeListener ok = hide.getOnPreferenceChangeListener();
             assertFalse("a list with lines out of bounds was kept as typed",
                     ok.onPreferenceChange(hide, " spoiler \na\nSPOILER\ngiveaway now\n"));
@@ -330,20 +416,25 @@ public class HushfacebookPreferenceFragmentTest {
             assertEquals("spoiler\ngiveaway now", hide.getText());
             assertEquals("spoiler\ngiveaway now", Settings.HIDDEN_WORDS.savedValue());
             assertEquals("2 words or phrases.", String.valueOf(hide.getSummary()));
-            assertEquals("2 lines were left out. A phrase needs 2 to 60 characters, one given twice counts once, "
-                    + "and a list holds 50.", ShadowToast.getTextOfLatestToast());
+            assertLeftOut("Words to hide", "2 lines were left out. A phrase needs 2 to 60 characters, or just one "
+                    + "for an emoji, a Chinese character, a kana or a Hangul syllable. One given twice counts "
+                    + "once, and a list holds 50.");
 
-            ShadowToast.reset();
+            ShadowAlertDialog.reset();
             assertTrue("a clean list was changed", ok.onPreferenceChange(hide, "spoiler"));
             assertFalse("only spaces around a phrase", ok.onPreferenceChange(hide, "spoiler  "));
             ShadowLooper.idleMainLooper();
-            assertNull("a list cleaned of spaces alone said something", ShadowToast.getTextOfLatestToast());
+            assertNull("a list cleaned of spaces alone said something", ShadowAlertDialog.getLatestAlertDialog());
+            assertNull(ShadowToast.getTextOfLatestToast());
             assertEquals("spoiler", Settings.HIDDEN_WORDS.savedValue());
 
             assertFalse(keep.getOnPreferenceChangeListener().onPreferenceChange(keep, "my team\nmy team"));
             ShadowLooper.idleMainLooper();
             assertEquals("my team", Settings.KEPT_WORDS.savedValue());
             assertEquals("1 word or phrase.", String.valueOf(keep.getSummary()));
+            assertLeftOut("Words that keep a post", "1 line was left out. A phrase needs 2 to 60 characters, or just "
+                    + "one for an emoji, a Chinese character, a kana or a Hangul syllable. One given twice counts "
+                    + "once, and a list holds 50.");
         }
 
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.SPONSORED_POSTS);
@@ -352,6 +443,101 @@ public class HushfacebookPreferenceFragmentTest {
             assertEquals(-1, indexOfKey(rows, Settings.HIDDEN_WORDS.key));
             assertEquals(-1, indexOfKey(rows, Settings.HIDE_POSTS_WITH_WORDS.key));
         }
+    }
+
+    /**
+     * The dialog that says lines were left out: titled with its list, holding the whole message
+     * with nothing cut, and no toast beside it. OK closes it.
+     */
+    private static void assertLeftOut(String list, String message) {
+        AlertDialog shown = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull("nothing said lines were left out", shown);
+        assertTrue(shown.isShowing());
+        assertEquals(list, String.valueOf(Shadows.shadowOf(shown).getTitle()));
+        TextView text = shown.findViewById(android.R.id.message);
+        assertEquals(message, String.valueOf(text.getText()));
+        assertEquals("the message is cut to a number of lines", Integer.MAX_VALUE, text.getMaxLines());
+        assertNull("the message is cut short", text.getEllipsize());
+        assertNull("a toast said it too", ShadowToast.getTextOfLatestToast());
+        shown.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+        ShadowLooper.idleMainLooper();
+        assertFalse("OK left it open", shown.isShowing());
+    }
+
+    /**
+     * The page's own dialogs are drawn over its activity's window: the list of sections, Licenses
+     * and a word list's note. Open when the page went, on a rotation, Back or Facebook closing,
+     * they outlived that window, which Android reports as a leaked window, and the note went with it.
+     */
+    @Test
+    public void thePagesDialogsCloseWhenItsViewGoes() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.POST_WORDS);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(controller);
+            List<AlertDialog> open = new ArrayList<>();
+            Preference jump = rows.get(indexOfKey(rows, "action_jump_to_section"));
+            jump.getOnPreferenceClickListener().onPreferenceClick(jump);
+            open.add(ShadowAlertDialog.getLatestAlertDialog());
+            Preference licenses = null;
+            for (Preference row : rows) if ("Licenses".contentEquals(row.getTitle())) licenses = row;
+            assertNotNull("no Licenses row", licenses);
+            licenses.getOnPreferenceClickListener().onPreferenceClick(licenses);
+            open.add(ShadowAlertDialog.getLatestAlertDialog());
+            Preference hide = rows.get(indexOfKey(rows, Settings.HIDDEN_WORDS.key));
+            assertFalse(hide.getOnPreferenceChangeListener().onPreferenceChange(hide, "a\nspoiler"));
+            ShadowLooper.idleMainLooper();
+            open.add(ShadowAlertDialog.getLatestAlertDialog());
+
+            List<String> titles = new ArrayList<>();
+            for (AlertDialog dialog : open) {
+                assertTrue(dialog.isShowing());
+                titles.add(String.valueOf(Shadows.shadowOf(dialog).getTitle()));
+            }
+            assertEquals(Arrays.asList("Jump to a section", "Licenses", "Words to hide"), titles);
+
+            controller.recreate();
+            ShadowLooper.idleMainLooper();
+
+            for (AlertDialog dialog : open) {
+                assertFalse(Shadows.shadowOf(dialog).getTitle() + " outlived the page", dialog.isShowing());
+            }
+        }
+    }
+
+    /**
+     * A Save on a word list can land as the activity goes. The button's click and the edit
+     * dialog's close are posted one after the other, and when the activity's end comes between
+     * them, it closes the dialog itself, which still counts as Save. The list's listener then runs
+     * after the page is gone, and its note that lines were left out came up over a window that
+     * was gone with it.
+     */
+    @Test
+    public void aWordListSavedAsTheActivityGoesShowsNoNoteOverIt() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.POST_WORDS);
+        ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup();
+        List<Preference> rows = rowsOf(controller);
+        HushfacebookPreferenceFragment.WordsRow hide =
+                (HushfacebookPreferenceFragment.WordsRow) rows.get(indexOfKey(rows, Settings.HIDDEN_WORDS.key));
+        hide.showDialog(null);
+        AlertDialog edit = (AlertDialog) hide.getDialog();
+        hide.getEditText().setText("a\nspoiler");
+        ShadowLooper.idleMainLooper();
+        ShadowAlertDialog.reset();
+
+        edit.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+        // The click runs, and the close waits behind it.
+        ShadowLooper.shadowMainLooper().runOneTask();
+        assertTrue("the edit dialog closed before the activity went", edit.isShowing());
+        controller.pause().stop().destroy();
+        ShadowLooper.idleMainLooper();
+
+        // Only the list's listener puts the cleaned list in the row.
+        assertEquals("the listener never ran, so this checked nothing", "spoiler", hide.getText());
+        AlertDialog note = ShadowAlertDialog.getLatestAlertDialog();
+        assertTrue("a note came up over a destroyed activity", note == null || !note.isShowing());
+        // The row can show the clean list while the filter still runs the old one: only the
+        // shared preferences listener carries a save into the running Setting.
+        assertEquals("the filter kept the old list", "spoiler", Settings.HIDDEN_WORDS.get());
     }
 
     /** The hide list's row counts the posts it hid since Facebook started, and never names one. */
@@ -442,7 +628,8 @@ public class HushfacebookPreferenceFragmentTest {
     /**
      * Saves other apps can open (issue #11) is a switch every save reads, so it's under Downloads
      * with any one download patch in, right above the quality it keeps within, and starts off. Its
-     * summary names WhatsApp, the app that turned an AV1 reel down.
+     * summary names WhatsApp, the app that turned an AV1 reel down, and a gallery or player that
+     * plays a save without sound, since some can't decode the xHE-AAC sound a Best reel can carry.
      */
     @Test
     public void theCompatibleSwitchSitsAboveTheQualityWithAnyDownloadIn() {
@@ -458,8 +645,9 @@ public class HushfacebookPreferenceFragmentTest {
                 assertFalse(((SwitchPreference) row).isChecked());
                 assertEquals(indexOfKey(rows, Settings.DOWNLOAD_QUALITY.key) - 1, compatible);
                 assertEquals("Save videos other apps can open", String.valueOf(row.getTitle()));
-                assertEquals("Prefer H.264 video with AAC sound for apps such as WhatsApp. Quality may be lower than AV1. "
-                        + "Without a compatible version, save as usual.", String.valueOf(row.getSummary()));
+                assertEquals("For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves "
+                        + "without sound. May lower quality.",
+                        String.valueOf(row.getSummary()));
             }
         }
 
@@ -531,6 +719,50 @@ public class HushfacebookPreferenceFragmentTest {
                 assertFalse(Settings.OPEN_ON_CHOSEN_TAB.key.equals(row.getKey()));
             }
         }
+    }
+
+    /**
+     * With Hide the Reels tab in the build, its switch is under Reels and Watch, and while it's on a
+     * chosen Video tab's row says Facebook opens on Home, since a start never lands on the hidden
+     * tab. Switched off, with no Marketplace only in the build, the row names Video again. The saved
+     * choice stays Video throughout.
+     */
+    @Test
+    public void aChosenReelsTabSaysItOpensHomeWhileHideTheReelsTabIsOn() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.START_TAB, PatchFamily.REELS_TAB);
+        Settings.START_TAB.save(StartTab.VIDEO);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushfacebookPreferenceFragment page = new HushfacebookPreferenceFragment();
+            controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
+            SwitchPreference hide = (SwitchPreference) page.findPreference(Settings.HIDE_REELS_TAB.key);
+            assertEquals("Hide the Reels tab", String.valueOf(hide.getTitle()));
+            assertEquals("Reels and Watch", String.valueOf(hide.getParent().getTitle()));
+            assertTrue("picking the patch is the choice", hide.isChecked());
+            Preference start = page.findPreference(Settings.START_TAB.key);
+            assertEquals("Facebook opens on Home while Hide the Reels tab is on, since Video is off the tab bar. "
+                    + "Your choice stays saved.", String.valueOf(start.getSummary()));
+
+            hide.setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse(Settings.HIDE_REELS_TAB.savedValue());
+            assertEquals("Facebook opens on Video. If your tab bar doesn't have it, Facebook opens on Home.",
+                    String.valueOf(start.getSummary()));
+            assertEquals(StartTab.VIDEO, Settings.START_TAB.savedValue());
+
+            // Any other tab keeps its own summary with the switch on.
+            hide.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertEquals(HushfacebookPreferenceFragment.startTabSummary(StartTab.FRIENDS),
+                    "Facebook opens on Friends. If your tab bar doesn't have it, Facebook opens on Home.");
+        } finally {
+            Settings.START_TAB.resetToDefault();
+            Settings.HIDE_REELS_TAB.resetToDefault();
+        }
+
+        // Without the patch, a chosen Video tab is Facebook's to open or not, whatever the stored switch says.
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.START_TAB);
+        assertEquals("Facebook opens on Video. If your tab bar doesn't have it, Facebook opens on Home.",
+                HushfacebookPreferenceFragment.startTabSummary(StartTab.VIDEO));
     }
 
     /**
@@ -607,6 +839,83 @@ public class HushfacebookPreferenceFragmentTest {
                 assertFalse("a comment order row with no Default comment order in the build",
                         row instanceof HushfacebookPreferenceFragment.CommentOrderRow);
                 assertFalse(Settings.DEFAULT_COMMENT_ORDER.key.equals(row.getKey()));
+            }
+        }
+    }
+
+    /**
+     * With Default playback quality in the build, the Playback section has its switch and the list
+     * of qualities right below it, which offers Auto first, says what the chosen one does, and
+     * reaches the setting the way the list's own dialog sends a pick. Without the patch there's
+     * neither row.
+     */
+    @Test
+    public void thePlaybackQualityRowOffersAutoAndEachQuality() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.PLAYBACK_QUALITY, PatchFamily.SPONSORED_POSTS);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushfacebookPreferenceFragment page = new HushfacebookPreferenceFragment();
+            controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
+            List<Preference> rows = new ArrayList<>();
+            collect(page.getPreferenceScreen(), rows);
+            int toggle = -1;
+            for (int i = 0; i < rows.size(); i++) {
+                if (Settings.DEFAULT_PLAYBACK_QUALITY.key.equals(rows.get(i).getKey())) toggle = i;
+            }
+            assertTrue("no Default playback quality switch", toggle >= 0);
+            PreferenceGroup section = null;
+            for (int i = 0; i < page.getPreferenceScreen().getPreferenceCount(); i++) {
+                Preference top = page.getPreferenceScreen().getPreference(i);
+                if (top instanceof PreferenceGroup
+                        && ((PreferenceGroup) top).findPreference(Settings.DEFAULT_PLAYBACK_QUALITY.key) != null) {
+                    section = (PreferenceGroup) top;
+                }
+            }
+            assertNotNull(section);
+            assertEquals("Playback", String.valueOf(section.getTitle()));
+            assertEquals(2, section.getPreferenceCount());
+            assertEquals("Default playback quality", String.valueOf(rows.get(toggle).getTitle()));
+            assertTrue(rows.get(toggle + 1) instanceof HushfacebookPreferenceFragment.PlaybackQualityRow);
+            HushfacebookPreferenceFragment.PlaybackQualityRow quality =
+                    (HushfacebookPreferenceFragment.PlaybackQualityRow) rows.get(toggle + 1);
+            assertEquals(Settings.PLAYBACK_QUALITY.key, quality.getKey());
+            assertEquals("Playback quality", String.valueOf(quality.getTitle()));
+
+            List<String> entries = new ArrayList<>();
+            for (CharSequence entry : quality.getEntries()) entries.add(String.valueOf(entry));
+            assertEquals(Arrays.asList("Auto", "Data saver", "Up to " + L10n.isolate("480p"),
+                    "Up to " + L10n.isolate("720p"), "Highest"), entries);
+            List<String> values = new ArrayList<>();
+            for (CharSequence value : quality.getEntryValues()) values.add(String.valueOf(value));
+            List<String> names = new ArrayList<>();
+            for (PlaybackQuality each : PlaybackQuality.values()) names.add(each.name());
+            assertEquals(names, values);
+
+            assertEquals("AUTO", quality.getValue());
+            assertEquals("Facebook picks the quality as each video plays, from your connection.",
+                    String.valueOf(quality.getSummary()));
+
+            // A pick in the list, the way its dialog sends one.
+            quality.setValue("DATA_SAVER");
+            ShadowLooper.idleMainLooper();
+            assertEquals(PlaybackQuality.DATA_SAVER, Settings.PLAYBACK_QUALITY.savedValue());
+            assertEquals("Videos play at the lowest quality Facebook offers for each.", String.valueOf(quality.getSummary()));
+
+            // A value set behind the row, as an import does, shows once the page syncs.
+            Settings.PLAYBACK_QUALITY.save(PlaybackQuality.P720);
+            page.refreshSwitches();
+            assertEquals("P720", quality.getValue());
+            assertEquals("Videos play at the best quality up to " + L10n.isolate("720p")
+                    + " that Facebook offers for each, or the closest above.", String.valueOf(quality.getSummary()));
+        } finally {
+            Settings.PLAYBACK_QUALITY.resetToDefault();
+        }
+
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.SPONSORED_POSTS);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            for (Preference row : rowsOf(controller)) {
+                assertFalse("a playback quality row with no Default playback quality in the build",
+                        row instanceof HushfacebookPreferenceFragment.PlaybackQualityRow);
+                assertFalse(Settings.DEFAULT_PLAYBACK_QUALITY.key.equals(row.getKey()));
             }
         }
     }

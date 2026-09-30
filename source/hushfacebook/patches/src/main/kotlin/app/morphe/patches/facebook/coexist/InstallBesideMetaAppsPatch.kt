@@ -28,6 +28,14 @@ private val renameSharedPermissionsPatch = resourcePatch {
  * state broadcast and Profilo's trace control, six places on 577 and 580). Left alone they'd name a
  * permission this build no longer holds, and those broadcasts would stop reaching Facebook itself.
  *
+ * Letting a same-key Messenger, Messenger Lite or Facebook Lite sign in through this Facebook is
+ * Restore screens on re-signed builds' job, not this one's: that patch hooks the one method Facebook
+ * reads a package's signers through, and the same-key answer it gives a family caller there needs
+ * nothing from this patch. A same-key Facebook and Messenger pair installs fine without this patch
+ * too, since both declare Facebook's stock shared permission names under the same signer; this patch
+ * only keeps a Meta-signed Messenger, Facebook Lite, Business Suite or Workplace from colliding with
+ * a re-signed Facebook's copy of those names.
+ *
  * No switch: a manifest can't change at run time, so the patch stays in while paused.
  */
 @Suppress("unused")

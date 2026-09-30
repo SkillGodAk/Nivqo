@@ -1,4 +1,4 @@
-﻿package app.hushmessenger.patches.controls
+package app.hushmessenger.patches.controls
 
 import app.hushmessenger.patches.MessengerTarget
 import app.hushmessenger.patches.coexist.validateVersionCode
@@ -15,7 +15,7 @@ internal fun Document.addSettingsEntry() {
     val applications = getElementsByTagName("application")
     if (applications.length != 1) throw PatchException("Messenger controls: expected one application")
     val application = applications.item(0) as Element
-    for (tag in listOf("activity", "provider")) {
+    for (tag in listOf("activity", "activity-alias", "provider")) {
         val nodes = getElementsByTagName(tag)
         for (i in 0 until nodes.length) {
             if ((nodes.item(i) as Element).getAttribute("android:name").startsWith("app.hushmessenger.extension.")) {
@@ -29,13 +29,19 @@ internal fun Document.addSettingsEntry() {
     }
     application.child("provider", "name" to "app.hushmessenger.extension.SettingsProvider",
         "authorities" to "com.facebook.orca.hush.settings", "exported" to "false")
-    // Settings is deliberately not a launcher activity and this fork no longer installs
-    // Messenger long-press shortcuts. Access belongs inside Messenger's own settings UI.
     application.child("activity", "name" to "app.hushmessenger.extension.SettingsActivity",
         "label" to "HushMessenger settings", "exported" to "true",
-        "taskAffinity" to "app.hushmessenger.settings")
+        "icon" to "@android:drawable/ic_menu_preferences", "taskAffinity" to "app.hushmessenger.settings")
+    // The app drawer entry is an alias, so settings can hide it while the shortcuts and Menu tab row keep working.
+    val launcher = application.child("activity-alias", "name" to "app.hushmessenger.extension.SettingsLauncher",
+        "targetActivity" to "app.hushmessenger.extension.SettingsActivity", "label" to "HushMessenger settings",
+        "icon" to "@android:drawable/ic_menu_preferences", "exported" to "true")
+    val filter = launcher.child("intent-filter")
+    filter.child("action", "name" to "android.intent.action.MAIN")
+    filter.child("category", "name" to "android.intent.category.LAUNCHER")
+    // Launcher shortcuts start it as Messenger itself, so no other app needs a way to kill the process.
     application.child("activity", "name" to "app.hushmessenger.extension.RestartActivity",
-        "label" to "Restart Messenger", "exported" to "true", "excludeFromRecents" to "true",
+        "label" to "Restart Messenger", "exported" to "false", "excludeFromRecents" to "true",
         "noHistory" to "true", "configChanges" to "orientation|screenSize|keyboardHidden",
         "theme" to "@android:style/Theme.Material.NoActionBar")
 }
@@ -43,46 +49,37 @@ internal fun Document.addSettingsEntry() {
 private val settingsResources = resourcePatch(description = "Install HushMessenger settings") {
     execute {
         validateVersionCode(packageMetadata.versionCode)
-        document("AndroidManifest.xml").use { manifest -> manifest.addSettingsEntry() }
+        val shortcutsPath = resolveShortcutsPath(listApkEntries("res/")) { path ->
+            document(path).use { it }
+        }
+        // ARSCLib infers the resource type from the filename, so append to strings.xml.
+        document(SHORTCUT_LABEL_PATH).use { labels ->
+            labels.validateShortcutLabels()
+            document("AndroidManifest.xml").use { manifest ->
+                document(shortcutsPath).use { shortcuts -> manifest.addSettingsAccess(shortcuts) }
+            }
+            labels.addShortcutLabels()
+        }
     }
 }
 
-private var discoveredControls: Map<String, List<Method>> = emptyMap()
-private var discoveredSettingsEntry: List<Method> = emptyList()
+internal var discoveredControls: Map<String, List<Method>> = emptyMap()
 
-private val settingsExtension = bytecodePatch(description = "Load HushMessenger runtime controls") {
+internal val settingsExtension = bytecodePatch(description = "Load HushMessenger runtime controls") {
     dependsOn(settingsResources)
     extendWith("extensions/messenger.mpe")
     execute {
+        activeProfile = controlProfileFor(packageMetadata.versionCode)
         val classes = mutableListOf<com.android.tools.smali.dexlib2.iface.ClassDef>()
         classDefForEach { classes.add(it) }
         discoveredControls = findControls(classes)
-        discoveredSettingsEntry = findSettingsEntryHooks(classes)
-        // Do not fail the whole Messenger patch when the in-app settings row fingerprint is not
-        // unique for this Messenger build. The embedded SettingsActivity/Provider still ship with
-        // the patched app, while normal controls patches can continue to apply. A precise
-        // Messenger 580 row hook must be added before this entry can be guaranteed in the native
-        // settings screen.
-        if (discoveredSettingsEntry.size == 1) {
-            val hook = discoveredSettingsEntry.single()
-            val mutableHook = mutableClassDefBy(hook.definingClass).methods.single { it.hookId() == hook.hookId() }
-            mutableHook.injectSettingsEntry()
-        } else {
-            discoveredSettingsEntry
-                .distinctBy { it.hookId() }
-                .forEach { hook ->
-                    runCatching {
-                        mutableClassDefBy(hook.definingClass)
-                            .methods
-                            .single { it.hookId() == hook.hookId() }
-                            .injectSettingsEntryInstaller()
-                    }
-                }
-        }
+        bundledControls.clear()
+        hookScreenHosts()
     }
     finalize {
         discoveredControls = emptyMap()
-        discoveredSettingsEntry = emptyList()
+        bundledControls.clear()
+        activeProfile = BASE_PROFILE
     }
 }
 
@@ -113,6 +110,13 @@ internal fun injectControl(key: String, methods: Map<String, List<MutableMethod>
             "browser" -> method.validateBrowserPreference()
             "ads" -> method.validateAdFilter()
             "people_jewel" -> method.validatePeopleSection()
+            "keep_unsent" -> method.validateKeepUnsent()
+            "unsent_indicator" -> method.validateUnsentIndicator()
+            "delta_unsent" -> method.validateDeltaUnsent()
+            "emoji_typeface" -> method.validateScratch()
+            "original_photo" -> method.validateOriginalPhoto()
+            "avatar_tabs" -> if (method.returnType == "V") method.validateKeyboardTabsInline() else method.validateKeyboardTabs()
+            "typing_mailbox" -> method.validateOutgoingTyping()
             else -> method.validateSwitch()
         }
     }
@@ -124,9 +128,19 @@ internal fun injectControl(key: String, methods: Map<String, List<MutableMethod>
             "people_jewel" -> method.injectPeopleSection()
             "stories" -> method.injectSwitch("hideStories", "0x0")
             "facebook" -> method.injectSwitch("hideFacebook", "0x0")
-            "ai_menu", "ai_fab", "ai_toolbar" -> method.injectSwitch("hideMetaAi", "0x0")
+            "ai_menu", "ai_fab", "ai_toolbar", "ai_search", "ai_search_chip" -> method.injectSwitch("hideMetaAi", "0x0")
+            "ai_tab" -> method.injectSwitch("hideMetaAiTab", "0x0")
             "typing" -> method.injectSwitch("suppressTyping", "0x0")
             "bubbles" -> method.injectSwitch("enableBubbles", "0x1")
+            "allow_screenshot" -> method.injectSwitch("allowScreenshot", "0x0")
+            "hide_read_receipts", "read_mailbox" -> method.injectSwitch("hideReadReceipts", "0x0")
+            "keep_unsent" -> method.injectKeepUnsent()
+            "unsent_indicator" -> method.injectUnsentIndicator()
+            "delta_unsent" -> method.injectDeltaUnsent()
+            "emoji_typeface" -> method.injectEmojiTypeface()
+            "original_photo" -> method.injectOriginalPhoto()
+            "avatar_tabs" -> if (method.returnType == "V") method.injectKeyboardTabsInline() else method.injectKeyboardTabs()
+            "typing_mailbox" -> method.injectOutgoingTyping()
             else -> method.injectFeatureSwitch(key)
         }
     }
@@ -146,7 +160,7 @@ private fun controlPatch(key: String, title: String, summary: String, group: Str
     }
     return bytecodePatch(
         name = title,
-        description = "$summary Open Messenger settings > HushMessenger settings. Starts off.",
+        description = "$summary Long-press Messenger > Patch controls. Starts off.",
         default = true,
     ) {
         category(group)
@@ -161,13 +175,14 @@ private fun controlPatch(key: String, title: String, summary: String, group: Str
                 }
             }
             injectControl(key, methods)
+            recordControl(key)
             applied = true
         }
     }
 }
 
 @Suppress("unused")
-val hideInboxAdsPatch = controlPatch("ads", "Hide inbox ads", "Filters typed inbox ad items. Live ad removal still needs an affected-account check.", "Inbox")
+val hideInboxAdsPatch = controlPatch("ads", "Hide inbox ads", "Filters typed inbox ad items, in case Meta brings back the inbox ads it stopped selling in November 2025.", "Inbox")
 @Suppress("unused")
 val hidePeoplePatch = controlPatch("people", "Hide People You May Know", "Hides suggested people in chats and on the Notifications tab.", "Inbox", "people", "people_list_end", "people_jewel")
 @Suppress("unused")
@@ -181,9 +196,9 @@ val hideStoriesPatch = controlPatch("stories", "Hide stories and notes", "Hides 
 @Suppress("unused")
 val hideSubtabsPatch = controlPatch("subtabs", "Hide inbox tabs", "Hides the Home and Channels subtabs.", "Inbox")
 @Suppress("unused")
-val hideFacebookPatch = controlPatch("facebook", "Hide Facebook shortcuts", "Hides Facebook toolbar, profile and sharing shortcuts.", "Navigation")
+val hideFacebookPatch = controlPatch("facebook", "Hide Facebook shortcuts", "Hides Facebook toolbar, profile and sharing shortcuts, and Also from Meta in the Menu tab.", "Navigation")
 @Suppress("unused")
-val hideMetaAiPatch = controlPatch("meta_ai", "Hide Meta AI buttons", "Hides the floating button, toolbar button and AI menu entries. Search stays available.", "Navigation", "ai_menu", "ai_fab", "ai_toolbar")
+val hideMetaAiPatch = controlPatch("meta_ai", "Hide Meta AI", "Hides the floating button, toolbar button, Meta AI tab, menu entries and search AI.", "Navigation", "ai_menu", "ai_fab", "ai_toolbar", "ai_tab", "ai_search", "ai_search_chip")
 @Suppress("unused")
 val hideMomentsPatch = controlPatch("moments", "Hide Chat Moments", "Hides the Chat Moments entry in the menu.", "Navigation")
 @Suppress("unused")
@@ -191,7 +206,7 @@ val hideReelsBadgePatch = controlPatch("reels_badge", "Hide Reels badge", "Hides
 @Suppress("unused")
 val hideAiStickersPatch = controlPatch("ai_stickers", "Hide AI sticker tools", "Hides the generated-sticker tab and AI sticker suggestions.", "Stickers")
 @Suppress("unused")
-val hideAvatarStickersPatch = controlPatch("avatar_stickers", "Hide avatar stickers", "Hides the avatar tab in the sticker keyboard.", "Stickers")
+val hideAvatarStickersPatch = controlPatch("avatar_stickers", "Hide avatar stickers", "Hides the avatar tab in the sticker keyboard.", "Stickers", "avatar_stickers", "avatar_tabs")
 @Suppress("unused")
 val hideChatPromotionsPatch = controlPatch("chat_promotions", "Hide chat promotions", "Hides Messenger quick-promotion banners inside conversations.", "Conversations")
 @Suppress("unused")
@@ -201,11 +216,66 @@ val hideBusinessSuggestionsPatch = controlPatch("business_suggestions", "Hide bu
 @Suppress("unused")
 val hideEventPromptsPatch = controlPatch("event_prompts", "Hide event prompts", "Hides event quick-promotion prompts inside chats.", "Conversations")
 @Suppress("unused")
-val suppressTypingPatch = controlPatch("typing", "Hide typing indicator", "Suppresses your outgoing active-typing signal.", "Conversations")
+val suppressTypingPatch = controlPatch("typing", "Hide typing indicator", "Suppresses your outgoing active-typing signal, including in end-to-end encrypted chats.", "Conversations", "typing", "typing_mailbox")
 @Suppress("unused")
 val externalBrowserPatch = controlPatch("external_browser", "Open web links externally", "Uses Messenger's external-browser branch for HTTP and HTTPS links.", "Links and bubbles", "browser")
 @Suppress("unused")
 val enableBubblesPatch = controlPatch("bubbles", "Allow chat bubbles", "Removes the low-memory eligibility limit on Android 11 and newer.", "Links and bubbles")
+@Suppress("unused")
+val useSystemEmojiPatch = controlPatch("use_system_emoji", "Use system emoji", "Renders emoji with the phone's own font instead of Messenger's.", "Conversations", "emoji_typeface")
+@Suppress("unused")
+val originalPhotoPatch = controlPatch("original_photo", "Send photos at original quality", "With HD on, sends a JPEG photo's own image data instead of a re-encoded copy, without its metadata except the rotation tag. Videos and photos over 20 MB are still compressed.", "Conversations")
+@Suppress("unused")
+val allowScreenshotPatch = controlPatch("allow_screenshot", "Allow screenshots", "Lets you screenshot photos, media and video Messenger protects in a chat, and stops screenshot notices. View-once media stays protected.", "Privacy")
+@Suppress("unused")
+val hideReadReceiptsPatch = controlPatch("hide_read_receipts", "Hide read receipts", "Suppresses your outgoing read receipt. In end-to-end encrypted chats, chats you open stay unread until you reply.", "Privacy", "hide_read_receipts", "read_mailbox")
+@Suppress("unused")
+val keepUnsentPatch = controlPatch("keep_unsent", "Keep unsent messages", "Preserves messages other people remove for everyone, except in end-to-end encrypted chats. Your own unsend ability may be limited while active.", "Privacy", "keep_unsent", "unsent_indicator", "delta_unsent")
 
+private var menuRowApplied = false
 
+// Lets the settings screen mention the Menu tab row only on builds that have it.
+private val menuRowResources = resourcePatch(description = "Record HushMessenger capability: menu_row") {
+    dependsOn(settingsResources)
+    execute {
+        menuRowApplied = false
+        document("AndroidManifest.xml").use { it.requireFeatureAbsent("menu_row") }
+    }
+    finalize {
+        if (menuRowApplied) document("AndroidManifest.xml").use { it.addFeature("menu_row") }
+    }
+}
 
+@Suppress("unused")
+val menuSettingsPatch = bytecodePatch(
+    name = "Open settings from menu",
+    description = "Adds a HushMessenger entry to the Menu tab. Always on.",
+    default = true,
+) {
+    category("Navigation")
+    compatibleWith(MessengerTarget.COMPATIBILITY)
+    dependsOn(settingsExtension, menuRowResources)
+    execute {
+        validateControls(discoveredControls, setOf("menu_settings"))
+        val methods = discoveredControls.getValue("menu_settings")
+        val addMethod = methods.single { it.returnType == "Ljava/util/ArrayList;" }
+        val bindMethod = methods.single { it.returnType == "V" && it.parameterTypes.size == 2 }
+        val drawerMethod = methods.single { it.returnType == "V" && it.parameterTypes == listOf("Ljava/util/List;") }
+        val clickMethod = methods.single { it.name == "onClick" }
+        val addTarget = mutableClassDefBy(addMethod.definingClass).methods.single { it.hookId() == addMethod.hookId() }
+        val clickTarget = mutableClassDefBy(clickMethod.definingClass).methods.single { it.hookId() == clickMethod.hookId() }
+        // Check the Litho drawer's click site before editing anything.
+        val folderItemType = addTarget.menuFolderItemType()
+        clickTarget.menuFolderCastIndex(folderItemType)
+        addTarget.injectMenuSettingsAdd()
+        mutableClassDefBy(bindMethod.definingClass).methods
+            .single { it.hookId() == bindMethod.hookId() }
+            .injectMenuSettingsBind()
+        mutableClassDefBy(drawerMethod.definingClass).methods
+            .single { it.hookId() == drawerMethod.hookId() }
+            .injectMenuDrawerAdd()
+        clickTarget.injectMenuFolderClick(folderItemType)
+        recordControl("menu_row")
+        menuRowApplied = true
+    }
+}

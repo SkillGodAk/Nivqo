@@ -1,18 +1,17 @@
 package app.hushmessenger.extension;
 
-import android.app.Application;
 import android.content.ContentProvider;
 import android.content.ContentValues;
-import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 
 /** Initializes preferences before the main process executes UI hooks. Never exported. */
 public final class SettingsProvider extends ContentProvider {
     @Override public boolean onCreate() {
-        Context context = getContext();
-        Settings.initialize(context);
-        SettingsEntry.installProcess(context);
+        Settings.initialize(getContext());
+        HostScreens.start(getContext());
+        // Brings the icon back after a repatch without the Menu row or a lost preference.
+        SettingsActivity.syncDrawerIcon(getContext());
         return true;
     }
     @Override public Cursor query(Uri uri, String[] projection, String selection, String[] args, String order) { return null; }

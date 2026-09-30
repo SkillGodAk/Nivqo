@@ -22,7 +22,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import app.morphe.extension.shared.settings.BaseSettings;
-import app.morphe.extension.shared.settings.HushLanguage;
 
 /**
  * Hushfacebook's own text in the language Facebook shows: the one picked in Facebook's own
@@ -338,13 +337,14 @@ public final class L10n {
      */
     private static List<Locale> locales(Context context) {
         try {
-            HushLanguage language = BaseSettings.HUSHFACEBOOK_LANGUAGE.get();
-            if (language != null) {
-                if (language.followsSystem()) return systemLocales();
-                if (!language.followsFacebook()) return Collections.singletonList(language.locale());
-            }
+            String language = BaseSettings.HUSHFACEBOOK_LANGUAGE.get();
+            if ("system".equals(language)) return systemLocales();
+            if ("zh-TW".equalsIgnoreCase(language)) return Collections.singletonList(Locale.TAIWAN);
+            if ("en".equalsIgnoreCase(language)) return Collections.singletonList(Locale.ENGLISH);
+            // "facebook" deliberately falls through to Facebook's application locale.
+            if (language != null && !"facebook".equals(language)) return systemLocales();
         } catch (Throwable ignored) {
-            // Settings are not ready yet. Fall through to Facebook's own configuration.
+            // Settings may not be ready yet. Fall through to Facebook's own application locale.
         }
         try {
             Context application = context == null ? null : context.getApplicationContext();
@@ -361,7 +361,7 @@ public final class L10n {
                 }
             }
         } catch (Throwable ignored) {
-            // No context yet, or none with resources: the default locale still answers.
+            // No context yet, or none with resources: the system locale still answers.
         }
         return systemLocales();
     }
@@ -373,7 +373,7 @@ public final class L10n {
             for (int index = 0; index < list.size(); index++) found.add(list.get(index));
             if (!found.isEmpty()) return found;
         } catch (Throwable ignored) {
-            // Fall through to the JVM/Android default locale.
+            // Fall through to the default locale.
         }
         return Collections.singletonList(Locale.getDefault());
     }

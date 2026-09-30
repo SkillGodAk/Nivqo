@@ -9,20 +9,40 @@ Nivqo 是第三方衍生與整合專案。以下列出主要上游來源。
 ### HushFacebook
 
 - Upstream: https://github.com/SysAdminDoc/HushFacebook
-- Nivqo 主要修改：繁體中文化、Facebook / Messenger 整合與本專案所需的相容調整
+- Nivqo 主要修改：完整繁體中文化與介面語言選擇；Facebook → Messenger 跳轉改採上游正式 `Open the Messenger app` 實作
+- 同步上游 main：`6d312196bc9ae8a7c9bd77f936c60b6e6de579d2`（HushFacebook 0.5.0 + 後續 main 修正）
 - 原始授權與 NOTICE 保留於 `source/hushfacebook`
 
 ### HushMessenger
 
 - Upstream: https://github.com/SysAdminDoc/HushMessenger
-- Nivqo 主要修改：繁體中文化、將設定入口整合到 Messenger 內、與 Facebook 配合的使用流程
+- Nivqo 主要修改：完整繁體中文化與介面語言選擇；設定入口改採上游正式 Menu 列 / Patch 控制 / 可隱藏 app drawer icon，不再保留舊 Nivqo 自製 SettingsEntry
+- 同步上游 main：`4b259a712e1b3c90edb7d0262d2b7d23bf45b093`（HushMessenger 0.6.0）
 - 原始授權與 NOTICE 保留於 `source/hushmessenger`
 
-目前 Nivqo 同步的 Messenger 支援 build：
+目前 Nivqo 同步的 Messenger `580.0.0.49.91` arm64 支援 build：
 
+- `346013354`
+- `346013355`
+- `346013356`
+- `346013357`
+- `346013358`
+- `346013359`
+- `346013370`
+- `346013372`
+- `346013374`
+- `346013375`
 - `346013387`
+- `346013391`
+- `346013394`
+- `346013423`
+- `346013427`
 - `346013440`
+- `346013441`
 - `346013442`
+- `346013443`
+- `346013444`
+- `346013445`
 
 ## Morphe
 

@@ -30,7 +30,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import app.morphe.extension.shared.settings.BaseSettings;
-import app.morphe.extension.shared.settings.HushLanguage;
 
 /**
  * How the catalog picks a language: the phone's list in order, a region falling back to its
@@ -46,12 +45,12 @@ public class L10nTest {
 
     @Before
     public void catalogTestsFollowFacebooksConfiguration() {
-        BaseSettings.HUSHFACEBOOK_LANGUAGE.save(HushLanguage.FOLLOW_FACEBOOK);
+        BaseSettings.HUSHFACEBOOK_LANGUAGE.save("facebook");
     }
 
     @Test
     public void everyLanguageTheBundleCarriesHasATableWithTheKey() {
-        assertEquals(Arrays.asList("de", "es", "in", "pt-rbr", "tr"), Arrays.asList(L10nTranslations.LANGUAGES));
+        assertEquals(Arrays.asList("de", "es", "in", "pt-rbr", "tr", "zh-rtw"), Arrays.asList(L10nTranslations.LANGUAGES));
         for (String language : L10nTranslations.LANGUAGES) {
             Map<String, String> table = L10nTranslations.of(language);
             assertNotNull(language, table);
@@ -165,19 +164,19 @@ public class L10nTest {
     public void aHushfacebookLanguageOverrideWinsWithoutChangingFacebooksConfiguration() {
         Context germanFacebook = in(Locale.GERMANY);
         try {
-            BaseSettings.HUSHFACEBOOK_LANGUAGE.save(HushLanguage.TRADITIONAL_CHINESE);
+            BaseSettings.HUSHFACEBOOK_LANGUAGE.save("zh-TW");
             assertEquals(table("zh-rtw").get(KEY), L10n.t(germanFacebook, KEY));
             assertEquals("zh", L10n.textLocale(germanFacebook).getLanguage());
             assertEquals("TW", L10n.textLocale(germanFacebook).getCountry());
             assertEquals("de", germanFacebook.getResources().getConfiguration().getLocales().get(0).getLanguage());
 
-            BaseSettings.HUSHFACEBOOK_LANGUAGE.save(HushLanguage.ENGLISH);
+            BaseSettings.HUSHFACEBOOK_LANGUAGE.save("en");
             assertEquals(KEY, L10n.t(germanFacebook, KEY));
 
-            BaseSettings.HUSHFACEBOOK_LANGUAGE.save(HushLanguage.FOLLOW_FACEBOOK);
+            BaseSettings.HUSHFACEBOOK_LANGUAGE.save("facebook");
             assertEquals(table("de").get(KEY), L10n.t(germanFacebook, KEY));
         } finally {
-            BaseSettings.HUSHFACEBOOK_LANGUAGE.save(HushLanguage.FOLLOW_FACEBOOK);
+            BaseSettings.HUSHFACEBOOK_LANGUAGE.save("facebook");
         }
     }
 
@@ -194,7 +193,7 @@ public class L10nTest {
             assertEquals("de", germanFacebook.getResources().getConfiguration().getLocales().get(0).getLanguage());
         } finally {
             Locale.setDefault(previous);
-            BaseSettings.HUSHFACEBOOK_LANGUAGE.save(HushLanguage.FOLLOW_FACEBOOK);
+            BaseSettings.HUSHFACEBOOK_LANGUAGE.save("facebook");
         }
     }
 
@@ -366,6 +365,8 @@ public class L10nTest {
         switch (tag) {
             case "pt-rbr":
                 return new Locale("pt", "BR");
+            case "zh-rtw":
+                return Locale.TAIWAN;
             case "in":
                 return new Locale("in", "ID");
             default:

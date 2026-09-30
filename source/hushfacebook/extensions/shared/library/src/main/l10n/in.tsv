@@ -140,7 +140,16 @@ In News feed, Hide Reels in the feed blocks the rows of reels between posts.	Di 
 Reels that play by themselves	Reels yang diputar sendiri
 In Playback, Tap to play blocks autoplay, so reels and other videos wait for your tap.	Di Pemutaran, “Ketuk untuk memutar” memblokir putar otomatis, jadi Reels dan video lain menunggu ketukan Anda.
 The Reels tab	Tab Reels
-Facebook's own setting blocks it. Open Settings, Tab bar, Customize the bar and choose Hide next to Reels, which some accounts call Video. If neither is listed, Facebook hasn't given your account that option, and Hushfacebook has no switch for the tab.	Pengaturan Facebook sendiri yang memblokirnya. Buka Pengaturan, Bilah tab, Sesuaikan bilah, lalu pilih Sembunyikan di samping Reels, yang di beberapa akun disebut Video. Jika keduanya tidak tercantum, Facebook belum memberi akun Anda opsi itu, dan Hushfacebook tidak punya tombol untuk tab tersebut.
+# context: map line without the patch; %1$s is the patch's English name in Morphe Manager
+Facebook's own setting blocks it. Open Settings, Tab bar, Customize the bar and choose Hide next to Reels, which some accounts call Video. If neither is listed, choose the %1$s patch in Morphe Manager and patch again.	Pengaturan Facebook sendiri yang memblokirnya. Buka Pengaturan, Bilah tab, Sesuaikan bilah, lalu pilih Sembunyikan di samping Reels, yang di beberapa akun disebut Video. Jika keduanya tidak tercantum, pilih tambalan %1$s di Morphe Manager lalu tambal ulang.
+# context: map line with the patch; Reels and Watch is this settings section, Hide the Reels tab is the switch below
+In Reels and Watch, Hide the Reels tab blocks it after a restart.	Di “Reels dan Watch”, “Sembunyikan tab Reels” memblokirnya setelah dimulai ulang.
+# context: switch title under Reels and Watch; the tab some accounts call Video
+Hide the Reels tab	Sembunyikan tab Reels
+# context: summary of that switch
+Take the Reels tab, called Video on some accounts, off the tab bar. Reel links and reels in the feed still open. Changes show after Facebook restarts.	Menghapus tab Reels, yang di beberapa akun disebut Video, dari bilah tab. Tautan Reels dan Reels di Kabar Beranda tetap terbuka. Perubahan berlaku setelah Facebook dimulai ulang.
+# context: start tab row summary when Video is the chosen tab and Hide the Reels tab is on; Home and Video are tab names
+Facebook opens on Home while Hide the Reels tab is on, since Video is off the tab bar. Your choice stays saved.	Facebook terbuka di Beranda selama “Sembunyikan tab Reels” aktif, karena Video tidak ada di bilah tab. Pilihan Anda tetap tersimpan.
 Everything except Marketplace	Semua kecuali Marketplace
 In Opening Facebook, Marketplace only blocks the feed, the Reels tab and the other social tabs after a restart.	Di “Saat Facebook dibuka”, “Hanya Marketplace” memblokir Kabar Beranda, tab Reels, dan tab sosial lainnya setelah dimulai ulang.
 Not in this build. To block this, choose the %1$s patch in Morphe Manager and patch again.	Tidak ada di build ini. Untuk memblokirnya, pilih tambalan %1$s di Morphe Manager lalu tambal ulang.
@@ -152,6 +161,8 @@ Save folder	Folder simpan
 Save full report	Simpan laporan lengkap
 Saved to %1$s	Disimpan ke %1$s
 Saved to the gallery	Disimpan ke galeri
+Saved to %1$s in lower quality than on Facebook	Disimpan ke %1$s dengan kualitas lebih rendah daripada di Facebook
+Saved to the gallery in lower quality than on Facebook	Disimpan ke galeri dengan kualitas lebih rendah daripada di Facebook
 Saved. Restart Facebook to apply this change.	Tersimpan. Mulai ulang Facebook untuk menerapkan perubahan ini.
 Save your switches and download settings to a file. Pause and Debug logging aren't included, and neither is the release check.	Simpan sakelar dan pengaturan unduhan Anda ke sebuah file. Jeda dan Pencatatan debug tidak disertakan, begitu pula pemeriksaan rilis.
 # The release check: its switch and Check now row under Updates, the status card's line about a newer release, and what a failed try says.
@@ -226,6 +237,8 @@ Returning to Facebook within ten minutes keeps your place. Pull to refresh still
 No time limit	Tanpa batas waktu
 With the switch above on, your place stays however long you're away. Pull to refresh and a fresh start still load new posts.	Jika sakelar di atas aktif, posisi Anda tetap tersimpan berapa lama pun Anda pergi. Tarik untuk memuat ulang dan membuka ulang aplikasi tetap memuat postingan baru.
 A finished story stays on screen until you tap or swipe. Turn this off for Facebook's timing.	Cerita yang selesai tetap di layar sampai Anda mengetuk atau menggeser. Matikan ini untuk memakai waktu bawaan Facebook.
+View stories anonymously	Lihat cerita secara anonim
+Facebook isn't told which stories you watch, so you stay off their viewer lists. Replying or reacting still shows you, and stories you've watched keep their unwatched ring.	Facebook tidak diberi tahu cerita mana yang kamu tonton, jadi kamu tidak masuk daftar penontonnya. Membalas atau memberi reaksi tetap menunjukkan dirimu, dan cerita yang sudah kamu tonton tetap memakai lingkaran cerita yang belum dilihat.
 Stop Story auto-advance	Hentikan perpindahan otomatis Cerita
 Copy a short report to the clipboard.	Salin laporan singkat ke papan klip.
 Save the full report in Download/Morphe.	Simpan laporan lengkap di Download/Morphe.
@@ -290,14 +303,18 @@ Jump to a section	Lompat ke bagian
 Go straight to one group of settings. Back returns to where you were.	Langsung ke satu kelompok setelan. Kembali membawamu ke tempat semula.
 # context: switch title under Downloads; on, every video save keeps to formats other apps accept
 Save videos other apps can open	Simpan video yang bisa dibuka aplikasi lain
-# context: summary of that switch; H.264, AAC, AV1 and WhatsApp are names and stay as they are
-Prefer H.264 video with AAC sound for apps such as WhatsApp. Quality may be lower than AV1. Without a compatible version, save as usual.	Utamakan video H.264 dengan suara AAC untuk aplikasi seperti WhatsApp. Kualitas mungkin di bawah AV1. Tanpa versi kompatibel, simpan seperti biasa.
+# context: summary of that switch; WhatsApp is a name and stays as it is, and saves are the videos the user saved to the phone
+For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves without sound. May lower quality.	Untuk WhatsApp, editor video seperti CapCut dan InShot, atau galeri atau pemutar yang memutar video tersimpan tanpa suara. Kualitas bisa lebih rendah.
 # context: section title for the Chats settings, named like Facebook's own Chats screen
 Chats	Chat
 # context: switch title under Chats; the card is Facebook's own "Get the Messenger app" card
 Hide the Get Messenger card	Sembunyikan kartu Dapatkan Messenger
 # context: summary of that switch; Messenger is the app's name and stays as it is
 The card at the top of Chats that asks you to get the Messenger app goes while Messenger is installed. Without Messenger it stays, so you can still install it from there.	Kartu di bagian atas Chat yang memintamu mendapatkan aplikasi Messenger akan hilang selama Messenger terinstal. Tanpa Messenger, kartu itu tetap ada agar kamu masih bisa menginstalnya dari sana.
+# context: switch title under Chats; on, Facebook's Messenger icon opens the Messenger app
+Open the Messenger app	Buka aplikasi Messenger
+# context: summary of that switch; Messenger is the app's name, Chats is Facebook's own chat screen as named above
+A tap on the Messenger icon at the top of Facebook opens the Messenger app instead of Chats. Without Messenger installed, Chats opens as before.	Mengetuk ikon Messenger di bagian atas Facebook akan membuka aplikasi Messenger, bukan Chat. Jika Messenger tidak terinstal, Chat tetap terbuka seperti biasa.
 # context: settings section heading for the Tap to play switch
 Playback	Pemutaran
 # context: switch title; on, videos and music wait for a tap before they play
@@ -400,7 +417,7 @@ Keep friends and followed Pages in the Stories tray. Applies when Facebook next 
 # context: switch title under Marketplace; the ads Facebook puts between the things people sell in Marketplace's feed
 Hide sponsored Marketplace listings	Sembunyikan tawaran bersponsor di Marketplace
 # context: summary of that switch; a boosted listing is one its seller paid Facebook to show to more people
-Ads and boosted listings in Marketplace's feed. The other listings stay.	Iklan dan tawaran yang dipromosikan di feed Marketplace. Tawaran lainnya tetap ada.
+Ads and boosted listings in Marketplace's feed and search results. The other listings stay.	Iklan dan tawaran yang dipromosikan di feed dan hasil pencarian Marketplace. Tawaran lainnya tetap ada.
 # context: switch title under News feed; hides posts whose text holds a word or phrase the person listed
 Hide posts with words you choose	Sembunyikan postingan dengan kata pilihan Anda
 # context: summary of that switch; the keep list is the second list under it, and a settings file is the one Export settings writes
@@ -410,15 +427,15 @@ Words to hide	Kata untuk disembunyikan
 # context: title of the row and dialog holding the list of words and phrases that keep a post even when it has a word to hide
 Words that keep a post	Kata yang mempertahankan postingan
 # context: message of the Words to hide dialog; %1$d is how many phrases a list holds (50), %2$d and %3$d the shortest and longest phrase in characters (2 and 60)
-One word or phrase per line, up to %1$d, each %2$d to %3$d characters long. Capital letters don't matter, and a phrase matches anywhere in a post's text, inside longer words too.	Satu kata atau frasa per baris, hingga %1$d, masing-masing %2$d sampai %3$d karakter. Huruf besar dan kecil tidak berpengaruh, dan frasa cocok di mana saja dalam teks postingan, termasuk di dalam kata yang lebih panjang.
+One word or phrase per line, up to %1$d, each %2$d to %3$d characters long, or just one for an emoji, a Chinese character, a kana or a Hangul syllable. Capital letters don't matter, and a phrase matches anywhere in a post's text, inside longer words too.	Satu kata atau frasa per baris, hingga %1$d, masing-masing %2$d sampai %3$d karakter, atau cukup satu untuk emoji, aksara Tionghoa, kana, atau suku kata Hangul. Huruf besar dan kecil tidak berpengaruh, dan frasa cocok di mana saja dalam teks postingan, termasuk di dalam kata yang lebih panjang.
 # context: message of the Words that keep a post dialog; %1$d is how many phrases a list holds (50), %2$d and %3$d the shortest and longest phrase in characters (2 and 60)
-A post with any of these stays, even when it also has a word to hide. One per line, up to %1$d, each %2$d to %3$d characters long.	Postingan dengan salah satu kata ini tetap ada, meskipun juga berisi kata untuk disembunyikan. Satu per baris, hingga %1$d, masing-masing %2$d sampai %3$d karakter.
+A post with any of these stays, even when it also has a word to hide. One per line, up to %1$d, each %2$d to %3$d characters long, or just one for an emoji, a Chinese character, a kana or a Hangul syllable.	Postingan dengan salah satu kata ini tetap ada, meskipun juga berisi kata untuk disembunyikan. Satu per baris, hingga %1$d, masing-masing %2$d sampai %3$d karakter, atau cukup satu untuk emoji, aksara Tionghoa, kana, atau suku kata Hangul.
 # context: hint in the empty text box of both word list dialogs
 One word or phrase per line	Satu kata atau frasa per baris
 # context: toast after saving a word list, one line left out; %2$d and %3$d are the shortest and longest phrase in characters, %4$d how many a list holds
-%1$d line was left out. A phrase needs %2$d to %3$d characters, one given twice counts once, and a list holds %4$d.	%1$d baris tidak disertakan. Frasa perlu %2$d sampai %3$d karakter, frasa yang ditulis dua kali dihitung sekali, dan daftar memuat hingga %4$d.
+%1$d line was left out. A phrase needs %2$d to %3$d characters, or just one for an emoji, a Chinese character, a kana or a Hangul syllable. One given twice counts once, and a list holds %4$d.	%1$d baris tidak disertakan. Frasa perlu %2$d sampai %3$d karakter, atau cukup satu untuk emoji, aksara Tionghoa, kana, atau suku kata Hangul. Frasa yang ditulis dua kali dihitung sekali, dan daftar memuat hingga %4$d.
 # context: toast after saving a word list, several lines left out; %2$d and %3$d are the shortest and longest phrase in characters, %4$d how many a list holds
-%1$d lines were left out. A phrase needs %2$d to %3$d characters, one given twice counts once, and a list holds %4$d.	%1$d baris tidak disertakan. Frasa perlu %2$d sampai %3$d karakter, frasa yang ditulis dua kali dihitung sekali, dan daftar memuat hingga %4$d.
+%1$d lines were left out. A phrase needs %2$d to %3$d characters, or just one for an emoji, a Chinese character, a kana or a Hangul syllable. One given twice counts once, and a list holds %4$d.	%1$d baris tidak disertakan. Frasa perlu %2$d sampai %3$d karakter, atau cukup satu untuk emoji, aksara Tionghoa, kana, atau suku kata Hangul. Frasa yang ditulis dua kali dihitung sekali, dan daftar memuat hingga %4$d.
 # context: summary of the Words to hide row while it's empty
 No words yet, so no post is hidden.	Belum ada kata, jadi tidak ada postingan yang disembunyikan.
 # context: summary of the Words that keep a post row while it's empty
@@ -480,9 +497,9 @@ Active. Marketplace, Notifications and Profile/Menu stay. Find Hushfacebook sett
 # context: Settings overview, category navigation and search.
 Marketplace mode and your start tab	Mode Marketplace dan tab awal
 Ads, suggestions and word filters	Iklan, saran, dan filter kata
-Suggestions, saving and auto-advance	Saran, penyimpanan, dan perpindahan otomatis
+Suggestions, saving, auto-advance and viewing anonymously	Saran, penyimpanan, perpindahan otomatis, dan melihat secara anonim
 Cleaner reels and video controls	Reels lebih bersih dan kontrol video
-Tap to play and resume	Ketuk untuk memutar dan melanjutkan
+Tap to play, quality and resume	Ketuk untuk memutar, kualitas, dan melanjutkan
 Quality, format and file names	Kualitas, format, dan nama file
 Browse settings	Jelajahi pengaturan
 More settings	Pengaturan lainnya
@@ -494,7 +511,7 @@ Try a different word or clear the search.	Coba kata lain atau hapus pencarian.
 Search settings	Cari pengaturan
 Clear search	Hapus pencarian
 Your controls are active.	Kontrol Anda aktif.
-Your choices are saved. Resume after restarting Facebook.	Pilihan Anda tersimpan. Lanjutkan setelah memulai ulang Facebook.
+Your choices are saved. Tap Resume, then restart Facebook.	Pilihan Anda tersimpan. Ketuk Lanjutkan, lalu mulai ulang Facebook.
 Pause	Jeda
 Resume	Lanjutkan
 Undo	Urungkan
@@ -514,16 +531,118 @@ Android 11 doesn't say which links open here. Tap to open this app's settings, t
 Selecting links by hand	Memilih tautan secara manual
 Android checks Facebook's links against Meta's signing key, which a re-signed build doesn't have. Selecting the addresses sends their links here again. It doesn't restore Meta's verification, and your other link settings stay as they are.	Android memeriksa tautan Facebook dengan kunci penandatanganan Meta, yang tidak dimiliki build yang ditandatangani ulang. Memilih alamatnya akan mengirim tautannya ke sini lagi. Itu tidak memulihkan verifikasi Meta, dan pengaturan tautan Anda yang lain tetap seperti semula.
 Android's settings for this app didn't open. Open App info from Facebook's icon, then Open by default.	Pengaturan Android untuk aplikasi ini tidak terbuka. Buka Info aplikasi dari ikon Facebook, lalu Buka secara default.
-
-# context: Local Morphe Hush additions.
-Copy a quick report or save the full one to Download/Morphe. Names, IDs, links and cookies are omitted.	Salin laporan singkat atau simpan laporan lengkap di Download/Morphe. Nama, ID, tautan, dan cookie dihilangkan.
-Couldn't import every setting. Check the switches on this screen.	Tidak semua pengaturan dapat diimpor. Periksa sakelar di layar ini.
-Pause runtime features from the next start. Your choices stay saved. Debug logging and patches applied during installation keep working.	Jeda fitur runtime mulai peluncuran berikutnya. Pilihan Anda tersimpan. Log debug dan patch yang diterapkan saat instalasi tetap bekerja.
-There's nothing to report yet. Turn on Debug logging, repeat what went wrong, then export again.	Belum ada yang bisa dilaporkan. Aktifkan Pencatatan debug, ulangi hal yang bermasalah, lalu ekspor lagi.
-Follow system	Ikuti sistem
-Interface language	Bahasa antarmuka
-Follow Facebook	Ikuti Facebook
-Traditional Chinese	Tionghoa Tradisional
-English	Inggris
-Open Chats in Messenger	Buka Chat di Messenger
-When Messenger is installed, opening Facebook's Chats sends you to Messenger. Turn this off to use Facebook's own Chats.	Jika Messenger terpasang, membuka Chat Facebook akan beralih ke Messenger. Matikan ini untuk memakai Chat bawaan Facebook.
+# context: message when a save starts and its notification can't show (Facebook's notifications or the saves channel are off); Downloads is the settings section that lists running saves, each with its own Cancel
+Saving... Cancel: Downloads in Hushfacebook.	Menyimpan... Batal: Unduhan di Hushfacebook.
+# context: switch title under Reels and Watch; on, a double tap on a reel or a video doesn't like it
+Turn off double tap to like	Matikan ketuk dua kali untuk menyukai
+# context: summary of that switch; Like is the name of Facebook's own button, as Facebook shows it in this language
+A double tap on a reel or video no longer likes it or shows a heart. A single tap and the Like button work as before.	Mengetuk dua kali reel atau video tidak lagi menyukainya atau menampilkan hati. Satu ketukan dan tombol Suka tetap berfungsi seperti biasa.
+Keep the reel speed	Pertahankan kecepatan reel
+# context: summary of that switch
+A playback speed you pick in a reel's menu stays for the next reels until you pick another or Facebook restarts. Off, every reel starts at normal speed.	Kecepatan pemutaran yang kamu pilih di menu reel tetap dipakai untuk reel berikutnya sampai kamu memilih yang lain atau Facebook dimulai ulang. Jika mati, setiap reel dimulai dengan kecepatan normal.
+Hold a reel for 2x	Tahan reel untuk 2x
+# context: summary of that switch; more button is the reel's own button with three dots
+Holding a reel plays it at double speed until you let go, in place of Facebook's long-press menu. The reel's more button still opens that menu.	Menahan reel memutarnya dengan kecepatan dua kali lipat sampai kamu melepaskannya, sebagai ganti menu tekan lama Facebook. Tombol lainnya pada reel tetap membuka menu itu.
+Default playback quality	Kualitas pemutaran default
+Play videos, reels and stories at the quality below. A quality picked in a video's own menu still wins.	Putar video, reel, dan cerita dengan kualitas di bawah. Kualitas yang dipilih di menu video itu sendiri tetap diutamakan.
+Playback quality	Kualitas pemutaran
+Auto	Otomatis
+Data saver	Penghemat data
+Up to %1$s	Hingga %1$s
+Highest	Tertinggi
+Facebook picks the quality as each video plays, from your connection.	Facebook memilih kualitas saat setiap video diputar, sesuai koneksi Anda.
+Videos play at the lowest quality Facebook offers for each.	Video diputar dengan kualitas terendah yang ditawarkan Facebook untuk masing-masing.
+Videos play at the best quality up to %1$s that Facebook offers for each, or the closest above.	Video diputar dengan kualitas terbaik hingga %1$s yang ditawarkan Facebook untuk masing-masing, atau yang terdekat di atasnya.
+Videos play at the highest quality Facebook offers for each.	Video diputar dengan kualitas tertinggi yang ditawarkan Facebook untuk masing-masing.
+Facebook will pick the quality videos play at.	Facebook akan memilih kualitas pemutaran video.
+Playback quality will be set to %1$s.	Kualitas pemutaran akan diatur ke %1$s.
+# context: row title under Pause, backup and diagnostics, shown only while Debug logging is on
+Test the Messenger link	Uji koneksi Messenger
+# context: summary of that row; Debug logging is the switch's name as this table gives it
+Runs the two reads Facebook makes of Messenger at startup, now, and shows whether each one answered. Shown while Debug logging is on.	Menjalankan sekarang dua pembacaan yang dilakukan Facebook ke Messenger saat dimulai, lalu menampilkan apakah masing-masing dijawab. Terlihat selama Pencatatan debug aktif.
+# context: toast when the test can't begin
+The Messenger link test couldn't start.	Uji koneksi Messenger tidak dapat dimulai.
+# context: toast on a build without the test
+This build can't run the Messenger link test.	Build ini tidak dapat menjalankan uji koneksi Messenger.
+# context: toast when Facebook has no signed-in account
+No signed-in account to test with.	Tidak ada akun yang masuk untuk diuji.
+# context: toast with the test's result; each placeholder is one of: answered, no answer, failed (...)
+Opt-out read: %1$s. Triggered read: %2$s.	Pembacaan penolakan: %1$s. Pembacaan pemicu: %2$s.
+# context: a read's result in that toast
+no answer	tidak ada jawaban
+# context: a read's result in that toast
+answered	dijawab
+# context: a read's result in that toast; the placeholder is an error's class name, left in English
+failed (%1$s)	gagal (%1$s)
+# context: switch title under Reels and Watch; the dot is the tab bar's new-item badge
+Hide the Reels tab dot	Sembunyikan titik di tab Reels
+# context: summary of that switch; Video is Facebook's name for the tab on some accounts
+No dot or new count on the Reels tab, called Video on some accounts. Other tabs keep theirs.	Tanpa titik atau jumlah baru di tab Reels, yang di beberapa akun bernama Video. Tab lain tetap menampilkannya.
+# context: title of the overview row under the status card when the build lacks one patch Morphe Manager selects by default
+%1$d default patch isn't in this build	%1$d tambalan default tidak ada di build ini
+# context: title of that row when several default patches are missing
+%1$d default patches aren't in this build	%1$d tambalan default tidak ada di build ini
+# context: summary of that row while its list of patch names is closed; a tap opens it
+Tap to see which.	Ketuk untuk melihat yang mana.
+# context: that row's summary once opened, one patch missing; the placeholder is the patch's English name as Morphe Manager lists it
+Not in this build: %1$s. Morphe Manager selects it by default. Patch again with it selected to get what it does.	Tidak ada di build ini: %1$s. Morphe Manager memilihnya secara default. Pilih tambalan itu lalu tambal ulang untuk mendapatkan fungsinya.
+# context: that row's summary once opened, several patches missing; the placeholder is their English names joined as a list
+Not in this build: %1$s. Morphe Manager selects them by default. Patch again with them selected to get what they do.	Tidak ada di build ini: %1$s. Morphe Manager memilihnya secara default. Pilih tambalan itu lalu tambal ulang untuk mendapatkan fungsinya.
+# context: Toast at the end of a video save whose file uses a codec WhatsApp and some video editors can't open (AV1, VP9, HEVC or xHE-AAC). A notification with a button to the fix is showing too. Keep it short: Android shows two lines at most.
+Saved, but WhatsApp and some editors may refuse it	Disimpan, tetapi WhatsApp dan beberapa editor mungkin menolaknya
+# context: Toast at the end of a video save whose file WhatsApp may not open, when no notification can be shown. Downloads is the section of Hushfacebook settings with the fix. Two lines at most.
+Saved, but WhatsApp may refuse it. Fix: Downloads in Hushfacebook.	Disimpan, tetapi WhatsApp mungkin menolaknya. Solusi: Unduhan di Hushfacebook.
+# context: Second line of the notification after such a save. %1$s is the switch's name, Save videos other apps can open. They: WhatsApp and the editors.
+Turn on %1$s to save videos they all play.	Aktifkan %1$s untuk menyimpan video yang bisa diputar semuanya.
+# context: Title of the notification after a video save whose file uses a codec WhatsApp and some video editors can't open.
+WhatsApp and some editors may refuse this video	WhatsApp dan beberapa editor mungkin menolak video ini
+# context: Button on that notification. It opens Hushfacebook settings at the switch Save videos other apps can open.
+Open the setting	Buka pengaturan
+# context: switch title under News feed; the prompts are the strip Facebook puts under some posts, such as "Are you interested in this post?"
+Hide post prompts	Sembunyikan pertanyaan di bawah postingan
+# context: description of that switch; the quoted texts are Facebook's own prompts, so use Facebook's wording in your language if you know it
+The strip on some posts, like "Are you interested in this post?", "Show less" or who recently commented, and the follow and chat suggestions in the same place. The post stays.	Strip pada beberapa postingan, seperti “Apakah Anda tertarik dengan postingan ini?”, “Tampilkan lebih sedikit” atau siapa yang baru saja berkomentar, serta saran untuk mengikuti dan mengobrol di tempat yang sama. Postingannya tetap ada.
+# context: switch title under Reels and Watch; the prompt is Facebook's "Are you interested in this reel?" question on a reel
+Hide reel interest prompts	Sembunyikan pertanyaan minat di reel
+# context: description of that switch; the quoted text is Facebook's own prompt, so use Facebook's wording in your language if you know it
+No "Are you interested in this reel?" prompt on reels. The reel plays as usual.	Tanpa pertanyaan “Apakah Anda tertarik dengan reel ini?” di reel. Reel diputar seperti biasa.
+# context: switch title under News feed; affiliate product links are the shop links creators add to their posts to earn a commission
+Hide affiliate product links	Sembunyikan tautan produk afiliasi
+# context: description of that switch; "Commission eligible" is Facebook's own label, so use Facebook's wording in your language if you know it
+The product cards of shop links creators add to posts, on reels, under feed posts and in the comments. The "Commission eligible" label stays.	Kartu produk dari tautan toko yang ditambahkan kreator ke postingan, di reel, di bawah postingan feed, dan di komentar. Label “Memenuhi syarat komisi” tetap ada.
+# context: The reel button and the video menu item while links are sent to another app (#41)
+Send to app	Kirim ke aplikasi
+# context: Title of Android's app chooser when a video's link is sent
+Send the link to	Kirim tautan ke
+# context: Toast when no app could take a video's link
+Couldn't open an app for this link	Tidak bisa membuka aplikasi untuk tautan ini
+# context: Clipboard label of a copied video link
+Video link	Tautan video
+# context: Toast after a long press on the reel button copied its link
+Link copied	Tautan disalin
+# context: Toast when a reel's link can't be built
+Couldn't find this reel's link	Tautan reel ini tidak ditemukan
+# context: Toast when a feed video's link can't be built
+Couldn't find this video's link	Tautan video ini tidak ditemukan
+# context: Settings row title: what the Download button does
+When you tap Download	Saat mengetuk Unduh
+# context: Choice of the download action row
+Save to phone	Simpan ke ponsel
+# context: Choice of the download action row
+Send the link to an app	Kirim tautan ke aplikasi
+# context: Summary of the download action row while links are sent
+Reels and videos go to the app below as a facebook.com link. Hold the reel Download button to copy the link instead. Stories still save to this phone.	Reel dan video dikirim ke aplikasi di bawah sebagai tautan facebook.com. Tahan tombol Unduh pada reel untuk menyalin tautannya. Cerita tetap disimpan di ponsel ini.
+# context: Summary of the download action row while saving, the default
+Reels, videos and stories save to this phone.	Reel, video, dan cerita disimpan di ponsel ini.
+# context: Settings row title: the app links are sent to
+App to send to	Aplikasi tujuan
+# context: Dialog message of the send-to app row; %1$s and %2$s are package names
+The package name of the app that gets the links, such as %1$s for YTDLnis or %2$s for Seal. Leave it blank to pick an app each time.	Nama paket aplikasi yang menerima tautan, misalnya %1$s untuk YTDLnis atau %2$s untuk Seal. Biarkan kosong untuk memilih aplikasi setiap kali.
+# context: Hint in the send-to app field
+Package name	Nama paket
+# context: Toast when what was typed in the send-to app row isn't a package name; %1$s is what was typed
+%1$s isn't a package name, so the app stays as it was.	%1$s bukan nama paket, jadi aplikasinya tetap.
+# context: Summary of the send-to app row with no app named
+Android asks which app each time.	Android menanyakan aplikasi setiap kali.
+# context: Summary of the send-to app row; %1$s is the package name
+Links go to %1$s. When it isn't installed, Android asks which app.	Tautan dikirim ke %1$s. Jika tidak terpasang, Android menanyakan aplikasinya.

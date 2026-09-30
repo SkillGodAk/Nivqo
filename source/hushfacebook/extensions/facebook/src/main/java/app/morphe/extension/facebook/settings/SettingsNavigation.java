@@ -40,6 +40,8 @@ import app.morphe.extension.shared.settings.preference.AbstractPreferenceFragmen
 final class SettingsNavigation extends BaseAdapter {
     private static final String STATE = "hushfacebook_navigation";
     private static final String MORE = "more";
+    /** Marks the Pause, Resume or Undo button placed under a status row's text, so a rebind replaces it. */
+    private static final String STATUS_ACTION = "hushfacebook_status_action";
     private final HushfacebookPreferenceFragment page;
     private final SettingsDialog host;
     private final ListView list;
@@ -82,9 +84,9 @@ final class SettingsNavigation extends BaseAdapter {
         // Stable English route IDs survive a locale change; the displayed names are localized.
         section("Opening Facebook", L10n.t("Opening Facebook"), L10n.t("Marketplace mode and your start tab"), SettingsIcons.OPENING, true);
         section("News feed", L10n.t("News feed"), L10n.t("Ads, suggestions and word filters"), SettingsIcons.FEED, true);
-        section("Stories", L10n.t("Stories"), L10n.t("Suggestions, saving and auto-advance"), SettingsIcons.STORIES, true);
+        section("Stories", L10n.t("Stories"), L10n.t("Suggestions, saving, auto-advance and viewing anonymously"), SettingsIcons.STORIES, true);
         section("Reels and Watch", L10n.t("Reels and Watch"), L10n.t("Cleaner reels and video controls"), SettingsIcons.REELS, true);
-        section("Playback", L10n.t("Playback"), L10n.t("Tap to play and resume"), SettingsIcons.PLAYBACK, true);
+        section("Playback", L10n.t("Playback"), L10n.t("Tap to play, quality and resume"), SettingsIcons.PLAYBACK, true);
         section("Downloads", L10n.t("Downloads"), L10n.t("Quality, format and file names"), SettingsIcons.DOWNLOADS, true);
         section("Comments", L10n.t("Comments"), null, SettingsIcons.COMMENTS, false);
         section("Writing", L10n.t("Writing"), null, SettingsIcons.WRITING, false);
@@ -286,6 +288,9 @@ final class SettingsNavigation extends BaseAdapter {
             for (Section section : sections) if (!section.primary) visible.add(section.link);
         } else {
             visible.add(screen.getPreference(0));
+            // Only in a build that lacks a default patch: the card's own line under it.
+            Preference missing = screen.findPreference(HushfacebookPreferenceFragment.MISSING_DEFAULTS);
+            if (missing != null) visible.add(missing);
             visible.add(browse);
             for (Section section : sections) if (section.primary) visible.add(section.link);
             visible.add(more);
@@ -403,7 +408,7 @@ final class SettingsNavigation extends BaseAdapter {
         } else if (paused && nextPaused && HushfacebookPause.reason() == HushfacebookPause.Reason.SWITCH
                 && !markerLeft()) {
             // A marker Resume couldn't remove keeps the card's own line, which says what to do.
-            summary.setText(L10n.t("Your choices are saved. Resume after restarting Facebook."));
+            summary.setText(L10n.t("Your choices are saved. Tap Resume, then restart Facebook."));
         }
         bindAction(row, paused, nextPaused);
     }
@@ -435,6 +440,23 @@ final class SettingsNavigation extends BaseAdapter {
             }
             rebuild();
         });
+        // From one and a half times the text size, a button beside the text leaves the name too
+        // little room and it breaks inside the word, so the button goes under the text there.
+        TextView summary = row.findViewById(android.R.id.summary);
+        if (screen.getContext().getResources().getConfiguration().fontScale >= 1.5f
+                && summary != null && summary.getParent() instanceof android.widget.RelativeLayout) {
+            android.widget.RelativeLayout.LayoutParams place = new android.widget.RelativeLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            place.addRule(android.widget.RelativeLayout.BELOW, android.R.id.summary);
+            place.addRule(android.widget.RelativeLayout.ALIGN_PARENT_START);
+            ViewGroup column = (ViewGroup) summary.getParent();
+            View earlier = column.findViewWithTag(STATUS_ACTION);
+            if (earlier != null) column.removeView(earlier);
+            action.setTag(STATUS_ACTION);
+            column.addView(action, place);
+            frame.setVisibility(View.GONE);
+            return;
+        }
         frame.addView(action, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         frame.setVisibility(View.VISIBLE);
     }
