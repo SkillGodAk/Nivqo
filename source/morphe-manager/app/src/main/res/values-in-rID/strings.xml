@@ -20,18 +20,18 @@
     <string name="android_11_bug_dialog_title">Bug Android 11</string>
     <string name="android_11_bug_dialog_description">Izin pemasangan aplikasi harus diberikan terlebih dahulu untuk menghindari bug pada sistem Android 11 yang akan berdampak negatif pada pengalaman pengguna</string>
     <string name="deep_link_add_source_title">Tambah sumber</string>
-    <string name="deep_link_add_source_message">Apakah Anda ingin menambahkan sumber tambalan ini ke Morphe?</string>
+    <string name="deep_link_add_source_message">Apakah Anda ingin menambahkan sumber tambalan ini ke Nivqo?</string>
     <string name="deep_link_add_source_warning">Hanya tambahkan sumber yang Anda percayai</string>
     <!-- Home Screen - Update Notifications -->
-    <string name="home_update_available">Pembaruan Morphe tersedia</string>
+    <string name="home_update_available">Pembaruan Nivqo tersedia</string>
     <string name="home_update_available_subtitle">Versi baru siap dipasang</string>
     <string name="home_blocked_source_title">Sumber tambalan yang diblokir terdeteksi</string>
     <string name="home_blocked_source_subtitle">Ketuk untuk meninjau dan menghapus</string>
     <string name="home_metadata_errors_title">Beberapa sumber tambalan tidak tersedia</string>
     <string name="home_metadata_errors_subtitle">Ketuk untuk meninjau sumber</string>
-    <string name="home_outdated_manager_title">Morphe sudah tidak terbaru</string>
+    <string name="home_outdated_manager_title">Nivqo sudah tidak terbaru</string>
     <string name="home_outdated_manager_subtitle">Beberapa sumber tambalan memerlukan versi terbaru</string>
-    <string name="home_held_back_title">Sumber tambalan membuat Morphe rusak</string>
+    <string name="home_held_back_title">Sumber tambalan membuat Nivqo rusak</string>
     <string name="home_held_back_subtitle">Langkah ini dilewati agar aplikasi dapat dimulai. Ketuk untuk meninjau.</string>
     <string name="home_metered_skipped_title">Pembaruan dijeda pada data seluler</string>
     <string name="home_metered_skipped_subtitle">Ketuk untuk mengizinkan pembaruan pada data seluler</string>
@@ -48,10 +48,10 @@
     <string name="home_app_list_options_title">Urutkan dan saring</string>
     <string name="home_app_list_options_state_description">Diurutkan berdasarkan %1$s, disaring berdasarkan %2$s</string>
     <string name="home_app_filter_all_description">Semua aplikasi di layar beranda</string>
-    <string name="home_app_filter_patched_description">Aplikasi yang sudah Anda tambal atau simpan dengan Morphe</string>
-    <string name="home_app_filter_not_patched_description">Aplikasi yang belum Anda tambal di Morphe</string>
+    <string name="home_app_filter_patched_description">Aplikasi yang sudah Anda tambal atau simpan dengan Nivqo</string>
+    <string name="home_app_filter_not_patched_description">Aplikasi yang belum Anda tambal di Nivqo</string>
     <string name="home_app_filter_installed_description">Aplikasi yang saat ini terpasang di perangkat ini</string>
-    <string name="home_app_filter_uninstalled_description">Aplikasi yang ditambal dengan Morphe dan tidak lagi berada di perangkat ini</string>
+    <string name="home_app_filter_uninstalled_description">Aplikasi yang ditambal dengan Nivqo dan tidak lagi berada di perangkat ini</string>
     <string name="home_app_filter_clones">Klon</string>
     <string name="home_app_filter_clones_description">Aplikasi yang dibuat dengan nama paket tersendiri, dipasang bersamaan dengan aslinya</string>
     <string name="home_app_sort_manual_description">Tekan lama sebuah aplikasi, lalu ketuk tombol urutkan</string>
@@ -158,10 +158,10 @@
     <string name="sources_management_metadata_unavailable">Metadata Tidak Tersedia</string>
     <string name="sources_management_metadata_unavailable_hint">Berkas metadata jarak jauh tidak tersedia. Penambalan dengan paket terpasang masih berfungsi, tetapi pembaruan otomatis dinonaktifkan untuk sumber ini</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Paket tambalan tidak dapat diunduh. Sumber URL mungkin salah atau berkas tidak ada</string>
-    <string name="sources_management_outdated_manager_badge">Perbarui Morphe</string>
-    <string name="sources_management_outdated_manager_hint">Sumber ini dibuat untuk penambal %1$s, tetapi Morphe %2$s menyertakan penambal %3$s. Perbarui Morphe untuk menggunakannya</string>
+    <string name="sources_management_outdated_manager_badge">Perbarui Nivqo</string>
+    <string name="sources_management_outdated_manager_hint">Sumber ini dibuat untuk penambal %1$s, tetapi Nivqo %2$s menyertakan penambal %3$s. Perbarui Nivqo untuk menggunakannya</string>
     <string name="sources_management_held_back_badge">Crash</string>
-    <string name="sources_management_held_back_hint">Sumber ini menyebabkan Morphe crash saat sedang dimuat, sehingga dilewati. Perbarui atau impor ulang sumber ini untuk mencoba lagi</string>
+    <string name="sources_management_held_back_hint">Sumber ini menyebabkan Nivqo crash saat sedang dimuat, sehingga dilewati. Perbarui atau impor ulang sumber ini untuk mencoba lagi</string>
     <string name="sources_management_source_enabled">Sumber diaktifkan</string>
     <string name="sources_management_source_disabled">Sumber dinonaktifkan</string>
     <string name="sources_management_source_updating">Memperbarui sumber</string>
@@ -192,7 +192,7 @@
     <string name="sources_dialog_choose_apps_description">Pilih aplikasi mana yang ingin dipertahankan setelah sumber dimuat.</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Sumber tambalan pihak ketiga</string>
-    <string name="sources_dialog_community_notice_message">"Sumber tambalan komunitas dibuat dan dikelola oleh pembuatnya masing-masing. Morphe tidak meninjau atau memverifikasi tambalan pihak ketiga, serta tidak bertanggung jawab atas konten maupun dampaknya terhadap perangkat Anda.
+    <string name="sources_dialog_community_notice_message">"Sumber tambalan komunitas dibuat dan dikelola oleh pembuatnya masing-masing. Nivqo tidak meninjau atau memverifikasi tambalan pihak ketiga, serta tidak bertanggung jawab atas konten maupun dampaknya terhadap perangkat Anda.
 
 Segala sesuatu yang Anda tambahkan dari situs web ini digunakan atas risiko Anda sendiri"</string>
     <string name="sources_update_success">Pembaruan berhasil</string>
@@ -214,16 +214,16 @@ Segala sesuatu yang Anda tambahkan dari situs web ini digunakan atas risiko Anda
     <string name="home_apk_availability_no">Tidak, saya sudah memiliki APK</string>
     <string name="home_apk_helper_download">Gunakan aplikasi pembantu</string>
     <string name="home_apk_helper_title">Unduh dengan aplikasi pembantu</string>
-    <string name="home_apk_helper_description">Morphe akan meminta aplikasi pembantu di bawah ini untuk mengunduh APK asli dan mengembalikan berkas tersebut</string>
+    <string name="home_apk_helper_description">Nivqo akan meminta aplikasi pembantu di bawah ini untuk mengunduh APK asli dan mengembalikan berkas tersebut</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">Buka helper</string>
-    <string name="home_apk_helper_warning">Lanjutkan hanya jika Anda mempercayai aplikasi pembantu ini. Morphe memeriksa paket, versi dan tanda tangan dari apa pun yang diterimanya sebelum melakukan penambalan</string>
-    <string name="home_apk_helper_warning_unverified">Lanjutkan hanya jika Anda mempercayai aplikasi pembantu ini. Morphe tidak dapat memverifikasi tanda tangan APK ini, sehingga berkas yang dimodifikasi tidak akan terdeteksi</string>
+    <string name="home_apk_helper_warning">Lanjutkan hanya jika Anda mempercayai aplikasi pembantu ini. Nivqo memeriksa paket, versi dan tanda tangan dari apa pun yang diterimanya sebelum melakukan penambalan</string>
+    <string name="home_apk_helper_warning_unverified">Lanjutkan hanya jika Anda mempercayai aplikasi pembantu ini. Nivqo tidak dapat memverifikasi tanda tangan APK ini, sehingga berkas yang dimodifikasi tidak akan terdeteksi</string>
     <string name="home_apk_helper_no_result">Aplikasi pembantu tidak mengembalikan file APK</string>
     <string name="home_apk_helper_no_access">Aplikasi pembantu tersebut tidak memberikan akses ke APK yang dikembalikannya</string>
     <string name="home_apk_helper_no_package">Aplikasi pembantu tersebut tidak menyebutkan aplikasi mana yang sudah terpasang untuk digunakan</string>
     <string name="home_apk_helper_wrong_package">Aplikasi pembantu mengembalikan aplikasi yang berbeda dari aplikasi yang sedang diperbarui</string>
-    <string name="home_apk_helper_installed_unavailable">Morphe tidak dapat menggunakan aplikasi yang telah dipasang</string>
+    <string name="home_apk_helper_installed_unavailable">Nivqo tidak dapat menggunakan aplikasi yang telah dipasang</string>
     <string name="home_apk_helper_installed_incompatible">Versi yang sudah terpasang tidak dapat ditambal</string>
     <string name="home_apk_use_saved">Gunakan APK yang tersimpan</string>
     <string name="home_apk_use_installed">Gunakan APK yang terpasang</string>
@@ -231,7 +231,7 @@ Segala sesuatu yang Anda tambahkan dari situs web ini digunakan atas risiko Anda
     <string name="home_apk_use_installed_unverified">Tanda tangan aplikasi yang terpasang tidak dapat diverifikasi, jadi kemungkinan aplikasi tersebut sudah ditambal</string>
     <string name="home_unverified">Tidak Terverifikasi</string>
     <string name="home_install_verification_pending">Memeriksa pemasangan…</string>
-    <string name="home_app_info_install_unverified">Morphe tidak dapat memastikan bahwa aplikasi yang terpasang adalah versi yang telah ditambal. Tambal ulang atau pasang ulang aplikasi tersebut dari berkas APK yang disimpan untuk mengembalikan fungsinya</string>
+    <string name="home_app_info_install_unverified">Nivqo tidak dapat memastikan bahwa aplikasi yang terpasang adalah versi yang telah ditambal. Tambal ulang atau pasang ulang aplikasi tersebut dari berkas APK yang disimpan untuk mengembalikan fungsinya</string>
     <string name="home_app_info_no_saved_apk">Tidak ada APK tersimpan. Penambalan akan memerlukan pemilihan berkas APK lagi</string>
     <string name="home_version_requires_android">Membutuhkan Android %s+</string>
     <string name="home_apk_no_compatible_versions_title">Tidak didukung di perangkat ini</string>
@@ -244,7 +244,7 @@ Segala sesuatu yang Anda tambahkan dari situs web ini digunakan atas risiko Anda
     <string name="home_download_instructions_step2_generic">Geser halaman web ke bawah dan tekan tombol unduhnya</string>
     <string name="home_download_instructions_step2_variant">Geser halaman web ke bawah dan tekan tombol unduh dari &lt;b&gt;varian APK&lt;/b&gt; teratas</string>
     <string name="home_download_instructions_step2_search">Buka hasil penelusuran dari situs web yang Anda percayai</string>
-    <string name="home_download_instructions_step2_search_note">Morphe tidak dapat menjamin situs-situs web ini. Lewati yang menawarkan toko aplikasi sendiri, bukan file APK</string>
+    <string name="home_download_instructions_step2_search_note">Nivqo tidak dapat menjamin situs-situs web ini. Lewati yang menawarkan toko aplikasi sendiri, bukan file APK</string>
     <string name="home_download_instructions_step3_search">Di situs web tersebut, unduh APK versi &lt;b&gt;%s&lt;/b&gt;, bukan versi terbaru</string>
     <string name="home_download_instructions_step3_search_any">Di situs web tersebut, unduh APK aplikasi. &lt;b&gt;Versi apa pun&lt;/b&gt; dapat ditambal</string>
     <string name="home_download_instructions_download_button_toast">Tekan unduh di situs web, dan bukan di sini 😊</string>
@@ -252,11 +252,11 @@ Segala sesuatu yang Anda tambahkan dari situs web ini digunakan atas risiko Anda
     <string name="home_download_instructions_download_button_toast_3">Latihan membuat sempurna dan kamu sudah hampir sampai 💪</string>
     <string name="home_download_instructions_download_button_toast_4">Masih belum di sini… masih belum di sini… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">Oke, saya menghormati dedikasinya 🫡</string>
-    <string name="home_download_instructions_download_button_toast_6">Selamat Anda sekarang adalah penguji resmi tombol Morphe 🏅</string>
+    <string name="home_download_instructions_download_button_toast_6">Selamat Anda sekarang adalah penguji resmi tombol Nivqo 🏅</string>
     <string name="home_download_instructions_step3">Tunggu hingga unduhan selesai, dan &lt;b&gt;jangan pasang&lt;/b&gt; APK</string>
     <string name="home_download_instructions_step3_mount">Tunggu hingga unduhan selesai, kemudian &lt;b&gt;pasang APK&lt;/b&gt;</string>
-    <string name="home_download_instructions_step4">Setelah proses unduh selesai, kembali ke Morphe</string>
-    <string name="home_download_instructions_step4_mount">Setelah memasang APK asli, kembali ke Morphe</string>
+    <string name="home_download_instructions_step4">Setelah proses unduh selesai, kembali ke Nivqo</string>
+    <string name="home_download_instructions_step4_mount">Setelah memasang APK asli, kembali ke Nivqo</string>
     <string name="home_download_instructions_continue_to">Lanjutkan ke %s</string>
     <string name="home_download_instructions_destination">halaman unduh</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
@@ -473,8 +473,8 @@ Zona luar (putus-putus): mungkin terpotong oleh masker launcher - jaga detail pe
     <string name="home_app_info_newest_supported_version">Versi terbaru yang didukung</string>
     <string name="home_app_info_version_move">Versi terpasang %1$s, versi terbaru yang didukung %2$s</string>
     <string name="home_app_info_app_deleted_warning">Aplikasi telah dicopot</string>
-    <string name="home_app_info_app_deleted_description">Aplikasi ini telah dicopot di luar Morphe. Tambal ulang untuk mengembalikan fungsinya</string>
-    <string name="home_app_info_not_patched_description">Versi tanpa tambalan dari aplikasi ini terpasang. Morphe masih memiliki catatan tambalan sebelumnya</string>
+    <string name="home_app_info_app_deleted_description">Aplikasi ini telah dicopot di luar Nivqo. Tambal ulang untuk mengembalikan fungsinya</string>
+    <string name="home_app_info_not_patched_description">Versi tanpa tambalan dari aplikasi ini terpasang. Nivqo masih memiliki catatan tambalan sebelumnya</string>
     <string name="patcher_rename_title">Ini akan memasang klon</string>
     <string name="patcher_rename_description">Penambalan membuat aplikasi ini dengan nama paket tersendiri, sehingga pemasangan ini menambahkan klon di samping &lt;b&gt;%s&lt;/b&gt; alih-alih memperbaruinya</string>
     <string name="patcher_rename_result_package">Akan dipasang sebagai</string>
@@ -487,7 +487,7 @@ Zona luar (putus-putus): mungkin terpotong oleh masker launcher - jaga detail pe
     <string name="root_pre_patch_installer_description">Perangkat Anda memiliki akses root. Pilih apakah aplikasi ini akan ditambal untuk mount root atau pemasangan standar</string>
     <string name="root_pre_patch_installer_mount_title">Mode mount root</string>
     <string name="root_pre_patch_installer_mount_description">Tambalan untuk mount root, lalu mount APK di atas aplikasi bawaan yang sesuai. Tidak memerlukan GmsCore</string>
-    <string name="root_mount_module_unmount_warning">Jika KernelSU memiliki module Unmount yang diaktifkan secara bawaan, buka KernelSU &gt; Superuser &gt; aplikasi yang Anda mount &gt; Profil &gt; Khusus dan nonaktifkan module Unmount. Jika tidak, APK yang ditambal dan di-mount mungkin tidak berfungsi, meskipun Morphe menampilkannya sebagai di-mount</string>
+    <string name="root_mount_module_unmount_warning">Jika KernelSU memiliki module Unmount yang diaktifkan secara bawaan, buka KernelSU &gt; Superuser &gt; aplikasi yang Anda mount &gt; Profil &gt; Khusus dan nonaktifkan module Unmount. Jika tidak, APK yang ditambal dan di-mount mungkin tidak berfungsi, meskipun Nivqo menampilkannya sebagai di-mount</string>
     <string name="root_pre_patch_installer_standard_title">Mode pasang standar</string>
     <string name="root_pre_patch_installer_standard_description">Tambalan sebagai APK normal dengan dukungan GmsCore. Setelan pemasang Anda digunakan setelah penambalan</string>
     <string name="root_pre_patch_installer_hint">Mode tambal ini terpisah dari Setelan &gt; Sistem &gt; Pemasang dan tidak dapat diubah setelah penambalan</string>
@@ -549,7 +549,7 @@ Zona luar (putus-putus): mungkin terpotong oleh masker launcher - jaga detail pe
     <string name="patcher_conflict_subtitle">Anda perlu mencopot versi yang terpasang saat ini</string>
     <string name="patcher_conflict_hint">Aplikasi ditambal menggunakan sertifikat yang berbeda dari versi yang terpasang. Mencopot akan menghapus semua data aplikasi</string>
     <string name="patcher_installed_conflict_title">Copot diperlukan</string>
-    <string name="patcher_installed_conflict_body">"Morphe menandatangani aplikasi yang ditambal dengan sertifikatnya sendiri, yang berbeda dari yang asli. Android mengharuskan penghapusan versi yang sudah ada sebelum aplikasi yang ditambal dapat dipasang.
+    <string name="patcher_installed_conflict_body">"Nivqo menandatangani aplikasi yang ditambal dengan sertifikatnya sendiri, yang berbeda dari yang asli. Android mengharuskan penghapusan versi yang sudah ada sebelum aplikasi yang ditambal dapat dipasang.
 
 Mencopot akan menghapus semua data aplikasi secara permanen"</string>
     <string name="patcher_install_error_title">Kesalahan pemasangan</string>
@@ -559,9 +559,9 @@ Mencopot akan menghapus semua data aplikasi secara permanen"</string>
     <string name="patcher_back_to_game_hint">Ketuk %1$s untuk kembali ke permainan Anda</string>
     <string name="patcher_storage_permission_dialog_title">Tidak dapat mengakses jalur penyimpanan</string>
     <string name="patcher_incompatible_patcher_title">Pembaruan diperlukan</string>
-    <string name="patcher_incompatible_patcher_description">Bundle &lt;b&gt;%1$s&lt;/b&gt; memerlukan versi penambal &lt;b&gt;%2$s&lt;/b&gt; atau lebih baru. Silahkan perbarui Morphe untuk menambal aplikasi ini</string>
-    <string name="patcher_incompatible_patcher_update_button">Unduh dan perbarui Morphe</string>
-    <string name="patcher_storage_permission_description_api30">Satu atau lebih opsi tambalan yang mengarah pada jalur Morphe tidak dapat dibaca. Beri akses penyimpanan dan ketuk tombol lalu penambalan akan dimulai secara otomatis</string>
+    <string name="patcher_incompatible_patcher_description">Bundle &lt;b&gt;%1$s&lt;/b&gt; memerlukan versi penambal &lt;b&gt;%2$s&lt;/b&gt; atau lebih baru. Silahkan perbarui Nivqo untuk menambal aplikasi ini</string>
+    <string name="patcher_incompatible_patcher_update_button">Unduh dan perbarui Nivqo</string>
+    <string name="patcher_storage_permission_description_api30">Satu atau lebih opsi tambalan yang mengarah pada jalur Nivqo tidak dapat dibaca. Beri akses penyimpanan dan ketuk tombol lalu penambalan akan dimulai secara otomatis</string>
     <string name="patcher_storage_permission_description_legacy">Satu atau lebih opsi tambalan yang mengarah ke jalur yang tidak dapat diakses. Perbarui jalur dalam opsi tambalan dan coba lagi</string>
     <string name="patcher_storage_permission_grant">Beri izin penyimpanan</string>
     <string name="patcher_storage_permission_denied_warning">Izin penyimpanan ditolak. Beri izin untuk menggunakan jalur ini, atau pindahkan berkas ke direktori pribadi aplikasi</string>
@@ -575,7 +575,7 @@ Mencopot akan menghapus semua data aplikasi secara permanen"</string>
     <string name="patcher_option_paths_gone_title">Opsi tambalan file tidak ditemukan</string>
     <string name="patcher_option_paths_gone_description">Satu atau lebih opsi tambalan mengarah ke file yang sudah tidak ada. Hapus jalur untuk melakukan tambalan tanpanya, atau letakkan kembali file tersebut dan coba lagi</string>
     <string name="patcher_option_paths_clear">Hapus jalur dan lanjutkan</string>
-    <string name="patcher_storage_permission_hint">Saran: Pindahkan berkas ke /Android/data/app.morphe.manager/files/ - tidak diperlukan perizinan tambahan</string>
+    <string name="patcher_storage_permission_hint">Saran: Pindahkan berkas ke /Android/data/app.nivqo.manager/files/ - tidak diperlukan perizinan tambahan</string>
     <!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Mempersiapkan</string>
     <string name="patcher_step_load_patches">Memuat tambalan</string>
@@ -587,7 +587,7 @@ Mencopot akan menghapus semua data aplikasi secara permanen"</string>
     <string name="patcher_step_sign_apk">Menandatangani berkas APK yang ditambal</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Perlindungan penambalan latar belakang</string>
-    <string name="battery_optimization_dialog_description">Beberapa perangkat mungkin menghentikan proses penambal ketika aplikasi diminimalkan. Izinkan Morphe berjalan tanpa batasan penggunaan baterai agar proses penambalan dapat diselesaikan dengan lancar</string>
+    <string name="battery_optimization_dialog_description">Beberapa perangkat mungkin menghentikan proses penambal ketika aplikasi diminimalkan. Izinkan Nivqo berjalan tanpa batasan penggunaan baterai agar proses penambalan dapat diselesaikan dengan lancar</string>
     <string name="battery_optimization_not_now">Nanti saja</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">Memori tidak cukup</string>
@@ -644,8 +644,8 @@ Mencopot akan menghapus semua data aplikasi secara permanen"</string>
     <string name="install_ignore_signature">Tetap pasang</string>
     <string name="install_ignore_signature_description">Menyimpan data aplikasi, tetapi hanya berfungsi jika modul root menonaktifkan verifikasi tanda tangan Android</string>
     <string name="uninstall_app_fail">Gagal mencopot aplikasi: %s</string>
-    <string name="uninstall_app_unverified">Dibiarkan di tempat: Morphe tidak dapat memverifikasi bahwa aplikasi terpasang adalah hasil yang ditambal</string>
-    <string name="launch_app_unverified">Morphe tidak dapat memverifikasi bahwa aplikasi terpasang adalah hasil yang ditambal</string>
+    <string name="uninstall_app_unverified">Dibiarkan di tempat: Nivqo tidak dapat memverifikasi bahwa aplikasi terpasang adalah hasil yang ditambal</string>
+    <string name="launch_app_unverified">Nivqo tidak dapat memverifikasi bahwa aplikasi terpasang adalah hasil yang ditambal</string>
     <string name="uninstall_timeout">Waktu pencopotan habis</string>
     <string name="save_apk_success">APK Tersimpan</string>
     <string name="saved_app_export_failed">Gagal mengekspor aplikasi hasil patch</string>
@@ -756,7 +756,7 @@ Mencopot akan menghapus semua data aplikasi secara permanen"</string>
     <string name="settings_appearance_app_card_colors_bundle_description">Gunakan warna asli tiap aplikasi, yang disesuaikan secara otomatis agar serasi</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Ikon aplikasi</string>
-    <string name="settings_appearance_app_icon_selector_description">Seperti apa tampilan Morphe di layar utama dan di laci aplikasi</string>
+    <string name="settings_appearance_app_icon_selector_description">Seperti apa tampilan Nivqo di layar utama dan di laci aplikasi</string>
     <string name="settings_appearance_app_icon_default">Bawaan</string>
     <string name="settings_appearance_app_icon_light_2">Langit</string>
     <string name="settings_appearance_app_icon_light_3">Senja</string>
@@ -772,14 +772,14 @@ Mencopot akan menghapus semua data aplikasi secara permanen"</string>
     <string name="settings_advanced_patcher">Penambal</string>
     <string name="settings_advanced_updates_manager_prereleases">Pembaruan pra-rilis</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
-    <string name="settings_advanced_updates_manager_prereleases_description">Akses awal ke versi Morphe baru</string>
+    <string name="settings_advanced_updates_manager_prereleases_description">Akses awal ke versi Nivqo baru</string>
     <string name="settings_advanced_updates_prerelease_warning_title">Aktifkan pembaruan pra-rilis?</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
-    <string name="settings_advanced_updates_prerelease_warning_message">"Versi pra-rilis Morphe masih tahap pengembangan dan mungkin tidak stabil. 
+    <string name="settings_advanced_updates_prerelease_warning_message">"Versi pra-rilis Nivqo masih tahap pengembangan dan mungkin tidak stabil.
 
 Tambalan tidak terpengaruh: aktifkan tambalan pra-rilis untuk setiap sumber dalam daftar sumber tambalan"</string>
     <string name="settings_advanced_updates_allow_metered">Pembaruan data seluler</string>
-    <string name="settings_advanced_updates_allow_metered_description">Mengizinkan Morphe dan pembaruan tambalan untuk diunduh melalui data seluler</string>
+    <string name="settings_advanced_updates_allow_metered_description">Mengizinkan Nivqo dan pembaruan tambalan untuk diunduh melalui data seluler</string>
     <string name="settings_advanced_updates_background_notifications">Notifikasi pembaruan latar belakang</string>
     <string name="settings_advanced_updates_background_notifications_description">Periksa pembaruan secara berkala di latar belakang dan beri tahu saat tersedia</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Notifikasi dorong untuk rilis terbaru, bahkan saat aplikasi ditutup</string>
@@ -796,27 +796,27 @@ Tambalan tidak terpengaruh: aktifkan tambalan pra-rilis untuk setiap sumber dala
     <string name="settings_advanced_external_batch_patch">Izinkan pemicu eksternal</string>
     <string name="settings_advanced_external_batch_patch_description">Memungkinkan aplikasi otomasi memulai penambalan batch melalui intent</string>
     <string name="external_batch_patch_title">Mulai penambalan massal?</string>
-    <string name="external_batch_patch_description">%s ingin Morphe menambal dan memasang aplikasi</string>
+    <string name="external_batch_patch_description">%s ingin Nivqo menambal dan memasang aplikasi</string>
     <string name="external_batch_patch_trust_caller">Selalu izinkan aplikasi ini</string>
     <string name="external_batch_patch_unknown_caller">Aplikasi tidak dikenal</string>
     <!-- Notification content -->
-    <string name="notification_manager_update_title">Pembaruan Morphe tersedia</string>
+    <string name="notification_manager_update_title">Pembaruan Nivqo tersedia</string>
     <string name="notification_bundle_update_title">Tambalan baru tersedia</string>
     <string name="notification_update_text">Versi %s siap untuk diunduh</string>
-    <string name="notification_bundle_update_text_unversioned">Ketuk untuk buka Morphe dan perbarui</string>
+    <string name="notification_bundle_update_text_unversioned">Ketuk untuk buka Nivqo dan perbarui</string>
     <string name="notification_permission_dialog_title">Izinkan notifikasi</string>
-    <string name="notification_permission_dialog_description">Morphe memerlukan izin notifikasi untuk memberi tahu Anda saat pembaruan tersedia di latar belakang</string>
+    <string name="notification_permission_dialog_description">Nivqo memerlukan izin notifikasi untuk memberi tahu Anda saat pembaruan tersedia di latar belakang</string>
     <string name="notification_post_patch_dialog_title">Apakah Anda ingin menerima notifikasi ketika pembaruan tersedia?</string>
-    <string name="notification_channel_manager_updates">Pembaruan Morphe</string>
-    <string name="notification_channel_manager_updates_description">Notifikasi tentang rilis Morphe baru</string>
+    <string name="notification_channel_manager_updates">Pembaruan Nivqo</string>
+    <string name="notification_channel_manager_updates_description">Notifikasi tentang rilis Nivqo baru</string>
     <string name="notification_channel_patch_updates">Pembaruan patch</string>
     <string name="notification_channel_patch_updates_description">Notifikasi tentang rilis patch baru</string>
     <string name="notification_channel_patcher">Penambalan</string>
-    <string name="notification_channel_patcher_description">Ditampilkan saat Morphe menambal aplikasi di latar belakang</string>
+    <string name="notification_channel_patcher_description">Ditampilkan saat Nivqo menambal aplikasi di latar belakang</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Setelan ahli</string>
     <string name="settings_advanced_expert_mode">Mode ahli</string>
-    <string name="settings_advanced_expert_mode_description">Mengaktifkan setelan penambalan Morphe yang kompleks dan opsi kustomisasi</string>
+    <string name="settings_advanced_expert_mode_description">Mengaktifkan setelan penambalan Nivqo yang kompleks dan opsi kustomisasi</string>
     <string name="settings_advanced_expert_mode_dialog_title">Aktifkan mode Ahli?</string>
     <string name="settings_advanced_expert_mode_dialog_message">Mode ahli memberikan kontrol lebih terhadap bagaimana tambalan diterapkan, tetapi salah mengonfigurasi setelan di mode ahli dapat menyebabkan aplikasi tidak berfungsi</string>
     <string name="settings_advanced_strip_unused_libs">Optimalkan untuk arsitektur perangkat</string>
@@ -832,7 +832,7 @@ Tambalan tidak terpengaruh: aktifkan tambalan pra-rilis untuk setiap sumber dala
 %1$s"</string>
     <string name="settings_advanced_github_pat_export_include_label">Sertakan dalam ekspor setelan</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
-    <string name="settings_advanced_github_pat_export_include_supporting">Menambahkan PAT ini ke setelan Morphe yang diekspor</string>
+    <string name="settings_advanced_github_pat_export_include_supporting">Menambahkan PAT ini ke setelan Nivqo yang diekspor</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">Jangan bagikan PAT Anda. Jika Anda menyertakannya dalam ekspor setelan, simpan berkas tersebut secara pribadi karena berisi token</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
@@ -929,7 +929,7 @@ Dimensi gambar harus sebagai berikut:
     <string name="installer_status_not_supported">Tidak didukung untuk aksi ini</string>
     <string name="installer_status_shizuku_not_installed">Pasang Shizuku atau Sui untuk menggunakan opsi ini</string>
     <string name="installer_status_shizuku_not_running">Jalankan Shizuku atau Sui dan coba lagi</string>
-    <string name="installer_status_shizuku_permission">Berikan izin ke Morphe dari aplikasi Shizuku</string>
+    <string name="installer_status_shizuku_permission">Berikan izin ke Nivqo dari aplikasi Shizuku</string>
     <string name="installer_mount_warning_install">Pemasang utama Anda diatur ke pemasang mount root. Aplikasi tersimpan ini tidak dipasang menggunakan mount</string>
     <string name="mount_version_mismatch_message">Versi aplikasi bawaan (%2$s) tidak cocok dengan versi aplikasi dipatch (%1$s). Pasang versi bawaan yang cocok, lalu coba lagi</string>
     <string name="mount_stock_restore_failed_message">Android menolak APK asli yang disimpan. Pasang versi bawaan yang sesuai, lalu coba Mount lagi</string>
@@ -959,7 +959,7 @@ Dimensi gambar harus sebagai berikut:
     <string name="settings_auto_uninstall_with_shizuku">Copot otomatis jika terjadi konflik</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Saat memasang otomatis dengan Shizuku, copot aplikasi yang ada terlebih dahulu jika Android melaporkan konflik tanda tangan. Ini dapat menghapus data aplikasi</string>
     <string name="settings_auto_uninstall_warning_title">Aktifkan copot otomatis?</string>
-    <string name="settings_auto_uninstall_warning_message">Jika Android melaporkan konflik tanda tangan selama pemasangan otomatis Shizuku, Morphe akan mencopot aplikasi yang ada sebelum memasang APK hasil tambalan</string>
+    <string name="settings_auto_uninstall_warning_message">Jika Android melaporkan konflik tanda tangan selama pemasangan otomatis Shizuku, Nivqo akan mencopot aplikasi yang ada sebelum memasang APK hasil tambalan</string>
     <string name="settings_auto_uninstall_warning_risk">Ini dapat menghapus data aplikasi. Jika APK hasil tambalan gagal dipasang setelah pencopotan, aplikasi sebelumnya mungkin sudah hilang</string>
     <string name="installer_shizuku_status_action">Periksa status Shizuku</string>
     <string name="installer_shizuku_status_title">Status Shizuku</string>
@@ -977,7 +977,7 @@ Dimensi gambar harus sebagai berikut:
     <string name="installer_shizuku_install_fail_with_details">"Pemasangan Shizuku gagal: %1$s
 
 Rincian: %2$s"</string>
-    <string name="installer_shizuku_error_permission">Izin Shizuku hilang. Berikan izin ke Morphe dan coba lagi</string>
+    <string name="installer_shizuku_error_permission">Izin Shizuku hilang. Berikan izin ke Nivqo dan coba lagi</string>
     <string name="installer_shizuku_error_timeout">Shizuku tidak mengembalikan hasil pemasangan. Pastikan Shizuku masih berjalan dan coba lagi</string>
     <string name="installer_shizuku_error_downgrade">Android memblokir ini karena akan menurunkan versi aplikasi yang terpasang</string>
     <string name="installer_shizuku_error_signature">Android memblokir ini karena aplikasi yang terpasang memiliki tanda tangan yang berbeda</string>
@@ -992,7 +992,7 @@ Rincian: %2$s"</string>
     <string name="settings_system_process_runtime_memory_limit_description">Batas yang lebih tinggi mempercepat penambalan pada perangkat yang mendukung</string>
     <string name="settings_system_process_runtime_enable">Aktifkan proses runtime</string>
     <string name="settings_system_memory_limit_subtitle">Memori tersedia untuk penambalan</string>
-    <string name="settings_system_process_runtime_heap_limit_ignored">Perangkat ini mengabaikan batas memori pada proses terakhir, sehingga penambalan mungkin akan kembali berjalan di dalam Morphe</string>
+    <string name="settings_system_process_runtime_heap_limit_ignored">Perangkat ini mengabaikan batas memori pada proses terakhir, sehingga penambalan mungkin akan kembali berjalan di dalam Nivqo</string>
     <string name="settings_system_memory_limit_warning">Batas memori yang rendah mungkin menyebabkan kegagalan saat menambal aplikasi yang lebih besar</string>
     <string name="settings_system_memory_limit_high_warning">Batas memori yang tinggi dapat membuat proses patching jauh lebih lambat di beberapa perangkat. Naikkan hanya jika proses patching terus gagal pada batas yang lebih rendah.</string>
     <string name="settings_system_process_runtime_enabled_description">Batas %s MB</string>
@@ -1015,8 +1015,8 @@ Rincian: %2$s"</string>
     <string name="settings_system_import_export">Impor &amp; ekspor</string>
     <string name="settings_system_signing_key">Kunci penandatanganan</string>
     <string name="settings_system_signing_key_description">Mencadangkan dan memulihkan kunci yang digunakan untuk menandatangani aplikasi yang ditambal</string>
-    <string name="settings_system_signing_key_dialog_description">Setiap aplikasi yang di-patch oleh Morphe ditandatangani dengan kunci ini. Simpan salinannya: tanpa kunci ini, aplikasi yang di-patch hanya dapat diperbarui setelah menghapus instalasinya.</string>
-    <string name="settings_system_signing_key_missing">Morphe membuatnya dengan patch pertama Anda.</string>
+    <string name="settings_system_signing_key_dialog_description">Setiap aplikasi yang di-patch oleh Nivqo ditandatangani dengan kunci ini. Simpan salinannya: tanpa kunci ini, aplikasi yang di-patch hanya dapat diperbarui setelah menghapus instalasinya.</string>
+    <string name="settings_system_signing_key_missing">Nivqo membuatnya dengan patch pertama Anda.</string>
     <string name="settings_system_signing_key_created">Dibuat %s</string>
     <string name="settings_system_signing_key_fingerprint">Sidik jari SHA-256</string>
     <string name="settings_system_backup_appearance_description">Tema, warna, dan bahasa</string>
@@ -1039,11 +1039,11 @@ Rincian: %2$s"</string>
     <string name="settings_system_export_keystore_failed">Gagal mengekspor keystore</string>
     <string name="settings_system_show_password_field">Tampilkan kata sandi</string>
     <string name="settings_system_hide_password_field">Sembunyikan kata sandi</string>
-    <string name="settings_system_morphe_settings">Setelan Morphe</string>
-    <string name="settings_system_import_manager_settings_description">Mencadangkan dan mengembalikan pengaturan Morphe Anda</string>
-    <string name="settings_system_import_manager_settings_fail">Gagal mengimpor pengaturan Morphe: %s</string>
-    <string name="settings_system_import_manager_settings_success">Setelan Morphe diimpor</string>
-    <string name="settings_system_import_manager_settings_mode_title">Impor setelan Morphe</string>
+    <string name="settings_system_morphe_settings">Setelan Nivqo</string>
+    <string name="settings_system_import_manager_settings_description">Mencadangkan dan mengembalikan pengaturan Nivqo Anda</string>
+    <string name="settings_system_import_manager_settings_fail">Gagal mengimpor pengaturan Nivqo: %s</string>
+    <string name="settings_system_import_manager_settings_success">Setelan Nivqo diimpor</string>
+    <string name="settings_system_import_manager_settings_mode_title">Impor setelan Nivqo</string>
     <string name="settings_system_import_manager_settings_mode_description">Pilih bagaimana setelan dan sumber yang diimpor harus diterapkan</string>
     <string name="settings_system_import_selections_mode_title">Impor pemilihan tambalan</string>
     <string name="settings_system_import_selections_mode_description">Pilih cara menerapkan pemilihan dan opsi tambalan yang telah diimpor</string>
@@ -1051,8 +1051,8 @@ Rincian: %2$s"</string>
     <string name="import_mode_replace_description">Cocokkan persis dengan cadangan. Item yang hilang dari cadangan akan dihapus</string>
     <string name="import_mode_merge_title">Gabungkan dengan yang sudah ada</string>
     <string name="import_mode_merge_description">Tambahkan item yang hilang dari cadangan. Item yang sudah ada tetap tidak berubah</string>
-    <string name="settings_system_export_manager_settings_fail">Gagal mengekspor setelan Morphe: %s</string>
-    <string name="settings_system_export_manager_settings_success">Setelan Morphe diekspor</string>
+    <string name="settings_system_export_manager_settings_fail">Gagal mengekspor setelan Nivqo: %s</string>
+    <string name="settings_system_export_manager_settings_success">Setelan Nivqo diekspor</string>
     <string name="settings_system_export_debug_logs">Ekspor pencatatan debug</string>
     <string name="settings_system_export_debug_logs_description">Menyimpan catatan sistem untuk pemecahan masalah</string>
     <string name="settings_system_export_debug_logs_export_read_failed">Gagal membaca catatan (kode keluaran %s)</string>
@@ -1088,7 +1088,7 @@ Rincian: %2$s"</string>
     <string name="settings_system_storage_cleared">Dikosongkan %s</string>
     <string name="settings_system_storage_nothing_to_clear">Tidak ada yang bisa dihapus</string>
     <string name="settings_system_storage_open_app_info_title">Buka penyimpanan aplikasi Android</string>
-    <string name="settings_system_storage_open_app_info_description">Kelola atau bersihkan semua data Morphe melalui setelan sistem</string>
+    <string name="settings_system_storage_open_app_info_description">Kelola atau bersihkan semua data Nivqo melalui setelan sistem</string>
     <string name="settings_system_save_original_apks_title">Simpan APK asli</string>
     <string name="settings_system_save_original_apks_description">Simpan APK sebelum ditambal agar dapat digunakan kembali untuk penambalan ulang tanpa memilih berkas lagi</string>
     <string name="settings_system_save_patched_apks_title">Simpan APK yang ditambal</string>
@@ -1136,12 +1136,12 @@ Rincian: %2$s"</string>
     <string name="copy_selection_same_source">Sumber sama</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Pemilih berkas khusus</string>
-    <string name="settings_system_custom_file_picker_description">Telusuri penyimpanan dengan pemilih berkas bawaan Morphe daripada pemilih berkas bawaan sistem</string>
+    <string name="settings_system_custom_file_picker_description">Telusuri penyimpanan dengan pemilih berkas bawaan Nivqo daripada pemilih berkas bawaan sistem</string>
     <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">Pembantu unduhan APK</string>
     <string name="settings_system_apk_download_helper_trusted_count">Dipercaya: %1$d dari %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Aplikasi pembantu dapat mengunduh APK asli untuk Anda. Hanya aplikasi yang Anda percayai di sini yang ditawarkan dalam petunjuk pengunduhan.</string>
-    <string name="settings_system_apk_download_helper_warning">APK berasal dari aplikasi pembantu, jadi hanya percayai aplikasi yang Anda kenal. Morphe tetap memeriksa paket, versi, dan tanda tangan setiap file sebelum menambal.</string>
+    <string name="settings_system_apk_download_helper_warning">APK berasal dari aplikasi pembantu, jadi hanya percayai aplikasi yang Anda kenal. Nivqo tetap memeriksa paket, versi, dan tanda tangan setiap file sebelum menambal.</string>
     <string name="settings_system_apk_download_helper_installed_by">Diinstal oleh %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Penginstal tidak diketahui</string>
     <!-- File Picker -->
@@ -1324,7 +1324,7 @@ Rincian: %2$s"</string>
     <string name="update_completed">Pembaruan terpasang</string>
     <string name="install_update_manager_failed">Gagal memasang pembaruan</string>
     <string name="installing_manager_update">Memasang pembaruan…</string>
-    <string name="installing_manager_update_hint">Morphe akan ditutup untuk menyelesaikan pembaruan</string>
+    <string name="installing_manager_update_hint">Nivqo akan ditutup untuk menyelesaikan pembaruan</string>
     <string name="downloading_manager_update">Mengunduh pembaruan…</string>
     <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB diunduh</string>
@@ -1345,7 +1345,7 @@ Apakah Anda masih ingin melanjutkan?"</string>
     <string name="onboarding_sources_desc">Kelola sumber tambalan Anda. Setiap sumber menyediakan tambalan yang dapat diterapkan ke aplikasi Anda</string>
     <string name="onboarding_swipe_title">Gerakan usapan</string>
     <string name="onboarding_swipe_desc">Usap ke kanan pada kartu aplikasi untuk melihat tambalan yang tersedia. Usap ke kiri untuk menyembunyikan kartu dari layar beranda</string>
-    <string name="onboarding_settings_desc">Sesuaikan Morphe: tampilan, pilihan lanjutan, dan peralatan sistem</string>
+    <string name="onboarding_settings_desc">Sesuaikan Nivqo: tampilan, pilihan lanjutan, dan peralatan sistem</string>
     <string name="onboarding_sources_patches_desc">Ketuk untuk melihat semua tambalan yang tersedia dari sumber ini</string>
     <string name="onboarding_sources_version_desc">Ketuk versi untuk melihat seluruh catatan perubahan untuk sumber ini</string>
     <string name="onboarding_sources_prerelease_desc">Aktifkan ini untuk menerima versi tambalan pra-rilis dari sumber ini</string>
@@ -1360,7 +1360,7 @@ Apakah Anda masih ingin melanjutkan?"</string>
     <string name="onboarding_system_file_picker_desc">Aktifkan untuk menggunakan penjelajah berkas bawaan daripada pemilih sistem saat memilih APK atau keystore</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Tur fitur cepat</string>
-    <string name="tour_prompt_desc">Ingin tur cepat fitur utama Morphe?</string>
+    <string name="tour_prompt_desc">Ingin tur cepat fitur utama Nivqo?</string>
     <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Tunjukkan</string>
     <string name="onboarding_restart_title">Tur fitur</string>

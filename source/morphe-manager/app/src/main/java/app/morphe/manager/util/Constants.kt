@@ -13,7 +13,7 @@ import app.morphe.manager.util.KnownApps.getAppName
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
-const val tag = "Morphe Manager"
+const val tag = "Nivqo Manager"
 
 const val SOURCE_NAME = "Morphe Patches（上游）"
 const val MANAGER_REPO_URL = "https://github.com/SkillGodAk/Nivqo"

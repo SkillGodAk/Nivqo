@@ -20,18 +20,18 @@
     <string name="android_11_bug_dialog_title">Bug Android 11</string>
     <string name="android_11_bug_dialog_description">L\'autorisation d\'installation de l\'application doit être accordée à l\'avance afin d\'éviter un bug dans le système Android 11 qui affectera négativement l\'expérience utilisateur</string>
     <string name="deep_link_add_source_title">Ajouter la source</string>
-    <string name="deep_link_add_source_message">Voulez-vous ajouter cette source de patchs à Morphe ?</string>
+    <string name="deep_link_add_source_message">Voulez-vous ajouter cette source de patchs à Nivqo ?</string>
     <string name="deep_link_add_source_warning">Ajoutez uniquement des sources auxquelles vous faites confiance</string>
     <!-- Home Screen - Update Notifications -->
-    <string name="home_update_available">Mise à jour de Morphe disponible</string>
+    <string name="home_update_available">Mise à jour de Nivqo disponible</string>
     <string name="home_update_available_subtitle">Nouvelle version prête à installer</string>
     <string name="home_blocked_source_title">Source de patchs bloquée détectée</string>
     <string name="home_blocked_source_subtitle">Appuyez pour consulter et supprimer</string>
     <string name="home_metadata_errors_title">Certaines sources de patchs sont indisponibles</string>
     <string name="home_metadata_errors_subtitle">Appuyez pour consulter les sources</string>
-    <string name="home_outdated_manager_title">Morphe n\'est plus à jour</string>
+    <string name="home_outdated_manager_title">Nivqo n\'est plus à jour</string>
     <string name="home_outdated_manager_subtitle">Certaines sources de patchs nécessitent une version plus récente</string>
-    <string name="home_held_back_title">Une source de patchs a fait planter Morphe</string>
+    <string name="home_held_back_title">Une source de patchs a fait planter Nivqo</string>
     <string name="home_held_back_subtitle">Elle a été ignorée afin que l\'application puisse démarrer. Appuyez pour examiner</string>
     <string name="home_metered_skipped_title">Mises à jour suspendues sur les données mobiles</string>
     <string name="home_metered_skipped_subtitle">Appuyez pour autoriser les mises à jour via les données mobiles</string>
@@ -48,10 +48,10 @@
     <string name="home_app_list_options_title">Trier et filtrer</string>
     <string name="home_app_list_options_state_description">Triées par %1$s, filtrées par %2$s</string>
     <string name="home_app_filter_all_description">Toutes les applications sur l\'écran d\'accueil</string>
-    <string name="home_app_filter_patched_description">Applications que vous avez patchées ou enregistrées avec Morphe</string>
-    <string name="home_app_filter_not_patched_description">Applications que vous n\'avez pas encore patchées dans Morphe</string>
+    <string name="home_app_filter_patched_description">Applications que vous avez patchées ou enregistrées avec Nivqo</string>
+    <string name="home_app_filter_not_patched_description">Applications que vous n\'avez pas encore patchées dans Nivqo</string>
     <string name="home_app_filter_installed_description">Applications actuellement installées sur cet appareil</string>
-    <string name="home_app_filter_uninstalled_description">Applications patchées avec Morphe qui ne sont plus sur cet appareil</string>
+    <string name="home_app_filter_uninstalled_description">Applications patchées avec Nivqo qui ne sont plus sur cet appareil</string>
     <string name="home_app_filter_clones">Clones</string>
     <string name="home_app_filter_clones_description">Des applications créées sous leur propre nom de paquet, installées à côté de l\'original</string>
     <string name="home_app_sort_manual_description">Appuyez longuement sur une application, puis appuyez sur le bouton de réorganisation</string>
@@ -159,10 +159,10 @@
     <string name="sources_management_metadata_unavailable">Métadonnées ND</string>
     <string name="sources_management_metadata_unavailable_hint">Le fichier de métadonnées distant est indisponible. Le patching avec le bundle installé fonctionne toujours, mais la mise à jour automatique est désactivée pour cette source</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Le bundle de patchs n\'a pas pu être téléchargé. L\'URL de la source est peut-être incorrecte ou le fichier n\'existe pas</string>
-    <string name="sources_management_outdated_manager_badge">Mettre à jour Morphe</string>
-    <string name="sources_management_outdated_manager_hint">Cette source est conçue pour le patcheur %1$s, mais Morphe %2$s inclut le patcheur %3$s. Mettez Morphe à jour pour l\'utiliser</string>
+    <string name="sources_management_outdated_manager_badge">Mettre à jour Nivqo</string>
+    <string name="sources_management_outdated_manager_hint">Cette source est conçue pour le patcheur %1$s, mais Nivqo %2$s inclut le patcheur %3$s. Mettez Nivqo à jour pour l\'utiliser</string>
     <string name="sources_management_held_back_badge">A plantée</string>
-    <string name="sources_management_held_back_hint">Cette source a fait planter Morphe lors du chargement, elle est donc ignorée. Mettez-la à jour ou réimportez-la pour réessayer.</string>
+    <string name="sources_management_held_back_hint">Cette source a fait planter Nivqo lors du chargement, elle est donc ignorée. Mettez-la à jour ou réimportez-la pour réessayer.</string>
     <string name="sources_management_source_enabled">Source activée</string>
     <string name="sources_management_source_disabled">Source désactivée</string>
     <string name="sources_management_source_updating">Mise à jour de la source</string>
@@ -193,7 +193,7 @@
     <string name="sources_dialog_choose_apps_description">Selectionnez les applications à conserver une fois la source chargée</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Sources de patchs tierces</string>
-    <string name="sources_dialog_community_notice_message">"Les sources de patchs communautaires sont créées et maintenues par leurs propres auteurs. Morphe ne vérifie ni n'examine les patchs tiers et n'est pas responsable de leur contenu ni de leurs actions sur votre appareil.
+    <string name="sources_dialog_community_notice_message">"Les sources de patchs communautaires sont créées et maintenues par leurs propres auteurs. Nivqo ne vérifie ni n'examine les patchs tiers et n'est pas responsable de leur contenu ni de leurs actions sur votre appareil.
 
 Tout ce que vous ajoutez depuis ce site web est utilisé à vos propres risques"</string>
     <string name="sources_update_success">Mise à jour réussie</string>
@@ -217,16 +217,16 @@ Tout ce que vous ajoutez depuis ce site web est utilisé à vos propres risques"
     <string name="home_apk_availability_no">Non, j\'ai déjà un APK</string>
     <string name="home_apk_helper_download">Utiliser une application d\'assistance</string>
     <string name="home_apk_helper_title">Télécharger avec une application d\'assistance</string>
-    <string name="home_apk_helper_description">Morphe demandera à l\'application d\'assistance ci-dessous de télécharger l\'APK d\'origine et de lui transmettre le fichier</string>
+    <string name="home_apk_helper_description">Nivqo demandera à l\'application d\'assistance ci-dessous de télécharger l\'APK d\'origine et de lui transmettre le fichier</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">Ouvrir l\'assistant</string>
-    <string name="home_apk_helper_warning">Ne continuez que si vous faites confiance à cette application d\'assistance. Morphe vérifie le paquet, la version et la signature de tout fichier reçu avant le patching</string>
-    <string name="home_apk_helper_warning_unverified">Ne continuez que si vous faites confiance à cette application d\'assistance. Morphe ne peut pas vérifier la signature de cet APK, donc un fichier modifié ne serait pas détecté</string>
+    <string name="home_apk_helper_warning">Ne continuez que si vous faites confiance à cette application d\'assistance. Nivqo vérifie le paquet, la version et la signature de tout fichier reçu avant le patching</string>
+    <string name="home_apk_helper_warning_unverified">Ne continuez que si vous faites confiance à cette application d\'assistance. Nivqo ne peut pas vérifier la signature de cet APK, donc un fichier modifié ne serait pas détecté</string>
     <string name="home_apk_helper_no_result">L\'application d\'assistance n\'a pas renvoyé de fichier APK</string>
     <string name="home_apk_helper_no_access">L\'application d\'assistance n\'a pas accordé l\'accès à l\'APK qu\'elle a renvoyé</string>
     <string name="home_apk_helper_no_package">L\'application d\'assistance n\'a pas indiqué quelle application installée utiliser</string>
     <string name="home_apk_helper_wrong_package">L\'application d\'assistance a renvoyé une application différente de celle en train d’être patchée</string>
-    <string name="home_apk_helper_installed_unavailable">Morphe n\'a pas pu utiliser l\'application installée</string>
+    <string name="home_apk_helper_installed_unavailable">Nivqo n\'a pas pu utiliser l\'application installée</string>
     <string name="home_apk_helper_installed_incompatible">La version installée ne peut pas être patchée</string>
     <string name="home_apk_use_saved">Utiliser l\'APK enregistré</string>
     <string name="home_apk_use_installed">Utiliser l\'APK installé</string>
@@ -234,7 +234,7 @@ Tout ce que vous ajoutez depuis ce site web est utilisé à vos propres risques"
     <string name="home_apk_use_installed_unverified">Impossible de vérifier la signature de l\'application installée, il est donc possible qu\'elle soit déjà patchée</string>
     <string name="home_unverified">Non vérifiée</string>
     <string name="home_install_verification_pending">Vérification de l\'installation…</string>
-    <string name="home_app_info_install_unverified">Morphe ne peut pas confirmer que l\'application installée est le build qu\'il a patché. Re-pachez-la ou réinstallez-la depuis l\'APK enregistré pour restaurer ses actions</string>
+    <string name="home_app_info_install_unverified">Nivqo ne peut pas confirmer que l\'application installée est le build qu\'il a patché. Re-pachez-la ou réinstallez-la depuis l\'APK enregistré pour restaurer ses actions</string>
     <string name="home_app_info_no_saved_apk">Aucun APK enregistré. Le patching nécessitera de sélectionner à nouveau le fichier APK</string>
     <string name="home_version_requires_android">Nécessite Android %s+</string>
     <string name="home_apk_no_compatible_versions_title">Non pris en charge sur cet appareil</string>
@@ -247,7 +247,7 @@ Tout ce que vous ajoutez depuis ce site web est utilisé à vos propres risques"
     <string name="home_download_instructions_step2_generic">Faites défiler la page web vers le bas et appuyez sur son bouton de téléchargement</string>
     <string name="home_download_instructions_step2_variant">Faites défiler la page web vers le bas et appuyez sur le bouton de téléchargement de la première &lt;b&gt;variante APK&lt;/b&gt;</string>
     <string name="home_download_instructions_step2_search">Ouvrez un résultat de recherche provenant d\'un site web auquel vous faites confiance</string>
-    <string name="home_download_instructions_step2_search_note">Morphe ne peut pas garantir la fiabilité de ces sites web. Ignorez ceux qui proposent leur propre boutique d\'applications au lieu d\'un fichier APK</string>
+    <string name="home_download_instructions_step2_search_note">Nivqo ne peut pas garantir la fiabilité de ces sites web. Ignorez ceux qui proposent leur propre boutique d\'applications au lieu d\'un fichier APK</string>
     <string name="home_download_instructions_step3_search">Sur ce site web, téléchargez l\'APK de la version &lt;b&gt;%s&lt;/b&gt;, et non la plus récente</string>
     <string name="home_download_instructions_step3_search_any">Sur ce site web, téléchargez l\'APK de l\'application. &lt;b&gt;N\'importe quelle version&lt;/b&gt; peut être patchée</string>
     <string name="home_download_instructions_download_button_toast">Appuyez sur télécharger sur le site Web, et non ici 😊</string>
@@ -255,11 +255,11 @@ Tout ce que vous ajoutez depuis ce site web est utilisé à vos propres risques"
     <string name="home_download_instructions_download_button_toast_3">C\'est en pratiquant qu\'on devient meilleur, et tu es sur la bonne voie 💪</string>
     <string name="home_download_instructions_download_button_toast_4">Toujours pas là… toujours pas là… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">OK, je respecte le dévouement 🫡</string>
-    <string name="home_download_instructions_download_button_toast_6">Vous êtes maintenant un testeur officiel du bouton Morphe 🏅</string>
+    <string name="home_download_instructions_download_button_toast_6">Vous êtes maintenant un testeur officiel du bouton Nivqo 🏅</string>
     <string name="home_download_instructions_step3">Attendez que le téléchargement se termine, et &lt;b&gt;n\'installez pas&lt;/b&gt; l\'APK</string>
     <string name="home_download_instructions_step3_mount">Attendez que le téléchargement ce terminé, puis &lt;b&gt;installez l\'APK&lt;/b&gt;</string>
-    <string name="home_download_instructions_step4">Une fois le téléchargement terminé, revenez sur Morphe</string>
-    <string name="home_download_instructions_step4_mount">Après avoir installé l\'APK d\'origine, revenez sur Morphe</string>
+    <string name="home_download_instructions_step4">Une fois le téléchargement terminé, revenez sur Nivqo</string>
+    <string name="home_download_instructions_step4_mount">Après avoir installé l\'APK d\'origine, revenez sur Nivqo</string>
     <string name="home_download_instructions_continue_to">Continuer vers %s</string>
     <string name="home_download_instructions_destination">la page de téléchargement</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
@@ -474,9 +474,9 @@ Zone extérieure (pointillée) : peut être rognée par le masque du lanceur - g
     <string name="home_app_info_newest_supported_version">Dernière version prise en charge</string>
     <string name="home_app_info_version_move">Version installée %1$s, dernière version prise en charge %2$s</string>
     <string name="home_app_info_app_deleted_warning">L\'application a été désinstallée</string>
-    <string name="home_app_info_app_deleted_description">Cette application a été désinstallée en dehors de Morphe. Re-patchez-la pour restaurer les fonctionnalités
+    <string name="home_app_info_app_deleted_description">Cette application a été désinstallée en dehors de Nivqo. Re-patchez-la pour restaurer les fonctionnalités
 </string>
-    <string name="home_app_info_not_patched_description">Une version non patchée de cette application est installée. Morphe conserve toujours son ancien patch</string>
+    <string name="home_app_info_not_patched_description">Une version non patchée de cette application est installée. Nivqo conserve toujours son ancien patch</string>
     <string name="patcher_rename_title">Cela installera un clone</string>
     <string name="patcher_rename_description">Les patchs ont compilé cette application sous leur propre nom de paquet, donc l\'installer ajoute un clone à côté de <b>%s</b> au lieu de le mettre à jour</string>
     <string name="patcher_rename_result_package">Sera installé en tant que</string>
@@ -489,7 +489,7 @@ Zone extérieure (pointillée) : peut être rognée par le masque du lanceur - g
     <string name="root_pre_patch_installer_description">Votre appareil dispose d\'un accès root. Choisissez si cette application doit être patchée pour le montage root ou pour une installation standard</string>
     <string name="root_pre_patch_installer_mount_title">Mode de montage root</string>
     <string name="root_pre_patch_installer_mount_description">Patche pour le montage root, puis monte l\'APK par-dessus l\'application d\'origine correspondante. GmsCore n\'est pas nécessaire</string>
-    <string name="root_mount_module_unmount_warning">Si KernelSU a l\'option \'Démontez les modules\' activée par défaut, ouvrez KernelSU &gt; Super-utilisateur &gt; l\'application que vous avez montée &gt; Profile &gt; Personnalisé, puis désactivez \'Démontez les modules\'. Sinon, l\'APK patché monté peut ne pas prendre effet, même si Morphe l\'affiche comme étant monté</string>
+    <string name="root_mount_module_unmount_warning">Si KernelSU a l\'option \'Démontez les modules\' activée par défaut, ouvrez KernelSU &gt; Super-utilisateur &gt; l\'application que vous avez montée &gt; Profile &gt; Personnalisé, puis désactivez \'Démontez les modules\'. Sinon, l\'APK patché monté peut ne pas prendre effet, même si Nivqo l\'affiche comme étant monté</string>
     <string name="root_pre_patch_installer_standard_title">Mode d\'installation standard</string>
     <string name="root_pre_patch_installer_standard_description">Patche en tant qu\'APK normal avec prise en charge de GmsCore. Votre paramètre d\'installateur est utilisé après le patching</string>
     <string name="root_pre_patch_installer_hint">Ce mode de patch est distinct de Paramètres &gt; Système &gt; Installateur et ne peut pas être modifié après le patching</string>
@@ -551,7 +551,7 @@ Zone extérieure (pointillée) : peut être rognée par le masque du lanceur - g
     <string name="patcher_conflict_subtitle">Vous devez désinstaller la version existante</string>
     <string name="patcher_conflict_hint">L\'application patchée utilise un certificat différent de celui de la version installée. La désinstallation effacera toutes les données de l\'application</string>
     <string name="patcher_installed_conflict_title">Désinstallation nécessaire</string>
-    <string name="patcher_installed_conflict_body">"Morphe signe les applications patchées avec son propre certificat, différent de celui de l'application d'origine. Android exige de supprimer la version existante avant de pouvoir installer l'application patchée.
+    <string name="patcher_installed_conflict_body">"Nivqo signe les applications patchées avec son propre certificat, différent de celui de l'application d'origine. Android exige de supprimer la version existante avant de pouvoir installer l'application patchée.
 
 La désinstallation effacera définitivement toutes les données de l'application"</string>
     <string name="patcher_install_error_title">Erreur d\'installation</string>
@@ -561,9 +561,9 @@ La désinstallation effacera définitivement toutes les données de l'applicatio
     <string name="patcher_back_to_game_hint">Appuyez sur %1$s pour revenir à votre jeu</string>
     <string name="patcher_storage_permission_dialog_title">Impossible d\'accéder au chemin de stockage</string>
     <string name="patcher_incompatible_patcher_title">Mise à jour nécessaire</string>
-    <string name="patcher_incompatible_patcher_description">Le bundle &lt;b&gt;%1$s&lt;/b&gt; nécessite la version &lt;b&gt;%2$s&lt;/b&gt; du patcheur ou une version plus récente. Veuillez mettre à jour Morphe pour patcher cette application</string>
-    <string name="patcher_incompatible_patcher_update_button">Télécharger et mettre à jour Morphe</string>
-    <string name="patcher_storage_permission_description_api30">Une ou plusieurs options de patch pointent vers des chemins que Morphe ne peut pas lire. Accordez l\'accès au stockage puis appuyez sur le bouton le patching commencera automatiquement</string>
+    <string name="patcher_incompatible_patcher_description">Le bundle &lt;b&gt;%1$s&lt;/b&gt; nécessite la version &lt;b&gt;%2$s&lt;/b&gt; du patcheur ou une version plus récente. Veuillez mettre à jour Nivqo pour patcher cette application</string>
+    <string name="patcher_incompatible_patcher_update_button">Télécharger et mettre à jour Nivqo</string>
+    <string name="patcher_storage_permission_description_api30">Une ou plusieurs options de patch pointent vers des chemins que Nivqo ne peut pas lire. Accordez l\'accès au stockage puis appuyez sur le bouton le patching commencera automatiquement</string>
     <string name="patcher_storage_permission_description_legacy">Une ou plusieurs options de patch pointent vers des chemins inaccessibles. Mettez à jour les chemins dans les options de patch puis réessayez</string>
     <string name="patcher_storage_permission_grant">Accorder l\'autorisation d\'accès au stockage</string>
     <string name="patcher_storage_permission_denied_warning">L\'autorisation d\'accès au stockage a été refusée. Accordez l\'autorisation pour utiliser ce chemin ou déplacez les fichiers vers le répertoire privé de l\'application</string>
@@ -577,7 +577,7 @@ La désinstallation effacera définitivement toutes les données de l'applicatio
     <string name="patcher_option_paths_gone_title">Les fichiers d\'options de patch sont manquants</string>
     <string name="patcher_option_paths_gone_description">Une ou plusieurs options de patch pointent vers des fichiers qui ne sont plus présents. Supprimez les chemins pour patcher sans ces fichiers, ou remettez les fichiers en place et réessayez</string>
     <string name="patcher_option_paths_clear">Supprimer les chemins et continuer</string>
-    <string name="patcher_storage_permission_hint">Astuce : Déplacez les fichiers vers /Android/data/app.morphe.manager/files/ — aucune autorisation supplémentaire n\'est nécessaire</string>
+    <string name="patcher_storage_permission_hint">Astuce : Déplacez les fichiers vers /Android/data/app.nivqo.manager/files/ — aucune autorisation supplémentaire n\'est nécessaire</string>
     <!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Préparation</string>
     <string name="patcher_step_load_patches">Chargement des patchs</string>
@@ -589,7 +589,7 @@ La désinstallation effacera définitivement toutes les données de l'applicatio
     <string name="patcher_step_sign_apk">Signature du fichier APK patché</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Protection du patching en arrière-plan</string>
-    <string name="battery_optimization_dialog_description">Certains appareils peuvent arrêter le patcheur lorsque l\'application est minimisée. Autorisez Morphe à fonctionner sans restriction de batterie afin de garantir que le patching s\'effectue correctement</string>
+    <string name="battery_optimization_dialog_description">Certains appareils peuvent arrêter le patcheur lorsque l\'application est minimisée. Autorisez Nivqo à fonctionner sans restriction de batterie afin de garantir que le patching s\'effectue correctement</string>
     <string name="battery_optimization_not_now">Pas maintenant</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">Mémoire insuffisante</string>
@@ -646,8 +646,8 @@ La désinstallation effacera définitivement toutes les données de l'applicatio
     <string name="install_ignore_signature">Installer quand même</string>
     <string name="install_ignore_signature_description">Conserve les données de l\'application, mais ne fonctionne que si un module root désactive la vérification de signature d\'Android</string>
     <string name="uninstall_app_fail">Échec de la désinstallation de l\'application : %s</string>
-    <string name="uninstall_app_unverified">Laissé en place : Morphe n\'a pas pu vérifier que l\'application installée est le build qu\'il a patché</string>
-    <string name="launch_app_unverified">Morphe n\'a pas pu vérifier que l\'application installée est le build qu\'il a patché.</string>
+    <string name="uninstall_app_unverified">Laissé en place : Nivqo n\'a pas pu vérifier que l\'application installée est le build qu\'il a patché</string>
+    <string name="launch_app_unverified">Nivqo n\'a pas pu vérifier que l\'application installée est le build qu\'il a patché.</string>
     <string name="uninstall_timeout">Délai d\'attente de la désinstallation dépassé</string>
     <string name="save_apk_success">APK enregistré</string>
     <string name="saved_app_export_failed">Échec de l\'exportation de l\'application patchée</string>
@@ -758,7 +758,7 @@ La désinstallation effacera définitivement toutes les données de l'applicatio
     <string name="settings_appearance_app_card_colors_bundle_description">Utilisez ici la couleur propre à chaque application, automatiquement nuancée pour s\'adapter</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Icône de l\'application</string>
-    <string name="settings_appearance_app_icon_selector_description">À quoi ressemble Morphe sur votre écran d\'accueil et dans le tiroir d\'applications</string>
+    <string name="settings_appearance_app_icon_selector_description">À quoi ressemble Nivqo sur votre écran d\'accueil et dans le tiroir d\'applications</string>
     <string name="settings_appearance_app_icon_default">Par défaut</string>
     <string name="settings_appearance_app_icon_light_2">Ciel</string>
     <string name="settings_appearance_app_icon_light_3">Coucher de soleil</string>
@@ -774,14 +774,14 @@ La désinstallation effacera définitivement toutes les données de l'applicatio
     <string name="settings_advanced_patcher">Patcheur</string>
     <string name="settings_advanced_updates_manager_prereleases">Mises à jour en préversion</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
-    <string name="settings_advanced_updates_manager_prereleases_description">Accès anticipé aux nouvelles versions de Morphe</string>
+    <string name="settings_advanced_updates_manager_prereleases_description">Accès anticipé aux nouvelles versions de Nivqo</string>
     <string name="settings_advanced_updates_prerelease_warning_title">Activer les mises à jour en préversion ?</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
-    <string name="settings_advanced_updates_prerelease_warning_message">"Les versions de préversion de Morphe sont encore en cours de développement et peuvent être instables.
+    <string name="settings_advanced_updates_prerelease_warning_message">"Les versions de préversion de Nivqo sont encore en cours de développement et peuvent être instables.
 
 Les patchs ne sont pas affectés : activez les patchs en préversion pour chaque source dans la liste des sources de patchs"</string>
     <string name="settings_advanced_updates_allow_metered">Mises à jour via les données mobiles</string>
-    <string name="settings_advanced_updates_allow_metered_description">Autorise Morphe et les mises à jour de patchs à se télécharger via les données mobiles</string>
+    <string name="settings_advanced_updates_allow_metered_description">Autorise Nivqo et les mises à jour de patchs à se télécharger via les données mobiles</string>
     <string name="settings_advanced_updates_background_notifications">Notifications de mise à jour en arrière-plan</string>
     <string name="settings_advanced_updates_background_notifications_description">Vérifier périodiquement les mises à jour en arrière-plan et notifier lorsqu\'elles sont disponibles</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Reçoit des notifications push instantanées pour les nouvelles versions, même lorsque l\'application est fermée</string>
@@ -798,27 +798,27 @@ Les patchs ne sont pas affectés : activez les patchs en préversion pour chaque
     <string name="settings_advanced_external_batch_patch">Autoriser les déclencheurs externes</string>
     <string name="settings_advanced_external_batch_patch_description">Permet aux applications d\'automatisation de lancer le patching par lots via une intention</string>
     <string name="external_batch_patch_title">Démarrer le patching par lots ?</string>
-    <string name="external_batch_patch_description">%s souhaite que Morphe patche et installe des applications</string>
+    <string name="external_batch_patch_description">%s souhaite que Nivqo patche et installe des applications</string>
     <string name="external_batch_patch_trust_caller">Toujours autoriser cette application</string>
     <string name="external_batch_patch_unknown_caller">Une application inconnue</string>
     <!-- Notification content -->
-    <string name="notification_manager_update_title">Mise à jour de Morphe disponible</string>
+    <string name="notification_manager_update_title">Mise à jour de Nivqo disponible</string>
     <string name="notification_bundle_update_title">Nouveaux patchs disponibles</string>
     <string name="notification_update_text">La version %s est prête à être téléchargée</string>
-    <string name="notification_bundle_update_text_unversioned">Appuyez pour ouvrir Morphe et mettre à jour</string>
+    <string name="notification_bundle_update_text_unversioned">Appuyez pour ouvrir Nivqo et mettre à jour</string>
     <string name="notification_permission_dialog_title">Autoriser les notifications</string>
-    <string name="notification_permission_dialog_description">Morphe a besoin de l\'autorisation des notifications pour vous alerter lorsque des mises à jour sont disponibles en arrière-plan</string>
+    <string name="notification_permission_dialog_description">Nivqo a besoin de l\'autorisation des notifications pour vous alerter lorsque des mises à jour sont disponibles en arrière-plan</string>
     <string name="notification_post_patch_dialog_title">Souhaitez-vous être notifié lorsque des mises à jour sont disponibles ?</string>
-    <string name="notification_channel_manager_updates">Mises à jour de Morphe</string>
-    <string name="notification_channel_manager_updates_description">Notifications concernant les nouvelles versions de Morphe</string>
+    <string name="notification_channel_manager_updates">Mises à jour de Nivqo</string>
+    <string name="notification_channel_manager_updates_description">Notifications concernant les nouvelles versions de Nivqo</string>
     <string name="notification_channel_patch_updates">Mises à jour de patchs</string>
     <string name="notification_channel_patch_updates_description">Notifications concernant les nouvelles versions de patchs</string>
     <string name="notification_channel_patcher">Patching</string>
-    <string name="notification_channel_patcher_description">Affiché lorsque Morphe effectue le patching d\'une application en arrière-plan</string>
+    <string name="notification_channel_patcher_description">Affiché lorsque Nivqo effectue le patching d\'une application en arrière-plan</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Paramètres Expert</string>
     <string name="settings_advanced_expert_mode">Mode Expert</string>
-    <string name="settings_advanced_expert_mode_description">Active les paramètres de patching Morphe complexes et les options de personnalisation</string>
+    <string name="settings_advanced_expert_mode_description">Active les paramètres de patching Nivqo complexes et les options de personnalisation</string>
     <string name="settings_advanced_expert_mode_dialog_title">Passer en mode Expert ?</string>
     <string name="settings_advanced_expert_mode_dialog_message">Le mode Expert offre plus de contrôle sur la manière dont les patchs sont appliqués, mais une mauvaise configuration des paramètres en mode expert peut rendre l\'application inutilisable</string>
     <string name="settings_advanced_strip_unused_libs">Optimiser pour l\'architecture de l\'appareil</string>
@@ -833,7 +833,7 @@ Les patchs ne sont pas affectés : activez les patchs en préversion pour chaque
     <string name="settings_advanced_github_pat_dialog_description">"Définissez un %3$s afin de pouvoir ajouter des pull requests en tant que sources externes. Créez un PAT avec le champ %2$s sur %1$s"</string>
     <string name="settings_advanced_github_pat_export_include_label">Inclure dans l\'export des paramètres</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
-    <string name="settings_advanced_github_pat_export_include_supporting">Ajoute ce PAT aux paramètres exportés de Morphe</string>
+    <string name="settings_advanced_github_pat_export_include_supporting">Ajoute ce PAT aux paramètres exportés de Nivqo</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">Ne partagez pas votre PAT. Si vous l\'incluez dans l\'export des paramètres, gardez ce fichier privé car il contient le jeton</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
@@ -932,7 +932,7 @@ Les dimensions des images doivent respecter les valeurs suivantes :
     <string name="installer_status_not_supported">Non pris en charge pour cette action</string>
     <string name="installer_status_shizuku_not_installed">Installez Shizuku ou Sui pour utiliser cette option</string>
     <string name="installer_status_shizuku_not_running">Démarrez Shizuku ou Sui et réessayez</string>
-    <string name="installer_status_shizuku_permission">Accordez l\'autorisation à Morphe depuis l\'application Shizuku</string>
+    <string name="installer_status_shizuku_permission">Accordez l\'autorisation à Nivqo depuis l\'application Shizuku</string>
     <string name="installer_mount_warning_install">Votre installateur principal est défini sur l\'installateur de montage root. Cette application enregistrée n\'a pas été installée à l\'aide du montage</string>
     <string name="mount_version_mismatch_message">La version de l\'application système (%2$s) ne correspond pas à la version de l\'application patchée (%1$s). Montez la version système correspondante, puis réessayez</string>
     <string name="mount_stock_restore_failed_message">Android a rejeté l\'APK d\'origine enregistré. Installez la version d\'origine correspondante, puis essayez de monter à nouveau</string>
@@ -962,7 +962,7 @@ Les dimensions des images doivent respecter les valeurs suivantes :
     <string name="settings_auto_uninstall_with_shizuku">Désinstallation automatique en cas de conflit</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Lors de l\'installation automatique avec Shizuku, désinstaller d\'abord l\'application existante si Android signale un conflit de signature. Cela peut supprimer les données de l\'application</string>
     <string name="settings_auto_uninstall_warning_title">Activer la désinstallation automatique ?</string>
-    <string name="settings_auto_uninstall_warning_message">Si Android signale un conflit de signature lors de l\'installation automatique avec Shizuku, Morphe désinstallera l\'application existante avant d\'installer l\'APK patché</string>
+    <string name="settings_auto_uninstall_warning_message">Si Android signale un conflit de signature lors de l\'installation automatique avec Shizuku, Nivqo désinstallera l\'application existante avant d\'installer l\'APK patché</string>
     <string name="settings_auto_uninstall_warning_risk">Cela peut supprimer les données de l\'application. Si l\'APK patché ne parvient pas à s\'installer après la désinstallation, l\'application précédente peut déjà avoir disparu</string>
     <string name="installer_shizuku_status_action">Vérifier le statut de Shizuku</string>
     <string name="installer_shizuku_status_title">Statut de Shizuku</string>
@@ -980,7 +980,7 @@ Les dimensions des images doivent respecter les valeurs suivantes :
     <string name="installer_shizuku_install_fail_with_details">"Échec de l'installation avec Shizuku : %1$s
 
 Détails : %2$s"</string>
-    <string name="installer_shizuku_error_permission">L\'autorisation Shizuku est manquante. Accordez l\'autorisation à Morphe et réessayez</string>
+    <string name="installer_shizuku_error_permission">L\'autorisation Shizuku est manquante. Accordez l\'autorisation à Nivqo et réessayez</string>
     <string name="installer_shizuku_error_timeout">Shizuku n\'a pas renvoyé de résultat d\'installation. Assurez-vous qu\'il est toujours en cours d\'exécution et réessayez</string>
     <string name="installer_shizuku_error_downgrade">Android a bloqué ceci parce que cela rétrograderait l\'application installée</string>
     <string name="installer_shizuku_error_signature">Android a bloqué ceci parce que l\'application installée possède une signature différente</string>
@@ -995,7 +995,7 @@ Détails : %2$s"</string>
     <string name="settings_system_process_runtime_memory_limit_description">Des limites plus élevées accélèrent le patching sur les appareils compatibles</string>
     <string name="settings_system_process_runtime_enable">Activer le temps d\'exécution du processus</string>
     <string name="settings_system_memory_limit_subtitle">Mémoire disponible pour le patching</string>
-    <string name="settings_system_process_runtime_heap_limit_ignored">Cet appareil a ignoré la limite de mémoire lors de la dernière exécution, donc le patching pourrait revenir à une exécution à l\'intérieur de Morphe</string>
+    <string name="settings_system_process_runtime_heap_limit_ignored">Cet appareil a ignoré la limite de mémoire lors de la dernière exécution, donc le patching pourrait revenir à une exécution à l\'intérieur de Nivqo</string>
     <string name="settings_system_memory_limit_warning">Une limite de mémoire faible peut entraîner des échecs lors du patching des applications plus volumineuses</string>
     <string name="settings_system_memory_limit_high_warning">Une limite de mémoire élevée peut rendre le patching beaucoup plus lent sur certains appareils. Augmentez-la uniquement si le patching continue d\'échouer avec des limites plus faibles</string>
     <string name="settings_system_process_runtime_enabled_description">Limite de %s Mo</string>
@@ -1018,8 +1018,8 @@ Détails : %2$s"</string>
     <string name="settings_system_import_export">Importer &amp; exporter</string>
     <string name="settings_system_signing_key">Clé de signature</string>
     <string name="settings_system_signing_key_description">Sauvegarde et restaure la clé avec laquelle vos applications patchées sont signées</string>
-    <string name="settings_system_signing_key_dialog_description">Chaque application patchée par Morphe est signée avec cette clé. Conservez-en une copie : sans elle, les applications patchées ne peuvent être mises à jour qu\'après leur désinstallation</string>
-    <string name="settings_system_signing_key_missing">Morphe en crée une lors de votre premier patch</string>
+    <string name="settings_system_signing_key_dialog_description">Chaque application patchée par Nivqo est signée avec cette clé. Conservez-en une copie : sans elle, les applications patchées ne peuvent être mises à jour qu\'après leur désinstallation</string>
+    <string name="settings_system_signing_key_missing">Nivqo en crée une lors de votre premier patch</string>
     <string name="settings_system_signing_key_created">Créé le %s</string>
     <string name="settings_system_signing_key_fingerprint">Empreinte SHA-256</string>
     <string name="settings_system_backup_appearance_description">Thème, couleurs et langue</string>
@@ -1042,11 +1042,11 @@ Détails : %2$s"</string>
     <string name="settings_system_export_keystore_failed">Échec de l\'exportation du keystore</string>
     <string name="settings_system_show_password_field">Afficher le mot de passe</string>
     <string name="settings_system_hide_password_field">Masquer le mot de passe</string>
-    <string name="settings_system_morphe_settings">Paramètres de Morphe</string>
-    <string name="settings_system_import_manager_settings_description">Sauvegardez et restaurez vos paramètres Morphe</string>
-    <string name="settings_system_import_manager_settings_fail">Échec de l\'importation des paramètres de Morphe : %s</string>
-    <string name="settings_system_import_manager_settings_success">Paramètres de Morphe importés</string>
-    <string name="settings_system_import_manager_settings_mode_title">Importer les paramètres de Morphe</string>
+    <string name="settings_system_morphe_settings">Paramètres de Nivqo</string>
+    <string name="settings_system_import_manager_settings_description">Sauvegardez et restaurez vos paramètres Nivqo</string>
+    <string name="settings_system_import_manager_settings_fail">Échec de l\'importation des paramètres de Nivqo : %s</string>
+    <string name="settings_system_import_manager_settings_success">Paramètres de Nivqo importés</string>
+    <string name="settings_system_import_manager_settings_mode_title">Importer les paramètres de Nivqo</string>
     <string name="settings_system_import_manager_settings_mode_description">Choisissez comment les paramètres et les sources importés doivent être appliqués</string>
     <string name="settings_system_import_selections_mode_title">Importer les sélections de patchs</string>
     <string name="settings_system_import_selections_mode_description">Choisissez comment les sélections et les options de patch importées doivent être appliquées</string>
@@ -1054,8 +1054,8 @@ Détails : %2$s"</string>
     <string name="import_mode_replace_description">Faire correspondre exactement à la sauvegarde. Les éléments absents de la sauvegarde seront supprimés</string>
     <string name="import_mode_merge_title">Fusionner avec l\'existant</string>
     <string name="import_mode_merge_description">Ajoute les éléments manquants à partir de la sauvegarde. Les éléments existants restent inchangés</string>
-    <string name="settings_system_export_manager_settings_fail">Échec de l\'exportation des paramètres de Morphe : %s</string>
-    <string name="settings_system_export_manager_settings_success">Paramètres de Morphe exportés</string>
+    <string name="settings_system_export_manager_settings_fail">Échec de l\'exportation des paramètres de Nivqo : %s</string>
+    <string name="settings_system_export_manager_settings_success">Paramètres de Nivqo exportés</string>
     <string name="settings_system_export_debug_logs">Exporter les journaux de débogage</string>
     <string name="settings_system_export_debug_logs_description">Enregistre les journaux système pour le dépannage
 </string>
@@ -1092,7 +1092,7 @@ Détails : %2$s"</string>
     <string name="settings_system_storage_cleared">%s libérés</string>
     <string name="settings_system_storage_nothing_to_clear">Rien à effacer</string>
     <string name="settings_system_storage_open_app_info_title">Ouvrir le stockage de l\'application Android</string>
-    <string name="settings_system_storage_open_app_info_description">Gérez ou effacez toutes les données de Morphe via les paramètres du système</string>
+    <string name="settings_system_storage_open_app_info_description">Gérez ou effacez toutes les données de Nivqo via les paramètres du système</string>
     <string name="settings_system_save_original_apks_title">Conserver les APK d\'origine</string>
     <string name="settings_system_save_original_apks_description">Enregistrez l\'APK pré-patché afin de pouvoir le réutiliser pour un re-patching sans avoir à sélectionner de nouveau le fichier</string>
     <string name="settings_system_save_patched_apks_title">Conserver les APK patchés</string>
@@ -1140,12 +1140,12 @@ Détails : %2$s"</string>
     <string name="copy_selection_same_source">Même source</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Sélecteur de fichiers personnalisé</string>
-    <string name="settings_system_custom_file_picker_description">Parcourez le stockage avec le sélecteur de fichiers intégré de Morphe au lieu de celui par défaut du système</string>
+    <string name="settings_system_custom_file_picker_description">Parcourez le stockage avec le sélecteur de fichiers intégré de Nivqo au lieu de celui par défaut du système</string>
     <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">Assistant de téléchargement d\'APK</string>
     <string name="settings_system_apk_download_helper_trusted_count">Fiables : %1$d sur %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Les applications d\'assistance peuvent télécharger les APK d\'origine pour vous. Seules les applications auxquelles vous faites confiance ici sont proposées dans les instructions de téléchargement</string>
-    <string name="settings_system_apk_download_helper_warning">L\'APK provient de l\'application d\'assistance : ne faites donc confiance qu\'aux applications que vous connaissez. Morphe vérifie tout de même le paquet, la version et la signature de chaque fichier avant le patching</string>
+    <string name="settings_system_apk_download_helper_warning">L\'APK provient de l\'application d\'assistance : ne faites donc confiance qu\'aux applications que vous connaissez. Nivqo vérifie tout de même le paquet, la version et la signature de chaque fichier avant le patching</string>
     <string name="settings_system_apk_download_helper_installed_by">Installé par %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Installateur inconnu</string>
     <!-- File Picker -->
@@ -1328,7 +1328,7 @@ Détails : %2$s"</string>
     <string name="update_completed">Mise à jour installée</string>
     <string name="install_update_manager_failed">Échec de l\'installation de la mise à jour</string>
     <string name="installing_manager_update">Installation de la mise à jour…</string>
-    <string name="installing_manager_update_hint">Morphe va se fermer pour terminer la mise à jour</string>
+    <string name="installing_manager_update_hint">Nivqo va se fermer pour terminer la mise à jour</string>
     <string name="downloading_manager_update">Téléchargement de la mise à jour…</string>
     <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s Mo téléchargés</string>
@@ -1349,7 +1349,7 @@ Voulez-vous tout de même continuer ?"</string>
     <string name="onboarding_sources_desc">Gérez vos sources de patchs. Chaque source fournit des patchs pouvant être appliqués à vos applications</string>
     <string name="onboarding_swipe_title">Gestes de balayage</string>
     <string name="onboarding_swipe_desc">Balayez vers la droite sur une carte d\'application pour afficher les patchs disponibles. Balayez vers la gauche pour la masquer de l\'écran d\'accueil</string>
-    <string name="onboarding_settings_desc">Personnalisez Morphe : apparence, options avancées et outils système</string>
+    <string name="onboarding_settings_desc">Personnalisez Nivqo : apparence, options avancées et outils système</string>
     <string name="onboarding_sources_patches_desc">Appuyez pour afficher tous les patchs disponibles depuis cette source</string>
     <string name="onboarding_sources_version_desc">Appuyez sur la version pour afficher l\'historique complet des modifications de cette source</string>
     <string name="onboarding_sources_prerelease_desc">Activez cette option pour recevoir des versions de patchs en préversion de cette source</string>
@@ -1364,7 +1364,7 @@ Voulez-vous tout de même continuer ?"</string>
     <string name="onboarding_system_file_picker_desc">Activez cette option pour utiliser l\'explorateur de fichiers intégré à la place du sélecteur système lors de la sélection d\'APK ou de keystores</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Visite guidée rapide des fonctionnalités</string>
-    <string name="tour_prompt_desc">Vous souhaitez découvrir rapidement les principales fonctionnalités de Morphe ?</string>
+    <string name="tour_prompt_desc">Vous souhaitez découvrir rapidement les principales fonctionnalités de Nivqo ?</string>
     <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Faites-moi découvrir</string>
     <string name="onboarding_restart_title">Visite guidée des fonctionnalités</string>

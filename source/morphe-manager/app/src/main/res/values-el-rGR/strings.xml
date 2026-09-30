@@ -20,18 +20,18 @@
     <string name="android_11_bug_dialog_title">Σφάλμα Android 11</string>
     <string name="android_11_bug_dialog_description">Πρέπει να χορηγηθεί εκ των προτέρων η άδεια εγκατάστασης της εφαρμογής, προκειμένου να αποφευχθεί ένα σφάλμα στο σύστημα Android 11 που θα επηρεάσει αρνητικά την εμπειρία του χρήστη</string>
     <string name="deep_link_add_source_title">Προσθήκη πηγής</string>
-    <string name="deep_link_add_source_message">Θέλετε να προσθέσετε αυτή την πηγή τροποποιήσεων στο Morphe;</string>
+    <string name="deep_link_add_source_message">Θέλετε να προσθέσετε αυτή την πηγή τροποποιήσεων στο Nivqo;</string>
     <string name="deep_link_add_source_warning">Προσθέστε μόνο πηγές που εμπιστεύεστε</string>
     <!-- Home Screen - Update Notifications -->
-    <string name="home_update_available">Διαθέσιμη ενημέρωση του Morphe</string>
+    <string name="home_update_available">Διαθέσιμη ενημέρωση του Nivqo</string>
     <string name="home_update_available_subtitle">Νέα έκδοση έτοιμη για εγκατάσταση</string>
     <string name="home_blocked_source_title">Ανιχνεύτηκε αποκλεισμένη πηγή ενημερώσεων</string>
     <string name="home_blocked_source_subtitle">Πατήστε για να ελέγξετε και να καταργήσετε</string>
     <string name="home_metadata_errors_title">Ορισμένες πηγές ενημερώσεων δεν είναι διαθέσιμες</string>
     <string name="home_metadata_errors_subtitle">Πατήστε για να ελέγξετε τις πηγές</string>
-    <string name="home_outdated_manager_title">Η εφαρμογή Morphe είναι παλιά</string>
+    <string name="home_outdated_manager_title">Η εφαρμογή Nivqo είναι παλιά</string>
     <string name="home_outdated_manager_subtitle">Ορισμένες πηγές ενημερώσεων απαιτούν νεότερη έκδοση</string>
-    <string name="home_held_back_title">Μια πηγή ενημερώσεων προκάλεσε σφάλμα στο Morphe</string>
+    <string name="home_held_back_title">Μια πηγή ενημερώσεων προκάλεσε σφάλμα στο Nivqo</string>
     <string name="home_held_back_subtitle">Παραλείφθηκε ώστε να μπορέσει να ξεκινήσει η εφαρμογή. Πατήστε για προβολή</string>
     <string name="home_metered_skipped_title">Οι ενημερώσεις έχουν παύσει στα δεδομένα κινητής τηλεφωνίας</string>
     <string name="home_metered_skipped_subtitle">Πατήστε για να επιτρέψετε ενημερώσεις μέσω κινητών δεδομένων</string>
@@ -48,10 +48,10 @@
     <string name="home_app_list_options_title">Ταξινόμηση και φιλτράρισμα</string>
     <string name="home_app_list_options_state_description">Ταξινομημένες κατά %1$s, φιλτραρισμένες κατά %2$s</string>
     <string name="home_app_filter_all_description">Κάθε εφαρμογή στην αρχική οθόνη</string>
-    <string name="home_app_filter_patched_description">Εφαρμογές που έχετε επιδιορθώσει ή αποθηκεύσει με το Morphe</string>
-    <string name="home_app_filter_not_patched_description">Εφαρμογές που δεν έχετε επιδιορθώσει ακόμα στο Morphe</string>
+    <string name="home_app_filter_patched_description">Εφαρμογές που έχετε επιδιορθώσει ή αποθηκεύσει με το Nivqo</string>
+    <string name="home_app_filter_not_patched_description">Εφαρμογές που δεν έχετε επιδιορθώσει ακόμα στο Nivqo</string>
     <string name="home_app_filter_installed_description">Εφαρμογές που είναι εγκατεστημένες αυτήν τη στιγμή σε αυτήν τη συσκευή</string>
-    <string name="home_app_filter_uninstalled_description">Εφαρμογές που έχουν επιδιορθωθεί με το Morphe και δεν βρίσκονται πλέον σε αυτήν τη συσκευή</string>
+    <string name="home_app_filter_uninstalled_description">Εφαρμογές που έχουν επιδιορθωθεί με το Nivqo και δεν βρίσκονται πλέον σε αυτήν τη συσκευή</string>
     <string name="home_app_filter_clones">Κλώνοι</string>
     <string name="home_app_filter_clones_description">Εφαρμογές που δημιουργήθηκαν με δικό τους όνομα πακέτου, εγκατεστημένες δίπλα στην πρωτότυπη</string>
     <string name="home_app_sort_manual_description">Πατήστε παρατεταμένα μια εφαρμογή, στη συνέχεια πατήστε το κουμπί αναδιάταξης</string>
@@ -158,10 +158,10 @@
     <string name="sources_management_metadata_unavailable">Μεταδεδομένα μη διαθέσιμα</string>
     <string name="sources_management_metadata_unavailable_hint">Το απομακρυσμένο αρχείο μεταδεδομένων δεν είναι διαθέσιμο. Η επιδιόρθωση με το εγκατεστημένο πακέτο εξακολουθεί να λειτουργεί, αλλά η αυτόματη ενημέρωση είναι απενεργοποιημένη για αυτήν την πηγή</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Το πακέτο επιδιόρθωσης δεν κατέβηκε. Η διεύθυνση URL της πηγής ενδέχεται να είναι λανθασμένη ή το αρχείο να μην υπάρχει</string>
-    <string name="sources_management_outdated_manager_badge">Ενημέρωση Morphe</string>
-    <string name="sources_management_outdated_manager_hint">Αυτή η πηγή είναι κατασκευασμένη για το patcher %1$s, αλλά η Morphe %2$s περιλαμβάνει το patcher %3$s. Ενημερώστε την Morphe για να το χρησιμοποιήσετε</string>
+    <string name="sources_management_outdated_manager_badge">Ενημέρωση Nivqo</string>
+    <string name="sources_management_outdated_manager_hint">Αυτή η πηγή είναι κατασκευασμένη για το patcher %1$s, αλλά η Nivqo %2$s περιλαμβάνει το patcher %3$s. Ενημερώστε την Nivqo για να το χρησιμοποιήσετε</string>
     <string name="sources_management_held_back_badge">Σφάλμα</string>
-    <string name="sources_management_held_back_hint">Αυτή η πηγή προκάλεσε σφάλμα στο Morphe κατά τη φόρτωση, οπότε παραλείπεται. Ενημερώστε την ή εισάγετέ την ξανά για να δοκιμάσετε ξανά.</string>
+    <string name="sources_management_held_back_hint">Αυτή η πηγή προκάλεσε σφάλμα στο Nivqo κατά τη φόρτωση, οπότε παραλείπεται. Ενημερώστε την ή εισάγετέ την ξανά για να δοκιμάσετε ξανά.</string>
     <string name="sources_management_source_enabled">Ενεργοποιημένη πηγή</string>
     <string name="sources_management_source_disabled">Απενεργοποιημένη πηγή</string>
     <string name="sources_management_source_updating">Ενημέρωση πηγής</string>
@@ -192,7 +192,7 @@
     <string name="sources_dialog_choose_apps_description">Επιλέξτε ποιες από τις εφαρμογές της θα κρατήσετε μόλις φορτωθεί η πηγή.</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Πηγές patches τρίτων</string>
-    <string name="sources_dialog_community_notice_message">"Οι πηγές patches κοινότητας δημιουργούνται και συντηρούνται από τους ίδιους τους συγγραφείς. Η Morphe δεν εξετάζει ούτε επαληθεύει patches τρίτων και δεν είναι υπεύθυνη για το περιεχόμενό τους ή για ό,τι κάνουν στη συσκευή σας.
+    <string name="sources_dialog_community_notice_message">"Οι πηγές patches κοινότητας δημιουργούνται και συντηρούνται από τους ίδιους τους συγγραφείς. Η Nivqo δεν εξετάζει ούτε επαληθεύει patches τρίτων και δεν είναι υπεύθυνη για το περιεχόμενό τους ή για ό,τι κάνουν στη συσκευή σας.
 
 Οτιδήποτε προσθέτετε από αυτόν τον ιστότοπο χρησιμοποιείται με δική σας ευθύνη."</string>
     <string name="sources_update_success">Ενημέρωση επιτυχής</string>
@@ -214,16 +214,16 @@
     <string name="home_apk_availability_no">Όχι, ήδη έχω ένα APK</string>
     <string name="home_apk_helper_download">Χρησιμοποιήστε μια βοηθητική εφαρμογή</string>
     <string name="home_apk_helper_title">Λήψη με μια βοηθητική εφαρμογή</string>
-    <string name="home_apk_helper_description">Το Morphe θα ζητήσει από την βοηθητική εφαρμογή παρακάτω να κατεβάσει το αρχικό APK και να παραδώσει το αρχείο</string>
+    <string name="home_apk_helper_description">Το Nivqo θα ζητήσει από την βοηθητική εφαρμογή παρακάτω να κατεβάσει το αρχικό APK και να παραδώσει το αρχείο</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">Άνοιγμα βοηθού</string>
-    <string name="home_apk_helper_warning">Συνεχίστε μόνο εάν εμπιστεύεστε αυτή τη βοηθητική εφαρμογή. Η Morphe ελέγχει το πακέτο, την έκδοση και την υπογραφή όποιου κι αν λάβει περιεχόμενο πριν από την εφαρμογή διορθώσεων</string>
-    <string name="home_apk_helper_warning_unverified">Συνεχίστε μόνο εάν εμπιστεύεστε αυτή τη βοηθητική εφαρμογή. Η Morphe δεν μπορεί να επαληθεύσει την υπογραφή αυτού του APK, επομένως ένα τροποποιημένο αρχείο δεν θα ανιχνευθεί</string>
+    <string name="home_apk_helper_warning">Συνεχίστε μόνο εάν εμπιστεύεστε αυτή τη βοηθητική εφαρμογή. Η Nivqo ελέγχει το πακέτο, την έκδοση και την υπογραφή όποιου κι αν λάβει περιεχόμενο πριν από την εφαρμογή διορθώσεων</string>
+    <string name="home_apk_helper_warning_unverified">Συνεχίστε μόνο εάν εμπιστεύεστε αυτή τη βοηθητική εφαρμογή. Η Nivqo δεν μπορεί να επαληθεύσει την υπογραφή αυτού του APK, επομένως ένα τροποποιημένο αρχείο δεν θα ανιχνευθεί</string>
     <string name="home_apk_helper_no_result">Η βοηθητική εφαρμογή δεν επέστρεψε ένα APK</string>
     <string name="home_apk_helper_no_access">Η βοηθητική εφαρμογή δεν conceded πρόσβαση στο APK που επέστρεψε</string>
     <string name="home_apk_helper_no_package">Η βοηθητική εφαρμογή δεν ανέφερε ποια εγκατεστημένη εφαρμογή να χρησιμοποιήσει</string>
     <string name="home_apk_helper_wrong_package">Η βοηθητική εφαρμογή επέστρεψε μια διαφορετική εφαρμογή από αυτή που τροποποιείται</string>
-    <string name="home_apk_helper_installed_unavailable">Ο Morphe δεν μπόρεσε να χρησιμοποιήσει την εγκατεστημένη εφαρμογή</string>
+    <string name="home_apk_helper_installed_unavailable">Ο Nivqo δεν μπόρεσε να χρησιμοποιήσει την εγκατεστημένη εφαρμογή</string>
     <string name="home_apk_helper_installed_incompatible">Η εγκατεστημένη έκδοση δεν μπορεί να τροποποιηθεί</string>
     <string name="home_apk_use_saved">Χρήση αποθηκευμένου APK</string>
     <string name="home_apk_use_installed">Χρήση εγκατεστημένου APK</string>
@@ -231,7 +231,7 @@
     <string name="home_apk_use_installed_unverified">Δεν μπόρεσα να επαληθεύσω την υπογραφή της εγκατεστημένης εφαρμογής, επομένως ενδέχεται να έχει ήδη τροποποιηθεί</string>
     <string name="home_unverified">Μη επαληθευμένο</string>
     <string name="home_install_verification_pending">Έλεγχος εγκατάστασης…</string>
-    <string name="home_app_info_install_unverified">Η Morphe δεν μπορεί να επιβεβαιώσει ότι η εγκατεστημένη εφαρμογή είναι η έκδοση που τροποποίησε. Επαναλάβετε την τροποποίηση ή επανεγκαταστήστε την από το αποθηκευμένο APK για να επαναφέρετε τις ενέργειές της</string>
+    <string name="home_app_info_install_unverified">Η Nivqo δεν μπορεί να επιβεβαιώσει ότι η εγκατεστημένη εφαρμογή είναι η έκδοση που τροποποίησε. Επαναλάβετε την τροποποίηση ή επανεγκαταστήστε την από το αποθηκευμένο APK για να επαναφέρετε τις ενέργειές της</string>
     <string name="home_app_info_no_saved_apk">Δεν υπάρχει αποθηκευμένο APK. Η τροποποίηση κώδικα θα απαιτήσει την επιλογή του αρχείου APK ξανά</string>
     <string name="home_version_requires_android">Απαιτείται Android %s+</string>
     <string name="home_apk_no_compatible_versions_title">Δεν υποστηρίζεται σε αυτή τη συσκευή</string>
@@ -244,7 +244,7 @@
     <string name="home_download_instructions_step2_generic">Κάντε κύλιση προς τα κάτω στην ιστοσελίδα και πατήστε το κουμπί λήψης της</string>
     <string name="home_download_instructions_step2_variant">Κάντε κύλιση προς τα κάτω στην ιστοσελίδα και πατήστε το κουμπί λήψης της πρώτης &lt;b&gt;παραλλαγής APK&lt;/b&gt;</string>
     <string name="home_download_instructions_step2_search">Ανοίξτε ένα αποτέλεσμα αναζήτησης από έναν ιστότοπο που εμπιστεύεστε</string>
-    <string name="home_download_instructions_step2_search_note">Το Morphe δεν μπορεί να εγγυηθεί για αυτούς τους ιστότοπους. Παραλείψτε όσους προσφέρουν το δικό τους κατάστημα εφαρμογών αντί για αρχείο APK</string>
+    <string name="home_download_instructions_step2_search_note">Το Nivqo δεν μπορεί να εγγυηθεί για αυτούς τους ιστότοπους. Παραλείψτε όσους προσφέρουν το δικό τους κατάστημα εφαρμογών αντί για αρχείο APK</string>
     <string name="home_download_instructions_step3_search">Σε αυτόν τον ιστότοπο, κατεβάστε το APK της έκδοσης &lt;b&gt;%s&lt;/b&gt;, όχι τη νεότερη</string>
     <string name="home_download_instructions_step3_search_any">Σε αυτόν τον ιστότοπο, κατεβάστε το APK της εφαρμογής. &lt;b&gt;Οποιαδήποτε έκδοση&lt;/b&gt; μπορεί να τροποποιηθεί</string>
     <string name="home_download_instructions_download_button_toast">Πατήστε λήψη στην ιστοσελίδα, και όχι εδώ 😊</string>
@@ -252,11 +252,11 @@
     <string name="home_download_instructions_download_button_toast_3">Η εξάσκηση φέρνει την τελειότητα και πλησιάζεις 💪</string>
     <string name="home_download_instructions_download_button_toast_4">Κι όχι εδώ… κι όχι εδώ… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">Εντάξει, σέβομαι την αφοσίωση 🫡</string>
-    <string name="home_download_instructions_download_button_toast_6">Είσαι πλέον επίσημος δοκιμαστής κουμπιού Morphe 🏅</string>
+    <string name="home_download_instructions_download_button_toast_6">Είσαι πλέον επίσημος δοκιμαστής κουμπιού Nivqo 🏅</string>
     <string name="home_download_instructions_step3">Περιμένετε μέχρι να ολοκληρωθεί η λήψη, και &lt;b&gt;μην εγκαταστήσετε&lt;/b&gt; το APK</string>
     <string name="home_download_instructions_step3_mount">Περιμένετε μέχρι να ολοκληρωθεί η λήψη, και μετά &lt;b&gt;εγκαταστήστε το APK&lt;/b&gt;</string>
-    <string name="home_download_instructions_step4">Μετά την ολοκλήρωση της λήψης, επιστρέψτε στο Morphe</string>
-    <string name="home_download_instructions_step4_mount">Μετά την εγκατάσταση του πρωτότυπου APK, επιστρέψτε στο Morphe</string>
+    <string name="home_download_instructions_step4">Μετά την ολοκλήρωση της λήψης, επιστρέψτε στο Nivqo</string>
+    <string name="home_download_instructions_step4_mount">Μετά την εγκατάσταση του πρωτότυπου APK, επιστρέψτε στο Nivqo</string>
     <string name="home_download_instructions_continue_to">Συνεχίστε στη %s</string>
     <string name="home_download_instructions_destination">σελίδα λήψης</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
@@ -472,8 +472,8 @@
     <string name="home_app_info_newest_supported_version">Νεότερη υποστηριζόμενη</string>
     <string name="home_app_info_version_move">Εγκάτεστημέν η %1$s, νεότερη υποστηριζόμενη %2$s</string>
     <string name="home_app_info_app_deleted_warning">Η εφαρμογή έχει απεγκατασταθεί</string>
-    <string name="home_app_info_app_deleted_description">Η εφαρμογή αυτή απεγκαταστάθηκε εκτός του Morphe. Τροποποιήστε την ξανά για την επαναφορά λειτουργικότητά της</string>
-    <string name="home_app_info_not_patched_description">Μια μη ενημερωμένη έκδοση αυτής της εφαρμογής είναι εγκατεστημένη. Το Morphe εξακολουθεί να έχει το προηγούμενο αρχείο επιδιορθώσεων.</string>
+    <string name="home_app_info_app_deleted_description">Η εφαρμογή αυτή απεγκαταστάθηκε εκτός του Nivqo. Τροποποιήστε την ξανά για την επαναφορά λειτουργικότητά της</string>
+    <string name="home_app_info_not_patched_description">Μια μη ενημερωμένη έκδοση αυτής της εφαρμογής είναι εγκατεστημένη. Το Nivqo εξακολουθεί να έχει το προηγούμενο αρχείο επιδιορθώσεων.</string>
     <string name="patcher_rename_title">Αυτό θα εγκαταστήσει ένα κλώνο</string>
     <string name="patcher_rename_description">Οι τροποποιήσεις δημιούργησαν αυτήν την εφαρμογή με δικό τους όνομα πακέτου, οπότε η εγκατάστασή της προσθέτει ένα κλώνο δίπλα στο <b>%s</b> αντί να την ενημερώσει</string>
     <string name="patcher_rename_result_package">Θα εγκατασταθεί ως</string>
@@ -486,7 +486,7 @@
     <string name="root_pre_patch_installer_description">Η συσκευή σας έχει πρόσβαση root. Επιλέξτε αν η εφαρμογή θα ενημερωθεί για προσάρτηση root ή τυπική εγκατάσταση</string>
     <string name="root_pre_patch_installer_mount_title">Λειτουργία προσάρτησης root</string>
     <string name="root_pre_patch_installer_mount_description">Ενημερώσεις για προσάρτηση root, στη συνέχεια προσαρτά το APK πάνω από την αντίστοιχη εργοστασιακή εφαρμογή. Δεν απαιτείται GmsCore</string>
-    <string name="root_mount_module_unmount_warning">Εάν το KernelSU έχει ενεργοποιημένα από προεπιλογή modules Αποσυναρμολόγησης, ανοίξτε το KernelSU > Superuser > την εφαρμογή που τοποθετήσατε > Profile > Custom και απενεργοποιήστε τα modules Αποσυναρμολόγησης. Διαφορετικά, το τοποθετημένο τροποποιημένο APK ενδέχεται να μην έχει αποτέλεσμα, ακόμη και αν το Morphe το εμφανίζει ως τοποθετημένο</string>
+    <string name="root_mount_module_unmount_warning">Εάν το KernelSU έχει ενεργοποιημένα από προεπιλογή modules Αποσυναρμολόγησης, ανοίξτε το KernelSU > Superuser > την εφαρμογή που τοποθετήσατε > Profile > Custom και απενεργοποιήστε τα modules Αποσυναρμολόγησης. Διαφορετικά, το τοποθετημένο τροποποιημένο APK ενδέχεται να μην έχει αποτέλεσμα, ακόμη και αν το Nivqo το εμφανίζει ως τοποθετημένο</string>
     <string name="root_pre_patch_installer_standard_title">Τυπική Εγκατάσταση</string>
     <string name="root_pre_patch_installer_standard_description">Εφαρμογές ενημέρωσης ως ένα κανονικό APK με υποστήριξη GmsCore. Η ρύθμιση του εγκαταστάτη σας χρησιμοποιείται μετά την ενημέρωση</string>
     <string name="root_pre_patch_installer_hint">Αυτή η λειτουργία ενημέρωσης είναι ανεξάρτητη από τις Ρυθμίσεις > Σύστημα > Εγκαταστάτη και δεν μπορεί να αλλάξει μετά την ενημέρωση</string>
@@ -548,7 +548,7 @@
     <string name="patcher_conflict_subtitle">Πρέπει να απεγκαταστήσετε την υπάρχουσα έκδοση</string>
     <string name="patcher_conflict_hint">Η τροποποιημένη εφαρμογή χρησιμοποιεί διαφορετικό πιστοποιητικό από την εγκατεστημένη έκδοση. Η απεγκατάσταση θα διαγράψει όλα τα δεδομένα της εφαρμογής.</string>
     <string name="patcher_installed_conflict_title">Απαιτείται απεγκατάσταση</string>
-    <string name="patcher_installed_conflict_body">"Η Morphe υπογράφει τις τροποποιημένες εφαρμογές με το δικό της πιστοποιητικό, το οποίο διαφέρει από το αρχικό. Το Android απαιτεί την κατάργηση της υπάρχουσας έκδοσης πριν από την εγκατάσταση της τροποποιημένης εφαρμογής.
+    <string name="patcher_installed_conflict_body">"Η Nivqo υπογράφει τις τροποποιημένες εφαρμογές με το δικό της πιστοποιητικό, το οποίο διαφέρει από το αρχικό. Το Android απαιτεί την κατάργηση της υπάρχουσας έκδοσης πριν από την εγκατάσταση της τροποποιημένης εφαρμογής.
 
 Η απεγκατάσταση θα διαγράψει οριστικά όλα τα δεδομένα της εφαρμογής."</string>
     <string name="patcher_install_error_title">Σφάλμα εγκατάστασης</string>
@@ -558,9 +558,9 @@
     <string name="patcher_back_to_game_hint">Πάτα %1$s για να επιστρέψεις στο παιχνίδι σου</string>
     <string name="patcher_storage_permission_dialog_title">Δεν είναι δυνατή η πρόσβαση στη διαδρομή αποθηκευτικού χώρου</string>
     <string name="patcher_incompatible_patcher_title">Απαιτείται ενημέρωση</string>
-    <string name="patcher_incompatible_patcher_description">Το πακέτο &lt;b&gt;%1$s&lt;/b&gt; απαιτεί έκδοση επεξεργαστή &lt;b&gt;%2$s&lt;/b&gt; ή νεότερη. Παρακαλώ ενημερώστε το Morphe για να εφαρμόσετε αυτήν την εφαρμογή</string>
-    <string name="patcher_incompatible_patcher_update_button">Λήψη και ενημέρωση του Morphe</string>
-    <string name="patcher_storage_permission_description_api30">Μία ή περισσότερες επιλογές τροποποιήσεων πηγαίνουν σε διαδρομές που το Morphe δεν μπορεί να διαβάσει. Δώστε άδεια αποθήκευσης και πατήστε το κουμπί, στη συνέχεια η διαδικασία τροποποίησης θα ξεκινήσει αυτόματα</string>
+    <string name="patcher_incompatible_patcher_description">Το πακέτο &lt;b&gt;%1$s&lt;/b&gt; απαιτεί έκδοση επεξεργαστή &lt;b&gt;%2$s&lt;/b&gt; ή νεότερη. Παρακαλώ ενημερώστε το Nivqo για να εφαρμόσετε αυτήν την εφαρμογή</string>
+    <string name="patcher_incompatible_patcher_update_button">Λήψη και ενημέρωση του Nivqo</string>
+    <string name="patcher_storage_permission_description_api30">Μία ή περισσότερες επιλογές τροποποιήσεων πηγαίνουν σε διαδρομές που το Nivqo δεν μπορεί να διαβάσει. Δώστε άδεια αποθήκευσης και πατήστε το κουμπί, στη συνέχεια η διαδικασία τροποποίησης θα ξεκινήσει αυτόματα</string>
     <string name="patcher_storage_permission_description_legacy">Μία ή περισσότερες επιλογές τροποποιήσεων πηγαίνουν σε διαδρομές που δεν είναι προσβάσιμες. Ενημερώστε τις διαδρομές στις επιλογές τροποποιήσεων και δοκιμάστε ξανά</string>
     <string name="patcher_storage_permission_grant">Επιτρέψτε την πρόσβαση στον αποθηκευτικό χώρο</string>
     <string name="patcher_storage_permission_denied_warning">Δεν επιτράπηκε η άδεια αποθήκευσης. Δώστε την άδεια για να χρησιμοποιήσετε αυτήν τη διαδρομή, ή μετακίνησε τα αρχεία στον ιδιωτικό χώρο αποθήκευσης της εφαρμογής</string>
@@ -574,7 +574,7 @@
     <string name="patcher_option_paths_gone_title">Λείπουν τα αρχεία επιλογών τροποποίησης.</string>
     <string name="patcher_option_paths_gone_description">Μία ή περισσότερες επιλογές τροποποίησης δείχνουν σε αρχεία που δεν υπάρχουν πλέον. Αφαιρέστε τις διαδρομές για να τροποποιήσετε χωρίς αυτά ή επαναφέρετε τα αρχεία και δοκιμάστε ξανά.</string>
     <string name="patcher_option_paths_clear">Αφαιρέστε τις διαδρομές.</string>
-    <string name="patcher_storage_permission_hint">Συμβουλή: Μετακινήστε τα αρχεία στο /Android/data/app.morphe.manager/files/ - Δε χρειάζονται επιπλέον άδειες</string>
+    <string name="patcher_storage_permission_hint">Συμβουλή: Μετακινήστε τα αρχεία στο /Android/data/app.nivqo.manager/files/ - Δε χρειάζονται επιπλέον άδειες</string>
     <!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Προετοιμασία</string>
     <string name="patcher_step_load_patches">Φόρτωση τροποποιήσεων</string>
@@ -586,7 +586,7 @@
     <string name="patcher_step_sign_apk">Υπογραφή τροποποιημένου αρχείου APK</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Προστασία επισκευής παρασκηνίου</string>
-    <string name="battery_optimization_dialog_description">Ορισμένες συσκευές ενδέχεται να σταματήσουν το πρόγραμμα επισκευής όταν η εφαρμογή ελαχιστοποιηθεί. Επιτρέψτε στο Morphe να εκτελείται χωρίς περιορισμούς μπαταρίας για να διασφαλίσετε ότι η επισκευή ολοκληρώνεται αξιόπιστα</string>
+    <string name="battery_optimization_dialog_description">Ορισμένες συσκευές ενδέχεται να σταματήσουν το πρόγραμμα επισκευής όταν η εφαρμογή ελαχιστοποιηθεί. Επιτρέψτε στο Nivqo να εκτελείται χωρίς περιορισμούς μπαταρίας για να διασφαλίσετε ότι η επισκευή ολοκληρώνεται αξιόπιστα</string>
     <string name="battery_optimization_not_now">Όχι τώρα</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">Δεν υπάρχει αρκετή μνήμη</string>
@@ -643,8 +643,8 @@
     <string name="install_ignore_signature">Εγκατάσταση οτιδήποτε</string>
     <string name="install_ignore_signature_description">Διατηρεί τα δεδομένα της εφαρμογής, αλλά λειτουργεί μόνο εάν μια ρίζα (root) ενότητα απενεργοποιήσει την επαλήθευση υπογραφής του Android</string>
     <string name="uninstall_app_fail">Αποfailed να απεγκατασταθεί η εφαρμογή: %s</string>
-    <string name="uninstall_app_unverified">Παρέμεινε στη θέση του: Η Morphe δεν μπόρεσε να επαληθεύσει ότι η εγκατεστημένη εφαρμογή είναι η έκδοση που επιδιόρθωσε</string>
-    <string name="launch_app_unverified">Η Morphe δεν μπόρεσε να επαληθεύσει ότι η εγκατεστημένη εφαρμογή είναι η έκδοση που επιδιόρθωσε</string>
+    <string name="uninstall_app_unverified">Παρέμεινε στη θέση του: Η Nivqo δεν μπόρεσε να επαληθεύσει ότι η εγκατεστημένη εφαρμογή είναι η έκδοση που επιδιόρθωσε</string>
+    <string name="launch_app_unverified">Η Nivqo δεν μπόρεσε να επαληθεύσει ότι η εγκατεστημένη εφαρμογή είναι η έκδοση που επιδιόρθωσε</string>
     <string name="uninstall_timeout">Η απεγκατάσταση έληξε</string>
     <string name="save_apk_success">Το APK αποθηκεύτηκε</string>
     <string name="saved_app_export_failed">Η εξαγωγή της τροποποιημένης εφαρμογής απέτυχε</string>
@@ -755,7 +755,7 @@
     <string name="settings_appearance_app_card_colors_bundle_description">Χρησιμοποιήστε το δικό σας χρώμα για κάθε εφαρμογή εδώ, με αυτόματη απόχρωση ώστε να ταιριάζει</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Εικονίδιο εφαρμογής</string>
-    <string name="settings_appearance_app_icon_selector_description">Πώς φαίνεται το Morphe στην αρχική οθόνη και στο συρτάρι εφαρμογών</string>
+    <string name="settings_appearance_app_icon_selector_description">Πώς φαίνεται το Nivqo στην αρχική οθόνη και στο συρτάρι εφαρμογών</string>
     <string name="settings_appearance_app_icon_default">Προεπιλογή</string>
     <string name="settings_appearance_app_icon_light_2">Ουρανός</string>
     <string name="settings_appearance_app_icon_light_3">Δύση ηλίου </string>
@@ -771,14 +771,14 @@
     <string name="settings_advanced_patcher">Εφαρμογέας</string>
     <string name="settings_advanced_updates_manager_prereleases">Ενημερώσεις προ-έκδοσης</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
-    <string name="settings_advanced_updates_manager_prereleases_description">Πρόωρη πρόσβαση σε νέες εκδόσεις του Morphe</string>
+    <string name="settings_advanced_updates_manager_prereleases_description">Πρόωρη πρόσβαση σε νέες εκδόσεις του Nivqo</string>
     <string name="settings_advanced_updates_prerelease_warning_title">Ενεργοποίηση ενημερώσεων προ-έκδοσης;</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
-    <string name="settings_advanced_updates_prerelease_warning_message">"Οι εκδόσεις προ-έκδοσης του Morphe είναι ακόμη υπό ανάπτυξη και μπορεί να είναι ασταθείς.
+    <string name="settings_advanced_updates_prerelease_warning_message">"Οι εκδόσεις προ-έκδοσης του Nivqo είναι ακόμη υπό ανάπτυξη και μπορεί να είναι ασταθείς.
 
 Οι επιδιορθώσεις δεν επηρεάζονται: ενεργοποιήστε τις επιδιορθώσεις προ-έκδοσης για κάθε πηγή στη λίστα πηγών επιδιορθώσεων"</string>
     <string name="settings_advanced_updates_allow_metered">Ενημερώσεις μέσω κινητής σύνδεσης</string>
-    <string name="settings_advanced_updates_allow_metered_description">Να επιτρέπεται η λήψη των ενημερώσεων του Morphe και των τροποποιήσεων μέσω δεδομένων κινητής τηλεφωνίας</string>
+    <string name="settings_advanced_updates_allow_metered_description">Να επιτρέπεται η λήψη των ενημερώσεων του Nivqo και των τροποποιήσεων μέσω δεδομένων κινητής τηλεφωνίας</string>
     <string name="settings_advanced_updates_background_notifications">Ειδοποιήσεις ενημερώσεων παρασκηνίου</string>
     <string name="settings_advanced_updates_background_notifications_description">Περιοδικός έλεγχος για ενημερώσεις στο παρασκήνιο και ειδοποίηση όταν υπάρχουν διαθέσιμες</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Λάβετε άμεσες ειδοποιήσεις push για νέες εκδόσεις, ακόμα και όταν η εφαρμογή είναι κλειστή</string>
@@ -795,27 +795,27 @@
     <string name="settings_advanced_external_batch_patch">Επιτρέψτε εξωτερικούς ενεργοποιητές</string>
     <string name="settings_advanced_external_batch_patch_description">Επιτρέπει σε εφαρμογές αυτοματισμού να ξεκινούν μαζική επιδιόρθωση μέσω ενός intent</string>
     <string name="external_batch_patch_title">Έναρξη ομαδικής διόρθωσης;</string>
-    <string name="external_batch_patch_description">Το %s θέλει να κάνει το Morphe να διορθώσει και να εγκαταστήσει εφαρμογές</string>
+    <string name="external_batch_patch_description">Το %s θέλει να κάνει το Nivqo να διορθώσει και να εγκαταστήσει εφαρμογές</string>
     <string name="external_batch_patch_trust_caller">Να επιτρέπεται πάντα αυτήν την εφαρμογή</string>
     <string name="external_batch_patch_unknown_caller">Μια άγνωστη εφαρμογή</string>
     <!-- Notification content -->
-    <string name="notification_manager_update_title">Διαθέσιμη ενημέρωση του Morphe</string>
+    <string name="notification_manager_update_title">Διαθέσιμη ενημέρωση του Nivqo</string>
     <string name="notification_bundle_update_title">Νέες τροποποιήσεις διαθέσιμες</string>
     <string name="notification_update_text">Η έκδοση %s είναι έτοιμη για λήψη</string>
-    <string name="notification_bundle_update_text_unversioned">Πατήστε για να ανοίξετε το Morphe και να ενημερώσετε</string>
+    <string name="notification_bundle_update_text_unversioned">Πατήστε για να ανοίξετε το Nivqo και να ενημερώσετε</string>
     <string name="notification_permission_dialog_title">Να επιτρέπονται ειδοποιήσεις</string>
-    <string name="notification_permission_dialog_description">Το Morphe χρειάζεται άδεια ειδοποιήσεων για να σας ειδοποιεί όταν είναι διαθέσιμες ενημερώσεις στο παρασκήνιο</string>
+    <string name="notification_permission_dialog_description">Το Nivqo χρειάζεται άδεια ειδοποιήσεων για να σας ειδοποιεί όταν είναι διαθέσιμες ενημερώσεις στο παρασκήνιο</string>
     <string name="notification_post_patch_dialog_title">Θα θέλατε να ειδοποιηθείτε όταν υπάρξουν διαθέσιμες ενημερώσεις;</string>
-    <string name="notification_channel_manager_updates">Ενημερώσεις Morphe</string>
-    <string name="notification_channel_manager_updates_description">Ειδοποιήσεις για νέες εκδόσεις του Morphe</string>
+    <string name="notification_channel_manager_updates">Ενημερώσεις Nivqo</string>
+    <string name="notification_channel_manager_updates_description">Ειδοποιήσεις για νέες εκδόσεις του Nivqo</string>
     <string name="notification_channel_patch_updates">Ενημερώσεις επιδιόρθωσης</string>
     <string name="notification_channel_patch_updates_description">Ειδοποιήσεις για νέες εκδόσεις επιδιόρθωσης</string>
     <string name="notification_channel_patcher">Τροποποίηση</string>
-    <string name="notification_channel_patcher_description">Εμφανίζεται όταν το Morphe ενημερώνει μια εφαρμογή στο παρασκήνιο</string>
+    <string name="notification_channel_patcher_description">Εμφανίζεται όταν το Nivqo ενημερώνει μια εφαρμογή στο παρασκήνιο</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Εξειδικευμένες ρυθμίσεις</string>
     <string name="settings_advanced_expert_mode">Εξειδικευμένη λειτουργία</string>
-    <string name="settings_advanced_expert_mode_description">Ενεργοποιήστε περίπλοκες ρυθμίσεις τροποποιήσεων του Morphe και προσαρμοσμένες επιλογές</string>
+    <string name="settings_advanced_expert_mode_description">Ενεργοποιήστε περίπλοκες ρυθμίσεις τροποποιήσεων του Nivqo και προσαρμοσμένες επιλογές</string>
     <string name="settings_advanced_expert_mode_dialog_title">Ενεργοποίηση της λειτουργίας εξειδικευμένου χρήστη;</string>
     <string name="settings_advanced_expert_mode_dialog_message">Η λειτουργία εξειδικευμένου χρήστη δίνει περισσότερο έλεγχο για την εφαρμογή των τροποποιήσεων, αλλά η λάθος ρύθμιση στη λειτουργία αυτή μπορεί να προκαλέσει τη δυσλειτουργικότητα της εφαρμογής</string>
     <string name="settings_advanced_strip_unused_libs">Βελτιστοποίηση για αρχιτεκτονική συσκευής</string>
@@ -831,7 +831,7 @@
 %1$s"</string>
     <string name="settings_advanced_github_pat_export_include_label">Συμπερίληψη στις ρυθμίσεις εξαγωγής</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
-    <string name="settings_advanced_github_pat_export_include_supporting">Προσθέτει αυτό το PAT στις εξαγόμενες ρυθμίσεις του Morphe</string>
+    <string name="settings_advanced_github_pat_export_include_supporting">Προσθέτει αυτό το PAT στις εξαγόμενες ρυθμίσεις του Nivqo</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">Δεν πρέπει να μοιράζεστε το PAT. Εάν το συμπεριλάβετε στις εξαγόμενες ρυθμίσεις, διατηρήστε το αρχείο ιδιωτικό διότι περιέχει το κλειδί</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
@@ -928,7 +928,7 @@ morphe_header_custom_dark.png
     <string name="installer_status_not_supported">Δεν υποστηρίζεται για αυτή την ενέργεια.</string>
     <string name="installer_status_shizuku_not_installed">Εγκαταστήστε το Shizuku ή Sui για να χρησιμοποιήσετε αυτή την επιλογή.</string>
     <string name="installer_status_shizuku_not_running">Εκκινήστε το Shizuku ή Sui και προσπαθήστε ξανά.</string>
-    <string name="installer_status_shizuku_permission">Δώστε άδεια στο Morphe από την εφαρμογή Shizuku</string>
+    <string name="installer_status_shizuku_permission">Δώστε άδεια στο Nivqo από την εφαρμογή Shizuku</string>
     <string name="installer_mount_warning_install">Ο πρωταρχικός εγκαταστάτης σας είναι ορισμένος με τον rooted προσαρτημένο εγκαταστάτη. Αυτή η αποθηκευμένη εφαρμογή δεν εγκαταστάθηκε με προσάρτηση</string>
     <string name="mount_version_mismatch_message">Η έκδοση της αρχικής ανεπεξέργαστης εφαρμογής (%2$s) δεν ταιριάζει με την έκδοση της τροποποιημένης εφαρμογής (%1$s). Προσαρτήστε την αρχική ανεπεξέργαστη έκδοση της εφαρμογής, και μετά προσπαθήστε ξανά.</string>
     <string name="mount_stock_restore_failed_message">Το Android απέρριψε το αρχικό APK που αποθηκεύτηκε. Εγκαταστήστε την αντίστοιχη αρχική έκδοση, στη συνέχεια δοκιμάστε να προσαρτήσετε ξανά</string>
@@ -958,7 +958,7 @@ morphe_header_custom_dark.png
     <string name="settings_auto_uninstall_with_shizuku">Αυτόματη απεγκατάσταση σε περίπτωση σύγκρουσης</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Όταν γίνεται αυτόματη εγκατάσταση με το Shizuku, απεγκαταστήστε πρώτα την υπάρχουσα εφαρμογή εάν το Android αναφέρει μια σύγκρουση υπογραφών. Αυτό μπορεί να αφαιρέσει δεδομένα της εφαρμογής.</string>
     <string name="settings_auto_uninstall_warning_title">Ενεργοποίηση αυτόματης απεγκατάστασης;</string>
-    <string name="settings_auto_uninstall_warning_message">Εάν το Android αναφέρει μια σύγκρουση υπογραφών κατά την αυτόματη εγκατάσταση του Shizuku, το Morphe θα απεγκαταστήσει την υπάρχουσα εφαρμογή πριν εγκαταστήσει το διορθωμένο APK.</string>
+    <string name="settings_auto_uninstall_warning_message">Εάν το Android αναφέρει μια σύγκρουση υπογραφών κατά την αυτόματη εγκατάσταση του Shizuku, το Nivqo θα απεγκαταστήσει την υπάρχουσα εφαρμογή πριν εγκαταστήσει το διορθωμένο APK.</string>
     <string name="settings_auto_uninstall_warning_risk">Αυτό μπορεί να αφαιρέσει δεδομένα της εφαρμογής. Εάν το διορθωμένο APK αποτύχει να εγκατασταθεί μετά την απεγκατάσταση, η προηγούμενη εφαρμογή ενδέχεται να έχει ήδη διαγραφεί.</string>
     <string name="installer_shizuku_status_action">Έλεγχος κατάστασης Shizuku</string>
     <string name="installer_shizuku_status_title">Κατάσταση Shizuku</string>
@@ -976,7 +976,7 @@ morphe_header_custom_dark.png
     <string name="installer_shizuku_install_fail_with_details">"Η εγκατάσταση Shizuku απέτυχε: %1$s
 
 Λεπτομέρειες: %2$s"</string>
-    <string name="installer_shizuku_error_permission">Λείπει άδεια Shizuku. Χορηγήστε άδεια στο Morphe και δοκιμάστε ξανά.</string>
+    <string name="installer_shizuku_error_permission">Λείπει άδεια Shizuku. Χορηγήστε άδεια στο Nivqo και δοκιμάστε ξανά.</string>
     <string name="installer_shizuku_error_timeout">Το Shizuku δεν επέστρεψε αποτέλεσμα εγκατάστασης. Βεβαιωθείτε ότι εξακολουθεί να εκτελείται και δοκιμάστε ξανά.</string>
     <string name="installer_shizuku_error_downgrade">Το Android μπλόκαρε αυτό επειδή θα υποβάθμιζε την εγκατεστημένη εφαρμογή</string>
     <string name="installer_shizuku_error_signature">Το Android μπλόκαρε αυτό επειδή η εγκατεστημένη εφαρμογή έχει διαφορετική υπογραφή</string>
@@ -991,7 +991,7 @@ morphe_header_custom_dark.png
     <string name="settings_system_process_runtime_memory_limit_description">Υψηλότερες τιμές επιταχύνουν την εφαρμογή αλλαγών σε συσκευές με κατάλληλες δυνατότητες</string>
     <string name="settings_system_process_runtime_enable">Ενεργοποίηση χρόνου εκτέλεσης διεργασίας</string>
     <string name="settings_system_memory_limit_subtitle">Διαθέσιμη μνήμη για τροποποίηση</string>
-    <string name="settings_system_process_runtime_heap_limit_ignored">Αυτή η συσκευή αγνόησε το όριο μνήμης κατά την τελευταία εκτέλεση, οπότε η εφαρμογή διορθώσεων ενδέχεται να χρησιμοποιήσει ως εναλλακτική την εκτέλεση εντός του Morphe.</string>
+    <string name="settings_system_process_runtime_heap_limit_ignored">Αυτή η συσκευή αγνόησε το όριο μνήμης κατά την τελευταία εκτέλεση, οπότε η εφαρμογή διορθώσεων ενδέχεται να χρησιμοποιήσει ως εναλλακτική την εκτέλεση εντός του Nivqo.</string>
     <string name="settings_system_memory_limit_warning">Ένα μικρό όριο μνήμης μπορεί να δημιουργήσει αποτυχία όταν τροποποιούνται μεγαλύτερες εφαρμογές</string>
     <string name="settings_system_memory_limit_high_warning">Ένα υψηλό όριο μνήμης μπορεί να κάνει την επιδιόρθωση πολύ πιο αργή σε ορισμένες συσκευές. Αυξήστε το μόνο αν η επιδιόρθωση συνεχίζει να αποτυγχάνει σε χαμηλότερα όρια.</string>
     <string name="settings_system_process_runtime_enabled_description">%s MB όριο</string>
@@ -1014,8 +1014,8 @@ morphe_header_custom_dark.png
     <string name="settings_system_import_export">Εισαγωγή &amp; εξαγωγή</string>
     <string name="settings_system_signing_key">Κλειδί υπογραφής</string>
     <string name="settings_system_signing_key_description">Δημιουργεί αντίγραφο ασφαλείας και επαναφέρει το κλειδί με το οποίο υπογράφονται οι επιδιορθωμένες εφαρμογές σας.</string>
-    <string name="settings_system_signing_key_dialog_description">Κάθε εφαρμογή που επιδιορθώνει το Morphe υπογράφεται με αυτό το κλειδί. Φυλάξτε ένα αντίγραφο: χωρίς αυτό, οι επιδιορθωμένες εφαρμογές μπορούν να ενημερωθούν μόνο μετά την απεγκατάστασή τους.</string>
-    <string name="settings_system_signing_key_missing">Το Morphe δημιουργεί ένα με την πρώτη σας επιδιόρθωση.</string>
+    <string name="settings_system_signing_key_dialog_description">Κάθε εφαρμογή που επιδιορθώνει το Nivqo υπογράφεται με αυτό το κλειδί. Φυλάξτε ένα αντίγραφο: χωρίς αυτό, οι επιδιορθωμένες εφαρμογές μπορούν να ενημερωθούν μόνο μετά την απεγκατάστασή τους.</string>
+    <string name="settings_system_signing_key_missing">Το Nivqo δημιουργεί ένα με την πρώτη σας επιδιόρθωση.</string>
     <string name="settings_system_signing_key_created">Δημιουργήθηκε %s</string>
     <string name="settings_system_signing_key_fingerprint">Αποτύπωμα SHA-256</string>
     <string name="settings_system_backup_appearance_description">Θέμα, χρώματα και γλώσσα</string>
@@ -1038,11 +1038,11 @@ morphe_header_custom_dark.png
     <string name="settings_system_export_keystore_failed">Απέτυχε η εξαγωγή χώρου αποθήκευσης κλειδιών</string>
     <string name="settings_system_show_password_field">Εμφάνιση κωδικού πρόσβασης</string>
     <string name="settings_system_hide_password_field">Απόκρυψη κωδικού πρόσβασης</string>
-    <string name="settings_system_morphe_settings">Ρυθμίσεις Morphe</string>
-    <string name="settings_system_import_manager_settings_description">Δημιουργεί αντίγραφα ασφαλείας και επαναφέρει τις ρυθμίσεις του Morphe</string>
-    <string name="settings_system_import_manager_settings_fail">Αποτυχία εισαγωγής των ρυθμίσεων του Morphe: %s</string>
-    <string name="settings_system_import_manager_settings_success">Επιτυχής εισαγωγή ρυθμίσεων του Morphe</string>
-    <string name="settings_system_import_manager_settings_mode_title">Εισαγωγή ρυθμίσεων του Morphe</string>
+    <string name="settings_system_morphe_settings">Ρυθμίσεις Nivqo</string>
+    <string name="settings_system_import_manager_settings_description">Δημιουργεί αντίγραφα ασφαλείας και επαναφέρει τις ρυθμίσεις του Nivqo</string>
+    <string name="settings_system_import_manager_settings_fail">Αποτυχία εισαγωγής των ρυθμίσεων του Nivqo: %s</string>
+    <string name="settings_system_import_manager_settings_success">Επιτυχής εισαγωγή ρυθμίσεων του Nivqo</string>
+    <string name="settings_system_import_manager_settings_mode_title">Εισαγωγή ρυθμίσεων του Nivqo</string>
     <string name="settings_system_import_manager_settings_mode_description">Επιλέξτε πώς θα εφαρμοστούν οι εισαγόμενες ρυθμίσεις και οι πηγές</string>
     <string name="settings_system_import_selections_mode_title">Εισαγωγή επιλεγμένων τροποποιήσεων</string>
     <string name="settings_system_import_selections_mode_description">Επιλέξτε τον τρόπο με τον οποίο θα εφαρμοστούν οι εισαγόμενες επιλογές και οι επιλογές επιδιόρθωσης</string>
@@ -1050,8 +1050,8 @@ morphe_header_custom_dark.png
     <string name="import_mode_replace_description">Ακριβής αντιστοίχιση με το αντίγραφο ασφαλείας. Τα στοιχεία που λείπουν από το αντίγραφο ασφαλείας θα διαγραφούν</string>
     <string name="import_mode_merge_title">Συγχώνευση με υπάρχοντα</string>
     <string name="import_mode_merge_description">Προσθήκη στοιχείων που λείπουν από το αντίγραφο ασφαλείας. Τα υπάρχοντα στοιχεία θα παραμείνουν χωρίς αλλαγές</string>
-    <string name="settings_system_export_manager_settings_fail">Αποτυχία εξαγωγής των ρυθμίσεων του Morphe: %s</string>
-    <string name="settings_system_export_manager_settings_success">Επιτυχής εξαγωγή ρυθμίσεων του Morphe</string>
+    <string name="settings_system_export_manager_settings_fail">Αποτυχία εξαγωγής των ρυθμίσεων του Nivqo: %s</string>
+    <string name="settings_system_export_manager_settings_success">Επιτυχής εξαγωγή ρυθμίσεων του Nivqo</string>
     <string name="settings_system_export_debug_logs">Εξαγωγή αρχείων καταγραφής εντοπισμού σφαλμάτων</string>
     <string name="settings_system_export_debug_logs_description">Αποθηκεύει τα αρχεία καταγραφής σφαλμάτων του συστήματος για την αντιμετώπιση προβλημάτων</string>
     <string name="settings_system_export_debug_logs_export_read_failed">Αποτυχία ανάγνωσης αρχείων καταγραφής (κωδικός εξόδου %s)</string>
@@ -1087,7 +1087,7 @@ morphe_header_custom_dark.png
     <string name="settings_system_storage_cleared">Απελευθερώθηκαν %s</string>
     <string name="settings_system_storage_nothing_to_clear">Δεν υπάρχουν στοιχεία για διαγραφή</string>
     <string name="settings_system_storage_open_app_info_title">Άνοιγμα αποθήκευσης εφαρμογής Android</string>
-    <string name="settings_system_storage_open_app_info_description">Διαχείριση ή εκκαθάριση όλων των δεδομένων του Morphe μέσω των ρυθμίσεων του συστήματος</string>
+    <string name="settings_system_storage_open_app_info_description">Διαχείριση ή εκκαθάριση όλων των δεδομένων του Nivqo μέσω των ρυθμίσεων του συστήματος</string>
     <string name="settings_system_save_original_apks_title">Διατήρηση αρχικών APK</string>
     <string name="settings_system_save_original_apks_description">Αποθηκεύστε το αρχείο APK πριν την εφαρμογή της ενημέρωσης, ώστε να μπορεί να χρησιμοποιηθεί ξανά για επανεφαρμογή χωρίς να χρειαστεί να επιλέξετε το αρχείο ξανά</string>
     <string name="settings_system_save_patched_apks_title">Διατήρηση τροποποιημένων APK</string>
@@ -1135,12 +1135,12 @@ morphe_header_custom_dark.png
     <string name="copy_selection_same_source">Ίδια πηγή</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Προσαρμοσμένη επιλογή αρχείων</string>
-    <string name="settings_system_custom_file_picker_description">Χρησιμοποιήστε την ενσωματωμένη επιλογή αρχείων του Morphe αντί για την προεπιλεγμένη του συστήματος</string>
+    <string name="settings_system_custom_file_picker_description">Χρησιμοποιήστε την ενσωματωμένη επιλογή αρχείων του Nivqo αντί για την προεπιλεγμένη του συστήματος</string>
     <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">Βοηθητικό εργαλείο λήψης APK</string>
     <string name="settings_system_apk_download_helper_trusted_count">Έμπιστες: %1$d από %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Οι βοηθητικές εφαρμογές μπορούν να κατεβάζουν πρωτότυπα APK για εσάς. Μόνο όσες εμπιστεύεστε εδώ προσφέρονται στις οδηγίες λήψης.</string>
-    <string name="settings_system_apk_download_helper_warning">Το APK προέρχεται από τη βοηθητική εφαρμογή, γι\' αυτό εμπιστευτείτε μόνο εφαρμογές που γνωρίζετε. Το Morphe εξακολουθεί να ελέγχει το πακέτο, την έκδοση και την υπογραφή κάθε αρχείου πριν από την τροποποίηση.</string>
+    <string name="settings_system_apk_download_helper_warning">Το APK προέρχεται από τη βοηθητική εφαρμογή, γι\' αυτό εμπιστευτείτε μόνο εφαρμογές που γνωρίζετε. Το Nivqo εξακολουθεί να ελέγχει το πακέτο, την έκδοση και την υπογραφή κάθε αρχείου πριν από την τροποποίηση.</string>
     <string name="settings_system_apk_download_helper_installed_by">Εγκαταστάθηκε από %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Άγνωστος εγκαταστάτης</string>
     <!-- File Picker -->
@@ -1323,7 +1323,7 @@ morphe_header_custom_dark.png
     <string name="update_completed">Η ενημέρωση εγκαταστάθηκε</string>
     <string name="install_update_manager_failed">Η εγκατάσταση της ενημέρωσης απέτυχε</string>
     <string name="installing_manager_update">Εγκατάσταση ενημέρωσης…</string>
-    <string name="installing_manager_update_hint">Το Morphe θα κλείσει για να ολοκληρωθεί η ενημέρωση</string>
+    <string name="installing_manager_update_hint">Το Nivqo θα κλείσει για να ολοκληρωθεί η ενημέρωση</string>
     <string name="downloading_manager_update">Λήψη ενημέρωσης…</string>
     <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">Λήφθηκαν %1$s MB</string>
@@ -1344,7 +1344,7 @@ morphe_header_custom_dark.png
     <string name="onboarding_sources_desc">Διαχείριση των πηγών ενημερώσεων. Κάθε πηγή παρέχει ενημερώσεις που μπορούν να εφαρμοστούν στις εφαρμογές σας</string>
     <string name="onboarding_swipe_title">Ζεστοί χειρισμοί</string>
     <string name="onboarding_swipe_desc">Σύρετε προς τα δεξιά σε μια κάρτα εφαρμογής για να δείτε τις διαθέσιμες ενημερώσεις της. Σύρετε προς τα αριστερά για να αποκρύψετε την κάρτα από την αρχική οθόνη</string>
-    <string name="onboarding_settings_desc">Προσαρμόστε το Morphe: εμφάνιση, προχωρημένες επιλογές και εργαλεία συστήματος</string>
+    <string name="onboarding_settings_desc">Προσαρμόστε το Nivqo: εμφάνιση, προχωρημένες επιλογές και εργαλεία συστήματος</string>
     <string name="onboarding_sources_patches_desc">Πατήστε για να δείτε όλες τις ενημερώσεις που είναι διαθέσιμες από αυτήν την πηγή</string>
     <string name="onboarding_sources_version_desc">Πατήστε στην έκδοση για να δείτε το πλήρες αρχείο αλλαγών για αυτήν την πηγή</string>
     <string name="onboarding_sources_prerelease_desc">Ενεργοποιήστε το για να λαμβάνετε εκδόσεις ενημερώσεων πριν από την επίσημη κυκλοφορία από αυτήν την πηγή</string>
@@ -1359,7 +1359,7 @@ morphe_header_custom_dark.png
     <string name="onboarding_system_file_picker_desc">Ενεργοποιήστε το για να χρησιμοποιήσετε τον ενσωματωμένο διαχειριστή αρχείων αντί για το πρόγραμμα επιλογής του συστήματος κατά την επιλογή αρχείων APK ή καταλόγων κλειδιών</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Γρήγορη περιήγηση λειτουργιών</string>
-    <string name="tour_prompt_desc">Θέλετε μια γρήγορη περιήγηση στις βασικές λειτουργίες του Morphe;</string>
+    <string name="tour_prompt_desc">Θέλετε μια γρήγορη περιήγηση στις βασικές λειτουργίες του Nivqo;</string>
     <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Δείξτε μου γύρω</string>
     <string name="onboarding_restart_title">Περιήγηση λειτουργιών</string>
