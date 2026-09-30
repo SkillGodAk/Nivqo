@@ -33,8 +33,6 @@
     <string name="home_update_skipped_metered">Nûvekirin çêhatin</string>
     <string name="home_update_skipped_metered_subtitle">Daneya mobîl aktîv e</string>
     <string name="home_updating_sources">Kanalkan sazkirinê…</string>
-    <!-- Download progress across several bundles. "%1$d" and "%2$d" count the bundles, "%3$s" and
-         "%4$s" are the megabytes read and expected, "%5$d" is the percentage. -->
     <string name="home_update_success">Sazkirina kanalan temam bû</string>
     <string name="home_update_success_subtitle">Kanalan we nû kirin</string>
     <string name="home_sources_are_loading">Kanalan ketin, ji kerema xwe bibeku</string>
@@ -151,21 +149,16 @@
     <string name="sources_dialog_rename">Ji bo guherîna çavkaniyê navê nû</string>
     <string name="sources_dialog_duplicate_name_error">Çavkaniyek bi vana navê berê heye</string>
     <string name="sources_dialog_missing_error">Niwia nûvekirin bilîxe</string>
-    <string name="sources_dialog_view_any_version">Her versiyon</string>
-    <string name="sources_dialog_view_any_package">Her pakêt</string>
     <string name="sources_dialog_add_source">Çavkaniyê zêde bike</string>
-    <string name="sources_dialog_delete_confirm_message">Dermanî çavkaniyê \"%s\" bifirîne?  Ev neyê vegerandin.</string>
     <string name="sources_dialog_remote">Dûr</string>
     <string name="sources_dialog_remote_url">URL-ya çavkaniyê</string>
-    <string name="sources_dialog_remote_url_formats_title">Wek,</string>
     <string name="sources_dialog_local">Nêzîk</string>
-    <string name="sources_dialog_local_file">Dosya çavkaniyê hilbijêre</string>
+    <!-- Button under the files already picked, which opens the picker again -->
     <string name="sources_dialog_local_file_tap_hint">Bikîne da ku hilanînê bikola</string>
-    <string name="sources_dialog_local_file_description">Dosyaya .mpp-ya çavkaniyê ji bo hilbijartinê ji storage</string>
     <string name="sources_dialog_local_invalid_extension">Pel divê pêveka .mpp hebe</string>
+    <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_url_valid">Depo an URL-a JSON-ê yê derbasdar</string>
     <string name="sources_dialog_url_invalid">URL gihub/gitlab depoyê an pelê .json\'yê nîşan bide</string>
-    <string name="sources_dialog_local_change_file">Guherîne dosya</string>
     <string name="sources_dialog_preinstalled">Destekî çêkirî</string>
     <string name="sources_dialog_community">Patchên civakê</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
@@ -192,7 +185,7 @@ Her tiştê ku hûn ji vê malperê zêde dikin bi xetereya we tê bikaranîn."<
     <string name="home_apk_helper_download">Serlêdanê arîkar bikar bînin</string>
     <string name="home_apk_helper_title">Bi serlêdanek arîkar dakêşin</string>
     <string name="home_apk_helper_description">Morphe ji serlêdanê arîkarê jêrîn wê bigire ku APK-ya orjînal dakêşîne û pelê paş de bide</string>
-    <string name="home_apk_helper_continue">Serlêdanê arîkar veke</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_warning">Tenê pêşkeve, heke te ewî serlêdanê arîkar bawer bikî. Morphe paketa, versiyon û îmzeya her tiştê ku werdigire berî girêdayînê kontrol dike</string>
     <string name="home_apk_helper_warning_unverified">Tenê pêşkeve, heke te ewî serlêdanê arîkar bawer bikî. Morphe nikare îmzaya vê APK-yê verast bike, ji ber vê yekê pelê guherandî nabe dîtin</string>
     <string name="home_apk_helper_no_result">Serlêdanê arîkar APK-yek negerand</string>
@@ -213,7 +206,6 @@ Her tiştê ku hûn ji vê malperê zêde dikin bi xetereya we tê bikaranîn."<
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; ji bo Android %2$s (API %3$s) versiyonek piştgirîkirî nîne. Hemû versiyonên hate ragîhandin hewiyek versiyonek Android bilindtir hene</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">APK-a orîjinalê dakêşîne</string>
-    <string name="home_download_instructions_steps_title">Rêberî:</string>
     <string name="home_download_instructions_finding">Rûpela daxistinê tê dîtin…</string>
     <string name="home_download_instructions_step1">Butona \'%s\' ya jêr lê deynin.</string>
     <string name="home_download_instructions_step2_part1">Li ser rûbera malperê biqewime û bikşîne</string>
@@ -256,7 +248,6 @@ Her tiştê ku hûn ji vê malperê zêde dikin bi xetereya we tê bikaranîn."<
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_title">Ferman ekspertê</string>
     <string name="expert_mode_search">Paqejî bîne lêgeran</string>
-    <string name="expert_mode_proceed">Bela serîyê berêşî bibe</string>
     <string name="expert_mode_disable_all">Hemû çêbake</string>
     <string name="expert_mode_disable_all_done">Hemû pelikên guherînê neçalak hatin kirin</string>
     <string name="expert_mode_enable_all">Hemû çêbakîne</string>
@@ -294,6 +285,7 @@ Ji bo mezgînî, ev sepan pêşniyar dike ku paketek &lt;b&gt;full APK&lt;/b&gt;
     <string name="morphe_experimental_app_version_dialog_message">Ev guhertina &lt;b&gt;%s&lt;/b&gt; piştgirîa serdest ceribandiyê heye&lt;br/&gt;&lt;br/&gt;🔧 Tiştekî neyênbawer an kêmasî derdikeve, di nav de kêmasî ji bo vê guhertina sepanê têne serastkirin.</string>
     <string name="home_dialog_unsupported_version_dialog_title">Versiyona nedastî</string>
     <string name="home_dialog_unsupported_version_dialog_description">Ev APK nu jibo versîyona serpiraftî ne. Diriftîn dikare bi bandora kêmtir a seranser a sepanê bibe</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_dialog_unsupported_version_dialog_proceed">Belaş veşêre</string>
     <string name="home_dialog_unsupported_version_compatible_versions">Versiyonên hevrek:</string>
     <string name="home_dialog_unsupported_version_unsupported_label">Nefixî</string>
@@ -327,12 +319,16 @@ Ji bo mezgînî, ev sepan pêşniyar dike ku paketek &lt;b&gt;full APK&lt;/b&gt;
     <string name="patch_option_slider_range_end">Heta</string>
     <string name="patch_option_list_duplicate">Ev nirx e jixye heye</string>
     <string name="patch_option_list_empty">Qîymet nikare boçagî be</string>
-    <string name="patch_option_list_empty_state">Heta niha tiştek zêde nabe</string>
     <string name="patch_option_required_missing">%s: hemû rêzika pêwist tê dîtin</string>
+    <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <!-- Badge on a patch option that has to be filled in before patching -->
+    <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
     <!-- Adaptive Icon Creator -->
     <string name="adaptive_icon_create">Îkon adaptî çêkîn</string>
     <string name="adaptive_icon_select_image">Wêne hilbijartin</string>
     <string name="adaptive_icon_change_image">Wêne biguherîn</string>
+    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
+    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
     <string name="adaptive_icon_background_color">Reng paşîn</string>
     <string name="adaptive_icon_reset_transform">Pozisyon û qiyasê sererast bike</string>
     <string name="adaptive_icon_safe_zone_inner">Zonaya ewle (her tim dîtbar e)</string>
@@ -384,16 +380,16 @@ Herêma derveyî (qutkirî): dikare ji aliyê maskeya launcher'ê ve were qutkir
     <string name="batch_patch_source_file">Pela têxistî</string>
     <string name="batch_patch_source_unavailable">Nexşeya APK nehatibû amadekirin</string>
     <string name="batch_patch_force_version">Bi her halî patch bike</string>
-    <string name="batch_patch_force_version_done">Bi vî awayî li siruşê hat kirin, şîroveyên ji bo guhertoyên din dikarin sepanê bişikînin.</string>
-    <string name="batch_patch_accept_signature_done">Dîsa jî di rêzê de hatiye, dibe ku ev APK ne ya orîjînal be</string>
     <string name="batch_patch_edit_patches">Patchan hilbijêre</string>
     <string name="batch_patch_state_no_apk">APK ne heye</string>
     <string name="batch_patch_state_no_patches">Patch ne hene</string>
     <string name="batch_patch_policy_install">Piştî qedibûna hemûyan saz bike</string>
     <string name="batch_patch_policy_install_description">Her sepa patchkirî piştî qedibûna rêzê rasterast saz dike. Vêalî APKan ji bo paşê dîsa dijîtine</string>
-    <string name="batch_patch_start">Dest bi patchkirinê bike</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_patch_start">Destpêk</string>
     <string name="batch_patch_stop_title">Êdî patchkirina batchê rawestîne?</string>
     <string name="batch_patch_stop_description">Sepa ku niha tê patchkirin û her tiştê ku dîsa hatî plan kirin, hatî betal kirin</string>
+    <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_install_all">Hemûyan saz bike</string>
     <string name="batch_patch_install_failed">Sazkirin têk çû</string>
     <string name="batch_patch_in_progress">Patchkirina batchê niha dimeşe</string>
@@ -484,7 +480,6 @@ Herêma derveyî (qutkirî): dikare ji aliyê maskeya launcher'ê ve were qutkir
 Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</string>
     <string name="patcher_install_error_title">Xetalî sazkirinê</string>
     <string name="patcher_install_error_subtitle">Heke hewce bike, saz bike û dîsa saz bike</string>
-    <string name="patcher_ready_to_install_subtitle">Ji bo saz kirinê ser  duxwe bikşînin</string>
     <string name="patcher_ready_to_mount_subtitle">Ji bo avakirinê ser duxwe bikşînin</string>
     <string name="patcher_patches_excluded_for_installer">Ji bo rêbazê ku hatî hilbijartîn peyda nabe û tê derxistin: %s</string>
     <string name="patcher_back_to_game_hint">Bikar bîne %1$s ji bo vegerîna lîstika te.    </string>
@@ -671,6 +666,7 @@ Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</strin
     <string name="settings_appearance_app_icon_dark_3">Bîngol</string>
     <string name="settings_appearance_app_icon_change_dialog_title">Ma hûn dixwast îkona sepanê biguhêrin?</string>
     <string name="settings_appearance_app_icon_change_dialog_message">Li &lt;b&gt;%s&lt;/b&gt; biguherin û dest pê bike?</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">Guhêrîna îkonê</string>
     <!-- Settings - Advanced Tab - Updates Section -->
     <string name="settings_advanced_updates">Nûvekirin</string>
@@ -969,7 +965,6 @@ Detay: %2$s"</string>
     <string name="settings_system_patched_apks_description">Pelên programa girêtî yên tomarî birêve bibe</string>
     <string name="settings_system_patched_apks_empty">Heta niha APK\'yên veşartin ne serwerastin</string>
     <string name="settings_system_patched_apks_delete_title">APK\'yên veşartin bibe serwerast bike?</string>
-    <string name="settings_system_patched_apks_delete_confirm">Maqlû binî ku hewce ye APK-ya paqijkirî ya &lt;b&gt;%s&lt;/b&gt; were terkirin?</string>
     <string name="settings_system_patched_apks_deleted">APK\'yên veşartin bi serketinê serwerastin</string>
     <string name="settings_system_patched_apks_delete_all_title">Hemû APK-yên hatine guhertin sîl kirin?</string>
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
@@ -978,7 +973,6 @@ Detay: %2$s"</string>
     <string name="settings_system_original_apks_empty">APK\'yên orjînal ên serwerastin tune</string>
     <string name="settings_system_original_apks_deleted">APK\'yên orjînal bi serketinê serwerastin</string>
     <string name="settings_system_original_apks_delete_title">APK\'yên orjînal bibe serwerast bike?</string>
-    <string name="settings_system_original_apks_delete_confirm">APK-ya serê ya &lt;b&gt;%s&lt;/b&gt; were terkirin? Heke APK-ya nû nedin, nikaribî dîsa paqijkirî bike</string>
     <string name="settings_system_original_apks_delete_all_title">Hemû APK-yên orjînal sîl kirin?</string>
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
     <string name="settings_system_patch_selections_title">Bijartinê qelvaton</string>
@@ -999,7 +993,6 @@ Detay: %2$s"</string>
     <string name="settings_system_import_source_data_fail">Serûşiya dane hez kiriye</string>
     <string name="settings_system_import_source_data_success">Dane seyarê serketine</string>
     <string name="settings_system_selected_patches_section">Patchên hilbijartî</string>
-    <string name="settings_system_patch_options_section">Vêjeyên Patchê</string>
     <string name="settings_system_no_patches_or_options">Ke tu bejna yâ bejna diteya ne</string>
     <!-- Copy selection from another bundle -->
     <string name="copy_selection_title">Hilbijarkirina ji… kopye bike</string>
@@ -1013,7 +1006,6 @@ Detay: %2$s"</string>
     <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">Arîkareka dakêşina APK-yê</string>
     <!-- File Picker -->
-    <string name="file_picker_previous_directory">Pêşîya rêgehê</string>
     <string name="file_picker_no_files">Li vir pel nehatine dîtin</string>
     <string name="file_picker_read_error">Dibeje vê peldankê dixîne</string>
     <string name="file_picker_internal_storage">Hêlîna navî</string>
@@ -1044,10 +1036,8 @@ Detay: %2$s"</string>
     <string name="easter_egg_pill_red_toast_again">Dîsa di nav baranê de</string>
     <string name="easter_egg_pill_blue_toast_again">Veqetandî. Riya vegerê li cihê ku her tim lê bû.</string>
     <!-- Shared strings -->
-    <!-- Download progress of a bundle or of the manager itself. "%1$s" and "%2$s" are the
-         megabytes read and expected, "%3$s" is the percentage; the doubled "%%" after it is
-         how a literal percent sign is written here. -->
     <string name="select_file">Pelê hilbijêre</string>
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="select_folder">Pêvekê hilbijêre</string>
     <string name="patches">Saxkirin</string>
     <string name="home">Mal</string>
@@ -1083,7 +1073,6 @@ Detay: %2$s"</string>
     <string name="disable">Neçêbigîne</string>
     <string name="enable">Çêbigîne</string>
     <string name="loading">Bar kirin…</string>
-    <string name="loading_older_releases">Verasyonên kevnertir tê barkirin…</string>
     <string name="creating">Çêkirin…</string>
     <string name="processing_apk">APK-ê pêş de çêdike…</string>
     <string name="exporting_apks">APK-yê derxîne…</string>
@@ -1125,6 +1114,7 @@ Detay: %2$s"</string>
     <string name="continue_">Domîne</string>
     <string name="version">Versiyon</string>
     <string name="clone">Klon</string>
+    <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patch">Dîrok</string>
     <string name="patching">Patchkirin</string>
     <string name="patched">Patchkirî</string>
@@ -1158,8 +1148,11 @@ Detay: %2$s"</string>
     <string name="changelog">Bixweyne guhezgarîyan</string>
     <string name="changelog_download_fail">Degerandina guhezgarîyan ji destûr ve çû: %s</string>
     <string name="changelog_empty">Nê ji ber ku wê bigihîne</string>
-    <string name="changelog_show_older">Nîşan bide berhemên keviner</string>
     <string name="changelog_older_empty">Tu berhemên keviner tune ne ku bên nîşandan</string>
+    <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <!-- "%s" is the number of changes in the section -->
     <string name="no_network_toast">Girêdayî pêşbaziyê nîne</string>
     <string name="update_available">Nûvekirin heye</string>
     <string name="ready_to_install_update">Amade ye ku nûvekirin saz bike</string>
@@ -1167,7 +1160,8 @@ Detay: %2$s"</string>
     <string name="install_update_manager_failed">Sazkirina nûvekirinê serket</string>
     <string name="installing_manager_update">Sazkirina nûvekirinê…</string>
     <string name="downloading_manager_update">Bar kirina nûvekirinê…</string>
-    <!-- Shown while downloading, before the total size is known. "%1$s" is the megabytes so far. -->
+    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
+    <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
     <string name="manager_update_not_ready">Ev weşan hîn tê weşandin. Çend hûrdan piştî din bicirêbin</string>
     <string name="update_download_missing">Nûvekirina dakêşandî êdî ne berdest e. Dîsa dakêşin.</string>
     <string name="download_manager_failed">Bar kirina nûvekirinê serket: %s</string>
@@ -1199,6 +1193,7 @@ Ma hûn hê jî dixwazin dom bikevin?"</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Gerîşka taybetmendiyan a bilez</string>
     <string name="tour_prompt_desc">Dixwazî gerîşka taybetmendiyên sereke yên Morphe bikî?</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Min li dora te bîne</string>
     <string name="onboarding_restart_title">Gerîşka taybetmendiyan</string>
 </resources>

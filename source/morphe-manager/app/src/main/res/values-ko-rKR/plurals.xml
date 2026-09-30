@@ -6,6 +6,18 @@
     <plurals name="option_count">
         <item quantity="other">%s 개의 패치 옵션</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="other">%s 개의 항목</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="other">%s 개의 파일 선택</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="other">%s 개의 소스 추가</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="other">%s 개의 앱에 대한 패치 소스</item>
     </plurals>
@@ -68,5 +80,17 @@
     </plurals>
     <plurals name="core_count">
         <item quantity="other">%s 개의 코어</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="other">%s 개의 신규 사항</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="other">%s 개의 수정 사항</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="other">%s 개의 변경 사항</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="other">%s 개의 새 릴리스</item>
     </plurals>
 </resources>

@@ -30,6 +30,10 @@ signs with: its alias, the date it was created, and its SHA-256 fingerprint. The
 the alias is tinted from that fingerprint, so two different keys look different at a glance.
 Tap **Export** and Morphe writes a `Morphe.keystore` file wherever you choose.
 
+<p align="center">
+  <img src="images/backup-and-keystore/01-signing-key.jpg" width="320" alt="Signing key dialog with the key fingerprint" />
+</p>
+
 Until you patch your first app there is no key yet, and the dialog only offers **Import**.
 
 > [!TIP]
@@ -56,6 +60,10 @@ Keystores Morphe generated use `Morphe` as both alias and password. A mismatch i
 as **Incorrect keystore credentials**.
 
 ## Backing up your settings
+
+<p align="center">
+  <img src="images/backup-and-keystore/02-morphe-settings.jpg" width="320" alt="Morphe settings backup dialog with its sections" />
+</p>
 
 **Settings → System → Import & export → Morphe settings** lists what a backup can carry, each
 with a checkbox:

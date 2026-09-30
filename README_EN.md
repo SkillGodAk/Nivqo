@@ -82,8 +82,11 @@ Starting with Nivqo v1.32.0, updates are split into two layers:
 
 Current core channels:
 
+- Nivqo Manager `1.33.0` (synced with Morphe Manager `1.33.0` / Morphe Patcher `1.15.0`)
 - HushFacebook `0.5.0-nivqo.1` (upstream `6d312196bc9ae8a7c9bd77f936c60b6e6de579d2`)
 - HushMessenger `0.6.0-nivqo.1` (upstream `4b259a712e1b3c90edb7d0262d2b7d23bf45b093`)
+- HushFacebook patch metadata in Manager: `54 / 54` Traditional Chinese
+- HushMessenger patch metadata in Manager: `28 / 28` Traditional Chinese
 
 - **HushFacebook / HushMessenger patch cores** are served by Nivqo's own GitHub update channel. When upstream changes are adopted, they are merged with Nivqo's Traditional Chinese/custom changes and tested before the patch bundle is updated on GitHub. Installed Nivqo clients can then receive the new patch core without reinstalling Manager just for a patch update.
 - **Nivqo Manager itself** is released only when Manager code changes, and future Manager updates are resolved from `SkillGodAk/Nivqo` GitHub Releases.
@@ -100,7 +103,7 @@ Current Manager:
 
 - App: Nivqo
 - Package: `app.nivqo.manager`
-- Manager base version: `1.32.0`
+- Manager base version: `1.33.0`
 
 ## Source code
 

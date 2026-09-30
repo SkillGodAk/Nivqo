@@ -5,7 +5,6 @@
 
 package app.morphe.manager.ui.screen.shared
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -14,8 +13,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import app.morphe.manager.ui.theme.LocalMonochromeTheme
-import app.morphe.manager.ui.theme.MonochromeThemeDefaults
+import app.morphe.manager.ui.theme.ThemeTraitsDefaults
+import app.morphe.manager.ui.theme.isDarkTheme
 
 /**
  * Shared color tokens for the frosted-glass button/row family used across the home
@@ -44,17 +43,13 @@ object GlassButtonDefaults {
     /** Glass fill tinted by [base], for accents outside the selected/unselected pair. */
     @Composable
     fun containerColor(base: Color, selected: Boolean): Color {
-        if (LocalMonochromeTheme.current) {
-            return MonochromeThemeDefaults.surfaceColor(base = base, selected = selected)
-        }
-
-        val isDark = isSystemInDarkTheme()
-        val backgroundAlpha = if (isDark) 0.35f else 0.6f
-        return if (selected) {
-            base.copy(alpha = if (isDark) 0.55f else 0.72f)
+        val isDark = isDarkTheme()
+        val alpha = if (selected) {
+            if (isDark) 0.55f else 0.72f
         } else {
-            base.copy(alpha = backgroundAlpha)
+            if (isDark) 0.35f else 0.6f
         }
+        return ThemeTraitsDefaults.surfaceColor(base = base.copy(alpha = alpha), selected = selected)
     }
 
     @Composable
@@ -65,7 +60,7 @@ object GlassButtonDefaults {
     /** Content color paired with a tinted [containerColor]. */
     @Composable
     fun contentColor(base: Color, selected: Boolean): Color =
-        if (LocalMonochromeTheme.current) contentColor(selected) else base
+        ThemeTraitsDefaults.contentColor(base = base, neutral = contentColor(selected))
 
     @Composable
     fun borderColor(selected: Boolean = false): Color =
@@ -74,16 +69,12 @@ object GlassButtonDefaults {
     /** Border paired with a tinted [containerColor]; [base] only carries the selected state. */
     @Composable
     fun borderColor(base: Color, selected: Boolean): Color {
-        if (LocalMonochromeTheme.current) {
-            return MonochromeThemeDefaults.borderColor(selected)
-        }
-
-        val isDark = isSystemInDarkTheme()
-        val borderAlpha = if (isDark) 0.4f else 0.6f
-        return if (selected) {
+        val isDark = isDarkTheme()
+        val edge = if (selected) {
             base.copy(alpha = if (isDark) 0.55f else 0.45f)
         } else {
-            MaterialTheme.colorScheme.outline.copy(alpha = borderAlpha)
+            MaterialTheme.colorScheme.outline.copy(alpha = if (isDark) 0.4f else 0.6f)
         }
+        return ThemeTraitsDefaults.borderColor(base = edge, selected = selected)
     }
 }

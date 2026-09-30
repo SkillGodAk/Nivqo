@@ -30,20 +30,14 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.preview)
     debugImplementation(libs.compose.ui.tooling)
-    implementation(libs.compose.livedata)
     implementation(libs.compose.material.icons.extended)
     implementation(libs.compose.material3)
     implementation(libs.navigation.compose)
 
-    // Accompanist
-    implementation(libs.accompanist.drawablepainter)
-
-    // Placeholder
-    implementation(libs.placeholder.material3)
-
     // Coil (async image loading, network image)
     implementation(libs.coil.compose)
     implementation(libs.coil.appiconloader)
+    implementation(libs.appiconloader.iconloaderlib)
 
     // KotlinX
     implementation(libs.kotlinx.serialization.json)
@@ -53,7 +47,6 @@ dependencies {
     // Room
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
-    annotationProcessor(libs.room.compiler)
     ksp(libs.room.compiler)
 
     // Morphe
@@ -82,7 +75,6 @@ dependencies {
     // Koin
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
-    implementation(libs.koin.compose.navigation)
     implementation(libs.koin.workmanager)
 
     // Licenses
@@ -91,22 +83,14 @@ dependencies {
 
     // Ktor
     implementation(libs.ktor.core)
-    implementation(libs.ktor.logging)
     implementation(libs.ktor.okhttp)
     implementation(libs.ktor.content.negotiation)
     implementation(libs.ktor.serialization)
 
     implementation(libs.play.services.base)
 
-    // Markdown
-    implementation(libs.markdown.renderer)
-
     // Fading Edges
     implementation(libs.fading.edges)
-
-    // EnumUtil
-    implementation(libs.enumutil)
-    ksp(libs.enumutil.ksp)
 
     // Reorderable lists
     implementation(libs.reorderable)
@@ -122,18 +106,40 @@ dependencies {
 }
 
 /**
- * Locales Morphe is translated into, read from its resource folders so a new Crowdin language needs
- * no change here. Each comes with and without the region, since libraries mostly use the bare one.
+ * Languages Morphe is translated into as language and region pairs, read from the resource folders
+ * Crowdin writes, so a new language needs no change anywhere else.
  */
-val translatedLocales = project.file("src/main/res").listFiles().orEmpty()
-    .mapNotNull { Regex("values-([a-z]{2,3})(-r[A-Z]{2})?").matchEntire(it.name) }
-    .flatMap { match ->
-        val language = match.groupValues[1]
+val translations = project.file("src/main/res").listFiles().orEmpty()
+    .mapNotNull { Regex("values-([a-z]{2,3})(?:-r([A-Z]{2}))?").matchEntire(it.name) }
+    .map { it.groupValues[1] to it.groupValues[2] }
+    .sortedWith(compareBy({ it.first }, { it.second }))
+
+/**
+ * Locales kept from library resources. Each comes with and without the region, since libraries
+ * mostly use the bare one.
+ */
+val translatedLocales = translations
+    .flatMap { (language, region) ->
         // Filipino is still filed under its legacy Tagalog code by some libraries
-        listOfNotNull(language, match.value.removePrefix("values-"), "tl".takeIf { language == "fil" })
+        listOfNotNull(
+            language,
+            "$language-r$region".takeIf { region.isNotEmpty() },
+            "tl".takeIf { language == "fil" }
+        )
     }
     .plus("en")
     .toSet()
+
+/**
+ * Translations as BCP 47 tags for the in-app language picker, written as a Java array literal for
+ * BuildConfig. Resource folders still name Indonesian, Hebrew and Yiddish by their withdrawn ISO
+ * codes, which tags no longer accept.
+ */
+val translationTags = translations.joinToString(prefix = "{", postfix = "}") { (language, region) ->
+    val tagLanguage = mapOf("in" to "id", "iw" to "he", "ji" to "yi")[language] ?: language
+    val tag = listOf(tagLanguage, region).filter { it.isNotEmpty() }.joinToString("-")
+    "\"$tag\""
+}
 
 android {
     namespace = "app.morphe.manager"
@@ -159,9 +165,8 @@ android {
         // against the Patcher-Version declared in .mpp bundle manifests at runtime.
         buildConfigField("String", "PATCHER_VERSION", "\"${libs.versions.morphe.patcher.get()}\"")
 
-        // Official release builds may update themselves. Custom/debug distributions must not
-        // offer the official APK because it has a different application id/signing identity and
-        // would install beside this app with a separate database and signing keystore.
+        buildConfigField("String[]", "TRANSLATIONS", translationTags)
+        // Nivqo release builds update only from the Nivqo-owned GitHub channel.
         buildConfigField("boolean", "ALLOW_MANAGER_SELF_UPDATE", "true")
 
         vectorDrawables.useSupportLibrary = true
@@ -252,6 +257,11 @@ android {
         // Libraries ship strings in far more languages than Morphe has, which only bloat resources.arsc
         @Suppress("UnstableApiUsage")
         localeFilters += translatedLocales
+
+        // Lists the translations for the per-app language setting of Android 13+ from the same
+        // resource folders, with the default locale taken from res/resources.properties
+        @Suppress("UnstableApiUsage")
+        generateLocaleConfig = true
     }
 
     buildFeatures {
@@ -269,6 +279,8 @@ android {
 
     lint {
         disable += setOf("MissingTranslation")
+        // Crowdin drops a removed string from the translations only on its next sync
+        warning += setOf("ExtraTranslation")
         baseline = file("lint-baseline.xml")
     }
 }

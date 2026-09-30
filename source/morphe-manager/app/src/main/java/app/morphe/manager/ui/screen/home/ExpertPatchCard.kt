@@ -23,7 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.patcher.patch.PatchInfo
@@ -88,22 +88,14 @@ internal fun BundlePatchControls(
             contentDescription = selectAllLabel,
             tooltip = selectAllLabel,
             confirmationState = selectAllConfirmation,
-            enabled = enabledCount < totalCount,
-            colors = tonalIconColors(
-                container = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                content = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+            enabled = enabledCount < totalCount
         )
         ActionPillButton(
             onClick = onResetToDefault,
             icon = Icons.Outlined.Recommend,
             contentDescription = defaultLabel,
             tooltip = defaultLabel,
-            confirmation = resetDone,
-            colors = tonalIconColors(
-                container = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
-                content = MaterialTheme.colorScheme.onTertiaryContainer
-            )
+            confirmation = resetDone
         )
         ActionPillButton(
             onClick = onRestoreSaved,
@@ -111,11 +103,7 @@ internal fun BundlePatchControls(
             contentDescription = restoreLabel,
             tooltip = restoreLabel,
             confirmation = restoredDone,
-            enabled = hasSavedSelection,
-            colors = tonalIconColors(
-                container = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                content = MaterialTheme.colorScheme.onSecondaryContainer
-            )
+            enabled = hasSavedSelection
         )
         if (onCopyFromBundle != null) {
             val copyLabel = stringResource(R.string.expert_mode_copy_from_bundle)
@@ -123,11 +111,7 @@ internal fun BundlePatchControls(
                 onClick = onCopyFromBundle,
                 icon = Icons.Outlined.ContentCopy,
                 contentDescription = copyLabel,
-                tooltip = copyLabel,
-                colors = tonalIconColors(
-                    container = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
-                    content = MaterialTheme.colorScheme.onSecondaryContainer
-                )
+                tooltip = copyLabel
             )
         }
         ActionPillButton(
@@ -137,10 +121,7 @@ internal fun BundlePatchControls(
             tooltip = deselectAllLabel,
             confirmation = disabledDone,
             enabled = enabledCount > 0,
-            colors = tonalIconColors(
-                container = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                content = MaterialTheme.colorScheme.error
-            )
+            destructive = true
         )
     }
 
@@ -217,6 +198,7 @@ internal fun PatchCard(
     } else onToggle
 
     val colors = MaterialTheme.colorScheme
+    val customizedAccent = LocalAccent.current
     val showMissingRequired = hasRequiredOptionsMissing && isEnabled
     // A missing required option blocks the run, so it outranks the tint that only reports
     // that the defaults were changed
@@ -235,7 +217,7 @@ internal fun PatchCard(
     SettingsItemCard(
         onClick = onCardClick,
         color = containerColor,
-        borderWidth = 1.dp,
+        showBorder = true,
         borderColor = when {
             showMissingRequired -> colors.error.copy(alpha = 0.6f)
             !isEnabled -> colors.outlineVariant.copy(alpha = 0.5f)
@@ -254,53 +236,36 @@ internal fun PatchCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Patch info
-                Column(
+                // Dimming alone leaves the state easy to miss. The card is what toggles, and it
+                // already reads the state out, so the indicator only shows it
+                SelectionCheckIndicator(
+                    state = if (isEnabled) ToggleableState.On else ToggleableState.Off,
+                    enabled = !lockState.blocksToggle(isEnabled),
+                    modifier = Modifier.padding(end = Defaults.ItemSpacing)
+                )
+
+                // Patch info, with the "New" badge inline
+                PatchCardText(
+                    name = patch.displayName,
+                    description = patch.description,
+                    dimmed = !isEnabled,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = if (hasOptions) 8.dp else 0.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                        .padding(end = if (hasOptions) 8.dp else 0.dp)
                 ) {
-                    // Name row: patch name + "New" badge inline
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = patch.displayName,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (isEnabled)
-                                LocalDialogTextColor.current
-                            else
-                                LocalDialogSecondaryTextColor.current.copy(alpha = 0.5f),
-                            modifier = Modifier.weight(1f, fill = false)
+                    if (isNew) {
+                        StatusBadge(
+                            text = newLabel,
+                            tone = SemanticTone.Primary
                         )
-                        if (isNew) {
-                            StatusBadge(
-                                text = newLabel,
-                                tone = SemanticTone.Primary
-                            )
-                        }
-                        // Read from how the patch declares its option, so it warns early without
-                        // being relied on: the run itself is checked against the APK it produced
-                        if (buildsClone) {
-                            StatusBadge(
-                                text = cloneLabel,
-                                icon = Icons.Outlined.ContentCopy,
-                                tone = SemanticTone.Warning
-                            )
-                        }
                     }
-
-                    if (!patch.description.isNullOrBlank()) {
-                        Text(
-                            text = patch.description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isEnabled)
-                                LocalDialogSecondaryTextColor.current
-                            else
-                                LocalDialogSecondaryTextColor.current.copy(alpha = 0.4f)
+                    // Read from how the patch declares its option, so it warns early without
+                    // being relied on: the run itself is checked against the APK it produced
+                    if (buildsClone) {
+                        StatusBadge(
+                            text = cloneLabel,
+                            icon = Icons.Outlined.ContentCopy,
+                            tone = SemanticTone.Warning
                         )
                     }
                 }
@@ -319,14 +284,21 @@ internal fun PatchCard(
                             },
                         enabled = isEnabled,
                         colors = tonalIconColors(
+                            // Changed options take the app's color where the list has one, as its
+                            // other controls do, while missing ones stay in the error palette
                             container = when {
                                 showMissingRequired -> colors.errorContainer.copy(alpha = 0.8f)
-                                showCustomOptions -> colors.primaryContainer.copy(alpha = 0.7f)
+                                showCustomOptions -> customizedAccent?.copy(alpha = AccentAlpha.LEAD)
+                                    ?: colors.primaryContainer.copy(alpha = 0.7f)
                                 else -> colors.secondaryContainer.copy(alpha = 0.6f)
                             },
                             content = when {
                                 showMissingRequired -> colors.error
-                                showCustomOptions -> colors.onPrimaryContainer
+                                showCustomOptions -> if (customizedAccent != null) {
+                                    colors.onBackground
+                                } else {
+                                    colors.onPrimaryContainer
+                                }
                                 else -> colors.onSecondaryContainer
                             },
                             disabledContent = colors.onSurfaceVariant.copy(alpha = 0.3f)
@@ -342,7 +314,7 @@ internal fun PatchCard(
             }
 
             if (lockedMessage != null) {
-                HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.5f))
+                SettingsDivider(fullWidth = true)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()

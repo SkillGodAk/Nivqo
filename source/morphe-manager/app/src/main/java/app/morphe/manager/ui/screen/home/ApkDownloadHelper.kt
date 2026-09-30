@@ -15,13 +15,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import app.morphe.manager.R
 import app.morphe.manager.domain.manager.PreferencesManager
 import app.morphe.manager.ui.model.ApkDownloadHelperHost
@@ -137,6 +134,7 @@ private fun ApkDownloadHelperDialog(
     AppDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.home_apk_helper_title),
+        description = stringResource(R.string.home_apk_helper_description),
         footer = {
             AppDialogButtonRow(
                 primaryText = stringResource(R.string.home_apk_helper_continue),
@@ -144,8 +142,7 @@ private fun ApkDownloadHelperDialog(
                 primaryIcon = Icons.Outlined.Download,
                 primaryEnabled = selected != null,
                 secondaryText = stringResource(android.R.string.cancel),
-                onSecondaryClick = onDismiss,
-                layout = DialogButtonLayout.Vertical
+                onSecondaryClick = onDismiss
             )
         }
     ) {
@@ -153,14 +150,6 @@ private fun ApkDownloadHelperDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
         ) {
-            Text(
-                text = stringResource(R.string.home_apk_helper_description),
-                style = MaterialTheme.typography.bodyLarge,
-                color = LocalDialogSecondaryTextColor.current,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
             helpers.forEach { helper ->
                 RadioSelectionCard(
                     selected = selected == helper,

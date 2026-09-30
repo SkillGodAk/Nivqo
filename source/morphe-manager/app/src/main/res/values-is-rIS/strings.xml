@@ -41,9 +41,6 @@
     <string name="home_update_skipped_metered">Uppfærslur höfðu</string>
     <string name="home_update_skipped_metered_subtitle">Fólgabil eru virkir</string>
     <string name="home_updating_sources">Uppfæra heimildir…</string>
-    <!-- Download progress across several bundles. "%1$d" and "%2$d" count the bundles, "%3$s" and
-         "%4$s" are the megabytes read and expected, "%5$d" is the percentage. -->
-    <string name="home_update_bundle_count_with_bytes">%1$d af %2$d  ·  %3$s af %4$s MB (%5$d%%)</string>
     <string name="home_update_success">Heimildauppfærsla lokið</string>
     <string name="home_update_success_subtitle">Heimildir þínar eru upp til daglegt</string>
     <string name="home_sources_are_loading">Heimildir eru að hlaða, vinsamlegast bíðu…</string>
@@ -141,7 +138,6 @@
     <string name="sources_management_report_issue">Nýlega uppfærð forrit fyrst</string>
     <string name="sources_management_failed_to_open_url">Ekki tókst að opna vefslóð</string>
     <string name="sources_apps">Forrit</string>
-    <string name="sources_apps_title">Forrit frá %1$s</string>
     <string name="sources_apps_description">Snertu forrit til að undanskilja það frá þessum uppruna eða færa það aftur inn, eða haltu inni til að velja nokkur. Forrit hverfur af heimaskjánum þegar enginn uppruni færir það inn.</string>
     <string name="sources_apps_brought">Fært inn af þessum uppruna</string>
     <string name="sources_apps_left_out">Undanskilið frá þessum uppruna</string>
@@ -174,21 +170,22 @@
     <string name="sources_dialog_rename">Endurnefna heimild breytistillinga</string>
     <string name="sources_dialog_duplicate_name_error">Heimild breytistillinga með þessu nafn er þegar til</string>
     <string name="sources_dialog_missing_error">Ekki tókst að uppfæra þessa pakkagjafa</string>
-    <string name="sources_dialog_view_any_version">Hver útgáfa</string>
-    <string name="sources_dialog_view_any_package">Hver pakki</string>
     <string name="sources_dialog_add_source">Bæta við heimild breytistillingum</string>
-    <string name="sources_dialog_delete_confirm_message">Eyða pakkagjafa \"%s\"? Þetta er ekki hægt að afgreiða</string>
+    <string name="sources_dialog_delete_confirm_body">Ekki er hægt að afturkalla þetta</string>
     <string name="sources_dialog_remote">Fjarlægur</string>
     <string name="sources_dialog_remote_url">Netföng</string>
-    <string name="sources_dialog_remote_url_formats_title">Dæmi:</string>
+    <string name="sources_dialog_remote_url_hint">Safn eða tengill á plástrasafn .json. Límdu inn nokkra í einu til að bæta þeim öllum við.</string>
+    <string name="sources_dialog_paste_no_links">Engir tenglar fundust á klippiborðinu</string>
     <string name="sources_dialog_local">Staðbundinn</string>
-    <string name="sources_dialog_local_file">Veldu heimild breytistillinga skrá</string>
+    <string name="sources_dialog_local_files">Veldu plástrauppsprettuskrár</string>
+    <!-- Button under the files already picked, which opens the picker again -->
+    <string name="sources_dialog_local_add_more">Bæta við fleiri skrám</string>
     <string name="sources_dialog_local_file_tap_hint">Tappaðu til að skoða geymslu</string>
-    <string name="sources_dialog_local_file_description">Veldu .mpp heimild breytistillinga skrá úr geymslu</string>
     <string name="sources_dialog_local_invalid_extension">Skrá verður að hafa .mpp endingu</string>
+    <!-- %s is the name of the local source that another version of the same bundle replaces -->
+    <string name="sources_dialog_local_updates">Uppfærir %s</string>
     <string name="sources_dialog_url_valid">Gild geymsla eða JSON URL</string>
     <string name="sources_dialog_url_invalid">URL verður að benda á GitHub/GitLab repository eða .json skrá</string>
-    <string name="sources_dialog_local_change_file">Breyta skrá</string>
     <string name="sources_dialog_preinstalled">Foruppsett</string>
     <string name="sources_dialog_community">Samfélagsplástrar</string>
     <string name="sources_dialog_choose_apps">Veldu forrit</string>
@@ -218,7 +215,8 @@ Allt sem þú bætir við frá þessari vefsíðu er notað á eigin ábyrgð."<
     <string name="home_apk_helper_download">Notaðu hjálparforrit</string>
     <string name="home_apk_helper_title">Niðurhal með hjálparforriti</string>
     <string name="home_apk_helper_description">Morphe mun biðja hjálparforritið hér að neðan um að hala niður upprunalega APK og afhenda skránna</string>
-    <string name="home_apk_helper_continue">Opna hjálparforrit</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="home_apk_helper_continue">Opna hjálp</string>
     <string name="home_apk_helper_warning">Halda áfram aðeins ef þú treystir þessu hjálparforriti. Morphe yfirfær pakkann, útgáfuna og undirskriftina á því sem það fær áður en því er breytt</string>
     <string name="home_apk_helper_warning_unverified">Halda áfram aðeins ef þú treystir þessu hjálparforriti. Morphe getur ekki staðfest undirskrift þessa APK, svo breyttri skrá verður ekki greind</string>
     <string name="home_apk_helper_no_result">Hjálparforritið skilaði ekki APK</string>
@@ -240,7 +238,6 @@ Allt sem þú bætir við frá þessari vefsíðu er notað á eigin ábyrgð."<
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; hefur engar samhæfðar útgáfur fyrir Android %2$s (API %3$s). Allar skilgreindar útgáfur krefjast hærri Android útgáfu</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">Sæktu upprunalega APK skrána</string>
-    <string name="home_download_instructions_steps_title">Leiðbeiningar:</string>
     <string name="home_download_instructions_finding">Finn niðurhalssíðuna…</string>
     <string name="home_download_instructions_step1">Ýttu á \"%s\" hnappinn hér að neðan</string>
     <string name="home_download_instructions_step2_part1">Scrollaðu niður á vefsíðuna og ýttu á</string>
@@ -283,7 +280,6 @@ Allt sem þú bætir við frá þessari vefsíðu er notað á eigin ábyrgð."<
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_title">Sérstakur háttur</string>
     <string name="expert_mode_search">Leita breytistillinga</string>
-    <string name="expert_mode_proceed">Halda áfram með pakkningu</string>
     <string name="expert_mode_disable_all">Gerðu allt óvirkt</string>
     <string name="expert_mode_disable_all_done">Allar breytingar gerða óvirkar</string>
     <string name="expert_mode_enable_all">Gerðu allt virkt</string>
@@ -324,6 +320,7 @@ Fyrir bestu niðurstöður mælt er með því að breyta &lt;b&gt;fullu APK&lt;
     <string name="morphe_experimental_app_version_dialog_message">Þessi útgáfa af &lt;b&gt;%s&lt;/b&gt; hefur snemma tilraunastuðning&lt;br/&gt;&lt;br/&gt;🔧 Búðu þig undir skrýtnar breytingar eða óþekktan galla þegar breytingarnar eru fínstilltar fyrir þessa útgáfu</string>
     <string name="home_dialog_unsupported_version_dialog_title">Óstudug útgáfa</string>
     <string name="home_dialog_unsupported_version_dialog_description">Þessi APK er ekki mælt með útgáfa af appi. Halda áfram gæti leitt til óvirkni app</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_dialog_unsupported_version_dialog_proceed">Halda áfram samt sem áður</string>
     <string name="home_dialog_unsupported_version_compatible_versions">Samhæfar útgáfur:</string>
     <string name="home_dialog_unsupported_version_unsupported_label">Stuðlað er við</string>
@@ -359,12 +356,21 @@ Fyrir bestu niðurstöður mælt er með því að breyta &lt;b&gt;fullu APK&lt;
     <string name="patch_option_slider_range_end">Til</string>
     <string name="patch_option_list_duplicate">Þetta gildi er þegar í notkun</string>
     <string name="patch_option_list_empty">Gildi má ekki vera tómt</string>
-    <string name="patch_option_list_empty_state">Engin gildi bætt við enn</string>
     <string name="patch_option_required_missing">%s: fylltu út öll nauðsynleg valmöguleika</string>
+    <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <string name="patch_option_changed">Breytt</string>
+    <!-- Badge on a patch option that has to be filled in before patching -->
+    <string name="patch_option_required">Nauðsynlegt</string>
+    <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
+    <string name="patch_option_recommended_size">Mælt með: %1$s×%2$s</string>
     <!-- Adaptive Icon Creator -->
     <string name="adaptive_icon_create">Búa til adaptive tákn</string>
     <string name="adaptive_icon_select_image">Velja mynd</string>
     <string name="adaptive_icon_change_image">Breyta mynd</string>
+    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
+    <string name="adaptive_icon_foreground">Forgrunnsmynd</string>
+    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
+    <string name="adaptive_icon_launcher">Heimaskjástákn</string>
     <string name="adaptive_icon_background_color">Bakgrunnslit</string>
     <string name="adaptive_icon_reset_transform">Endurstilla stöðu og mál</string>
     <string name="adaptive_icon_safe_zone_inner">Örugg svæði (alltaf sýnilegt)</string>
@@ -415,16 +421,18 @@ Fyrir bestu niðurstöður mælt er með því að breyta &lt;b&gt;fullu APK&lt;
     <string name="batch_patch_source_file">Bætt skrá</string>
     <string name="batch_patch_source_unavailable">Ekki tókst að búa til APK</string>
     <string name="batch_patch_force_version">Breyta samt sem áður</string>
-    <string name="batch_patch_force_version_done">Rafmagn gerði samt, sprettur sem gerðar eru fyrir aðrar útgáfur gætu brotið appið</string>
-    <string name="batch_patch_accept_signature_done">Queued anyway, this APK may not be the original</string>
+    <string name="batch_patch_force_version_done">Sett í biðröð samt, appið gæti brotnað</string>
+    <string name="batch_patch_accept_signature_done">Sett í biðröð samt, APK ekki staðfest</string>
     <string name="batch_patch_edit_patches">Veldu breytingar</string>
     <string name="batch_patch_state_no_apk">Enginn APK</string>
     <string name="batch_patch_state_no_patches">Engar breytingar</string>
     <string name="batch_patch_policy_install">Settur upp þegar búið er</string>
     <string name="batch_patch_policy_install_description">Setur upp hvert breytt app þegar biðröðin er lokið. Slökkt heldur APK-skránum til síðara</string>
-    <string name="batch_patch_start">Hejaðu breytingum</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_patch_start">Byrja</string>
     <string name="batch_patch_stop_title">Hætta við breytingum?</string>
     <string name="batch_patch_stop_description">Appið sem er breytt núna og allt sem bíður í biðröð verður hætt</string>
+    <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_install_all">Settu upp allt</string>
     <string name="batch_patch_install_failed">Miskunstrið við uppsetningu</string>
     <string name="batch_patch_in_progress">Breytingar eru þegar í gangi</string>
@@ -527,8 +535,8 @@ Fyrir bestu niðurstöður mælt er með því að breyta &lt;b&gt;fullu APK&lt;
     <string name="patcher_success_subtitle">Appið þitt er breytt og uppsett!</string>
     <string name="patcher_complete_title">Viðgerð lokið! ✨</string>
     <string name="patcher_failed_title">Afsakið! Eitthvað fór úrskeikur</string>
-    <string name="patcher_failed_hint">Ýttu á %s til að sjá hvað fór úrskeiðis</string>
     <string name="patcher_failed_dialog_title">Viðgerðin mislukkaðist</string>
+    <string name="patcher_error_details">Villuupplýsingar</string>
     <string name="patcher_unknown_error">Óþekkt villa kom upp</string>
     <string name="patcher_split_step_extracting">Útdráttur af flíknum APK</string>
     <string name="patcher_split_step_merging">Samruni %s</string>
@@ -543,7 +551,6 @@ Fyrir bestu niðurstöður mælt er með því að breyta &lt;b&gt;fullu APK&lt;
 Afnaman eyðir varanlega öllum forritsgögnum"</string>
     <string name="patcher_install_error_title">Uppsetningarvilla</string>
     <string name="patcher_install_error_subtitle">Reyndu að afinstallera og setja upp aftur</string>
-    <string name="patcher_ready_to_install_subtitle">Ýttu á hnappinn hér að neðan til að setja upp</string>
     <string name="patcher_ready_to_mount_subtitle">Ýttu á hnappinn hér að neðan til að festa</string>
     <string name="patcher_patches_excluded_for_installer">Ekki í boði fyrir þessa uppsetningaraðferð og útilokuð: %s</string>
     <string name="patcher_back_to_game_hint">Ýttu á %1$s til að fara aftur í leikinn</string>
@@ -652,6 +659,8 @@ Afnaman eyðir varanlega öllum forritsgögnum"</string>
     <string name="mini_game_try_again">Reyna aftur</string>
     <string name="mini_game_paused">Hætt</string>
     <string name="mini_game_resume">Halda áfram</string>
+    <string name="mini_game_restart">Byrja upp á nýtt</string>
+    <string name="mini_game_change">Veldu annan leik</string>
     <string name="mini_game_2048_picker_subtitle">Hreistu flísar til að sameina</string>
     <string name="mini_game_flappy_picker_subtitle">Smelltu til að fljúga í gegnum rör</string>
     <string name="mini_game_flappy_tap_to_start">Smelltu til að fljúga</string>
@@ -671,6 +680,7 @@ Afnaman eyðir varanlega öllum forritsgögnum"</string>
     <string name="system">Kerfi</string>
     <!-- Settings - Appearance Tab - Background animation -->
     <string name="settings_appearance_background">Bakgrunnsmynd</string>
+    <string name="settings_appearance_background_description">Hreyfimyndin sem spilar á bak við skjái appsins</string>
     <string name="settings_appearance_background_circles">Hringir</string>
     <string name="settings_appearance_background_rings">Rennar</string>
     <string name="settings_appearance_background_mesh">Mesh</string>
@@ -699,6 +709,10 @@ Afnaman eyðir varanlega öllum forritsgögnum"</string>
     <string name="settings_appearance_accent_color">Aðallitur</string>
     <string name="settings_appearance_pure_black">Liturjöfur svart</string>
     <string name="settings_appearance_pure_black_description">Nota svarta bakgrunni</string>
+    <string name="settings_appearance_color_accents">Litir apps og upprunans</string>
+    <string name="settings_appearance_color_accents_description">Notar eigin lit hvers apps og hverrar uppsprettu í stað áherslulitarins</string>
+    <string name="settings_appearance_outlines">Útlínur</string>
+    <string name="settings_appearance_outlines_description">Teiknar þunna brún í kringum kort, spjöld og hnappa</string>
     <!-- Settings - Appearance Tab - Language Selector -->
     <string name="settings_appearance_language_and_display">Tungumál og sýnishringur</string>
     <string name="settings_appearance_app_language">App tungumál</string>
@@ -739,6 +753,7 @@ Afnaman eyðir varanlega öllum forritsgögnum"</string>
     <string name="settings_appearance_app_card_colors_bundle_description">Nota lit hvers apps hér, sem er sjálfkrafa gerður dimmari til að passa</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">App tákn</string>
+    <string name="settings_appearance_app_icon_selector_description">Hvernig Morphe lítur út á heimaskjánum þínum og í appaskúffunni</string>
     <string name="settings_appearance_app_icon_default">Sjálfgefið</string>
     <string name="settings_appearance_app_icon_light_2">Himinn</string>
     <string name="settings_appearance_app_icon_light_3">Sólsetur</string>
@@ -747,6 +762,7 @@ Afnaman eyðir varanlega öllum forritsgögnum"</string>
     <string name="settings_appearance_app_icon_dark_3">Indigo</string>
     <string name="settings_appearance_app_icon_change_dialog_title">Breyta tákn</string>
     <string name="settings_appearance_app_icon_change_dialog_message">Breytir til &lt;b&gt;%s&lt;/b&gt; og endurræsir?</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">Staðfestu táknbreytingu</string>
     <!-- Settings - Advanced Tab - Updates Section -->
     <string name="settings_advanced_updates">Uppfæra</string>
@@ -1076,7 +1092,6 @@ Nánari upplýsingar: %2$s"</string>
     <string name="settings_system_patched_apks_description">Stjórnar geymda breyttum forritsskráum</string>
     <string name="settings_system_patched_apks_empty">Engar pattaðar APK-skrár vistaðar enn</string>
     <string name="settings_system_patched_apks_delete_title">Eyða pattaðri APK?</string>
-    <string name="settings_system_patched_apks_delete_confirm"> Ertu viss um að þú viljir eyða vistaðri breyttu APK skúú fyrir &lt;b&gt;%s&lt;/b&gt;?</string>
     <string name="settings_system_patched_apks_deleted">Pattað APK skrá eytt með árangri</string>
     <string name="settings_system_patched_apks_delete_all_title">Eyða öllum breyttu APK-skrám?</string>
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
@@ -1085,7 +1100,7 @@ Nánari upplýsingar: %2$s"</string>
     <string name="settings_system_original_apks_empty">Engar upprunalegar APK-skrár geymdar</string>
     <string name="settings_system_original_apks_deleted">Upprunaleg APK skrá eytt með árangri</string>
     <string name="settings_system_original_apks_delete_title">Eyða upprunalegri APK?</string>
-    <string name="settings_system_original_apks_delete_confirm"> Eyúa upprunalegu APK skúú fyrir &lt;b&gt;%s&lt;/b&gt;?  Þ mun ekki vera hægt að að breyta aftur núúður en með athuga núðu APK</string>
+    <string name="settings_system_original_apks_delete_notice">Þú munt ekki geta endurplástrað án þess að útvega nýtt APK</string>
     <string name="settings_system_original_apks_delete_all_title">Eyða öllum upprunalegu APK-skrám?</string>
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
     <string name="settings_system_patch_selections_title">Pökkunaval</string>
@@ -1106,7 +1121,6 @@ Nánari upplýsingar: %2$s"</string>
     <string name="settings_system_import_source_data_fail">Ekki tókst að flytja inn gögn frá gjafa</string>
     <string name="settings_system_import_source_data_success">Gagnagögn frá gjafa flutt inn vel</string>
     <string name="settings_system_selected_patches_section">Valdir brekkur</string>
-    <string name="settings_system_patch_options_section">Brekkuaðferðir</string>
     <string name="settings_system_no_patches_or_options">Engar pattaðar valkostir eða valkostir geymdar</string>
     <!-- Copy selection from another bundle -->
     <string name="copy_selection_title">Afrita val frá…</string>
@@ -1125,7 +1139,6 @@ Nánari upplýsingar: %2$s"</string>
     <string name="settings_system_apk_download_helper_installed_by">Sett upp af %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Óþekktur uppsetningaraðili</string>
     <!-- File Picker -->
-    <string name="file_picker_previous_directory">Fyrri skrá</string>
     <string name="file_picker_no_files">Engar skrár hér</string>
     <string name="file_picker_read_error">Gat ekki lesið þennan skráarskil</string>
     <string name="file_picker_internal_storage">Innri geymsla</string>
@@ -1156,11 +1169,9 @@ Nánari upplýsingar: %2$s"</string>
     <string name="easter_egg_pill_red_toast_again">Aftur í rigningunni</string>
     <string name="easter_egg_pill_blue_toast_again">Aftengdur. Leiðin til baka er þar sem hún var alltaf</string>
     <!-- Shared strings -->
-    <!-- Download progress of a bundle or of the manager itself. "%1$s" and "%2$s" are the
-         megabytes read and expected, "%3$s" is the percentage; the doubled "%%" after it is
-         how a literal percent sign is written here. -->
-    <string name="download_progress">%1$s MB / %2$s MB (%3$s%%)</string>
     <string name="select_file">Velja skrá</string>
+    <string name="select_files">Veldu skrár</string>
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="select_folder">Velja möppu</string>
     <string name="patches">Breytistillingar</string>
     <string name="home">Heim</string>
@@ -1187,6 +1198,7 @@ Nánari upplýsingar: %2$s"</string>
     <string name="done">Búið</string>
     <string name="skip">Sleppa</string>
     <string name="clear">Hreinsa</string>
+    <string name="paste">Líma</string>
     <string name="delete">Eyða</string>
     <string name="delete_all">Eyða öllu</string>
     <string name="remove">Fjarlægja</string>
@@ -1196,7 +1208,6 @@ Nánari upplýsingar: %2$s"</string>
     <string name="disable">Gerðu óvirkt</string>
     <string name="enable">Gerðu virkt</string>
     <string name="loading">Hlaða…</string>
-    <string name="loading_older_releases">Hlaða eldri útgáfur…</string>
     <string name="creating">Búa til…</string>
     <string name="processing_apk">Vinnsla við APK…</string>
     <string name="exporting_apks">Flytja út APK-skrár…</string>
@@ -1239,6 +1250,7 @@ Nánari upplýsingar: %2$s"</string>
     <string name="continue_">Halda áfram</string>
     <string name="version">Útgáfa</string>
     <string name="clone">Klóna</string>
+    <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patch">Breytistilling</string>
     <string name="patching">Breytingar</string>
     <string name="patched">Plástrað</string>
@@ -1278,17 +1290,40 @@ Nánari upplýsingar: %2$s"</string>
     <string name="changelog_description">Hvað er nýtt í þessari útgáfu</string>
     <string name="changelog_download_fail">Ekki tókst að sækja breytingaskrá: %s</string>
     <string name="changelog_empty">Engin breytingaskrá í boði</string>
-    <string name="changelog_show_older">Sýna eldri útgáfur</string>
+    <string name="changelog_earlier_releases">Fyrri útgáfur</string>
     <string name="changelog_older_empty">Engar eldri útgáfur til sýnis</string>
+    <string name="changelog_older_failed">Ekki tókst að hlaða eldri útgáfur</string>
+    <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="changelog_release_page">Útgáfusíða</string>
+    <string name="content_translate">Þýða</string>
+    <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <string name="content_show_original">Frumtexti</string>
+    <string name="content_translation_failed">Mistókst að þýða: %s</string>
+    <string name="changelog_section_new">Nýtt</string>
+    <string name="changelog_section_fixes">Lagfæringar</string>
+    <string name="changelog_section_performance">Afköst</string>
+    <string name="changelog_section_improvements">Endurbætur</string>
+    <string name="changelog_section_app_support">Stuðningur við forrit</string>
+    <string name="changelog_section_other">Breytingar</string>
+    <string name="changelog_badge_latest">Nýjasta</string>
+    <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <string name="changelog_badge_downloaded">Sótt</string>
+    <string name="changelog_badge_prerelease">Forútgáfa</string>
+    <!-- "%s" is the number of changes in the section -->
+    <string name="changelog_show_all">Sýna allt (%s)</string>
+    <string name="changelog_show_less">Sýna minna</string>
     <string name="no_network_toast">Engin nettenging í boði</string>
     <string name="update_available">Uppfærsla er til staðar</string>
     <string name="ready_to_install_update">Tilbúið til að setja upp uppfærslu</string>
     <string name="update_completed">Uppfærsla uppsett</string>
     <string name="install_update_manager_failed">Ekki tókst að setja upp uppfærslu</string>
     <string name="installing_manager_update">Sæti uppfærslu…</string>
+    <string name="installing_manager_update_hint">Morphe mun loka sér til að ljúka uppfærslunni</string>
     <string name="downloading_manager_update">Sæki uppfærslu…</string>
-    <!-- Shown while downloading, before the total size is known. "%1$s" is the megabytes so far. -->
+    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB niðurhalað</string>
+    <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
+    <string name="manager_update_progress_size">%1$s / %2$s MB</string>
     <string name="manager_update_not_ready">Þessi útgáfa er enn í útgáfuferlinu. Reyndu aftur á nokkrum mínútum</string>
     <string name="update_download_missing">Sótta uppfærslan er ekki lengur tiltæk. Sæktu hana aftur.</string>
     <string name="download_manager_failed">Ekki tókst að sækja uppfærslu: %s</string>
@@ -1320,6 +1355,7 @@ Haltu samt sem áður?"</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Fljót ferðaleið</string>
     <string name="tour_prompt_desc">Viltu fljót ferð um lykileiginleika Morph?</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Sýndu mér leiðina</string>
     <string name="onboarding_restart_title">Ferðaleið</string>
     <string name="onboarding_restart_desc">Kynningarferð um helstu eiginleika</string>

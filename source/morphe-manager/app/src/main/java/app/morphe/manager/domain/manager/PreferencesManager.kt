@@ -57,6 +57,12 @@ class PreferencesManager(
     val matrixBackgroundUnlocked = booleanPreference("matrix_background_unlocked", false)
 
     val pureBlackTheme = booleanPreference("pure_black_theme", false)
+
+    /** Whether apps and sources wear their own colors, or the theme's accent in their place. */
+    val colorAccents = booleanPreference("color_accents", true)
+
+    /** Whether cards, panels and buttons draw the hairline edge around them. */
+    val outlines = booleanPreference("outlines", true)
     val showGreetingPhrases = booleanPreference("show_greeting_phrases", true)
 
     /** The per-app badges carry the same news, so the banner is worth turning off. */
@@ -73,8 +79,6 @@ class PreferencesManager(
 
     /** Guards the one-shot migration that folds the retired `dynamic_color` toggle into [themeStyle]. */
     private val themeStyleMigrated = booleanPreference("theme_style_migrated_v1", false)
-
-    val appLanguage = stringPreference("app_language", "system")
 
     // Advanced tab
     val useManagerPrereleases = booleanPreference("manager_prereleases", false)
@@ -130,6 +134,12 @@ class PreferencesManager(
 
     /** Whether the last patcher process came up without the heap limit it asked for. Tied to the device, so never exported. */
     val patcherHeapLimitIgnored = booleanPreference("patcher_heap_limit_ignored", false)
+
+    /**
+     * Whether changelogs and patch descriptions show in the app language. Needs the translation
+     * model on this device, so never exported.
+     */
+    val translateContent = booleanPreference("translate_content", false)
 
     val keystoreAlias = stringPreference("keystore_alias", KeystoreManager.DEFAULT)
     val keystorePass = stringPreference("keystore_pass", KeystoreManager.DEFAULT)
@@ -243,6 +253,8 @@ class PreferencesManager(
     data class SettingsSnapshot(
         val dynamicColor: Boolean? = null,
         val pureBlackTheme: Boolean? = null,
+        val colorAccents: Boolean? = null,
+        val outlines: Boolean? = null,
         val customAccentColor: String? = null,
         val customThemeColor: String? = null,
         val appCardColorMode: AppCardColorMode? = null,
@@ -309,6 +321,8 @@ class PreferencesManager(
             return SettingsSnapshot(
                 dynamicColor = dynamicColor.takeIf { appearance },
                 pureBlackTheme = pureBlackTheme.takeIf { appearance },
+                colorAccents = colorAccents.takeIf { appearance },
+                outlines = outlines.takeIf { appearance },
                 customAccentColor = customAccentColor.takeIf { appearance },
                 customThemeColor = customThemeColor.takeIf { appearance },
                 appCardColorMode = appCardColorMode.takeIf { appearance },
@@ -366,6 +380,8 @@ class PreferencesManager(
     suspend fun exportSettings() = SettingsSnapshot(
         dynamicColor = themeStyle.get() == ThemeStyle.MATERIAL_YOU,
         pureBlackTheme = pureBlackTheme.get(),
+        colorAccents = colorAccents.get(),
+        outlines = outlines.get(),
         customAccentColor = customAccentColor.get(),
         customThemeColor = customThemeColor.get(),
         appCardColorMode = appCardColorMode.get(),
@@ -374,7 +390,6 @@ class PreferencesManager(
         theme = theme.get(),
         themeStyle = themeStyle.get(),
         uiScale = uiScale.get(),
-        appLanguage = appLanguage.get(),
         gitHubPat = gitHubPat.get().takeIf { includeGitHubPatInExports.get() },
         includeGitHubPatInExports = includeGitHubPatInExports.get(),
         useProcessRuntime = useProcessRuntime.get(),
@@ -415,6 +430,8 @@ class PreferencesManager(
 
     suspend fun importSettings(snapshot: SettingsSnapshot) = edit {
         snapshot.pureBlackTheme?.let { pureBlackTheme.value = it }
+        snapshot.colorAccents?.let { colorAccents.value = it }
+        snapshot.outlines?.let { outlines.value = it }
         snapshot.customAccentColor?.let { customAccentColor.value = it }
         snapshot.customThemeColor?.let { customThemeColor.value = it }
         snapshot.appCardColorMode?.let { appCardColorMode.value = it }
@@ -428,7 +445,6 @@ class PreferencesManager(
             }
         // Snapped rather than taken as-is, so a scale from a build with a different range still fits
         snapshot.uiScale?.let { uiScale.value = it.coerceToUiScale() }
-        snapshot.appLanguage?.let { appLanguage.value = it }
         snapshot.gitHubPat?.let { gitHubPat.value = it }
         snapshot.includeGitHubPatInExports?.let { includeGitHubPatInExports.value = it }
         snapshot.useProcessRuntime?.let { useProcessRuntime.value = it }

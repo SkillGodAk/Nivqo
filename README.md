@@ -82,8 +82,11 @@ Meta 可能在同一個版本名稱下發布多個不同 build。它們的 DEX /
 
 目前核心更新通道：
 
+- Nivqo Manager `1.33.0`（同步 Morphe Manager `1.33.0` / Morphe Patcher `1.15.0`）
 - HushFacebook `0.5.0-nivqo.1`（上游 `6d312196bc9ae8a7c9bd77f936c60b6e6de579d2`）
 - HushMessenger `0.6.0-nivqo.1`（上游 `4b259a712e1b3c90edb7d0262d2b7d23bf45b093`）
+- Manager 內 HushFacebook patch metadata：`54 / 54` 繁中
+- Manager 內 HushMessenger patch metadata：`28 / 28` 繁中
 
 - **HushFacebook / HushMessenger 插件核心**：由 Nivqo 自己的 GitHub 更新通道提供。之後原作者核心有更新時，會先拉回 Nivqo、合併繁體中文與本專案修改並測試，接著更新 GitHub 上的 patch bundle。已安裝的 Nivqo 可自動取得新版插件核心，不需要因為只有插件更新就重新安裝 Manager。
 - **Nivqo Manager 本體**：只有 Manager 本身有修改時才發布新的 APK，更新來源為 `SkillGodAk/Nivqo` 的 GitHub Releases。
@@ -100,7 +103,7 @@ GitHub Releases 只提供 **Nivqo Manager 正式 APK**。
 
 - App：Nivqo
 - Package：`app.nivqo.manager`
-- Manager base version：`1.32.0`
+- Manager base version：`1.33.0`
 
 ## 原始碼
 

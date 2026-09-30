@@ -549,15 +549,7 @@ class MorpheAPI(
      */
     suspend fun fetchChangelogFromUrl(changelogUrl: String, stopAfterFirstStable: Boolean = false): List<ChangelogEntry> {
         Log.d(tag, "fetchChangelogFromUrl: $changelogUrl")
-        return when (val r = client.request<String> { url(changelogUrl) }) {
-            is APIResponse.Success -> withContext(Dispatchers.Default) {
-                ChangelogParser.parse(r.data, stopAfterFirstStable)
-            }
-            is APIResponse.Error, is APIResponse.Failure -> {
-                Log.w(tag, "Failed to fetch changelog from $changelogUrl")
-                emptyList()
-            }
-        }
+        return parseChangelog(client.request<String> { url(changelogUrl) }, stopAfterFirstStable, changelogUrl)
     }
 
     private suspend fun fetchChangelogFromRepo(
@@ -568,17 +560,32 @@ class MorpheAPI(
     ): List<ChangelogEntry> {
         val url = cacheBusted(config.rawFileUrl(branch, path))
         Log.d(tag, "fetchChangelog: $url")
-        return when (val r = client.request<String> {
+        val response = client.request<String> {
             url(url)
             header("Cache-Control", "no-cache")
-        }) {
-            is APIResponse.Success -> withContext(Dispatchers.Default) {
-                ChangelogParser.parse(r.data, stopAfterFirstStable)
-            }
-            is APIResponse.Error, is APIResponse.Failure -> {
-                Log.w(tag, "Failed to fetch $path for ${config.name}@$branch")
-                emptyList()
-            }
+        }
+        return parseChangelog(response, stopAfterFirstStable, "$path for ${config.name}@$branch")
+    }
+
+    /**
+     * Parses a fetched changelog, a missing file reading as an empty one. Any other failure, a lost
+     * connection above all, is thrown, so it is neither shown nor cached as a changelog with nothing in it.
+     */
+    private suspend fun parseChangelog(
+        response: APIResponse<String>,
+        stopAfterFirstStable: Boolean,
+        source: String
+    ): List<ChangelogEntry> = when (response) {
+        is APIResponse.Success -> withContext(Dispatchers.Default) {
+            ChangelogParser.parse(response.data, stopAfterFirstStable)
+        }
+        is APIResponse.Error -> {
+            Log.w(tag, "Failed to fetch changelog from $source: ${response.error.statusCode}")
+            if (response.error.statusCode == HttpStatusCode.NotFound) emptyList() else throw response.error
+        }
+        is APIResponse.Failure -> {
+            Log.w(tag, "Failed to fetch changelog from $source", response.error)
+            throw response.error
         }
     }
 

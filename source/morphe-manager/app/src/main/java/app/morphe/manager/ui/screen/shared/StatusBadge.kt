@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.morphe.manager.ui.theme.*
 import app.morphe.manager.util.readableOn
 
 /**
@@ -48,8 +49,8 @@ enum class SemanticTone {
         @Composable get() = when (this) {
             Neutral -> MaterialTheme.colorScheme.surfaceVariant
             Primary -> MaterialTheme.colorScheme.primaryContainer
-            Success -> MaterialTheme.colorScheme.tertiaryContainer
-            Warning -> MaterialTheme.colorScheme.secondaryContainer
+            Success -> if (isDarkTheme()) theme_dark_successContainer else theme_light_successContainer
+            Warning -> if (isDarkTheme()) theme_dark_warningContainer else theme_light_warningContainer
             Error -> MaterialTheme.colorScheme.errorContainer
         }
 
@@ -58,8 +59,8 @@ enum class SemanticTone {
         @Composable get() = when (this) {
             Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
             Primary -> MaterialTheme.colorScheme.onPrimaryContainer
-            Success -> MaterialTheme.colorScheme.onTertiaryContainer
-            Warning -> MaterialTheme.colorScheme.onSecondaryContainer
+            Success -> if (isDarkTheme()) theme_dark_onSuccessContainer else theme_light_onSuccessContainer
+            Warning -> if (isDarkTheme()) theme_dark_onWarningContainer else theme_light_onWarningContainer
             Error -> MaterialTheme.colorScheme.onErrorContainer
         }
 
@@ -68,8 +69,8 @@ enum class SemanticTone {
         @Composable get() = when (this) {
             Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
             Primary -> MaterialTheme.colorScheme.primary
-            Success -> MaterialTheme.colorScheme.tertiary
-            Warning -> MaterialTheme.colorScheme.secondary
+            Success -> if (isDarkTheme()) theme_dark_success else theme_light_success
+            Warning -> if (isDarkTheme()) theme_dark_warning else theme_light_warning
             Error -> MaterialTheme.colorScheme.error
         }
 }
@@ -101,7 +102,9 @@ val statusBadgeHeight: Dp
  *   for markers sharing a row with badges that need the room for their own words.
  * @param icon Optional icon drawn before the label
  * @param tone Semantic color role
- * @param containerColor Background override, for badges drawn over custom artwork
+ * @param containerColor Background override, for badges drawn over custom artwork. A
+ *   [SemanticTone.Primary] badge on a card in an app's or a source's own color takes that color by
+ *   default, see [LocalAccent], as the pills on the card do
  * @param contentColor Content override, paired with [containerColor]
  * @param onClick Makes the badge act as a control, as the version list expander does. A badge
  *   that carries one sinks while held, the way the surrounding buttons do
@@ -113,8 +116,8 @@ fun StatusBadge(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     tone: SemanticTone = SemanticTone.Neutral,
-    containerColor: Color = tone.container,
-    contentColor: Color = tone.content,
+    containerColor: Color = tone.badgeContainer(),
+    contentColor: Color = tone.badgeContent(),
     onClick: (() -> Unit)? = null
 ) {
     // Add zero-width space so long tokens can break at "/" and "." - cached per text value.
@@ -202,23 +205,6 @@ fun StatusBadge(
 }
 
 /**
- * Badges stacked at the end of a row, so a long neighbor shortens itself instead of
- * squeezing them.
- */
-@Composable
-fun StatusBadgeColumn(
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(BadgeDefaults.ItemSpacing),
-        content = content
-    )
-}
-
-/**
  * Badges on a line of their own, wrapping onto the next one when they run out of room.
  */
 @Composable
@@ -233,3 +219,25 @@ fun StatusBadgeRow(
         content = content
     )
 }
+
+/**
+ * Color a [SemanticTone.Primary] badge takes on a card in an app's or a source's own color, where
+ * the theme's primary would sit on it as a color of its own. Null for any other badge.
+ */
+@Composable
+private fun SemanticTone.cardPrimary(): Color? =
+    if (this == SemanticTone.Primary) LocalAccent.current else null
+
+/** Whether this is a neutral badge on a card in an app's or a source's own color, see [neutralVeil]. */
+@Composable
+private fun SemanticTone.isCardNeutral(): Boolean = this == SemanticTone.Neutral && LocalAccent.current != null
+
+@Composable
+private fun SemanticTone.badgeContainer(): Color = when {
+    isCardNeutral() -> neutralVeil()
+    else -> cardPrimary()?.copy(alpha = AccentAlpha.LEAD) ?: container
+}
+
+@Composable
+private fun SemanticTone.badgeContent(): Color =
+    if (cardPrimary() != null || isCardNeutral()) MaterialTheme.colorScheme.onBackground else content

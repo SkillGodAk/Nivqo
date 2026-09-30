@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
+import app.morphe.manager.patcher.patch.BundleAppMetadata
 import app.morphe.manager.ui.screen.home.AppCardContent
 import app.morphe.manager.ui.screen.home.AppCardLayout
 import app.morphe.manager.ui.screen.shared.*
@@ -79,8 +80,10 @@ fun AppCardColorDialog(
     }
 
     // Bundle-bound stops have no single color of their own, so previews resolve them against the
-    // default palette
-    val previewBundleColor = AppCardColorDefaults.defaultGradientColors[0]
+    // colors of the app the preview card stands for
+    val previewApp = rememberPreviewApp()
+    val previewAppColors = previewApp?.gradientColors ?: AppCardColorDefaults.defaultGradientColors
+    val previewBundleColor = previewAppColors[0]
     val gradientColors = remember(draftStartColorHex, draftMiddleColorHex, draftEndColorHex) {
         AppCardColorDefaults.gradientColors(
             startHex = draftStartColorHex,
@@ -135,7 +138,11 @@ fun AppCardColorDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
         ) {
-            AppCardColorPreview(colors = previewColors)
+            AppCardColorPreview(
+                colors = previewColors,
+                app = previewApp,
+                appColors = previewAppColors
+            )
 
             OptionGrid(
                 items = MODE_OPTIONS,
@@ -264,25 +271,45 @@ fun AppCardColorMiniPreview(
 }
 
 /**
- * Renders a real home app card so the preview matches the home screen exactly, down to the
- * layered glass background and the placeholder icon. [colors] is provided the same way the
- * theme provides it at runtime; null falls back to the default palette.
+ * App the preview card stands for: YouTube where a source colors it, otherwise the first app a
+ * source does. The home screen opens each card on its app's color, so a preview without one would
+ * not show what [AppCardColorMode.DEFAULT] looks like.
  */
 @Composable
-private fun AppCardColorPreview(colors: List<Color>?) {
+private fun rememberPreviewApp(): BundleAppMetadata? {
+    val metadata = rememberAppMetadata()
+    return remember(metadata) {
+        metadata[KnownApps.YOUTUBE]?.takeIf { it.gradientColors != null }
+            ?: metadata.values.firstOrNull { it.gradientColors != null }
+    }
+}
+
+/**
+ * Renders a real home app card so the preview matches the home screen exactly, down to the
+ * layered glass background and the icon. [colors] is provided the same way the theme provides it
+ * at runtime; null leaves the card on [appColors], the ones its bundle declares.
+ *
+ * @param app App the card stands for, or null to show Morphe on the default palette.
+ */
+@Composable
+private fun AppCardColorPreview(
+    colors: List<Color>?,
+    app: BundleAppMetadata?,
+    appColors: List<Color>
+) {
     val resolver = remember(colors) { colors?.let { fixed -> AppCardColorResolver { fixed } } }
 
     CompositionLocalProvider(LocalAppCardColorResolver provides resolver) {
         AppCardLayout(
-            gradientColors = AppCardColorDefaults.defaultGradientColors,
+            gradientColors = appColors,
             onClick = {}
         ) {
             AppCardContent(
-                packageName = null,
+                packageName = app?.packageName,
                 packageInfo = null,
-                displayName = stringResource(R.string.app_name),
+                displayName = app?.displayName ?: stringResource(R.string.app_name),
                 subtitle = stringResource(R.string.home_not_patched_yet),
-                gradientColors = AppCardColorDefaults.defaultGradientColors
+                gradientColors = appColors
             )
         }
     }

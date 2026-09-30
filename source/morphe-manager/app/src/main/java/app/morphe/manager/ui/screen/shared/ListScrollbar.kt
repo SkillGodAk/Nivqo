@@ -8,7 +8,6 @@ package app.morphe.manager.ui.screen.shared
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -443,7 +442,7 @@ private fun AlphabetScrollCallout(
             shape = RoundedCornerShape(18.dp),
             color = colors.primary,
             contentColor = colors.onPrimary,
-            border = BorderStroke(1.dp, colors.onPrimary.copy(alpha = 0.2f)),
+            border = CardBorder.of(colors.onPrimary.copy(alpha = 0.2f)),
             tonalElevation = 8.dp,
             shadowElevation = 8.dp
         ) {

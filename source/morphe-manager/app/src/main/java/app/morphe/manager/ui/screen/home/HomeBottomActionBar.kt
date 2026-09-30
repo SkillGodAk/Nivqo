@@ -111,7 +111,6 @@ fun HomeBottomActionBar(
             icon = if (isExpertModeEnabled) Icons.Outlined.Engineering else Icons.Outlined.Settings,
             text = settingsLabel,
             showLabel = showLabels,
-            tone = if (isExpertModeEnabled) BottomActionTone.Highlight else BottomActionTone.Neutral,
             contentDescription = if (isExpertModeEnabled) "$settingsLabel, $expertModeLabel" else null,
             modifier = if (onSettingsPositioned != null) {
                 Modifier.onGloballyPositioned { onSettingsPositioned(it.boundsInWindow()) }

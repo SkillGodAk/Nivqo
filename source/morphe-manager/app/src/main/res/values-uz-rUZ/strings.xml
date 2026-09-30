@@ -34,8 +34,6 @@
     <string name="home_update_skipped_metered">Yangilanish o\'tkazib yuborildi</string>
     <string name="home_update_skipped_metered_subtitle">Mobil internet faol</string>
     <string name="home_updating_sources">Manbalar yangilanmoqda…</string>
-    <!-- Download progress across several bundles. "%1$d" and "%2$d" count the bundles, "%3$s" and
-         "%4$s" are the megabytes read and expected, "%5$d" is the percentage. -->
     <string name="home_update_success">Manbalar yangilanishi yakunlandi</string>
     <string name="home_update_success_subtitle">Sizning manbalaringiz yangilandi</string>
     <string name="home_sources_are_loading">Manbalar yuklanayapti, iltimos kuting…</string>
@@ -152,21 +150,16 @@
     <string name="sources_dialog_rename">Tuzatish manbai nomini o\'zgartirish</string>
     <string name="sources_dialog_duplicate_name_error">Bunday nomdagi tuzatish manbai allaqachon mavjud</string>
     <string name="sources_dialog_missing_error">Ushbu patch manbasini yangilash mumkin emas</string>
-    <string name="sources_dialog_view_any_version">Har qanday versiya</string>
-    <string name="sources_dialog_view_any_package">Har qanday paket</string>
     <string name="sources_dialog_add_source">Tuzatish manbai qo\'shish</string>
-    <string name="sources_dialog_delete_confirm_message">Manbani o\'chirib tashlash \"%s\"? Ushbu harakatni bekor qilish mumkin emas</string>
     <string name="sources_dialog_remote">Uzoq</string>
     <string name="sources_dialog_remote_url">Manba URL</string>
-    <string name="sources_dialog_remote_url_formats_title">Misollar:</string>
     <string name="sources_dialog_local">Mahalliy</string>
-    <string name="sources_dialog_local_file">Tuzatish manbai faylini tanlang</string>
+    <!-- Button under the files already picked, which opens the picker again -->
     <string name="sources_dialog_local_file_tap_hint">Saqlashni ko‘rib chiqish uchun bosing</string>
-    <string name="sources_dialog_local_file_description">Saqlashdan .mpp tuzatish manbai faylini tanlang</string>
     <string name="sources_dialog_local_invalid_extension">Fayl .mpp kengaytmasiga ega bo‘lishi kerak</string>
+    <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_url_valid">Amal qiluvchi repository yoki .json URL</string>
     <string name="sources_dialog_url_invalid">URL GitHub/GitLab repositori yoki .json fayliga ishara qilishi kerak</string>
-    <string name="sources_dialog_local_change_file">Faylni o\'zgartirish</string>
     <string name="sources_dialog_preinstalled">O\'rnatilgan</string>
     <string name="sources_dialog_community">Jamiyat yamoqlari</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
@@ -193,7 +186,7 @@ Ushbu veb-saytdan qo'shadigan har qanday narsa o'z xavfingiz ostida qo'llaniladi
     <string name="home_apk_helper_download">Yordamchi ilovadan foydalaning</string>
     <string name="home_apk_helper_title">Yordamchi ilova orqali yuklab olish</string>
     <string name="home_apk_helper_description">Morphe quyidagi yordamchi ilovadan asl APK ni yuklab olishni soʻraydi va faylni qaytarib beradi</string>
-    <string name="home_apk_helper_continue">Yordamchi ilovani oching</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_warning">Agar ushbu yordamchi ilovaga ishonmasangiz, davom etmang. Morphe patch yamoqni qoʻllashdan oldin olgan narsaning paketini, versiyasini va imzosini tekshiradi</string>
     <string name="home_apk_helper_warning_unverified">Agar ushbu yordamchi ilovaga ishonmasangiz, davom etmang. Morphe ushbu APK ning imzosini tasdiqlay olmaydi, shuning uchun oʻzgartirilgan fayl aniqlanmaydi</string>
     <string name="home_apk_helper_no_result">Yordamchi ilova APK ni qaytarib bermadi</string>
@@ -215,7 +208,6 @@ Ushbu veb-saytdan qo'shadigan har qanday narsa o'z xavfingiz ostida qo'llaniladi
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; Android %2$s (API %3$s) versiyasi uchun qo‘llab-quvvatlanmaydi. E’lon qilingan barcha versiyalarga yuqori Android versiyasi talab etiladi</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">APK ni yuklab olish bo‘yicha ko‘rsatmalar</string>
-    <string name="home_download_instructions_steps_title">Ko‘rsatmalar:</string>
     <string name="home_download_instructions_finding">Yuklab olish sahifasi qidirilmoqda…</string>
     <string name="home_download_instructions_step1">\'%s\' tugmasini bosing</string>
     <string name="home_download_instructions_step2_part1">Veb-sahifada pastga aylantiring va tugmachani bosing</string>
@@ -258,7 +250,6 @@ Ushbu veb-saytdan qo'shadigan har qanday narsa o'z xavfingiz ostida qo'llaniladi
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_title">Ekspert rejimi</string>
     <string name="expert_mode_search">Tuzatishlarni qidirish</string>
-    <string name="expert_mode_proceed">Patchlashga o\'ting</string>
     <string name="expert_mode_disable_all">Hammasini o\'chirish</string>
     <string name="expert_mode_disable_all_done">Barcha patchlar o‘chirilgan</string>
     <string name="expert_mode_enable_all">Hammasini yoqish</string>
@@ -298,6 +289,7 @@ Eng yaxshi natijalar uchun ushbu ilova to‘liq &lt;b&gt;APK&lt;/b&gt;ni patchla
     <string name="morphe_experimental_app_version_dialog_message">&lt;b&gt;%s&lt;/b&gt; ning bu versiyasi dastlabki eksperimental qo‘llab-quvvatlashga ega&lt;br/&gt;&lt;br/&gt;🔧 Ushbu ilova versiyasi uchun patchlar aniqlanadigan bo‘lganda, ilovaning g‘alati ishlashi yoki aniqlanmagan xatolar kutilishi mumkin</string>
     <string name="home_dialog_unsupported_version_dialog_title">Qo\'llab-quvvatlanmaydigan versiya</string>
     <string name="home_dialog_unsupported_version_dialog_description">Mavjud emas</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_dialog_unsupported_version_dialog_proceed">Baribir davom etish</string>
     <string name="home_dialog_unsupported_version_compatible_versions">Munosib versiyalar:</string>
     <string name="home_dialog_unsupported_version_unsupported_label">Qo\'llab-quvvatlanmaydi</string>
@@ -331,12 +323,16 @@ Eng yaxshi natijalar uchun ushbu ilova to‘liq &lt;b&gt;APK&lt;/b&gt;ni patchla
     <string name="patch_option_slider_range_end">Gacha</string>
     <string name="patch_option_list_duplicate">Ushbu qiymat allaqachon mavjud</string>
     <string name="patch_option_list_empty">Qiymat bo\'sh bo\'lishi mumkin emas</string>
-    <string name="patch_option_list_empty_state">Hali hech qanday qiymatlar qo\'shilmagan</string>
     <string name="patch_option_required_missing">%s: barcha zarur opsiyalarni to‘ldiring</string>
+    <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <!-- Badge on a patch option that has to be filled in before patching -->
+    <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
     <!-- Adaptive Icon Creator -->
     <string name="adaptive_icon_create">Maxsus ilona belgisi yaratish</string>
     <string name="adaptive_icon_select_image">Rasm tanlang</string>
     <string name="adaptive_icon_change_image">Rasm o\'zgartirish</string>
+    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
+    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
     <string name="adaptive_icon_background_color">Fondo rangi</string>
     <string name="adaptive_icon_reset_transform">Harakatlanishni qayta o\'rnatish</string>
     <string name="adaptive_icon_safe_zone_inner">Xavfsiz zona (har doim ko\'rinadi)</string>
@@ -388,16 +384,15 @@ Chekka hudud (chizikli): launcher niqobi tomonidan kesilishi mumkin - muhim tafs
     <string name="batch_patch_source_file">Biriktirilgan fayl</string>
     <string name="batch_patch_source_unavailable">APK tayyorlanmadi</string>
     <string name="batch_patch_force_version">Hammasini ta’mirlash</string>
-    <string name="batch_patch_force_version_done">Ham qatorga qo\'yildi, boshqa versiyalarga tuzatishlar kiritilgani ilovaning ishlamasligiga olib kelishi mumkin</string>
-    <string name="batch_patch_accept_signature_done">Baribir navbatga qo\'yildi, bu APK asl nusxasi bo\'lmasligi mumkin.|||one|||other</string>
     <string name="batch_patch_edit_patches">Patchlarni tanlang</string>
     <string name="batch_patch_state_no_apk">APK yo‘q</string>
     <string name="batch_patch_state_no_patches">Hozircha patch qilinmagan</string>
     <string name="batch_patch_policy_install">Tugagandan so‘ng o‘rnating</string>
     <string name="batch_patch_policy_install_description">APK larimiz keyinroq uchun saqlanib qoladi, navbat tugagandan so‘ng har bir ta’mirlangan ilova to‘g‘ridan-to‘g‘ri o‘rnatiladi</string>
-    <string name="batch_patch_start">Ta’mirlashni boshlash</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_stop_title">Ommaviy ta’mirlashni to‘xtatmoqchimisiz?</string>
     <string name="batch_patch_stop_description">Hozir ta’mirlanayotgan ilova va hamma navbatdagi barcha ilovalar bekor qilinadi</string>
+    <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_install_all">Hammasini o‘rnating</string>
     <string name="batch_patch_install_failed">O‘rnatish muvaffaqiyatsiz</string>
     <string name="batch_patch_in_progress">Ommaviy ta’mirlash allaqachon ishlamoqda</string>
@@ -487,7 +482,6 @@ Chekka hudud (chizikli): launcher niqobi tomonidan kesilishi mumkin - muhim tafs
 O‘rnatish barcha ilova ma'lumotlarini o‘chiradi"</string>
     <string name="patcher_install_error_title">O‘rnatish xatoligi</string>
     <string name="patcher_install_error_subtitle">Qayta o‘chirishni va o‘rnatishni urinib ko‘ring</string>
-    <string name="patcher_ready_to_install_subtitle">O‘rnatish uchun quyidagi tugmani bosing</string>
     <string name="patcher_ready_to_mount_subtitle">Ulanish uchun quyidagi tugmani bosing</string>
     <string name="patcher_patches_excluded_for_installer">Ushbu oʻrnatish usuli uchun mavjud emas va istisno qilingan: %s</string>
     <string name="patcher_back_to_game_hint">O\'yiningizga qaytish uchun %1$s ni bosing</string>
@@ -674,6 +668,7 @@ O‘rnatish barcha ilova ma'lumotlarini o‘chiradi"</string>
     <string name="settings_appearance_app_icon_dark_3">Indigo</string>
     <string name="settings_appearance_app_icon_change_dialog_title">Ilona belgisini o\'zgartirish?</string>
     <string name="settings_appearance_app_icon_change_dialog_message">&lt;b&gt;%s&lt;/b&gt; ga o‘zgartirish va qayta ishga tushirish kerakmi?</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">Tasdiqlash</string>
     <!-- Settings - Advanced Tab - Updates Section -->
     <string name="settings_advanced_updates">O\'chirish</string>
@@ -972,7 +967,6 @@ Ma’lumotlar: %2$s"</string>
     <string name="settings_system_patched_apks_description">Patchlangan ilova fayllariga boshqaruv</string>
     <string name="settings_system_patched_apks_empty">Mahalliy</string>
     <string name="settings_system_patched_apks_delete_title">Tuzatilgan APKni o‘chirib tashlash?</string>
-    <string name="settings_system_patched_apks_delete_confirm">&lt;b&gt;%s&lt;/b&gt; uchun saqlangan tuzatilgan APK ni o\'chirishni xohlayapsizmi?</string>
     <string name="settings_system_patched_apks_deleted">Tuzatilgan APK muvaffaqiyatli o‘chirildi</string>
     <string name="settings_system_patched_apks_delete_all_title">Hapus semua APK yang ditambal?</string>
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
@@ -981,7 +975,6 @@ Ma’lumotlar: %2$s"</string>
     <string name="settings_system_original_apks_empty">Yangilash mavjud emas</string>
     <string name="settings_system_original_apks_deleted">Manbalarni yuklab olishda xatolik: %s</string>
     <string name="settings_system_original_apks_delete_title">Original APKni o‘chirib tashlash?</string>
-    <string name="settings_system_original_apks_delete_confirm">&lt;b&gt;%s&lt;/b&gt; uchun asl APK ni o\'chirish? Yangi APK taqdim etmasangiz, uni qayta tuzata olmaysiz.</string>
     <string name="settings_system_original_apks_delete_all_title">Hapus semua APK asli?</string>
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
     <string name="settings_system_patch_selections_title">Tuzatish imkoniyatlari</string>
@@ -1002,7 +995,6 @@ Ma’lumotlar: %2$s"</string>
     <string name="settings_system_import_source_data_fail">Manba ma\'lumotlarini import qilishda xatolik yuzaga keldi</string>
     <string name="settings_system_import_source_data_success">Manba ma\'lumotlari muvaffaqiyatli import qilindi</string>
     <string name="settings_system_selected_patches_section">Tanlangan qismlar</string>
-    <string name="settings_system_patch_options_section">Qism sozlamalari</string>
     <string name="settings_system_no_patches_or_options">Qayta urinish</string>
     <!-- Copy selection from another bundle -->
     <string name="copy_selection_title">Tanlangan qismini… dan nusxalash</string>
@@ -1016,7 +1008,6 @@ Ma’lumotlar: %2$s"</string>
     <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">APK yuklab olish yordamchisi</string>
     <!-- File Picker -->
-    <string name="file_picker_previous_directory">Oldingi katalog</string>
     <string name="file_picker_no_files">Ichki xotira</string>
     <string name="file_picker_read_error">Ushbu katalogdan o\'qib bo\'lmaydi</string>
     <string name="file_picker_internal_storage">Ichki saqlash</string>
@@ -1047,11 +1038,8 @@ Ma’lumotlar: %2$s"</string>
     <string name="easter_egg_pill_red_toast_again">Yana yomg\'irda</string>
     <string name="easter_egg_pill_blue_toast_again">Uzilgan. Orqaga yo\'l har doim bo\'lgan joyda.</string>
     <!-- Shared strings -->
-    <!-- Download progress of a bundle or of the manager itself. "%1$s" and "%2$s" are the
-         megabytes read and expected, "%3$s" is the percentage; the doubled "%%" after it is
-         how a literal percent sign is written here. -->
     <string name="select_file">Faylni tanlang</string>
-    <string name="select_folder">Sana o‘zgarishini almashtirish protokolini saqlash</string>
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="patches">Patchlar</string>
     <string name="home">Bosh sahifa</string>
     <string name="settings">Sozlamalar</string>
@@ -1086,7 +1074,6 @@ Ma’lumotlar: %2$s"</string>
     <string name="disable">O\'chirish</string>
     <string name="enable">Yoqish</string>
     <string name="loading">Yuklanmoqda…</string>
-    <string name="loading_older_releases">Memuat rilis yang lebih lama…</string>
     <string name="creating">Membuat…</string>
     <string name="processing_apk">Memproses APK…</string>
     <string name="exporting_apks">Mengekspor APK…</string>
@@ -1128,10 +1115,10 @@ Ma’lumotlar: %2$s"</string>
     <string name="continue_">Davom etish</string>
     <string name="version">Versiya</string>
     <string name="clone">Klon</string>
+    <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patch">Patch</string>
     <string name="patching">Ta’mirlash</string>
     <string name="patched">Yamalgan</string>
-    <string name="open">Qayta o\'rnatish</string>
     <string name="mount">Ulanish</string>
     <string name="mounted">Ulanish</string>
     <string name="unmount">Demontaj qilish</string>
@@ -1161,8 +1148,11 @@ Ma’lumotlar: %2$s"</string>
     <string name="changelog">O‘zgarishlar jurnalini ko‘rish</string>
     <string name="changelog_download_fail">O‘zgarishlar jurnalini yuklab olishda xatolik: %s</string>
     <string name="changelog_empty">O\'zgarishlar logi mavjud emas</string>
-    <string name="changelog_show_older">Eski versiyalarni ko\'rsatish</string>
     <string name="changelog_older_empty">Ko\'rsatish uchun eski versiyalar yo\'q</string>
+    <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <!-- "%s" is the number of changes in the section -->
     <string name="no_network_toast">Internetga ulanish mavjud emas</string>
     <string name="update_available">Yangilanish mavjud</string>
     <string name="ready_to_install_update">Yangilanishni o‘rnatishga tayyor</string>
@@ -1170,7 +1160,8 @@ Ma’lumotlar: %2$s"</string>
     <string name="install_update_manager_failed">Yangilanishni o‘rnatishda xatolik</string>
     <string name="installing_manager_update">Yangilanish o‘rnatilmoqda…</string>
     <string name="downloading_manager_update">Yangilanish yuklanmoqda…</string>
-    <!-- Shown while downloading, before the total size is known. "%1$s" is the megabytes so far. -->
+    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
+    <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
     <string name="manager_update_not_ready">Ushbu nashr hali e\'lon qilinmoqda. Bir necha daqiqadan keyin qayta urinib ko\'ring</string>
     <string name="update_download_missing">Yuklab olingan yangilanish endi mavjud emas. Uni qayta yuklab oling.</string>
     <string name="download_manager_failed">Yangilanishni yuklab olishda xatolik: %s</string>
@@ -1202,6 +1193,7 @@ Davom etmoqchimisiz?"</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Qisqa xususiyatlar sayohati</string>
     <string name="tour_prompt_desc">Morphe ning asosiy funksiyalarini qisqacha ko\'rib chiqmoqchisiz?</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Mengani ko\'rsat</string>
     <string name="onboarding_restart_title">Funksiyalar sayohati</string>
 </resources>

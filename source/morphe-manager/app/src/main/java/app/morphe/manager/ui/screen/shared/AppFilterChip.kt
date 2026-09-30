@@ -7,12 +7,17 @@ package app.morphe.manager.ui.screen.shared
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Done
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import app.morphe.manager.R
 
 /**
  * Filter chip for the sheets that narrow a list down.
@@ -54,6 +59,38 @@ fun AppFilterChip(
             borderColor = scheme.outline.copy(alpha = 0.5f),
             selectedBorderColor = scheme.primary,
             selectedBorderWidth = 1.dp
+        )
+    )
+}
+
+/**
+ * Chip for one value of a list being edited, which removes the value when tapped. Filled and
+ * outlined as [AppFilterChip] is, so a list of values reads as the same kind of control.
+ */
+@Composable
+fun AppInputChip(
+    label: String,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+    val removeLabel = stringResource(R.string.remove)
+
+    InputChip(
+        selected = false,
+        onClick = onRemove,
+        label = { Text(label) },
+        modifier = modifier.semantics { onClick(label = removeLabel) { onRemove(); true } },
+        trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = null, Modifier.size(16.dp)) },
+        colors = InputChipDefaults.inputChipColors(
+            containerColor = scheme.surfaceContainerLowest,
+            labelColor = scheme.onSurface,
+            trailingIconColor = scheme.onSurfaceVariant
+        ),
+        border = InputChipDefaults.inputChipBorder(
+            enabled = true,
+            selected = false,
+            borderColor = scheme.outline.copy(alpha = 0.5f)
         )
     )
 }

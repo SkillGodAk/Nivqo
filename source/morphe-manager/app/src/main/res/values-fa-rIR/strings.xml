@@ -37,9 +37,6 @@
     <string name="home_update_skipped_metered">به روزرسانی ها رد شدند </string>
     <string name="home_update_skipped_metered_subtitle">داده های موبایل فعال است </string>
     <string name="home_updating_sources">به روزرسانی منابع…</string>
-    <!-- Download progress across several bundles. "%1$d" and "%2$d" count the bundles, "%3$s" and
-         "%4$s" are the megabytes read and expected, "%5$d" is the percentage. -->
-    <string name="home_update_bundle_count_with_bytes">%1$d / %2$d  ·  %3$s / %4$s MB (%5$d%%)</string>
     <string name="home_update_success">به روزرسانی منابع کامل شد</string>
     <string name="home_update_success_subtitle">منابع شما به روز هستند </string>
     <string name="home_sources_are_loading">منابع در حال بارگذاری هستند، لطفا صبر کنید…</string>
@@ -162,21 +159,16 @@
     <string name="sources_dialog_rename">تغییر نام منبع پچ</string>
     <string name="sources_dialog_duplicate_name_error">یک منبع پچ با این نام قبلا وجود دارد</string>
     <string name="sources_dialog_missing_error">نتوانستم منبع این پچ را به روزرسانی کنم</string>
-    <string name="sources_dialog_view_any_version">هر نسخه ای</string>
-    <string name="sources_dialog_view_any_package">هر بسته ای</string>
     <string name="sources_dialog_add_source">افزودن منبع پچ</string>
-    <string name="sources_dialog_delete_confirm_message">حذف منبع  «%s» ؟ این قابل بازگشت نیست</string>
     <string name="sources_dialog_remote">از راه دور</string>
     <string name="sources_dialog_remote_url">آدرس منبع</string>
-    <string name="sources_dialog_remote_url_formats_title">نمونه ها:</string>
     <string name="sources_dialog_local">محلی</string>
-    <string name="sources_dialog_local_file">انتخاب فایل منبع پچ</string>
+    <!-- Button under the files already picked, which opens the picker again -->
     <string name="sources_dialog_local_file_tap_hint">برای مرور حافظه، ضربه بزنید</string>
-    <string name="sources_dialog_local_file_description">یک فایل منبع پچ .mpp را از حافظه داخلی انتخاب کنید</string>
     <string name="sources_dialog_local_invalid_extension">فایل باید پسوند .mpp داشته باشد</string>
+    <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_url_valid">نشانی اینترنتی معتبر مخزن یا JSON</string>
     <string name="sources_dialog_url_invalid">نشانی اینترنتی باید به یک مخزن GitHub/GitLab یا فایل .json اشاره کند</string>
-    <string name="sources_dialog_local_change_file">تغییر فایل</string>
     <string name="sources_dialog_preinstalled">پیش نصب شده</string>
     <string name="sources_dialog_community">پچ‌های جامعه</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
@@ -204,7 +196,7 @@
     <string name="home_apk_helper_download">استفاده از برنامهٔ کمکی</string>
     <string name="home_apk_helper_title">دانلود با برنامهٔ کمکی</string>
     <string name="home_apk_helper_description">Morphe از برنامهٔ کمکی زیر می‌خواهد APK اصلی را دانلود کرده و فایل را تحویل دهد</string>
-    <string name="home_apk_helper_continue">باز کردن برنامهٔ کمکی</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_warning">فقط در صورتی ادامه دهید که به این برنامهٔ کمکی اعتماد دارید. Morphe بسته، نسخه و امضای هر چیزی را که دریافت می‌کند پیش از پچ‌کردن بررسی می‌کند</string>
     <string name="home_apk_helper_warning_unverified">فقط در صورتی ادامه دهید که به این برنامهٔ کمکی اعتماد دارید. Morphe نمی‌تواند امضای این APK را تأیید کند؛ بنابراین فایل تغییریافته شناسایی نمی‌شود</string>
     <string name="home_apk_helper_no_result">برنامهٔ کمکی هیچ APKای برنگرداند</string>
@@ -226,7 +218,6 @@
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; برای Android %2$s (API %3$s) هیچ نسخهٔ پشتیبانی‌شده‌ای ندارد. همهٔ نسخه‌های اعلام‌شده به نسخهٔ بالاتری از Android نیاز دارند</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">دانلود فایل apk اصلی</string>
-    <string name="home_download_instructions_steps_title">دستورالعمل‌ها:</string>
     <string name="home_download_instructions_finding">در حال یافتن صفحهٔ دانلود…</string>
     <string name="home_download_instructions_step1">دکمهٔ «%s» را در پایین بزنید</string>
     <string name="home_download_instructions_step2_part1">به آخر صفحه برو و بزن</string>
@@ -269,7 +260,6 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_title">حالت متخصص</string>
     <string name="expert_mode_search">جستجوی پچ ها</string>
-    <string name="expert_mode_proceed">ادامه برای اعمال پچ</string>
     <string name="expert_mode_disable_all">غیرفعال کردن همه</string>
     <string name="expert_mode_disable_all_done">همهٔ پچ‌ها غیرفعال شدند</string>
     <string name="expert_mode_enable_all">فعال کردن همه</string>
@@ -311,6 +301,7 @@
     <string name="morphe_experimental_app_version_dialog_message">این نسخه از &lt;b&gt;%s&lt;/b&gt; دارای پشتیبانی آزمایشی اولیه است&lt;br/&gt;&lt;br/&gt;🔧 از آنجایی که پچ‌ها برای این نسخه در حال بهینه‌سازی هستند، احتمال بروز عملکردهای غیرمعمول یا باگ‌های ناشناخته در برنامه وجود دارد.</string>
     <string name="home_dialog_unsupported_version_dialog_title">نسخه پشتیبانی نشده</string>
     <string name="home_dialog_unsupported_version_dialog_description">این APK نسخه پیشنهادی برنامه نیست. ادامه ممکن است باعث شود برنامه به درستی کار نکند</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_dialog_unsupported_version_dialog_proceed">با این حال ادامه دهید</string>
     <string name="home_dialog_unsupported_version_compatible_versions">نسخه‌های سازگار:</string>
     <string name="home_dialog_unsupported_version_unsupported_label">پشتیبانی نشده</string>
@@ -345,12 +336,16 @@
     <string name="patch_option_slider_range_end">تا</string>
     <string name="patch_option_list_duplicate">این مقدار قبلاً وجود دارد</string>
     <string name="patch_option_list_empty">مقدار نمی‌تواند خالی باشد</string>
-    <string name="patch_option_list_empty_state">هنوز هیچ مقداری اضافه نشده است</string>
     <string name="patch_option_required_missing">%s: همهٔ گزینه‌های لازم را تکمیل کنید</string>
+    <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <!-- Badge on a patch option that has to be filled in before patching -->
+    <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
     <!-- Adaptive Icon Creator -->
     <string name="adaptive_icon_create">ایجاد آیکون تطبیقی</string>
     <string name="adaptive_icon_select_image">یک تصویر انتخاب کنید</string>
     <string name="adaptive_icon_change_image">تغییر تصویر</string>
+    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
+    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
     <string name="adaptive_icon_background_color">رنگ پس‌زمینه</string>
     <string name="adaptive_icon_reset_transform">بازنشانی موقعیت و مقیاس</string>
     <string name="adaptive_icon_safe_zone_inner">ناحیه امن (همیشه قابل مشاهده)</string>
@@ -402,16 +397,16 @@
     <string name="batch_patch_source_file">فایل پیوست‌شده</string>
     <string name="batch_patch_source_unavailable">APK آماده نشد</string>
     <string name="batch_patch_force_version">به‌هرحال پچ کن</string>
-    <string name="batch_patch_force_version_done">به‌هرحال در صف قرار گرفت؛ پچ‌های ساخته‌شده برای نسخه‌های دیگر ممکن است برنامه را خراب کنند</string>
-    <string name="batch_patch_accept_signature_done">به‌هرحال در صف قرار گرفت؛ ممکن است این APK نسخهٔ اصلی نباشد</string>
     <string name="batch_patch_edit_patches">انتخاب پچ‌ها</string>
     <string name="batch_patch_state_no_apk">بدون APK</string>
     <string name="batch_patch_state_no_patches">بدون پچ</string>
     <string name="batch_patch_policy_install">پس از پایان نصب شود</string>
     <string name="batch_patch_policy_install_description">هر برنامهٔ پچ‌شده را بلافاصله پس از پایان صف نصب می‌کند. خاموش‌کردن آن APKها را برای بعد نگه می‌دارد</string>
-    <string name="batch_patch_start">شروع پچ‌کردن</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_patch_start">آغاز</string>
     <string name="batch_patch_stop_title">پچ‌کردن گروهی متوقف شود؟</string>
     <string name="batch_patch_stop_description">برنامه‌ای که اکنون در حال پچ است و همهٔ موارد باقی‌مانده در صف لغو می‌شوند</string>
+    <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_install_all">نصب همه</string>
     <string name="batch_patch_install_failed">نصب ناموفق بود</string>
     <string name="batch_patch_in_progress">پچ‌کردن گروهی از قبل در حال اجراست</string>
@@ -514,7 +509,6 @@
     <string name="patcher_success_subtitle">برنامهٔ شما پچ و نصب شد!</string>
     <string name="patcher_complete_title">پچ‌کردن کامل شد! ✨</string>
     <string name="patcher_failed_title">اوه، مشکلی پیش آمد</string>
-    <string name="patcher_failed_hint">برای دیدن مشکل، %s را بزنید</string>
     <string name="patcher_failed_dialog_title">پچ‌کردن ناموفق بود</string>
     <string name="patcher_unknown_error">خطای ناشناخته‌ای رخ داد</string>
     <string name="patcher_split_step_extracting">در حال استخراج APKهای تکه‌ای</string>
@@ -530,7 +524,6 @@
 حذف برنامه همهٔ داده‌های آن را برای همیشه پاک می‌کند"</string>
     <string name="patcher_install_error_title">خطای نصب</string>
     <string name="patcher_install_error_subtitle">برنامه را حذف و دوباره نصب کنید</string>
-    <string name="patcher_ready_to_install_subtitle">برای نصب، دکمهٔ زیر را بزنید</string>
     <string name="patcher_ready_to_mount_subtitle">برای مانت، دکمهٔ زیر را بزنید</string>
     <string name="patcher_patches_excluded_for_installer">برای این روش نصب در دسترس نیست و کنار گذاشته شد: %s</string>
     <string name="patcher_back_to_game_hint">برای بازگشت به بازی، %1$s را بزنید</string>
@@ -727,6 +720,7 @@
     <string name="settings_appearance_app_icon_dark_3">نیلی</string>
     <string name="settings_appearance_app_icon_change_dialog_title">آیکون برنامه تغییر کند؟</string>
     <string name="settings_appearance_app_icon_change_dialog_message">به &lt;b&gt;%s&lt;/b&gt; تغییر کند و دوباره راه‌اندازی شود؟</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">تغییر آیکون</string>
     <!-- Settings - Advanced Tab - Updates Section -->
     <string name="settings_advanced_updates">به‌روزرسانی‌ها</string>
@@ -1031,7 +1025,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_patched_apks_description">فایل‌های برنامهٔ پچ‌شدهٔ ذخیره‌شده را مدیریت می‌کند</string>
     <string name="settings_system_patched_apks_empty">هنوز APK پچ‌شده‌ای ذخیره نشده است</string>
     <string name="settings_system_patched_apks_delete_title">APK پچ‌شده حذف شود؟</string>
-    <string name="settings_system_patched_apks_delete_confirm">آیا مطمئنید می‌خواهید APK پچ‌شدهٔ ذخیره‌شدهٔ &lt;b&gt;%s&lt;/b&gt; را حذف کنید؟</string>
     <string name="settings_system_patched_apks_deleted">APK پچ‌شده با موفقیت حذف شد</string>
     <string name="settings_system_patched_apks_delete_all_title">همهٔ APKهای پچ‌شده حذف شوند؟</string>
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
@@ -1040,7 +1033,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_original_apks_empty">هیچ APK اصلی ذخیره نشده است</string>
     <string name="settings_system_original_apks_deleted">APK اصلی با موفقیت حذف شد</string>
     <string name="settings_system_original_apks_delete_title">APK اصلی حذف شود؟</string>
-    <string name="settings_system_original_apks_delete_confirm">APK اصلی &lt;b&gt;%s&lt;/b&gt; حذف شود؟ بدون ارائهٔ APK جدید نمی‌توانید دوباره آن را پچ کنید</string>
     <string name="settings_system_original_apks_delete_all_title">همهٔ APKهای اصلی حذف شوند؟</string>
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
     <string name="settings_system_patch_selections_title">انتخاب‌های پچ</string>
@@ -1061,7 +1053,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_import_source_data_fail">واردکردن داده‌های منبع ناموفق بود</string>
     <string name="settings_system_import_source_data_success">داده‌های منبع وارد شدند</string>
     <string name="settings_system_selected_patches_section">پچ‌های انتخاب‌شده</string>
-    <string name="settings_system_patch_options_section">گزینه‌های پچ</string>
     <string name="settings_system_no_patches_or_options">هیچ پچ یا گزینه‌ای ذخیره نشده است</string>
     <!-- Copy selection from another bundle -->
     <string name="copy_selection_title">کپی انتخاب از…</string>
@@ -1075,7 +1066,6 @@ morphe_header_custom_dark.png
     <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">برنامهٔ کمکی دانلود APK</string>
     <!-- File Picker -->
-    <string name="file_picker_previous_directory">پوشهٔ قبلی</string>
     <string name="file_picker_no_files">اینجا فایلی نیست</string>
     <string name="file_picker_read_error">خواندن این پوشه ممکن نیست</string>
     <string name="file_picker_internal_storage">حافظهٔ داخلی</string>
@@ -1106,11 +1096,8 @@ morphe_header_custom_dark.png
     <string name="easter_egg_pill_red_toast_again">بازگشت به باران</string>
     <string name="easter_egg_pill_blue_toast_again">از ماتریکس جدا شدید. راه برگشت همان‌جایی است که همیشه بود</string>
     <!-- Shared strings -->
-    <!-- Download progress of a bundle or of the manager itself. "%1$s" and "%2$s" are the
-         megabytes read and expected, "%3$s" is the percentage; the doubled "%%" after it is
-         how a literal percent sign is written here. -->
-    <string name="download_progress">%1$s مگابایت / %2$s مگابایت (%3$s%%)</string>
     <string name="select_file">انتخاب فایل</string>
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="select_folder">انتخاب پوشه</string>
     <string name="patches">پچ‌ها</string>
     <string name="home">خانه</string>
@@ -1146,7 +1133,6 @@ morphe_header_custom_dark.png
     <string name="disable">غیرفعال‌کردن</string>
     <string name="enable">فعال‌کردن</string>
     <string name="loading">در حال بارگذاری…</string>
-    <string name="loading_older_releases">در حال بارگذاری نسخه‌های قدیمی‌تر…</string>
     <string name="creating">در حال ساخت…</string>
     <string name="processing_apk">در حال پردازش APK…</string>
     <string name="exporting_apks">در حال خروجی‌گرفتن از APKها…</string>
@@ -1189,6 +1175,7 @@ morphe_header_custom_dark.png
     <string name="continue_">ادامه</string>
     <string name="version">نسخه</string>
     <string name="clone">کلون</string>
+    <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patch">پچ</string>
     <string name="patching">در حال پچ‌کردن</string>
     <string name="patched">پچ‌شده</string>
@@ -1227,8 +1214,14 @@ morphe_header_custom_dark.png
     <string name="whats_new">چه خبر؟</string>
     <string name="changelog_download_fail">دانلود تغییرات نسخه ناموفق بود: %s</string>
     <string name="changelog_empty">تغییراتی در دسترس نیست</string>
-    <string name="changelog_show_older">نمایش نسخه‌های قدیمی‌تر</string>
     <string name="changelog_older_empty">نسخهٔ قدیمی‌تری برای نمایش نیست</string>
+    <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="content_translate">ترجمه</string>
+    <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <string name="content_show_original">اصلی</string>
+    <string name="changelog_section_new">جدید</string>
+    <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <!-- "%s" is the number of changes in the section -->
     <string name="no_network_toast">اتصال اینترنتی در دسترس نیست</string>
     <string name="update_available">به‌روزرسانی در دسترس است</string>
     <string name="ready_to_install_update">به‌روزرسانی آمادهٔ نصب است</string>
@@ -1236,8 +1229,9 @@ morphe_header_custom_dark.png
     <string name="install_update_manager_failed">نصب به‌روزرسانی ناموفق بود</string>
     <string name="installing_manager_update">در حال نصب به‌روزرسانی…</string>
     <string name="downloading_manager_update">در حال دانلود به‌روزرسانی…</string>
-    <!-- Shown while downloading, before the total size is known. "%1$s" is the megabytes so far. -->
+    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s مگابایت دانلود شد</string>
+    <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
     <string name="manager_update_not_ready">انتشار این نسخه هنوز در حال انجام است. چند دقیقهٔ دیگر دوباره تلاش کنید</string>
     <string name="update_download_missing">به‌روزرسانی دانلودشده دیگر در دسترس نیست. دوباره آن را دانلود کنید</string>
     <string name="download_manager_failed">دانلود به‌روزرسانی ناموفق بود: %s</string>
@@ -1269,6 +1263,7 @@ morphe_header_custom_dark.png
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">تور سریع ویژگی‌ها</string>
     <string name="tour_prompt_desc">می‌خواهید یک تور سریع از ویژگی‌های اصلی Morphe داشته باشید؟</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">راهنما را نشانم بده</string>
     <string name="onboarding_restart_title">تور ویژگی‌ها</string>
 </resources>

@@ -31,8 +31,6 @@
     <string name="home_update_skipped_metered">Абнаўленні прыпушчаны</string>
     <string name="home_update_skipped_metered_subtitle">Мабільныя даныя актыўныя</string>
     <string name="home_updating_sources">Абнаўленне крыніц…</string>
-    <!-- Download progress across several bundles. "%1$d" and "%2$d" count the bundles, "%3$s" and
-         "%4$s" are the megabytes read and expected, "%5$d" is the percentage. -->
     <string name="home_update_success">Абнаўленне крыніц завершана</string>
     <string name="home_update_success_subtitle">Вашы крыніцы абноўлены</string>
     <string name="home_sources_are_loading">Крыніцы загружаюцца, калі ласка, пачакайце…</string>
@@ -132,21 +130,16 @@
     <string name="sources_dialog_rename">Перайменаваць крыніцу патча</string>
     <string name="sources_dialog_duplicate_name_error">Крыніца патча з такой назвай ужо існуе</string>
     <string name="sources_dialog_missing_error">Не ўдалося абнавіць гэтую крыніцу патча</string>
-    <string name="sources_dialog_view_any_version">Любая версія</string>
-    <string name="sources_dialog_view_any_package">Любы пакет</string>
     <string name="sources_dialog_add_source">Дадаць крыніцу патча</string>
-    <string name="sources_dialog_delete_confirm_message">Выдаліць крыніцу \"%s\"? Гэтага нельга будзе адмяніць</string>
     <string name="sources_dialog_remote">Знешні</string>
     <string name="sources_dialog_remote_url">URL крыніцы</string>
-    <string name="sources_dialog_remote_url_formats_title">Прыклады:</string>
     <string name="sources_dialog_local">Лакальны</string>
-    <string name="sources_dialog_local_file">Выберыце файл крыніцы патча</string>
+    <!-- Button under the files already picked, which opens the picker again -->
     <string name="sources_dialog_local_file_tap_hint">Націсніце, каб прагледзець сховішча</string>
-    <string name="sources_dialog_local_file_description">Выберыце файл крыніцы патча .mpp з сховішча</string>
     <string name="sources_dialog_local_invalid_extension">Файл павінен мець пашырэнне .mpp</string>
+    <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_url_valid">Дзейны рэпазіторый або JSON URL</string>
     <string name="sources_dialog_url_invalid">URL павінен паказваць на рэпазіторый GitHub/GitLab або файл .json</string>
-    <string name="sources_dialog_local_change_file">Змяніць файл</string>
     <string name="sources_dialog_preinstalled">Папярэдне ўсталяваны</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_update_success">Паспяхова абноўлена</string>
@@ -168,7 +161,7 @@
     <string name="home_apk_helper_download">Выкарыстоўваць дапаможную праграму</string>
     <string name="home_apk_helper_title">Спампаваць з дапаможнай праграмай</string>
     <string name="home_apk_helper_description">Morphe папросіць дапаможную праграму ніжэй спампаваць арыгінальны APK і вярнуць файл</string>
-    <string name="home_apk_helper_continue">Адкрыць дапаможную праграму</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_warning">Працягвайце толькі ў тым выпадку, калі вы давяраеце гэтай дапаможнай праграме. Morphe правярае пакет, версію і подпіс атрыманых даных перад патчынгам</string>
     <string name="home_apk_helper_warning_unverified">Працягвайце толькі ў тым выпадку, калі вы давяраеце гэтай дапаможнай праграме. Morphe не можа праверыць подпіс гэтага APK, таму прапатчаны файл не будзе выяўлены</string>
     <string name="home_apk_helper_no_result">Дапаможная праграма не вярнула APK</string>
@@ -186,7 +179,6 @@
     <string name="home_apk_no_compatible_versions_message">Для &lt;b&gt;%1$s&lt;/b&gt; няма падтрымліваемых версій Android %2$s (API %3$s). Усе заяўленыя версіі патрабуюць больш новай версіі Android</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">Спампаваць арыгінальны APK</string>
-    <string name="home_download_instructions_steps_title">Інструкцыі:</string>
     <string name="home_download_instructions_step1">Націсніце кнопку \'%s\' ніжэй</string>
     <string name="home_download_instructions_step2_part1">Пракруціце старонку ўніз і націсніце</string>
     <string name="home_download_instructions_download_button_toast">Націсніце \"Спампаваць\" на сайце, а не тут 😊</string>
@@ -205,14 +197,22 @@
     <string name="home_file_picker_prompt_open_apk">Адкрыць APK-файл</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <!-- Home Screen - Home Sub-Dialogs -->
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- "Build" here refers to a specific compiled version of the app (versionCode) -->
     <!-- "%1$s" is the free storage and "%2$s" the amount patching needs, both in gigabytes. -->
     <!-- Color picker -->
     <!-- Patch Options -->
+    <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <!-- Badge on a patch option that has to be filled in before patching -->
+    <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
     <!-- Adaptive Icon Creator -->
+    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
+    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
     <!-- Header Creator -->
     <!-- Batch patching -->
     <string name="batch_patch_action">Патч выбраны</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Home Screen - App Info Screen -->
     <!-- Home Screen - Root Mode -->
     <!-- Patcher Screen -->
@@ -247,6 +247,7 @@
     <!-- Settings - Appearance Tab - Interface Scale -->
     <!-- Settings - Appearance Tab - Home Screen Section -->
     <!-- Settings - Appearance Tab - App Icon Selector -->
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Settings - Advanced Tab - Updates Section -->
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
@@ -270,7 +271,6 @@
     <!-- Settings - System Tab - Storage Management - Patched APKs Management -->
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
-    <string name="settings_system_patch_options_section">Параметраў патчаў</string>
     <!-- Copy selection from another bundle -->
     <!-- Settings - System Tab - Custom file picker -->
     <!-- Settings - System Tab - APK download helper -->
@@ -278,12 +278,17 @@
     <!-- Settings - System Tab - About Section -->
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <!-- Shared strings -->
-    <!-- Download progress of a bundle or of the manager itself. "%1$s" and "%2$s" are the
-         megabytes read and expected, "%3$s" is the percentage; the doubled "%%" after it is
-         how a literal percent sign is written here. -->
-    <!-- Shown while downloading, before the total size is known. "%1$s" is the megabytes so far. -->
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
+    <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
+    <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <!-- "%s" is the number of changes in the section -->
+    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
+    <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
     <!-- Onboarding coach marks -->
     <!-- %1$s = current step number, %2$s = total number of steps (e.g. "3 of 13") -->
     <!-- Translate "System" the same way as the System settings tab -->
     <!-- Tour prompt dialog shown after first successful patch install -->
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
 </resources>

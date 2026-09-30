@@ -3,8 +3,8 @@
     <!-- Home Screen -->
     <string name="home_other_apps">अन्य ऐप्स</string>
     <string name="home_other_apps_action">अन्य ऐप्स चुनें</string>
-    <string name="home_not_patched_yet">अभी तक पट्च नहीं किया गया है</string>
-    <string name="home_unpatched_version_installed">अनपैच्ड संस्करण स्थापित है</string>
+    <string name="home_not_patched_yet">अभी तक पैच नहीं किया गया</string>
+    <string name="home_unpatched_version_installed">​बिना पैच वाला वर्ज़न इंस्टॉल है</string>
     <string name="home_unpatched_badge">पैच नहीं किया गया</string>
     <string name="home_no_patches_available">कोई पैच उपलब्ध नहीं है</string>
     <string name="home_app_hide_title">इस ऐप को छुपाएं?</string>
@@ -12,46 +12,43 @@
     <string name="home_app_will_be_hidden">इस ऐप को छुपाया जाएगा</string>
     <string name="home_app_no_hidden">कोई छिपा ऐप नहीं</string>
     <string name="home_app_hidden_apps_title">छिपे हुए ऐप्स</string>
-    <string name="home_app_hidden_apps_hint">छुपाने के लिए टैप करें</string>
+    <string name="home_app_hidden_apps_hint">वापस दिखाने के लिए टैप करें</string>
     <string name="home_app_patch_sources_description">जिन स्रोतों को चुना नहीं गया है, वे इन ऐप्स को पैच करते समय उपलब्ध नहीं होंगे और उनके पैच अपने आप किसी चयन में शामिल नहीं होंगे। हर स्रोत बाकी सभी ऐप्स के लिए चालू रहेगा।</string>
     <string name="home_app_patch_sources_mixed">%2$s में से %1$s को पेश किया गया</string>
     <string name="home_app_patch_sources_covers">%2$s में से %1$s के लिए पैच हैं</string>
-    <string name="home_app_patch_sources_last">हर ऐप के पास पैच करने के लिए एक स्रोत शेष होना चाहिए।</string>
+    <string name="home_app_patch_sources_last">हर ऐप के लिए पैच करने का एक सोर्स बचा होना ज़रूरी है</string>
     <string name="android_11_bug_dialog_title">एंड्रॉइड 11 बग</string>
-    <string name="android_11_bug_dialog_description">एंड्रॉइड 11 सिस्टम में एक बग से बचने के लिए ऐप इंस्टॉलेशन की अनुमति समय से पहले दी जानी चाहिए जो उपयोगकर्ता अनुभव को नकारात्मक रूप से प्रभावित करेगी।</string>
+    <string name="android_11_bug_dialog_description">यूज़र एक्सपीरियंस को खराब करने वाले एंड्रॉइड 11 सिस्टम के एक बग से बचने के लिए, ऐप इंस्टॉलेशन की अनुमति पहले से दी जानी चाहिए</string>
     <string name="deep_link_add_source_title">स्रोत जोड़ें</string>
-    <string name="deep_link_add_source_message">क्या आप इस पैच स्रोत को मोर्फे में जोड़ना चाहेंगे?</string>
-    <string name="deep_link_add_source_warning">सिर्फ़ उन स्रोतों को जोड़ें जिन पर आप भरोसा करते हैं</string>
+    <string name="deep_link_add_source_message">क्या आप इस पैच सोर्स को Morphe में जोड़ना चाहते हैं?</string>
+    <string name="deep_link_add_source_warning">सिर्फ़ उन सोर्स को जोड़ें जिन पर आप भरोसा करते हैं</string>
     <!-- Home Screen - Update Notifications -->
-    <string name="home_update_available">मोर्फे अपडेट उपलब्ध है</string>
-    <string name="home_update_available_subtitle">नई संस्करण तैयार है</string>
-    <string name="home_blocked_source_title">अवरुद्ध पैच स्रोत का पता चला</string>
+    <string name="home_update_available">Morphe अपडेट उपलब्ध है</string>
+    <string name="home_update_available_subtitle">नया वर्जन इंस्टॉल करने के लिए तैयार है</string>
+    <string name="home_blocked_source_title">ब्लॉक किया गया पैच सोर्स मिला है</string>
     <string name="home_blocked_source_subtitle">देखने और हटाने के लिए टैप करें</string>
-    <string name="home_metadata_errors_title">कुछ पैच स्रोत अनुपलब्ध हैं</string>
-    <string name="home_metadata_errors_subtitle">स्रोतों की समीक्षा करने के लिए टैप करें</string>
+    <string name="home_metadata_errors_title">कुछ पैच सोर्स अनुपलब्ध हैं</string>
+    <string name="home_metadata_errors_subtitle">सोर्स की समीक्षा करने के लिए टैप करें</string>
     <string name="home_outdated_manager_title">Morphe पुरानी हो गई है</string>
-    <string name="home_outdated_manager_subtitle">कुछ पैच स्रोतों को एक नए संस्करण की आवश्यकता है</string>
-    <string name="home_held_back_title">एक पैच स्रोत ने Morphe को क्रैश कर दिया</string>
+    <string name="home_outdated_manager_subtitle">कुछ पैच सोर्स को एक नए संस्करण की आवश्यकता है</string>
+    <string name="home_held_back_title">एक पैच सोर्स ने Morphe को क्रैश कर दिया</string>
     <string name="home_held_back_subtitle">इसे छोड़ दिया गया ताकि ऐप शुरू हो सके। समीक्षा करने के लिए टैप करें</string>
     <string name="home_metered_skipped_title">मोबाइल डेटा पर अपडेट रोक दिए गए हैं</string>
     <string name="home_metered_skipped_subtitle">मोबाइल डेटा पर अपडेट की अनुमति देने के लिए टैप करें</string>
-    <string name="home_repatch_available_subtitle">उन सभी को कतार में लगाने के लिए टैप करें</string>
-    <string name="home_update_error">उपडेट विफल हुआ</string>
-    <string name="home_update_error_subtitle">स्रोत अद्यतन करते समय कुछ गड़बड़ हो गई</string>
+    <string name="home_repatch_available_subtitle">सभी को कतार में जोड़ने के लिए टैप करें</string>
+    <string name="home_update_error">अपडेट विफल रहा</string>
+    <string name="home_update_error_subtitle">सोर्स अपडेट करते समय कुछ गड़बड़ी हुई</string>
     <string name="home_update_skipped_metered">अपडेट छोड़ दिए गए</string>
-    <string name="home_update_skipped_metered_subtitle">मोबाइल डेटा सक्रिय है</string>
-    <string name="home_updating_sources">स्रोतों को अपडेट कर रहा हूँ…</string>
-    <!-- Download progress across several bundles. "%1$d" and "%2$d" count the bundles, "%3$s" and
-         "%4$s" are the megabytes read and expected, "%5$d" is the percentage. -->
-    <string name="home_update_bundle_count_with_bytes">%1$d / %2$d  ·  %3$s / %4$s MB (%5$d%%)</string>
-    <string name="home_update_success">स्रोत अपडेट पूर्ण हुआ</string>
+    <string name="home_update_skipped_metered_subtitle">मोबाइल डेटा चालू है</string>
+    <string name="home_updating_sources">सोर्स अपडेट हो रहे हैं…</string>
+    <string name="home_update_success">सोर्स अपडेट पूरा हुआ</string>
     <string name="home_update_success_subtitle">आपके स्रोत अप टू डेट हैं</string>
     <string name="home_sources_are_loading">स्रोत लोड हो रहे हैं, कृपया प्रतीक्षा करें…</string>
     <string name="home_search_apps">ऐप्स खोजें</string>
     <string name="home_app_list_options_title">क्रमबद्ध करें और फ़िल्टर करें</string>
     <string name="home_app_list_options_state_description">%1$s के अनुसार क्रमबद्ध, %2$s के अनुसार फ़िल्टर किया गया</string>
     <string name="home_app_filter_all_description">होम स्क्रीन पर मौजूद हर ऐप</string>
-    <string name="home_app_filter_patched_description">वे ऐप जिन्हें आपने Morphe के साथ पैच किया है या सहेजा है</string>
+    <string name="home_app_filter_patched_description">Morphe के साथ आपके द्वारा पैच या सेव किए गए ऐप्स</string>
     <string name="home_app_filter_not_patched_description">वे ऐप जिन्हें आपने अभी तक Morphe में पैच नहीं किया है</string>
     <string name="home_app_filter_installed_description">इस डिवाइस पर वर्तमान में इंस्टॉल किए गए ऐप्स</string>
     <string name="home_app_filter_uninstalled_description">Morphe से पैच किए गए ऐप्स जो अब इस डिवाइस पर नहीं हैं</string>
@@ -141,7 +138,6 @@
     <string name="sources_management_report_issue">समस्या की रिपोर्ट करें</string>
     <string name="sources_management_failed_to_open_url">URL खोलने में विफल रहा</string>
     <string name="sources_apps">ऐप्स</string>
-    <string name="sources_apps_title">%1$s से ऐप्स</string>
     <string name="sources_apps_description">किसी ऐप को इस स्रोत से बाहर करने या वापस लाने के लिए टैप करें, या कई चुनने के लिए देर तक दबाएँ। जब कोई स्रोत किसी ऐप को नहीं लाता है, तो वह होम स्क्रीन से हट जाता है।</string>
     <string name="sources_apps_brought">इस स्रोत द्वारा लाए गए</string>
     <string name="sources_apps_left_out">इस स्रोत से बाहर किए गए</string>
@@ -174,21 +170,22 @@
     <string name="sources_dialog_rename">पैच स्रोत का नाम बदलें</string>
     <string name="sources_dialog_duplicate_name_error">इस नाम के साथ पहले से एक पैच स्रोत मौजूद है</string>
     <string name="sources_dialog_missing_error">यह पैच स्रोत अपडेट नहीं हो सका</string>
-    <string name="sources_dialog_view_any_version">कोई भी संस्करण</string>
-    <string name="sources_dialog_view_any_package">कोई भी पैकेज</string>
     <string name="sources_dialog_add_source">पैच स्रोत जोड़ें</string>
-    <string name="sources_dialog_delete_confirm_message">डिलीट करें \"%s\"? यह वापस लाना संभव नहीं होगा।</string>
+    <string name="sources_dialog_delete_confirm_body">इसको वापस पहले जैसा नहीं किया जा सकता</string>
     <string name="sources_dialog_remote">रिमोट</string>
     <string name="sources_dialog_remote_url">स्रोत URL</string>
-    <string name="sources_dialog_remote_url_formats_title">उदाहरण:</string>
+    <string name="sources_dialog_remote_url_hint">कोई रिपॉजिटरी या पैच बंडल .json का लिंक। एक साथ कई लिंक जोड़ने के लिए उन्हें यहाँ पेस्ट करें</string>
+    <string name="sources_dialog_paste_no_links">क्लिपबोर्ड पर कोई लिंक नहीं मिला</string>
     <string name="sources_dialog_local">स्थानीय</string>
-    <string name="sources_dialog_local_file">पैच स्रोत फ़ाइल का चयन करें</string>
+    <string name="sources_dialog_local_files">पैच सोर्स फ़ाइलें चुनें</string>
+    <!-- Button under the files already picked, which opens the picker again -->
+    <string name="sources_dialog_local_add_more">और फ़ाइलें जोड़ें</string>
     <string name="sources_dialog_local_file_tap_hint">भंडारण ब्राउज़ करने के लिए टैप करें</string>
-    <string name="sources_dialog_local_file_description">स्टोरेज से .mpp पैच स्रोत फ़ाइल का चयन करें</string>
     <string name="sources_dialog_local_invalid_extension">फ़ाइल में .mpp एक्सटेंशन होना चाहिए</string>
+    <!-- %s is the name of the local source that another version of the same bundle replaces -->
+    <string name="sources_dialog_local_updates">%s को अपडेट करता है</string>
     <string name="sources_dialog_url_valid">मान्य रिपॉजिटरी या JSON URL</string>
     <string name="sources_dialog_url_invalid">URL GitHub/GitLab रिपो या .json फ़ाइल की ओर इंगित करना चाहिए</string>
-    <string name="sources_dialog_local_change_file">फ़ाइल बदलें</string>
     <string name="sources_dialog_preinstalled">प्रिंस्टॉल किया गया</string>
     <string name="sources_dialog_community">समुदाय पैच</string>
     <string name="sources_dialog_choose_apps">ऐप्स चुनें</string>
@@ -218,7 +215,8 @@
     <string name="home_apk_helper_download">एक सहायक ऐप का उपयोग करें</string>
     <string name="home_apk_helper_title">एक सहायक ऐप के साथ डाउनलोड करें</string>
     <string name="home_apk_helper_description">मॉर्फ़ नीचे दिए गए सहायक ऐप से मूल APK डाउनलोड करने और फ़ाइल वापस सौंपने के लिए कहेगा</string>
-    <string name="home_apk_helper_continue">सहायक ऐप खोलें</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="home_apk_helper_continue">सहायक खोलें</string>
     <string name="home_apk_helper_warning">केवल तभी आगे बढ़ें जब आप इस सहायक ऐप पर भरोसा करते हैं। मॉर्फ़ पैचिंग करने से पहले जो भी प्राप्त करता है उसके पैकेज, संस्करण और हस्ताक्षर की जाँच करता है</string>
     <string name="home_apk_helper_warning_unverified">केवल तभी आगे बढ़ें जब आप इस सहायक ऐप पर भरोसा करते हैं। मॉर्फ़ इस APK के हस्ताक्षर को सत्यापित नहीं कर सकता है, इसलिए संशोधित फ़ाइल का पता नहीं लगाया जाएगा</string>
     <string name="home_apk_helper_no_result">सहायक ऐप ने APK वापस नहीं किया</string>
@@ -240,7 +238,6 @@
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; के Android %2$s (API %3$s) के लिए कोई समर्थित संस्करण नहीं है। सभी घोषित संस्करणों के लिए उच्चतर Android संस्करण की आवश्यकता है</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">ओरिजनल APK डाउनलोड करें</string>
-    <string name="home_download_instructions_steps_title">निर्देश:</string>
     <string name="home_download_instructions_finding">डाउनलोड पेज ढूंढा जा रहा है…</string>
     <string name="home_download_instructions_step1">नीचे दिया गया \'%s\' बटन दबाएं</string>
     <string name="home_download_instructions_step2_part1">वेबपेज पर नीचे की ओर स्क्रोल करें और दबाएं</string>
@@ -283,7 +280,6 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_title">एक्सपर्ट मोड</string>
     <string name="expert_mode_search">पैच खोजें</string>
-    <string name="expert_mode_proceed">पैचिंग के लिए आगे बढ़ें</string>
     <string name="expert_mode_disable_all">सभी को असक्षम करें</string>
     <string name="expert_mode_disable_all_done">सभी पैच अक्षम किए गए</string>
     <string name="expert_mode_enable_all">सभी को सक्षम करें</string>
@@ -325,6 +321,7 @@
     <string name="morphe_experimental_app_version_dialog_message">&lt;b&gt;%s&lt;/b&gt; के इस संस्करण का शुरुआती प्रायोगिक समर्थन है&lt;br/&gt;&lt;br/&gt;🔧 इस ऐप संस्करण के लिए पैच को परिष्कृत किए जाने के कारण ऐप व्यवहार या अज्ञात बग असामान्य हो सकते हैं</string>
     <string name="home_dialog_unsupported_version_dialog_title">यह एपीएम अनुशासित संस्करण नहीं है। आगे बढ़ने से अनुशासित एप्प्लिकेशन संस्करण हो सकता है।</string>
     <string name="home_dialog_unsupported_version_dialog_description">यह APK अनुशंसित एप्लिकेशन संस्करण नहीं है। जारी रखना परिणामस्वरूप एक कार्यक्षम एप्लिकेशन नहीं हो सकता है।</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_dialog_unsupported_version_dialog_proceed">अब भी आगे बढ़ें</string>
     <string name="home_dialog_unsupported_version_compatible_versions">संगत संस्करण:</string>
     <string name="home_dialog_unsupported_version_unsupported_label">असंगत</string>
@@ -360,12 +357,21 @@
     <string name="patch_option_slider_range_end">तक</string>
     <string name="patch_option_list_duplicate">यह मान पहले से मौजूद है</string>
     <string name="patch_option_list_empty">मान खाली नहीं हो सकता</string>
-    <string name="patch_option_list_empty_state">अभी तक कोई मान नहीं जोड़ा गया है</string>
     <string name="patch_option_required_missing">%s: सभी आवश्यक विकल्प भरें</string>
+    <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <string name="patch_option_changed">बदला हुआ</string>
+    <!-- Badge on a patch option that has to be filled in before patching -->
+    <string name="patch_option_required">आवश्यक</string>
+    <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
+    <string name="patch_option_recommended_size">अनुशंसित: %1$s×%2$s</string>
     <!-- Adaptive Icon Creator -->
     <string name="adaptive_icon_create">अनुकूलित आइकॉन बनाएं</string>
     <string name="adaptive_icon_select_image">छवि चयन करें</string>
     <string name="adaptive_icon_change_image">छवि बदलें</string>
+    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
+    <string name="adaptive_icon_foreground">अग्रभूमि छवि</string>
+    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
+    <string name="adaptive_icon_launcher">लॉन्चर आइकन</string>
     <string name="adaptive_icon_background_color">बैकग्राउंड रंग</string>
     <string name="adaptive_icon_reset_transform">पोजीशन और स्केल को रीसेट करें</string>
     <string name="adaptive_icon_safe_zone_inner">सेफ ज़ोन (हमेशा दृश्य)</string>
@@ -417,16 +423,18 @@
     <string name="batch_patch_source_file">संलग्न फ़ाइल</string>
     <string name="batch_patch_source_unavailable">APK तैयार नहीं किया जा सका</string>
     <string name="batch_patch_force_version">फिर भी पैच करें</string>
-    <string name="batch_patch_force_version_done">फिर भी कतार में रखा गया, अन्य संस्करणों के लिए बनाए गए पैच ऐप को तोड़ सकते हैं</string>
-    <string name="batch_patch_accept_signature_done">वैसे भी कतारबद्ध, यह APK मूल नहीं हो सकता</string>
+    <string name="batch_patch_force_version_done">फिर भी कतार में लगाया गया, ऐप टूट सकता है</string>
+    <string name="batch_patch_accept_signature_done">फिर भी कतार में लगाया गया, APK सत्यापित नहीं है</string>
     <string name="batch_patch_edit_patches">पैच चुनें</string>
     <string name="batch_patch_state_no_apk">कोई APK नहीं</string>
     <string name="batch_patch_state_no_patches">कोई पैच नहीं</string>
     <string name="batch_patch_policy_install">पूरा होने पर इंस्टॉल करें</string>
     <string name="batch_patch_policy_install_description">क्यू खत्म होने के तुरंत बाद हर पैच किए गए ऐप को इंस्टॉल करता है। बंद रखने से APK बाद के लिए बच जाते हैं</string>
-    <string name="batch_patch_start">पैचिंग शुरू करें</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_patch_start">शुरू करें</string>
     <string name="batch_patch_stop_title">बैच पैचिंग रोकें?</string>
     <string name="batch_patch_stop_description">अभी पैच किया जा रहा ऐप और सब कुछ अभी भी कतारबद्ध है, रद्द कर दिया जाएगा</string>
+    <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_install_all">सब इंस्टॉल करें</string>
     <string name="batch_patch_install_failed">इंस्टॉल करने में विफल</string>
     <string name="batch_patch_in_progress">बैच पैचिंग पहले से ही चल रही है</string>
@@ -529,8 +537,8 @@
     <string name="patcher_success_subtitle">Your app is patched and installed!</string>
     <string name="patcher_complete_title">पैचिंग पूरी हुई! ✨</string>
     <string name="patcher_failed_title">Oops! Something went wrong</string>
-    <string name="patcher_failed_hint">क्या गलत हुआ यह देखने के लिए %s टैप करें</string>
     <string name="patcher_failed_dialog_title">पैचिंग विफल रही</string>
+    <string name="patcher_error_details">गड़बड़ी का विवरण</string>
     <string name="patcher_unknown_error">Unknown error occurred</string>
     <string name="patcher_split_step_extracting">स्प्लिट APK निकाल रहे हैं</string>
     <string name="patcher_split_step_merging">%s मिला रहे हैं</string>
@@ -545,7 +553,6 @@
 अनइंस्टॉल करने से सभी ऐप डेटा स्थायी रूप से मिट जाएगा।"</string>
     <string name="patcher_install_error_title">Installation error</string>
     <string name="patcher_install_error_subtitle">Try uninstalling and installing again</string>
-    <string name="patcher_ready_to_install_subtitle">Press the button below to install</string>
     <string name="patcher_ready_to_mount_subtitle">Press the button below to mount</string>
     <string name="patcher_patches_excluded_for_installer">यह इंस्टॉलेशन विधि के लिए उपलब्ध नहीं है और बहिष्कृत है: %s</string>
     <string name="patcher_back_to_game_hint">अपने गेम पर वापस जाने के लिए %1$s टैप करें</string>
@@ -654,6 +661,8 @@
     <string name="mini_game_try_again">फिर से प्रयास करें</string>
     <string name="mini_game_paused">विराम</string>
     <string name="mini_game_resume">जारी रखें</string>
+    <string name="mini_game_restart">शुरू से खेलें</string>
+    <string name="mini_game_change">कोई दूसरा गेम चुनें</string>
     <string name="mini_game_2048_picker_subtitle">टाइल्स को मर्ज करने के लिए स्लाइड करें</string>
     <string name="mini_game_flappy_picker_subtitle">पाइपों के बीच से उड़ने के लिए टैप करें</string>
     <string name="mini_game_flappy_tap_to_start">उड़ने के लिए टैप करें</string>
@@ -673,6 +682,7 @@
     <string name="system">सिस्टम</string>
     <!-- Settings - Appearance Tab - Background animation -->
     <string name="settings_appearance_background">बैकग्राउंड एनीमेशन</string>
+    <string name="settings_appearance_background_description">ऐप की स्क्रीन के पीछे चलने वाला एनीमेशन</string>
     <string name="settings_appearance_background_circles">सर्के</string>
     <string name="settings_appearance_background_rings">घेरों</string>
     <string name="settings_appearance_background_mesh">मेश</string>
@@ -701,6 +711,10 @@
     <string name="settings_appearance_accent_color">अक्सेंट रंग</string>
     <string name="settings_appearance_pure_black">शुद्ध काला</string>
     <string name="settings_appearance_pure_black_description">सही काले रंग की पृष्ठभूमि का उपयोग करता है।</string>
+    <string name="settings_appearance_color_accents">ऐप और सोर्स रंग</string>
+    <string name="settings_appearance_color_accents_description">एक्सेंट रंग के बजाय प्रत्येक ऐप और स्रोत का अपना-अपना रंग उपयोग करता है</string>
+    <string name="settings_appearance_outlines">आउटलाइन</string>
+    <string name="settings_appearance_outlines_description">कार्ड, पैनल और बटन के चारों ओर एक पतली किनारी बनाता है</string>
     <!-- Settings - Appearance Tab - Language Selector -->
     <string name="settings_appearance_language_and_display">भाषा &amp; प्रदर्शन</string>
     <string name="settings_appearance_app_language">एप्लिकेशन भाषा</string>
@@ -741,6 +755,7 @@
     <string name="settings_appearance_app_card_colors_bundle_description">यहां प्रत्येक ऐप के अपने रंग का उपयोग करें, जो स्वचालित रूप से फिट होने के लिए शेड किया गया है</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">एप्लिकेशन आइकॉन</string>
+    <string name="settings_appearance_app_icon_selector_description">Morphe आपकी होम स्क्रीन और ऐप ड्रॉअर में कैसा दिखता है</string>
     <string name="settings_appearance_app_icon_default">डिफॉल्ट</string>
     <string name="settings_appearance_app_icon_light_2">खगोल</string>
     <string name="settings_appearance_app_icon_light_3">सेटमब्रेक</string>
@@ -749,6 +764,7 @@
     <string name="settings_appearance_app_icon_dark_3">इंडिगो</string>
     <string name="settings_appearance_app_icon_change_dialog_title">एप्लिकेशन आइकॉन बदलें? फिर से स्टार्ट करना होगा।</string>
     <string name="settings_appearance_app_icon_change_dialog_message">&lt;b&gt;%s&lt;/b&gt; में बदलें और पुनरारंभ करें?</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">आइकॉन बदलें</string>
     <!-- Settings - Advanced Tab - Updates Section -->
     <string name="settings_advanced_updates">अपडेट</string>
@@ -1081,7 +1097,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_patched_apks_description">संरक्षित पैच किए गए एप्लिकेशन फ़ाइलों का प्रबंधन करता है।</string>
     <string name="settings_system_patched_apks_empty">अभी तक कोई सहेजा गया पैच किया गया एपीके नहीं है</string>
     <string name="settings_system_patched_apks_delete_title">सहेजे गए पैच किए गए एपीके को हटाएं?</string>
-    <string name="settings_system_patched_apks_delete_confirm">क्या आप &lt;b&gt;%s&lt;/b&gt; के लिए सहेजे गए पैच्ड APK को हटाने के लिए निश्चित हैं?</string>
     <string name="settings_system_patched_apks_deleted">%s के लिए सहेजे गए पैच किए गए एपीके सफलतापूर्वक हटाए गए</string>
     <string name="settings_system_patched_apks_delete_all_title">क्या आप सभी पैच किए गए APK हटाना चाहते हैं?</string>
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
@@ -1090,7 +1105,7 @@ morphe_header_custom_dark.png
     <string name="settings_system_original_apks_empty">कोई सहेजा गया अरिजनल एपीके नहीं है</string>
     <string name="settings_system_original_apks_deleted">%s के लिए अरिजनल एपीके सफलतापूर्वक हटाए गए</string>
     <string name="settings_system_original_apks_delete_title">अरिजनल एपीके को हटाएं?</string>
-    <string name="settings_system_original_apks_delete_confirm">&lt;b&gt;%s&lt;/b&gt; के लिए मूल APK को हटाएं? आप बिना नया APK प्रदान किए फिर से पैच करने में सक्षम नहीं होंगे</string>
+    <string name="settings_system_original_apks_delete_notice">नया APK दिए बिना आप दोबारा पैच नहीं कर पाएंगे</string>
     <string name="settings_system_original_apks_delete_all_title">क्या आप सभी मूल APK हटाना चाहते हैं?</string>
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
     <string name="settings_system_patch_selections_title">पथच चयन</string>
@@ -1111,7 +1126,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_import_source_data_fail">स्रोत डेटा आयात करने में विफल</string>
     <string name="settings_system_import_source_data_success">स्रोत डेटा सफलतापूर्वक आयात किया गया</string>
     <string name="settings_system_selected_patches_section">चयनित पैच</string>
-    <string name="settings_system_patch_options_section">पैच विकल्प</string>
     <string name="settings_system_no_patches_or_options">कोई पटच या विकल्प सहेजे गए नहीं</string>
     <!-- Copy selection from another bundle -->
     <string name="copy_selection_title">किसी अन्य बंडल से चयन कॉपी करें…</string>
@@ -1130,7 +1144,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_apk_download_helper_installed_by">%s द्वारा इंस्टॉल किया गया</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">इंस्टॉलर अज्ञात</string>
     <!-- File Picker -->
-    <string name="file_picker_previous_directory">पिछली निर्देशिका</string>
     <string name="file_picker_no_files">यहां कोई फ़ाइलें नहीं हैं</string>
     <string name="file_picker_read_error">इस डाइरेक्टरी को पढ़ने में असमर्थ</string>
     <string name="file_picker_internal_storage">आंतरिक संग्रहण</string>
@@ -1161,11 +1174,9 @@ morphe_header_custom_dark.png
     <string name="easter_egg_pill_red_toast_again">बारिश में वापस</string>
     <string name="easter_egg_pill_blue_toast_again">अनप्लग किया गया। वापसी का रास्ता वही है जहाँ वह हमेशा था</string>
     <!-- Shared strings -->
-    <!-- Download progress of a bundle or of the manager itself. "%1$s" and "%2$s" are the
-         megabytes read and expected, "%3$s" is the percentage; the doubled "%%" after it is
-         how a literal percent sign is written here. -->
-    <string name="download_progress">%1$s MB / %2$s MB (%3$s%%)</string>
     <string name="select_file">फ़ाइल चुनें</string>
+    <string name="select_files">फ़ाइलें चुनें</string>
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="select_folder">फ़ोल्डर चुनें</string>
     <string name="patches">पैच</string>
     <string name="home">घर</string>
@@ -1192,6 +1203,7 @@ morphe_header_custom_dark.png
     <string name="done">हो गया</string>
     <string name="skip">छोड़ें</string>
     <string name="clear">खाली करें</string>
+    <string name="paste">पेस्ट करें</string>
     <string name="delete">हटाएं</string>
     <string name="delete_all">सभी हटाएं</string>
     <string name="remove">निकालें</string>
@@ -1201,7 +1213,6 @@ morphe_header_custom_dark.png
     <string name="disable">Disable</string>
     <string name="enable">Enable</string>
     <string name="loading">Loading…</string>
-    <string name="loading_older_releases">पुराने रिलीज़ लोड हो रहे हैं…</string>
     <string name="creating">बनाया जा रहा है…</string>
     <string name="processing_apk">APK संसाधित किया जा रहा है…</string>
     <string name="exporting_apks">APK निर्यात किए जा रहे हैं…</string>
@@ -1244,6 +1255,7 @@ morphe_header_custom_dark.png
     <string name="continue_">Continue</string>
     <string name="version">Version</string>
     <string name="clone">क्लोन</string>
+    <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patch">पैच</string>
     <string name="patching">पैचिंग</string>
     <string name="patched">पैच किया गया</string>
@@ -1283,17 +1295,40 @@ morphe_header_custom_dark.png
     <string name="changelog_description">इस संस्करण में नया क्या है</string>
     <string name="changelog_download_fail">परिवर्तन लॉग डाउनलोड करने में विफल: %s</string>
     <string name="changelog_empty">कोई चेंजलॉग उपलब्ध नहीं है</string>
-    <string name="changelog_show_older">पुराने रिलीज़ दिखाएं</string>
+    <string name="changelog_earlier_releases">पिछले रिलीज़</string>
     <string name="changelog_older_empty">दिखाने के लिए कोई पुराना रिलीज़ नहीं है</string>
+    <string name="changelog_older_failed">पुराने रिलीज़ लोड नहीं हो सके</string>
+    <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="changelog_release_page">रिलीज़ पेज</string>
+    <string name="content_translate">अनुवाद करें</string>
+    <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <string name="content_show_original">मूल</string>
+    <string name="content_translation_failed">अनुवाद करने में विफल: %s</string>
+    <string name="changelog_section_new">नया</string>
+    <string name="changelog_section_fixes">सुधार</string>
+    <string name="changelog_section_performance">प्रदर्शन</string>
+    <string name="changelog_section_improvements">बेहतरी</string>
+    <string name="changelog_section_app_support">ऐप समर्थन</string>
+    <string name="changelog_section_other">परिवर्तन</string>
+    <string name="changelog_badge_latest">नवीनतम</string>
+    <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <string name="changelog_badge_downloaded">डाउनलोड किया गया</string>
+    <string name="changelog_badge_prerelease">प्री-रिलीज़</string>
+    <!-- "%s" is the number of changes in the section -->
+    <string name="changelog_show_all">सभी दिखाएँ (%s)</string>
+    <string name="changelog_show_less">कम दिखाएँ</string>
     <string name="no_network_toast">इंटरनेट कनेक्शन उपलब्ध नहीं है</string>
     <string name="update_available">An update is available</string>
     <string name="ready_to_install_update">Ready to install update</string>
     <string name="update_completed">अपडेट इंस्टॉल हो गया</string>
     <string name="install_update_manager_failed">अपडेट स्थापित करने में विफल</string>
     <string name="installing_manager_update">अपडेट इंस्टॉल हो रहा है…</string>
+    <string name="installing_manager_update_hint">अपडेट पूरा करने के लिए Morphe बंद हो जाएगा</string>
     <string name="downloading_manager_update">अपडेट डाउनलोड हो रहा है…</string>
-    <!-- Shown while downloading, before the total size is known. "%1$s" is the megabytes so far. -->
+    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB डाउनलोड किया गया</string>
+    <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
+    <string name="manager_update_progress_size">%1$s / %2$s एमबी</string>
     <string name="manager_update_not_ready">यह रिलीज़ अभी भी प्रकाशित की जा रही है। कुछ मिनटों में फिर प्रयास करें</string>
     <string name="update_download_missing">डाउनलोड किया गया अपडेट अब उपलब्ध नहीं है। इसे फिर से डाउनलोड करें</string>
     <string name="download_manager_failed">अपडेट डाउनलोड करने में विफल: %s</string>
@@ -1325,6 +1360,7 @@ morphe_header_custom_dark.png
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">त्वरित सुविधा दौरा</string>
     <string name="tour_prompt_desc">क्या आप Morphe की मुख्य विशेषताओं का त्वरित दौरा करना चाहेंगे?</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">मुझे दिखाओ</string>
     <string name="onboarding_restart_title">सुविधा दौरा</string>
     <string name="onboarding_restart_desc">मुख्य सुविधाओं का निर्देशित परिचय</string>

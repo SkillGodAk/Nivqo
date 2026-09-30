@@ -10,6 +10,7 @@ import app.morphe.patcher.patch.PatchResult
 import app.morphe.manager.patcher.Session.Companion.component1
 import app.morphe.manager.patcher.Session.Companion.component2
 import app.morphe.manager.patcher.logger.Logger
+import app.morphe.manager.patcher.util.NativeLibs
 import app.morphe.manager.ui.model.State
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -26,6 +27,7 @@ class Session(
     private val androidContext: Context,
     private val logger: Logger,
     private val input: File,
+    stripUnusedNativeLibs: Boolean,
     private val onPatchCompleted: suspend (String) -> Unit,
     private val onProgress: (name: String?, state: State?, message: String?) -> Unit
 ) : Closeable {
@@ -44,6 +46,8 @@ class Session(
             apkFile = input,
             temporaryFilesPath = tempDir,
             frameworkFileDirectory = frameworkDir,
+            // The patcher drops every other ABI while it writes the output, sparing a second pass over it
+            keepArchitectures = if (stripUnusedNativeLibs) NativeLibs.keptArchitectures(input) else emptySet(),
             fileWorkspacePath = fileWorkspace
         )
     )
@@ -114,6 +118,9 @@ class Session(
 
         withContext(Dispatchers.Default) {
             // Run on default pool instead of I/O since we're processing large files in our own code
+            // TODO: applyTo() aligns stored native libraries to 4 KB (ApkUtils.LIBRARY_ALIGNMENT in
+            //  the patcher) and the signer keeps that alignment, so a library can land off a 16 KB
+            //  boundary and fail to load from the APK on devices with 16 KB pages. Raise it to 16 KB
             result.applyTo(patched)
         }
 

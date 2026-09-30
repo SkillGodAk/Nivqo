@@ -16,8 +16,6 @@
     <string name="home_update_skipped_metered">Actualització ignorada</string>
     <string name="home_update_skipped_metered_subtitle">Les dades mòbils estan actives</string>
     <string name="home_updating_sources">Actualitzant fonts…</string>
-    <!-- Download progress across several bundles. "%1$d" and "%2$d" count the bundles, "%3$s" and
-         "%4$s" are the megabytes read and expected, "%5$d" is the percentage. -->
     <string name="home_update_success">Actualització completada</string>
     <string name="home_update_success_subtitle">Les teves fonts estan actualitzades</string>
     <string name="home_sources_are_loading">S\'estan carregant les fonts, si us plau espereu…</string>
@@ -54,11 +52,13 @@
     <string name="sources_dialog_display_name">Nom mostrat</string>
     <string name="sources_dialog_rename">Canviar la font del pegat</string>
     <string name="sources_dialog_duplicate_name_error">Una font de pegats amb aquest nom ja existeix</string>
+    <!-- Button under the files already picked, which opens the picker again -->
+    <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <!-- Home Screen - Dialog 1: APK Availability -->
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">Descarrega l\'APK original</string>
-    <string name="home_download_instructions_steps_title">Instruccions:</string>
     <string name="home_download_instructions_step1">Premeu el botó \'%s\' de sota</string>
     <string name="home_download_instructions_step2_part1">Desplaceu-vos per la pàgina web i premeu</string>
     <string name="home_download_instructions_download_button_toast">Premeu \'descarrega\' al lloc web, i no aquí 😊</string>
@@ -67,14 +67,22 @@
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <!-- Home Screen - Home Sub-Dialogs -->
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- "Build" here refers to a specific compiled version of the app (versionCode) -->
     <!-- "%1$s" is the free storage and "%2$s" the amount patching needs, both in gigabytes. -->
     <!-- Color picker -->
     <!-- Patch Options -->
     <string name="patch_option_instructions">Instruccions</string>
+    <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <!-- Badge on a patch option that has to be filled in before patching -->
+    <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
     <!-- Adaptive Icon Creator -->
+    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
+    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
     <!-- Header Creator -->
     <!-- Batch patching -->
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Home Screen - App Info Screen -->
     <!-- Home Screen - Root Mode -->
     <!-- Patcher Screen -->
@@ -89,6 +97,7 @@
     <string name="patcher_field_value_unknown">desconegut</string>
     <!-- Value of "Libraries": the libraries this device cannot use were dropped from the patched APK -->
     <!-- Value of "Libraries": every library was left in the patched APK -->
+    <string name="patcher_error_details">Detalls de l\'error</string>
     <!-- Patcher Screen - Patcher Steps -->
     <!-- Battery optimization pre-flight dialog -->
     <!-- Memory limit dialog, shown after the patcher process was killed -->
@@ -110,6 +119,7 @@
     <!-- Settings - Appearance Tab - Interface Scale -->
     <!-- Settings - Appearance Tab - Home Screen Section -->
     <!-- Settings - Appearance Tab - App Icon Selector -->
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Settings - Advanced Tab - Updates Section -->
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
@@ -141,12 +151,17 @@
     <string name="settings_system_about">Quant a</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <!-- Shared strings -->
-    <!-- Download progress of a bundle or of the manager itself. "%1$s" and "%2$s" are the
-         megabytes read and expected, "%3$s" is the percentage; the doubled "%%" after it is
-         how a literal percent sign is written here. -->
-    <!-- Shown while downloading, before the total size is known. "%1$s" is the megabytes so far. -->
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
+    <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
+    <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <!-- "%s" is the number of changes in the section -->
+    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
+    <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
     <!-- Onboarding coach marks -->
     <!-- %1$s = current step number, %2$s = total number of steps (e.g. "3 of 13") -->
     <!-- Translate "System" the same way as the System settings tab -->
     <!-- Tour prompt dialog shown after first successful patch install -->
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
 </resources>

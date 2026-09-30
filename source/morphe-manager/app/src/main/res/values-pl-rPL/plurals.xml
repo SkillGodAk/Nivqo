@@ -12,6 +12,27 @@
         <item quantity="many">%s opcji modyfikacji</item>
         <item quantity="other">%s opcji modyfikacji</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s element</item>
+        <item quantity="few">%s elementy</item>
+        <item quantity="many">%s elementów</item>
+        <item quantity="other">%s elementów</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Wybierz %s plik</item>
+        <item quantity="few">Wybierz %s pliki</item>
+        <item quantity="many">Wybierz %s plików</item>
+        <item quantity="other">Wybierz %s plików</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Dodaj %s źródło</item>
+        <item quantity="few">Dodaj %s źródła</item>
+        <item quantity="many">Dodaj %s źródeł</item>
+        <item quantity="other">Dodaj %s źródeł</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Źródła modyfikacji dla %s aplikacji</item>
         <item quantity="few">Źródła modyfikacji dla %s aplikacji</item>
@@ -137,5 +158,29 @@
         <item quantity="few">%s rdzenie</item>
         <item quantity="many">%s rdzeni</item>
         <item quantity="other">%s rdzeni</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="one">%s nowość</item>
+        <item quantity="few">%s nowości</item>
+        <item quantity="many">%s nowości</item>
+        <item quantity="other">%s nowości</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s poprawka</item>
+        <item quantity="few">%s poprawki</item>
+        <item quantity="many">%s poprawek</item>
+        <item quantity="other">%s poprawek</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s zmiana</item>
+        <item quantity="few">%s zmiany</item>
+        <item quantity="many">%s zmian</item>
+        <item quantity="other">%s zmian</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s nowe wydanie</item>
+        <item quantity="few">%s nowe wydania</item>
+        <item quantity="many">%s nowych wydań</item>
+        <item quantity="other">%s nowych wydań</item>
     </plurals>
 </resources>

@@ -25,6 +25,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 import kotlin.system.exitProcess
 
 /**
@@ -81,29 +84,31 @@ class PatcherProcess(private val context: Context) : IPatcherProcess.Stub() {
                 source = File(parameters.inputFile),
                 workspace = File(parameters.cacheDir),
                 logger = logger,
-                skipUnneededSplits = parameters.skipUnneededSplits,
+                skipUnneededSplits = parameters.stripUnusedNativeLibs,
                 onEvent = { event ->
                     // Forward raw event over IPC; main process resolves the localized
                     // label and logs it so the app locale is used, not the system locale
-                    val (type, apkName) = when (event) {
-                        is SplitPreparationEvent.Extracting -> "Extracting" to null
-                        is SplitPreparationEvent.Merging -> "Merging" to event.apkName
-                        is SplitPreparationEvent.Writing -> "Writing" to null
-                        is SplitPreparationEvent.Finalizing -> "Finalizing" to null
-                    }
-                    events.splitProgress(type, apkName)
+                    events.splitProgress(event.wireType, (event as? SplitPreparationEvent.Merging)?.apkName)
                 }
             )
 
-            try {
+            val failure = try {
+                // A merged APK is patched from the agreed path, so ProcessRuntime can read it back
+                // in the main process after this one exits. Both sit in the cache directory, which
+                // makes this a rename instead of rewriting the whole file
+                val input = parameters.mergedInputFile
+                    ?.takeIf { preparation.merged }
+                    ?.let { dest ->
+                        Files.move(
+                            preparation.file.toPath(),
+                            Paths.get(dest),
+                            StandardCopyOption.REPLACE_EXISTING
+                        ).toFile()
+                    }
+                    ?: preparation.file
+
                 if (preparation.merged) {
                     events.progress(null, State.COMPLETED.name, null)
-
-                    // Copy merged APK to the agreed path so ProcessRuntime can read it back
-                    // in the main process after this process finishes
-                    parameters.mergedInputFile?.let { dest ->
-                        preparation.file.copyTo(File(dest), overwrite = true)
-                    }
                 }
 
                 Session(
@@ -111,7 +116,8 @@ class PatcherProcess(private val context: Context) : IPatcherProcess.Stub() {
                     frameworkDir = parameters.frameworkDir,
                     androidContext = context,
                     logger = logger,
-                    input = preparation.file,
+                    input = input,
+                    stripUnusedNativeLibs = parameters.stripUnusedNativeLibs,
                     onPatchCompleted = { patchName -> events.patchSucceeded(patchName) },
                     onProgress = { name, state, message ->
                         events.progress(name, state?.name, message)
@@ -119,14 +125,16 @@ class PatcherProcess(private val context: Context) : IPatcherProcess.Stub() {
                 ).use {
                     it.run(File(parameters.outputFile), patchList)
                 }
-                ResourceMonitor.stopPolling(logger)
-                events.finished(null)
+                null
             } catch (e: Exception) {
-                ResourceMonitor.stopPolling(logger)
-                events.finished(e.stackTraceToString())
+                e
             } finally {
+                // Before reporting back: the manager answers finished() with exit(), which ends
+                // this process without running anything still pending here
                 preparation.cleanup()
             }
+            ResourceMonitor.stopPolling(logger)
+            events.finished(failure?.stackTraceToString())
         }
     }
 

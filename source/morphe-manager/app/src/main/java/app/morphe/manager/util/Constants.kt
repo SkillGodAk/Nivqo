@@ -6,6 +6,8 @@
 package app.morphe.manager.util
 
 import androidx.compose.ui.graphics.Color
+import app.morphe.manager.ui.theme.MorpheBrandBlue
+import app.morphe.manager.ui.theme.MorpheBrandTeal
 import app.morphe.manager.util.KnownApps.DEFAULT_COLORS
 import app.morphe.manager.util.KnownApps.getAppName
 import kotlin.time.Duration
@@ -20,6 +22,9 @@ const val MORPHE_API_URL = "https://api.morphe.software"
 const val MORPHE_WEBSITE_URL = "https://morphe.software"
 const val COMMUNITY_PATCHES_URL = "https://morphe-patches.software"
 const val BLOCKED_SOURCES_URL = "$MORPHE_API_URL/v2/blocked-sources"
+
+/** Website page behind add-source links: ?github|gitlab=owner/repo(&name=...) */
+const val ADD_SOURCE_PATH = "/add-source"
 
 /** Raw GitHub URL for the stable manager release JSON (main branch) */
 const val MANAGER_RELEASE_JSON_URL = "https://raw.githubusercontent.com/SkillGodAk/Nivqo/refs/heads/main/app-release.json"
@@ -43,8 +48,8 @@ object KnownApps {
     // const val X_TWITTER     = "com.twitter.android"
 
     // Shared Morphe brand gradient tail
-    val GRADIENT_MID = Color(0xFF1E5AA8)
-    val GRADIENT_END = Color(0xFF00AFAE)
+    val GRADIENT_MID = MorpheBrandBlue
+    val GRADIENT_END = MorpheBrandTeal
 
     val DEFAULT_DOWNLOAD_COLOR = Color(0xFF0E3F6E)
 

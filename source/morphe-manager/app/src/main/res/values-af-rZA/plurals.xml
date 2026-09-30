@@ -8,6 +8,21 @@
         <item quantity="one">%s verandering opsie</item>
         <item quantity="other">%s verandering opsies</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s item</item>
+        <item quantity="other">%s items</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Kies %s lêer</item>
+        <item quantity="other">Kies %s lêers</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Voeg %s bron by</item>
+        <item quantity="other">Voeg %s bronne by</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Patch-bronne vir %s toep</item>
         <item quantity="other">Patch-bronne vir %s toeps</item>
@@ -91,5 +106,21 @@
     <plurals name="core_count">
         <item quantity="one">%s kern</item>
         <item quantity="other">%s kerne</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="one">%s nuwe</item>
+        <item quantity="other">%s nuwe</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s regstelling</item>
+        <item quantity="other">%s regstellings</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s verandering</item>
+        <item quantity="other">%s veranderinge</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s nuwe vrystelling</item>
+        <item quantity="other">%s nuwe vrystellings</item>
     </plurals>
 </resources>

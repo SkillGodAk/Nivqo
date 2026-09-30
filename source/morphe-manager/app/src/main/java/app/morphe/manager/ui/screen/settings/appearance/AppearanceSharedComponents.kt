@@ -25,6 +25,7 @@ import app.morphe.manager.ui.screen.shared.*
 
 /**
  * Lays [items] out [columns] to a row, padding a short last row so every tile keeps one width.
+ * Tiles in a row share the height of the tallest, so one whose label wraps does not stand out.
  */
 @Composable
 fun <T> OptionGrid(
@@ -37,10 +38,12 @@ fun <T> OptionGrid(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(spacing)) {
         items.chunked(columns).forEach { row ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(spacing)
             ) {
-                row.forEach { item(it, Modifier.weight(1f)) }
+                row.forEach { item(it, Modifier.weight(1f).fillMaxHeight()) }
                 repeat(columns - row.size) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
@@ -74,7 +77,7 @@ fun ModernIconOptionCard(
         else -> 40.dp
     }
 
-    // Increase height in landscape to prevent text clipping
+    // A floor rather than a fixed height, so a label under a large font scale grows the tile
     val cardHeight = when {
         compact -> if (isLandscape()) 72.dp else 64.dp
         else -> if (isLandscape()) 92.dp else 80.dp
@@ -87,7 +90,7 @@ fun ModernIconOptionCard(
         stateDescription = stringResource(
             if (selected) R.string.selected else R.string.not_selected
         ),
-        modifier = modifier.height(cardHeight)
+        modifier = modifier.heightIn(min = cardHeight)
     ) {
         Column(
             modifier = Modifier

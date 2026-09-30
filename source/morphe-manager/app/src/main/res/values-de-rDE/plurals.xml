@@ -8,6 +8,21 @@
         <item quantity="one">%s Patch-Option</item>
         <item quantity="other">%s Patch-Optionen</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s Element</item>
+        <item quantity="other">%s Elemente</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">%s Datei auswählen</item>
+        <item quantity="other">%s Dateien auswählen</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">%s Quelle hinzufügen</item>
+        <item quantity="other">%s Quellen hinzufügen</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Patch-Quellen für %s App</item>
         <item quantity="other">Patch-Quellen für %s Apps</item>
@@ -91,5 +106,21 @@
     <plurals name="core_count">
         <item quantity="one">%s Kern</item>
         <item quantity="other">%s Kerne</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="one">%s Neuerung</item>
+        <item quantity="other">%s Neuerungen</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s Fehlerbehebung</item>
+        <item quantity="other">%s Fehlerbehebungen</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s Änderung</item>
+        <item quantity="other">%s Änderungen</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s neues Release</item>
+        <item quantity="other">%s neue Releases</item>
     </plurals>
 </resources>

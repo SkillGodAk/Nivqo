@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-09-29T06:02:00",
-  "description": "Nivqo v1.32.0 enables Nivqo-owned automatic patch-core updates for HushFacebook and HushMessenger, keeps bundled patch files only as offline seeds, and enables future Nivqo Manager self-updates from SkillGodAk/Nivqo Releases.",
-  "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v1.32.0/Nivqo-Manager-1.32.0-20260929-release.apk",
+  "created_at": "2026-10-01T00:21:06",
+  "description": "Nivqo v1.33.0 syncs Morphe Manager v1.33.0 and Morphe Patcher v1.15.0, keeps Nivqo-owned Manager/core update channels, and provides complete Traditional Chinese patch names/descriptions for the current HushFacebook 54 patches and HushMessenger 28 patch entries.",
+  "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v1.33.0/Nivqo-Manager-1.33.0-20261001-release.apk",
   "signature_download_url": "",
-  "version": "1.32.0"
+  "version": "1.33.0"
 }

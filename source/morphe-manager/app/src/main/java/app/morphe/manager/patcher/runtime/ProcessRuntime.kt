@@ -186,7 +186,7 @@ class ProcessRuntime(
         logger: Logger,
         onPatchCompleted: suspend (String) -> Unit,
         onProgress: ProgressEventHandler,
-        skipUnneededSplits: Boolean,
+        stripUnusedNativeLibs: Boolean,
         onMergedApkReady: (suspend (File) -> Unit)?,
         onRestart: suspend () -> Unit
     ) = coroutineScope {
@@ -202,7 +202,7 @@ class ProcessRuntime(
                     packageName,
                     selectedPatches,
                     options,
-                    skipUnneededSplits,
+                    stripUnusedNativeLibs,
                     logger,
                     onPatchCompleted,
                     onProgress,
@@ -258,7 +258,7 @@ class ProcessRuntime(
         packageName: String,
         selectedPatches: PatchSelection,
         options: Options,
-        skipUnneededSplits: Boolean,
+        stripUnusedNativeLibs: Boolean,
         logger: Logger,
         onPatchCompleted: suspend (String) -> Unit,
         onProgress: ProgressEventHandler,
@@ -346,13 +346,7 @@ class ProcessRuntime(
                     onProgress(name, state?.let { enumValueOf<State>(it) }, msg)
 
                 override fun splitProgress(eventType: String?, apkName: String?) {
-                    val event = when (eventType) {
-                        "Extracting" -> SplitPreparationEvent.Extracting
-                        "Merging" -> SplitPreparationEvent.Merging(apkName.orEmpty())
-                        "Writing" -> SplitPreparationEvent.Writing
-                        "Finalizing" -> SplitPreparationEvent.Finalizing
-                        else -> return
-                    }
+                    val event = SplitPreparationEvent.fromWire(eventType, apkName) ?: return
                     val message = event.toLocalizedString(context)
                     logger.info(message)
                     onProgress(message, State.RUNNING, null)
@@ -406,7 +400,7 @@ class ProcessRuntime(
                         options[uid].orEmpty()
                     )
                 },
-                skipUnneededSplits = skipUnneededSplits,
+                stripUnusedNativeLibs = stripUnusedNativeLibs,
                 mergedInputFile = mergedInputPath
             )
 

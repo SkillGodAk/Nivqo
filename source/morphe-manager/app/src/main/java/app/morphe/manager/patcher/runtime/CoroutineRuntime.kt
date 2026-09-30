@@ -25,7 +25,7 @@ class CoroutineRuntime(private val context: Context) : Runtime(context) {
         logger: Logger,
         onPatchCompleted: suspend (String) -> Unit,
         onProgress: ProgressEventHandler,
-        skipUnneededSplits: Boolean,
+        stripUnusedNativeLibs: Boolean,
         onMergedApkReady: (suspend (File) -> Unit)?,
         // This runtime patches in the app's own process and gets one attempt at it
         onRestart: suspend () -> Unit
@@ -64,7 +64,7 @@ class CoroutineRuntime(private val context: Context) : Runtime(context) {
                 source = File(inputFile),
                 workspace = File(cacheDir),
                 logger = logger,
-                skipUnneededSplits = skipUnneededSplits,
+                skipUnneededSplits = stripUnusedNativeLibs,
                 onEvent = { event ->
                     val message = event.toLocalizedString(context)
                     logger.info(message)
@@ -75,7 +75,6 @@ class CoroutineRuntime(private val context: Context) : Runtime(context) {
             try {
                 if (preparation.merged) {
                     onProgress(null, State.COMPLETED, null)
-                    onMergedApkReady?.invoke(preparation.file)
                 }
 
                 Session(
@@ -84,6 +83,7 @@ class CoroutineRuntime(private val context: Context) : Runtime(context) {
                     androidContext = context,
                     logger = logger,
                     input = preparation.file,
+                    stripUnusedNativeLibs = stripUnusedNativeLibs,
                     onPatchCompleted = onPatchCompleted,
                     onProgress = onProgress
                 ).use { session ->
@@ -91,6 +91,11 @@ class CoroutineRuntime(private val context: Context) : Runtime(context) {
                         File(outputFile),
                         patchList
                     )
+                }
+
+                // Handed over only once the session has closed its input, as ProcessRuntime does
+                if (preparation.merged) {
+                    onMergedApkReady?.invoke(preparation.file)
                 }
             } finally {
                 preparation.cleanup()

@@ -15,6 +15,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.SportsEsports
+import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -23,7 +26,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -34,6 +36,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import app.morphe.manager.R
 import app.morphe.manager.patcher.logger.LogLevel
 import app.morphe.manager.patcher.logger.logField
@@ -76,9 +80,8 @@ import app.morphe.manager.ui.screen.patcher.game.MiniGameContent
 import app.morphe.manager.ui.screen.patcher.game.MiniGameState
 import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.ui.screen.shared.Animations
+import app.morphe.manager.ui.theme.MorpheBrandTeal
 import app.morphe.manager.util.formatBytesForReport
-import app.morphe.manager.util.isRtl
-import app.morphe.manager.util.startToEndGradient
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -88,11 +91,7 @@ internal val PatcherCardPadding = 10.dp
 /** What a card's own margin and the surrounding list each contribute to that same inset. */
 internal val PatcherCardMargin = PatcherCardPadding / 2
 
-/** Brand blue - start of the progress gradient. */
-private val PatcherProgressBlueColor = Color(0xFF1E5AA8)
 
-/** Brand teal - used for the live indicator dot, step pipeline, progress bar end, and success state. */
-private val PatcherProgressTealColor = Color(0xFF00AFAE)
 
 sealed interface LogItem {
     /**
@@ -317,6 +316,8 @@ fun ExpertPatchingInProgress(
     }
 
     val landscape = isLandscape()
+    // The app's own color marks what is being patched, on the bar and the log panel alike
+    val appColor = packageName?.let { rememberAppColor(it) }
 
     // The same bar in both orientations: only where it hangs and its padding differ, so it is
     // written once rather than kept in step across two branches
@@ -326,14 +327,10 @@ fun ExpertPatchingInProgress(
             showCancelButton = patcherSucceeded == null,
             showHomeButton = patcherSucceeded == true,
             showInstallButton = patcherSucceeded == true,
-            showSaveButton = false,
-            showErrorButton = false,
             showCopyLogsButton = true,
             onCancelClick = onCancelClick,
             onHomeClick = onHomeClick,
             onInstallClick = onInstallClick,
-            onSaveClick = {},
-            onErrorClick = {},
             onCopyLogsClick = {
                 copyToClipboard(buildLogsText())
             }
@@ -348,6 +345,7 @@ fun ExpertPatchingInProgress(
             total = total,
             patchProgress = patchProgress,
             packageName = packageName,
+            accentColor = appColor,
             patcherSucceeded = patcherSucceeded,
             showScreenLabel = queueHeader == null
         )
@@ -356,8 +354,8 @@ fun ExpertPatchingInProgress(
         ExpertLogPanel(
             patchProgress = patchProgress,
             listState = listState,
-            patcherSucceeded = patcherSucceeded,
             miniGameState = miniGameState,
+            accentColor = appColor,
             modifier = panelModifier
         )
     }
@@ -386,10 +384,12 @@ fun ExpertPatchingInProgress(
                 ) {
                     // The usage graphs can outgrow a short window, so the header scrolls while
                     // the action bar below it stays put
+                    val headerScrollState = rememberScrollState()
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            .verticalScroll(rememberScrollState())
+                            .verticalScrollFade(headerScrollState)
+                            .verticalScroll(headerScrollState)
                     ) {
                         queueHeader?.invoke()
 
@@ -452,6 +452,7 @@ private fun ExpertProgressHeader(
     total: Int,
     patchProgress: PatchProgressSource,
     packageName: String? = null,
+    accentColor: Color? = null,
     patcherSucceeded: Boolean? = null,
     showScreenLabel: Boolean = true
 ) {
@@ -497,26 +498,17 @@ private fun ExpertProgressHeader(
                             text = stepName ?: stringResource(R.string.patcher_success_title),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = usableAppAccent(accentColor) ?: MaterialTheme.colorScheme.primary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
 
                     if (total > 0) {
-                        // A finished run wears the same teal the success card and the progress bar end on
+                        // A finished run wears the same success tone as the success card
                         StatusBadge(
                             text = stringResource(R.string.patcher_patches_progress_format, completed, total),
-                            containerColor = if (patcherSucceeded == true) {
-                                PatcherProgressTealColor.copy(alpha = 0.18f)
-                            } else {
-                                SemanticTone.Primary.container
-                            },
-                            contentColor = if (patcherSucceeded == true) {
-                                PatcherProgressTealColor
-                            } else {
-                                SemanticTone.Primary.content
-                            }
+                            tone = if (patcherSucceeded == true) SemanticTone.Success else SemanticTone.Primary
                         )
                     }
 
@@ -527,7 +519,13 @@ private fun ExpertProgressHeader(
                 }
             }
 
-            ExpertLinearProgressBar(progress = progress)
+            // The simple mode's wave laid flat, so both modes show progress alike. [progress]
+            // arrives already eased by [rememberDisplayedPatchProgress], so it is drawn as is
+            WavyProgressBar(
+                progress = { progress },
+                accentColor = accentColor,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         // Heap, CPU and storage graphs
@@ -539,59 +537,38 @@ private fun ExpertProgressHeader(
     }
 }
 
-/**
- * Horizontal progress bar with a gradient fill.
- */
-@Composable
-private fun ExpertLinearProgressBar(progress: Float) {
-    val animated by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(700, easing = FastOutSlowInEasing),
-        label = "expert_linear_progress"
-    )
-
-    // The fill grows from the start edge, so the sweep has to follow it and run end to start in RTL
-    val rtl = isRtl()
-    val fillBrush = remember(rtl) {
-        startToEndGradient(listOf(PatcherProgressBlueColor, PatcherProgressTealColor), rtl)
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(10.dp)
-            .clip(RoundedCornerShape(5.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(fraction = animated.coerceIn(0f, 1f))
-                .clip(RoundedCornerShape(5.dp))
-                .background(fillBrush)
-        )
-    }
-}
+private const val LOG_PANEL_TAB_LOGS = 0
+private const val LOG_PANEL_TAB_GAMES = 1
 
 /**
  * Scrollable log panel backed directly by [PatchProgressSource.logs].
- * The header tab row lets the user switch between logs and the mini-game.
+ * Tabs over it switch between the logs and the mini-game, by a tap or a swipe.
  */
 @Composable
 private fun ExpertLogPanel(
     modifier: Modifier = Modifier,
     patchProgress: PatchProgressSource,
     listState: LazyListState,
-    patcherSucceeded: Boolean? = null,
-    miniGameState: MiniGameState
+    miniGameState: MiniGameState,
+    accentColor: Color? = null
 ) {
     val rawLogs = patchProgress.logs
+    // Decoration only: the log's own colors keep telling warnings and errors apart
+    val appAccent = usableAppAccent(accentColor)
+    val dotColor = appAccent ?: MorpheBrandTeal
     // Convert the full list in one stateful pass so banner cards can aggregate metadata from auxiliary lines
     val logItems = remember(rawLogs, rawLogs.size) { rawLogs.toLogItems() }
-    // 0 = logs, 1 = game
-    var activeTab by rememberSaveable { mutableIntStateOf(0) }
+    var activeTab by rememberSaveable { mutableIntStateOf(LOG_PANEL_TAB_LOGS) }
     LaunchedEffect(activeTab) {
-        if (activeTab != 1) miniGameState.pauseActiveGame()
+        if (activeTab != LOG_PANEL_TAB_GAMES) miniGameState.pauseActiveGame()
+    }
+    // Waits behind its pause overlay while the manager is away, rather than playing on the
+    // moment it is back, before the player has their eyes on it again
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { miniGameState.pauseActiveGame() }
+    // Lines there were when the logs were last in view, so the tab can say the run moved on
+    var seenLogCount by rememberSaveable { mutableIntStateOf(rawLogs.size) }
+    LaunchedEffect(activeTab, rawLogs.size) {
+        if (activeTab == LOG_PANEL_TAB_LOGS) seenLogCount = rawLogs.size
     }
 
     Surface(
@@ -599,31 +576,46 @@ private fun ExpertLogPanel(
         shape = RoundedCornerShape(Defaults.CardCornerRadius),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp,
-        border = CardBorder.neutral
+        border = CardBorder.of(appAccentBorder(appAccent))
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            LogPanelTabHeader(
-                isLive = patcherSucceeded == null,
-                activeTab = activeTab,
-                onTabSelect = { activeTab = it }
-            )
-
-            HorizontalDivider(color = GlassButtonDefaults.borderColor())
-
-            AnimatedContent(
-                targetState = activeTab,
-                transitionSpec = Animations.fadeCrossfade(200),
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                label = "log_game_tab"
+        // Handed to the log cards, which a queue renders without the screen's own accent around them
+        ProvideAccent(appAccent) {
+            SegmentedTabs(
+                options = listOf(
+                    SegmentedTab(
+                        label = stringResource(R.string.patcher_tab_logs),
+                        icon = Icons.Outlined.Terminal,
+                        badge = activeTab != LOG_PANEL_TAB_LOGS && rawLogs.size > seenLogCount
+                    ),
+                    SegmentedTab(
+                        label = stringResource(R.string.patcher_tab_game),
+                        icon = Icons.Outlined.SportsEsports
+                    )
+                ),
+                selectedIndex = activeTab,
+                onSelect = { activeTab = it },
+                spacing = 0.dp,
+                compact = true,
+                fillHeight = true,
+                selectorPadding = PaddingValues(
+                    start = PatcherCardPadding,
+                    top = PatcherCardPadding,
+                    end = PatcherCardPadding
+                ),
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                // A game in play takes the drags over it, the picker has none of its own
+                pageSwipeEnabled = { page -> page != LOG_PANEL_TAB_GAMES || !miniGameState.hasOpenGame },
+                modifier = Modifier.fillMaxSize()
             ) { tab ->
                 when (tab) {
-                    1 -> MiniGameContent(state = miniGameState)
+                    LOG_PANEL_TAB_GAMES -> MiniGameContent(state = miniGameState)
                     else -> {
                         LazyColumn(
                             state = listState,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(vertical = PatcherCardMargin),
+                                .verticalScrollFade(listState),
+                            contentPadding = PaddingValues(vertical = PatcherCardMargin)
                         ) {
                             if (rawLogs.isEmpty()) {
                                 item {
@@ -639,14 +631,17 @@ private fun ExpertLogPanel(
                                         ) {
                                             // Nothing is going to arrive for a run whose log died
                                             // with its process, so the live dot would be a lie
-                                            if (!patchProgress.logsLost) LiveIndicatorDot(size = 10.dp)
+                                            if (!patchProgress.logsLost) {
+                                                LiveIndicatorDot(color = dotColor, size = 10.dp)
+                                            }
                                             Text(
                                                 text = stringResource(
                                                     if (patchProgress.logsLost) R.string.patcher_logs_lost
                                                     else R.string.patcher_logs_waiting
                                                 ),
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    .copy(alpha = 0.45f),
                                                 fontFamily = FontFamily.Monospace,
                                                 textAlign = TextAlign.Center
                                             )
@@ -665,71 +660,6 @@ private fun ExpertLogPanel(
                     }
                 }
             }
-        }
-    }
-}
-
-/**
- * Tab header that switches the log panel between patcher logs and the mini-game.
- */
-@Composable
-private fun LogPanelTabHeader(
-    isLive: Boolean,
-    activeTab: Int,
-    onTabSelect: (Int) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        LogTabChip(
-            label = stringResource(R.string.patcher_tab_logs),
-            selected = activeTab == 0,
-            onClick = { onTabSelect(0) },
-            modifier = Modifier.weight(1f, fill = false),
-            leadingContent = { LiveIndicatorDot(size = 8.dp, isLive = isLive && activeTab == 0) }
-        )
-        LogTabChip(
-            label = stringResource(R.string.patcher_tab_game),
-            selected = activeTab == 1,
-            onClick = { onTabSelect(1) },
-            modifier = Modifier.weight(1f, fill = false)
-        )
-    }
-}
-
-@Composable
-private fun LogTabChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    leadingContent: @Composable (() -> Unit)? = null
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(8.dp),
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-        modifier = modifier
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            leadingContent?.invoke()
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
         }
     }
 }
@@ -758,13 +688,14 @@ private fun PatcherInfoCard(
     badge: String? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    // The start card wears the app's color on a neutral veil, the success one stays green
     val accentColor = when (variant) {
-        CardVariant.Start   -> MaterialTheme.colorScheme.primary
-        CardVariant.Success -> PatcherProgressTealColor
+        CardVariant.Start   -> LocalAccent.current ?: MaterialTheme.colorScheme.primary
+        CardVariant.Success -> SemanticTone.Success.accent
     }
     val bgColor = when (variant) {
-        CardVariant.Start   -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
-        CardVariant.Success -> PatcherProgressTealColor.copy(alpha = 0.10f)
+        CardVariant.Start   -> neutralVeil()
+        CardVariant.Success -> SemanticTone.Success.accent.copy(alpha = 0.10f)
     }
 
     Surface(
@@ -882,7 +813,7 @@ private fun StartBannerCard(item: LogItem.StartBanner) {
         }
 
         HorizontalDivider(
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            color = (LocalAccent.current ?: MaterialTheme.colorScheme.primary).copy(alpha = 0.1f),
             thickness = 1.dp
         )
 
@@ -906,7 +837,7 @@ private fun StartBannerCard(item: LogItem.StartBanner) {
                     ?.let { "Process $it" }
                     ?: "Coroutine",
                 modifier = Modifier.weight(1f),
-                valueColor = item.runtimeMemoryLimitMb?.let { MaterialTheme.colorScheme.primary }
+                valueColor = item.runtimeMemoryLimitMb?.let { LocalAccent.current ?: MaterialTheme.colorScheme.primary }
             )
             item.stripsNativeLibs?.let { strips ->
                 BannerFieldCell(
@@ -1102,13 +1033,14 @@ private fun logLevelColors(level: LogLevel): LogEntryColors = when (level) {
         text    = MaterialTheme.colorScheme.error
     )
     LogLevel.WARN -> LogEntryColors(
-        rowBg   = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.12f),
-        badgeBg = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-        text    = MaterialTheme.colorScheme.tertiary
+        rowBg   = SemanticTone.Warning.container.copy(alpha = 0.12f),
+        badgeBg = SemanticTone.Warning.container.copy(alpha = 0.5f),
+        text    = SemanticTone.Warning.accent
     )
+    // The most common level, so its badge stays neutral rather than coloring the whole log
     LogLevel.INFO -> LogEntryColors(
         rowBg   = Color.Unspecified,
-        badgeBg = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+        badgeBg = neutralVeil(),
         text    = MaterialTheme.colorScheme.onSurface
     )
     LogLevel.TRACE -> LogEntryColors(
@@ -1126,26 +1058,18 @@ private val LogLevel.logBadge: String
         LogLevel.ERROR -> "E"
     }
 
-/**
- * Green dot used as a "live" indicator in the log panel header and empty state.
- * When [isLive] is true the dot pulses; when false it stays solid.
- */
+/** Pulsing dot of the empty log panel, in the color of the app being patched, while logs are awaited. */
 @Composable
-private fun LiveIndicatorDot(size: Dp = 8.dp, isLive: Boolean = true) {
-    val alpha = if (isLive) {
-        val infiniteTransition = rememberInfiniteTransition(label = "live_dot")
-        infiniteTransition.animateFloat(
-            initialValue = 0.25f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(900, easing = EaseInOut),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "live_alpha"
-        )
-    } else {
-        remember { mutableFloatStateOf(1f) }
-    }
+private fun LiveIndicatorDot(color: Color, size: Dp) {
+    val alpha = rememberInfiniteTransition(label = "live_dot").animateFloat(
+        initialValue = 0.25f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = EaseInOut),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "live_alpha"
+    )
 
     // The pulse is read while drawing rather than while composing, so the dot repaints
     // without recomposing itself on every frame of the patch run
@@ -1153,7 +1077,7 @@ private fun LiveIndicatorDot(size: Dp = 8.dp, isLive: Boolean = true) {
         modifier = Modifier
             .size(size)
             .drawBehind {
-                drawCircle(color = PatcherProgressTealColor.copy(alpha = alpha.value))
+                drawCircle(color = color.copy(alpha = alpha.value))
             }
     )
 }

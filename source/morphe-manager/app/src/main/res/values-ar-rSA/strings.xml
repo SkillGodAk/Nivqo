@@ -41,9 +41,6 @@
     <string name="home_update_skipped_metered">التحديثات تم تخطيها</string>
     <string name="home_update_skipped_metered_subtitle">بيانات الجوّال نشطة</string>
     <string name="home_updating_sources">جارٍ تحديث المصادر…</string>
-    <!-- Download progress across several bundles. "%1$d" and "%2$d" count the bundles, "%3$s" and
-         "%4$s" are the megabytes read and expected, "%5$d" is the percentage. -->
-    <string name="home_update_bundle_count_with_bytes">%1$d / %2$d  ·  %3$s / %4$s م.ب (%5$d%%)</string>
     <string name="home_update_success">اكتمل تحديث المصادر</string>
     <string name="home_update_success_subtitle">مصادرك محدثة</string>
     <string name="home_sources_are_loading">جارٍ تحميل المصادر، يرجى الانتظار…</string>
@@ -141,7 +138,6 @@
     <string name="sources_management_report_issue">الإبلاغ عن مشكلة</string>
     <string name="sources_management_failed_to_open_url">فشل في فتح الرابط</string>
     <string name="sources_apps">التطبيقات</string>
-    <string name="sources_apps_title">تطبيقات من %1$s</string>
     <string name="sources_apps_description">انقر على تطبيق لاستبعاده من هذا المصدر أو لإعادته، أو اضغط مطولًا لتحديد عدة تطبيقات. تتم إزالته من الشاشة الرئيسية عندما لا يجلبه أي مصدر</string>
     <string name="sources_apps_brought">ما يجلبه هذا المصدر</string>
     <string name="sources_apps_left_out">المستبعدة من هذا المصدر</string>
@@ -174,21 +170,22 @@
     <string name="sources_dialog_rename">إعادة تسمية مصدر التعديل</string>
     <string name="sources_dialog_duplicate_name_error">توجد حزمة تعديل بهذا الاسم بالفعل</string>
     <string name="sources_dialog_missing_error">تعذر تحديث مصدر التعديل هذا</string>
-    <string name="sources_dialog_view_any_version">أي إصدار</string>
-    <string name="sources_dialog_view_any_package">أي حزمة</string>
     <string name="sources_dialog_add_source">إضافة مصدر تعديل</string>
-    <string name="sources_dialog_delete_confirm_message">هل تريد حذف المصدر «%s»؟ لا يمكن التراجع عن هذا الإجراء</string>
+    <string name="sources_dialog_delete_confirm_body">لا يمكن التراجع عن هذا</string>
     <string name="sources_dialog_remote">عن بُعد</string>
     <string name="sources_dialog_remote_url">رابط المصدر</string>
-    <string name="sources_dialog_remote_url_formats_title">أمثلة:</string>
+    <string name="sources_dialog_remote_url_hint">مستودع أو رابط إلى حزمة تعديل بصيغة .json. الصق عدة روابط دفعة واحدة لإضافتها جميعًا</string>
+    <string name="sources_dialog_paste_no_links">لم يتم العثور على أي روابط في الحافظة</string>
     <string name="sources_dialog_local">محلي</string>
-    <string name="sources_dialog_local_file">تحديد ملف مصدر التعديل</string>
+    <string name="sources_dialog_local_files">اختر ملفات مصدر التعديل</string>
+    <!-- Button under the files already picked, which opens the picker again -->
+    <string name="sources_dialog_local_add_more">أضف المزيد من الملفات</string>
     <string name="sources_dialog_local_file_tap_hint">انقر لتصفح مساحة التخزين</string>
-    <string name="sources_dialog_local_file_description">حدد ملف مصدر تعديل .mpp من وحدة التخزين</string>
     <string name="sources_dialog_local_invalid_extension">يجب أن يكون للملف امتداد .mpp</string>
+    <!-- %s is the name of the local source that another version of the same bundle replaces -->
+    <string name="sources_dialog_local_updates">تحديثات %s</string>
     <string name="sources_dialog_url_valid">مستودع صالح أو عنوان URL بتنسيق JSON</string>
     <string name="sources_dialog_url_invalid">يجب أن يشير عنوان URL إلى مستودع GitHub/GitLab أو ملف ‎.json</string>
-    <string name="sources_dialog_local_change_file">تغيير الملف</string>
     <string name="sources_dialog_preinstalled">مثبتة مسبقًا</string>
     <string name="sources_dialog_community">تعديلات المجتمع</string>
     <string name="sources_dialog_choose_apps">اختيار التطبيقات</string>
@@ -218,7 +215,8 @@
     <string name="home_apk_helper_download">استخدام تطبيق مساعد</string>
     <string name="home_apk_helper_title">التنزيل باستخدام تطبيق مساعد</string>
     <string name="home_apk_helper_description">سيطلب Morphe من التطبيق المساعد أدناه تنزيل ملف APK الأصلي ثم إعادته إليه</string>
-    <string name="home_apk_helper_continue">فتح التطبيق المساعد</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="home_apk_helper_continue">فتح المساعد</string>
     <string name="home_apk_helper_warning">تابع فقط إذا كنت تثق بهذا التطبيق المساعد. يقوم Morphe بالتحقق من الحزمة، الإصدار والتوقيع لأي ملف يستلمه قبل التعديل</string>
     <string name="home_apk_helper_warning_unverified">تابع فقط إذا كنت تثق بهذا التطبيق المساعد. لا يستطيع Morphe التحقق من توقيع ملف APK هذا، لذلك قد لا يتم اكتشاف أي ملف معدل</string>
     <string name="home_apk_helper_no_result">لم يقم التطبيق المساعد بتوفير ملف APK</string>
@@ -240,7 +238,6 @@
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; لا يحتوي على إصدارات مدعومة لنظام Android %2$s (واجهة برمجة التطبيقات %3$s). جميع الإصدارات المعلنة تتطلب إصدار Android أعلى</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">تنزيل ملف APK الأصلي</string>
-    <string name="home_download_instructions_steps_title">التعليمات:</string>
     <string name="home_download_instructions_finding">جارٍ العثور على صفحة التنزيل…</string>
     <string name="home_download_instructions_step1">انقر على زر \'%s\' أدناه</string>
     <string name="home_download_instructions_step2_part1">مرر لأسفل صفحة الويب واضغط</string>
@@ -283,7 +280,6 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_title">وضع الخبير</string>
     <string name="expert_mode_search">البحث عن التعديلات</string>
-    <string name="expert_mode_proceed">المضي قدمًا إلى التعديل</string>
     <string name="expert_mode_disable_all">تعطيل الكل</string>
     <string name="expert_mode_disable_all_done">تم تعطيل كل التعديلات</string>
     <string name="expert_mode_enable_all">تمكين الكل</string>
@@ -310,7 +306,7 @@
 
 هل أنت متأكد من رغبتك في المتابعة؟"</string>
     <!-- Home Screen - Home Sub-Dialogs -->
-    <string name="home_invalid_signature_title">APK غير معتمد</string>
+    <string name="home_invalid_signature_title">ملف APK غير معتمد</string>
     <string name="home_invalid_signature_message">ملف APK الذي اخترته لـ &lt;b&gt;%s&lt;/b&gt; لا يتطابق مع شهادة التوقيع الأصلية. قد يكون معدلًا أو من مصدر غير موثوق به</string>
     <string name="home_invalid_signature_badge">قد لا يكون ملف APK هذا هو الأصلي</string>
     <string name="home_split_apk_warning_title">تم اكتشاف ملف APK مُقسّم</string>
@@ -325,6 +321,7 @@
     <string name="morphe_experimental_app_version_dialog_message">يحتوي هذا الإصدار من &lt;b&gt;%s&lt;/b&gt; على دعم تجريبي أولي&lt;br/&gt;&lt;br/&gt;🔧 توقع سلوكًا غريبًا للتطبيق أو أخطاء غير معروفة بينما يتم تحسين التعديلات لتناسب إصدار التطبيق هذا</string>
     <string name="home_dialog_unsupported_version_dialog_title">إصدار غير مدعوم</string>
     <string name="home_dialog_unsupported_version_dialog_description">ملف APK هذا ليس إصدارًا موصى به. قد تؤدي المتابعة إلى عدم عمله بشكل صحيح</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_dialog_unsupported_version_dialog_proceed">المتابعة على أي حال</string>
     <string name="home_dialog_unsupported_version_compatible_versions">الإصدارات المتوافقة:</string>
     <string name="home_dialog_unsupported_version_unsupported_label">غير مدعوم</string>
@@ -360,12 +357,21 @@
     <string name="patch_option_slider_range_end">إلى</string>
     <string name="patch_option_list_duplicate">القيمة موجودة بالفعل</string>
     <string name="patch_option_list_empty">لا يمكن أن تكون القيمة فارغة</string>
-    <string name="patch_option_list_empty_state">لم يتم إضافة أي قيم حتى الآن</string>
     <string name="patch_option_required_missing">%s: املأ جميع الخيارات المطلوبة</string>
+    <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <string name="patch_option_changed">مُغيَّر</string>
+    <!-- Badge on a patch option that has to be filled in before patching -->
+    <string name="patch_option_required">مطلوب</string>
+    <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
+    <string name="patch_option_recommended_size">مُوصّى به: %1$s×%2$s</string>
     <!-- Adaptive Icon Creator -->
     <string name="adaptive_icon_create">إنشاء أيقونة تكيفية</string>
     <string name="adaptive_icon_select_image">تحديد صورة</string>
     <string name="adaptive_icon_change_image">تغيير الصورة</string>
+    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
+    <string name="adaptive_icon_foreground">صورة المقدمة</string>
+    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
+    <string name="adaptive_icon_launcher">أيقونة المشغّل</string>
     <string name="adaptive_icon_background_color">لون الخلفية</string>
     <string name="adaptive_icon_reset_transform">إعادة ضبط الموضع والحجم</string>
     <string name="adaptive_icon_safe_zone_inner">منطقة آمنة (دائمة الظهور)</string>
@@ -417,16 +423,18 @@
     <string name="batch_patch_source_file">ملف مرفق</string>
     <string name="batch_patch_source_unavailable">تعذر إعداد ملف APK</string>
     <string name="batch_patch_force_version">تعديل على أي حال</string>
-    <string name="batch_patch_force_version_done">تمت إضافتها إلى قائمة الانتظار على أية حال؛ فالتعديلات المُعدّة لإصدارات أخرى قد تتسبب في تعطل التطبيق</string>
-    <string name="batch_patch_accept_signature_done">تمت الإضافة إلى قائمة الانتظار، رغم ذلك قد لا يكون ملف APK هذا هو النسخة الأصلية</string>
+    <string name="batch_patch_force_version_done">تمت الإضافة إلى قائمة الانتظار على أي حال، قد يتعطل التطبيق</string>
+    <string name="batch_patch_accept_signature_done">تمت الإضافة إلى قائمة الانتظار على أي حال، لم يتم التحقق من APK</string>
     <string name="batch_patch_edit_patches">اختر التعديلات</string>
     <string name="batch_patch_state_no_apk">لا يوجد ملف APK</string>
     <string name="batch_patch_state_no_patches">لا توجد تعديلات</string>
     <string name="batch_patch_policy_install">التثبيت عند الانتهاء</string>
     <string name="batch_patch_policy_install_description">يقوم بتثبيت كل تطبيق تم تعديله مباشرة بعد انتهاء قائمة الإنتظار. وعند الإيقاف، تُحفظ ملفات APK للاستخدام لاحقًا</string>
-    <string name="batch_patch_start">بدء التعديل</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_patch_start">بدء</string>
     <string name="batch_patch_stop_title">إيقاف تعديل عدة تطبيقات؟</string>
     <string name="batch_patch_stop_description">سيتم إلغاء التطبيق الذي يتم تعديله الآن، مع كل العناصر المتبقية في قائمة الانتظار</string>
+    <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_install_all">تثبيت الكل</string>
     <string name="batch_patch_install_failed">فشل التثبيت</string>
     <string name="batch_patch_in_progress">عملية التعديل على دفعات قيد التشغيل بالفعل</string>
@@ -529,8 +537,8 @@
     <string name="patcher_success_subtitle">تم تعديل تطبيقك وتثبيته!</string>
     <string name="patcher_complete_title">اكتمل التعديل! ✨</string>
     <string name="patcher_failed_title">عفوًا! حدث خطأ ما</string>
-    <string name="patcher_failed_hint">انقر على %s لمعرفة سبب الخطأ</string>
     <string name="patcher_failed_dialog_title">فشل التعديل</string>
+    <string name="patcher_error_details">تفاصيل الخطأ</string>
     <string name="patcher_unknown_error">حدث خطأ غير معروف</string>
     <string name="patcher_split_step_extracting">استخراج ملفات APK المقسمة</string>
     <string name="patcher_split_step_merging">دمج %s</string>
@@ -545,7 +553,6 @@
 سيؤدي إلغاء التثبيت إلى محو جميع بيانات التطبيق بشكل دائم"</string>
     <string name="patcher_install_error_title">خطأ في التثبيت</string>
     <string name="patcher_install_error_subtitle">جرب إلغاء التثبيت والتثبيت مرة أخرى</string>
-    <string name="patcher_ready_to_install_subtitle">اضغط على الزر أدناه للتثبيت</string>
     <string name="patcher_ready_to_mount_subtitle">اضغط على الزر أدناه للتركيب</string>
     <string name="patcher_patches_excluded_for_installer">غير متاح لطريقة التثبيت هذه وتم استبعاده: %s</string>
     <string name="patcher_back_to_game_hint">انقر على %1$s للعودة إلى لعبتك</string>
@@ -658,6 +665,8 @@
     <string name="mini_game_try_again">حاول مرة أخرى</string>
     <string name="mini_game_paused">متوقفة</string>
     <string name="mini_game_resume">متابعة</string>
+    <string name="mini_game_restart">البدء من جديد</string>
+    <string name="mini_game_change">اختر لعبة أخرى</string>
     <string name="mini_game_2048_picker_subtitle">حرك البلاطات لدمجها</string>
     <string name="mini_game_flappy_picker_subtitle">انقر للطيران عبر الأنابيب</string>
     <string name="mini_game_flappy_tap_to_start">انقر للطيران</string>
@@ -677,6 +686,7 @@
     <string name="system">النظام</string>
     <!-- Settings - Appearance Tab - Background animation -->
     <string name="settings_appearance_background">خلفيّات مُتحرِّكة</string>
+    <string name="settings_appearance_background_description">تأثيرات الحركة التي تُعرض خلف شاشات التطبيق</string>
     <string name="settings_appearance_background_circles">دوائر</string>
     <string name="settings_appearance_background_rings">حلقات</string>
     <string name="settings_appearance_background_mesh">مجسم</string>
@@ -705,6 +715,10 @@
     <string name="settings_appearance_accent_color">لون التمييز</string>
     <string name="settings_appearance_pure_black">اسود نقي</string>
     <string name="settings_appearance_pure_black_description">استخدام خلفيات سوداء حقيقية</string>
+    <string name="settings_appearance_color_accents">ألوان التطبيقات والمصادر</string>
+    <string name="settings_appearance_color_accents_description">يستخدم كل تطبيق ومصدر لونه الخاص بدلًا من لون التمييز</string>
+    <string name="settings_appearance_outlines">الخطوط المحيطة</string>
+    <string name="settings_appearance_outlines_description">يرسم حافة رفيعة حول البطاقات واللوحات والأزرار</string>
     <!-- Settings - Appearance Tab - Language Selector -->
     <string name="settings_appearance_language_and_display">اللغة &amp; العرض</string>
     <string name="settings_appearance_app_language">لغة التطبيق</string>
@@ -745,6 +759,7 @@
     <string name="settings_appearance_app_card_colors_bundle_description">استخدم لون كل تطبيق هنا، مع تظليله تلقائيًا ليناسب المساحة المتاحة</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">أيقونة التطبيق</string>
+    <string name="settings_appearance_app_icon_selector_description">كيف يبدو Morphe على شاشتك الرئيسية وفي درج التطبيقات</string>
     <string name="settings_appearance_app_icon_default">الافتراضي</string>
     <string name="settings_appearance_app_icon_light_2">السماء</string>
     <string name="settings_appearance_app_icon_light_3">غروب الشمس</string>
@@ -753,6 +768,7 @@
     <string name="settings_appearance_app_icon_dark_3">الأزرق الداكن</string>
     <string name="settings_appearance_app_icon_change_dialog_title">تغيير أيقونة التطبيق؟</string>
     <string name="settings_appearance_app_icon_change_dialog_message">تغيير إلى &lt;b&gt;%s&lt;/b&gt; وإعادة التشغيل؟</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">تغيير الأيقونة</string>
     <!-- Settings - Advanced Tab - Updates Section -->
     <string name="settings_advanced_updates">التحديثات</string>
@@ -1082,11 +1098,10 @@ morphe_adaptive_monochrome_custom.xml
     <string name="settings_system_save_patched_apks_title">احتفظ بملفات APK المعدلة</string>
     <string name="settings_system_save_patched_apks_description">حفظ نسخة من ملف APK المعدل للتصدير لاحقًا أو لإعادة التثبيت من خلال المدير</string>
     <!-- Settings - System Tab - Storage Management - Patched APKs Management -->
-    <string name="settings_system_patched_apks_title">APKs معدلة</string>
+    <string name="settings_system_patched_apks_title">ملفات APK معدلة</string>
     <string name="settings_system_patched_apks_description">يدير ملفات التطبيقات المُعدّلة المحفوظة</string>
     <string name="settings_system_patched_apks_empty">لم يتم حفظ أي تعديلات تطبيقات حتى الآن</string>
     <string name="settings_system_patched_apks_delete_title">حذف ملف APK المعدل؟</string>
-    <string name="settings_system_patched_apks_delete_confirm">هل تريد بالتأكيد حذف ملف APK المعدل المحفوظ لـ &lt;b&gt;%s&lt;/b&gt;؟</string>
     <string name="settings_system_patched_apks_deleted">تم حذف ملف APK المعدل بنجاح</string>
     <string name="settings_system_patched_apks_delete_all_title">حذف جميع ملفات APK المعدلة؟</string>
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
@@ -1095,7 +1110,7 @@ morphe_adaptive_monochrome_custom.xml
     <string name="settings_system_original_apks_empty">لا يوجد ملفات APK الأصلية محفوظة</string>
     <string name="settings_system_original_apks_deleted">تم حذف ملف APK الأصلي بنجاح</string>
     <string name="settings_system_original_apks_delete_title">حذف ملف APK الأصلي؟</string>
-    <string name="settings_system_original_apks_delete_confirm">هل تريد بالتأكيد حذف ملف APK الأصلي لـ &lt;b&gt;%s&lt;/b&gt;؟ لن تتمكن من إعادة التعديل دون توفير ملف APK جديد</string>
+    <string name="settings_system_original_apks_delete_notice">لن تتمكن من إعادة التعديل دون توفير ملف APK جديد</string>
     <string name="settings_system_original_apks_delete_all_title">حذف كل ملفات APK الأصلية؟</string>
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
     <string name="settings_system_patch_selections_title">اختيارات التعديل</string>
@@ -1116,7 +1131,6 @@ morphe_adaptive_monochrome_custom.xml
     <string name="settings_system_import_source_data_fail">فشل استيراد بيانات المصدر</string>
     <string name="settings_system_import_source_data_success">تم استيراد بيانات المصدر بنجاح</string>
     <string name="settings_system_selected_patches_section">التعديلات المحددة</string>
-    <string name="settings_system_patch_options_section">خيارات التعديل</string>
     <string name="settings_system_no_patches_or_options">لا يوجد تعديلات أو خيارات محفوظة</string>
     <!-- Copy selection from another bundle -->
     <string name="copy_selection_title">نسخ المحدد من…</string>
@@ -1135,7 +1149,6 @@ morphe_adaptive_monochrome_custom.xml
     <string name="settings_system_apk_download_helper_installed_by">مثبّت بواسطة %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">أداة التثبيت غير معروفة</string>
     <!-- File Picker -->
-    <string name="file_picker_previous_directory">المجلد السابق</string>
     <string name="file_picker_no_files">لا توجد ملفات هنا</string>
     <string name="file_picker_read_error">لا يمكن قراءة هذا المجلد</string>
     <string name="file_picker_internal_storage">التخزين الداخلي</string>
@@ -1166,11 +1179,9 @@ morphe_adaptive_monochrome_custom.xml
     <string name="easter_egg_pill_red_toast_again">العودة إلى المطر</string>
     <string name="easter_egg_pill_blue_toast_again">غير متصل. الطريق للعودة هو حيث كان دائمًا</string>
     <!-- Shared strings -->
-    <!-- Download progress of a bundle or of the manager itself. "%1$s" and "%2$s" are the
-         megabytes read and expected, "%3$s" is the percentage; the doubled "%%" after it is
-         how a literal percent sign is written here. -->
-    <string name="download_progress">%1$s م.ب / %2$s م.ب (%3$s%%)</string>
     <string name="select_file">اختر ملف</string>
+    <string name="select_files">اختر الملفات</string>
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="select_folder">اختر مجلد</string>
     <string name="patches">التعديلات</string>
     <string name="home">الصفحة الرئيسية</string>
@@ -1197,6 +1208,7 @@ morphe_adaptive_monochrome_custom.xml
     <string name="done">تم</string>
     <string name="skip">تخطي</string>
     <string name="clear">مسح</string>
+    <string name="paste">لصق</string>
     <string name="delete">حذف</string>
     <string name="delete_all">حذف الكل</string>
     <string name="remove">إزالة</string>
@@ -1206,7 +1218,6 @@ morphe_adaptive_monochrome_custom.xml
     <string name="disable">تعطيل</string>
     <string name="enable">تمكين</string>
     <string name="loading">جارٍ التحميل…</string>
-    <string name="loading_older_releases">جارٍ تحميل الإصدارات الأقدم…</string>
     <string name="creating">جارٍ الإنشاء…</string>
     <string name="processing_apk">جارٍ معالجة ملف APK…</string>
     <string name="exporting_apks">جارٍ تصدير ملفات APK…</string>
@@ -1249,6 +1260,7 @@ morphe_adaptive_monochrome_custom.xml
     <string name="continue_">متابعة</string>
     <string name="version">الإصدار</string>
     <string name="clone">استنساخ</string>
+    <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patch">تعديل</string>
     <string name="patching">جارٍ التعديل</string>
     <string name="patched">تم التعديل</string>
@@ -1288,17 +1300,40 @@ morphe_adaptive_monochrome_custom.xml
     <string name="changelog_description">ما الجديد في هذا الإصدار</string>
     <string name="changelog_download_fail">فشل تنزيل سجل التغييرات: %s</string>
     <string name="changelog_empty">لا يتوفر سجل تغييرات</string>
-    <string name="changelog_show_older">عرض الإصدارات الأقدم</string>
+    <string name="changelog_earlier_releases">الإصدارات السابقة</string>
     <string name="changelog_older_empty">لا توجد إصدارات أقدم لعرضها</string>
+    <string name="changelog_older_failed">تعذّر تحميل الإصدارات الأقدم</string>
+    <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="changelog_release_page">صفحة الإصدار</string>
+    <string name="content_translate">ترجمة</string>
+    <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <string name="content_show_original">الأصلية</string>
+    <string name="content_translation_failed">فشل في الترجمة: %s</string>
+    <string name="changelog_section_new">الجديد</string>
+    <string name="changelog_section_fixes">الإصلاحات</string>
+    <string name="changelog_section_performance">الأداء</string>
+    <string name="changelog_section_improvements">التحسينات</string>
+    <string name="changelog_section_app_support">دعم التطبيق</string>
+    <string name="changelog_section_other">التغييرات</string>
+    <string name="changelog_badge_latest">الأحدث</string>
+    <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <string name="changelog_badge_downloaded">تم التنزيل</string>
+    <string name="changelog_badge_prerelease">إصدار ما قبل الإطلاق</string>
+    <!-- "%s" is the number of changes in the section -->
+    <string name="changelog_show_all">عرض الكل (%s)</string>
+    <string name="changelog_show_less">عرض أقل</string>
     <string name="no_network_toast">لا يوجد اتصال بالإنترنت متاح</string>
     <string name="update_available">يتوفر تحديث</string>
     <string name="ready_to_install_update">جاهز لتثبيت التحديث</string>
     <string name="update_completed">تم تثبيت التحديث</string>
     <string name="install_update_manager_failed">فشل تثبيت التحديث</string>
     <string name="installing_manager_update">جارٍ تثبيت التحديث...</string>
+    <string name="installing_manager_update_hint">سيُغلق Morphe لإتمام التحديث</string>
     <string name="downloading_manager_update">جارٍ تنزيل التحديث...</string>
-    <!-- Shown while downloading, before the total size is known. "%1$s" is the megabytes so far. -->
+    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s م.ب تم تنزيلها</string>
+    <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
+    <string name="manager_update_progress_size">%1$s / %2$s م.ب</string>
     <string name="manager_update_not_ready">هذا الإصدار لا يزال قيد النشر. حاول مرة أخرى بعد بضع دقائق</string>
     <string name="update_download_missing">التحديث الذي تم تنزيله لم يعد متاحًا. يرجى تنزيله مرة أخرى</string>
     <string name="download_manager_failed">فشل تنزيل التحديث: %s</string>
@@ -1331,6 +1366,7 @@ morphe_adaptive_monochrome_custom.xml
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">جولة سريعة في الميزات</string>
     <string name="tour_prompt_desc">هل تريد جولة سريعة في الميزات الرئيسية لـ Morphe؟</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">خذني في جولة</string>
     <string name="onboarding_restart_title">جولة في الميزات</string>
     <string name="onboarding_restart_desc">جولة إرشادية حول الميزات الرئيسية</string>

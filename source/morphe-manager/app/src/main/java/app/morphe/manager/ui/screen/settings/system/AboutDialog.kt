@@ -29,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -46,7 +45,6 @@ import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.ui.viewmodel.AboutViewModel
 import app.morphe.manager.ui.viewmodel.ThemeSettingsViewModel
 import app.morphe.manager.util.isolateLtr
-import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import kotlin.time.Duration.Companion.milliseconds
@@ -124,28 +122,13 @@ fun AboutDialog(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // App Icon with gradient background
+            // App icon on a plain tile, the way the manager sets off every other object it shows
             Box(
-                modifier = Modifier.size(100.dp),
+                modifier = Modifier
+                    .size(100.dp)
+                    .background(neutralVeil(LocalDialogTextColor.current), RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primaryContainer,
-                                        MaterialTheme.colorScheme.secondaryContainer
-                                    )
-                                )
-                            )
-                    )
-                }
                 val icon = rememberDrawablePainter(
                     drawable = remember {
                         AppCompatResources.getDrawable(context, R.mipmap.ic_launcher)
@@ -239,7 +222,7 @@ private fun SocialIconButton(
     Surface(
         onClick = onClick,
         modifier = Modifier.size(52.dp),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(Defaults.SettingsCornerRadius),
         color = textColor.copy(alpha = 0.1f)
     ) {
         Box(contentAlignment = Alignment.Center) {

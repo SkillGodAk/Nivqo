@@ -6,8 +6,6 @@
 package app.morphe.manager.ui.screen.settings.system
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
-import app.morphe.manager.R
 import app.morphe.manager.ui.viewmodel.InstallViewModel
 
 /**
@@ -33,7 +31,6 @@ fun InstallerFlowDialogs(
 
     if (installViewModel.showInstallerSelectionDialog) {
         InstallerSelectionDialog(
-            title = stringResource(R.string.installer_title),
             options = installViewModel.getInstallerOptions(),
             selected = installViewModel.getPrimaryInstallerToken(),
             onDismiss = installViewModel::dismissInstallerSelectionDialog,

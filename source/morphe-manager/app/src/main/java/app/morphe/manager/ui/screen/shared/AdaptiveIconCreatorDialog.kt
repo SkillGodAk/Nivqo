@@ -10,7 +10,6 @@ import android.content.Context
 import android.graphics.*
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,7 +33,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -43,6 +41,8 @@ import androidx.core.graphics.get
 import androidx.core.graphics.scale
 import androidx.documentfile.provider.DocumentFile
 import app.morphe.manager.R
+import app.morphe.manager.ui.screen.shared.colorpicker.ColorPresetGrid
+import app.morphe.manager.ui.screen.shared.colorpicker.THEME_PRESET_COLORS
 import app.morphe.manager.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -123,6 +123,12 @@ private object AdaptiveIconConfig {
 }
 
 /**
+ * Background colors offered for the icon: the theme palette, led by the white most launcher icons
+ * sit on, which a theme color has no use for. The one extra swatch also fills the grid's last row.
+ */
+private val BackgroundPresetColors = listOf(Color.White) + THEME_PRESET_COLORS
+
+/**
  * Dialog for creating adaptive icons with foreground and background customization.
  * Generates icons in proper sizes for all screen densities, plus XML VectorDrawable
  * files for the monochrome adaptive layer and notification icon.
@@ -142,7 +148,6 @@ fun AdaptiveIconCreatorDialog(
         mutableStateOf(rgbToHex(primaryContainer.red, primaryContainer.green, primaryContainer.blue))
     }
     val showColorPicker = remember { mutableStateOf(false) }
-    val showInfoDialog = remember { mutableStateOf(false) }
 
     // Adaptive icon transform state
     var scale by remember { mutableFloatStateOf(1f) }
@@ -224,241 +229,168 @@ fun AdaptiveIconCreatorDialog(
         }
     }
 
-    AppDialog(
-        onDismissRequest = { if (!isCreating) onDismiss() },
+    CreatorDialogFrame(
+        packageName = packageName,
         title = stringResource(R.string.adaptive_icon_create),
-        titleTrailingContent = {
-            TitleAction(
-                icon = Icons.Outlined.Info,
-                contentDescription = stringResource(R.string.adaptive_icon_guide),
-                onClick = { showInfoDialog.value = true }
-            )
-        },
-        padding = DialogPadding.Compact,
-        footer = {
-            AppDialogButton(
-                text = stringResource(R.string.adaptive_icon_create),
-                onClick = { openFolderPicker() },
-                enabled = foregroundBitmap != null && !isCreating,
-                icon = Icons.Outlined.Save,
+        guideTitle = stringResource(R.string.adaptive_icon_guide),
+        guide = listOf(
+            stringResource(R.string.adaptive_icon_guide_png_title) to stringResource(R.string.adaptive_icon_guide_png_body),
+            stringResource(R.string.adaptive_icon_guide_safe_zones_title) to stringResource(R.string.adaptive_icon_guide_safe_zones_body),
+            stringResource(R.string.adaptive_icon_guide_notification_title) to stringResource(R.string.adaptive_icon_guide_notification_body),
+            stringResource(R.string.adaptive_icon_guide_monochrome_title) to stringResource(R.string.adaptive_icon_guide_monochrome_body)
+        ),
+        createEnabled = foregroundBitmap != null,
+        isCreating = isCreating,
+        onCreate = { openFolderPicker() },
+        onDismiss = onDismiss
+    ) {
+        // The picture every icon below is made from
+        CreatorCard(title = stringResource(R.string.adaptive_icon_foreground)) {
+            AppDialogOutlinedButton(
+                text = if (foregroundUri == null)
+                    stringResource(R.string.adaptive_icon_select_image)
+                else
+                    stringResource(R.string.adaptive_icon_change_image),
+                onClick = { openForegroundPicker() },
+                icon = Icons.Outlined.Image,
                 modifier = Modifier.fillMaxWidth()
             )
-        }
-    ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+
+            // Transparency warning shown when the selected image has no transparent pixels
+            AnimatedVisibility(
+                visible = showTransparencyWarning,
+                enter = Animations.expandFadeEnter,
+                exit = Animations.shrinkFadeExit
             ) {
-                // Foreground image picker
-                AppDialogOutlinedButton(
-                    text = if (foregroundUri == null)
-                        stringResource(R.string.adaptive_icon_select_image)
-                    else
-                        stringResource(R.string.adaptive_icon_change_image),
-                    onClick = { openForegroundPicker() },
-                    icon = Icons.Outlined.Image,
-                    modifier = Modifier.fillMaxWidth()
+                Notice(
+                    text = stringResource(R.string.adaptive_icon_no_transparency_warning),
+                    tone = SemanticTone.Error,
+                    density = NoticeDensity.Compact
                 )
+            }
+        }
 
-                // Transparency warning shown when the selected image has no transparent pixels
-                AnimatedVisibility(
-                    visible = showTransparencyWarning,
-                    enter = Animations.expandFadeEnter,
-                    exit = Animations.shrinkFadeExit
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Info,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Text(
-                            text = stringResource(R.string.adaptive_icon_no_transparency_warning),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-
-                // 2. Preview row: adaptive on the left, monochrome on the right.
-                //    Each column takes equal weight so the previews fill available width side by side
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPadding),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Adaptive icon preview, interactive
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.adaptive_icon_label),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = LocalDialogSecondaryTextColor.current
-                        )
-                        AdaptiveIconPreview(
-                            foregroundBitmap = foregroundBitmap,
-                            backgroundColor = backgroundColor,
-                            scale = scale,
-                            offsetX = offsetX,
-                            offsetY = offsetY,
-                            onScaleChange = {
-                                scale = it.coerceIn(
-                                    AdaptiveIconConfig.MIN_SCALE,
-                                    AdaptiveIconConfig.MAX_SCALE
-                                )
-                            },
-                            onOffsetChange = { x, y ->
-                                offsetX = x.coerceIn(
-                                    -AdaptiveIconConfig.MAX_OFFSET,
-                                    AdaptiveIconConfig.MAX_OFFSET
-                                )
-                                offsetY = y.coerceIn(
-                                    -AdaptiveIconConfig.MAX_OFFSET,
-                                    AdaptiveIconConfig.MAX_OFFSET
-                                )
-                            }
-                        )
-                    }
-
-                    // Monochrome preview, mirrors adaptive transforms
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.adaptive_icon_monochrome_label),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = LocalDialogSecondaryTextColor.current
-                        )
-                        MonochromeAdaptiveCanvas(
-                            bitmap = foregroundBitmap,
-                            scale = scale,
-                            offsetX = offsetX,
-                            offsetY = offsetY
-                        )
-                    }
-                }
-
-                // Safe zone legend
-                val legendColor = MaterialTheme.colorScheme.onSurface
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 36.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    SafeZoneLegendItem(
-                        baseColor = legendColor,
-                        alpha = AdaptiveIconConfig.SAFE_ZONE_INNER_ALPHA,
-                        isDashed = false,
-                        text = stringResource(R.string.adaptive_icon_safe_zone_inner)
-                    )
-                    SafeZoneLegendItem(
-                        baseColor = legendColor,
-                        alpha = AdaptiveIconConfig.SAFE_ZONE_OUTER_ALPHA,
-                        isDashed = true,
-                        text = stringResource(R.string.adaptive_icon_safe_zone_outer)
+        // Launcher icon: adaptive on the left, monochrome on the right, each taking equal weight
+        // so the previews fill the card side by side
+        CreatorCard(title = stringResource(R.string.adaptive_icon_launcher)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPadding),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Adaptive icon preview, interactive
+                PreviewColumn(label = stringResource(R.string.adaptive_icon_label)) {
+                    AdaptiveIconPreview(
+                        foregroundBitmap = foregroundBitmap,
+                        backgroundColor = backgroundColor,
+                        scale = scale,
+                        offsetX = offsetX,
+                        offsetY = offsetY,
+                        onScaleChange = {
+                            scale = it.coerceIn(
+                                AdaptiveIconConfig.MIN_SCALE,
+                                AdaptiveIconConfig.MAX_SCALE
+                            )
+                        },
+                        onOffsetChange = { x, y ->
+                            offsetX = x.coerceIn(
+                                -AdaptiveIconConfig.MAX_OFFSET,
+                                AdaptiveIconConfig.MAX_OFFSET
+                            )
+                            offsetY = y.coerceIn(
+                                -AdaptiveIconConfig.MAX_OFFSET,
+                                AdaptiveIconConfig.MAX_OFFSET
+                            )
+                        }
                     )
                 }
 
-                // Adaptive scale slider
-                if (foregroundBitmap != null) {
-                    ScaleSliderRow(
-                        value = scale,
-                        onValueChange = { scale = it },
-                        valueRange = AdaptiveIconConfig.MIN_SCALE..AdaptiveIconConfig.MAX_SCALE
-                    ) {
-                        SliderResetAction(
-                            visible = scale != 1f || offsetX != 0f || offsetY != 0f,
-                            contentDescription = stringResource(R.string.adaptive_icon_reset_transform),
-                            onReset = { scale = 1f; offsetX = 0f; offsetY = 0f }
-                        )
-                    }
-                }
-
-                // 3. Status bar notification preview
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.notification_icon_preview),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = LocalDialogSecondaryTextColor.current,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-                    StatusBarPreview(
+                // Monochrome preview, mirrors adaptive transforms
+                PreviewColumn(label = stringResource(R.string.adaptive_icon_monochrome_label)) {
+                    MonochromeAdaptiveCanvas(
                         bitmap = foregroundBitmap,
-                        scale = notificationScale
+                        scale = scale,
+                        offsetX = offsetX,
+                        offsetY = offsetY
                     )
                 }
+            }
 
-                // Notification scale slider
-                if (foregroundBitmap != null) {
-                    ScaleSliderRow(
-                        value = notificationScale,
-                        onValueChange = { notificationScale = it },
-                        valueRange = AdaptiveIconConfig.MIN_SCALE..AdaptiveIconConfig.MAX_NOTIFICATION_SCALE
-                    ) {
-                        SliderResetAction(
-                            visible = notificationScale != 1f,
-                            contentDescription = stringResource(R.string.adaptive_icon_reset_transform),
-                            onReset = { notificationScale = 1f }
-                        )
-                    }
-                }
-
-                HorizontalDivider()
-
-                // 4. Background color swatch - tap to open picker
-                Text(
-                    text = stringResource(R.string.adaptive_icon_background_color),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = LocalDialogSecondaryTextColor.current,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
+            // Safe zone legend
+            val legendColor = MaterialTheme.colorScheme.onSurface
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                SafeZoneLegendItem(
+                    baseColor = legendColor,
+                    alpha = AdaptiveIconConfig.SAFE_ZONE_INNER_ALPHA,
+                    isDashed = false,
+                    text = stringResource(R.string.adaptive_icon_safe_zone_inner)
                 )
-                val swatchColor = parseColorToRgb(backgroundColor).let { (r, g, b) -> Color(r, g, b) }
-                Surface(
-                    onClick = { showColorPicker.value = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(Defaults.CompactCornerRadius),
-                    color = swatchColor,
-                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.outline)
+                SafeZoneLegendItem(
+                    baseColor = legendColor,
+                    alpha = AdaptiveIconConfig.SAFE_ZONE_OUTER_ALPHA,
+                    isDashed = true,
+                    text = stringResource(R.string.adaptive_icon_safe_zone_outer)
+                )
+            }
+
+            // Adaptive scale slider
+            if (foregroundBitmap != null) {
+                ScaleSliderRow(
+                    value = scale,
+                    onValueChange = { scale = it },
+                    valueRange = AdaptiveIconConfig.MIN_SCALE..AdaptiveIconConfig.MAX_SCALE
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = backgroundColor.uppercase(),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (swatchColor.requiresLightContent()) Color.White else Color.Black
-                        )
-                    }
+                    SliderResetAction(
+                        visible = scale != 1f || offsetX != 0f || offsetY != 0f,
+                        contentDescription = stringResource(R.string.adaptive_icon_reset_transform),
+                        onReset = { scale = 1f; offsetX = 0f; offsetY = 0f }
+                    )
                 }
             }
-            ContentOverlay(visible = isCreating) {
-                PulsingLogoWithCaption(caption = stringResource(R.string.creating))
+        }
+
+        // Status bar notification preview
+        CreatorCard(title = stringResource(R.string.notification_icon_preview)) {
+            StatusBarPreview(
+                bitmap = foregroundBitmap,
+                scale = notificationScale
+            )
+
+            // Notification scale slider
+            if (foregroundBitmap != null) {
+                ScaleSliderRow(
+                    value = notificationScale,
+                    onValueChange = { notificationScale = it },
+                    valueRange = AdaptiveIconConfig.MIN_SCALE..AdaptiveIconConfig.MAX_NOTIFICATION_SCALE
+                ) {
+                    SliderResetAction(
+                        visible = notificationScale != 1f,
+                        contentDescription = stringResource(R.string.adaptive_icon_reset_transform),
+                        onReset = { notificationScale = 1f }
+                    )
+                }
             }
+        }
+
+        // Background color, picked the way every color in the app is
+        CreatorCard(title = stringResource(R.string.adaptive_icon_background_color)) {
+            ColorPresetGrid(
+                colors = BackgroundPresetColors,
+                selected = backgroundColor.toColorOrNull(),
+                onSelect = { backgroundColor = it.toHexString() },
+                onCustomClick = { showColorPicker.value = true }
+            )
         }
     }
 
     // Color picker dialog
     if (showColorPicker.value) {
+        // The presets are already on the card behind the dialog, so repeating them inside it
+        // would only push the panel down
         ColorPickerDialog(
             title = stringResource(R.string.adaptive_icon_background_color),
             currentColor = backgroundColor,
+            presets = emptyList(),
             onColorSelected = { color ->
                 backgroundColor = color
                 showColorPicker.value = false
@@ -466,42 +398,22 @@ fun AdaptiveIconCreatorDialog(
             onDismiss = { showColorPicker.value = false }
         )
     }
+}
 
-    // Icon creation guide dialog
-    if (showInfoDialog.value) {
-        AppDialog(
-            onDismissRequest = { showInfoDialog.value = false },
-            title = stringResource(R.string.adaptive_icon_guide),
-            footer = {
-                AppDialogOutlinedButton(
-                    text = stringResource(R.string.close),
-                    onClick = { showInfoDialog.value = false },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                AdaptiveIconGuideSection(
-                    title = stringResource(R.string.adaptive_icon_guide_png_title),
-                    body = stringResource(R.string.adaptive_icon_guide_png_body)
-                )
-                AdaptiveIconGuideSection(
-                    title = stringResource(R.string.adaptive_icon_guide_safe_zones_title),
-                    body = stringResource(R.string.adaptive_icon_guide_safe_zones_body)
-                )
-                AdaptiveIconGuideSection(
-                    title = stringResource(R.string.adaptive_icon_guide_notification_title),
-                    body = stringResource(R.string.adaptive_icon_guide_notification_body)
-                )
-                AdaptiveIconGuideSection(
-                    title = stringResource(R.string.adaptive_icon_guide_monochrome_title),
-                    body = stringResource(R.string.adaptive_icon_guide_monochrome_body)
-                )
-            }
-        }
+/** A labeled preview, taking its share of the row it sits in. */
+@Composable
+private fun RowScope.PreviewColumn(label: String, preview: @Composable () -> Unit) {
+    Column(
+        modifier = Modifier.weight(1f),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = LocalDialogSecondaryTextColor.current
+        )
+        preview()
     }
 }
 
@@ -521,9 +433,7 @@ private fun AdaptiveIconPreview(
 ) {
     // Guide color adapts to background brightness to keep circles visible
     val previewGuideColor = remember(backgroundColor) {
-        val bgColor = backgroundColor.toColorOrNull()
-            ?: Color.Black
-        if (bgColor.isDarkBackground()) Color.White else Color.Black
+        (backgroundColor.toColorOrNull() ?: Color.Black).contrastingContent()
     }
     // Dashed effect for snap guides and outer safe zone
     val dashEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f), 0f)
@@ -838,26 +748,6 @@ private fun MonochromeAdaptiveCanvas(
                 )
             }
         }
-    }
-}
-
-/**
- * One section of the icon creation guide: bold title followed by a description.
- */
-@Composable
-private fun AdaptiveIconGuideSection(title: String, body: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = LocalDialogTextColor.current
-        )
-        Text(
-            text = body,
-            style = MaterialTheme.typography.bodySmall,
-            color = LocalDialogSecondaryTextColor.current
-        )
     }
 }
 

@@ -28,6 +28,7 @@ class HomeAppFilterModeTest {
                 installType = InstallType.DEFAULT
             ),
             packageInfo = null,
+            version = "",
             isPinnedByDefault = false,
             isInstalledOnDevice = true,
             isDeleted = false,
@@ -61,6 +62,7 @@ class HomeAppFilterModeTest {
                 installType = InstallType.DEFAULT
             ),
             packageInfo = null,
+            version = "",
             isPinnedByDefault = false,
             isInstalledOnDevice = true,
             isDeleted = false,
@@ -126,6 +128,7 @@ class HomeAppFilterModeTest {
             installType = InstallType.DEFAULT
         ),
         packageInfo = null,
+        version = "",
         isPinnedByDefault = false,
         isInstalledOnDevice = true,
         isDeleted = false,

@@ -14,19 +14,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import app.morphe.manager.BuildConfig
 import app.morphe.manager.R
-import app.morphe.manager.data.platform.NetworkInfo
 import app.morphe.manager.ui.screen.shared.Defaults
 import app.morphe.manager.ui.screen.shared.SettingsDivider
 import app.morphe.manager.ui.screen.shared.SettingsGroup
 import app.morphe.manager.ui.screen.shared.SettingsItem
 import app.morphe.manager.ui.screen.shared.rememberMorpheLogoBitmap
 import app.morphe.manager.util.isolateLtr
-import app.morphe.manager.util.toast
-import org.koin.compose.koinInject
 
 /**
  * About section: the app itself, its changelog, the logs a bug report asks for and the tour.
@@ -36,11 +32,8 @@ fun AboutSection(
     onAboutClick: () -> Unit,
     onChangelogClick: () -> Unit,
     onExportDebugLogs: () -> Unit,
-    onStartTour: (() -> Unit)? = null,
-    networkInfo: NetworkInfo = koinInject()
+    onStartTour: (() -> Unit)? = null
 ) {
-    val context = LocalContext.current
-    val noNetworkToast = stringResource(R.string.no_network_toast)
     val logo = rememberMorpheLogoBitmap()
 
     SettingsGroup {
@@ -66,13 +59,7 @@ fun AboutSection(
             icon = Icons.AutoMirrored.Outlined.Article,
             title = stringResource(R.string.changelog),
             subtitle = stringResource(R.string.changelog_description),
-            onClick = {
-                if (!networkInfo.isConnected()) {
-                    context.toast(noNetworkToast)
-                    return@SettingsItem
-                }
-                onChangelogClick()
-            }
+            onClick = onChangelogClick
         )
 
         SettingsDivider()

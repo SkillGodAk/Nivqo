@@ -6,6 +6,18 @@
     <plurals name="option_count">
         <item quantity="other">%s 个补丁选项</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="other">%s 个项目</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="other">选择 %s 个文件</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="other">添加 %s 个来源</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="other">适用于 %s 个应用的补丁源</item>
     </plurals>
@@ -68,5 +80,17 @@
     </plurals>
     <plurals name="core_count">
         <item quantity="other">%s 个核心</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="other">%s 项新功能</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="other">%s 项修复</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="other">%s 项更改</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="other">%s 个新版本</item>
     </plurals>
 </resources>

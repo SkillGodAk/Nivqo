@@ -126,10 +126,6 @@ crops away.
 Tap **Create adaptive icon** and pick a folder to save into. Morphe writes the icon set
 there while showing a **Creating...** overlay.
 
-<p align="center">
-  <img src="images/custom-icon/06-icon-creating.jpg" width="320" alt="Icon creation in progress" />
-</p>
-
 Inside the folder you choose, Morphe creates `morphe_branding/morphe_icons_youtube` (or
 `morphe_icons_music` for YouTube Music) containing every density variant of the foreground
 and background, the monochrome layer, and the notification icons. A `.nomedia` file is added
@@ -165,18 +161,20 @@ short version is:
 Only the densities your device actually uses are required, but including all of them keeps
 the set portable.
 
-## Other branding options in the same place
+## Other appearance options
 
 The **Custom branding** dialog is one of several appearance options for the patched app:
 
-<p align="center">
-  <img src="images/custom-icon/08-theme-colors.jpg" width="320" alt="App theme colors option" />
-</p>
+- **Custom header logo** - sits next to Custom branding in **Patch options**, and replaces
+  the logo in the app's header, see [Creating a custom header logo](custom-header-logo.md).
+- **Theme colors** - in Expert mode, the settings icon on the **Theme** patch sets the
+  background color of the patched app for the dark and light themes. **Change in the app**
+  leaves the choice to the app's own settings, while a Material You preset, one of the
+  swatches, or your own hex value is applied while patching.
 
-- **App theme colors** - the background color of the patched app, as a preset such as Pure
-  black, Material You, or Catppuccin, or your own hex value for the dark and light themes.
-- **Custom header logo** - replaces the logo in the app's header, see
-  [Creating a custom header logo](custom-header-logo.md).
+<p align="center">
+  <img src="images/custom-icon/08-theme-colors.jpg" width="320" alt="Theme patch options with the dark theme color presets" />
+</p>
 
 All of them need a re-patch to take effect.
 

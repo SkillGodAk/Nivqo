@@ -12,7 +12,6 @@ package app.morphe.manager.patcher.split
 
 import android.util.Log
 import app.morphe.manager.util.tag
-import com.reandroid.arsc.chunk.xml.AndroidManifestBlock
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -20,7 +19,6 @@ import java.util.Locale
 import java.util.UUID
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
-import java.util.zip.ZipInputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -73,7 +71,7 @@ object SplitApkInspector {
         // Past the conventional names the base is told apart by its manifest, the same way the
         // merger finds it. An .xapk names it after the package, and an asset pack beside it can
         // outweigh it, so neither a name nor a size can be trusted there
-        val manifestBase = entries.firstOrNull { isBaseModule(zip, it) }
+        val manifestBase = entries.firstOrNull { SplitApkPreparer.isBaseModule(zip, it) }
         if (manifestBase != null) return manifestBase
 
         val primaryEntry = lowered.entries.firstOrNull { (_, name) ->
@@ -101,17 +99,4 @@ object SplitApkInspector {
             }.thenBy { it.name.length }
         )
     }
-
-    /**
-     * Whether the manifest of the module in [entry] declares no split. The module is streamed
-     * rather than extracted, which stops early as build tools write the manifest first.
-     */
-    private fun isBaseModule(zip: ZipFile, entry: ZipEntry): Boolean =
-        runCatching {
-            ZipInputStream(zip.getInputStream(entry)).use { module ->
-                generateSequence { module.nextEntry }
-                    .firstOrNull { it.name == "AndroidManifest.xml" }
-                    ?.let { !AndroidManifestBlock.load(module).isSplit }
-            }
-        }.getOrNull() == true
 }

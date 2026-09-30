@@ -6,13 +6,10 @@
 package app.morphe.manager.ui.screen.shared
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -22,13 +19,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import app.morphe.manager.R
 
 /** Expandable surface with a header icon, title, and collapsible content. */
 @Composable
@@ -41,11 +35,6 @@ fun ExpandableSurface(
     headerTint: Color = LocalDialogTextColor.current
 ) {
     var expanded by remember { mutableStateOf(initialExpanded) }
-    val rotationAngle by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        animationSpec = tween(Defaults.ANIMATION_DURATION),
-        label = "rotation"
-    )
 
     Surface(
         modifier = modifier
@@ -84,16 +73,11 @@ fun ExpandableSurface(
                     )
                 }
 
-                Icon(
-                    imageVector = Icons.Outlined.ExpandMore,
-                    contentDescription = if (expanded)
-                        stringResource(R.string.collapse)
-                    else
-                        stringResource(R.string.expand),
-                    modifier = Modifier
-                        .size(Defaults.IconSizeSmall)
-                        .rotate(rotationAngle),
-                    tint = LocalDialogTextColor.current.copy(alpha = 0.7f)
+                ExpandChevron(
+                    expanded = expanded,
+                    modifier = Modifier.size(Defaults.IconSizeSmall),
+                    tint = LocalDialogTextColor.current.copy(alpha = 0.7f),
+                    announced = true
                 )
             }
 

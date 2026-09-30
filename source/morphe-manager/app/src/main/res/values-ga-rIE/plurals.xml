@@ -14,6 +14,30 @@
         <item quantity="many">%s roghanna paiste</item>
         <item quantity="other">%s roghanna paiste</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s mhír</item>
+        <item quantity="two">%s mhír</item>
+        <item quantity="few">%s mhír</item>
+        <item quantity="many">%s mír</item>
+        <item quantity="other">%s mír</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Roghnaigh %s comhad</item>
+        <item quantity="two">Roghnaigh %s chomhad</item>
+        <item quantity="few">Roghnaigh %s chomhad</item>
+        <item quantity="many">Roghnaigh %s gcomhad</item>
+        <item quantity="other">Roghnaigh %s comhad</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Cuir %s foinse leis</item>
+        <item quantity="two">Cuir %s fhoinse leis</item>
+        <item quantity="few">Cuir %s fhoinse leis</item>
+        <item quantity="many">Cuir %s bhfoinse leis</item>
+        <item quantity="other">Cuir %s foinse leis</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Foinsí paiste le haghaidh %s aip</item>
         <item quantity="two">Foinsí paiste le haghaidh %s aip</item>
@@ -160,5 +184,33 @@
         <item quantity="few">%s chroílár</item>
         <item quantity="many">%s chroílár</item>
         <item quantity="other">%s chroílár</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="one">%s nua</item>
+        <item quantity="two">%s nua</item>
+        <item quantity="few">%s nua</item>
+        <item quantity="many">%s nua</item>
+        <item quantity="other">%s nua</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s cheartú</item>
+        <item quantity="two">%s cheartú</item>
+        <item quantity="few">%s cheartú</item>
+        <item quantity="many">%s gceartú</item>
+        <item quantity="other">%s ceartú</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s athrú</item>
+        <item quantity="two">%s athrú</item>
+        <item quantity="few">%s athrú</item>
+        <item quantity="many">%s n-athrú</item>
+        <item quantity="other">%s athrú</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s leagan nua</item>
+        <item quantity="two">%s leagan nua</item>
+        <item quantity="few">%s leagan nua</item>
+        <item quantity="many">%s leagan nua</item>
+        <item quantity="other">%s leagan nua</item>
     </plurals>
 </resources>

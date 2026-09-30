@@ -11,12 +11,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MergeType
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.domain.repository.PatchBundleRepository.ImportMode
@@ -37,6 +35,7 @@ fun ImportModeDialog(
     AppDialog(
         onDismissRequest = onDismiss,
         title = stringResource(titleRes),
+        description = stringResource(descriptionRes),
         footer = {
             AppDialogOutlinedButton(
                 text = stringResource(android.R.string.cancel),
@@ -46,14 +45,6 @@ fun ImportModeDialog(
         }
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)) {
-            Text(
-                text = stringResource(descriptionRes),
-                style = MaterialTheme.typography.bodyLarge,
-                color = LocalDialogSecondaryTextColor.current,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
             ImportModeOption(
                 icon = Icons.Outlined.SwapVert,
                 title = stringResource(R.string.import_mode_replace_title),
@@ -85,7 +76,7 @@ private fun ImportModeOption(
 
     SettingsItemCard(
         onClick = onClick,
-        borderWidth = 1.dp,
+        showBorder = true,
         borderColor = if (isDestructive) {
             destructiveColor.copy(alpha = 0.5f)
         } else {

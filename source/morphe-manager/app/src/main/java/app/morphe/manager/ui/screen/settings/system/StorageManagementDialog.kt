@@ -16,13 +16,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.morphe.manager.R
 import app.morphe.manager.domain.repository.StorageStats
 import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.ui.viewmodel.StorageManagementViewModel
 import app.morphe.manager.util.formatBytes
+import app.morphe.manager.util.formatUsedFree
 import app.morphe.manager.util.openAppDetailsSettings
 import app.morphe.manager.util.toast
 import org.koin.androidx.compose.koinViewModel
@@ -62,30 +62,33 @@ fun StorageManagementDialog(
     }
 
     if (showClearAllConfirm) {
-        ClearCachesConfirmationDialog(
-            totalBytes = stats.totalCacheBytes,
-            onDismiss = { showClearAllConfirm = false },
+        ConfirmDialog(
+            title = stringResource(R.string.settings_system_storage_clear_all),
+            message = stringResource(R.string.settings_system_storage_clear_all_confirm),
+            primaryText = stringResource(R.string.clear),
             onConfirm = {
                 showClearAllConfirm = false
                 viewModel.clearAllCaches(onCleared)
+            },
+            onDismiss = { showClearAllConfirm = false },
+            // Empty caches free nothing, so they are left out
+            items = listOf(
+                Triple(Icons.Outlined.CloudDownload, R.string.settings_system_storage_http_cache_title, stats.httpCacheBytes),
+                Triple(Icons.Outlined.Share, R.string.settings_system_storage_installer_cache_title, stats.installerShareBytes),
+                Triple(Icons.Outlined.Build, R.string.settings_system_storage_patcher_workspace_title, stats.patcherWorkspaceBytes),
+                Triple(Icons.Outlined.HourglassEmpty, R.string.settings_system_storage_temporary_title, stats.temporaryBytes)
+            ).filter { (_, _, bytes) -> bytes > 0 }.map { (icon, title, bytes) ->
+                ConfirmItem(icon, stringResource(title), context.formatBytes(bytes))
             }
         )
     }
 
     AppDialog(
         onDismissRequest = onDismissRequest,
-        title = stringResource(R.string.settings_system_storage_management_title),
         padding = DialogPadding.Compact,
-        titleTrailingContent = {
-            TitleAction(
-                icon = Icons.Outlined.Refresh,
-                contentDescription = stringResource(R.string.refresh),
-                onClick = {
-                    viewModel.refresh()
-                    histogramNonce++
-                }
-            )
-        },
+        scrollable = false,
+        contentArrangement = Arrangement.Top,
+        fillContentHeight = true,
         footer = {
             AppDialogOutlinedButton(
                 text = stringResource(R.string.close),
@@ -94,13 +97,39 @@ fun StorageManagementDialog(
             )
         }
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)) {
+        // Nothing has been read until the first reading lands, and a real one always has room free
+        val loading = stats == StorageStats.Empty
+
+        // Headed like the other lists, with how much Morphe holds against what is left free
+        // where the subtitle goes, above the breakdown that scrolls under it
+        val accent = MaterialTheme.colorScheme.primary
+        ListDialogHeader(
+            icon = { modifier ->
+                ListDialogHeaderIcon(icon = Icons.Outlined.Storage, color = accent, modifier = modifier)
+            },
+            title = stringResource(R.string.settings_system_storage_management_title),
+            subtitle = context.formatUsedFree(used = stats.appUsedBytes, free = stats.deviceFreeBytes),
+            subtitleLoading = loading,
+            accentColor = accent
+        ) {
+            TitleAction(
+                icon = Icons.Outlined.Refresh,
+                contentDescription = stringResource(R.string.refresh),
+                onClick = {
+                    viewModel.refresh()
+                    histogramNonce++
+                },
+                style = TitleActionStyle.Accent
+            )
+        }
+
+        DialogScrollColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(vertical = Defaults.ItemSpacing),
+            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
+        ) {
             key(histogramNonce) {
-                StorageHistogram(
-                    used = stats.appUsedBytes,
-                    deviceFreeBytes = stats.deviceFreeBytes,
-                    segments = stats.toSegments()
-                )
+                StorageHistogram(segments = stats.toSegments(), loading = loading)
             }
 
             SettingsGroup {
@@ -227,58 +256,6 @@ private fun CacheActionRow(
                 )
             )
         )
-    }
-}
-
-@Composable
-private fun ClearCachesConfirmationDialog(
-    totalBytes: Long,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    AppDialog(
-        onDismissRequest = onDismiss,
-        title = stringResource(R.string.settings_system_storage_clear_all),
-        footer = {
-            AppDialogButtonRow(
-                primaryText = stringResource(R.string.clear),
-                onPrimaryClick = onConfirm,
-                isPrimaryDestructive = true,
-                secondaryText = stringResource(android.R.string.cancel),
-                onSecondaryClick = onDismiss
-            )
-        }
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)) {
-            Text(
-                text = stringResource(R.string.settings_system_storage_clear_all_confirm),
-                style = MaterialTheme.typography.bodyLarge,
-                color = LocalDialogSecondaryTextColor.current,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            LabeledSection(
-                version = stringResource(R.string.settings_system_apks_size, LocalContext.current.formatBytes(totalBytes))
-            ) {
-                DeleteListItem(
-                    icon = Icons.Outlined.CloudDownload,
-                    text = stringResource(R.string.settings_system_storage_http_cache_title)
-                )
-                DeleteListItem(
-                    icon = Icons.Outlined.Share,
-                    text = stringResource(R.string.settings_system_storage_installer_cache_title)
-                )
-                DeleteListItem(
-                    icon = Icons.Outlined.Build,
-                    text = stringResource(R.string.settings_system_storage_patcher_workspace_title)
-                )
-                DeleteListItem(
-                    icon = Icons.Outlined.HourglassEmpty,
-                    text = stringResource(R.string.settings_system_storage_temporary_title)
-                )
-            }
-        }
     }
 }
 

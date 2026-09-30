@@ -5,7 +5,6 @@
 
 package app.morphe.manager.ui.screen.home
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -48,11 +47,11 @@ internal fun HomeAppListOptionsDialog(
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(if (filterMode.isActive) 1 else 0) }
     val tabs = listOf(
-        CardSelectorOption(
+        SegmentedTab(
             label = stringResource(R.string.sort),
             icon = Icons.AutoMirrored.Outlined.Sort
         ),
-        CardSelectorOption(
+        SegmentedTab(
             label = stringResource(R.string.filter),
             icon = Icons.Outlined.FilterList
         )
@@ -69,52 +68,42 @@ internal fun HomeAppListOptionsDialog(
             )
         }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = Defaults.ContentPadding),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
-        ) {
-            CardSelectorRow(
-                options = tabs,
-                selectedIndex = selectedTab,
-                onSelect = { selectedTab = it }
-            )
+        SegmentedTabs(
+            options = tabs,
+            selectedIndex = selectedTab,
+            onSelect = { selectedTab = it },
+            modifier = Modifier.padding(vertical = Defaults.ContentPadding),
+            spacing = Defaults.ItemSpacing
+        ) { tab ->
+            Column(verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)) {
+                when (tab) {
+                    0 -> sortModeOptions<HomeAppSortMode>().forEach { option ->
+                        RadioSelectionCard(
+                            selected = sortMode == option.value,
+                            onSelect = { onSortModeChange(option.value) },
+                            title = option.title,
+                            description = option.description
+                        )
+                    }
 
-            AnimatedContent(
-                targetState = selectedTab,
-                transitionSpec = Animations.fadeCrossfade()
-            ) { tab ->
-                Column(verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)) {
-                    when (tab) {
-                        0 -> sortModeOptions<HomeAppSortMode>().forEach { option ->
+                    // Filters are not SortModeSpec, so they get the same ordering here
+                    else -> {
+                        val filters = HomeAppFilterMode.entries.map { mode ->
+                            Triple(
+                                mode,
+                                stringResource(mode.labelRes),
+                                stringResource(mode.descriptionRes)
+                            )
+                        }.sortedWith(
+                            compareBy(String.CASE_INSENSITIVE_ORDER) { (_, label, _) -> label }
+                        )
+                        filters.forEach { (mode, label, description) ->
                             RadioSelectionCard(
-                                selected = sortMode == option.value,
-                                onSelect = { onSortModeChange(option.value) },
-                                title = option.title,
-                                description = option.description
+                                selected = filterMode == mode,
+                                onSelect = { onFilterModeChange(mode) },
+                                title = label,
+                                description = description
                             )
-                        }
-
-                        // Filters are not SortModeSpec, so they get the same ordering here
-                        else -> {
-                            val filters = HomeAppFilterMode.entries.map { mode ->
-                                Triple(
-                                    mode,
-                                    stringResource(mode.labelRes),
-                                    stringResource(mode.descriptionRes)
-                                )
-                            }.sortedWith(
-                                compareBy(String.CASE_INSENSITIVE_ORDER) { (_, label, _) -> label }
-                            )
-                            filters.forEach { (mode, label, description) ->
-                                RadioSelectionCard(
-                                    selected = filterMode == mode,
-                                    onSelect = { onFilterModeChange(mode) },
-                                    title = label,
-                                    description = description
-                                )
-                            }
                         }
                     }
                 }

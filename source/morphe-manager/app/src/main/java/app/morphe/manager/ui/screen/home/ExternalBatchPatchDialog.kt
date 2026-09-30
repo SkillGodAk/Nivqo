@@ -43,6 +43,7 @@ fun ExternalBatchPatchDialog(
     AppDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.external_batch_patch_title),
+        description = stringResource(R.string.external_batch_patch_description, caller),
         footer = {
             AppDialogButtonRow(
                 primaryText = stringResource(R.string.continue_),
@@ -57,13 +58,6 @@ fun ExternalBatchPatchDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = stringResource(R.string.external_batch_patch_description, caller),
-                style = MaterialTheme.typography.bodyLarge,
-                color = LocalDialogSecondaryTextColor.current,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
             Text(
                 text = pluralStringResource(
                     R.plurals.batch_patch_ready_count,

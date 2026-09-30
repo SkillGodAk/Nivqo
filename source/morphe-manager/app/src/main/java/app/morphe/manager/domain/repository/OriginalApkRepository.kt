@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
@@ -37,6 +38,24 @@ internal fun copyThroughStaging(source: File, target: File) {
     }
 }
 
+/**
+ * Moves [source] over [target] in one step where both sit on the same filesystem, which spares
+ * rewriting a file of hundreds of megabytes. Elsewhere, it is copied through staging instead, and
+ * [source] is left for its owner to delete.
+ */
+internal fun moveIntoPlace(source: File, target: File) {
+    try {
+        Files.move(
+            source.toPath(),
+            target.toPath(),
+            StandardCopyOption.ATOMIC_MOVE,
+            StandardCopyOption.REPLACE_EXISTING
+        )
+    } catch (_: AtomicMoveNotSupportedException) {
+        copyThroughStaging(source, target)
+    }
+}
+
 class OriginalApkRepository(
     db: AppDatabase,
     fs: Filesystem,
@@ -54,11 +73,15 @@ class OriginalApkRepository(
      * Save original APK file for later repatching.
      * Automatically deletes old version if exists.
      * Returns null and skips persistence when the user has disabled original APK retention.
+     *
+     * @param moveSource whether [sourceFile] is a temporary file the caller has no further use
+     *                   for, so it can be moved into place rather than copied.
      */
     suspend fun saveOriginalApk(
         packageName: String,
         version: String,
-        sourceFile: File
+        sourceFile: File,
+        moveSource: Boolean = false
     ): File? = withContext(Dispatchers.IO) {
         if (!prefs.saveOriginalApks.get()) {
             Log.d(TAG, "Original APK retention disabled, skipping save for $packageName")
@@ -75,7 +98,8 @@ class OriginalApkRepository(
 
             // Copy file if source is different, and move it into place only once written in full
             if (copies) {
-                copyThroughStaging(sourceFile, targetFile)
+                if (moveSource) moveIntoPlace(sourceFile, targetFile)
+                else copyThroughStaging(sourceFile, targetFile)
             }
 
             // Save to database

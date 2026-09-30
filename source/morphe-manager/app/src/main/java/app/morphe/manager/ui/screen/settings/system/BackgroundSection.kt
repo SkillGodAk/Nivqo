@@ -59,9 +59,9 @@ fun BackgroundSection(
                     StatusCircleIcon(
                         icon = if (isIgnoringBatteryOptimizations) Icons.Outlined.Check else Icons.Outlined.Warning,
                         containerColor = if (isIgnoringBatteryOptimizations) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.secondaryContainer,
+                        else SemanticTone.Warning.container,
                         contentColor = if (isIgnoringBatteryOptimizations) MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSecondaryContainer
+                        else SemanticTone.Warning.content
                     )
                 }
             )

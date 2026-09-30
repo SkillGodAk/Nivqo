@@ -4,9 +4,11 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Bundle
+import android.os.LocaleList
 import android.util.Log
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
@@ -22,6 +24,7 @@ import app.morphe.manager.domain.repository.BlocklistRepository
 import app.morphe.manager.domain.repository.InstalledAppRepository
 import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.domain.repository.PatchBundleRepository.Companion.DEFAULT_SOURCE_UID
+import app.morphe.manager.ui.screen.shared.AppIconPixels
 import app.morphe.manager.util.*
 import app.morphe.manager.worker.UpdateCheckWorker
 import coil.Coil
@@ -29,6 +32,10 @@ import coil.ImageLoader
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
@@ -84,6 +91,9 @@ class ManagerApplication : Application() {
     private val installedAppRepository: InstalledAppRepository by inject()
     private val appDataResolver: AppDataResolver by inject()
 
+    /** Locales the app's own strings resolve in, null until [observeLanguage] first reads them. */
+    private val stringLocales = MutableStateFlow<LocaleList?>(null)
+
     override fun onCreate() {
         super.onCreate()
 
@@ -104,12 +114,14 @@ class ManagerApplication : Application() {
         }
 
         // App icon loader (Coil)
-        val pixels = 512
+        // Non-adaptive icons are drawn as they are rather than shrunk onto a white plate: icon
+        // packs on One UI hand out finished bitmap icons, and the plate showed around each of them
+        val shrinkNonAdaptiveIcons = false
         Coil.setImageLoader(
             ImageLoader.Builder(this)
                 .components {
                     add(AppIconKeyer())
-                    add(AppIconFetcher.Factory(pixels, true, this@ManagerApplication))
+                    add(AppIconFetcher.Factory(AppIconPixels, shrinkNonAdaptiveIcons, this@ManagerApplication))
                 }
                 .build()
         )
@@ -124,28 +136,19 @@ class ManagerApplication : Application() {
         // Create notification channels before any notification can be posted (required on API 26+)
         updateNotificationManager.createNotificationChannels()
 
+        observeLanguage()
         observeLauncherShortcuts()
 
-        // Preload preferences and kick off background worker/FCM sync
+        // Preload preferences and start Nivqo background update polling
         scope.launch {
             prefs.preload()
 
             // A restored backup carries the token of the device it came from, and nothing here
             // can tell whose it is, so this data starts without one and the user enters theirs
             if (fs.isFirstRunForThisData) prefs.gitHubPat.update("")
-
-            // Keep SharedPreferences in sync with DataStore so that attachBaseContext
-            // (Application + Activity) can read the language without touching DataStore
-            saveLanguageToPrefs(this@ManagerApplication, prefs.appLanguage.get().ifBlank { "system" })
-
-            // Schedule/cancel Nivqo background update polling through WorkManager.
+            // Nivqo intentionally does not use the upstream Morphe Firebase project. Background
+            // update notifications are delivered through WorkManager polling on all devices.
             val notificationsEnabled = prefs.backgroundUpdateNotifications.get()
-            val useManagerPrereleases = prefs.useManagerPrereleases.get()
-            // Patches FCM topic is determined by the default bundle (uid=0) prerelease toggle
-            val usePatchesPrereleases = prefs.bundlePrereleasesEnabled.get().contains(DEFAULT_SOURCE_UID.toString())
-
-            // Nivqo does not use the upstream Morphe Firebase project. Background update
-            // notifications are delivered through WorkManager polling on all devices.
             if (notificationsEnabled) {
                 UpdateCheckWorker.schedule(this@ManagerApplication, prefs.updateCheckInterval.get())
             } else {
@@ -204,19 +207,39 @@ class ManagerApplication : Application() {
     }
 
     /**
-     * Apply the stored app language as early as possible - before any Activity or
-     * Resources object is created. This is the **single place** where locale is applied
-     * on cold start.
+     * Attaches a base context in the app language before any Activity or Resources object is
+     * created, so strings resolved through the application follow it from the first one on.
      */
-    override fun attachBaseContext(base: Context?) {
-        super.attachBaseContext(base)
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(AppLocale.attach(base))
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             HiddenApiBypass.addHiddenApiExemptions("L")
         }
+    }
 
-        val storedLang = base?.let { readLanguageFromPrefs(it) } ?: return
-        applyAppLanguage(storedLang)
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        AppLocale.onConfigurationChanged(this)
+        stringLocales.value = resources.configuration.locales
+    }
+
+    /**
+     * Channel names and shortcut labels reach the system as plain text, so they stay in the
+     * language they were resolved in until they are handed over again.
+     */
+    private fun observeLanguage() {
+        // A language the app switches by itself on Android 12 and lower brings no configuration
+        // change. On Android 13+ the strings only change with the configuration, which is where
+        // onConfigurationChanged picks them up
+        scope.launch {
+            AppLocale.selected.collect { stringLocales.value = resources.configuration.locales }
+        }
+        scope.launch {
+            stringLocales.filterNotNull().drop(1).collect {
+                updateNotificationManager.createNotificationChannels()
+            }
+        }
     }
 
     /**
@@ -228,7 +251,8 @@ class ManagerApplication : Application() {
      */
     private fun observeLauncherShortcuts() {
         scope.launch(Dispatchers.IO) {
-            installedAppRepository.getAll().collect { apps -> publishLauncherShortcuts(apps) }
+            combine(installedAppRepository.getAll(), stringLocales.filterNotNull()) { apps, _ -> apps }
+                .collect { apps -> publishLauncherShortcuts(apps) }
         }
     }
 

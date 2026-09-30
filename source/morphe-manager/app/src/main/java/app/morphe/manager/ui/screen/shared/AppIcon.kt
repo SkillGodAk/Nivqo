@@ -1,35 +1,53 @@
+/*
+ * Copyright 2026 Morphe.
+ * https://github.com/MorpheApp/morphe-manager
+ */
+
 package app.morphe.manager.ui.screen.shared
 
 import android.content.pm.PackageInfo
+import android.graphics.Matrix
+import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asComposePath
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.util.AppDataResolver
 import app.morphe.manager.util.AppDataSource
+import app.morphe.manager.util.endEdgeX
+import app.morphe.manager.util.isRtl
+import app.morphe.manager.util.startEdgeX
 import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import me.zhanghai.android.appiconloader.iconloaderlib.IconNormalizer
 import org.koin.compose.koinInject
-
-/**
- * Share of the icon slot an adaptive icon actually paints, matching the ~10% inset the launcher
- * applies. Placeholders shown in its place use the same fraction so nothing resizes on load.
- */
-private const val AdaptiveIconContentFraction = 0.8f
+import android.graphics.Path as AndroidPath
 
 /**
  * Universal app icon component.
@@ -37,9 +55,8 @@ private const val AdaptiveIconContentFraction = 0.8f
  * Automatically resolves icon from available sources:
  * installed app → original APK → patched APK → constants → fallback
  *
- * @param placeholderInnerPadding Inner padding applied only to [GlassPlaceholderIcon] so it
- *   optically aligns with adaptive icons (which have ~10% inset). Real icons are not affected.
- *   Use 6.dp for large cards (60dp), 0.dp (default) for smaller contexts like list rows.
+ * A handed in [packageInfo] and one resolved from [packageName] share one code path, so the icon
+ * stays on screen when a card gets its info later. [icon] stands in where no source has one.
  */
 @Composable
 fun AppIcon(
@@ -47,46 +64,67 @@ fun AppIcon(
     packageInfo: PackageInfo? = null,
     packageName: String? = null,
     contentDescription: String?,
+    icon: Drawable? = null,
     preferredSource: AppDataSource = AppDataSource.INSTALLED,
-    placeholderGradientColors: List<Color>? = null,
-    placeholderInnerPadding: Dp = 0.dp
+    placeholderGradientColors: List<Color>? = null
 ) {
-    // If PackageInfo is provided, use the simple implementation
-    if (packageInfo != null) {
-        SimpleAppIcon(
-            packageInfo = packageInfo,
+    // Always called, a conditional call would recreate the icon below it
+    val resolved = rememberResolvedIcon(packageName.takeIf { packageInfo == null }, preferredSource)
+    val resolving = packageInfo == null && packageName != null && resolved == null
+    val shownInfo = packageInfo ?: resolved?.packageInfo
+    val shownDrawable = resolved?.drawable ?: icon
+
+    when {
+        shownInfo != null -> SimpleAppIcon(
+            packageInfo = shownInfo,
             contentDescription = contentDescription,
             modifier = modifier
         )
-        return
-    }
-
-    // If only package name is provided, resolve from multiple sources
-    if (packageName != null) {
-        ResolvedAppIcon(
-            packageName = packageName,
+        // No packageInfo but a Drawable, resolved (rare path) or handed in
+        shownDrawable != null -> DrawableAppIcon(
+            drawable = shownDrawable,
             contentDescription = contentDescription,
-            modifier = modifier,
-            preferredSource = preferredSource,
-            placeholderGradientColors = placeholderGradientColors,
-            placeholderInnerPadding = placeholderInnerPadding
+            modifier = modifier
         )
-        return
-    }
-
-    // Fallback: show glass placeholder if colors supplied, otherwise Android icon
-    if (placeholderGradientColors != null) {
-        GlassPlaceholderIcon(
+        // Same placeholder while resolving and when nothing was found
+        placeholderGradientColors != null -> GlassPlaceholderIcon(
             gradientColors = placeholderGradientColors,
-            modifier = modifier,
-            innerPadding = placeholderInnerPadding
+            modifier = modifier
         )
-    } else {
-        FallbackIcon(
+        resolving -> Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            ShimmerBox(
+                modifier = Modifier.fillMaxSize(AppIconContentFraction),
+                shape = AppIconShape
+            )
+        }
+        else -> FallbackIcon(
             contentDescription = contentDescription,
             modifier = modifier
         )
     }
+}
+
+/** What [AppDataResolver] found for a package: its PackageInfo, else a raw Drawable. */
+private class ResolvedIcon(val packageInfo: PackageInfo?, val drawable: Drawable?)
+
+/** The icon resolved for [packageName], or null while it is being resolved or without a name. */
+@Composable
+private fun rememberResolvedIcon(packageName: String?, preferredSource: AppDataSource): ResolvedIcon? {
+    val appDataResolver: AppDataResolver = koinInject()
+    return produceState<ResolvedIcon?>(null, packageName, preferredSource) {
+        if (packageName == null) {
+            value = null
+            return@produceState
+        }
+        value = withContext(Dispatchers.IO) {
+            val resolvedData = appDataResolver.resolveAppData(packageName, preferredSource)
+            // Decoded only without packageInfo, which Coil loads on its own
+            ResolvedIcon(
+                packageInfo = resolvedData.packageInfo,
+                drawable = if (resolvedData.packageInfo == null) resolvedData.icon else null
+            )
+        }
+    }.value
 }
 
 /**
@@ -103,22 +141,29 @@ private fun SimpleAppIcon(
     // for it share a package name and version, yet a patch can have replaced the icon in between
     val cacheKey = "${packageInfo.packageName}:${packageInfo.versionName}:" +
             packageInfo.applicationInfo?.sourceDir
+    // The last icon shown stays up while one from another APK loads
+    var shownKey by remember { mutableStateOf<String?>(null) }
     val request = remember(cacheKey) {
         coil.request.ImageRequest.Builder(context)
             .data(packageInfo)
             .memoryCacheKey(cacheKey)
+            .placeholderMemoryCacheKey(shownKey)
             .build()
     }
 
     // Painter rather than the subcomposing variant: subcomposition runs during measurement, and a
     // list of icons pays for it on every measure pass. The loading state is cheap to overlay here
-    val painter = rememberAsyncImagePainter(request)
+    val painter = rememberAsyncImagePainter(request, onSuccess = { shownKey = cacheKey })
+    val state = painter.state
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        if (painter.state is AsyncImagePainter.State.Loading) {
+        if (state is AsyncImagePainter.State.Loading && state.painter == null) {
             // Adaptive icons only paint their inner square, so a placeholder filling the whole
             // slot reads as the larger of the two while a fast scroll waits for the real one
-            ShimmerBox(modifier = Modifier.fillMaxSize(AdaptiveIconContentFraction))
+            ShimmerBox(
+                modifier = Modifier.fillMaxSize(AppIconContentFraction),
+                shape = AppIconShape
+            )
         }
 
         Image(
@@ -126,83 +171,6 @@ private fun SimpleAppIcon(
             contentDescription = contentDescription,
             modifier = Modifier.fillMaxSize()
         )
-    }
-}
-
-/**
- * Resolved icon from any available source when only package name is known.
- */
-@Composable
-private fun ResolvedAppIcon(
-    packageName: String,
-    contentDescription: String?,
-    modifier: Modifier = Modifier,
-    preferredSource: AppDataSource = AppDataSource.INSTALLED,
-    placeholderGradientColors: List<Color>? = null,
-    placeholderInnerPadding: Dp = 0.dp
-) {
-    val appDataResolver: AppDataResolver = koinInject()
-
-    var resolvedPackageInfo by remember(packageName) { mutableStateOf<PackageInfo?>(null) }
-    var resolvedDrawable by remember(packageName) { mutableStateOf<Drawable?>(null) }
-    var isLoading by remember(packageName) { mutableStateOf(true) }
-
-    LaunchedEffect(packageName, preferredSource) {
-        // Use resolveAppData to get complete data in one call
-        val resolvedData = appDataResolver.resolveAppData(packageName, preferredSource)
-        resolvedPackageInfo = resolvedData.packageInfo
-        // Fall back to raw Drawable when packageInfo is unavailable
-        resolvedDrawable = resolvedData.icon.takeIf { resolvedData.packageInfo == null }
-        isLoading = false
-    }
-
-    when {
-        isLoading -> {
-            // Show the same placeholder as the resolved state so size stays consistent
-            if (placeholderGradientColors != null) {
-                GlassPlaceholderIcon(
-                    gradientColors = placeholderGradientColors,
-                    modifier = modifier,
-                    innerPadding = placeholderInnerPadding
-                )
-            } else {
-                Box(modifier = modifier, contentAlignment = Alignment.Center) {
-                    ShimmerBox(
-                        modifier = Modifier.fillMaxSize(AdaptiveIconContentFraction),
-                        shape = RoundedCornerShape(15.dp)
-                    )
-                }
-            }
-        }
-        resolvedPackageInfo != null -> {
-            SimpleAppIcon(
-                packageInfo = resolvedPackageInfo!!,
-                contentDescription = contentDescription,
-                modifier = modifier
-            )
-        }
-        resolvedDrawable != null -> {
-            // packageInfo unavailable but raw Drawable was resolved (rare path)
-            DrawableAppIcon(
-                drawable = resolvedDrawable!!,
-                contentDescription = contentDescription,
-                modifier = modifier
-            )
-        }
-        placeholderGradientColors != null -> {
-            // No icon found - show glass placeholder tinted to card colors
-            GlassPlaceholderIcon(
-                gradientColors = placeholderGradientColors,
-                modifier = modifier,
-                innerPadding = placeholderInnerPadding
-            )
-        }
-        else -> {
-            FallbackIcon(
-                contentDescription = contentDescription,
-                modifier = modifier
-            )
-        }
     }
 }
 
@@ -241,4 +209,89 @@ private fun FallbackIcon(
         modifier,
         colorFilter = colorFilter
     )
+}
+
+/**
+ * Glass placeholder icon for apps that have not been patched yet.
+ *
+ * Drawn in [AppIconShape] at [AppIconContentFraction] of the slot, so the loaded icon covers it.
+ */
+@Composable
+private fun GlassPlaceholderIcon(
+    gradientColors: List<Color>,
+    modifier: Modifier = Modifier
+) {
+    val baseColor = gradientColors.firstOrNull() ?: Color.White
+    val midColor = gradientColors.getOrElse(1) { baseColor }
+    val endColor = gradientColors.lastOrNull() ?: baseColor
+    val rtl = isRtl()
+
+    Box(
+        modifier = modifier
+            .wrapContentSize()
+            .fillMaxSize(AppIconContentFraction)
+            // Brushes are rebuilt only when the size or the palette changes, so a list full of
+            // placeholders does not reallocate them on every frame
+            .drawWithCache {
+                val outline = AppIconShape.createOutline(size, layoutDirection, this)
+                val w = size.width
+                val h = size.height
+                val startX = startEdgeX(w, rtl)
+                val endX = endEdgeX(w, rtl)
+
+                // One sweep from the frosted top-start highlight into the tinted bottom-end. Every
+                // translucent layer is another blend pass, paid once per placeholder on screen
+                val glass = Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.50f),
+                        baseColor.copy(alpha = 0.22f),
+                        endColor.copy(alpha = 0.20f)
+                    ),
+                    start = Offset(startX, 0f),
+                    end = Offset(endX, h)
+                )
+
+                // Border
+                val border = Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.55f),
+                        midColor.copy(alpha = 0.30f),
+                        Color.White.copy(alpha = 0.35f)
+                    ),
+                    start = Offset(startX, 0f),
+                    end = Offset(endX, h)
+                )
+                val borderStroke = Stroke(width = 1.dp.toPx())
+
+                onDrawBehind {
+                    drawOutline(outline, brush = glass)
+                    drawOutline(outline, brush = border, style = borderStroke)
+                }
+            }
+    )
+}
+
+/** Side of the square bitmaps app icons are loaded into. */
+const val AppIconPixels = 512
+
+/** Side of the square an unbounded [AdaptiveIconDrawable.getIconMask] is declared in. */
+private const val ICON_MASK_SIZE = 100f
+
+/** The system mask for app icons (circle, squircle, etc.), so placeholders match the icons. */
+val AppIconShape: Shape by lazy { IconMaskShape(AdaptiveIconDrawable(null, null).iconMask) }
+
+/**
+ * Share of its slot a loaded adaptive icon covers. Taken from the loader's own normalizer, since it
+ * depends on the system mask.
+ */
+val AppIconContentFraction: Float by lazy {
+    IconNormalizer.normalizeAdaptiveIcon(AdaptiveIconDrawable(null, null), AppIconPixels, null)
+}
+
+/** [mask] scaled to the outlined size. */
+private class IconMaskShape(private val mask: AndroidPath) : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val scale = Matrix().apply { setScale(size.width / ICON_MASK_SIZE, size.height / ICON_MASK_SIZE) }
+        return Outline.Generic(AndroidPath(mask).apply { transform(scale) }.asComposePath())
+    }
 }

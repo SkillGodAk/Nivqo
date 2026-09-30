@@ -171,9 +171,9 @@ fun rememberFolderPickerWithPermission(
             mimeTypes = arrayOf("*/*"),
             allowFolderSelection = true,
             onDismiss = { showPickerState.value = false },
-            onFilePicked = { file ->
+            onPicked = { folders ->
                 showPickerState.value = false
-                onFolderPicked(Uri.fromFile(file))
+                onFolderPicked(Uri.fromFile(folders.single()))
             }
         )
     }
@@ -220,7 +220,7 @@ data class PathValidationResult(
     val reason: Reason
 ) {
     enum class Reason {
-        /** Nothing is at the path any more, such as a folder the user has deleted. */
+        /** Nothing is at the path anymore, such as a folder the user has deleted. */
         Missing,
 
         /** The app cannot read the path, either because of its own access or the storage it is on. */
@@ -323,6 +323,38 @@ fun rememberAdaptiveFilePicker(
     customPickerMimeTypes: Array<String> = mimeTypes,
     onResult: (Uri?) -> Unit,
     allowFolderSelection: Boolean = false
+): () -> Unit = rememberAdaptivePicker(
+    mimeTypes = mimeTypes,
+    customPickerMimeTypes = customPickerMimeTypes,
+    multiple = false,
+    allowFolderSelection = allowFolderSelection,
+    onResult = { uris -> onResult(uris.firstOrNull()) }
+)
+
+/**
+ * [rememberAdaptiveFilePicker] for several files at once. [onResult] is called exactly once per
+ * launch, with an empty list when nothing was picked.
+ */
+@Composable
+fun rememberAdaptiveMultiFilePicker(
+    mimeTypes: Array<String>,
+    customPickerMimeTypes: Array<String> = mimeTypes,
+    onResult: (List<Uri>) -> Unit
+): () -> Unit = rememberAdaptivePicker(
+    mimeTypes = mimeTypes,
+    customPickerMimeTypes = customPickerMimeTypes,
+    multiple = true,
+    allowFolderSelection = false,
+    onResult = onResult
+)
+
+@Composable
+private fun rememberAdaptivePicker(
+    mimeTypes: Array<String>,
+    customPickerMimeTypes: Array<String>,
+    multiple: Boolean,
+    allowFolderSelection: Boolean,
+    onResult: (List<Uri>) -> Unit
 ): () -> Unit {
     val context = LocalContext.current
     val isTV = remember { context.isAndroidTv() }
@@ -330,10 +362,13 @@ fun rememberAdaptiveFilePicker(
     val fs: Filesystem = koinInject()
     val useCustomPicker by prefs.useCustomFilePicker.getAsState()
 
-    // SAF launcher for phones/tablets - always registered so the composable graph stays stable
-    val phoneLauncher = rememberLauncherForActivityResult(
+    // SAF launchers for phones/tablets - always registered so the composable graph stays stable
+    val singleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri -> onResult(uri) }
+    ) { uri -> onResult(listOfNotNull(uri)) }
+    val multipleLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris -> onResult(uris) }
 
     val (permissionContract, permissionName) = remember { fs.permissionContract() }
     val showPickerState = remember { mutableStateOf(false) }
@@ -341,32 +376,36 @@ fun rememberAdaptiveFilePicker(
     // Every path reports back, including the ones that pick nothing. Callers track which
     // request is pending, and a silent exit would leave that state stuck on the last one
     val permissionLauncher = rememberLauncherForActivityResult(contract = permissionContract) { granted ->
-        if (granted) showPickerState.value = true else onResult(null)
+        if (granted) showPickerState.value = true else onResult(emptyList())
     }
 
     if (showPickerState.value) {
         FilePicker(
             mimeTypes = customPickerMimeTypes,
+            multiple = multiple,
             allowFolderSelection = allowFolderSelection,
             onDismiss = {
                 showPickerState.value = false
-                onResult(null)
+                onResult(emptyList())
             },
-            onFilePicked = { file ->
+            onPicked = { files ->
                 showPickerState.value = false
-                onResult(Uri.fromFile(file))
+                onResult(files.map(Uri::fromFile))
             }
         )
     }
 
-    return remember(isTV, useCustomPicker) {
+    return remember(isTV, useCustomPicker, multiple) {
         {
             when {
                 useCustomPicker || isTV -> {
                     if (fs.hasStoragePermission()) showPickerState.value = true
                     else permissionLauncher.launch(permissionName)
                 }
-                else -> phoneLauncher.launch(if (mimeTypes.size == 1) mimeTypes[0] else "*/*")
+                else -> {
+                    val type = if (mimeTypes.size == 1) mimeTypes[0] else "*/*"
+                    if (multiple) multipleLauncher.launch(type) else singleLauncher.launch(type)
+                }
             }
         }
     }

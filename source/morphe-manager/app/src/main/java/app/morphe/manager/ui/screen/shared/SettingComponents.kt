@@ -5,10 +5,9 @@
 
 package app.morphe.manager.ui.screen.shared
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,30 +21,27 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.ui.screen.shared.Defaults.MinTouchTarget
 import app.morphe.manager.ui.screen.shared.Defaults.TallTouchTarget
-import app.morphe.manager.ui.theme.LocalMonochromeTheme
-import app.morphe.manager.ui.theme.MonochromeThemeDefaults
-import app.morphe.manager.util.compositeOver
+import app.morphe.manager.ui.theme.ThemeTraitsDefaults
 import app.morphe.manager.util.isRtl
 import app.morphe.manager.util.readableOn
 
@@ -96,9 +92,6 @@ object Defaults {
     val ContentPaddingExpanded = 32.dp
     val ItemSpacing = 12.dp
 
-    // Gradient colors for GradientCircleIcon
-    val DefaultGradientColors = listOf(Color(0xFF1E5AA8), Color(0xFF00AFAE))
-
     // Animation durations
     /** Duration used for dialog enter/exit and overlay transitions. */
     const val ANIMATION_DURATION = 220
@@ -116,6 +109,13 @@ object Defaults {
 }
 
 /**
+ * Fill of a plain card, which cards standing for an app or a source take too, leaving their color to
+ * the edge and controls, since filled ones read as a wash of color on a colored dialog.
+ */
+@Composable
+fun cardFill(): Color = ThemeTraitsDefaults.surfaceColor(MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp))
+
+/**
  * Elevated card with proper Material 3 theming.
  * Base card for all other card types.
  */
@@ -126,18 +126,11 @@ fun SurfaceCard(
     enabled: Boolean = true,
     elevation: Dp = Defaults.CardElevation,
     cornerRadius: Dp = Defaults.CardCornerRadius,
-    borderWidth: Dp = 0.dp,
+    showBorder: Boolean = false,
     borderColor: Color = MaterialTheme.colorScheme.outlineVariant,
-    color: Color = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
+    color: Color = cardFill(),
     content: @Composable () -> Unit
 ) {
-    val monochromeTheme = LocalMonochromeTheme.current
-    val effectiveColor = MonochromeThemeDefaults.surfaceColor(color)
-    val effectiveBorder = when {
-        borderWidth > 0.dp && !monochromeTheme -> BorderStroke(borderWidth, borderColor)
-        else -> null
-    }
-
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -148,11 +141,11 @@ fun SurfaceCard(
                 } else Modifier
             ),
         shape = RoundedCornerShape(cornerRadius),
-        color = effectiveColor,
+        color = ThemeTraitsDefaults.surfaceColor(color),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = if (monochromeTheme) 0.dp else elevation,
+        tonalElevation = ThemeTraitsDefaults.cardElevation(elevation),
         shadowElevation = 0.dp,
-        border = effectiveBorder
+        border = if (showBorder) CardBorder.of(borderColor) else null
     ) {
         content()
     }
@@ -166,19 +159,9 @@ fun SettingsDivider(
     modifier: Modifier = Modifier,
     fullWidth: Boolean = false
 ) {
-    val monochromeTheme = LocalMonochromeTheme.current
-    val outlineVariant = MaterialTheme.colorScheme.outlineVariant
-    val surfaceTint = MaterialTheme.colorScheme.surfaceTint
-    val color = remember(outlineVariant, surfaceTint, monochromeTheme) {
-        if (monochromeTheme) {
-            outlineVariant.copy(alpha = 0.28f)
-        } else {
-            lerp(outlineVariant, surfaceTint, 0.18f).copy(alpha = 0.55f)
-        }
-    }
     HorizontalDivider(
         modifier = if (fullWidth) modifier else modifier.padding(horizontal = Defaults.ContentPadding),
-        color = color
+        color = ThemeTraitsDefaults.dividerColor()
     )
 }
 
@@ -187,6 +170,7 @@ fun SettingsDivider(
  *
  * @param rowModifier  Applied to the inner [Row], use for positioning callbacks.
  * @param isLoading    When true, replaces the switch with a [CircularProgressIndicator].
+ * @param accentColor  Color of the card the row sits on, see [ToggleSwitch].
  */
 @Composable
 fun ToggleRow(
@@ -200,14 +184,15 @@ fun ToggleRow(
     isLoading: Boolean = false,
     showDivider: Boolean = true,
     icon: ImageVector? = null,
-    iconTint: Color = MaterialTheme.colorScheme.primary
+    iconTint: Color = MaterialTheme.colorScheme.primary,
+    accentColor: Color? = LocalAccent.current
 ) {
     val enabledLabel = stringResource(R.string.enabled)
     val disabledLabel = stringResource(R.string.disabled)
 
     Column(modifier = modifier) {
         if (showDivider) {
-            HorizontalDivider(modifier = Modifier.padding(top = 4.dp))
+            SettingsDivider(modifier = Modifier.padding(top = 4.dp), fullWidth = true)
         }
         Row(
             modifier = rowModifier
@@ -256,10 +241,11 @@ fun ToggleRow(
                     if (loading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
+                            color = usableAppAccent(accentColor) ?: ProgressIndicatorDefaults.circularColor,
                             strokeWidth = 2.dp
                         )
                     } else {
-                        ToggleSwitch(checked = checked, onCheckedChange = null)
+                        ToggleSwitch(checked = checked, onCheckedChange = null, accentColor = accentColor)
                     }
                 }
             }
@@ -309,14 +295,28 @@ fun ToggleSwitch(
     checked: Boolean,
     onCheckedChange: ((Boolean) -> Unit)?,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    accentColor: Color? = LocalAccent.current
 ) {
+    // On a card in an app's own color a switch that is on fills with it outright, as an engaged
+    // toggle on that app's header does, so the theme's blue does not sit on a card of another hue
+    val accent = usableAppAccent(accentColor)
     Switch(
         checked = checked,
         onCheckedChange = onCheckedChange,
         modifier = modifier,
         enabled = enabled,
-        colors = SwitchDefaults.colors(checkedIconColor = MaterialTheme.colorScheme.primary),
+        colors = if (accent == null) {
+            SwitchDefaults.colors(checkedIconColor = MaterialTheme.colorScheme.primary)
+        } else {
+            val onAccent = appAccentContent(accent)
+            SwitchDefaults.colors(
+                checkedTrackColor = accent,
+                checkedBorderColor = accent,
+                checkedThumbColor = onAccent,
+                checkedIconColor = accent
+            )
+        },
         thumbContent = {
             Icon(
                 imageVector = if (checked) Icons.Filled.Check else Icons.Filled.Close,
@@ -353,34 +353,6 @@ fun StatusCircleIcon(
             contentDescription = null,
             modifier = Modifier.size(size * 0.6f),
             tint = tint
-        )
-    }
-}
-
-/**
- * Circular icon with gradient background for section titles.
- */
-@Composable
-fun GradientCircleIcon(
-    icon: ImageVector,
-    modifier: Modifier = Modifier,
-    size: Dp = 40.dp,
-    iconSize: Dp = Defaults.IconSize,
-    contentDescription: String? = null,
-    gradientColors: List<Color> = Defaults.DefaultGradientColors
-) {
-    Box(
-        modifier = modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(brush = MonochromeThemeDefaults.iconBackground(gradientColors)),
-        contentAlignment = Alignment.Center
-    ) {
-        ThemedIcon(
-            icon = icon,
-            contentDescription = contentDescription,
-            tint = MonochromeThemeDefaults.iconTint(Color.White),
-            size = iconSize
         )
     }
 }
@@ -441,9 +413,9 @@ fun SettingsItemCard(
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    borderWidth: Dp = 0.dp,
+    showBorder: Boolean = false,
     borderColor: Color = MaterialTheme.colorScheme.outlineVariant,
-    color: Color = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
+    color: Color = cardFill(),
     content: @Composable () -> Unit
 ) {
     SurfaceCard(
@@ -451,13 +423,42 @@ fun SettingsItemCard(
         enabled = enabled,
         elevation = 1.dp,
         cornerRadius = Defaults.SettingsCornerRadius,
-        borderWidth = borderWidth,
+        showBorder = showBorder,
         borderColor = borderColor,
         color = color,
         modifier = modifier
     ) {
         content()
     }
+}
+
+/**
+ * Chevron that turns over as [expanded] changes, so a fold reads as one control in both states.
+ *
+ * @param announced Whether it names the action a tap takes, for a chevron read out on its own
+ *   rather than as part of a row that already says so.
+ */
+@Composable
+fun ExpandChevron(
+    expanded: Boolean,
+    modifier: Modifier = Modifier,
+    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    announced: Boolean = false
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(Defaults.ANIMATION_DURATION),
+        label = "expand_chevron"
+    )
+    Icon(
+        imageVector = Icons.Outlined.ExpandMore,
+        contentDescription = if (announced) {
+            stringResource(if (expanded) R.string.collapse else R.string.expand)
+        } else null,
+        tint = tint,
+        // Turned while drawing, so the animation does not recompose the icon every frame
+        modifier = modifier.graphicsLayer { rotationZ = rotation }
+    )
 }
 
 /**
@@ -503,7 +504,7 @@ fun SettingsItem(
 ) {
     SettingsItemCard(
         onClick = onClick,
-        borderWidth = if (showBorder) 1.dp else 0.dp,
+        showBorder = showBorder,
         modifier = modifier
     ) {
         IconTextRow(
@@ -569,21 +570,28 @@ fun SettingsSwitchItem(
 
 /**
  * Section container card.
+ *
+ * @param accentColor Color of the app or source the card stands for, drawn on its edge and passed to
+ *   the controls inside, see [LocalAccent]. The fill stays neutral, see [cardFill].
  */
 @Composable
 fun SectionCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    accentColor: Color? = null,
     content: @Composable () -> Unit
 ) {
+    val fill = cardFill()
     SurfaceCard(
         onClick = onClick,
         elevation = Defaults.CardElevation,
         cornerRadius = Defaults.SectionCornerRadius,
-        borderWidth = 1.dp,
+        showBorder = true,
+        borderColor = appAccentBorder(accentColor),
+        color = fill,
         modifier = modifier
     ) {
-        content()
+        if (accentColor == null) content() else ProvideCardAccent(accentColor, fill, content)
     }
 }
 
@@ -601,7 +609,8 @@ fun SettingsGroup(
 }
 
 /**
- * Section title with gradient icon.
+ * Title over a settings section. Kept lighter than the cards below so they carry the weight, and
+ * inset by their padding so the icon and text line up with the icons and titles of the rows.
  */
 @Composable
 fun SectionTitle(
@@ -609,62 +618,46 @@ fun SectionTitle(
     icon: ImageVector? = null
 ) {
     Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            // The extra room above ties the title to the section below rather than the one above
+            .padding(
+                start = Defaults.ContentPadding,
+                end = Defaults.ContentPadding,
+                top = Defaults.ContentPaddingSmall
+            )
+            .semantics { heading() },
         horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null) {
-            GradientCircleIcon(
-                icon = icon,
-                size = 36.dp,
-                iconSize = 20.dp
-            )
+            // Smaller glyph in a row icon's slot, so the title starts where the row titles do
+            Box(
+                modifier = Modifier.size(Defaults.IconSize),
+                contentAlignment = Alignment.Center
+            ) {
+                ThemedIcon(icon = icon, size = 20.dp)
+            }
         }
         Text(
             text = text,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
 
 /**
- * Card header with icon and text.
- */
-@Composable
-fun CardHeader(
-    modifier: Modifier = Modifier,
-    icon: ImageVector,
-    title: String,
-    description: String? = null
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            shape = RoundedCornerShape(topStart = Defaults.SectionCornerRadius, topEnd = Defaults.SectionCornerRadius)
-        ) {
-            IconTextRow(
-                modifier = Modifier.padding(Defaults.ContentPadding),
-                leadingContent = { ThemedIcon(icon = icon) },
-                title = title,
-                description = description
-            )
-        }
-
-        SettingsDivider(fullWidth = true)
-    }
-}
-
-/**
- * A single item in a deletion list with an icon and text.
+ * A single item in a deletion list with an icon, text and an optional [detail] such as its size.
  * Used inside [LabeledSection] in destructive confirmation dialogs.
  */
 @Composable
 fun DeleteListItem(
     icon: ImageVector,
     text: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    detail: String? = null
 ) {
     Row(
         modifier = modifier
@@ -683,19 +676,23 @@ fun DeleteListItem(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
+        if (detail != null) {
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
-/**
- * Statistical variant of [InfoBox] used to display a single prominent value with an optional
- * caption below it. Shares the container styling of [InfoBox] but centers a headline-sized value.
- */
+/** A single prominent value with an optional caption below it. */
 @Composable
 fun InfoStatBox(
     value: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+    containerColor: Color = neutralVeil(),
     valueColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     Surface(
@@ -727,179 +724,64 @@ fun InfoStatBox(
 }
 
 /**
- * Prominent hero-style header used at the top of dialogs and sections.
+ * What a list or a screen shows while it has nothing in it: an [icon], the [message] and an
+ * optional [subtitle] under it, and an [action] that gets the user out of it.
  *
- * [footer] is laid out below the header row inside the same surface, for cards that carry a
- * progress bar or similar trailing element. It deliberately sits before [subtitle] so that a
- * trailing lambda still binds to the subtitle, the way every caller already writes it.
+ * @param contentColor Ink of the surface below. Dialogs hand theirs down, a screen passes its own.
  */
-@Composable
-fun HeroInfoCard(
-    icon: ImageVector,
-    title: String,
-    modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-    iconContainerColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-    iconTint: Color = MaterialTheme.colorScheme.primary,
-    titleColor: Color = LocalDialogTextColor.current,
-    footer: (@Composable ColumnScope.() -> Unit)? = null,
-    subtitle: (@Composable RowScope.() -> Unit)? = null
-) {
-    val surface = MaterialTheme.colorScheme.surface
-    val cardBackground = containerColor.compositeOver(surface)
-    val accentColor = iconTint.readableOn(containerColor, surface)
-    val iconColor = iconTint.readableOn(iconContainerColor, cardBackground)
-
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Defaults.SectionCornerRadius),
-        color = containerColor
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Defaults.ContentPadding),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = iconContainerColor,
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = iconColor,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    AnimatedContent(
-                        targetState = title,
-                        transitionSpec = Animations.counterTransitionSpec,
-                        label = "heroTitle"
-                    ) { t ->
-                        Text(
-                            text = t,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = titleColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    if (subtitle != null) {
-                        CompositionLocalProvider(LocalContentColor provides accentColor) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                content = subtitle
-                            )
-                        }
-                    }
-                }
-            }
-
-            footer?.invoke(this)
-        }
-    }
-}
-
-/**
- * Info box component to display grouped information in a visually distinct container.
- */
-@Composable
-fun InfoBox(
-    title: String,
-    modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-    titleColor: Color = MaterialTheme.colorScheme.onSurface,
-    icon: ImageVector? = null,
-    iconTint: Color = MaterialTheme.colorScheme.primary,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Defaults.CompactCornerRadius),
-        color = containerColor
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Main content column
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = titleColor
-                )
-
-                content()
-            }
-
-            // Trailing icon
-            icon?.let {
-                Icon(
-                    imageVector = it,
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp),
-                    tint = iconTint
-                )
-            }
-        }
-    }
-}
-
 @Composable
 fun EmptyState(
     message: String,
     modifier: Modifier = Modifier,
     icon: ImageVector? = Icons.Outlined.FolderOff,
-    actionLabel: String? = null,
-    onAction: (() -> Unit)? = null
+    subtitle: String? = null,
+    action: CardAction? = null,
+    contentColor: Color = LocalDialogSecondaryTextColor.current
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
+            // Held to a readable width and centered in whatever room a wide screen gives it
+            .wrapContentWidth()
+            .widthIn(max = Defaults.ContentMaxWidth)
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
     ) {
         if (icon != null) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = LocalDialogSecondaryTextColor.current.copy(alpha = 0.5f)
+                modifier = Modifier.size(56.dp),
+                tint = contentColor.copy(alpha = 0.5f)
             )
         }
         Text(
             text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            color = LocalDialogSecondaryTextColor.current,
+            // Heads the line under it when there is one, and stands as a plain sentence otherwise
+            style = if (subtitle != null) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge,
+            fontWeight = if (subtitle != null) FontWeight.SemiBold else null,
+            color = contentColor,
             textAlign = TextAlign.Center
         )
-        if (actionLabel != null && onAction != null) {
-            OutlinedButton(onClick = onAction) {
-                Text(actionLabel)
-            }
+        if (subtitle != null) {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
+        }
+        if (action != null) {
+            ActionPillButton(
+                onClick = action.onClick,
+                icon = action.icon,
+                contentDescription = action.label,
+                label = action.label,
+                large = true,
+                enabled = action.enabled,
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
     }
 }

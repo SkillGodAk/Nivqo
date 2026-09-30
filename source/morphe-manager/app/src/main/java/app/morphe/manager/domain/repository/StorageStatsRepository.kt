@@ -169,7 +169,9 @@ class StorageStatsRepository(
         val cacheDir = app.cacheDir
         if (!cacheDir.exists()) return emptyList()
         return cacheDir.listFiles()?.filter { entry ->
-            entry.name != HTTP_CACHE_DIR && entry.name != InstallerFileProvider.SHARE_DIR
+            entry.name != HTTP_CACHE_DIR &&
+                entry.name != InstallerFileProvider.SHARE_DIR &&
+                entry != filesystem.homeCardCacheDir
         } ?: emptyList()
     }
 

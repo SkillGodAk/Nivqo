@@ -7,7 +7,6 @@ package app.morphe.manager.ui.screen.shared
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -120,148 +120,6 @@ fun ShimmerText(
 }
 
 /**
- * Shimmer loading state for changelog content.
- */
-@Composable
-fun ShimmerChangelog(
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Version header
-        ShimmerText(
-            widthFraction = 0.4f,
-            height = 20.dp,
-            cornerRadius = 6.dp
-        )
-
-        // Changelog items
-        repeat(5) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Bullet point
-                ShimmerBox(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .offset(y = 6.dp),
-                    shape = RoundedCornerShape(3.dp)
-                )
-
-                // Changelog line
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    ShimmerText(
-                        widthFraction = if (it % 2 == 0) 0.9f else 0.7f,
-                        height = 14.dp
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Shimmer loading state for changelog header.
- */
-@Composable
-fun ShimmerChangelogHeader() {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Icon shimmer
-            ShimmerBox(
-                modifier = Modifier.size(56.dp),
-                shape = CircleShape,
-                baseColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-            )
-
-            // Text shimmer
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Version shimmer
-                ShimmerText(
-                    widthFraction = 0.35f,
-                    height = 24.dp,
-                    cornerRadius = 6.dp
-                )
-
-                // Date shimmer
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ShimmerBox(
-                        modifier = Modifier.size(16.dp),
-                        shape = CircleShape,
-                        baseColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        shimmerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
-                    )
-                    ShimmerText(
-                        widthFraction = 0.22f,
-                        height = 14.dp,
-                        cornerRadius = 4.dp
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Shimmer loading placeholder matching [HeroInfoCard]'s layout.
- */
-@Composable
-fun ShimmerHeroInfoCard(
-    modifier: Modifier = Modifier,
-    accentColor: Color = MaterialTheme.colorScheme.primary
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Defaults.SectionCornerRadius),
-        color = accentColor.copy(alpha = 0.15f)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Defaults.ContentPadding),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ShimmerBox(
-                modifier = Modifier.size(56.dp),
-                shape = CircleShape,
-                baseColor = accentColor.copy(alpha = 0.25f)
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ShimmerText(widthFraction = 0.55f, height = 24.dp, cornerRadius = 6.dp)
-                ShimmerText(widthFraction = 0.38f, height = 14.dp, cornerRadius = 4.dp)
-            }
-        }
-    }
-}
-
-/**
  * Shimmer loading placeholder for APK item.
  */
 @Composable
@@ -316,37 +174,6 @@ fun ShimmerApkItem() {
 }
 
 /**
- * Shimmer loading placeholder for an installed app picker row.
- */
-@Composable
-fun ShimmerInstalledAppRow() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Holds the slot of the icon the row settles into, inset like the adaptive icons that
-        // land there so the placeholder does not read as the larger of the two
-        ShimmerBox(
-            modifier = Modifier
-                .size(56.dp)
-                .padding(6.dp),
-            shape = RoundedCornerShape(11.dp)
-        )
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            ShimmerText(widthFraction = 0.5f, height = 16.dp)
-            ShimmerText(widthFraction = 0.7f, height = 12.dp)
-            ShimmerText(widthFraction = 0.35f, height = 12.dp)
-        }
-    }
-}
-
-/**
  * Placeholder for one collapsed source card, for the moment between the sheet opening and the
  * bundle store having read the database.
  */
@@ -356,7 +183,7 @@ fun ShimmerBundleRow() {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        border = CardBorder.of(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Row(
             modifier = Modifier
@@ -380,5 +207,57 @@ fun ShimmerBundleRow() {
                 )
             }
         }
+    }
+}
+
+/** Placeholder of a [CompactListCard] while its list is read, with as many [descriptionLines] as its rows. */
+@Composable
+fun ShimmerCompactListCard(descriptionLines: Int = 1) {
+    CompactListCard(onClick = null) {
+        ShimmerBox(
+            modifier = Modifier.size(CompactCardIconSize),
+            shape = RoundedCornerShape(Defaults.CompactCornerRadius)
+        )
+        // Laid out on the lines of the text it stands in for, see [CardHeadingText], so the card
+        // keeps its height at any font scale once the real row replaces it
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            val density = LocalDensity.current
+            ShimmerLine(
+                height = with(density) { MaterialTheme.typography.titleSmall.lineHeight.toDp() },
+                widthFraction = 0.55f
+            )
+            Column {
+                repeat(descriptionLines) { line ->
+                    ShimmerLine(
+                        height = with(density) { MaterialTheme.typography.bodySmall.lineHeight.toDp() },
+                        widthFraction = if (line == 0) 0.35f else 0.25f
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * A bar on a line of [height], the height of the text or badge it stands in for, so the row keeps
+ * its height when the real content replaces it.
+ */
+@Composable
+fun ShimmerLine(
+    height: Dp,
+    widthFraction: Float,
+    baseColor: Color = Color.Unspecified
+) {
+    Box(modifier = Modifier.height(height), contentAlignment = Alignment.CenterStart) {
+        ShimmerBox(
+            modifier = Modifier
+                .fillMaxWidth(widthFraction)
+                .height(height * 0.7f),
+            shape = RoundedCornerShape(4.dp),
+            baseColor = baseColor
+        )
     }
 }

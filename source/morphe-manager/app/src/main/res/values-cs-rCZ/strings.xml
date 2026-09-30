@@ -41,9 +41,6 @@
     <string name="home_update_skipped_metered">Aktualizace přeskočeny</string>
     <string name="home_update_skipped_metered_subtitle">Mobilní data jsou aktivní</string>
     <string name="home_updating_sources">Probíhá aktualizace zdrojů…</string>
-    <!-- Download progress across several bundles. "%1$d" and "%2$d" count the bundles, "%3$s" and
-         "%4$s" are the megabytes read and expected, "%5$d" is the percentage. -->
-    <string name="home_update_bundle_count_with_bytes">%1$d / %2$d  ·  %3$s / %4$s MB (%5$d%%)</string>
     <string name="home_update_success">Aktualizace zdrojů dokončena</string>
     <string name="home_update_success_subtitle">Vaše zdroje jsou aktuální</string>
     <string name="home_sources_are_loading">Zdroje se načítají, počkejte prosím…</string>
@@ -141,7 +138,6 @@
     <string name="sources_management_report_issue">Nahlásit problém</string>
     <string name="sources_management_failed_to_open_url">Nepodařilo se otevřít URL</string>
     <string name="sources_apps">Aplikace</string>
-    <string name="sources_apps_title">Aplikace z %1$s</string>
     <string name="sources_apps_description">Klepnutím na aplikaci ji vyřadíte z tohoto zdroje nebo ji vrátíte zpět, nebo dlouhým stisknutím vyberete několik aplikací. Aplikace zmizí z domovské obrazovky, jakmile ji nepřináší žádný zdroj.</string>
     <string name="sources_apps_brought">Přinášené tímto zdrojem</string>
     <string name="sources_apps_left_out">Vyřazené z tohoto zdroje</string>
@@ -174,21 +170,22 @@
     <string name="sources_dialog_rename">Přejmenovat zdroj záplat</string>
     <string name="sources_dialog_duplicate_name_error">Zdroj záplat s tímto názvem již existuje</string>
     <string name="sources_dialog_missing_error">Nepodařilo se aktualizovat tento zdroj záplat</string>
-    <string name="sources_dialog_view_any_version">Jakákoliv verze</string>
-    <string name="sources_dialog_view_any_package">Jakýkoliv balíček</string>
     <string name="sources_dialog_add_source">Přidat zdroj záplat</string>
-    <string name="sources_dialog_delete_confirm_message">Smazat zdroj \"%s\"? Tato akce je nevratná</string>
+    <string name="sources_dialog_delete_confirm_body">Tuto operaci nelze vrátit zpět</string>
     <string name="sources_dialog_remote">Vzdálený</string>
     <string name="sources_dialog_remote_url">URL zdroj</string>
-    <string name="sources_dialog_remote_url_formats_title">Příklady:</string>
+    <string name="sources_dialog_remote_url_hint">Repozitář nebo odkaz na balíček záplat .json. Vložte jich několik najednou a všechny se přidají</string>
+    <string name="sources_dialog_paste_no_links">Ve schránce nebyly nalezeny žádné odkazy</string>
     <string name="sources_dialog_local">Lokální</string>
-    <string name="sources_dialog_local_file">Vybrat soubor se záplaty</string>
+    <string name="sources_dialog_local_files">Vyberte zdrojové soubory záplat</string>
+    <!-- Button under the files already picked, which opens the picker again -->
+    <string name="sources_dialog_local_add_more">Přidat další soubory</string>
     <string name="sources_dialog_local_file_tap_hint">Klepnutím zobrazíte úložiště</string>
-    <string name="sources_dialog_local_file_description">Vyberte .mpp soubor se záplaty z uložiště</string>
     <string name="sources_dialog_local_invalid_extension">Soubor musí mít příponu .mpp</string>
+    <!-- %s is the name of the local source that another version of the same bundle replaces -->
+    <string name="sources_dialog_local_updates">Aktualizuje %s</string>
     <string name="sources_dialog_url_valid">Platná adresa úložiště nebo URL JSON</string>
     <string name="sources_dialog_url_invalid">URL musí odkazovat na repozitář GitHub/GitLab nebo na soubor .json</string>
-    <string name="sources_dialog_local_change_file">Změnit soubor</string>
     <string name="sources_dialog_preinstalled">Předinstalované</string>
     <string name="sources_dialog_community">Komunitní opravy</string>
     <string name="sources_dialog_choose_apps">Vybrat aplikace</string>
@@ -218,7 +215,8 @@ Cokoli, co z této webové stránky přidáte, používáte na vlastní riziko."
     <string name="home_apk_helper_download">Použít pomocnou aplikaci</string>
     <string name="home_apk_helper_title">Stáhnout pomocí pomocné aplikace</string>
     <string name="home_apk_helper_description">Morphe požádá níže uvedenou pomocnou aplikaci o stažení původního APK a vrácení souboru</string>
-    <string name="home_apk_helper_continue">Otevřít pomocnou aplikaci</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="home_apk_helper_continue">Otevřít pomocníka</string>
     <string name="home_apk_helper_warning">Pokračujte pouze v případě, že této pomocné aplikaci důvěřujete. Morphe před záplatováním kontroluje balíček, verzi a podpis všeho, co obdrží</string>
     <string name="home_apk_helper_warning_unverified">Pokračujte pouze v případě, že této pomocné aplikaci důvěřujete. Morphe nemůže ověřit podpis tohoto APK, takže upravený soubor by nebyl odhalen</string>
     <string name="home_apk_helper_no_result">Pomocná aplikace nevrátila APK</string>
@@ -240,7 +238,6 @@ Cokoli, co z této webové stránky přidáte, používáte na vlastní riziko."
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; nemá podporované verze pro Android %2$s (API %3$s). Všechny deklarované verze vyžadují vyšší verzi Androidu</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">Stáhnout původní APK</string>
-    <string name="home_download_instructions_steps_title">Postup:</string>
     <string name="home_download_instructions_finding">Vyhledávám stránku pro stažení…</string>
     <string name="home_download_instructions_step1">Stiskněte tlačítko \'%s\' níže</string>
     <string name="home_download_instructions_step2_part1">Na webové stránce sjeďte dolů a stiskněte</string>
@@ -283,7 +280,6 @@ Cokoli, co z této webové stránky přidáte, používáte na vlastní riziko."
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_title">Expertní režim</string>
     <string name="expert_mode_search">Vyhledat záplaty</string>
-    <string name="expert_mode_proceed">Pokračovat v záplatování</string>
     <string name="expert_mode_disable_all">Vypnout vše</string>
     <string name="expert_mode_disable_all_done">Všechny záplaty vypnuté</string>
     <string name="expert_mode_enable_all">Zapnout vše</string>
@@ -325,6 +321,7 @@ Pro nejlepší výsledky doporučujeme záplatovat &lt;b&gt;úplný APK&lt;/b&gt
     <string name="morphe_experimental_app_version_dialog_message">Tato verze &lt;b&gt;%s&lt;/b&gt; má předběžnou experimentální podporu&lt;br/&gt;&lt;br/&gt;🔧 Očekávejte neobvyklé chování aplikace nebo neidentifikované chyby, záplaty pro tuto verzi aplikace jsou ještě ve vývoji</string>
     <string name="home_dialog_unsupported_version_dialog_title">Nepodporovaná verze</string>
     <string name="home_dialog_unsupported_version_dialog_description">Tato APK není doporučená verze aplikace. Pokračování může vést k nefunkčnosti aplikace</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_dialog_unsupported_version_dialog_proceed">Pokračovat i tak</string>
     <string name="home_dialog_unsupported_version_compatible_versions">Kompatibilní verze:</string>
     <string name="home_dialog_unsupported_version_unsupported_label">Nekompatibilní</string>
@@ -360,12 +357,21 @@ Pro nejlepší výsledky doporučujeme záplatovat &lt;b&gt;úplný APK&lt;/b&gt
     <string name="patch_option_slider_range_end">Do</string>
     <string name="patch_option_list_duplicate">Tato hodnota již existuje</string>
     <string name="patch_option_list_empty">Hodnota nesmí být prázdná</string>
-    <string name="patch_option_list_empty_state">Ještě jste nepřidali žádné hodnoty</string>
     <string name="patch_option_required_missing">%s: vyplňte všechna povinná pole</string>
+    <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <string name="patch_option_changed">Změněno</string>
+    <!-- Badge on a patch option that has to be filled in before patching -->
+    <string name="patch_option_required">Povinné</string>
+    <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
+    <string name="patch_option_recommended_size">Doporučeno: %1$s×%2$s</string>
     <!-- Adaptive Icon Creator -->
     <string name="adaptive_icon_create">Vytvořit adaptivní ikonu</string>
     <string name="adaptive_icon_select_image">Vybrat obrázek</string>
     <string name="adaptive_icon_change_image">Změnit obrázek</string>
+    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
+    <string name="adaptive_icon_foreground">Obrázek v popředí</string>
+    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
+    <string name="adaptive_icon_launcher">Ikona spouštěče</string>
     <string name="adaptive_icon_background_color">Barva pozadí</string>
     <string name="adaptive_icon_reset_transform">Resetovat pozici a měřítko</string>
     <string name="adaptive_icon_safe_zone_inner">Bezpečná zóna (vždy viditelná)</string>
@@ -417,16 +423,18 @@ Vnějní zóna (přerušovaná): může být ořezaná maskou spouštěčé - ud
     <string name="batch_patch_source_file">Přiložený soubor</string>
     <string name="batch_patch_source_unavailable">APK se nepodařilo připravit</string>
     <string name="batch_patch_force_version">Aplikovat i tak</string>
-    <string name="batch_patch_force_version_done">Přesto zařazeno do fronty, záplaty pro jiné verze mohou rozbít aplikaci</string>
-    <string name="batch_patch_accept_signature_done">Přesto zařazeno do fronty, tento APK nemusí být původní</string>
+    <string name="batch_patch_force_version_done">Přidáno do fronty, aplikace se může rozbít</string>
+    <string name="batch_patch_accept_signature_done">Přidáno do fronty, APK nebylo ověřeno</string>
     <string name="batch_patch_edit_patches">Zvolit záplaty</string>
     <string name="batch_patch_state_no_apk">Žádné APK</string>
     <string name="batch_patch_state_no_patches">Žádné záplaty</string>
     <string name="batch_patch_policy_install">Nainstalovat po dokončení</string>
     <string name="batch_patch_policy_install_description">Po dokončení fronty se nainstalují všechny záplatované aplikace. Vypnuto ponechá APK pro pozdější použití</string>
-    <string name="batch_patch_start">Spustit záplatování</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_patch_start">Začít</string>
     <string name="batch_patch_stop_title">Zastavit dávkové záplatování?</string>
     <string name="batch_patch_stop_description">Aplikace, která je právě záplatována, a vše, co je ve frontě, bude zrušeno</string>
+    <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_install_all">Nainstalovat vše</string>
     <string name="batch_patch_install_failed">Instalace selhala</string>
     <string name="batch_patch_in_progress">Dávkové záplatování již běží</string>
@@ -529,8 +537,8 @@ Vnějní zóna (přerušovaná): může být ořezaná maskou spouštěčé - ud
     <string name="patcher_success_subtitle">Vaše aplikace byla záplatována a nainstalována!</string>
     <string name="patcher_complete_title">Záplatování dokončeno! ✨</string>
     <string name="patcher_failed_title">Jejda! Něco se pokazilo</string>
-    <string name="patcher_failed_hint">Klepnutím na %s zobrazíte, co se pokazilo.</string>
     <string name="patcher_failed_dialog_title">Záplatování selhalo</string>
+    <string name="patcher_error_details">Podrobnosti chyby</string>
     <string name="patcher_unknown_error">Došlo k neznámé chybě</string>
     <string name="patcher_split_step_extracting">Extrahování rozdělených APK</string>
     <string name="patcher_split_step_merging">Slučování %s</string>
@@ -545,7 +553,6 @@ Vnějní zóna (přerušovaná): může být ořezaná maskou spouštěčé - ud
 Odinstalace trvale smaže všechna data aplikace"</string>
     <string name="patcher_install_error_title">Chyba instalace</string>
     <string name="patcher_install_error_subtitle">Zkuste odinstalovat a nainstalovat znovu</string>
-    <string name="patcher_ready_to_install_subtitle">Stiskněte tlačítko níže pro instalaci</string>
     <string name="patcher_ready_to_mount_subtitle">Stiskněte tlačítko níže pro zavedení</string>
     <string name="patcher_patches_excluded_for_installer">Není k dispozici pro tuto metodu instalace a je vyloučeno: %s</string>
     <string name="patcher_back_to_game_hint">Klepněte na %1$s pro návrat do hry</string>
@@ -654,6 +661,8 @@ Odinstalace trvale smaže všechna data aplikace"</string>
     <string name="mini_game_try_again">Zkusit znovu</string>
     <string name="mini_game_paused">Pozastaveno</string>
     <string name="mini_game_resume">Pokračovat</string>
+    <string name="mini_game_restart">Začít znovu</string>
+    <string name="mini_game_change">Vybrat jinou hru</string>
     <string name="mini_game_2048_picker_subtitle">Skládejte dlaždice, abyste je spojili</string>
     <string name="mini_game_flappy_picker_subtitle">Klepnutím proleťte trubkami</string>
     <string name="mini_game_flappy_tap_to_start">Klepnutím pro létání</string>
@@ -673,6 +682,7 @@ Odinstalace trvale smaže všechna data aplikace"</string>
     <string name="system">Systém</string>
     <!-- Settings - Appearance Tab - Background animation -->
     <string name="settings_appearance_background">Animace pozadí</string>
+    <string name="settings_appearance_background_description">Animace, která se přehrává za obrazovkami aplikace</string>
     <string name="settings_appearance_background_circles">Kruhy</string>
     <string name="settings_appearance_background_rings">Prstence</string>
     <string name="settings_appearance_background_mesh">Mřížka</string>
@@ -701,6 +711,10 @@ Odinstalace trvale smaže všechna data aplikace"</string>
     <string name="settings_appearance_accent_color">Barva akcentu</string>
     <string name="settings_appearance_pure_black">Čistá černá</string>
     <string name="settings_appearance_pure_black_description">Používá pravě černou barvu pozadí</string>
+    <string name="settings_appearance_color_accents">Barvy aplikací a zdrojů</string>
+    <string name="settings_appearance_color_accents_description">Používá vlastní barvu každé aplikace a zdroje místo akcentní barvy</string>
+    <string name="settings_appearance_outlines">Obrysy</string>
+    <string name="settings_appearance_outlines_description">Vykresluje tenký okraj kolem karet, panelů a tlačítek.</string>
     <!-- Settings - Appearance Tab - Language Selector -->
     <string name="settings_appearance_language_and_display">Jazyk &amp; zobrazení</string>
     <string name="settings_appearance_app_language">Jazyk aplikace</string>
@@ -740,6 +754,7 @@ Odinstalace trvale smaže všechna data aplikace"</string>
     <string name="settings_appearance_app_card_colors_bundle_description">Zde použijte vlastní barvu pro každou aplikaci, automaticky upravenou tak, aby pasovala</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Ikona aplikace</string>
+    <string name="settings_appearance_app_icon_selector_description">Jak Morphe vypadá na vaší domovské obrazovce a v zásuvce aplikací</string>
     <string name="settings_appearance_app_icon_default">Výchozí</string>
     <string name="settings_appearance_app_icon_light_2">Nebeský</string>
     <string name="settings_appearance_app_icon_light_3">Západ slunce</string>
@@ -748,6 +763,7 @@ Odinstalace trvale smaže všechna data aplikace"</string>
     <string name="settings_appearance_app_icon_dark_3">Indigo</string>
     <string name="settings_appearance_app_icon_change_dialog_title">Změnit ikonu aplikace?</string>
     <string name="settings_appearance_app_icon_change_dialog_message">Změnit na &lt;b&gt;%s&lt;/b&gt; a restartovat?</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">Změnit ikonu</string>
     <!-- Settings - Advanced Tab - Updates Section -->
     <string name="settings_advanced_updates">Aktualizace</string>
@@ -1080,7 +1096,6 @@ Podrobnosti: %2$s"</string>
     <string name="settings_system_patched_apks_description">Spravuje uložené záplatované soubory aplikací</string>
     <string name="settings_system_patched_apks_empty">Nebyly uloženy žádné záplatované soubory APK</string>
     <string name="settings_system_patched_apks_delete_title">Smazat záplatovaný soubor APK?</string>
-    <string name="settings_system_patched_apks_delete_confirm">Opravdu chcete smazat uložený záplatovaný soubor APK pro &lt;b&gt;%s&lt;/b&gt;?</string>
     <string name="settings_system_patched_apks_deleted">Záplatovaný soubor APK úspěšně smazán</string>
     <string name="settings_system_patched_apks_delete_all_title">Smazat všechny záplatované APK?</string>
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
@@ -1089,7 +1104,7 @@ Podrobnosti: %2$s"</string>
     <string name="settings_system_original_apks_empty">Nejsou uloženy žádné originální soubory APK</string>
     <string name="settings_system_original_apks_deleted">Originální soubor APK úspěšně smazán</string>
     <string name="settings_system_original_apks_delete_title">Smazat původní APK?</string>
-    <string name="settings_system_original_apks_delete_confirm">Smazat originální soubor APK pro &lt;b&gt;%s&lt;/b&gt;? Bez poskytnutí nového souboru APK nebude možné aplikaci opětovně záplatovat</string>
+    <string name="settings_system_original_apks_delete_notice">Bez poskytnutí nového APK nebudete moci znovu patchovat.</string>
     <string name="settings_system_original_apks_delete_all_title">Smazat všechny původní APK?</string>
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
     <string name="settings_system_patch_selections_title">Výběry záplat</string>
@@ -1110,7 +1125,6 @@ Podrobnosti: %2$s"</string>
     <string name="settings_system_import_source_data_fail">Nepodařilo se importovat data zdroje</string>
     <string name="settings_system_import_source_data_success">Data zdroje importována úspěšně</string>
     <string name="settings_system_selected_patches_section">Vybrané záplaty</string>
-    <string name="settings_system_patch_options_section">Nastavení záplaty</string>
     <string name="settings_system_no_patches_or_options">Žádné uložené záplaty nebo nastavení</string>
     <!-- Copy selection from another bundle -->
     <string name="copy_selection_title">Kopírovat výběr z…</string>
@@ -1129,7 +1143,6 @@ Podrobnosti: %2$s"</string>
     <string name="settings_system_apk_download_helper_installed_by">Nainstalováno aplikací %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Neznámý instalátor</string>
     <!-- File Picker -->
-    <string name="file_picker_previous_directory">Předchozí adresář</string>
     <string name="file_picker_no_files">Zde nejsou žádné soubory</string>
     <string name="file_picker_read_error">Nelze přečíst tento adresář</string>
     <string name="file_picker_internal_storage">Interní úložiště</string>
@@ -1160,11 +1173,9 @@ Podrobnosti: %2$s"</string>
     <string name="easter_egg_pill_red_toast_again">Zpět v dešti</string>
     <string name="easter_egg_pill_blue_toast_again">Odpojen. Cesta zpět je tam, kde vždy byla.</string>
     <!-- Shared strings -->
-    <!-- Download progress of a bundle or of the manager itself. "%1$s" and "%2$s" are the
-         megabytes read and expected, "%3$s" is the percentage; the doubled "%%" after it is
-         how a literal percent sign is written here. -->
-    <string name="download_progress">%1$s MB / %2$s MB (%3$s%%)</string>
     <string name="select_file">Vyberte soubor</string>
+    <string name="select_files">Vyberte soubory</string>
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="select_folder">Vyberte složku</string>
     <string name="patches">Záplaty</string>
     <string name="home">Domů</string>
@@ -1191,6 +1202,7 @@ Podrobnosti: %2$s"</string>
     <string name="done">Hotovo</string>
     <string name="skip">Přeskočit</string>
     <string name="clear">Vyčistit</string>
+    <string name="paste">Vložit</string>
     <string name="delete">Smazat</string>
     <string name="delete_all">Smazat vše</string>
     <string name="remove">Odebrat</string>
@@ -1200,7 +1212,6 @@ Podrobnosti: %2$s"</string>
     <string name="disable">Zakázat</string>
     <string name="enable">Povolit</string>
     <string name="loading">Načítání…</string>
-    <string name="loading_older_releases">Načítají se starší verze…</string>
     <string name="creating">Vytvářím…</string>
     <string name="processing_apk">Zpracovávám APK…</string>
     <string name="exporting_apks">Exportuji APK…</string>
@@ -1243,6 +1254,7 @@ Podrobnosti: %2$s"</string>
     <string name="continue_">Pokračovat</string>
     <string name="version">Verze</string>
     <string name="clone">Klonovat</string>
+    <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patch">Záplata</string>
     <string name="patching">Záplatování</string>
     <string name="patched">Záplatováno</string>
@@ -1282,17 +1294,40 @@ Podrobnosti: %2$s"</string>
     <string name="changelog_description">Co je nového v této verzi</string>
     <string name="changelog_download_fail">Selhání stažení poznámek k vydání: %s</string>
     <string name="changelog_empty">Nejsou dostupné žádné záznamy změn</string>
-    <string name="changelog_show_older">Zobrazit starší verze</string>
+    <string name="changelog_earlier_releases">Starší vydání</string>
     <string name="changelog_older_empty">Nejsou k dispozici žádné starší verze</string>
+    <string name="changelog_older_failed">Nepodařilo se načíst starší vydání</string>
+    <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="changelog_release_page">Stránka vydání</string>
+    <string name="content_translate">Přeložit</string>
+    <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <string name="content_show_original">Původní</string>
+    <string name="content_translation_failed">Překlad se nezdařil: %s</string>
+    <string name="changelog_section_new">Novinky</string>
+    <string name="changelog_section_fixes">Opravy</string>
+    <string name="changelog_section_performance">Výkon</string>
+    <string name="changelog_section_improvements">Vylepšení</string>
+    <string name="changelog_section_app_support">Podpora aplikací</string>
+    <string name="changelog_section_other">Změny</string>
+    <string name="changelog_badge_latest">Nejnovější</string>
+    <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <string name="changelog_badge_downloaded">Staženo</string>
+    <string name="changelog_badge_prerelease">Předběžné vydání</string>
+    <!-- "%s" is the number of changes in the section -->
+    <string name="changelog_show_all">Zobrazit vše (%s)</string>
+    <string name="changelog_show_less">Zobrazit méně</string>
     <string name="no_network_toast">Žádné připojení k internetu</string>
     <string name="update_available">Je k dispozici aktualizace</string>
     <string name="ready_to_install_update">Připraveno k instalaci aktualizace</string>
     <string name="update_completed">Aktualizace nainstalována</string>
     <string name="install_update_manager_failed">Selhání instalace aktualizace</string>
     <string name="installing_manager_update">Instaluje se aktualizace…</string>
+    <string name="installing_manager_update_hint">Morphe se zavře, aby dokončil aktualizaci</string>
     <string name="downloading_manager_update">Stahování aktualizace…</string>
-    <!-- Shown while downloading, before the total size is known. "%1$s" is the megabytes so far. -->
+    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">Staženo %1$s MB</string>
+    <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
+    <string name="manager_update_progress_size">%1$s / %2$s MB</string>
     <string name="manager_update_not_ready">Toto vydání se stále publikuje. Zkuste to znovu za pár minut</string>
     <string name="update_download_missing">Stažená aktualizace již není k dispozici. Stáhněte ji znovu.</string>
     <string name="download_manager_failed">Selhání stahování aktualizace: %s</string>
@@ -1324,6 +1359,7 @@ Chcete přesto pokračovat?"</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Rychlá prohlídka funkcí</string>
     <string name="tour_prompt_desc">Chcete si prohlédnout klíčové funkce Morphe?</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Proveďte prohlídku</string>
     <string name="onboarding_restart_title">Prohlídka funkcí</string>
     <string name="onboarding_restart_desc">Prohlídka klíčových funkcí s průvodcem</string>

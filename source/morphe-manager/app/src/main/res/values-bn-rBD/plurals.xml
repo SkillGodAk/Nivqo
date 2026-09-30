@@ -8,6 +8,21 @@
         <item quantity="one">%s টি প্যাচ অপশন</item>
         <item quantity="other">%s টি প্যাচ অপশন</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%sটি আইটেম</item>
+        <item quantity="other">%sটি আইটেম</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">%sটি ফাইল নির্বাচন করুন</item>
+        <item quantity="other">%sটি ফাইল নির্বাচন করুন</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">%sটি উৎস যোগ করুন</item>
+        <item quantity="other">%sটি উৎস যোগ করুন</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">%sটি অ্যাপের জন্য প্যাচ সোর্স</item>
         <item quantity="other">%sটি অ্যাপের জন্য প্যাচ সোর্স</item>
@@ -91,5 +106,21 @@
     <plurals name="core_count">
         <item quantity="one">%s কোর</item>
         <item quantity="other">%s কোর</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="one">%sটি নতুন</item>
+        <item quantity="other">%sটি নতুন</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%sটি ফিক্স</item>
+        <item quantity="other">%sটি ফিক্স</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%sটি পরিবর্তন</item>
+        <item quantity="other">%sটি পরিবর্তন</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%sটি নতুন রিলিজ</item>
+        <item quantity="other">%sটি নতুন রিলিজ</item>
     </plurals>
 </resources>

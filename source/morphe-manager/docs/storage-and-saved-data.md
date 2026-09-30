@@ -6,6 +6,10 @@ is visible, and most of it can be cleared, from **Settings → System → Files 
 
 ## Storage management
 
+<p align="center">
+  <img src="images/storage-and-saved-data/01-storage-management.jpg" width="320" alt="Storage management dialog with usage by category" />
+</p>
+
 **Storage management** shows where the space went, broken down by category:
 
 | Category | What it holds |

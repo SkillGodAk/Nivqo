@@ -155,7 +155,12 @@ internal fun CategoryActionBar(
             } else {
                 Column {
                     PanelHeader(title = { category.title?.let { PanelTitle(text = it) } }) {
-                        TitleAction(icon = Icons.Outlined.Close, contentDescription = cancelLabel, onClick = onCancel)
+                        TitleAction(
+                            icon = Icons.Outlined.Close,
+                            contentDescription = cancelLabel,
+                            onClick = onCancel,
+                            style = TitleActionStyle.Neutral
+                        )
                     }
                     PanelActions(
                         actions = buildList {
@@ -200,7 +205,12 @@ private fun ReorderPanel(
     Column {
         PanelHeader(title = { PanelTitle(text = reorderListHint) }) {
             if (onCancel != null) {
-                TitleAction(icon = Icons.Outlined.Close, contentDescription = cancelLabel, onClick = onCancel)
+                TitleAction(
+                    icon = Icons.Outlined.Close,
+                    contentDescription = cancelLabel,
+                    onClick = onCancel,
+                    style = TitleActionStyle.Neutral
+                )
             }
         }
         PanelActions(

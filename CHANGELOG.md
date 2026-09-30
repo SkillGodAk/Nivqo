@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-10-01 — v1.33.0
+
+### Manager 同步
+
+- Nivqo Manager 基底由 Morphe Manager `1.32.0` 同步到正式 `1.33.0`。
+- Morphe Patcher 同步到正式 `1.15.0`。
+- 保留 Nivqo 自己的 package `app.nivqo.manager`、GitHub Manager 更新通道、HushFacebook / HushMessenger 遠端核心更新、WorkManager 背景更新與 Firebase / Google Services 移除。
+- 跟進 Morphe 1.33.0 的新版 UI、App 語言系統、內容翻譯、patcher / split 合併效能與新版 patching flow。
+- Nivqo 固定繁中 patch metadata 已調整為配合 Morphe 1.33.0 的 App 語言；其他語言仍使用 Morphe 1.33.0 原生內容翻譯流程。
+
+### 繁體中文修正
+
+- HushFacebook 現行 54 個 patch：名稱／說明繁中覆蓋 `54 / 54`。
+- HushMessenger 現行 28 個 patch entry：名稱／說明繁中覆蓋 `28 / 28`。
+- 修正先前更新 core 後，Manager 新增 patch 項目仍顯示英文的問題。
+
+### 核心
+
+- HushFacebook 維持 `0.5.0-nivqo.1`。
+- HushMessenger 維持 `0.6.0-nivqo.1`。
+- 兩個核心的內建離線 seed 與公開更新 bundle SHA-256 已一致驗證。
+
 ## 2026-09-30 — Core channel update
 
 Manager 版本維持 `v1.32.0`；本次只更新可由 Nivqo 自動取得的插件核心。

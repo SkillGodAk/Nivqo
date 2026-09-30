@@ -5,10 +5,7 @@
 
 package app.morphe.manager.ui.screen.home
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
@@ -27,89 +24,37 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.patcher.patch.PatchInfo
-import app.morphe.manager.ui.screen.shared.Animations
-import app.morphe.manager.ui.screen.shared.AppDialogTextField
-import app.morphe.manager.ui.screen.shared.Defaults
-import app.morphe.manager.ui.screen.shared.EmptyState
-import app.morphe.manager.ui.screen.shared.HeroInfoCard
-import app.morphe.manager.ui.screen.shared.SemanticTone
-import app.morphe.manager.ui.screen.shared.StatusBadge
-import app.morphe.manager.ui.screen.shared.animatedListItem
-import app.morphe.manager.util.toHsv
+import app.morphe.manager.ui.screen.shared.*
+import org.koin.compose.koinInject
 
 /**
- * Header card shown at the top of patches-list dialogs.
+ * Matches patches against [query] by name, description and, while translation is on, translated
+ * description. The descriptions of [patches] translate in the background, so the search finds them
+ * without waiting for a scroll.
  */
 @Composable
-internal fun PatchesListHeaderCard(
-    title: String,
-    totalCount: Int,
-    filteredCount: Int,
-    isFiltering: Boolean,
-    modifier: Modifier = Modifier,
-    icon: ImageVector = Icons.Outlined.Extension
-) {
-    HeroInfoCard(
-        icon = icon,
-        title = title,
-        modifier = modifier
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Widgets,
-            contentDescription = null,
-            tint = LocalContentColor.current,
-            modifier = Modifier.size(16.dp)
-        )
-        val patchCountLabel = pluralStringResource(
-            R.plurals.patch_count,
-            totalCount,
-            totalCount.toString()
-        )
-        val countText = if (isFiltering) "$filteredCount/$patchCountLabel"
-        else patchCountLabel
-        AnimatedContent(
-            targetState = countText,
-            transitionSpec = Animations.counterTransitionSpec,
-            label = "patches_count"
-        ) { count ->
-            Text(
-                text = count,
-                style = MaterialTheme.typography.bodySmall,
-                color = LocalContentColor.current,
-                fontWeight = FontWeight.Medium
-            )
+internal fun rememberPatchMatcher(query: String, patches: List<PatchInfo>): (PatchInfo) -> Boolean {
+    val translation: ContentTranslation = koinInject()
+    val descriptions = remember(patches) { patches.mapNotNull { it.description }.distinct() }
+    PrefetchTranslations(descriptions)
+
+    // Read only while searching, so translations landing in the background leave the list alone
+    val revision = if (query.isBlank()) 0 else translation.revision
+    return remember(query, translation.isEnabled, revision) {
+        { patch ->
+            patch.matchesQuery(query) ||
+                    patch.description?.let(translation::cached)?.contains(query, ignoreCase = true) == true
         }
     }
 }
-
-/**
- * Fill that an accent color takes on a patch card.
- *
- * The accents themselves are picked for contrast against each other, not for sitting behind
- * text, so only their hue survives: the rest is a fixed wash the card content stays readable on.
- */
-@Composable
-internal fun rememberAccentCardColor(accentColor: Color?): Color? =
-    // The hue conversion is a native call that allocates, so it must not run per frame
-    remember(accentColor) {
-        if (accentColor == null) return@remember null
-        Color.hsl(
-            hue = accentColor.toHsv().first,
-            saturation = 0.35f,
-            lightness = 0.55f,
-            alpha = 0.2f
-        )
-    }
 
 /**
  * One collapsible block of a patch list.
@@ -238,6 +183,9 @@ internal fun <T> rememberPatchGroups(
  *
  * [selectedCount] is badged on the header itself, since a folded block is the one place a patch
  * can be enabled without being visible.
+ *
+ * @param leading Drawn in place of [icon], for a block that stands for an app or a source.
+ * @param badges What the whole block shares, such as the app versions, under the title.
  */
 @Composable
 internal fun PatchGroupHeader(
@@ -247,15 +195,11 @@ internal fun PatchGroupHeader(
     onToggle: (() -> Unit)?,
     modifier: Modifier = Modifier,
     icon: ImageVector = Icons.Outlined.Category,
+    leading: (@Composable () -> Unit)? = null,
     accentColor: Color? = null,
-    selectedCount: Int = 0
+    selectedCount: Int = 0,
+    badges: (@Composable FlowRowScope.() -> Unit)? = null
 ) {
-    // One chevron that turns, so the fold reads as the same control in both states
-    val chevronRotation by animateFloatAsState(
-        targetValue = if (isExpanded) 180f else 0f,
-        animationSpec = tween(Defaults.ANIMATION_DURATION),
-        label = "patch_group_chevron"
-    )
 
     // Held while the badge fades out, so the count does not blink to zero on its way off
     val lastSelectedCount = remember { mutableIntStateOf(selectedCount) }
@@ -266,7 +210,7 @@ internal fun PatchGroupHeader(
         title = title,
         count = pluralStringResource(R.plurals.patch_count, count, count.toString()),
         onClick = onToggle,
-        leading = {
+        leading = leading ?: {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
@@ -302,21 +246,26 @@ internal fun PatchGroupHeader(
                     enter = Animations.expandHorizFadeIn,
                     exit = Animations.shrinkHorizFadeOut
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.ExpandMore,
-                        contentDescription = stringResource(
-                            if (isExpanded) R.string.collapse else R.string.expand
-                        ),
-                        modifier = Modifier
-                            .size(24.dp)
-                            .graphicsLayer { rotationZ = chevronRotation },
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    ExpandChevron(
+                        expanded = isExpanded,
+                        modifier = Modifier.size(24.dp),
+                        announced = true
                     )
                 }
             }
         },
         cornerRadius = Defaults.SettingsCornerRadius,
-        color = rememberAccentCardColor(accentColor),
+        color = appAccentCardFill(accentColor),
+        borderColor = accentColor?.let { appAccentBorder(it) },
+        below = badges?.let { content ->
+            {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
+                    verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
+                    content = content
+                )
+            }
+        },
         modifier = modifier
     )
 }
@@ -360,7 +309,8 @@ internal fun <T> LazyListScope.patchGroupRows(
                 isExpanded = isExpanded,
                 onToggle = if (alwaysOpen) null else ({ onToggle(group) }),
                 icon = group.icon,
-                accentColor = accentColor,
+                // Universal patches are for no app in particular, so they do not wear its color
+                accentColor = accentColor.takeUnless { group.key == UNIVERSAL_GROUP_KEY },
                 selectedCount = group.selectedCount,
                 modifier = Modifier.animatedListItem(this)
             )
@@ -371,64 +321,26 @@ internal fun <T> LazyListScope.patchGroupRows(
 }
 
 /**
- * Search field + optional filter button row.
+ * Name and description of a patch, the part every patch card shares, so a patch reads the same in
+ * each list it shows up in. [badges] follow the name on its line.
+ *
+ * @param dimmed For a patch that is off, which fades back behind the ones that are on.
  */
 @Composable
-internal fun PatchesListSearchRow(
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    showFilterButton: Boolean,
-    isFilterActive: Boolean,
-    onFilterClick: () -> Unit,
-    modifier: Modifier = Modifier
+internal fun PatchCardText(
+    name: String,
+    description: String?,
+    modifier: Modifier = Modifier,
+    dimmed: Boolean = false,
+    badges: @Composable RowScope.() -> Unit = {}
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            AppDialogTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                label = { Text(stringResource(R.string.expert_mode_search)) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Outlined.Search,
-                        contentDescription = null
-                    )
-                },
-                showClearButton = true,
-                modifier = Modifier.weight(1f)
-            )
-
-            if (showFilterButton) {
-                FilledTonalIconButton(
-                    onClick = onFilterClick,
-                    modifier = Modifier.padding(bottom = 4.dp),
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = if (isFilterActive)
-                            MaterialTheme.colorScheme.primaryContainer
-                        else
-                            MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = if (isFilterActive)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.FilterList,
-                        contentDescription = stringResource(R.string.filter),
-                        modifier = Modifier.size(Defaults.IconSizeSmall)
-                    )
-                }
-            }
-        }
-    }
+    CardHeadingText(
+        name = name,
+        description = description?.takeIf { it.isNotBlank() }?.let { rememberTranslated(it) },
+        modifier = modifier,
+        dimmed = dimmed,
+        badges = badges
+    )
 }
 
 /**
