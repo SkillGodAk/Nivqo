@@ -1,4 +1,4 @@
-﻿{
+{
     "created_at":  "2026-10-01T03:26:17",
     "description":  "Nivqo v1.33.0 replacement build：更新 Nivqo N 圖示、將 Morphe Patches 明確標示為上游來源並使用中性來源圖示、修正核心更新／變更紀錄解析，以及加入 versionCode 更新握手。APK 顯示版本仍為 1.33.0；更新通道版本 1.33.1 僅用來讓已安裝的 v1.32.0 與舊 v1.33.0 能偵測到此覆蓋更新。",
     "download_url":  "https://github.com/SkillGodAk/Nivqo/releases/download/v1.33.0/Nivqo-Manager-1.33.0-20261001-release.apk",
