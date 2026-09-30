@@ -9,6 +9,9 @@
 - 保留 Nivqo 自己的 package `app.nivqo.manager`、GitHub Manager 更新通道、HushFacebook / HushMessenger 遠端核心更新、WorkManager 背景更新與 Firebase / Google Services 移除。
 - 跟進 Morphe 1.33.0 的新版 UI、App 語言系統、內容翻譯、patcher / split 合併效能與新版 patching flow。
 - Nivqo 固定繁中 patch metadata 已調整為配合 Morphe 1.33.0 的 App 語言；其他語言仍使用 Morphe 1.33.0 原生內容翻譯流程。
+- v1.33.0 覆蓋版完成 Manager 全 APK 品牌巡檢：使用者可見的 Manager 品牌統一為 Nivqo；Morphe 僅保留於上游來源標示、Credits、LICENSE／NOTICE 與必要技術相容識別。
+- Launcher／About 圖示改為 Nivqo N，保留原 v1.33 的背景與藍綠配色；`Morphe Patches（上游）` 改用中性來源圖示。
+- Manager 更新加入 `version_code` 握手；v1.32.0、舊 v1.33.0 與前一個 v1.33 replacement 均可升級到最新覆蓋版，最新覆蓋版本身不會重複提示自己更新。
 
 ### 繁體中文修正
 
@@ -18,7 +21,7 @@
 
 ### 核心
 
-- HushFacebook 維持 `0.5.0-nivqo.1`。
+- HushFacebook 現行核心為 `0.5.0-nivqo.2`，恢復「關閉外部 Messenger」時直接開啟 Facebook 內建 Chats / InboxActivity，略過 Meta 的 Messenger 跳轉詢問。
 - HushMessenger 維持 `0.6.0-nivqo.1`。
 - 兩個核心的內建離線 seed 與公開更新 bundle SHA-256 已一致驗證。
 
