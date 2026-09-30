@@ -13,10 +13,10 @@
     <string name="android_11_bug_dialog_title">Android 11 triktis</string>
     <string name="android_11_bug_dialog_description">Programos diegimo leidimas turi būti suteiktas iš anksto, kad būtų išvengta trikdžiū Android 11 sistemoje, kuri neigiamai paveiks vartotojo patirtį</string>
     <string name="deep_link_add_source_title">Pridėti šaltinį</string>
-    <string name="deep_link_add_source_message">Ar norite pridėti šį pataisos šaltinį prie Morphe?</string>
+    <string name="deep_link_add_source_message">Ar norite pridėti šį pataisos šaltinį prie Nivqo?</string>
     <string name="deep_link_add_source_warning">Įtraukite tik patikimus šaltinius</string>
     <!-- Home Screen - Update Notifications -->
-    <string name="home_update_available">Morphe atnaujinimas prieinamas</string>
+    <string name="home_update_available">Nivqo atnaujinimas prieinamas</string>
     <string name="home_update_available_subtitle">Nauja versija paruošta įdiegti</string>
     <string name="home_update_error">Nepavyko atnaujinti</string>
     <string name="home_update_skipped_metered">Atnaujinimai praleisti</string>
@@ -140,11 +140,11 @@
     <string name="home_download_instructions_download_button_toast_3">Praktika svarbiausia ir jums puikiai sekasi 💪</string>
     <string name="home_download_instructions_download_button_toast_4">Vis dar nėra… vis dar nėra… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">Gerai, aš gerbiu įsipareigojimą 🫡</string>
-    <string name="home_download_instructions_download_button_toast_6">Jūs dabar oficialus Morphe mygtuko bandytojas 🏅</string>
+    <string name="home_download_instructions_download_button_toast_6">Jūs dabar oficialus Nivqo mygtuko bandytojas 🏅</string>
     <string name="home_download_instructions_step3">Palaukite, kol atsisižsimas baigsis, ir &lt;b&gt;neįdiekite&lt;/b&gt; APK</string>
     <string name="home_download_instructions_step3_mount">Palaukite, kol atsisiuntimas baigsis, tada &lt;b&gt;diegaite APK&lt;/b&gt;</string>
-    <string name="home_download_instructions_step4">Po atsisiuntimo, grįžkite į Morphe</string>
-    <string name="home_download_instructions_step4_mount">Po originalaus APK diegimo grįžkite į Morphe</string>
+    <string name="home_download_instructions_step4">Po atsisiuntimo, grįžkite į Nivqo</string>
+    <string name="home_download_instructions_step4_mount">Po originalaus APK diegimo grįžkite į Nivqo</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_file_picker_prompt_title">Pasirinkite atsisiųstą APK</string>
     <string name="home_file_picker_prompt_description">Pasirinkite &lt;b&gt;%s&lt;/b&gt; APK kuri tika atsisiuntete</string>
@@ -289,7 +289,7 @@ Norint gauti geriausią rezultatą, ši programa rekomenduoja pataisyti &lt;b&gt
     <string name="home_app_info_patch_update_available">Pataisos atnaujinimas prieinamas</string>
     <string name="home_app_info_patch_update_available_description">Yra naujesnė pataisymų versija. Iš naujo įdiekite savo programėlę, kad gautumėte naujausius patobulinimus ir pataisymus</string>
     <string name="home_app_info_app_deleted_warning">Programėlė buvo pašalinta</string>
-    <string name="home_app_info_app_deleted_description">Ši programa buvo pašalinta nenaudojant Morphe. Įdiekite ją iš naujo, kad atkurtumėte funkcionalumą</string>
+    <string name="home_app_info_app_deleted_description">Ši programa buvo pašalinta nenaudojant Nivqo. Įdiekite ją iš naujo, kad atkurtumėte funkcionalumą</string>
     <string name="home_app_info_apk_size">APK dydis</string>
     <!-- Home Screen - Root Mode -->
     <string name="root_install_apk_required">Norint naudoti root režimą, prieš diegiant pataisą įrenginyje turi būti įdiegtas originalus APK</string>
@@ -325,7 +325,7 @@ Norint gauti geriausią rezultatą, ši programa rekomenduoja pataisyti &lt;b&gt
     <string name="patcher_conflict_subtitle">Jums reikia išdiegti egzistuoja versija</string>
     <string name="patcher_conflict_hint">Pataisyta programa naudoja kitą sertifikatą nei įdiegta versija. Pašalinus bus ištrinti visi programos duomenys</string>
     <string name="patcher_installed_conflict_title">Išdiegimas būtinas</string>
-    <string name="patcher_installed_conflict_body">"„Morphe“ pasirašo pataisytas programas savo sertifikatu, kuris skiriasi nuo originalo. „Android“ sistemoje reikia pašalinti esamą versiją, kad būtų galima įdiegti pataisytą programą.
+    <string name="patcher_installed_conflict_body">"„Nivqo“ pasirašo pataisytas programas savo sertifikatu, kuris skiriasi nuo originalo. „Android“ sistemoje reikia pašalinti esamą versiją, kad būtų galima įdiegti pataisytą programą.
 
 Pašalinus bus visam laikui ištrinti visi programos duomenys."</string>
     <string name="patcher_install_error_title">Diegimo klaida</string>
@@ -333,15 +333,15 @@ Pašalinus bus visam laikui ištrinti visi programos duomenys."</string>
     <string name="patcher_ready_to_mount_subtitle">Paspauskite žemiau esantį mygtuką, kad montuotimete</string>
     <string name="patcher_storage_permission_dialog_title">Nepavyksta pasiekti saugyklos kelio</string>
     <string name="patcher_incompatible_patcher_title">Būtina atnaujinti</string>
-    <string name="patcher_incompatible_patcher_description">Paketui  &lt;b&gt;%1$s&lt;/b&gt; reikalinga pataisymų programos versija &lt;b&gt;%2$s&lt;/b&gt; arba naujesnė. Norėdami įdiegti pataisymus, atnaujinkite Morphe</string>
-    <string name="patcher_incompatible_patcher_update_button">Parsisiųsti ir atnaujinti Morphe</string>
-    <string name="patcher_storage_permission_description_api30">Viena ar kelios pataisų parinktys nurodo kelius, kurių „Morphe“ negali nuskaityti. Suteikite prieigą prie saugyklos ir palieskite mygtuką, tada pataisų diegimas prasidės automatiškai</string>
+    <string name="patcher_incompatible_patcher_description">Paketui  &lt;b&gt;%1$s&lt;/b&gt; reikalinga pataisymų programos versija &lt;b&gt;%2$s&lt;/b&gt; arba naujesnė. Norėdami įdiegti pataisymus, atnaujinkite Nivqo</string>
+    <string name="patcher_incompatible_patcher_update_button">Parsisiųsti ir atnaujinti Nivqo</string>
+    <string name="patcher_storage_permission_description_api30">Viena ar kelios pataisų parinktys nurodo kelius, kurių „Nivqo“ negali nuskaityti. Suteikite prieigą prie saugyklos ir palieskite mygtuką, tada pataisų diegimas prasidės automatiškai</string>
     <string name="patcher_storage_permission_description_legacy">Vienas ar daugiau pataisymo parinkčių veda į failų nuorodas, kurių negalima pasiekti. Atnaujinkite nuorodas pataisymų nustatymuose ir bandykite vėl</string>
     <string name="patcher_storage_permission_grant">Suteikti leidimą pasiekti saugyklą</string>
     <string name="patcher_storage_permission_open_settings">Atverti saugyklos nustatymus</string>
     <string name="patcher_storage_badge_denied">Leidimas atmestas</string>
     <string name="patcher_storage_badge_missing">Nerasta</string>
-    <string name="patcher_storage_permission_hint">Patarimas: perkelkite failus į /Android/data/app.morphe.manager/files/ – jokių papildomų leidimų nereikia</string>
+    <string name="patcher_storage_permission_hint">Patarimas: perkelkite failus į /Android/data/app.nivqo.manager/files/ – jokių papildomų leidimų nereikia</string>
     <!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Ruošiama</string>
     <string name="patcher_step_load_patches">Įkeliami pataisymai</string>
@@ -353,7 +353,7 @@ Pašalinus bus visam laikui ištrinti visi programos duomenys."</string>
     <string name="patcher_step_sign_apk">Pasirašomas pataisytas APK failas</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Foninio taisymo apsauga</string>
-    <string name="battery_optimization_dialog_description">Kai kurie prietaisai gali sustabdyti taisytoją kai programa yra sumažinama. Leiskite Morphe veikti be baterijos apribojimų, kad pataisymas būtų įvykdytas patikimai</string>
+    <string name="battery_optimization_dialog_description">Kai kurie prietaisai gali sustabdyti taisytoją kai programa yra sumažinama. Leiskite Nivqo veikti be baterijos apribojimų, kad pataisymas būtų įvykdytas patikimai</string>
     <string name="battery_optimization_not_now">Ne dabar</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <!-- Patcher Screen - Patcher Worker -->
@@ -464,7 +464,7 @@ Pašalinus bus visam laikui ištrinti visi programos duomenys."</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
     <string name="settings_advanced_updates_allow_metered">Atnaujinimai per mobiliuosius duomenis</string>
-    <string name="settings_advanced_updates_allow_metered_description">Laidžia Morphe ir pataisymų atnaujinimus siųsti per mobiliuosius duomenis</string>
+    <string name="settings_advanced_updates_allow_metered_description">Laidžia Nivqo ir pataisymų atnaujinimus siųsti per mobiliuosius duomenis</string>
     <string name="settings_advanced_updates_background_notifications">Foniniai atnaujinimo pranešimai</string>
     <string name="settings_advanced_updates_background_notifications_description">Periodiškai fone tikrinti ar yra atnaujinimų ir pranešti, kai atsiras</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Paspaudžiami naujų leidimų pranešimai, net kai programėlė uždaryta</string>
@@ -472,7 +472,7 @@ Pašalinus bus visam laikui ištrinti visi programos duomenys."</string>
     <string name="settings_advanced_update_interval_dialog_title">Patikrinti ar yra atnaujinimų</string>
     <string name="settings_advanced_update_interval_hourly">Kas valandą</string>
     <!-- Notification content -->
-    <string name="notification_manager_update_title">Morphe atnaujinimas prieinamas</string>
+    <string name="notification_manager_update_title">Nivqo atnaujinimas prieinamas</string>
     <string name="notification_channel_patcher">Taisoma</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert_mode">Eksperto rėžimas</string>

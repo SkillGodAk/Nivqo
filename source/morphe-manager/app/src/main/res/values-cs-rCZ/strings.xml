@@ -20,18 +20,18 @@
     <string name="android_11_bug_dialog_title">Chyba Androidu 11</string>
     <string name="android_11_bug_dialog_description">Oprávnění k instalaci aplikací musí být uděleno předem, abyste se vyhnuli chybě v systému Android 11, která negativně ovlivňuje uživatelský zážitek</string>
     <string name="deep_link_add_source_title">Přidat zdroj</string>
-    <string name="deep_link_add_source_message">Chcete přidat tento zdroj záplaty do Morphe?</string>
+    <string name="deep_link_add_source_message">Chcete přidat tento zdroj záplaty do Nivqo?</string>
     <string name="deep_link_add_source_warning">Přidávejte pouze zdroje, kterým důvěřujete</string>
     <!-- Home Screen - Update Notifications -->
-    <string name="home_update_available">Dostupná aktualizace Morphe</string>
+    <string name="home_update_available">Dostupná aktualizace Nivqo</string>
     <string name="home_update_available_subtitle">Připravena nová verze k instalaci</string>
     <string name="home_blocked_source_title">Zaznamenán blokovaný zdroj záplat</string>
     <string name="home_blocked_source_subtitle">Klepnutím zkontrolujete a odeberete</string>
     <string name="home_metadata_errors_title">Některé zdroje záplat jsou nedostupné</string>
     <string name="home_metadata_errors_subtitle">Klepnutím zkontrolujete zdroje</string>
-    <string name="home_outdated_manager_title">Morphe je zastaralý</string>
+    <string name="home_outdated_manager_title">Nivqo je zastaralý</string>
     <string name="home_outdated_manager_subtitle">Některé zdroje záplat vyžadují novější verzi</string>
-    <string name="home_held_back_title">Zdroj patchů způsobil pád Morphe</string>
+    <string name="home_held_back_title">Zdroj patchů způsobil pád Nivqo</string>
     <string name="home_held_back_subtitle">Byl přeskočen, aby se aplikace mohla spustit. Klepnutím zobrazíte podrobnosti</string>
     <string name="home_metered_skipped_title">Aktualizace pozastaveny na mobilních datech</string>
     <string name="home_metered_skipped_subtitle">Klepnutím povolíte aktualizace přes mobilní data</string>
@@ -48,10 +48,10 @@
     <string name="home_app_list_options_title">Řadit a filtrovat</string>
     <string name="home_app_list_options_state_description">Seřazeno podle %1$s, filtrováno podle %2$s</string>
     <string name="home_app_filter_all_description">Všechny aplikace na domovské obrazovce</string>
-    <string name="home_app_filter_patched_description">Aplikace, které jste patchovali nebo uložili pomocí Morphe</string>
-    <string name="home_app_filter_not_patched_description">Aplikace, které jste v Morphe ještě nepatchovali</string>
+    <string name="home_app_filter_patched_description">Aplikace, které jste patchovali nebo uložili pomocí Nivqo</string>
+    <string name="home_app_filter_not_patched_description">Aplikace, které jste v Nivqo ještě nepatchovali</string>
     <string name="home_app_filter_installed_description">Aplikace aktuálně nainstalované v tomto zařízení</string>
-    <string name="home_app_filter_uninstalled_description">Aplikace záplatované pomocí Morphe, které již nejsou v tomto zařízení</string>
+    <string name="home_app_filter_uninstalled_description">Aplikace záplatované pomocí Nivqo, které již nejsou v tomto zařízení</string>
     <string name="home_app_filter_clones">Klonované aplikace nainstalované vedle původní aplikace pod jiným názvem balíčku</string>
     <string name="home_app_filter_clones_description">Aplikace vytvořené pod jiným názvem balíčku, nainstalované vedle původní aplikace</string>
     <string name="home_app_sort_manual_description">Dlouze stiskněte aplikaci a poté klepněte na tlačítko pro změnu pořadí</string>
@@ -158,10 +158,10 @@
     <string name="sources_management_metadata_unavailable">Metadata N/A</string>
     <string name="sources_management_metadata_unavailable_hint">Soubor s metadaty na vzdáleném serveru není dostupný. Záplatování pomocí nainstalovaného balíčku stále funguje, ale automatická aktualizace je pro tento zdroj zakázána</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Balíček oprav nemohl být stažen. Adresa URL zdroje může být neplatná nebo soubor nemusí existovat</string>
-    <string name="sources_management_outdated_manager_badge">Aktualizovat Morphe</string>
-    <string name="sources_management_outdated_manager_hint">Tento zdroj je vytvořen pro patcher %1$s, ale Morphe %2$s obsahuje patcher %3$s. Aktualizujte Morphe pro jeho použití</string>
+    <string name="sources_management_outdated_manager_badge">Aktualizovat Nivqo</string>
+    <string name="sources_management_outdated_manager_hint">Tento zdroj je vytvořen pro patcher %1$s, ale Nivqo %2$s obsahuje patcher %3$s. Aktualizujte Nivqo pro jeho použití</string>
     <string name="sources_management_held_back_badge">Pád</string>
-    <string name="sources_management_held_back_hint">Tento zdroj při načítání způsobil pád Morphe, proto je přeskočen. Aktualizujte jej nebo jej znovu importujte a zkuste to znovu</string>
+    <string name="sources_management_held_back_hint">Tento zdroj při načítání způsobil pád Nivqo, proto je přeskočen. Aktualizujte jej nebo jej znovu importujte a zkuste to znovu</string>
     <string name="sources_management_source_enabled">Zdroj aktivován</string>
     <string name="sources_management_source_disabled">Zdroj deaktivován</string>
     <string name="sources_management_source_updating">Aktualizace zdroje</string>
@@ -192,7 +192,7 @@
     <string name="sources_dialog_choose_apps_description">Vyberte, které z jeho aplikací si chcete ponechat, až se zdroj načte.</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Zdroje oprav třetích stran</string>
-    <string name="sources_dialog_community_notice_message">"Zdroje komunitních oprav jsou vytvářeny a spravovány jejich vlastními autory. Morphe nekontroluje ani neověřuje opravy třetích stran a nenese odpovědnost za jejich obsah ani za to, co s vaším zařízením dělají.
+    <string name="sources_dialog_community_notice_message">"Zdroje komunitních oprav jsou vytvářeny a spravovány jejich vlastními autory. Nivqo nekontroluje ani neověřuje opravy třetích stran a nenese odpovědnost za jejich obsah ani za to, co s vaším zařízením dělají.
 
 Cokoli, co z této webové stránky přidáte, používáte na vlastní riziko."</string>
     <string name="sources_update_success">Aktualizace úspěšná</string>
@@ -214,16 +214,16 @@ Cokoli, co z této webové stránky přidáte, používáte na vlastní riziko."
     <string name="home_apk_availability_no">Ne, už mám APK</string>
     <string name="home_apk_helper_download">Použít pomocnou aplikaci</string>
     <string name="home_apk_helper_title">Stáhnout pomocí pomocné aplikace</string>
-    <string name="home_apk_helper_description">Morphe požádá níže uvedenou pomocnou aplikaci o stažení původního APK a vrácení souboru</string>
+    <string name="home_apk_helper_description">Nivqo požádá níže uvedenou pomocnou aplikaci o stažení původního APK a vrácení souboru</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">Otevřít pomocníka</string>
-    <string name="home_apk_helper_warning">Pokračujte pouze v případě, že této pomocné aplikaci důvěřujete. Morphe před záplatováním kontroluje balíček, verzi a podpis všeho, co obdrží</string>
-    <string name="home_apk_helper_warning_unverified">Pokračujte pouze v případě, že této pomocné aplikaci důvěřujete. Morphe nemůže ověřit podpis tohoto APK, takže upravený soubor by nebyl odhalen</string>
+    <string name="home_apk_helper_warning">Pokračujte pouze v případě, že této pomocné aplikaci důvěřujete. Nivqo před záplatováním kontroluje balíček, verzi a podpis všeho, co obdrží</string>
+    <string name="home_apk_helper_warning_unverified">Pokračujte pouze v případě, že této pomocné aplikaci důvěřujete. Nivqo nemůže ověřit podpis tohoto APK, takže upravený soubor by nebyl odhalen</string>
     <string name="home_apk_helper_no_result">Pomocná aplikace nevrátila APK</string>
     <string name="home_apk_helper_no_access">Pomocná aplikace neudělila přístup k vrácenému APK</string>
     <string name="home_apk_helper_no_package">Pomocná aplikace neřekla, kterou nainstalovanou aplikaci použít</string>
     <string name="home_apk_helper_wrong_package">Pomocná aplikace vrátila jinou aplikaci, než která je patchovaná</string>
-    <string name="home_apk_helper_installed_unavailable">Morphe nemohl použít nainstalovanou aplikaci</string>
+    <string name="home_apk_helper_installed_unavailable">Nivqo nemohl použít nainstalovanou aplikaci</string>
     <string name="home_apk_helper_installed_incompatible">Nainstalovanou verzi nelze patchovat</string>
     <string name="home_apk_use_saved">Použít uložený APK</string>
     <string name="home_apk_use_installed">Użyj zainstalowane APK</string>
@@ -231,7 +231,7 @@ Cokoli, co z této webové stránky přidáte, používáte na vlastní riziko."
     <string name="home_apk_use_installed_unverified">Nepodařilo se ověřit podpis nainstalované aplikace, takže může být již opravená</string>
     <string name="home_unverified">Neověřené</string>
     <string name="home_install_verification_pending">Kontroluji instalaci…</string>
-    <string name="home_app_info_install_unverified">Morphe nemůže potvrdit, že nainstalovaná aplikace je verzí, kterou záplatoval. Pro obnovení funkcí ji znovu záplatujte nebo reinstallujte ze saved APK</string>
+    <string name="home_app_info_install_unverified">Nivqo nemůže potvrdit, že nainstalovaná aplikace je verzí, kterou záplatoval. Pro obnovení funkcí ji znovu záplatujte nebo reinstallujte ze saved APK</string>
     <string name="home_app_info_no_saved_apk">Není uložené žádné APK. Pro záplatování bude potřeba vybrat soubor APK znovu</string>
     <string name="home_version_requires_android">Vyžaduje Android %s+</string>
     <string name="home_apk_no_compatible_versions_title">Není podporováno na tomto zařízení</string>
@@ -244,7 +244,7 @@ Cokoli, co z této webové stránky přidáte, používáte na vlastní riziko."
     <string name="home_download_instructions_step2_generic">Na webové stránce sjeďte dolů a stiskněte tlačítko pro stažení.</string>
     <string name="home_download_instructions_step2_variant">Na webové stránce sjeďte dolů a stiskněte tlačítko pro stažení horní &lt;b&gt;varianty APK&lt;/b&gt;.</string>
     <string name="home_download_instructions_step2_search">Otevřete výsledek vyhledávání z webu, kterému důvěřujete.</string>
-    <string name="home_download_instructions_step2_search_note">Morphe nemůže ručit za tyto webové stránky. Přeskočte ty, které nabízejí vlastní obchod s aplikacemi namísto souboru APK.</string>
+    <string name="home_download_instructions_step2_search_note">Nivqo nemůže ručit za tyto webové stránky. Přeskočte ty, které nabízejí vlastní obchod s aplikacemi namísto souboru APK.</string>
     <string name="home_download_instructions_step3_search">Na tomto webu stáhněte APK pro verzi &lt;b&gt;%s&lt;/b&gt;, ne pro tu nejnovější.</string>
     <string name="home_download_instructions_step3_search_any">Na tomto webu stáhněte APK dané aplikace. &lt;b&gt;Jakoukoli verzi&lt;/b&gt; lze opatchovat.</string>
     <string name="home_download_instructions_download_button_toast">Na webové stránce stiskněte tlačítko stažení, ne zde 😊</string>
@@ -252,11 +252,11 @@ Cokoli, co z této webové stránky přidáte, používáte na vlastní riziko."
     <string name="home_download_instructions_download_button_toast_3">Praxe dělá mistra a ty se zlepšuješ 💪</string>
     <string name="home_download_instructions_download_button_toast_4">Stále tady nejsi… stále tady nejsi… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">OK, respektuji oddanost 🫡</string>
-    <string name="home_download_instructions_download_button_toast_6">Nyní jste oficiální tester tlačítka Morphe 🏅</string>
+    <string name="home_download_instructions_download_button_toast_6">Nyní jste oficiální tester tlačítka Nivqo 🏅</string>
     <string name="home_download_instructions_step3">Počkejte, než se stahování dokončí, stažené APK &lt;b&gt;NEinstalujte&lt;/b&gt;</string>
     <string name="home_download_instructions_step3_mount">Počkejte, než se stahování dokončí, stažené APK &lt;b&gt;poté nainstalujte&lt;/b&gt;</string>
-    <string name="home_download_instructions_step4">Po dokončení stažení se vraťte do Morphe</string>
-    <string name="home_download_instructions_step4_mount">Po dokončení instalace původního APK se vraťte do Morphe</string>
+    <string name="home_download_instructions_step4">Po dokončení stažení se vraťte do Nivqo</string>
+    <string name="home_download_instructions_step4_mount">Po dokončení instalace původního APK se vraťte do Nivqo</string>
     <string name="home_download_instructions_continue_to">Pokračujte na %s</string>
     <string name="home_download_instructions_destination">stránku pro stažení</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
@@ -472,8 +472,8 @@ Vnějní zóna (přerušovaná): může být ořezaná maskou spouštěčé - ud
     <string name="home_app_info_newest_supported_version">Nejnovější podporovaná</string>
     <string name="home_app_info_version_move">Nainstalováno %1$s, nejnovější podporovaná %2$s</string>
     <string name="home_app_info_app_deleted_warning">Aplikace byla odinstalována</string>
-    <string name="home_app_info_app_deleted_description">Tuto aplikaci bylo odinstalováno mimo Morphe. Zápalte ji znovu, abyste obnovili funkčnost</string>
-    <string name="home_app_info_not_patched_description">Je nainstalována neopatchovaná verze této aplikace. Morphe má stále svůj předchozí záznam o záplatě</string>
+    <string name="home_app_info_app_deleted_description">Tuto aplikaci bylo odinstalováno mimo Nivqo. Zápalte ji znovu, abyste obnovili funkčnost</string>
+    <string name="home_app_info_not_patched_description">Je nainstalována neopatchovaná verze této aplikace. Nivqo má stále svůj předchozí záznam o záplatě</string>
     <string name="patcher_rename_title">Toto nainstaluje klon</string>
     <string name="patcher_rename_description">Záplaty vytvořily tuto aplikaci pod vlastním názvem balíčku, takže instalace přidá klon vedle &lt;b&gt;%s&lt;/b&gt; místo aktualizace.</string>
     <string name="patcher_rename_result_package">Nainstaluje se jako</string>
@@ -486,7 +486,7 @@ Vnějní zóna (přerušovaná): může být ořezaná maskou spouštěčé - ud
     <string name="root_pre_patch_installer_description">Vaše zařízení má root přístup. Zvolte, zda má být tato aplikace záplatována pro root mount nebo standardní instalaci</string>
     <string name="root_pre_patch_installer_mount_title">Režim root mount</string>
     <string name="root_pre_patch_installer_mount_description">Patches pro root přípojný bod, poté namontuje APK nad odpovídající nativní aplikaci. Není potřeba GmsCore.</string>
-    <string name="root_mount_module_unmount_warning">Pokud má KernelSU ve výchozím nastavení povolené odmontování modulů, otevřete KernelSU > Superuser > aplikaci, kterou jste namontovali > Profil > Vlastní a zakažte odmontování modulů. Jinak se namontovaný opravený APK nemusí projevit, i když Morphe zobrazuje, že je namontovaný.</string>
+    <string name="root_mount_module_unmount_warning">Pokud má KernelSU ve výchozím nastavení povolené odmontování modulů, otevřete KernelSU > Superuser > aplikaci, kterou jste namontovali > Profil > Vlastní a zakažte odmontování modulů. Jinak se namontovaný opravený APK nemusí projevit, i když Nivqo zobrazuje, že je namontovaný.</string>
     <string name="root_pre_patch_installer_standard_title">Standardní režim instalace</string>
     <string name="root_pre_patch_installer_standard_description">Patche jako běžný APK se podporou GmsCore. Vaše nastavení instalátoru bude použito po opatchování</string>
     <string name="root_pre_patch_installer_hint">Tento režim patche je oddělený od Nastavení > Systém > Instalátor a nelze jej změnit po opatchování</string>
@@ -548,7 +548,7 @@ Vnějní zóna (přerušovaná): může být ořezaná maskou spouštěčé - ud
     <string name="patcher_conflict_subtitle">Musíte odinstalovat stávající verzi</string>
     <string name="patcher_conflict_hint">Opravená aplikace používá jiný certifikát než nainstalovaná verze. Odinstalování smaže všechna data aplikace.</string>
     <string name="patcher_installed_conflict_title">Odinstalace je vyžadována</string>
-    <string name="patcher_installed_conflict_body">"Morphe podepisuje opravené aplikace vlastním certifikátem, který se liší od původního. Android vyžaduje odstranění stávající verze před instalací opravené aplikace.
+    <string name="patcher_installed_conflict_body">"Nivqo podepisuje opravené aplikace vlastním certifikátem, který se liší od původního. Android vyžaduje odstranění stávající verze před instalací opravené aplikace.
 
 Odinstalace trvale smaže všechna data aplikace"</string>
     <string name="patcher_install_error_title">Chyba instalace</string>
@@ -558,9 +558,9 @@ Odinstalace trvale smaže všechna data aplikace"</string>
     <string name="patcher_back_to_game_hint">Klepněte na %1$s pro návrat do hry</string>
     <string name="patcher_storage_permission_dialog_title">Nelze přistupovat k cestě úložiště</string>
     <string name="patcher_incompatible_patcher_title">Aktualizace požadována</string>
-    <string name="patcher_incompatible_patcher_description">Balíček &lt;b&gt;%1$s&lt;/b&gt; vyžaduje verzi opravovače &lt;b&gt;%2$s&lt;/b&gt; nebo novější. Aktualizujte Morphe pro opravu této aplikace</string>
-    <string name="patcher_incompatible_patcher_update_button">Stáhnout a aktualizovat Morphe</string>
-    <string name="patcher_storage_permission_description_api30">Jedna nebo více možností záplaty odkazuje na cesty, které Morphe nemůže číst. Udělte oprávnění ke úložišti a klepněte na tlačítko, poté se záplatování spustí automaticky</string>
+    <string name="patcher_incompatible_patcher_description">Balíček &lt;b&gt;%1$s&lt;/b&gt; vyžaduje verzi opravovače &lt;b&gt;%2$s&lt;/b&gt; nebo novější. Aktualizujte Nivqo pro opravu této aplikace</string>
+    <string name="patcher_incompatible_patcher_update_button">Stáhnout a aktualizovat Nivqo</string>
+    <string name="patcher_storage_permission_description_api30">Jedna nebo více možností záplaty odkazuje na cesty, které Nivqo nemůže číst. Udělte oprávnění ke úložišti a klepněte na tlačítko, poté se záplatování spustí automaticky</string>
     <string name="patcher_storage_permission_description_legacy">Jeden nebo více možnosti pro patchování ukazují na cesty, které nelze přistupovat. Upravte cesty v možnostech pro patchování a zkuste to znovu</string>
     <string name="patcher_storage_permission_grant">Povolte přístup k úložišti</string>
     <string name="patcher_storage_permission_denied_warning">Oprávnění pro úložiště bylo zamítnuto. Povolte oprávnění pro použití této cesty, nebo přesuňte soubory do soukromého adresáře aplikace.</string>
@@ -574,7 +574,7 @@ Odinstalace trvale smaže všechna data aplikace"</string>
     <string name="patcher_option_paths_gone_title">Soubory s možnostmi patchů chybí</string>
     <string name="patcher_option_paths_gone_description">Jedna nebo více možností patchů odkazuje na soubory, které už neexistují. Odstraňte cesty, abyste mohli patchovat bez nich, nebo soubory vraťte zpět a zkuste to znovu.</string>
     <string name="patcher_option_paths_clear">Odstranit cesty a pokračovat</string>
-    <string name="patcher_storage_permission_hint">Tip: Přesuňte soubory do /Android/data/app.morphe.manager/files/ - bez potřeby dalších oprávnění</string>
+    <string name="patcher_storage_permission_hint">Tip: Přesuňte soubory do /Android/data/app.nivqo.manager/files/ - bez potřeby dalších oprávnění</string>
     <!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Příprava</string>
     <string name="patcher_step_load_patches">Načítání oprav</string>
@@ -586,7 +586,7 @@ Odinstalace trvale smaže všechna data aplikace"</string>
     <string name="patcher_step_sign_apk">Podpis opraveného APK souboru</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Ochrana záplat na pozadí</string>
-    <string name="battery_optimization_dialog_description">Na některých zařízeních se může záplata zastavit, když je aplikace minimalizována. Povolte aplikaci Morphe, aby běžela bez omezení spotřeby energie, a zajistěte tak spolehlivé dokončení záplatování.</string>
+    <string name="battery_optimization_dialog_description">Na některých zařízeních se může záplata zastavit, když je aplikace minimalizována. Povolte aplikaci Nivqo, aby běžela bez omezení spotřeby energie, a zajistěte tak spolehlivé dokončení záplatování.</string>
     <string name="battery_optimization_not_now">Ne teď</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">Nedostatek paměti</string>
@@ -643,8 +643,8 @@ Odinstalace trvale smaže všechna data aplikace"</string>
     <string name="install_ignore_signature">Přesto instalovat</string>
     <string name="install_ignore_signature_description">Zachovává data aplikace, ale funguje pouze v případě, že root modul zakáže ověřování podpisu systému Android.</string>
     <string name="uninstall_app_fail">Nepodařilo se odinstalovat aplikaci: %s</string>
-    <string name="uninstall_app_unverified">Ponecháno na místě: Morphe nemohl ověřit, že nainstalovaná aplikace je sestavení, které opatchoval.</string>
-    <string name="launch_app_unverified">Morphe nemohl ověřit, že nainstalovaná aplikace je sestavení, které opatchoval.</string>
+    <string name="uninstall_app_unverified">Ponecháno na místě: Nivqo nemohl ověřit, že nainstalovaná aplikace je sestavení, které opatchoval.</string>
+    <string name="launch_app_unverified">Nivqo nemohl ověřit, že nainstalovaná aplikace je sestavení, které opatchoval.</string>
     <string name="uninstall_timeout">Odinstalace časově vypršela</string>
     <string name="save_apk_success">APK uložen</string>
     <string name="saved_app_export_failed">Selhání při exportu upravené aplikace</string>
@@ -754,7 +754,7 @@ Odinstalace trvale smaže všechna data aplikace"</string>
     <string name="settings_appearance_app_card_colors_bundle_description">Zde použijte vlastní barvu pro každou aplikaci, automaticky upravenou tak, aby pasovala</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Ikona aplikace</string>
-    <string name="settings_appearance_app_icon_selector_description">Jak Morphe vypadá na vaší domovské obrazovce a v zásuvce aplikací</string>
+    <string name="settings_appearance_app_icon_selector_description">Jak Nivqo vypadá na vaší domovské obrazovce a v zásuvce aplikací</string>
     <string name="settings_appearance_app_icon_default">Výchozí</string>
     <string name="settings_appearance_app_icon_light_2">Nebeský</string>
     <string name="settings_appearance_app_icon_light_3">Západ slunce</string>
@@ -770,14 +770,14 @@ Odinstalace trvale smaže všechna data aplikace"</string>
     <string name="settings_advanced_patcher">Záplatovač</string>
     <string name="settings_advanced_updates_manager_prereleases">Předběžné aktualizace</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
-    <string name="settings_advanced_updates_manager_prereleases_description">Předběžný přístup k novým verzím Morphe</string>
+    <string name="settings_advanced_updates_manager_prereleases_description">Předběžný přístup k novým verzím Nivqo</string>
     <string name="settings_advanced_updates_prerelease_warning_title">Povolit předběžné aktualizace?</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
-    <string name="settings_advanced_updates_prerelease_warning_message">"Předběžné verze aplikace Morphe jsou stále ve vývoji a mohou být nestabilní.
+    <string name="settings_advanced_updates_prerelease_warning_message">"Předběžné verze aplikace Nivqo jsou stále ve vývoji a mohou být nestabilní.
 
 Záplaty tím nejsou ovlivněny: povolte předběžné záplaty pro každý zdroj v seznamu zdrojů záplat."</string>
     <string name="settings_advanced_updates_allow_metered">Aktualizace přes mobilní data</string>
-    <string name="settings_advanced_updates_allow_metered_description">Umožňuje aplikaci Morphe a aktualizacím záplat stahovat data přes mobilní síť</string>
+    <string name="settings_advanced_updates_allow_metered_description">Umožňuje aplikaci Nivqo a aktualizacím záplat stahovat data přes mobilní síť</string>
     <string name="settings_advanced_updates_background_notifications">Aktualizace na pozadí</string>
     <string name="settings_advanced_updates_background_notifications_description">Periodicky ověřujte aktualizace v pozadí a upozorněte, když jsou k dispozici.</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Push notifikace pro nové verze, i když je aplikace zavřená</string>
@@ -794,27 +794,27 @@ Záplaty tím nejsou ovlivněny: povolte předběžné záplaty pro každý zdro
     <string name="settings_advanced_external_batch_patch">Povolit externí spouštěče</string>
     <string name="settings_advanced_external_batch_patch_description">Umožňuje automatizačním aplikacím spustit dávkové patchování pomocí záměru</string>
     <string name="external_batch_patch_title">Spustit dávkové záplatování?</string>
-    <string name="external_batch_patch_description">%s chce, aby Morphe záplatoval a nainstaloval aplikace</string>
+    <string name="external_batch_patch_description">%s chce, aby Nivqo záplatoval a nainstaloval aplikace</string>
     <string name="external_batch_patch_trust_caller">Vždy povolit tuto aplikaci</string>
     <string name="external_batch_patch_unknown_caller">Neznámá aplikace</string>
     <!-- Notification content -->
-    <string name="notification_manager_update_title">Dostupná aktualizace Morphe</string>
+    <string name="notification_manager_update_title">Dostupná aktualizace Nivqo</string>
     <string name="notification_bundle_update_title">Nové záplaty k dispozici</string>
     <string name="notification_update_text">Verze %s je připravena ke stažení</string>
-    <string name="notification_bundle_update_text_unversioned">Klepněte pro otevření Morphe a aktualizaci</string>
+    <string name="notification_bundle_update_text_unversioned">Klepněte pro otevření Nivqo a aktualizaci</string>
     <string name="notification_permission_dialog_title">Povolit upozornění</string>
-    <string name="notification_permission_dialog_description">Morphe potřebuje oprávnění pro oznámení, aby vás upozornila na dostupné aktualizace na pozadí</string>
+    <string name="notification_permission_dialog_description">Nivqo potřebuje oprávnění pro oznámení, aby vás upozornila na dostupné aktualizace na pozadí</string>
     <string name="notification_post_patch_dialog_title">Chcete být upozorněni, když budou k dispozici aktualizace?</string>
-    <string name="notification_channel_manager_updates">Aktualizace Morphe</string>
-    <string name="notification_channel_manager_updates_description">Oznámení o nových verzích Morphe</string>
+    <string name="notification_channel_manager_updates">Aktualizace Nivqo</string>
+    <string name="notification_channel_manager_updates_description">Oznámení o nových verzích Nivqo</string>
     <string name="notification_channel_patch_updates">Opravné aktualizace</string>
     <string name="notification_channel_patch_updates_description">Oznámení o nových opravných verzích</string>
     <string name="notification_channel_patcher">Záplatování</string>
-    <string name="notification_channel_patcher_description">Zobrazuje se během záplatování aplikace Morphe na pozadí</string>
+    <string name="notification_channel_patcher_description">Zobrazuje se během záplatování aplikace Nivqo na pozadí</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Expertní nastavení</string>
     <string name="settings_advanced_expert_mode">Režim expertů</string>
-    <string name="settings_advanced_expert_mode_description">Povoluje pokročilé nastavení záplatování a možnosti přizpůsobení aplikace Morphe</string>
+    <string name="settings_advanced_expert_mode_description">Povoluje pokročilé nastavení záplatování a možnosti přizpůsobení aplikace Nivqo</string>
     <string name="settings_advanced_expert_mode_dialog_title">Povolit Expert mód?</string>
     <string name="settings_advanced_expert_mode_dialog_message">Expert mód poskytuje více kontroly nad aplikací patchů, ale špatná konfigurace nastavení v expert módu může vést k nefunkční aplikaci</string>
     <string name="settings_advanced_strip_unused_libs">Optimalizovat pro architekturu zařízení</string>
@@ -830,7 +830,7 @@ Záplaty tím nejsou ovlivněny: povolte předběžné záplaty pro každý zdro
 %1$s"</string>
     <string name="settings_advanced_github_pat_export_include_label">Zahrnout do exportu nastavení</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
-    <string name="settings_advanced_github_pat_export_include_supporting">Přidá toto PAT do exportovaných nastavení Morphe</string>
+    <string name="settings_advanced_github_pat_export_include_supporting">Přidá toto PAT do exportovaných nastavení Nivqo</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">Nesdílejte svůj PAT. Pokud ho zahrnete do exportu nastavení, uchovejte tento soubor v soukromí, protože obsahuje token</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
@@ -927,7 +927,7 @@ Rozměry obrázků musí být následující:
     <string name="installer_status_not_supported">Nepodporováno pro tuto akci</string>
     <string name="installer_status_shizuku_not_installed">Instalujte Shizuku nebo Sui pro použití této možnosti</string>
     <string name="installer_status_shizuku_not_running">Spusťte Shizuku nebo Sui a zkuste to znovu</string>
-    <string name="installer_status_shizuku_permission">Povolte aplikaci Morphe přístup od aplikace Shizuku</string>
+    <string name="installer_status_shizuku_permission">Povolte aplikaci Nivqo přístup od aplikace Shizuku</string>
     <string name="installer_mount_warning_install">Vaš primary instalátor je nastaven na kořenový instalátor. Tato uložená aplikace nebyla nainstalována pomocí kořenového instalátoru</string>
     <string name="mount_version_mismatch_message">Verze původní aplikace (%2$s) se neshoduje s verzí upravené aplikace (%1$s). Kořenujte odpovídající původní verzi, pak zkuste to znovu</string>
     <string name="mount_stock_restore_failed_message">Android odmítl uložený původní APK. Nainstalujte odpovídající verzi původní aplikace a poté zkuste znovu připojit</string>
@@ -957,7 +957,7 @@ Rozměry obrázků musí být následující:
     <string name="settings_auto_uninstall_with_shizuku">Automatické odinstalování v případě konfliktu</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Při automatické instalaci pomocí Shizuku nejprve odinstalujte existující aplikaci, pokud Android nahlásí konflikt podpisů. Tímto může dojít ke smazání dat aplikace.</string>
     <string name="settings_auto_uninstall_warning_title">Povolit automatické odinstalování?</string>
-    <string name="settings_auto_uninstall_warning_message">Pokud Android během automatické instalace Shizuku nahlásí konflikt podpisů, Morphe nejprve odinstaluje existující aplikaci před instalací opraveného APK</string>
+    <string name="settings_auto_uninstall_warning_message">Pokud Android během automatické instalace Shizuku nahlásí konflikt podpisů, Nivqo nejprve odinstaluje existující aplikaci před instalací opraveného APK</string>
     <string name="settings_auto_uninstall_warning_risk">Tímto může dojít ke smazání dat aplikace. Pokud se opravené APK nepodaří nainstalovat po odinstalování, předchozí aplikace může být již pryč.</string>
     <string name="installer_shizuku_status_action">Zkontrolovat stav Shizuku</string>
     <string name="installer_shizuku_status_title">Stav Shizuku</string>
@@ -975,7 +975,7 @@ Rozměry obrázků musí být následující:
     <string name="installer_shizuku_install_fail_with_details">"Instalace Shizuku selhala: %1$s
 
 Podrobnosti: %2$s"</string>
-    <string name="installer_shizuku_error_permission">Chybí oprávnění Shizuku. Udělte oprávnění aplikaci Morphe a zkuste to znovu</string>
+    <string name="installer_shizuku_error_permission">Chybí oprávnění Shizuku. Udělte oprávnění aplikaci Nivqo a zkuste to znovu</string>
     <string name="installer_shizuku_error_timeout">Shizuku nevrátil výsledek instalace. Ujistěte se, že stále běží a zkuste to znovu</string>
     <string name="installer_shizuku_error_downgrade">Android tuto operaci zablokoval, protože by to znamenalo snížení verze nainstalované aplikace.</string>
     <string name="installer_shizuku_error_signature">Android tuto operaci zablokoval, protože nainstalovaná aplikace má odlišný podpis.</string>
@@ -990,7 +990,7 @@ Podrobnosti: %2$s"</string>
     <string name="settings_system_process_runtime_memory_limit_description">Vyšší limity urychlí záplatování na zařízeních, která to podporují</string>
     <string name="settings_system_process_runtime_enable">Povolit běhové prostředí procesů</string>
     <string name="settings_system_memory_limit_subtitle">Paměť k dispozici pro záplatování</string>
-    <string name="settings_system_process_runtime_heap_limit_ignored">Toto zařízení při posledním spuštění ignorovalo limit paměti, takže se patchování může vrátit k běhu uvnitř Morphe.</string>
+    <string name="settings_system_process_runtime_heap_limit_ignored">Toto zařízení při posledním spuštění ignorovalo limit paměti, takže se patchování může vrátit k běhu uvnitř Nivqo.</string>
     <string name="settings_system_memory_limit_warning">Nízký limit paměti může způsobit selhání při záplatování větších aplikací</string>
     <string name="settings_system_memory_limit_high_warning">Vysoký limit paměti může na některých zařízeních výrazně zpomalit patchování. Zvyšte jej pouze v případě, že patchování při nižších limitech stále selhává.</string>
     <string name="settings_system_process_runtime_enabled_description">%s MB limit</string>
@@ -1013,8 +1013,8 @@ Podrobnosti: %2$s"</string>
     <string name="settings_system_import_export">Import &amp; export</string>
     <string name="settings_system_signing_key">Podpisový klíč</string>
     <string name="settings_system_signing_key_description">Zálohuje a obnovuje klíč, kterým jsou podepsány vaše patchované aplikace.</string>
-    <string name="settings_system_signing_key_dialog_description">Každá aplikace, kterou Morphe patchuje, je podepsána tímto klíčem. Uschovejte si kopii: bez ní lze patchované aplikace aktualizovat pouze po jejich odinstalování.</string>
-    <string name="settings_system_signing_key_missing">Morphe ho vytvoří při vašem prvním patchování.</string>
+    <string name="settings_system_signing_key_dialog_description">Každá aplikace, kterou Nivqo patchuje, je podepsána tímto klíčem. Uschovejte si kopii: bez ní lze patchované aplikace aktualizovat pouze po jejich odinstalování.</string>
+    <string name="settings_system_signing_key_missing">Nivqo ho vytvoří při vašem prvním patchování.</string>
     <string name="settings_system_signing_key_created">Vytvořeno %s</string>
     <string name="settings_system_signing_key_fingerprint">Otisk SHA-256</string>
     <string name="settings_system_backup_appearance_description">Motiv, barvy a jazyk</string>
@@ -1037,11 +1037,11 @@ Podrobnosti: %2$s"</string>
     <string name="settings_system_export_keystore_failed">Nepodařilo se exportovat keystore</string>
     <string name="settings_system_show_password_field">Zobrazit heslo</string>
     <string name="settings_system_hide_password_field">Skrýt heslo</string>
-    <string name="settings_system_morphe_settings">Nastavení Morphe</string>
-    <string name="settings_system_import_manager_settings_description">Zálohuje a obnovuje nastavení aplikace Morphe</string>
-    <string name="settings_system_import_manager_settings_fail">Nepodařilo se importovat nastavení Morphe: %s</string>
-    <string name="settings_system_import_manager_settings_success">Nastavení Morphe importována</string>
-    <string name="settings_system_import_manager_settings_mode_title">Importovat nastavení Morphe</string>
+    <string name="settings_system_morphe_settings">Nastavení Nivqo</string>
+    <string name="settings_system_import_manager_settings_description">Zálohuje a obnovuje nastavení aplikace Nivqo</string>
+    <string name="settings_system_import_manager_settings_fail">Nepodařilo se importovat nastavení Nivqo: %s</string>
+    <string name="settings_system_import_manager_settings_success">Nastavení Nivqo importována</string>
+    <string name="settings_system_import_manager_settings_mode_title">Importovat nastavení Nivqo</string>
     <string name="settings_system_import_manager_settings_mode_description">Vyberte, jak se mají aplikovat importovaná nastavení a zdroje</string>
     <string name="settings_system_import_selections_mode_title">Importovat výběry záplat</string>
     <string name="settings_system_import_selections_mode_description">Vyberte, jak se mají aplikovat importované výběry a možnosti oprav.</string>
@@ -1049,8 +1049,8 @@ Podrobnosti: %2$s"</string>
     <string name="import_mode_replace_description">Přesně odpovídá záloze. Položky chybějící ze zálohy budou odebrány.</string>
     <string name="import_mode_merge_title">Sloučit s existujícími</string>
     <string name="import_mode_merge_description">Přidat chybějící položky ze zálohy. Existující položky zůstanou nezměněny.</string>
-    <string name="settings_system_export_manager_settings_fail">Nepodařilo se exportovat nastavení Morphe: %s</string>
-    <string name="settings_system_export_manager_settings_success">Nastavení Morphe exportována</string>
+    <string name="settings_system_export_manager_settings_fail">Nepodařilo se exportovat nastavení Nivqo: %s</string>
+    <string name="settings_system_export_manager_settings_success">Nastavení Nivqo exportována</string>
     <string name="settings_system_export_debug_logs">Exportovat ladicí protokoly</string>
     <string name="settings_system_export_debug_logs_description">Uloží systémové protokoly pro řešení potíží</string>
     <string name="settings_system_export_debug_logs_export_read_failed">Selhání čtení protokolu (kód ukončení %s)</string>
@@ -1086,7 +1086,7 @@ Podrobnosti: %2$s"</string>
     <string name="settings_system_storage_cleared">Uvolněno %s</string>
     <string name="settings_system_storage_nothing_to_clear">Není co mazat</string>
     <string name="settings_system_storage_open_app_info_title">Otevřít úložiště aplikace Android</string>
-    <string name="settings_system_storage_open_app_info_description">Spravujte nebo vymažte všechna data Morphe prostřednictvím nastavení systému</string>
+    <string name="settings_system_storage_open_app_info_description">Spravujte nebo vymažte všechna data Nivqo prostřednictvím nastavení systému</string>
     <string name="settings_system_save_original_apks_title">Zachovat původní APK</string>
     <string name="settings_system_save_original_apks_description">Uložit původní APK před záplatováním, aby bylo možné jej znovu použít pro další záplatování bez opětovného výběru souboru</string>
     <string name="settings_system_save_patched_apks_title">Zachovat záplatované APK</string>
@@ -1134,12 +1134,12 @@ Podrobnosti: %2$s"</string>
     <string name="copy_selection_same_source">Stejný zdroj</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Vlastní výběr souborů</string>
-    <string name="settings_system_custom_file_picker_description">Procházet úložiště pomocí vestavěného výběru souborů Morphe místo výchozího systému.</string>
+    <string name="settings_system_custom_file_picker_description">Procházet úložiště pomocí vestavěného výběru souborů Nivqo místo výchozího systému.</string>
     <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">Pomocník pro stahování APK</string>
     <string name="settings_system_apk_download_helper_trusted_count">Důvěryhodné: %1$d z %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Pomocné aplikace za vás mohou stahovat originální APK. V pokynech ke stažení se nabízejí pouze ty, kterým zde důvěřujete.</string>
-    <string name="settings_system_apk_download_helper_warning">APK pochází z pomocné aplikace, proto důvěřujte pouze aplikacím, které znáte. Morphe před patchováním stále kontroluje balíček, verzi a podpis každého souboru.</string>
+    <string name="settings_system_apk_download_helper_warning">APK pochází z pomocné aplikace, proto důvěřujte pouze aplikacím, které znáte. Nivqo před patchováním stále kontroluje balíček, verzi a podpis každého souboru.</string>
     <string name="settings_system_apk_download_helper_installed_by">Nainstalováno aplikací %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Neznámý instalátor</string>
     <!-- File Picker -->
@@ -1322,7 +1322,7 @@ Podrobnosti: %2$s"</string>
     <string name="update_completed">Aktualizace nainstalována</string>
     <string name="install_update_manager_failed">Selhání instalace aktualizace</string>
     <string name="installing_manager_update">Instaluje se aktualizace…</string>
-    <string name="installing_manager_update_hint">Morphe se zavře, aby dokončil aktualizaci</string>
+    <string name="installing_manager_update_hint">Nivqo se zavře, aby dokončil aktualizaci</string>
     <string name="downloading_manager_update">Stahování aktualizace…</string>
     <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">Staženo %1$s MB</string>
@@ -1343,7 +1343,7 @@ Chcete přesto pokračovat?"</string>
     <string name="onboarding_sources_desc">Spravujte zdroje záplat. Každý zdroj poskytuje záplaty, které lze použít na vaše aplikace.</string>
     <string name="onboarding_swipe_title">Gesta posunutím prstu</string>
     <string name="onboarding_swipe_desc">Posunutím prstu doprava na kartě aplikace zobrazíte dostupné záplaty. Posunutím prstu doleva kartu skryjete z domovské obrazovky.</string>
-    <string name="onboarding_settings_desc">Přizpůsobte si Morphe: vzhled, pokročilé možnosti a systémové nástroje.</string>
+    <string name="onboarding_settings_desc">Přizpůsobte si Nivqo: vzhled, pokročilé možnosti a systémové nástroje.</string>
     <string name="onboarding_sources_patches_desc">Klepnutím zobrazíte všechny záplaty dostupné z tohoto zdroje.</string>
     <string name="onboarding_sources_version_desc">Klepnutím na verzi zobrazíte úplný seznam změn pro tento zdroj.</string>
     <string name="onboarding_sources_prerelease_desc">Povolte, abyste obdrželi předběžné verze záplat z tohoto zdroje.</string>
@@ -1358,7 +1358,7 @@ Chcete přesto pokračovat?"</string>
     <string name="onboarding_system_file_picker_desc">Povolte pro použití vestavěného správce souborů namísto systémového výběru při výběru APK nebo klíčů.</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Rychlá prohlídka funkcí</string>
-    <string name="tour_prompt_desc">Chcete si prohlédnout klíčové funkce Morphe?</string>
+    <string name="tour_prompt_desc">Chcete si prohlédnout klíčové funkce Nivqo?</string>
     <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Proveďte prohlídku</string>
     <string name="onboarding_restart_title">Prohlídka funkcí</string>

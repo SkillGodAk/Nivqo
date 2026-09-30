@@ -20,18 +20,18 @@
     <string name="android_11_bug_dialog_title">অ্যান্ড্রয়েড ১১ বাগ</string>
     <string name="android_11_bug_dialog_description">এক্সপ্লোর 11 সিস্টেমের একটি বাগের কারণে অ্যাপ ইনস্টলেশন অনুমতি আগে দেওয়া উচিত। এটি ব্যবহারকারীর অভিজ্ঞতাকে নেতিবাচকভাবে প্রভাবিত করবে</string>
     <string name="deep_link_add_source_title">সোর্স যোগ করুন</string>
-    <string name="deep_link_add_source_message">আপনি কি এই প্যাচ সোর্স Morphe-এ যোগ করতে চান?</string>
+    <string name="deep_link_add_source_message">আপনি কি এই প্যাচ সোর্স Nivqo-এ যোগ করতে চান?</string>
     <string name="deep_link_add_source_warning">আপনি শুধুমাত্র যে উৎসগুলির উপর বিশ্বাস করেন সেগুলিই যোগ করুন</string>
     <!-- Home Screen - Update Notifications -->
-    <string name="home_update_available">Morphe আপডেট উপলব্ধ</string>
+    <string name="home_update_available">Nivqo আপডেট উপলব্ধ</string>
     <string name="home_update_available_subtitle">নতুন সংস্করণ ইনস্টল করতে প্রস্তুত</string>
     <string name="home_blocked_source_title">ব্লক করা প্যাচ সোর্স সনাক্ত করা হয়েছে</string>
     <string name="home_blocked_source_subtitle">পর্যালোচনা ও সরানোর জন্য আলতো চাপুন</string>
     <string name="home_metadata_errors_title">কিছু প্যাচ সোর্স অনুপলব্ধ</string>
     <string name="home_metadata_errors_subtitle">সোর্সগুলি পর্যালোচনা করার জন্য আলতো চাপুন</string>
-    <string name="home_outdated_manager_title">Morphe à®¦®°®¨ à®¨®²®¨ à®¨®¤®°</string>
+    <string name="home_outdated_manager_title">Nivqo à®¦®°®¨ à®¨®²®¨ à®¨®¤®°</string>
     <string name="home_outdated_manager_subtitle">কিছু প্যাচ উৎসের একটি নতুন সংস্করণ প্রয়োজন</string>
-    <string name="home_held_back_title">একটি প্যাচ সোর্স Morphe-কে ক্র্যাশ করেছে</string>
+    <string name="home_held_back_title">একটি প্যাচ সোর্স Nivqo-কে ক্র্যাশ করেছে</string>
     <string name="home_held_back_subtitle">অ্যাপটি চালু করার জন্য এটি এড়িয়ে যাওয়া হয়েছে। পর্যালোচনা করতে ট্যাপ করুন</string>
     <string name="home_metered_skipped_title">মোবাইল ডেটাতে আপডেটগুলিPaused</string>
     <string name="home_metered_skipped_subtitle">মোবাইল ডেটাতে আপডেট করার জন্য ট্যাপ করুন</string>
@@ -48,10 +48,10 @@
     <string name="home_app_list_options_title">সাজান এবং ফিল্টার করুন</string>
     <string name="home_app_list_options_state_description">%1$s অনুসারে সাজানো হয়েছে, %2$s অনুসারে ফিল্টার করা হয়েছে</string>
     <string name="home_app_filter_all_description">হোম স্ক্রিনে থাকা প্রতিটি অ্যাপ</string>
-    <string name="home_app_filter_patched_description">Morphe দিয়ে আপনি যেসব অ্যাপ প্যাচ করেছেন বা সংরক্ষণ করেছেন</string>
-    <string name="home_app_filter_not_patched_description">Morphe-এ আপনি যেসব অ্যাপ এখনও প্যাচ করেননি</string>
+    <string name="home_app_filter_patched_description">Nivqo দিয়ে আপনি যেসব অ্যাপ প্যাচ করেছেন বা সংরক্ষণ করেছেন</string>
+    <string name="home_app_filter_not_patched_description">Nivqo-এ আপনি যেসব অ্যাপ এখনও প্যাচ করেননি</string>
     <string name="home_app_filter_installed_description">এই ডিভাইসে বর্তমানে ইনস্টল করা অ্যাপগুলো</string>
-    <string name="home_app_filter_uninstalled_description">Morphe দিয়ে প্যাচ করা অ্যাপগুলো যেগুলো আর এই ডিভাইসে নেই</string>
+    <string name="home_app_filter_uninstalled_description">Nivqo দিয়ে প্যাচ করা অ্যাপগুলো যেগুলো আর এই ডিভাইসে নেই</string>
     <string name="home_app_filter_clones">ক্লোন</string>
     <string name="home_app_filter_clones_description">নিজস্ব প্যাকেজ নামে তৈরি, মূল অ্যাপের পাশাপাশি ইনস্টল করা অ্যাপ</string>
     <string name="home_app_sort_manual_description">কোনো অ্যাপ দীর্ঘক্ষণ চাপুন, তারপর পুনর্বিন্যাস বোতামে আলতো চাপুন</string>
@@ -161,7 +161,7 @@
     <string name="sources_management_outdated_manager_badge">মর্ফে আপডেট করুন</string>
     <string name="sources_management_outdated_manager_hint">এই উৎসটি প্যাচার %1$s এর জন্য তৈরি করা হয়েছে, কিন্তু মর্ফে %2$s এ প্যাচার %3$s অন্তর্ভুক্ত রয়েছে। এটি ব্যবহার করার জন্য মর্ফে আপডেট করুন</string>
     <string name="sources_management_held_back_badge">ক্র্যাশ হয়েছে</string>
-    <string name="sources_management_held_back_hint">এই সোর্সটি লোড হওয়ার সময় Morphe-কে ক্র্যাশ করেছে, তাই এটি বাদ দেওয়া হচ্ছে। আবার চেষ্টা করতে এটি আপডেট করুন বা পুনরায় ইম্পোর্ট করুন</string>
+    <string name="sources_management_held_back_hint">এই সোর্সটি লোড হওয়ার সময় Nivqo-কে ক্র্যাশ করেছে, তাই এটি বাদ দেওয়া হচ্ছে। আবার চেষ্টা করতে এটি আপডেট করুন বা পুনরায় ইম্পোর্ট করুন</string>
     <string name="sources_management_source_enabled">সোর্স সক্রিয় করা হয়েছে</string>
     <string name="sources_management_source_disabled">সোর্স নিষ্ক্রিয় করা হয়েছে</string>
     <string name="sources_management_source_updating">সোর্স আপডেট করা হচ্ছে</string>
@@ -192,7 +192,7 @@
     <string name="sources_dialog_choose_apps_description">সোর্স লোড হয়ে গেলে তার কোন অ্যাপগুলো রাখতে চান তা বেছে নিন।</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">তৃতীয় পক্ষের প্যাচ উৎস</string>
-    <string name="sources_dialog_community_notice_message">"কমিউনিটি প্যাচ সোর্স তাদের নিজ নিজ লেখকগণ দ্বারা তৈরি ও রক্ষণাবেক্ষণ করা হয়। Morphe তৃতীয় পক্ষের প্যাচগুলো পর্যালোচনা বা যাচাই করে না, এবং তাদের বিষয়বস্তু বা আপনার ডিভাইসে যা করে তার জন্য দায়ী নয়।
+    <string name="sources_dialog_community_notice_message">"কমিউনিটি প্যাচ সোর্স তাদের নিজ নিজ লেখকগণ দ্বারা তৈরি ও রক্ষণাবেক্ষণ করা হয়। Nivqo তৃতীয় পক্ষের প্যাচগুলো পর্যালোচনা বা যাচাই করে না, এবং তাদের বিষয়বস্তু বা আপনার ডিভাইসে যা করে তার জন্য দায়ী নয়।
 
 আপনি এই ওয়েবসাইট থেকে যা কিছু যোগ করেন তা আপনার নিজের ঝুঁকিতে ব্যবহৃত হয়।"</string>
     <string name="sources_update_success">আপডেট সফল হয়েছে</string>
@@ -223,7 +223,7 @@
     <string name="home_apk_helper_no_access">সহায়ক অ্যাপটি ফেরত দেওয়া APK-এ অ্যাক্সেস দেওয়ার অনুমতি দেয়নি</string>
     <string name="home_apk_helper_no_package">সাহায্যকারী অ্যাপটি জানায়নি কোন ইনস্টল করা অ্যাপ ব্যবহার করতে হবে</string>
     <string name="home_apk_helper_wrong_package">সাহায্যকারী অ্যাপটি প্যাচ করা অ্যাপের চেয়ে ভিন্ন একটি অ্যাপ ফিরিয়ে দিয়েছে</string>
-    <string name="home_apk_helper_installed_unavailable">Morphe ইনস্টল করা অ্যাপটি ব্যবহার করতে পারেনি</string>
+    <string name="home_apk_helper_installed_unavailable">Nivqo ইনস্টল করা অ্যাপটি ব্যবহার করতে পারেনি</string>
     <string name="home_apk_helper_installed_incompatible">ইনস্টল করা সংস্করণটি প্যাচ করা যায় না</string>
     <string name="home_apk_use_saved">সেভ করে রাখা APK-টি ব্যবহার করুন</string>
     <string name="home_apk_use_installed">ফোনে ইনস্টল থাকা APK-টি ব্যবহার করুন</string>
@@ -231,7 +231,7 @@
     <string name="home_apk_use_installed_unverified">ইনস্টল করা অ্যাপের স্বাক্ষর যাচাই করা যায়নি, তাই এটি ইতোমধ্যেই প্যাচ করা থাকতে পারে</string>
     <string name="home_unverified">অপ্রমাণিত</string>
     <string name="home_install_verification_pending">ইনস্টলেশন পরীক্ষা করা হচ্ছে…</string>
-    <string name="home_app_info_install_unverified">ইনস্টল করা অ্যাপটি Morphe-এর প্যাচ করা বিল্ড কি না তা নিশ্চিত করা যাচ্ছে না। এর অ্যাকশনগুলো পুনরুদ্ধার করতে পুনরায় প্যাচ করুন অথবা সংরক্ষিত APK থেকে পুনরায় ইনস্টল করুন</string>
+    <string name="home_app_info_install_unverified">ইনস্টল করা অ্যাপটি Nivqo-এর প্যাচ করা বিল্ড কি না তা নিশ্চিত করা যাচ্ছে না। এর অ্যাকশনগুলো পুনরুদ্ধার করতে পুনরায় প্যাচ করুন অথবা সংরক্ষিত APK থেকে পুনরায় ইনস্টল করুন</string>
     <string name="home_app_info_no_saved_apk">কোন সংরক্ষিত APK নেই। প্যাচিংয়ের জন্য আবার APK ফাইল নির্বাচন করতে হবে</string>
     <string name="home_version_requires_android">Android %s+ প্রয়োজন</string>
     <string name="home_apk_no_compatible_versions_title">এই ডিভাইসে সমর্থিত নয়</string>
@@ -244,7 +244,7 @@
     <string name="home_download_instructions_step2_generic">ওয়েবপেজে নিচে স্ক্রল করুন এবং এর ডাউনলোড বাটনটি চাপুন</string>
     <string name="home_download_instructions_step2_variant">ওয়েবপেজে নিচে স্ক্রল করুন এবং উপরের <b>APK ভ্যারিয়েন্টের</b> ডাউনলোড বাটনটি চাপুন</string>
     <string name="home_download_instructions_step2_search">আপনি বিশ্বাস করেন এমন একটি ওয়েবসাইট থেকে একটি অনুসন্ধান ফলাফল খুলুন</string>
-    <string name="home_download_instructions_step2_search_note">Morphe এই ওয়েবসাইটগুলোর ব্যাপারে নিশ্চয়তা দিতে পারে না। যেগুলো APK ফাইলের পরিবর্তে নিজস্ব অ্যাপ স্টোর অফার করে, সেগুলো এড়িয়ে যান।</string>
+    <string name="home_download_instructions_step2_search_note">Nivqo এই ওয়েবসাইটগুলোর ব্যাপারে নিশ্চয়তা দিতে পারে না। যেগুলো APK ফাইলের পরিবর্তে নিজস্ব অ্যাপ স্টোর অফার করে, সেগুলো এড়িয়ে যান।</string>
     <string name="home_download_instructions_step3_search">সেই ওয়েবসাইটে, <b>%s</b> সংস্করণের APK ডাউনলোড করুন, সবচেয়ে নতুনটি নয়।</string>
     <string name="home_download_instructions_step3_search_any">সেই ওয়েবসাইটে, অ্যাপটির APK ডাউনলোড করুন। <b>যেকোনো সংস্করণ</b> প্যাচ করা যেতে পারে।</string>
     <string name="home_download_instructions_download_button_toast">এখানে নয়, ওয়েবসাইটে ডাউনলোড করুন 😊</string>
@@ -252,11 +252,11 @@
     <string name="home_download_instructions_download_button_toast_3">অনুশীলনের মাধ্যমেই নিখুঁত হওয়া যায় এবং আপনি সঠিক পথেই এগোচ্ছেন 💪</string>
     <string name="home_download_instructions_download_button_toast_4">এখনো এখানে নেই… এখনো এখানে নেই… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">ঠিক আছে, আমি আপনার নিষ্ঠা সম্মান করি 🫡</string>
-    <string name="home_download_instructions_download_button_toast_6">আপনি এখন একজন অফিসিয়াল Morphe বোতাম পরীক্ষক 🏅</string>
+    <string name="home_download_instructions_download_button_toast_6">আপনি এখন একজন অফিসিয়াল Nivqo বোতাম পরীক্ষক 🏅</string>
     <string name="home_download_instructions_step3">ডাউনলোড শেষ হওয়ার অপেক্ষা করুন, এবং &lt;b&gt;APK ইনস্টল করবেন না&lt;/b&gt;</string>
     <string name="home_download_instructions_step3_mount">ডাউনলোড শেষ হওয়ার অপেক্ষা করুন, তারপর &lt;b&gt;APK ইনস্টল করুন&lt;/b&gt;</string>
     <string name="home_download_instructions_step4">পরবর্তীতে ডাউনলোড শেষ হলে, মর্ফেকে ফিরে যান</string>
-    <string name="home_download_instructions_step4_mount">APK ইনস্টল করার পর, Morphe-তে ফিরে যান</string>
+    <string name="home_download_instructions_step4_mount">APK ইনস্টল করার পর, Nivqo-তে ফিরে যান</string>
     <string name="home_download_instructions_continue_to">%s-এ এগিয়ে যান</string>
     <string name="home_download_instructions_destination">ডাউনলোড পেজ</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
@@ -473,7 +473,7 @@
     <string name="home_app_info_version_move">ইনস্টল করা %1$s, নতুনতম সমর্থিত %2$s</string>
     <string name="home_app_info_app_deleted_warning">অ্যাপটি বের করা হয়েছে</string>
     <string name="home_app_info_app_deleted_description">এই অ্যাপটি মরফে বাইরে বের করা হয়েছে। ফাংশনালিটি পুনরুদ্ধার করতে পুনরায় প্যাচ করুন</string>
-    <string name="home_app_info_not_patched_description">এই অ্যাপের একটি অপ্যাচড সংস্করণ ইনস্টল করা আছে। Morphe এখনও তার পূর্ববর্তী প্যাচ রেকর্ড ধারণ করে।</string>
+    <string name="home_app_info_not_patched_description">এই অ্যাপের একটি অপ্যাচড সংস্করণ ইনস্টল করা আছে। Nivqo এখনও তার পূর্ববর্তী প্যাচ রেকর্ড ধারণ করে।</string>
     <string name="patcher_rename_title">এটি একটি ক্লোন ইনস্টল করবে</string>
     <string name="patcher_rename_description">প্যাচগুলো এই অ্যাপটি তাদের নিজস্ব প্যাকেজ নামে তৈরি করেছে, তাই এটি ইনস্টল করলে <b>%s</b>-এর পাশাপাশি একটি ক্লোন যুক্ত হবে, এটি আপডেট করার পরিবর্তে।</string>
     <string name="patcher_rename_result_package">হিসাবে ইনস্টল হবে</string>
@@ -486,7 +486,7 @@
     <string name="root_pre_patch_installer_description">আপনার ডিভাইসে রুট অ্যাক্সেস আছে। এই অ্যাপটি রুট মাউন্ট এর জন্য নাকি স্ট্যান্ডার্ড ইনস্টলের জন্য প্যাচ করা উচিত তা নির্বাচন করুন</string>
     <string name="root_pre_patch_installer_mount_title">রুট মাউন্ট মোড</string>
     <string name="root_pre_patch_installer_mount_description">রুটের জন্য প্যাচগুলি, তারপর স্টক অ্যাপের উপরে APK মাউন্ট করে। GmsCore প্রয়োজন নেই</string>
-    <string name="root_mount_module_unmount_warning">যদি KernelSU ডিফল্টভাবে আনমাউন্ট মডিউলগুলি সক্রিয় করে, তাহলে KernelSU > সুপারইউজার > আপনি যে অ্যাপটি মাউন্ট করেছেন > প্রোফাইল > কাস্টম খুলুন এবং আনমাউন্ট মডিউলগুলি নিষ্ক্রিয় করুন। অন্যথায় মাউন্ট করা প্যাচ করা APK কার্যকর নাও হতে পারে, এমনকি যদি Morphe এটিকে মাউন্ট করা হিসাবে দেখায়।</string>
+    <string name="root_mount_module_unmount_warning">যদি KernelSU ডিফল্টভাবে আনমাউন্ট মডিউলগুলি সক্রিয় করে, তাহলে KernelSU > সুপারইউজার > আপনি যে অ্যাপটি মাউন্ট করেছেন > প্রোফাইল > কাস্টম খুলুন এবং আনমাউন্ট মডিউলগুলি নিষ্ক্রিয় করুন। অন্যথায় মাউন্ট করা প্যাচ করা APK কার্যকর নাও হতে পারে, এমনকি যদি Nivqo এটিকে মাউন্ট করা হিসাবে দেখায়।</string>
     <string name="root_pre_patch_installer_standard_title">স্ট্যান্ডার্ড ইনস্টল মোড</string>
     <string name="root_pre_patch_installer_standard_description">GmsCore সমর্থন সহ একটি সাধারণ APK হিসাবে প্যাচ। প্যাচিং করার পরে আপনার ইনস্টলার সেটিংস ব্যবহার করা হয়</string>
     <string name="root_pre_patch_installer_hint">এই প্যাচ মোডটি সেটিংস > সিস্টেম > ইনস্টলার থেকে আলাদা এবং প্যাচিং করার পরে পরিবর্তন করা যাবে না।</string>
@@ -548,7 +548,7 @@
     <string name="patcher_conflict_subtitle">আপনাকে বিদ্যমান সংস্করণটি আনইনস্টল করতে হবে</string>
     <string name="patcher_conflict_hint">প্যাচ করা অ্যাপটি ইনস্টল করা সংস্করণের চেয়ে আলাদা সার্টিফিকেট ব্যবহার করে। আনইনস্টল করলে অ্যাপের সমস্ত ডেটা মুছে যাবে।</string>
     <string name="patcher_installed_conflict_title">আনইনস্টল করা প্রয়োজন</string>
-    <string name="patcher_installed_conflict_body">"Morphe তার নিজস্ব সার্টিফিকেট দিয়ে প্যাচ করা অ্যাপগুলিতে স্বাক্ষর করে, যা মূলটির থেকে আলাদা। প্যাচ করা অ্যাপ ইনস্টল করার আগে, বিদ্যমান সংস্করণটি সরিয়ে ফেলতে Android-এর প্রয়োজন।
+    <string name="patcher_installed_conflict_body">"Nivqo তার নিজস্ব সার্টিফিকেট দিয়ে প্যাচ করা অ্যাপগুলিতে স্বাক্ষর করে, যা মূলটির থেকে আলাদা। প্যাচ করা অ্যাপ ইনস্টল করার আগে, বিদ্যমান সংস্করণটি সরিয়ে ফেলতে Android-এর প্রয়োজন।
 
 আনইনস্টল করলে সমস্ত অ্যাপের ডেটা স্থায়ীভাবে মুছে যাবে"</string>
     <string name="patcher_install_error_title">ইনস্টলেশন ত্রুটি</string>
@@ -558,9 +558,9 @@
     <string name="patcher_back_to_game_hint">আপনার গেমে ফিরে যেতে %1$s ট্যাপ করুন</string>
     <string name="patcher_storage_permission_dialog_title">স্টোরেজ পথে অ্যাক্সেস করতে পারেনি</string>
     <string name="patcher_incompatible_patcher_title">আপডেট প্রয়োজন</string>
-    <string name="patcher_incompatible_patcher_description">বান্ডেল &lt;b&gt;%1$s&lt;/b&gt;-এর জন্য প্যাচার সংস্করণ &lt;b&gt;%2$s&lt;/b&gt; অথবা তার চেয়ে নতুন সংস্করণ প্রয়োজন। এই অ্যাপটি প্যাচ করার জন্য অনুগ্রহ করে Morphe আপডেট করুন</string>
+    <string name="patcher_incompatible_patcher_description">বান্ডেল &lt;b&gt;%1$s&lt;/b&gt;-এর জন্য প্যাচার সংস্করণ &lt;b&gt;%2$s&lt;/b&gt; অথবা তার চেয়ে নতুন সংস্করণ প্রয়োজন। এই অ্যাপটি প্যাচ করার জন্য অনুগ্রহ করে Nivqo আপডেট করুন</string>
     <string name="patcher_incompatible_patcher_update_button">মর্ফে ডাউনলোড এবং আপডেট করুন</string>
-    <string name="patcher_storage_permission_description_api30">একটি বা একাধিক প্যাচ অপশন এমন পথে নির্দেশ করে যা Morphe পড়তে পারে না। স্টোরেজ অ্যাক্সেস দিন এবং বোতামটি টিপুন, তাহলে প্যাচিং স্বয়ংক্রিয়ভাবে শুরু হবে।</string>
+    <string name="patcher_storage_permission_description_api30">একটি বা একাধিক প্যাচ অপশন এমন পথে নির্দেশ করে যা Nivqo পড়তে পারে না। স্টোরেজ অ্যাক্সেস দিন এবং বোতামটি টিপুন, তাহলে প্যাচিং স্বয়ংক্রিয়ভাবে শুরু হবে।</string>
     <string name="patcher_storage_permission_description_legacy">এক বা একাধিক প্যাচ বিকল্প অ্যাক্সেস করতে পারে না। প্যাচ বিকল্পগুলিতে পথ আপডেট করুন এবং আবার চেষ্টা করুন</string>
     <string name="patcher_storage_permission_grant">স্টোরেজ অনুমতি দিন</string>
     <string name="patcher_storage_permission_denied_warning">স্টোরেজ অনুমতি প্রত্যাখ্যাত হয়। এই পথ ব্যবহার করতে, অনুমতি দিন অথবা ফাইলগুলি অ্যাপের বেসিক ডিরেক্টরিতে সরান।</string>
@@ -574,7 +574,7 @@
     <string name="patcher_option_paths_gone_title">প্যাচ অপশন ফাইলগুলো অনুপস্থিত</string>
     <string name="patcher_option_paths_gone_description">এক বা একাধিক প্যাচ অপশন এমন ফাইলগুলোর দিকে নির্দেশ করে যেগুলো আর নেই। সেগুলো ছাড়া প্যাচ করতে পাথগুলো সরান, অথবা ফাইলগুলো আবার রেখে পুনরায় চেষ্টা করুন।</string>
     <string name="patcher_option_paths_clear">পাথগুলো সরান এবং চালিয়ে যান</string>
-    <string name="patcher_storage_permission_hint">টিপ: ফাইলগুলি /Android/data/app.morphe.manager/files/ এ সরান - অতিরিক্ত অনুমতি প্রয়োজন হয় না</string>
+    <string name="patcher_storage_permission_hint">টিপ: ফাইলগুলি /Android/data/app.nivqo.manager/files/ এ সরান - অতিরিক্ত অনুমতি প্রয়োজন হয় না</string>
     <!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">প্রস্তুতি</string>
     <string name="patcher_step_load_patches">প্যাচ লোড হচ্ছে</string>
@@ -586,7 +586,7 @@
     <string name="patcher_step_sign_apk">প্যাচ করা APK ফাইল সাইন করা হচ্ছে</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">ব্যাকগ্রাউন্ড প্যাচিং সুরক্ষা</string>
-    <string name="battery_optimization_dialog_description">কিছু ডিভাইস অ্যাপটি মিনিমাইজ করা হলে প্যাচার বন্ধ করতে পারে। প্যাচিং নির্ভরযোগ্যভাবে সম্পন্ন করার জন্য Morphe-কে ব্যাটারি সীমাবদ্ধতা ছাড়াই চলতে দেওয়ার অনুমতি দিন</string>
+    <string name="battery_optimization_dialog_description">কিছু ডিভাইস অ্যাপটি মিনিমাইজ করা হলে প্যাচার বন্ধ করতে পারে। প্যাচিং নির্ভরযোগ্যভাবে সম্পন্ন করার জন্য Nivqo-কে ব্যাটারি সীমাবদ্ধতা ছাড়াই চলতে দেওয়ার অনুমতি দিন</string>
     <string name="battery_optimization_not_now">এখন নয়</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">পর্যাপ্ত মেমোরি নেই</string>
@@ -643,8 +643,8 @@
     <string name="install_ignore_signature">যাই হোক ইনস্টল করুন</string>
     <string name="install_ignore_signature_description">অ্যাপ ডেটা সংরক্ষণ করে, তবে এটি কেবল তখনই কাজ করে যদি একটি রুট মডিউল অ্যান্ড্রয়েডের সিগনেচার ভেরিফিকেশন নিষ্ক্রিয় করে</string>
     <string name="uninstall_app_fail">অ্যাপ আনইনস্টল করতে ব্যর্থ: %s</string>
-    <string name="uninstall_app_unverified">জায়গায় রেখে দেওয়া হয়েছে: Morphe নিশ্চিত করতে পারেনি যে ইনস্টল করা অ্যাপটি এটি প্যাচ করা বিল্ডটি।</string>
-    <string name="launch_app_unverified">Morphe নিশ্চিত করতে পারেনি যে ইনস্টল করা অ্যাপটি এটি প্যাচ করা বিল্ডটি।</string>
+    <string name="uninstall_app_unverified">জায়গায় রেখে দেওয়া হয়েছে: Nivqo নিশ্চিত করতে পারেনি যে ইনস্টল করা অ্যাপটি এটি প্যাচ করা বিল্ডটি।</string>
+    <string name="launch_app_unverified">Nivqo নিশ্চিত করতে পারেনি যে ইনস্টল করা অ্যাপটি এটি প্যাচ করা বিল্ডটি।</string>
     <string name="uninstall_timeout">আনইনস্টল করার সময়সীমা উত্তীর্ণ হয়েছে</string>
     <string name="save_apk_success">APK সেভ করা হয়েছে</string>
     <string name="saved_app_export_failed">প্যাচ করা অ্যাপ এক্সপোর্ট করতে ব্যর্থ</string>
@@ -755,7 +755,7 @@
     <string name="settings_appearance_app_card_colors_bundle_description">এখানে প্রতিটি অ্যাপের নিজস্ব রঙ ব্যবহার করুন, যা স্বয়ংক্রিয়ভাবে মানানসই করার জন্য শেড করা হবে</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">অ্যাপ আইকন</string>
-    <string name="settings_appearance_app_icon_selector_description">Morphe আপনার হোম স্ক্রিনে এবং অ্যাপ ড্রয়ারে কেমন দেখায়</string>
+    <string name="settings_appearance_app_icon_selector_description">Nivqo আপনার হোম স্ক্রিনে এবং অ্যাপ ড্রয়ারে কেমন দেখায়</string>
     <string name="settings_appearance_app_icon_default">ডিফল্ট</string>
     <string name="settings_appearance_app_icon_light_2">স্কাই</string>
     <string name="settings_appearance_app_icon_light_3">সানসেট</string>
@@ -771,14 +771,14 @@
     <string name="settings_advanced_patcher">প্যাচার</string>
     <string name="settings_advanced_updates_manager_prereleases">প্রাক-রিলিজ আপডেট</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
-    <string name="settings_advanced_updates_manager_prereleases_description">নতুন Morphe সংস্করণগুলোতে প্রাথমিক অ্যাক্সেস</string>
+    <string name="settings_advanced_updates_manager_prereleases_description">নতুন Nivqo সংস্করণগুলোতে প্রাথমিক অ্যাক্সেস</string>
     <string name="settings_advanced_updates_prerelease_warning_title">প্রাক-রিলিজ আপডেট সক্রিয় করবেন?</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
-    <string name="settings_advanced_updates_prerelease_warning_message">"Morphe-এর প্রাক-রিলিজ সংস্করণগুলো এখনও উন্নয়নাধীন এবং অস্থির হতে পারে।
+    <string name="settings_advanced_updates_prerelease_warning_message">"Nivqo-এর প্রাক-রিলিজ সংস্করণগুলো এখনও উন্নয়নাধীন এবং অস্থির হতে পারে।
 
 প্যাচগুলো প্রভাবিত হয় না: প্যাচ উৎস তালিকায় প্রতিটি উৎসের জন্য প্রাক-রিলিজ প্যাচ সক্রিয় করুন।"</string>
     <string name="settings_advanced_updates_allow_metered">মোবাইল ডেটা আপডেট।</string>
-    <string name="settings_advanced_updates_allow_metered_description">Morphe এবং প্যাচ আপডেট মোবাইল ডেটার মাধ্যমে ডাউনলোড করার অনুমতি দেয়।</string>
+    <string name="settings_advanced_updates_allow_metered_description">Nivqo এবং প্যাচ আপডেট মোবাইল ডেটার মাধ্যমে ডাউনলোড করার অনুমতি দেয়।</string>
     <string name="settings_advanced_updates_background_notifications">ব্যাকগ্রাউন্ড আপডেট নোটিফিকেশন</string>
     <string name="settings_advanced_updates_background_notifications_description">ব্যাকগ্রাউন্ডে আপডেটের জন্য পর্যায়ক্রমে চেক করুন এবং উপলব্ধ হলে বিজ্ঞপ্তি দিন।</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">অ্যাপটি বন্ধ থাকা অবস্থায়ও নতুন রিলিজের জন্য পুশ বিজ্ঞপ্তি।</string>
@@ -795,27 +795,27 @@
     <string name="settings_advanced_external_batch_patch">বাহ্যিক ট্রিগার করার অনুমতি দিন</string>
     <string name="settings_advanced_external_batch_patch_description">অটোমেশন অ্যাপগুলোকে একটি ইন্টেন্টের মাধ্যমে ব্যাচ প্যাচিং শুরু করতে দেয়</string>
     <string name="external_batch_patch_title">ব্যাচ প্যাচিং শুরু করবেন?</string>
-    <string name="external_batch_patch_description">%s Morphe কে অ্যাপগুলি প্যাচ এবং ইনস্টল করতে চায়</string>
+    <string name="external_batch_patch_description">%s Nivqo কে অ্যাপগুলি প্যাচ এবং ইনস্টল করতে চায়</string>
     <string name="external_batch_patch_trust_caller">সর্বদা এই অ্যাপটিকে অনুমতি দিন</string>
     <string name="external_batch_patch_unknown_caller">একটি অজানা অ্যাপ</string>
     <!-- Notification content -->
-    <string name="notification_manager_update_title">Morphe আপডেট উপলব্ধ</string>
+    <string name="notification_manager_update_title">Nivqo আপডেট উপলব্ধ</string>
     <string name="notification_bundle_update_title">নতুন প্যাচ পাওয়া গেছে</string>
     <string name="notification_update_text">Version %s ডাউনলোড করার জন্য প্রস্তুত</string>
-    <string name="notification_bundle_update_text_unversioned">Morphe খুলুন এবং আপডেট করুন</string>
+    <string name="notification_bundle_update_text_unversioned">Nivqo খুলুন এবং আপডেট করুন</string>
     <string name="notification_permission_dialog_title">নোটিফিকেশন অনুমতি দিন</string>
-    <string name="notification_permission_dialog_description">আপডেট উপলব্ধ হলে Morphe আপনাকে সতর্ক করার জন্য বিজ্ঞপ্তি অনুমতির প্রয়োজন</string>
+    <string name="notification_permission_dialog_description">আপডেট উপলব্ধ হলে Nivqo আপনাকে সতর্ক করার জন্য বিজ্ঞপ্তি অনুমতির প্রয়োজন</string>
     <string name="notification_post_patch_dialog_title">আপনি আপডেটের उपलब्धতা সম্পর্কে জানতে চান?</string>
-    <string name="notification_channel_manager_updates">Morphe আপডেট</string>
-    <string name="notification_channel_manager_updates_description">নতুন Morphe রিলিজ সম্পর্কে বিজ্ঞপ্তি</string>
+    <string name="notification_channel_manager_updates">Nivqo আপডেট</string>
+    <string name="notification_channel_manager_updates_description">নতুন Nivqo রিলিজ সম্পর্কে বিজ্ঞপ্তি</string>
     <string name="notification_channel_patch_updates">প্যাচ আপডেট</string>
     <string name="notification_channel_patch_updates_description">নতুন প্যাচ রিলিজ সম্পর্কে বিজ্ঞপ্তি</string>
     <string name="notification_channel_patcher">প্যাচিং</string>
-    <string name="notification_channel_patcher_description">Morphe ব্যাকগ্রাউন্ডে কোনো অ্যাপ প্যাচ করার সময় দেখানো হয়</string>
+    <string name="notification_channel_patcher_description">Nivqo ব্যাকগ্রাউন্ডে কোনো অ্যাপ প্যাচ করার সময় দেখানো হয়</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">বিশেষ্ট সেটিংস</string>
     <string name="settings_advanced_expert_mode">বিশেষ্ট মোড</string>
-    <string name="settings_advanced_expert_mode_description">জটিল Morphe প্যাচিং সেটিংস এবং কাস্টমাইজেশন বিকল্পগুলি সক্ষম করে।</string>
+    <string name="settings_advanced_expert_mode_description">জটিল Nivqo প্যাচিং সেটিংস এবং কাস্টমাইজেশন বিকল্পগুলি সক্ষম করে।</string>
     <string name="settings_advanced_expert_mode_dialog_title">এক্সপার্ট মোড সক্ষম করবেন?</string>
     <string name="settings_advanced_expert_mode_dialog_message">এক্সপার্ট মোড অ্যাপ্লিকেশনগুলিতে প্যাচগুলি কীভাবে প্রয়োগ করা হবে তার উপর বেশি নিয়ন্ত্রণ প্রদান করে, কিন্তু এক্সপার্ট মোডে সেটিংস মিসকনফিগার করলে অ্যাপ্লিকেশনটি কাজ না করবে এমন অবস্থা হতে পারে</string>
     <string name="settings_advanced_strip_unused_libs">যন্ত্রের আর্কিটেকচারের জন্য অপ্টিমাইজ করুন</string>
@@ -831,7 +831,7 @@
 %1$s-এ"</string>
     <string name="settings_advanced_github_pat_export_include_label">সেটিংসে অন্তর্ভুক্ত করুন</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
-    <string name="settings_advanced_github_pat_export_include_supporting">এই PAT-কে রপ্ত করা Morphe সেটিংস-এ যুক্ত করুন</string>
+    <string name="settings_advanced_github_pat_export_include_supporting">এই PAT-কে রপ্ত করা Nivqo সেটিংস-এ যুক্ত করুন</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">আপনার PAT কে শেয়ার করবেন না। যদি আপনি এটি সেটিংসে অন্তর্ভুক্ত করেন, তাহলে সেই ফাইলটি বেসিক রাখুন, কারণ এটি টোকেন ধারণ করে</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
@@ -918,7 +918,7 @@ morphe_adaptive_monochrome_custom.xml
     <string name="installer_status_not_supported">এই ক্রিয়ার জন্য সমর্থিত নয়</string>
     <string name="installer_status_shizuku_not_installed">এই বিকল্প ব্যবহার করতে শিজুকু বা সুই ইনস্টল করুন</string>
     <string name="installer_status_shizuku_not_running">শিজুকু বা সুই শুরু করুন এবং আবার চেষ্টা করুন</string>
-    <string name="installer_status_shizuku_permission">Morphe-কে Shizuku অ্যাপ থেকে অনুমতি দিন</string>
+    <string name="installer_status_shizuku_permission">Nivqo-কে Shizuku অ্যাপ থেকে অনুমতি দিন</string>
     <string name="installer_mount_warning_install">তোমার প্রধান ইনস্টলার রুটেড মাউন্ট ইনস্টলার সেট করা আছে. এই সেভড অ্যাপটি মাউন্ট ব্যবহার করে ইনস্টল করা হয়নি</string>
     <string name="mount_version_mismatch_message">স্টক অ্যাপ ভার্সন (%2$s) প্যাচড অ্যাপ ভার্সন (%1$s) এর সাথে ম্যাচ করে না. ম্যাচিং স্টক ভার্সন মাউন্ট কর এবং আবার চেষ্টা করুন</string>
     <string name="mount_stock_restore_failed_message">অ্যান্ড্রয়েড সংরক্ষিত মূল APK প্রত্যাখ্যান করেছে। ম্যাচিং স্টক সংস্করণ ইনস্টল করুন, তারপর আবার মাউন্ট করার চেষ্টা করুন।</string>
@@ -948,7 +948,7 @@ morphe_adaptive_monochrome_custom.xml
     <string name="settings_auto_uninstall_with_shizuku">সংঘাত হলে স্বয়ংক্রিয়ভাবে আনইনস্টল করুন</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Shizuku দিয়ে স্বয়ংক্রিয়ভাবে ইনস্টল করার সময়, যদি Android সিগনেচার কনফ্লিক্ট রিপোর্ট করে তবে প্রথমে বিদ্যমান অ্যাপটি আনইনস্টল করুন। এটি অ্যাপের ডেটা মুছে ফেলতে পারে।</string>
     <string name="settings_auto_uninstall_warning_title">স্বয়ংক্রিয়ভাবে আনইনস্টল করা কি সক্রিয় করবেন?</string>
-    <string name="settings_auto_uninstall_warning_message">Shizuku স্বয়ংক্রিয় ইনস্টলের সময়, যদি Android সিগনেচার কনফ্লিক্ট রিপোর্ট করে, তাহলে Morphe প্যাচ করা APK ইনস্টল করার আগে বিদ্যমান অ্যাপটি আনইনস্টল করবে।</string>
+    <string name="settings_auto_uninstall_warning_message">Shizuku স্বয়ংক্রিয় ইনস্টলের সময়, যদি Android সিগনেচার কনফ্লিক্ট রিপোর্ট করে, তাহলে Nivqo প্যাচ করা APK ইনস্টল করার আগে বিদ্যমান অ্যাপটি আনইনস্টল করবে।</string>
     <string name="settings_auto_uninstall_warning_risk">এটি অ্যাপের ডেটা মুছে ফেলতে পারে। যদি আনইনস্টল করার পরে প্যাচ করা APK ইনস্টল করতে ব্যর্থ হয়, তাহলে আগের অ্যাপটি সম্ভবত ইতিমধ্যে চলে গেছে।</string>
     <string name="installer_shizuku_status_action">Shizuku স্ট্যাটাস পরীক্ষা করুন</string>
     <string name="installer_shizuku_status_title">Shizuku স্ট্যাটাস</string>
@@ -966,7 +966,7 @@ morphe_adaptive_monochrome_custom.xml
     <string name="installer_shizuku_install_fail_with_details">"Shizuku ইনস্টল ব্যর্থ হয়েছে: %1$s
 
 বিস্তারিত: %2$s"</string>
-    <string name="installer_shizuku_error_permission">Shizuku অনুমতি অনুপস্থিত। Morphe-কে অনুমতি দিন এবং পুনরায় চেষ্টা করুন।</string>
+    <string name="installer_shizuku_error_permission">Shizuku অনুমতি অনুপস্থিত। Nivqo-কে অনুমতি দিন এবং পুনরায় চেষ্টা করুন।</string>
     <string name="installer_shizuku_error_timeout">Shizuku কোনো ইনস্টল ফলাফল প্রদান করেনি। নিশ্চিত করুন এটি এখনও চলছে এবং পুনরায় চেষ্টা করুন।</string>
     <string name="installer_shizuku_error_downgrade">Android এটি ব্লক করেছে কারণ এটি ইনস্টল করা অ্যাপটিকে ডাউনগ্রেড করবে।</string>
     <string name="installer_shizuku_error_signature">Android এটি ব্লক করেছে কারণ ইনস্টল করা অ্যাপটির একটি ভিন্ন স্বাক্ষর রয়েছে।</string>
@@ -981,7 +981,7 @@ morphe_adaptive_monochrome_custom.xml
     <string name="settings_system_process_runtime_memory_limit_description">উচ্চতর সীমা সক্ষম ডিভাইসে প্যাচিংকে দ্রুত করে।</string>
     <string name="settings_system_process_runtime_enable">প্রক্রিয় রান্টাইম সক্রিয় করুন</string>
     <string name="settings_system_memory_limit_subtitle">মেমরি সীমিত</string>
-    <string name="settings_system_process_runtime_heap_limit_ignored">এই ডিভাইসটি শেষবার চালানোর সময় মেমরির সীমা উপেক্ষা করেছে, তাই প্যাচিং Morphe-এর ভিতরে চালানোর বিকল্পে ফিরে যেতে পারে</string>
+    <string name="settings_system_process_runtime_heap_limit_ignored">এই ডিভাইসটি শেষবার চালানোর সময় মেমরির সীমা উপেক্ষা করেছে, তাই প্যাচিং Nivqo-এর ভিতরে চালানোর বিকল্পে ফিরে যেতে পারে</string>
     <string name="settings_system_memory_limit_warning">পুরাতন মেমরি সীমিত উচ্চ মেমরি সীমিতগুলি পুরাতন ডিভাইসের জন্য অকার্যকার হতে পারে</string>
     <string name="settings_system_memory_limit_high_warning">উচ্চ মেমরি সীমা কিছু ডিভাইসে প্যাচিং অনেক ধীর করে দিতে পারে। কম সীমায় প্যাচিং ব্যর্থ হতে থাকলেই কেবল এটি বাড়ান।</string>
     <string name="settings_system_process_runtime_enabled_description">%s এমবি সীমা</string>
@@ -1004,8 +1004,8 @@ morphe_adaptive_monochrome_custom.xml
     <string name="settings_system_import_export">ইমপোর্ট &amp; এক্সপোর্ট </string>
     <string name="settings_system_signing_key">স্বাক্ষর কী</string>
     <string name="settings_system_signing_key_description">আপনার প্যাচ করা অ্যাপগুলো যে কী দিয়ে স্বাক্ষরিত হয় তা ব্যাকআপ এবং পুনরুদ্ধার করে</string>
-    <string name="settings_system_signing_key_dialog_description">Morphe প্যাচ করা প্রতিটি অ্যাপ এই কী দিয়ে স্বাক্ষরিত হয়। একটি কপি রাখুন: এটি ছাড়া, প্যাচ করা অ্যাপগুলো কেবল আনইনস্টল করার পরে আপডেট করা যাবে।</string>
-    <string name="settings_system_signing_key_missing">Morphe আপনার প্রথম প্যাচ করার সময় একটি তৈরি করে দেয়</string>
+    <string name="settings_system_signing_key_dialog_description">Nivqo প্যাচ করা প্রতিটি অ্যাপ এই কী দিয়ে স্বাক্ষরিত হয়। একটি কপি রাখুন: এটি ছাড়া, প্যাচ করা অ্যাপগুলো কেবল আনইনস্টল করার পরে আপডেট করা যাবে।</string>
+    <string name="settings_system_signing_key_missing">Nivqo আপনার প্রথম প্যাচ করার সময় একটি তৈরি করে দেয়</string>
     <string name="settings_system_signing_key_created">তৈরি হয়েছে %s</string>
     <string name="settings_system_signing_key_fingerprint">SHA-256 ফিঙ্গারপ্রিন্ট</string>
     <string name="settings_system_backup_appearance_description">থিম, রঙ এবং ভাষা</string>
@@ -1030,10 +1030,10 @@ morphe_adaptive_monochrome_custom.xml
     <string name="settings_system_export_keystore_failed">কীস্টোর এক্সপোর্ট করা যায়নি</string>
     <string name="settings_system_show_password_field">পাসওয়ার্ড দেখান</string>
     <string name="settings_system_hide_password_field">পাসওয়ার্ড লুকান</string>
-    <string name="settings_system_morphe_settings">Morphe সেটিংস</string>
-    <string name="settings_system_import_manager_settings_description">আপনার Morphe সেটিংসের ব্যাকআপ এবং পুনরুদ্ধার করে।</string>
-    <string name="settings_system_import_manager_settings_fail">Morphe সেটিংস আমদানি করতে ব্যর্থ হয়েছে: %s</string>
-    <string name="settings_system_import_manager_settings_success">Morphe সেটিংস আমদানি করা হয়েছে</string>
+    <string name="settings_system_morphe_settings">Nivqo সেটিংস</string>
+    <string name="settings_system_import_manager_settings_description">আপনার Nivqo সেটিংসের ব্যাকআপ এবং পুনরুদ্ধার করে।</string>
+    <string name="settings_system_import_manager_settings_fail">Nivqo সেটিংস আমদানি করতে ব্যর্থ হয়েছে: %s</string>
+    <string name="settings_system_import_manager_settings_success">Nivqo সেটিংস আমদানি করা হয়েছে</string>
     <string name="settings_system_import_manager_settings_mode_title">মর্ফে সেটিংস আমদানি</string>
     <string name="settings_system_import_manager_settings_mode_description">আমদানি করা সেটিংস এবং উৎসগুলি কীভাবে প্রয়োগ করা উচিত তা নির্বাচন করুন</string>
     <string name="settings_system_import_selections_mode_title">প্যাচ নির্বাচন আমদানি করুন</string>
@@ -1042,8 +1042,8 @@ morphe_adaptive_monochrome_custom.xml
     <string name="import_mode_replace_description">ব্যাকআপের সাথে হুবহু মিলবে। ব্যাকআপ থেকে অনুপস্থিত আইটেমগুলি সরানো হবে</string>
     <string name="import_mode_merge_title">বিদ্যমানের সাথে মার্জ করুন</string>
     <string name="import_mode_merge_description">ব্যাকআপ থেকে অনুপস্থিত আইটেমগুলি যোগ করুন। বিদ্যমান আইটেমগুলি অপরিবর্তিত থাকবে</string>
-    <string name="settings_system_export_manager_settings_fail">Morphe সেটিংস রপ্তানি করতে ব্যর্থ হয়েছে: %s</string>
-    <string name="settings_system_export_manager_settings_success">Morphe সেটিংস রপ্তানি করা হয়েছে</string>
+    <string name="settings_system_export_manager_settings_fail">Nivqo সেটিংস রপ্তানি করতে ব্যর্থ হয়েছে: %s</string>
+    <string name="settings_system_export_manager_settings_success">Nivqo সেটিংস রপ্তানি করা হয়েছে</string>
     <string name="settings_system_export_debug_logs">ডিবাগ লগগুলি রফতানি করুন</string>
     <string name="settings_system_export_debug_logs_description">সমস্যা সমাধানের জন্য সিস্টেম লগ সংরক্ষণ করে।</string>
     <string name="settings_system_export_debug_logs_export_read_failed">লগ পড়তে ব্যর্থ হয়েছে (ব্যবহার করা কোড %s)</string>
@@ -1079,7 +1079,7 @@ morphe_adaptive_monochrome_custom.xml
     <string name="settings_system_storage_cleared">ফ্রি করা হয়েছে %s</string>
     <string name="settings_system_storage_nothing_to_clear">পরিষ্কার করার জন্য কিছু নেই</string>
     <string name="settings_system_storage_open_app_info_title">Android অ্যাপ স্টোরেজ খুলুন</string>
-    <string name="settings_system_storage_open_app_info_description">সিস্টেম সেটিংসের মাধ্যমে সমস্ত Morphe ডেটা পরিচালনা বা পরিষ্কার করুন</string>
+    <string name="settings_system_storage_open_app_info_description">সিস্টেম সেটিংসের মাধ্যমে সমস্ত Nivqo ডেটা পরিচালনা বা পরিষ্কার করুন</string>
     <string name="settings_system_save_original_apks_title">মূল APK সমূহ</string>
     <string name="settings_system_save_original_apks_description">প্যাচ করার আগে APK টি সেভ করুন যাতে এটি ফাইলটি পুনরায় নির্বাচন না করে রিপ্যাচিংয়ের জন্য পুনরায় ব্যবহার করা যায়।</string>
     <string name="settings_system_save_patched_apks_title">প্যাচ করা APK সমূহ রাখুন</string>
@@ -1127,12 +1127,12 @@ morphe_adaptive_monochrome_custom.xml
     <string name="copy_selection_same_source">একই উৎস</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">কাস্টম ফাইল পিকার</string>
-    <string name="settings_system_custom_file_picker_description">সিস্টেম ডিফল্টের পরিবর্তে Morphe-এর বিল্ট-ইন ফাইল পিকার দিয়ে স্টোরেজ ব্রাউজ করুন</string>
+    <string name="settings_system_custom_file_picker_description">সিস্টেম ডিফল্টের পরিবর্তে Nivqo-এর বিল্ট-ইন ফাইল পিকার দিয়ে স্টোরেজ ব্রাউজ করুন</string>
     <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">APK ডাউনলোড সহায়ক</string>
     <string name="settings_system_apk_download_helper_trusted_count">বিশ্বস্ত: %2$d-এর মধ্যে %1$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">সহায়ক অ্যাপগুলো আপনার জন্য মূল APK ডাউনলোড করতে পারে। ডাউনলোডের নির্দেশাবলীতে কেবলমাত্র এখানে যাদের আপনি বিশ্বাস করেন সেগুলোই দেওয়া হয়।</string>
-    <string name="settings_system_apk_download_helper_warning">APK সহায়ক অ্যাপ থেকে আসে, তাই শুধুমাত্র আপনার জানা অ্যাপগুলোকেই বিশ্বাস করুন। Morphe এখনও প্যাচ করার আগে প্রতিটি ফাইলের প্যাকেজ, সংস্করণ এবং স্বাক্ষর যাচাই করে।</string>
+    <string name="settings_system_apk_download_helper_warning">APK সহায়ক অ্যাপ থেকে আসে, তাই শুধুমাত্র আপনার জানা অ্যাপগুলোকেই বিশ্বাস করুন। Nivqo এখনও প্যাচ করার আগে প্রতিটি ফাইলের প্যাকেজ, সংস্করণ এবং স্বাক্ষর যাচাই করে।</string>
     <string name="settings_system_apk_download_helper_installed_by">%s দ্বারা ইনস্টল করা হয়েছে</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">ইনস্টলকারী অজানা</string>
     <!-- File Picker -->
@@ -1315,7 +1315,7 @@ morphe_adaptive_monochrome_custom.xml
     <string name="update_completed">আপডেট ইনস্টল করা হয়েছে</string>
     <string name="install_update_manager_failed">আপডেট ইনস্টল করতে ব্যর্থ</string>
     <string name="installing_manager_update">আপডেট ইনস্টল করা হচ্ছে…</string>
-    <string name="installing_manager_update_hint">আপডেট শেষ করতে Morphe বন্ধ হয়ে যাবে</string>
+    <string name="installing_manager_update_hint">আপডেট শেষ করতে Nivqo বন্ধ হয়ে যাবে</string>
     <string name="downloading_manager_update">আপডেট ডাউনলোড হচ্ছে…</string>
     <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB ডাউনলোড হয়েছে</string>
@@ -1336,7 +1336,7 @@ morphe_adaptive_monochrome_custom.xml
     <string name="onboarding_sources_desc">আপনার প্যাচ উৎসগুলি পরিচালনা করুন। প্রতিটি উৎস এমন প্যাচ সরবরাহ করে যা আপনার অ্যাপগুলিতে প্রয়োগ করা যেতে পারে।</string>
     <string name="onboarding_swipe_title">সোয়াইপ অঙ্গভঙ্গি</string>
     <string name="onboarding_swipe_desc">অ্যাপ কার্ডে সোয়াইপ করে এর উপলব্ধ প্যাচগুলি দেখুন। কার্ডটি হোম স্ক্রীন থেকে লুকানোর জন্য বাম দিকে সোয়াইপ করুন</string>
-    <string name="onboarding_settings_desc">Morphe কাস্টমাইজ করুন: চেহারা, উন্নত বিকল্প এবং সিস্টেম সরঞ্জাম</string>
+    <string name="onboarding_settings_desc">Nivqo কাস্টমাইজ করুন: চেহারা, উন্নত বিকল্প এবং সিস্টেম সরঞ্জাম</string>
     <string name="onboarding_sources_patches_desc">এই উৎস থেকে উপলব্ধ সমস্ত প্যাচ দেখতে আলতো চাপুন</string>
     <string name="onboarding_sources_version_desc">এই উৎসের জন্য সম্পূর্ণ পরিবর্তনলগ দেখতে সংস্করণে আলতো চাপুন</string>
     <string name="onboarding_sources_prerelease_desc">এই উৎস থেকে প্রি-রিলিজ প্যাচ সংস্করণ গ্রহণ করতে এটি সক্ষম করুন</string>
@@ -1351,7 +1351,7 @@ morphe_adaptive_monochrome_custom.xml
     <string name="onboarding_system_file_picker_desc">APK বা কিস্টোর নির্বাচন করার সময় সিস্টেম পিকারের পরিবর্তে বিল্ট-ইন ফাইল ব্রাউজার ব্যবহার করতে এটি সক্ষম করুন</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">দ্রুত বৈশিষ্ট্য ভ্রমণ</string>
-    <string name="tour_prompt_desc">আপনি কি Morphe-এর মূল বৈশিষ্ট্যগুলির একটি দ্রুত ভ্রমণ চান?</string>
+    <string name="tour_prompt_desc">আপনি কি Nivqo-এর মূল বৈশিষ্ট্যগুলির একটি দ্রুত ভ্রমণ চান?</string>
     <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">আমাকে দেখাও</string>
     <string name="onboarding_restart_title">বৈশিষ্ট্য ভ্রমণ</string>

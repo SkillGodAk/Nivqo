@@ -44,7 +44,7 @@ val httpModule = module {
             requestTimeoutMillis = 10 * 60_000L
         }
         install(UserAgent) {
-            agent = "Morphe-Manager/${BuildConfig.VERSION_CODE}"
+            agent = "Nivqo-Manager/${BuildConfig.VERSION_CODE}"
         }
     }
 

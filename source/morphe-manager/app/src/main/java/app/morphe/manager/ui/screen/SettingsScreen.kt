@@ -303,12 +303,12 @@ fun SettingsScreen(
                 onImportKeystore = { importKeystoreLauncher() },
                 onExportKeystore = {
                     if (isTV) importExportViewModel.exportKeystoreToDownloads()
-                    else exportKeystoreLauncher.launch("Morphe.keystore")
+                    else exportKeystoreLauncher.launch("Nivqo.keystore")
                 },
                 onImportSettings = { importSettingsLauncher() },
                 onExportSettings = {
                     if (isTV) importExportViewModel.exportManagerSettingsToDownloads()
-                    else exportSettingsLauncher.launch("morphe_manager_settings.json")
+                    else exportSettingsLauncher.launch("nivqo_manager_settings.json")
                 },
                 onExportDebugLogs = {
                     if (isTV) importExportViewModel.exportDebugLogsToDownloads()

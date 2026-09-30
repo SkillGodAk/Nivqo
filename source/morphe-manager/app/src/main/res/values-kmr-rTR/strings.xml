@@ -15,16 +15,16 @@
     <string name="android_11_bug_dialog_title">Xetaya Android 11</string>
     <string name="android_11_bug_dialog_description">Semanka zetîn pêwist be pêşbaziyê pêş de bêtin da hêz be serir xendna Androida 11 zibu vê hilenkirinê yarde ji bo seranê her serxistine ye \'</string>
     <string name="deep_link_add_source_title">Kanîna çavkaniyê zêde bike</string>
-    <string name="deep_link_add_source_message">Ma tu wê çavkaniya vê pakê ji Morphe zêde bike?</string>
+    <string name="deep_link_add_source_message">Ma tu wê çavkaniya vê pakê ji Nivqo zêde bike?</string>
     <string name="deep_link_add_source_warning">Têkilîyên ku bawerî li wan hebin zêde bike</string>
     <!-- Home Screen - Update Notifications -->
-    <string name="home_update_available">Nûvekirina Morphe heye</string>
+    <string name="home_update_available">Nûvekirina Nivqo heye</string>
     <string name="home_update_available_subtitle">Nûvekirin amade ye ku were sazkirin</string>
     <string name="home_blocked_source_title">Çavkaniya pelê ya blokkirî hat dîtin</string>
     <string name="home_blocked_source_subtitle">Bixin da ku binêrin û bênin serbest</string>
     <string name="home_metadata_errors_title">Hinek çavkaniyên pelê ne berdest in</string>
     <string name="home_metadata_errors_subtitle">Bixin da ku çavkaniyan binêrin</string>
-    <string name="home_outdated_manager_title">Morphe kevn e</string>
+    <string name="home_outdated_manager_title">Nivqo kevn e</string>
     <string name="home_outdated_manager_subtitle">Çend çavkaniyên paşêrê hewceyê guherîna vêjêyek nû ne.</string>
     <string name="home_metered_skipped_title">Nûvekirin li ser data mobîlê hatin sekinin</string>
     <string name="home_metered_skipped_subtitle">Bikîne da ku nûvekirinên li ser data mobîl destûr bidî</string>
@@ -40,10 +40,10 @@
     <string name="home_app_list_options_title">Rêzkirin û fîltrekirin</string>
     <string name="home_app_list_options_state_description">Rêzkirî li gorî %1$s, fîltrekirî li gorî %2$s</string>
     <string name="home_app_filter_all_description">Her sepana li ser ekrana sereke</string>
-    <string name="home_app_filter_patched_description">Sepanên ku we bi Morphe pîne kirine an jî tomar kirine</string>
-    <string name="home_app_filter_not_patched_description">Sepanên ku we hê di Morphe de pîne nekirine</string>
+    <string name="home_app_filter_patched_description">Sepanên ku we bi Nivqo pîne kirine an jî tomar kirine</string>
+    <string name="home_app_filter_not_patched_description">Sepanên ku we hê di Nivqo de pîne nekirine</string>
     <string name="home_app_filter_installed_description">Sepanên ku niha li ser vê cîhazê sazkirî ne</string>
-    <string name="home_app_filter_uninstalled_description">Sepanên ku bi Morphe ve hatine patchkirin û êdî li ser vê cîhazê nînin</string>
+    <string name="home_app_filter_uninstalled_description">Sepanên ku bi Nivqo ve hatine patchkirin û êdî li ser vê cîhazê nînin</string>
     <string name="home_app_filter_clones">Klon</string>
     <string name="home_app_filter_clones_description">Serlêdanên ku bi navekî pakêtê yê taybet hatine çêkirin, li kêleka orîjînal têne sazkirin</string>
     <string name="home_app_sort_manual_description">Sepana dirêj bike, paşê bişîne ser butona rijandinê</string>
@@ -139,8 +139,8 @@
     <string name="sources_management_metadata_unavailable">Metadata N/A</string>
     <string name="sources_management_metadata_unavailable_hint">Pelgeya metadateya dûr nepehwîze. Lê dîsa jî nûkirina bi pakêta ku hatiye saz kirin dixebite, lê nûvekirina otomatîkî ji bo vê çavkaniyê nehate çalak kirin</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Pakêta paşîn nikaribû were dakêşîn. URL-a çavkaniyê dikare ne rast be an pelge ne heye</string>
-    <string name="sources_management_outdated_manager_badge">Morphe nûve bike</string>
-    <string name="sources_management_outdated_manager_hint">Ev çavkanî ji bo patcher %1$s hatî çêkirin, lê Morphe %2$s patcher %3$s vedihewîne. Morphe nûve bike da ku wê bikar bîne</string>
+    <string name="sources_management_outdated_manager_badge">Nivqo nûve bike</string>
+    <string name="sources_management_outdated_manager_hint">Ev çavkanî ji bo patcher %1$s hatî çêkirin, lê Nivqo %2$s patcher %3$s vedihewîne. Nivqo nûve bike da ku wê bikar bîne</string>
     <string name="sources_management_source_enabled">Çavkanî aktîv kirin</string>
     <string name="sources_management_source_disabled">Çavkanî ne aktîv kirin</string>
     <string name="sources_management_source_updating">Çavkanî nûkirin</string>
@@ -163,7 +163,7 @@
     <string name="sources_dialog_community">Patchên civakê</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Çavkaniyên patch ên partiya sêyem</string>
-    <string name="sources_dialog_community_notice_message">"Çavkaniyên patch ên civakê ji aliyê nivîskarên xwe ve têne çêkirin û têne parastin. Morphe patchên partiya sêyem nirx nake û verast nake, û ji naveroka wan an ji tiştê ku ew li ser cîhaza we dikin berpirsiyar nabe.
+    <string name="sources_dialog_community_notice_message">"Çavkaniyên patch ên civakê ji aliyê nivîskarên xwe ve têne çêkirin û têne parastin. Nivqo patchên partiya sêyem nirx nake û verast nake, û ji naveroka wan an ji tiştê ku ew li ser cîhaza we dikin berpirsiyar nabe.
 
 Her tiştê ku hûn ji vê malperê zêde dikin bi xetereya we tê bikaranîn."</string>
     <string name="sources_update_success">Nûvekirin serketî</string>
@@ -184,22 +184,22 @@ Her tiştê ku hûn ji vê malperê zêde dikin bi xetereya we tê bikaranîn."<
     <string name="home_apk_availability_no">Na, ez APK-yek heznikim</string>
     <string name="home_apk_helper_download">Serlêdanê arîkar bikar bînin</string>
     <string name="home_apk_helper_title">Bi serlêdanek arîkar dakêşin</string>
-    <string name="home_apk_helper_description">Morphe ji serlêdanê arîkarê jêrîn wê bigire ku APK-ya orjînal dakêşîne û pelê paş de bide</string>
+    <string name="home_apk_helper_description">Nivqo ji serlêdanê arîkarê jêrîn wê bigire ku APK-ya orjînal dakêşîne û pelê paş de bide</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
-    <string name="home_apk_helper_warning">Tenê pêşkeve, heke te ewî serlêdanê arîkar bawer bikî. Morphe paketa, versiyon û îmzeya her tiştê ku werdigire berî girêdayînê kontrol dike</string>
-    <string name="home_apk_helper_warning_unverified">Tenê pêşkeve, heke te ewî serlêdanê arîkar bawer bikî. Morphe nikare îmzaya vê APK-yê verast bike, ji ber vê yekê pelê guherandî nabe dîtin</string>
+    <string name="home_apk_helper_warning">Tenê pêşkeve, heke te ewî serlêdanê arîkar bawer bikî. Nivqo paketa, versiyon û îmzeya her tiştê ku werdigire berî girêdayînê kontrol dike</string>
+    <string name="home_apk_helper_warning_unverified">Tenê pêşkeve, heke te ewî serlêdanê arîkar bawer bikî. Nivqo nikare îmzaya vê APK-yê verast bike, ji ber vê yekê pelê guherandî nabe dîtin</string>
     <string name="home_apk_helper_no_result">Serlêdanê arîkar APK-yek negerand</string>
     <string name="home_apk_helper_no_access">Serlêdanê arîkar destûr nedaye gihîştina APK-ya ku ew gerand</string>
     <string name="home_apk_helper_no_package">Appa alîkar ne got ku kîjan appa sazkirî were bikaranîn</string>
     <string name="home_apk_helper_wrong_package">Appa alîkar appek cuda vegerand ji ya ku tê patchkirin</string>
-    <string name="home_apk_helper_installed_unavailable">Morphe nekarî appa sazkirî bikar bîne</string>
+    <string name="home_apk_helper_installed_unavailable">Nivqo nekarî appa sazkirî bikar bîne</string>
     <string name="home_apk_helper_installed_incompatible">Guhertoya sazkirî nayê patchkirin</string>
     <string name="home_apk_use_saved">APK ya saved bikar bîne</string>
     <string name="home_apk_use_installed">APK ya sazkirî bikar bîne</string>
     <string name="home_apk_use_installed_unverified">Nezêrbû ku îmzaya sepanê yê ku hatî saz kirin bê xeml kirin, lew re dibe ku jî berê hatî guhertin</string>
     <string name="home_unverified">Neverastkirî</string>
     <string name="home_install_verification_pending">Kontrolkirina sazkirinê…</string>
-    <string name="home_app_info_install_unverified">Morphe nikare piştrast bike ku sepanê hatî sazkirin ew avahiya ku ew patch kiriye. Dîsa patch bike an jî ji APK ya tomarkirî careke din saz bike da ku çalakiyên wê vegerînin.</string>
+    <string name="home_app_info_install_unverified">Nivqo nikare piştrast bike ku sepanê hatî sazkirin ew avahiya ku ew patch kiriye. Dîsa patch bike an jî ji APK ya tomarkirî careke din saz bike da ku çalakiyên wê vegerînin.</string>
     <string name="home_app_info_no_saved_apk">APK kume ne. Berî ev, wê APK ava beke</string>
     <string name="home_version_requires_android">Android %s+ hewce dike.</string>
     <string name="home_apk_no_compatible_versions_title">Li vê cihazê de ne piştgirîkirî</string>
@@ -212,7 +212,7 @@ Her tiştê ku hûn ji vê malperê zêde dikin bi xetereya we tê bikaranîn."<
     <string name="home_download_instructions_step2_generic">Rûpela webê berjêr bigerînin û pêlî bişkoka daxistinê ya wê bikin</string>
     <string name="home_download_instructions_step2_variant">Rûpela webê berjêr bigerînin û pêlî bişkoka daxistinê ya <b>guhertoya APK</b> ya jorîn bikin</string>
     <string name="home_download_instructions_step2_search">Netîceyek lêgerînê ji malpereke ku hûn pê bawer in vekin</string>
-    <string name="home_download_instructions_step2_search_note">Morphe nikare ji bo van malperan garantiyê bide. Yên ku li şûna dosyeyeke APK firoşgeha xwe ya sepanan pêşkêş dikin derbas bikin</string>
+    <string name="home_download_instructions_step2_search_note">Nivqo nikare ji bo van malperan garantiyê bide. Yên ku li şûna dosyeyeke APK firoşgeha xwe ya sepanan pêşkêş dikin derbas bikin</string>
     <string name="home_download_instructions_step3_search">Li ser wê malperê, APK-ya guhertoya <b>%s</b> daxînin, ne guhertoya herî nû</string>
     <string name="home_download_instructions_step3_search_any">Li ser wê malperê, APK-ya sepanê daxînin. <b>Her guhertoyek</b> dikare were patch kirin</string>
     <string name="home_download_instructions_download_button_toast">Li ser malpera çapa serdest bike, ne ku xwer li vir 😊</string>
@@ -220,11 +220,11 @@ Her tiştê ku hûn ji vê malperê zêde dikin bi xetereya we tê bikaranîn."<
     <string name="home_download_instructions_download_button_toast_3">Ezberkirin baş e û hûn nêzîk dibin 💪</string>
     <string name="home_download_instructions_download_button_toast_4">Hê jî li vir nînê... hîş li vir nînê... 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">Tamam, adaneliğinize saygı duyuyorum 🫡</string>
-    <string name="home_download_instructions_download_button_toast_6">Artık resmi bir Morphe düğme test cihazısın 🏅</string>
+    <string name="home_download_instructions_download_button_toast_6">Artık resmi bir Nivqo düğme test cihazısın 🏅</string>
     <string name="home_download_instructions_step3">Li benda qedembûna daxistinê bibe, û &lt;b&gt;APK-ê nas neke&lt;/b&gt;</string>
     <string name="home_download_instructions_step3_mount">Binevin destpêkirina daxistnê biqedîne, paşê &lt;b&gt;APKê nas bike&lt;/b&gt;</string>
-    <string name="home_download_instructions_step4">Pi serîdana daxistinê bi dawî bû, vegerin ser Morphe</string>
-    <string name="home_download_instructions_step4_mount">Pi naskindina APK\'ya bilavkirinê, vegerin Morphe</string>
+    <string name="home_download_instructions_step4">Pi serîdana daxistinê bi dawî bû, vegerin ser Nivqo</string>
+    <string name="home_download_instructions_step4_mount">Pi naskindina APK\'ya bilavkirinê, vegerin Nivqo</string>
     <string name="home_download_instructions_continue_to">Berdewam bikin ser %s</string>
     <string name="home_download_instructions_destination">rûpela daxistinê</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
@@ -423,8 +423,8 @@ Herêma derveyî (qutkirî): dikare ji aliyê maskeya launcher'ê ve were qutkir
     <string name="home_app_info_patch_update_available">Nûvekirina paqijkirinê peyda bûye</string>
     <string name="home_app_info_patch_update_available_description">Versîyonê nû ya qelvaton ava bûye. Bo cîgirtinê sepanê bi qelbûna herî dawî, pêşbirîyên nûîn kirin û çareseriyê bibin</string>
     <string name="home_app_info_app_deleted_warning">App hate laşkirin</string>
-    <string name="home_app_info_app_deleted_description">Epp li derve ji Morphe hate laşkirin. Serpêş pêlavînê da serê ku serê bi sist ki.</string>
-    <string name="home_app_info_not_patched_description">Versiyoneka ne-patchkirî ya vê aplikasyonê hatîn sazkirin. Morphe hîna tomarê patchê yê berê yê xweye</string>
+    <string name="home_app_info_app_deleted_description">Epp li derve ji Nivqo hate laşkirin. Serpêş pêlavînê da serê ku serê bi sist ki.</string>
+    <string name="home_app_info_not_patched_description">Versiyoneka ne-patchkirî ya vê aplikasyonê hatîn sazkirin. Nivqo hîna tomarê patchê yê berê yê xweye</string>
     <string name="patcher_rename_title">Ev ê klonek saz bike</string>
     <string name="patcher_rename_description">Pêvajoya pêçanê ev sepan bi navê pakêta xwe çêkir, ji ber vê yekê sazkirina wê klonek li kêleka &lt;b&gt;%s&lt;/b&gt; zêde dike, li şûna ku wê nûve bike.</string>
     <string name="patcher_rename_result_package">Dê wek saz bibe</string>
@@ -437,7 +437,7 @@ Herêma derveyî (qutkirî): dikare ji aliyê maskeya launcher'ê ve were qutkir
     <string name="root_pre_patch_installer_description">Cihaza te gihîştina root heye. Hilbijêre ku ev serîlêdan ji bo çîna root were pelkirin an sazkirina standard</string>
     <string name="root_pre_patch_installer_mount_title">Moda çîna root</string>
     <string name="root_pre_patch_installer_mount_description">Pelikên ji bo çîna root, paşê APKê li ser serîlêdana stokê yê hevdîtinî çêbike. Pêdivî bi GmsCore nîn e</string>
-    <string name="root_mount_module_unmount_warning">Heke KernelSU bi modûlên Dis-mount\'ê bi piranî vekirî heye, KernelSU &gt; Superuser &gt; app\'a ku te li ser wê çêkirî &gt; Profile &gt; Custom veke û modûlên Dis-mount\'ê neçêkire. Wekî din, APK\'a paşguhkirî ya ku li ser wê çêkirî heye, dikare bandordike, heke Morphe wê wekî çêkirî nîşan bide.</string>
+    <string name="root_mount_module_unmount_warning">Heke KernelSU bi modûlên Dis-mount\'ê bi piranî vekirî heye, KernelSU &gt; Superuser &gt; app\'a ku te li ser wê çêkirî &gt; Profile &gt; Custom veke û modûlên Dis-mount\'ê neçêkire. Wekî din, APK\'a paşguhkirî ya ku li ser wê çêkirî heye, dikare bandordike, heke Nivqo wê wekî çêkirî nîşan bide.</string>
     <string name="root_pre_patch_installer_standard_title">Moda sazkirina standard</string>
     <string name="root_pre_patch_installer_standard_description">Pêçekan wekî APK\'yeke normal bi piştgiriya GmsCore. Rêgeziya sazkirina we piştî pêçekirinê tê bikar anîn</string>
     <string name="root_pre_patch_installer_hint">Ev moda pêçekirinê ji Rêgeziya > Pergal > Sazkirinê cûda ye û paşê de nikare bê guhertin</string>
@@ -475,7 +475,7 @@ Herêma derveyî (qutkirî): dikare ji aliyê maskeya launcher'ê ve were qutkir
     <string name="patcher_conflict_subtitle">Divê hûn guhertoyek hebin</string>
     <string name="patcher_conflict_hint">Serîlêdana rasterkirî sertîfîka jûda li gorî guhertoya sazkirî bikar tîne. Rakirin dê hemû daneyên serîlêdanê tune bike</string>
     <string name="patcher_installed_conflict_title">Navê ku lazim e bê dîtin</string>
-    <string name="patcher_installed_conflict_body">"Morphe serîlêdanên guhertî bi şehadeya xwe ya taybet îmza dike, ku ji ya orjînal cûda ye. Android hewce dike ku veguherîna heyî berî veguherîna serîlêdanê were neqişandin.
+    <string name="patcher_installed_conflict_body">"Nivqo serîlêdanên guhertî bi şehadeya xwe ya taybet îmza dike, ku ji ya orjînal cûda ye. Android hewce dike ku veguherîna heyî berî veguherîna serîlêdanê were neqişandin.
 
 Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</string>
     <string name="patcher_install_error_title">Xetalî sazkirinê</string>
@@ -485,16 +485,16 @@ Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</strin
     <string name="patcher_back_to_game_hint">Bikar bîne %1$s ji bo vegerîna lîstika te.    </string>
     <string name="patcher_storage_permission_dialog_title">Nabe sererît rêyê wergirtina separe</string>
     <string name="patcher_incompatible_patcher_title">Nûvekirin hewce ye</string>
-    <string name="patcher_incompatible_patcher_description">Berhevok &lt;b&gt;%1$s&lt;/b&gt; hewiyeke guhertoyê &lt;b&gt;%2$s&lt;/b&gt; an nûtir hewiyaye. Ji kerem Morphe nûve bike da ku vê serlêdanê guhêrî</string>
-    <string name="patcher_incompatible_patcher_update_button">Dagir bike û nûvekirina Morphe</string>
-    <string name="patcher_storage_permission_description_api30">Yek an zêde ji vebijarkên pakê destûrên ku Morphe nikare bixwîne, nîşan didin. Destûra separeyê daynin û ser bilêvê bikşînin û pêlê dûv re bibaşêre</string>
+    <string name="patcher_incompatible_patcher_description">Berhevok &lt;b&gt;%1$s&lt;/b&gt; hewiyeke guhertoyê &lt;b&gt;%2$s&lt;/b&gt; an nûtir hewiyaye. Ji kerem Nivqo nûve bike da ku vê serlêdanê guhêrî</string>
+    <string name="patcher_incompatible_patcher_update_button">Dagir bike û nûvekirina Nivqo</string>
+    <string name="patcher_storage_permission_description_api30">Yek an zêde ji vebijarkên pakê destûrên ku Nivqo nikare bixwîne, nîşan didin. Destûra separeyê daynin û ser bilêvê bikşînin û pêlê dûv re bibaşêre</string>
     <string name="patcher_storage_permission_description_legacy">Yek an zafîn ji Patch-an rêyên wergirtinê hene ku nabe xwendin. Rêyên di Patch-an de nûve bike û sererît hewildan bike</string>
     <string name="patcher_storage_permission_grant">Îznayê separe daye</string>
     <string name="patcher_storage_permission_denied_warning">Îznayê separe hat inkar kirin. Îznayê daye sererît sererît ji bo sererît vê rêya bikar bîne, an pelan li ser rêya sepanê ya xusasiyê veko bike</string>
     <string name="patcher_storage_permission_open_settings">Rêyên wergirtina separe veke</string>
     <string name="patcher_storage_badge_denied">Îznaye inkar kirin</string>
     <string name="patcher_storage_badge_missing">Nabe dîtin</string>
-    <string name="patcher_storage_permission_hint">Îşar: Pelan biçike /Android/data/app.morphe.manager/files/ - îznayên separe zîde heta jinavê.</string>
+    <string name="patcher_storage_permission_hint">Îşar: Pelan biçike /Android/data/app.nivqo.manager/files/ - îznayên separe zîde heta jinavê.</string>
     <!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Amadekirin</string>
     <string name="patcher_step_load_patches">Bar kirina patch-an</string>
@@ -506,7 +506,7 @@ Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</strin
     <string name="patcher_step_sign_apk">Dosye APK-yê ya patch kirî îmdaye</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Parastina parêzgeha paşgirê</string>
-    <string name="battery_optimization_dialog_description">Heke sepan biçikînin, hin cîhazan dikarin paşgirê rawestînin. Ji bo ku paşgirê bi pêvehiyê qediya, bihêle Morphe bêyî astengiyên serfkirina batêriyê bixebite.</string>
+    <string name="battery_optimization_dialog_description">Heke sepan biçikînin, hin cîhazan dikarin paşgirê rawestînin. Ji bo ku paşgirê bi pêvehiyê qediya, bihêle Nivqo bêyî astengiyên serfkirina batêriyê bixebite.</string>
     <string name="battery_optimization_not_now">Niha ne</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">Bîra têra nake</string>
@@ -562,8 +562,8 @@ Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</strin
     <string name="install_ignore_signature">Dîsa jî saz bike</string>
     <string name="install_ignore_signature_description">Daneyên sepanê diparêze, lê tenê dixebite heke modulek root verastkirina îmzeya Android-ê neçalak bike.</string>
     <string name="uninstall_app_fail">Serêxistina rakirina sepanê têk çû: %s</string>
-    <string name="uninstall_app_unverified">Li cîh hiştin: Morphe nikaribû verast bike ku sepana sazkirî ew guhertoya ku ew patch kiriye ye.</string>
-    <string name="launch_app_unverified">Morphe nikaribû verast bike ku sepana sazkirî ew guhertoya ku ew patch kiriye ye.</string>
+    <string name="uninstall_app_unverified">Li cîh hiştin: Nivqo nikaribû verast bike ku sepana sazkirî ew guhertoya ku ew patch kiriye ye.</string>
+    <string name="launch_app_unverified">Nivqo nikaribû verast bike ku sepana sazkirî ew guhertoya ku ew patch kiriye ye.</string>
     <string name="uninstall_timeout">Rakirin serbest maye</string>
     <string name="save_apk_success">APK-yê hatiye parastin</string>
     <string name="saved_app_export_failed">Serketina paşerojê ya sepanê</string>
@@ -673,14 +673,14 @@ Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</strin
     <string name="settings_advanced_patcher">Patchker</string>
     <string name="settings_advanced_updates_manager_prereleases">Nûvekirinên pêş-weşanê</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
-    <string name="settings_advanced_updates_manager_prereleases_description">Gihîştina zû ya guhertoyên nû yên Morphe</string>
+    <string name="settings_advanced_updates_manager_prereleases_description">Gihîştina zû ya guhertoyên nû yên Nivqo</string>
     <string name="settings_advanced_updates_prerelease_warning_title">Nûvekirinên pêş-weşanê çalak bike?</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
-    <string name="settings_advanced_updates_prerelease_warning_message">"Guhertoyên pêş-weşanê yên Morphe hê jî di pêşxistinê de ne û dibe ku ne aram bin.
+    <string name="settings_advanced_updates_prerelease_warning_message">"Guhertoyên pêş-weşanê yên Nivqo hê jî di pêşxistinê de ne û dibe ku ne aram bin.
 
 Patch ne bandor in: ji bo her çavkaniyê di lîsteya çavkaniyên patch de patchên pêş-weşanê çalak bike."</string>
     <string name="settings_advanced_updates_allow_metered">Nûvekirinên daneya mobîl</string>
-    <string name="settings_advanced_updates_allow_metered_description">Destûrê dide Morphe\'yê u nûvekirinên qeyikan da ku li ser danebîna mobîlê biçin</string>
+    <string name="settings_advanced_updates_allow_metered_description">Destûrê dide Nivqo\'yê u nûvekirinên qeyikan da ku li ser danebîna mobîlê biçin</string>
     <string name="settings_advanced_updates_background_notifications">Ragahdaniyên nûvekirina paşînê</string>
     <string name="settings_advanced_updates_background_notifications_description">Ji bo melêstirkirina nûvekirinên paşîn baldarê de bibe û dema ku zafinan debedo bike.</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Agahiyên pêşniyarî ji bo nûvekirinên nû, tewra hekî app tê girtin</string>
@@ -694,23 +694,23 @@ Patch ne bandor in: ji bo her çavkaniyê di lîsteya çavkaniyên patch de patc
     <string name="settings_advanced_update_interval_battery_warning">Kontrolên paşîn dibin sedem ku hin alavkêm nekar in. Hilberîneran weke Xiaomi, Huawei, Samsung, û OnePlus gelek caran pêvajeyên paşîn ji bo parastina bataryayê asteng dikin.</string>
     <string name="settings_advanced_external_batch_patch">Têkirina ji derve bidê dest</string>
     <string name="external_batch_patch_title">Dest bi patchkirina batchê bike?</string>
-    <string name="external_batch_patch_description">%s dixwaze Morphe sepanan patch bike û saz bike</string>
+    <string name="external_batch_patch_description">%s dixwaze Nivqo sepanan patch bike û saz bike</string>
     <string name="external_batch_patch_trust_caller">Her gav bidê vê sepayê</string>
     <string name="external_batch_patch_unknown_caller">Sepeyek nenas</string>
     <!-- Notification content -->
-    <string name="notification_manager_update_title">Nûvekirina Morphe heye</string>
+    <string name="notification_manager_update_title">Nûvekirina Nivqo heye</string>
     <string name="notification_bundle_update_title">Patchên nû hene</string>
     <string name="notification_update_text">Versiyona %s amade ye ku dakêşin.</string>
-    <string name="notification_bundle_update_text_unversioned">Kilîkê veke Morphe û nûve bike</string>
+    <string name="notification_bundle_update_text_unversioned">Kilîkê veke Nivqo û nûve bike</string>
     <string name="notification_permission_dialog_title">Îznayê ragahdaniyê</string>
-    <string name="notification_permission_dialog_description">Morphe ji bo domandina ragihînan destûrê divê ku we ji ber ku nûvekirinên li ser were agahdar kirin.</string>
+    <string name="notification_permission_dialog_description">Nivqo ji bo domandina ragihînan destûrê divê ku we ji ber ku nûvekirinên li ser were agahdar kirin.</string>
     <string name="notification_post_patch_dialog_title">Ma tu bistîyê ku dema ku nûvekirinan zafîn, ji bo te ragahdaniyê bike?</string>
     <string name="notification_channel_patcher">Çêkirin</string>
-    <string name="notification_channel_patcher_description">Di dema ku Morphe bernameyekê di rewşê de çêdike</string>
+    <string name="notification_channel_patcher_description">Di dema ku Nivqo bernameyekê di rewşê de çêdike</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Saziyên pispor</string>
     <string name="settings_advanced_expert_mode">Mode ekspert</string>
-    <string name="settings_advanced_expert_mode_description">Destûr dide sazkirina vegirêtinên Morphe’yê ên pêşkeftî u hilbijartinên xwerû</string>
+    <string name="settings_advanced_expert_mode_description">Destûr dide sazkirina vegirêtinên Nivqo’yê ên pêşkeftî u hilbijartinên xwerû</string>
     <string name="settings_advanced_expert_mode_dialog_title">Modeka pispor çêbike?</string>
     <string name="settings_advanced_expert_mode_dialog_message">Moda pispor kontrola zêdetir ser bernameyên ku meriv pêdike, lê çêkirina bêreng di moda pispor de dikare bibe sedem ku sepan bibe nekar.</string>
     <string name="settings_advanced_strip_unused_libs">Ji arîkek cihazê ve saz bike</string>
@@ -723,7 +723,7 @@ Patch ne bandor in: ji bo her çavkaniyê di lîsteya çavkaniyên patch de patc
     <!-- "%3$s" is "GitHub Personal Access Token", "%2$s" is the GitHub scope name and "%1$s" is the GitHub website. "PAT" is its abbreviation, keep it in English -->
     <string name="settings_advanced_github_pat_export_include_label">Di qeyrek sazî de zêde bike</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
-    <string name="settings_advanced_github_pat_export_include_supporting">Ev PAT bi danan Morphe sazkirina xwe vekirî</string>
+    <string name="settings_advanced_github_pat_export_include_supporting">Ev PAT bi danan Nivqo sazkirina xwe vekirî</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">PAT xwe veqêtin neyê. Ger ew di qeyrek sazî de zêde kirin, wê qeyrê têr çaveke rê bibe ji ber ew token hegirdê</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
@@ -816,7 +816,7 @@ Qasîyên wêneyan divê wiha bin:
     <string name="installer_status_not_supported">Ji bo ev çalakîyê piştgirî nîne</string>
     <string name="installer_status_shizuku_not_installed">Ji bo vê vebijarkê Shizuku an Sui saz bike</string>
     <string name="installer_status_shizuku_not_running">Shizuku anîye yê an Suiyê dest pê bike û dîsa hewil bide</string>
-    <string name="installer_status_shizuku_permission">Destûrê da Morphe ji bo sepina Shizuku</string>
+    <string name="installer_status_shizuku_permission">Destûrê da Nivqo ji bo sepina Shizuku</string>
     <string name="installer_mount_warning_install">Îstalatorek sereke we li îstalatorek qutiyelê hatiye danîn. Ev sepan bi qutiyê nehate saz kirin</string>
     <string name="mount_version_mismatch_message">Versiyona sepanê orîjînal (%2$s) bi versiyona sepanê têra sipêde nebaxe (%1$s). Versiyona orîjînal a pêşîn saz bike, paştrê dîsa hewil bide</string>
     <string name="mount_stock_restore_failed_message">Android\'ê APK\'ya orjînal a ku hatibû tomarkirin qebûl nekir. Vebijêrka testê ya ku pêşî tê saz kirin saz bike, hewce dîtin</string>
@@ -843,7 +843,7 @@ Qasîyên wêneyan divê wiha bin:
     <string name="settings_auto_uninstall_with_shizuku">Lêgerîna otomatîkî li ser derengî</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Dema ku bi Shizuku saz kirin, eger Android rapor bide ku kêşekê qebûl kir, berê aplikasyona heyî ya ku heye rake. Ew dikare daneyên aplikasyonê jê der bike.</string>
     <string name="settings_auto_uninstall_warning_title">Destûrê dayî lêgerîna otomatîkî?</string>
-    <string name="settings_auto_uninstall_warning_message">Eger Android di dema saz kirina otomatîkî ya Shizuku de rapor bide ku kêşek heye, Morphe dê berî saz kirina APKya guhartî aplikasyona heyî rake.</string>
+    <string name="settings_auto_uninstall_warning_message">Eger Android di dema saz kirina otomatîkî ya Shizuku de rapor bide ku kêşek heye, Nivqo dê berî saz kirina APKya guhartî aplikasyona heyî rake.</string>
     <string name="settings_auto_uninstall_warning_risk">Ew dikare daneyên aplikasyonê jê bike. Ger APK ya guhartî piştî rakirina sazkirinê têk bibe, dibe ku aplikasyona berê jû dest nebe.</string>
     <string name="installer_shizuku_status_action">Statusa Shizuku kontrol bike</string>
     <string name="installer_shizuku_status_title">Statusa Shizuku</string>
@@ -861,7 +861,7 @@ Qasîyên wêneyan divê wiha bin:
     <string name="installer_shizuku_install_fail_with_details">"Sazkirina Shizuku têk çû: %1$s
 
 Detay: %2$s"</string>
-    <string name="installer_shizuku_error_permission">Destûra Shizuku winda bûye. Destûrê da Morphe û dîsa bicûrbîne.</string>
+    <string name="installer_shizuku_error_permission">Destûra Shizuku winda bûye. Destûrê da Nivqo û dîsa bicûrbîne.</string>
     <string name="installer_shizuku_error_timeout">Shizuku encûmek saz kirinê ne xist. Misoger bike ku ew hîn dixebite û dîsa bicûrbîne.</string>
     <string name="installer_shizuku_error_downgrade">Android vê blok kir ji ber ku ewê aplikasyona hatî saz kirin kêm bike</string>
     <string name="installer_shizuku_error_signature">Android vê blok kir ji ber ku aplikasyona hatî saz kirin îmzayek cûda heye</string>
@@ -907,11 +907,11 @@ Detay: %2$s"</string>
     <string name="settings_system_export_keystore_failed">Destûr neda exportkirina keystore\'ê</string>
     <string name="settings_system_show_password_field">Şifreyê nîşana bîne</string>
     <string name="settings_system_hide_password_field">Şifreyê veşêre</string>
-    <string name="settings_system_morphe_settings">Rêgezên Morphe</string>
-    <string name="settings_system_import_manager_settings_description">Mîhengên Morphe’yê pişgîrî u dîsa vekirin</string>
-    <string name="settings_system_import_manager_settings_fail">Ne serketî sawekirina sazkirina Morphe: %s</string>
-    <string name="settings_system_import_manager_settings_success">Sawekirina sazkirina Morphe serketî</string>
-    <string name="settings_system_import_manager_settings_mode_title">Morphe mîhengên îthalkirin</string>
+    <string name="settings_system_morphe_settings">Rêgezên Nivqo</string>
+    <string name="settings_system_import_manager_settings_description">Mîhengên Nivqo’yê pişgîrî u dîsa vekirin</string>
+    <string name="settings_system_import_manager_settings_fail">Ne serketî sawekirina sazkirina Nivqo: %s</string>
+    <string name="settings_system_import_manager_settings_success">Sawekirina sazkirina Nivqo serketî</string>
+    <string name="settings_system_import_manager_settings_mode_title">Nivqo mîhengên îthalkirin</string>
     <string name="settings_system_import_manager_settings_mode_description">Hilbijêrin ka mîhengên îthalkirî û çavkanî çawa bên bikar anîn</string>
     <string name="settings_system_import_selections_mode_title">Vebijarkên patchê yên îthalkirî</string>
     <string name="settings_system_import_selections_mode_description">Hilbijartina ku pêşniyarên hatinî û vebijarkên patchê bên bikaranîn destnîşan bike</string>
@@ -919,8 +919,8 @@ Detay: %2$s"</string>
     <string name="import_mode_replace_description">Paşgirtina hevkirinê bi tevahî. Hêmanên winda ne ji paşgirtinê dê werin nehev kirin</string>
     <string name="import_mode_merge_title">Bi heyî vekirin</string>
     <string name="import_mode_merge_description">Hêmanên winda ji paşgirtinê zêde bike. Hêmanên heyî nehatin guhertin</string>
-    <string name="settings_system_export_manager_settings_fail">Ne serketî sawekirina sazkirina Morphe: %s</string>
-    <string name="settings_system_export_manager_settings_success">Sawekirina sazkirina Morphe serketî</string>
+    <string name="settings_system_export_manager_settings_fail">Ne serketî sawekirina sazkirina Nivqo: %s</string>
+    <string name="settings_system_export_manager_settings_success">Sawekirina sazkirina Nivqo serketî</string>
     <string name="settings_system_export_debug_logs_description">Pelên loga sîstemê ji bo çareserkirina pirsgirêkan tomar bike</string>
     <string name="settings_system_export_debug_logs_export_read_failed">Serketina xwendina logan (koda qedandina %s)</string>
     <string name="settings_system_export_debug_logs_export_failed">Logan derxistina xeṭî ye</string>
@@ -955,7 +955,7 @@ Detay: %2$s"</string>
     <string name="settings_system_storage_cleared">%s azad kir</string>
     <string name="settings_system_storage_nothing_to_clear">Tu tiştek tune ku were paqijkirin</string>
     <string name="settings_system_storage_open_app_info_title">Veke hilanîna depoya serîşîn a Android</string>
-    <string name="settings_system_storage_open_app_info_description">Rêvebirin an paqijkirina hemû daneyê Morphe ji riya mîhengên sîstemê</string>
+    <string name="settings_system_storage_open_app_info_description">Rêvebirin an paqijkirina hemû daneyê Nivqo ji riya mîhengên sîstemê</string>
     <string name="settings_system_save_original_apks_title">APK-yên orjînal bişopîne</string>
     <string name="settings_system_save_original_apks_description">APK-ya pêş-patchê şêwirîne da ku li ser dubarekirinê bêyî hilbijartina dîsa pelê bikaribe</string>
     <string name="settings_system_save_patched_apks_title">APK-yên patchkirî bişopîne</string>
@@ -1002,7 +1002,7 @@ Detay: %2$s"</string>
     <string name="copy_selection_same_source">Çavkaniya heman</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Hilbijêrkê pelan yê xwerû</string>
-    <string name="settings_system_custom_file_picker_description">Li şûna hilbijêrkê pelan yê serî yê sîstemê, hilbijêrkê pelan yê têne çêkirin yê Morphe bikar bîne</string>
+    <string name="settings_system_custom_file_picker_description">Li şûna hilbijêrkê pelan yê serî yê sîstemê, hilbijêrkê pelan yê têne çêkirin yê Nivqo bikar bîne</string>
     <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">Arîkareka dakêşina APK-yê</string>
     <!-- File Picker -->
@@ -1177,7 +1177,7 @@ Ma hûn hê jî dixwazin dom bikevin?"</string>
     <string name="onboarding_sources_desc">Çavkaniyên patchên xwe birêve bike. Her çavkanî patchên ku dikarin li ser sepanên we werin bikaranîn peyda dike</string>
     <string name="onboarding_swipe_title">Hestên swîpê</string>
     <string name="onboarding_swipe_desc">Ji bo dîtina patchên berdest li ser kartê pêşî biçipe. Ji bo veşartina kartê ji ekranê biçîpe çepê</string>
-    <string name="onboarding_settings_desc">Morphe xweş bike: xuya, vebijarkên pêşkeftî, û amûrên sîstemê</string>
+    <string name="onboarding_settings_desc">Nivqo xweş bike: xuya, vebijarkên pêşkeftî, û amûrên sîstemê</string>
     <string name="onboarding_sources_patches_desc">Têke bin ku hemû patchên ji vê çavkaniyê bibînin</string>
     <string name="onboarding_sources_version_desc">Têke bin serî de dîtina guhertoyên vê çavkaniyê</string>
     <string name="onboarding_sources_prerelease_desc">Vê yekê çalak bike da ku wergîrî patchên berbelav ên vê çavkaniyê bike</string>
@@ -1192,7 +1192,7 @@ Ma hûn hê jî dixwazin dom bikevin?"</string>
     <string name="onboarding_system_file_picker_desc">Çalak bike da ku bikaribîne gerstêrka pelan a bingehîn lê hûn hilbijêrin APKan an anahtorên</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Gerîşka taybetmendiyan a bilez</string>
-    <string name="tour_prompt_desc">Dixwazî gerîşka taybetmendiyên sereke yên Morphe bikî?</string>
+    <string name="tour_prompt_desc">Dixwazî gerîşka taybetmendiyên sereke yên Nivqo bikî?</string>
     <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Min li dora te bîne</string>
     <string name="onboarding_restart_title">Gerîşka taybetmendiyan</string>

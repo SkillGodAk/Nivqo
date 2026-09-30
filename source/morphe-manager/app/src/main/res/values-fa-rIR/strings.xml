@@ -16,18 +16,18 @@
     <string name="android_11_bug_dialog_title">باگ اندروید 11</string>
     <string name="android_11_bug_dialog_description">مجوز نصب برنامه باید از قبل صادر شود تا از بروز باگ در سیستم اندروید ۱۱ که تجربه کاربری را تحت تأثیر منفی قرار می دهد، جلوگیری شود </string>
     <string name="deep_link_add_source_title">افزودن منبع</string>
-    <string name="deep_link_add_source_message">می‌خواهید این منبع پچ را به Morphe اضافه کنید؟</string>
+    <string name="deep_link_add_source_message">می‌خواهید این منبع پچ را به Nivqo اضافه کنید؟</string>
     <string name="deep_link_add_source_warning">فقط منابعی را اضافه کنید که به آن‌ها اعتماد دارید</string>
     <!-- Home Screen - Update Notifications -->
-    <string name="home_update_available">به‌روزرسانی Morphe در دسترس است</string>
+    <string name="home_update_available">به‌روزرسانی Nivqo در دسترس است</string>
     <string name="home_update_available_subtitle">نسخه جدید آماده نصب است </string>
     <string name="home_blocked_source_title">منبع پچ مسدودشده شناسایی شد</string>
     <string name="home_blocked_source_subtitle">برای بررسی و حذف، ضربه بزنید</string>
     <string name="home_metadata_errors_title">برخی منابع پچ در دسترس نیستند</string>
     <string name="home_metadata_errors_subtitle">برای بررسی منابع، ضربه بزنید</string>
-    <string name="home_outdated_manager_title">Morphe به‌روز نیست</string>
+    <string name="home_outdated_manager_title">Nivqo به‌روز نیست</string>
     <string name="home_outdated_manager_subtitle">برخی منابع پچ به نسخهٔ جدیدتری نیاز دارند</string>
-    <string name="home_held_back_title">یک منبع پچ باعث از کار افتادن Morphe شد</string>
+    <string name="home_held_back_title">یک منبع پچ باعث از کار افتادن Nivqo شد</string>
     <string name="home_held_back_subtitle">برای اینکه برنامه اجرا شود، این مرحله رد شد. برای بررسی ضربه بزنید.</string>
     <string name="home_metered_skipped_title">به‌روزرسانی‌ها در شبکهٔ تلفن همراه متوقف شدند</string>
     <string name="home_metered_skipped_subtitle">برای اجازه دادن به به‌روزرسانی با اینترنت همراه، ضربه بزنید.</string>
@@ -44,10 +44,10 @@
     <string name="home_app_list_options_title">مرتب‌سازی و فیلتر</string>
     <string name="home_app_list_options_state_description">مرتب‌شده بر اساس %1$s، فیلترشده بر اساس %2$s</string>
     <string name="home_app_filter_all_description">همهٔ برنامه‌های صفحهٔ اصلی</string>
-    <string name="home_app_filter_patched_description">برنامه‌هایی که با Morphe پچ یا ذخیره کرده‌اید</string>
-    <string name="home_app_filter_not_patched_description">برنامه‌هایی که هنوز در Morphe پچ نکرده‌اید</string>
+    <string name="home_app_filter_patched_description">برنامه‌هایی که با Nivqo پچ یا ذخیره کرده‌اید</string>
+    <string name="home_app_filter_not_patched_description">برنامه‌هایی که هنوز در Nivqo پچ نکرده‌اید</string>
     <string name="home_app_filter_installed_description">برنامه‌های نصب‌شده روی این دستگاه</string>
-    <string name="home_app_filter_uninstalled_description">برنامه‌های پچ‌شده با Morphe که دیگر روی این دستگاه نیستند</string>
+    <string name="home_app_filter_uninstalled_description">برنامه‌های پچ‌شده با Nivqo که دیگر روی این دستگاه نیستند</string>
     <string name="home_app_filter_clones">نسخه‌های کلون</string>
     <string name="home_app_filter_clones_description">برنامه‌هایی که با نام بستهٔ اختصاصی ساخته شده‌اند و در کنار نسخهٔ اصلی نصب شده‌اند</string>
     <string name="home_app_sort_manual_description">روی یک برنامه لمس طولانی کنید، سپس دکمهٔ مرتب‌سازی مجدد را بزنید</string>
@@ -147,10 +147,10 @@
     <string name="sources_management_metadata_unavailable">فراداده در دسترس نیست</string>
     <string name="sources_management_metadata_unavailable_hint">فایل فرادادهٔ راه دور در دسترس نیست. پچ‌کردن با بستهٔ نصب‌شده همچنان کار می‌کند، اما به‌روزرسانی خودکار برای این منبع غیرفعال است</string>
     <string name="sources_management_metadata_unavailable_hint_missing">بستهٔ پچ قابل دانلود نیست. ممکن است نشانی منبع نادرست باشد یا فایل وجود نداشته باشد</string>
-    <string name="sources_management_outdated_manager_badge">به‌روزرسانی Morphe</string>
-    <string name="sources_management_outdated_manager_hint">این منبع برای پچر %1$s ساخته شده است، اما Morphe %2$s شامل پچر %3$s است. برای استفاده از آن، Morphe را به‌روز کنید</string>
+    <string name="sources_management_outdated_manager_badge">به‌روزرسانی Nivqo</string>
+    <string name="sources_management_outdated_manager_hint">این منبع برای پچر %1$s ساخته شده است، اما Nivqo %2$s شامل پچر %3$s است. برای استفاده از آن، Nivqo را به‌روز کنید</string>
     <string name="sources_management_held_back_badge">از کار افتاد</string>
-    <string name="sources_management_held_back_hint">این منبع هنگام بارگذاری باعث از کار افتادن Morphe شد، بنابراین نادیده گرفته می‌شود. برای تلاش دوباره، آن را به‌روزرسانی یا مجدداً وارد کنید</string>
+    <string name="sources_management_held_back_hint">این منبع هنگام بارگذاری باعث از کار افتادن Nivqo شد، بنابراین نادیده گرفته می‌شود. برای تلاش دوباره، آن را به‌روزرسانی یا مجدداً وارد کنید</string>
     <string name="sources_management_source_enabled">منبع فعال شد</string>
     <string name="sources_management_source_disabled">منبع غیرفعال شد</string>
     <string name="sources_management_source_updating">در حال به‌روزرسانی منبع</string>
@@ -173,7 +173,7 @@
     <string name="sources_dialog_community">پچ‌های جامعه</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">منابع پچ شخص ثالث</string>
-    <string name="sources_dialog_community_notice_message">"منابع پچ جامعه توسط سازندگان خودشان ایجاد و نگهداری می‌شوند. Morphe پچ‌های شخص ثالث را بررسی یا تأیید نمی‌کند و در قبال محتوای آن‌ها یا کاری که روی دستگاه شما انجام می‌دهند مسئول نیست.
+    <string name="sources_dialog_community_notice_message">"منابع پچ جامعه توسط سازندگان خودشان ایجاد و نگهداری می‌شوند. Nivqo پچ‌های شخص ثالث را بررسی یا تأیید نمی‌کند و در قبال محتوای آن‌ها یا کاری که روی دستگاه شما انجام می‌دهند مسئول نیست.
 
 هر چیزی را که از این وب‌سایت اضافه می‌کنید، با مسئولیت خودتان استفاده کنید"</string>
     <string name="sources_update_success">به روزرسانی موفقیت آمیز</string>
@@ -195,15 +195,15 @@
     <string name="home_apk_availability_no">نه، من قبلا یک APK دارم</string>
     <string name="home_apk_helper_download">استفاده از برنامهٔ کمکی</string>
     <string name="home_apk_helper_title">دانلود با برنامهٔ کمکی</string>
-    <string name="home_apk_helper_description">Morphe از برنامهٔ کمکی زیر می‌خواهد APK اصلی را دانلود کرده و فایل را تحویل دهد</string>
+    <string name="home_apk_helper_description">Nivqo از برنامهٔ کمکی زیر می‌خواهد APK اصلی را دانلود کرده و فایل را تحویل دهد</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
-    <string name="home_apk_helper_warning">فقط در صورتی ادامه دهید که به این برنامهٔ کمکی اعتماد دارید. Morphe بسته، نسخه و امضای هر چیزی را که دریافت می‌کند پیش از پچ‌کردن بررسی می‌کند</string>
-    <string name="home_apk_helper_warning_unverified">فقط در صورتی ادامه دهید که به این برنامهٔ کمکی اعتماد دارید. Morphe نمی‌تواند امضای این APK را تأیید کند؛ بنابراین فایل تغییریافته شناسایی نمی‌شود</string>
+    <string name="home_apk_helper_warning">فقط در صورتی ادامه دهید که به این برنامهٔ کمکی اعتماد دارید. Nivqo بسته، نسخه و امضای هر چیزی را که دریافت می‌کند پیش از پچ‌کردن بررسی می‌کند</string>
+    <string name="home_apk_helper_warning_unverified">فقط در صورتی ادامه دهید که به این برنامهٔ کمکی اعتماد دارید. Nivqo نمی‌تواند امضای این APK را تأیید کند؛ بنابراین فایل تغییریافته شناسایی نمی‌شود</string>
     <string name="home_apk_helper_no_result">برنامهٔ کمکی هیچ APKای برنگرداند</string>
     <string name="home_apk_helper_no_access">برنامهٔ کمکی دسترسی به APK بازگردانده‌شده را اعطا نکرد</string>
     <string name="home_apk_helper_no_package">برنامهٔ کمکی مشخص نکرد از کدام برنامهٔ نصب‌شده استفاده شود</string>
     <string name="home_apk_helper_wrong_package">برنامهٔ کمکی برنامه‌ای متفاوت از برنامهٔ در حال پچ را برگرداند</string>
-    <string name="home_apk_helper_installed_unavailable">Morphe نتوانست از برنامهٔ نصب‌شده استفاده کند</string>
+    <string name="home_apk_helper_installed_unavailable">Nivqo نتوانست از برنامهٔ نصب‌شده استفاده کند</string>
     <string name="home_apk_helper_installed_incompatible">نسخهٔ نصب‌شده قابل پچ نیست</string>
     <string name="home_apk_use_saved">استفاده از APK ذخیره‌شده</string>
     <string name="home_apk_use_installed">استفاده از APK نصب‌شده</string>
@@ -211,7 +211,7 @@
     <string name="home_apk_use_installed_unverified">امضای برنامهٔ نصب‌شده تأیید نشد؛ بنابراین ممکن است از قبل پچ شده باشد</string>
     <string name="home_unverified">تأییدنشده</string>
     <string name="home_install_verification_pending">در حال بررسی نصب…</string>
-    <string name="home_app_info_install_unverified">Morphe نمی‌تواند تأیید کند برنامهٔ نصب‌شده همان ساختی است که پچ کرده است. برای بازگرداندن عملکردها، آن را دوباره پچ کنید یا از APK ذخیره‌شده دوباره نصب کنید</string>
+    <string name="home_app_info_install_unverified">Nivqo نمی‌تواند تأیید کند برنامهٔ نصب‌شده همان ساختی است که پچ کرده است. برای بازگرداندن عملکردها، آن را دوباره پچ کنید یا از APK ذخیره‌شده دوباره نصب کنید</string>
     <string name="home_app_info_no_saved_apk">هیچ APK ذخیره شده ای وجود ندارد. پچینگ نیازمند انتخاب مجدد فایل APK است</string>
     <string name="home_version_requires_android">به Android %s یا بالاتر نیاز دارد</string>
     <string name="home_apk_no_compatible_versions_title">در این دستگاه پشتیبانی نمی‌شود</string>
@@ -224,7 +224,7 @@
     <string name="home_download_instructions_step2_generic">صفحهٔ وب را به پایین پیمایش کنید و دکمهٔ دانلود آن را بزنید</string>
     <string name="home_download_instructions_step2_variant">صفحهٔ وب را به پایین پیمایش کنید و دکمهٔ &lt;b&gt;گونهٔ APK&lt;/b&gt; بالایی را بزنید</string>
     <string name="home_download_instructions_step2_search">یکی از نتایج جست‌وجو را از وب‌سایتی که به آن اعتماد دارید باز کنید</string>
-    <string name="home_download_instructions_step2_search_note">Morphe این وب‌سایت‌ها را تأیید نمی‌کند. وب‌سایت‌هایی را که به‌جای فایل APK فروشگاه برنامهٔ خودشان را پیشنهاد می‌دهند، نادیده بگیرید</string>
+    <string name="home_download_instructions_step2_search_note">Nivqo این وب‌سایت‌ها را تأیید نمی‌کند. وب‌سایت‌هایی را که به‌جای فایل APK فروشگاه برنامهٔ خودشان را پیشنهاد می‌دهند، نادیده بگیرید</string>
     <string name="home_download_instructions_step3_search">در آن وب‌سایت، APK نسخهٔ &lt;b&gt;%s&lt;/b&gt; را دانلود کنید، نه جدیدترین نسخه را</string>
     <string name="home_download_instructions_step3_search_any">در آن وب‌سایت، APK برنامه را دانلود کنید. &lt;b&gt;هر نسخه‌ای&lt;/b&gt; را می‌توان پچ کرد</string>
     <string name="home_download_instructions_download_button_toast">دکمه دانلود رو توی وبسایتش بزن، نه اینجا ☺️</string>
@@ -232,11 +232,11 @@
     <string name="home_download_instructions_download_button_toast_3">کار نیکو کردن از پر کردن است؛ دارید پیشرفت می‌کنید 💪</string>
     <string name="home_download_instructions_download_button_toast_4">هنوز پیدا نشد… هنوز پیدا نشد… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">باشه، به این پشتکار احترام می‌گذارم 🫡</string>
-    <string name="home_download_instructions_download_button_toast_6">حالا دیگر رسماً آزمایش‌کنندهٔ دکمه‌های Morphe هستید 🏅</string>
+    <string name="home_download_instructions_download_button_toast_6">حالا دیگر رسماً آزمایش‌کنندهٔ دکمه‌های Nivqo هستید 🏅</string>
     <string name="home_download_instructions_step3">منتظر بمانید تا دانلود کامل شود، و فایل APK را &lt;b&gt;نصب نکنید&lt;/b&gt;.</string>
     <string name="home_download_instructions_step3_mount">صبر کنید تا دانلود کامل شود، سپس &lt;b&gt;APK را نصب کنید&lt;/b&gt;</string>
-    <string name="home_download_instructions_step4">پس از پایان دانلود، به Morphe بازگردید</string>
-    <string name="home_download_instructions_step4_mount">پس از نصب APK اصلی، به Morphe بازگردید</string>
+    <string name="home_download_instructions_step4">پس از پایان دانلود، به Nivqo بازگردید</string>
+    <string name="home_download_instructions_step4_mount">پس از نصب APK اصلی، به Nivqo بازگردید</string>
     <string name="home_download_instructions_continue_to">ادامه به %s</string>
     <string name="home_download_instructions_destination">صفحهٔ دانلود</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
@@ -444,8 +444,8 @@
     <string name="home_app_info_newest_supported_version">جدیدترین پشتیبانی شده</string>
     <string name="home_app_info_version_move">%1$s نصب شد، جدیدترین %2$s پشتیبانی می‌شود</string>
     <string name="home_app_info_app_deleted_warning">برنامه حذف شده است</string>
-    <string name="home_app_info_app_deleted_description">این برنامه خارج از Morphe حذف شده است. برای بازگرداندن عملکرد، آن را دوباره پچ کنید</string>
-    <string name="home_app_info_not_patched_description">نسخهٔ پچ‌نشدهٔ این برنامه نصب است. Morphe همچنان سابقهٔ پچ قبلی آن را دارد</string>
+    <string name="home_app_info_app_deleted_description">این برنامه خارج از Nivqo حذف شده است. برای بازگرداندن عملکرد، آن را دوباره پچ کنید</string>
+    <string name="home_app_info_not_patched_description">نسخهٔ پچ‌نشدهٔ این برنامه نصب است. Nivqo همچنان سابقهٔ پچ قبلی آن را دارد</string>
     <string name="patcher_rename_title">یک نسخهٔ کلون نصب می‌شود</string>
     <string name="patcher_rename_description">پچ‌ها این برنامه را با نام بستهٔ مخصوص خود ساخته‌اند؛ بنابراین نصب آن، نسخه‌ای کلون را در کنار &lt;b&gt;%s&lt;/b&gt; اضافه می‌کند، نه اینکه آن را به‌روزرسانی کند</string>
     <string name="patcher_rename_result_package">با این نام نصب می‌شود</string>
@@ -458,7 +458,7 @@
     <string name="root_pre_patch_installer_description">دستگاه شما دسترسی روت دارد. انتخاب کنید این برنامه برای مانت روت پچ شود یا نصب استاندارد</string>
     <string name="root_pre_patch_installer_mount_title">حالت مانت روت</string>
     <string name="root_pre_patch_installer_mount_description">برای مانت روت پچ می‌کند و سپس APK را روی برنامهٔ سیستمی منطبق مانت می‌کند. نیازی به GmsCore نیست</string>
-    <string name="root_mount_module_unmount_warning">اگر گزینهٔ Unmount modules by default در KernelSU فعال است، به KernelSU &gt; Superuser &gt; برنامه‌ای که مانت کرده‌اید &gt; Profile &gt; Custom بروید و Unmount modules را غیرفعال کنید. در غیر این صورت، APK پچ‌شدهٔ مانت‌شده ممکن است اعمال نشود؛ حتی اگر Morphe آن را مانت‌شده نشان دهد</string>
+    <string name="root_mount_module_unmount_warning">اگر گزینهٔ Unmount modules by default در KernelSU فعال است، به KernelSU &gt; Superuser &gt; برنامه‌ای که مانت کرده‌اید &gt; Profile &gt; Custom بروید و Unmount modules را غیرفعال کنید. در غیر این صورت، APK پچ‌شدهٔ مانت‌شده ممکن است اعمال نشود؛ حتی اگر Nivqo آن را مانت‌شده نشان دهد</string>
     <string name="root_pre_patch_installer_standard_title">حالت نصب استاندارد</string>
     <string name="root_pre_patch_installer_standard_description">مثل یک APK معمولی و با پشتیبانی GmsCore پچ می‌کند. تنظیم نصب‌کنندهٔ شما پس از پچ‌کردن استفاده می‌شود</string>
     <string name="root_pre_patch_installer_hint">این حالت پچ از تنظیمات &gt; سیستم &gt; نصب‌کننده جداست و پس از پچ‌کردن قابل تغییر نیست</string>
@@ -519,7 +519,7 @@
     <string name="patcher_conflict_subtitle">باید نسخهٔ موجود را حذف کنید</string>
     <string name="patcher_conflict_hint">برنامهٔ پچ‌شده از گواهی متفاوتی نسبت به نسخهٔ نصب‌شده استفاده می‌کند. حذف برنامه همهٔ داده‌های آن را پاک می‌کند</string>
     <string name="patcher_installed_conflict_title">حذف لازم است</string>
-    <string name="patcher_installed_conflict_body">"Morphe برنامه‌های پچ‌شده را با گواهی خودش امضا می‌کند که با گواهی اصلی متفاوت است. Android پیش از نصب برنامهٔ پچ‌شده، حذف نسخهٔ موجود را الزامی می‌کند.
+    <string name="patcher_installed_conflict_body">"Nivqo برنامه‌های پچ‌شده را با گواهی خودش امضا می‌کند که با گواهی اصلی متفاوت است. Android پیش از نصب برنامهٔ پچ‌شده، حذف نسخهٔ موجود را الزامی می‌کند.
 
 حذف برنامه همهٔ داده‌های آن را برای همیشه پاک می‌کند"</string>
     <string name="patcher_install_error_title">خطای نصب</string>
@@ -529,9 +529,9 @@
     <string name="patcher_back_to_game_hint">برای بازگشت به بازی، %1$s را بزنید</string>
     <string name="patcher_storage_permission_dialog_title">دسترسی به مسیر ذخیره‌سازی ممکن نیست</string>
     <string name="patcher_incompatible_patcher_title">به‌روزرسانی لازم است</string>
-    <string name="patcher_incompatible_patcher_description">بستهٔ &lt;b&gt;%1$s&lt;/b&gt; به نسخهٔ پچر &lt;b&gt;%2$s&lt;/b&gt; یا جدیدتر نیاز دارد. برای پچ‌کردن این برنامه، Morphe را به‌روز کنید</string>
-    <string name="patcher_incompatible_patcher_update_button">دانلود و به‌روزرسانی Morphe</string>
-    <string name="patcher_storage_permission_description_api30">یک یا چند گزینهٔ پچ به مسیرهایی اشاره می‌کنند که Morphe نمی‌تواند بخواند. دسترسی ذخیره‌سازی را اعطا کنید و دکمه را بزنید؛ سپس پچ‌کردن خودکار شروع می‌شود</string>
+    <string name="patcher_incompatible_patcher_description">بستهٔ &lt;b&gt;%1$s&lt;/b&gt; به نسخهٔ پچر &lt;b&gt;%2$s&lt;/b&gt; یا جدیدتر نیاز دارد. برای پچ‌کردن این برنامه، Nivqo را به‌روز کنید</string>
+    <string name="patcher_incompatible_patcher_update_button">دانلود و به‌روزرسانی Nivqo</string>
+    <string name="patcher_storage_permission_description_api30">یک یا چند گزینهٔ پچ به مسیرهایی اشاره می‌کنند که Nivqo نمی‌تواند بخواند. دسترسی ذخیره‌سازی را اعطا کنید و دکمه را بزنید؛ سپس پچ‌کردن خودکار شروع می‌شود</string>
     <string name="patcher_storage_permission_description_legacy">یک یا چند گزینهٔ پچ به مسیرهایی اشاره می‌کنند که قابل دسترسی نیستند. مسیرها را در گزینه‌های پچ به‌روز و دوباره تلاش کنید</string>
     <string name="patcher_storage_permission_grant">اعطای مجوز ذخیره‌سازی</string>
     <string name="patcher_storage_permission_denied_warning">مجوز ذخیره‌سازی رد شد. برای استفاده از این مسیر مجوز را اعطا کنید یا فایل‌ها را به پوشهٔ خصوصی برنامه منتقل کنید</string>
@@ -540,7 +540,7 @@
     <string name="patcher_storage_badge_missing">پیدا نشد</string>
     <string name="patcher_missing_patches_title">بعضی از وصله‌ها از بین رفته‌اند</string>
     <string name="patcher_missing_patches_label">دیگر پیشنهاد نمی‌شود</string>
-    <string name="patcher_storage_permission_hint">نکته: فایل‌ها را به /Android/data/app.morphe.manager/files/ منتقل کنید؛ مجوز اضافی لازم نیست</string>
+    <string name="patcher_storage_permission_hint">نکته: فایل‌ها را به /Android/data/app.nivqo.manager/files/ منتقل کنید؛ مجوز اضافی لازم نیست</string>
     <!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">در حال آماده‌سازی</string>
     <string name="patcher_step_load_patches">در حال بارگذاری پچ‌ها</string>
@@ -552,7 +552,7 @@
     <string name="patcher_step_sign_apk">در حال امضای فایل APK پچ‌شده</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">محافظت از پچ‌کردن در پس‌زمینه</string>
-    <string name="battery_optimization_dialog_description">برخی دستگاه‌ها ممکن است وقتی برنامه کوچک می‌شود، پچر را متوقف کنند. به Morphe اجازه دهید بدون محدودیت باتری اجرا شود تا پچ‌کردن با اطمینان کامل شود</string>
+    <string name="battery_optimization_dialog_description">برخی دستگاه‌ها ممکن است وقتی برنامه کوچک می‌شود، پچر را متوقف کنند. به Nivqo اجازه دهید بدون محدودیت باتری اجرا شود تا پچ‌کردن با اطمینان کامل شود</string>
     <string name="battery_optimization_not_now">اکنون نه</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">حافظه کافی نیست</string>
@@ -609,8 +609,8 @@
     <string name="install_ignore_signature">به‌هرحال نصب کن</string>
     <string name="install_ignore_signature_description">داده‌های برنامه را نگه می‌دارد، اما فقط وقتی کار می‌کند که یک ماژول روت تأیید امضای Android را غیرفعال کند</string>
     <string name="uninstall_app_fail">حذف برنامه ناموفق بود: %s</string>
-    <string name="uninstall_app_unverified">باقی ماند: Morphe نتوانست تأیید کند برنامهٔ نصب‌شده همان ساختی است که پچ کرده است</string>
-    <string name="launch_app_unverified">Morphe نتوانست تأیید کند برنامهٔ نصب‌شده همان ساختی است که پچ کرده است</string>
+    <string name="uninstall_app_unverified">باقی ماند: Nivqo نتوانست تأیید کند برنامهٔ نصب‌شده همان ساختی است که پچ کرده است</string>
+    <string name="launch_app_unverified">Nivqo نتوانست تأیید کند برنامهٔ نصب‌شده همان ساختی است که پچ کرده است</string>
     <string name="uninstall_timeout">زمان حذف برنامه به پایان رسید</string>
     <string name="save_apk_success">APK ذخیره شد</string>
     <string name="saved_app_export_failed">خروجی‌گرفتن از برنامهٔ پچ‌شده ناموفق بود</string>
@@ -727,14 +727,14 @@
     <string name="settings_advanced_patcher">پچر</string>
     <string name="settings_advanced_updates_manager_prereleases">به‌روزرسانی‌های پیش‌انتشار</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
-    <string name="settings_advanced_updates_manager_prereleases_description">دسترسی زودهنگام به نسخه‌های جدید Morphe</string>
+    <string name="settings_advanced_updates_manager_prereleases_description">دسترسی زودهنگام به نسخه‌های جدید Nivqo</string>
     <string name="settings_advanced_updates_prerelease_warning_title">به‌روزرسانی‌های پیش‌انتشار فعال شوند؟</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
-    <string name="settings_advanced_updates_prerelease_warning_message">"نسخه‌های پیش‌انتشار Morphe هنوز در حال توسعه‌اند و ممکن است ناپایدار باشند.
+    <string name="settings_advanced_updates_prerelease_warning_message">"نسخه‌های پیش‌انتشار Nivqo هنوز در حال توسعه‌اند و ممکن است ناپایدار باشند.
 
 پچ‌ها تحت تأثیر قرار نمی‌گیرند: برای هر منبع در فهرست منابع پچ، پچ‌های پیش‌انتشار را فعال کنید"</string>
     <string name="settings_advanced_updates_allow_metered">به‌روزرسانی با دادهٔ تلفن همراه</string>
-    <string name="settings_advanced_updates_allow_metered_description">اجازه می‌دهد Morphe و به‌روزرسانی‌های پچ از طریق دادهٔ تلفن همراه دانلود شوند</string>
+    <string name="settings_advanced_updates_allow_metered_description">اجازه می‌دهد Nivqo و به‌روزرسانی‌های پچ از طریق دادهٔ تلفن همراه دانلود شوند</string>
     <string name="settings_advanced_updates_background_notifications">اعلان‌های به‌روزرسانی در پس‌زمینه</string>
     <string name="settings_advanced_updates_background_notifications_description">به‌طور دوره‌ای در پس‌زمینه به‌روزرسانی‌ها را بررسی و هنگام در دسترس بودن اعلان می‌دهد</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">اعلان‌های فشاری برای نسخه‌های جدید، حتی وقتی برنامه بسته است</string>
@@ -748,23 +748,23 @@
     <string name="settings_advanced_update_interval_battery_warning">بررسی‌های پس‌زمینه ممکن است در بعضی دستگاه‌ها قابل اعتماد نباشند. سازندگانی مانند Xiaomi، Huawei، Samsung و OnePlus معمولاً برای صرفه‌جویی در باتری، فرایندهای پس‌زمینه را به‌شدت محدود می‌کنند</string>
     <string name="settings_advanced_external_batch_patch">اجازهٔ محرک‌های خارجی</string>
     <string name="external_batch_patch_title">پچ‌کردن گروهی شروع شود؟</string>
-    <string name="external_batch_patch_description">%s می‌خواهد برنامه‌ها را با Morphe پچ و نصب کند</string>
+    <string name="external_batch_patch_description">%s می‌خواهد برنامه‌ها را با Nivqo پچ و نصب کند</string>
     <string name="external_batch_patch_trust_caller">همیشه به این برنامه اجازه بده</string>
     <string name="external_batch_patch_unknown_caller">یک برنامهٔ ناشناس</string>
     <!-- Notification content -->
-    <string name="notification_manager_update_title">به‌روزرسانی Morphe در دسترس است</string>
+    <string name="notification_manager_update_title">به‌روزرسانی Nivqo در دسترس است</string>
     <string name="notification_bundle_update_title">پچ‌های جدید در دسترس‌اند</string>
     <string name="notification_update_text">نسخهٔ %s آمادهٔ دانلود است</string>
-    <string name="notification_bundle_update_text_unversioned">برای بازکردن Morphe و به‌روزرسانی، ضربه بزنید</string>
+    <string name="notification_bundle_update_text_unversioned">برای بازکردن Nivqo و به‌روزرسانی، ضربه بزنید</string>
     <string name="notification_permission_dialog_title">اجازهٔ اعلان‌ها</string>
-    <string name="notification_permission_dialog_description">Morphe برای اطلاع‌دادن هنگام در دسترس بودن به‌روزرسانی‌ها در پس‌زمینه، به مجوز اعلان نیاز دارد</string>
+    <string name="notification_permission_dialog_description">Nivqo برای اطلاع‌دادن هنگام در دسترس بودن به‌روزرسانی‌ها در پس‌زمینه، به مجوز اعلان نیاز دارد</string>
     <string name="notification_post_patch_dialog_title">می‌خواهید هنگام در دسترس بودن به‌روزرسانی‌ها به شما اطلاع داده شود؟</string>
     <string name="notification_channel_patcher">پچ‌کردن</string>
-    <string name="notification_channel_patcher_description">وقتی Morphe برنامه‌ای را در پس‌زمینه پچ می‌کند نمایش داده می‌شود</string>
+    <string name="notification_channel_patcher_description">وقتی Nivqo برنامه‌ای را در پس‌زمینه پچ می‌کند نمایش داده می‌شود</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">تنظیمات حرفه‌ای</string>
     <string name="settings_advanced_expert_mode">حالت حرفه‌ای</string>
-    <string name="settings_advanced_expert_mode_description">تنظیمات پیچیدهٔ پچ‌کردن Morphe و گزینه‌های سفارشی‌سازی را فعال می‌کند</string>
+    <string name="settings_advanced_expert_mode_description">تنظیمات پیچیدهٔ پچ‌کردن Nivqo و گزینه‌های سفارشی‌سازی را فعال می‌کند</string>
     <string name="settings_advanced_expert_mode_dialog_title">حالت حرفه‌ای فعال شود؟</string>
     <string name="settings_advanced_expert_mode_dialog_message">حالت حرفه‌ای کنترل بیشتری بر نحوهٔ اعمال پچ‌ها می‌دهد، اما پیکربندی نادرست تنظیمات در این حالت ممکن است برنامه را از کار بیندازد</string>
     <string name="settings_advanced_strip_unused_libs">بهینه‌سازی برای معماری دستگاه</string>
@@ -777,7 +777,7 @@
     <!-- "%3$s" is "GitHub Personal Access Token", "%2$s" is the GitHub scope name and "%1$s" is the GitHub website. "PAT" is its abbreviation, keep it in English -->
     <string name="settings_advanced_github_pat_export_include_label">گنجاندن در خروجی تنظیمات</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
-    <string name="settings_advanced_github_pat_export_include_supporting">این PAT را به تنظیمات خروجی Morphe اضافه می‌کند</string>
+    <string name="settings_advanced_github_pat_export_include_supporting">این PAT را به تنظیمات خروجی Nivqo اضافه می‌کند</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">PAT خود را با کسی به اشتراک نگذارید. اگر آن را در خروجی تنظیمات می‌گنجانید، آن فایل را خصوصی نگه دارید چون توکن را دربر دارد</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
@@ -871,7 +871,7 @@ morphe_header_custom_dark.png
     <string name="installer_status_not_supported">برای این عملیات پشتیبانی نمی‌شود</string>
     <string name="installer_status_shizuku_not_installed">برای استفاده از این گزینه، Shizuku یا Sui را نصب کنید</string>
     <string name="installer_status_shizuku_not_running">Shizuku یا Sui را اجرا و دوباره تلاش کنید</string>
-    <string name="installer_status_shizuku_permission">از برنامهٔ Shizuku به Morphe مجوز بدهید</string>
+    <string name="installer_status_shizuku_permission">از برنامهٔ Shizuku به Nivqo مجوز بدهید</string>
     <string name="installer_mount_warning_install">نصب‌کنندهٔ اصلی شما روی نصب‌کنندهٔ مانت روت تنظیم شده است. این برنامهٔ ذخیره‌شده با استفاده از مانت نصب نشده است</string>
     <string name="mount_version_mismatch_message">نسخهٔ برنامهٔ سیستمی (%2$s) با نسخهٔ برنامهٔ پچ‌شده (%1$s) مطابقت ندارد. نسخهٔ سیستمی منطبق را مانت کنید و سپس دوباره تلاش کنید</string>
     <string name="mount_stock_restore_failed_message">Android APK اصلی ذخیره‌شده را رد کرد. نسخهٔ سیستمی منطبق را نصب کنید و سپس دوباره مانت را بزنید</string>
@@ -901,7 +901,7 @@ morphe_header_custom_dark.png
     <string name="settings_auto_uninstall_with_shizuku">حذف خودکار هنگام تداخل</string>
     <string name="settings_auto_uninstall_with_shizuku_description">هنگام نصب خودکار با Shizuku، اگر Android تداخل امضا گزارش کند، ابتدا برنامهٔ موجود را حذف می‌کند. این کار ممکن است داده‌های برنامه را پاک کند</string>
     <string name="settings_auto_uninstall_warning_title">حذف خودکار فعال شود؟</string>
-    <string name="settings_auto_uninstall_warning_message">اگر Android هنگام نصب خودکار با Shizuku تداخل امضا گزارش کند، Morphe پیش از نصب APK پچ‌شده برنامهٔ موجود را حذف می‌کند</string>
+    <string name="settings_auto_uninstall_warning_message">اگر Android هنگام نصب خودکار با Shizuku تداخل امضا گزارش کند، Nivqo پیش از نصب APK پچ‌شده برنامهٔ موجود را حذف می‌کند</string>
     <string name="settings_auto_uninstall_warning_risk">این کار ممکن است داده‌های برنامه را پاک کند. اگر APK پچ‌شده پس از حذف نصب نشود، ممکن است برنامهٔ قبلی دیگر وجود نداشته باشد</string>
     <string name="installer_shizuku_status_action">بررسی وضعیت Shizuku</string>
     <string name="installer_shizuku_status_title">وضعیت Shizuku</string>
@@ -919,7 +919,7 @@ morphe_header_custom_dark.png
     <string name="installer_shizuku_install_fail_with_details">"نصب با Shizuku ناموفق بود: %1$s
 
 جزئیات: %2$s"</string>
-    <string name="installer_shizuku_error_permission">مجوز Shizuku وجود ندارد. به Morphe مجوز بدهید و دوباره تلاش کنید</string>
+    <string name="installer_shizuku_error_permission">مجوز Shizuku وجود ندارد. به Nivqo مجوز بدهید و دوباره تلاش کنید</string>
     <string name="installer_shizuku_error_timeout">Shizuku نتیجهٔ نصب را برنگرداند. مطمئن شوید همچنان در حال اجراست و دوباره تلاش کنید</string>
     <string name="installer_shizuku_error_downgrade">Android این کار را مسدود کرد چون نسخهٔ نصب‌شده پایین‌تر می‌شد</string>
     <string name="installer_shizuku_error_signature">Android این کار را مسدود کرد چون برنامهٔ نصب‌شده امضای متفاوتی دارد</string>
@@ -966,11 +966,11 @@ morphe_header_custom_dark.png
     <string name="settings_system_export_keystore_failed">خروجی‌گرفتن از مخزن کلید ناموفق بود</string>
     <string name="settings_system_show_password_field">نمایش گذرواژه</string>
     <string name="settings_system_hide_password_field">پنهان‌کردن گذرواژه</string>
-    <string name="settings_system_morphe_settings">تنظیمات Morphe</string>
-    <string name="settings_system_import_manager_settings_description">از تنظیمات Morphe پشتیبان می‌گیرد و آن‌ها را بازیابی می‌کند</string>
-    <string name="settings_system_import_manager_settings_fail">واردکردن تنظیمات Morphe ناموفق بود: %s</string>
-    <string name="settings_system_import_manager_settings_success">تنظیمات Morphe وارد شد</string>
-    <string name="settings_system_import_manager_settings_mode_title">واردکردن تنظیمات Morphe</string>
+    <string name="settings_system_morphe_settings">تنظیمات Nivqo</string>
+    <string name="settings_system_import_manager_settings_description">از تنظیمات Nivqo پشتیبان می‌گیرد و آن‌ها را بازیابی می‌کند</string>
+    <string name="settings_system_import_manager_settings_fail">واردکردن تنظیمات Nivqo ناموفق بود: %s</string>
+    <string name="settings_system_import_manager_settings_success">تنظیمات Nivqo وارد شد</string>
+    <string name="settings_system_import_manager_settings_mode_title">واردکردن تنظیمات Nivqo</string>
     <string name="settings_system_import_manager_settings_mode_description">انتخاب کنید تنظیمات و منابع واردشده چگونه اعمال شوند</string>
     <string name="settings_system_import_selections_mode_title">واردکردن انتخاب‌های پچ</string>
     <string name="settings_system_import_selections_mode_description">انتخاب کنید انتخاب‌ها و گزینه‌های پچ واردشده چگونه اعمال شوند</string>
@@ -978,8 +978,8 @@ morphe_header_custom_dark.png
     <string name="import_mode_replace_description">پشتیبان را دقیقاً مطابقت می‌دهد. مواردی که در پشتیبان نیستند حذف می‌شوند</string>
     <string name="import_mode_merge_title">ادغام با موارد موجود</string>
     <string name="import_mode_merge_description">موارد موجود در پشتیبان را اضافه می‌کند. موارد موجود بدون تغییر می‌مانند</string>
-    <string name="settings_system_export_manager_settings_fail">خروجی‌گرفتن از تنظیمات Morphe ناموفق بود: %s</string>
-    <string name="settings_system_export_manager_settings_success">از تنظیمات Morphe خروجی گرفته شد</string>
+    <string name="settings_system_export_manager_settings_fail">خروجی‌گرفتن از تنظیمات Nivqo ناموفق بود: %s</string>
+    <string name="settings_system_export_manager_settings_success">از تنظیمات Nivqo خروجی گرفته شد</string>
     <string name="settings_system_export_debug_logs">صادرکردن گزارش‌های اشکال‌زدایی</string>
     <string name="settings_system_export_debug_logs_description">گزارش‌های سیستم را برای عیب‌یابی ذخیره می‌کند</string>
     <string name="settings_system_export_debug_logs_export_read_failed">خواندن گزارش‌ها ناموفق بود (کد خروج %s)</string>
@@ -1015,7 +1015,7 @@ morphe_header_custom_dark.png
     <string name="settings_system_storage_cleared">%s آزاد شد</string>
     <string name="settings_system_storage_nothing_to_clear">موردی برای پاک‌کردن نیست</string>
     <string name="settings_system_storage_open_app_info_title">بازکردن فضای ذخیره‌سازی برنامهٔ Android</string>
-    <string name="settings_system_storage_open_app_info_description">همهٔ داده‌های Morphe را از طریق تنظیمات سیستم مدیریت یا پاک کنید</string>
+    <string name="settings_system_storage_open_app_info_description">همهٔ داده‌های Nivqo را از طریق تنظیمات سیستم مدیریت یا پاک کنید</string>
     <string name="settings_system_save_original_apks_title">نگه‌داشتن APKهای اصلی</string>
     <string name="settings_system_save_original_apks_description">APK پیش از پچ را ذخیره می‌کند تا برای پچ‌کردن دوباره، بدون انتخاب مجدد فایل، استفاده شود</string>
     <string name="settings_system_save_patched_apks_title">نگه‌داشتن APKهای پچ‌شده</string>
@@ -1062,7 +1062,7 @@ morphe_header_custom_dark.png
     <string name="copy_selection_same_source">همان منبع</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">انتخابگر فایل سفارشی</string>
-    <string name="settings_system_custom_file_picker_description">به‌جای انتخابگر پیش‌فرض سیستم، ذخیره‌سازی را با انتخابگر فایل داخلی Morphe مرور کنید</string>
+    <string name="settings_system_custom_file_picker_description">به‌جای انتخابگر پیش‌فرض سیستم، ذخیره‌سازی را با انتخابگر فایل داخلی Nivqo مرور کنید</string>
     <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">برنامهٔ کمکی دانلود APK</string>
     <!-- File Picker -->
@@ -1247,7 +1247,7 @@ morphe_header_custom_dark.png
     <string name="onboarding_sources_desc">منابع پچ خود را مدیریت کنید. هر منبع پچ‌هایی فراهم می‌کند که می‌توان روی برنامه‌ها اعمال کرد</string>
     <string name="onboarding_swipe_title">حرکت‌های کشیدنی</string>
     <string name="onboarding_swipe_desc">برای دیدن پچ‌های موجود، روی کارت برنامه به راست بکشید. برای پنهان‌کردن کارت از صفحهٔ اصلی، به چپ بکشید</string>
-    <string name="onboarding_settings_desc">Morphe را سفارشی کنید: ظاهر، گزینه‌های پیشرفته و ابزارهای سیستم</string>
+    <string name="onboarding_settings_desc">Nivqo را سفارشی کنید: ظاهر، گزینه‌های پیشرفته و ابزارهای سیستم</string>
     <string name="onboarding_sources_patches_desc">برای دیدن همهٔ پچ‌های موجود از این منبع، ضربه بزنید</string>
     <string name="onboarding_sources_version_desc">برای دیدن تغییرات کامل این منبع، روی نسخه ضربه بزنید</string>
     <string name="onboarding_sources_prerelease_desc">برای دریافت نسخه‌های پیش‌انتشار پچ از این منبع، آن را فعال کنید</string>
@@ -1262,7 +1262,7 @@ morphe_header_custom_dark.png
     <string name="onboarding_system_file_picker_desc">هنگام انتخاب APK یا مخزن کلید، مرورگر فایل داخلی را به‌جای انتخابگر سیستم فعال کنید</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">تور سریع ویژگی‌ها</string>
-    <string name="tour_prompt_desc">می‌خواهید یک تور سریع از ویژگی‌های اصلی Morphe داشته باشید؟</string>
+    <string name="tour_prompt_desc">می‌خواهید یک تور سریع از ویژگی‌های اصلی Nivqo داشته باشید؟</string>
     <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">راهنما را نشانم بده</string>
     <string name="onboarding_restart_title">تور ویژگی‌ها</string>

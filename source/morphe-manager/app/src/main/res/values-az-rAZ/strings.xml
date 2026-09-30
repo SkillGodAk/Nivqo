@@ -20,18 +20,18 @@
     <string name="android_11_bug_dialog_title">Android 11 səhvi</string>
     <string name="android_11_bug_dialog_description">Tətbiq quraşdırılması icazəsi istifadəçi təcrübəsinə mənfi təsir edəcək Android 11 sistemindəki səhvə mane olmaq üçün əvvəlcədən qəbul edilməlidir</string>
     <string name="deep_link_add_source_title">Mənbə əlavə et</string>
-    <string name="deep_link_add_source_message">Bu yamaq mənbəyin Morphe-yə əlavə etmək istəyirsiniz?</string>
+    <string name="deep_link_add_source_message">Bu yamaq mənbəyin Nivqo-yə əlavə etmək istəyirsiniz?</string>
     <string name="deep_link_add_source_warning">Yalnız etibar etdiyiniz mənbələri əlavə edin</string>
     <!-- Home Screen - Update Notifications -->
-    <string name="home_update_available">Əlçatan Morphe yenilənməsi</string>
+    <string name="home_update_available">Əlçatan Nivqo yenilənməsi</string>
     <string name="home_update_available_subtitle">Yeni versiya quraşdırılmağa hazırdır</string>
     <string name="home_blocked_source_title">Əngəllənmiş yamaq mənbəyi aşkarlandı</string>
     <string name="home_blocked_source_subtitle">Gözdən keçirmək və silmək üçün toxun</string>
     <string name="home_metadata_errors_title">Bəzi yamaq mənbələri əlçatmazdır</string>
     <string name="home_metadata_errors_subtitle">Mənbələri gözdən keçirmək üçün toxun</string>
-    <string name="home_outdated_manager_title">Morphe köhnəlib</string>
+    <string name="home_outdated_manager_title">Nivqo köhnəlib</string>
     <string name="home_outdated_manager_subtitle">Bəzi yamaq mənbələrinin daha yeni versiyaya ehtiyacı var</string>
-    <string name="home_held_back_title">Yamaq mənbəyi Morphe-ni xətaya saldı</string>
+    <string name="home_held_back_title">Yamaq mənbəyi Nivqo-ni xətaya saldı</string>
     <string name="home_held_back_subtitle">Tətbiqin başladıla bilməsi üçün bu ötürüldü. Baxmaq üçün toxun</string>
     <string name="home_metered_skipped_title">Mobil datada yeniləmələr dayandırıldı</string>
     <string name="home_metered_skipped_subtitle">Mobil datada yeniləmələri qəbul etmək üçün toxun</string>
@@ -48,10 +48,10 @@
     <string name="home_app_list_options_title">Sırala və filtrlə</string>
     <string name="home_app_list_options_state_description">%1$s üzrə sıralanıb, %2$s üzrə filtrlənib</string>
     <string name="home_app_filter_all_description">Əsas ekrandakı hər bir tətbiq</string>
-    <string name="home_app_filter_patched_description">Morphe ilə yamaqladığınız və ya saxladığınız tətbiqlər</string>
-    <string name="home_app_filter_not_patched_description">Morphe-də hələ yamaqlamadığınız tətbiqlər</string>
+    <string name="home_app_filter_patched_description">Nivqo ilə yamaqladığınız və ya saxladığınız tətbiqlər</string>
+    <string name="home_app_filter_not_patched_description">Nivqo-də hələ yamaqlamadığınız tətbiqlər</string>
     <string name="home_app_filter_installed_description">Hazırda bu cihazda quraşdırılmış tətbiqlər</string>
-    <string name="home_app_filter_uninstalled_description">Morphe ilə yamaqlanmış, artıq bu cihazda olmayan tətbiqlər</string>
+    <string name="home_app_filter_uninstalled_description">Nivqo ilə yamaqlanmış, artıq bu cihazda olmayan tətbiqlər</string>
     <string name="home_app_filter_clones">Dublikatlar</string>
     <string name="home_app_filter_clones_description">Öz paket adı altında qurulmuş, orijinalı ilə birlikdə quraşdırılmış tətbiqlər</string>
     <string name="home_app_sort_manual_description">Tətbiqə uzun bas, sonra yenidən sıralama düyməsinə toxun</string>
@@ -158,10 +158,10 @@
     <string name="sources_management_metadata_unavailable">Əlavə Məlumat Yoxdur</string>
     <string name="sources_management_metadata_unavailable_hint">Uzaq üst məlumatı faylı mövcud deyil. Quraşdırılan paketlə yamaqlanma hələ də işləyir, lakin bu mənbə üçün birbaşa yenilənmə qapadılıb</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Yamaq paketin yükləmək olmadı. Mənbə URL-si səhv ola bilər və ya fayl mövcud deyil</string>
-    <string name="sources_management_outdated_manager_badge">Morphe-ni Yenilə</string>
-    <string name="sources_management_outdated_manager_hint">Bu mənbə %1$s yamaqlayıcısı üçün qurulmuşdur, lakin Morphe %2$s versiyası %3$s yamaqlayıcısını ehtiva edir. İstifadə etmək üçün Morphe-ni yenilə</string>
+    <string name="sources_management_outdated_manager_badge">Nivqo-ni Yenilə</string>
+    <string name="sources_management_outdated_manager_hint">Bu mənbə %1$s yamaqlayıcısı üçün qurulmuşdur, lakin Nivqo %2$s versiyası %3$s yamaqlayıcısını ehtiva edir. İstifadə etmək üçün Nivqo-ni yenilə</string>
     <string name="sources_management_held_back_badge">Çökdü</string>
-    <string name="sources_management_held_back_hint">Bu mənbə yüklənərkən Morphe-nin çökməsinə səbəb oldu, buna görə də ötürülür. Təkrar cəhd etmək üçün onu yenilə və ya təkrar idxal et</string>
+    <string name="sources_management_held_back_hint">Bu mənbə yüklənərkən Nivqo-nin çökməsinə səbəb oldu, buna görə də ötürülür. Təkrar cəhd etmək üçün onu yenilə və ya təkrar idxal et</string>
     <string name="sources_management_source_enabled">Mənbə işləkdir</string>
     <string name="sources_management_source_disabled">Mənbə qapalıdır</string>
     <string name="sources_management_source_updating">Mənbə yenilənir</string>
@@ -192,7 +192,7 @@
     <string name="sources_dialog_choose_apps_description">Mənbə yükləndikdən sonra hansı tətbiqləri saxlayacağınızı seçin</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Üçüncü tərəf yamaq mənbələri</string>
-    <string name="sources_dialog_community_notice_message">"İcma yamaq mənbələri öz müəllifləri tərəfindən yaradılır və saxlanılır. Morphe üçüncü tərəf yamaqlarını nəzərdən keçirmir, yoxlamır və onların məzmununa və ya cihazınızda etdiklərinə görə məsuliyyət daşımır.
+    <string name="sources_dialog_community_notice_message">"İcma yamaq mənbələri öz müəllifləri tərəfindən yaradılır və saxlanılır. Nivqo üçüncü tərəf yamaqlarını nəzərdən keçirmir, yoxlamır və onların məzmununa və ya cihazınızda etdiklərinə görə məsuliyyət daşımır.
 
 Bu veb saytdan əlavə etdiyiniz hər şey öz riskinizlə istifadə olunur"</string>
     <string name="sources_update_success">Uğurlu yeniləmə</string>
@@ -214,16 +214,16 @@ Bu veb saytdan əlavə etdiyiniz hər şey öz riskinizlə istifadə olunur"</st
     <string name="home_apk_availability_no">Xeyr, Mənim artıq APK-m var</string>
     <string name="home_apk_helper_download">Köməkçi tətbiq istifadə et</string>
     <string name="home_apk_helper_title">Köməkçi tətbiq ilə yüklə</string>
-    <string name="home_apk_helper_description">Morphe orijinal APK-nı yükləmək və faylı geri vermək üçün aşağıdakı köməkçi tətbiqə sorğu göndərəcək</string>
+    <string name="home_apk_helper_description">Nivqo orijinal APK-nı yükləmək və faylı geri vermək üçün aşağıdakı köməkçi tətbiqə sorğu göndərəcək</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">Köməkçini aç</string>
-    <string name="home_apk_helper_warning">Yalnız bu köməkçi tətbiqə etibar edirsinizsə davam edin. Morphe yamaqlamazdan əvvəl qəbul etdiyi hər şeyin paketini, versiyasını və imzasını yoxlayır</string>
-    <string name="home_apk_helper_warning_unverified">Yalnız bu köməkçi tətbiqə etibar edirsinizsə davam edin. Morphe bu APK-nın imzasını təsdiqləyə bilmir, buna görə də dəyişdirilmiş fayl aşkarlanmayacaq</string>
+    <string name="home_apk_helper_warning">Yalnız bu köməkçi tətbiqə etibar edirsinizsə davam edin. Nivqo yamaqlamazdan əvvəl qəbul etdiyi hər şeyin paketini, versiyasını və imzasını yoxlayır</string>
+    <string name="home_apk_helper_warning_unverified">Yalnız bu köməkçi tətbiqə etibar edirsinizsə davam edin. Nivqo bu APK-nın imzasını təsdiqləyə bilmir, buna görə də dəyişdirilmiş fayl aşkarlanmayacaq</string>
     <string name="home_apk_helper_no_result">Köməkçi tətbiq APK-nı qaytarmadı</string>
     <string name="home_apk_helper_no_access">Köməkçi tətbiq qaytardığı APK-ya giriş icazəsi vermədi</string>
     <string name="home_apk_helper_no_package">Köməkçi tətbiq hansı quraşdırılmış tətbiqi istifadə edəcəyini bildirmədi</string>
     <string name="home_apk_helper_wrong_package">Köməkçi tətbiq yamaqlanan tətbiqdən fərqli tətbiq qaytardı</string>
-    <string name="home_apk_helper_installed_unavailable">Morphe quraşdırılmış tətbiqi istifadə edə bilmədi</string>
+    <string name="home_apk_helper_installed_unavailable">Nivqo quraşdırılmış tətbiqi istifadə edə bilmədi</string>
     <string name="home_apk_helper_installed_incompatible">Quraşdırılmış versiya yamaqlana bilməz</string>
     <string name="home_apk_use_saved">Saxlanılan APK-nı istifadə et</string>
     <string name="home_apk_use_installed">Quraşdırılan APK-nı istifadə et</string>
@@ -231,7 +231,7 @@ Bu veb saytdan əlavə etdiyiniz hər şey öz riskinizlə istifadə olunur"</st
     <string name="home_apk_use_installed_unverified">Quraşdırılmış tətbiqin imzasını təsdiqləmək olmadı, mümkündür ki, artıq yamaqlanmış ola bilər</string>
     <string name="home_unverified">Təsdiqlənməmiş</string>
     <string name="home_install_verification_pending">Quraşdırmanı yoxlayır...</string>
-    <string name="home_app_info_install_unverified">Morphe quraşdırılmış tətbiqin öz yamaqladığı qurulma olduğunu təsdiqləyə bilmir. Fəaliyyətlərini bərpa etmək üçün onu saxlanılan APK-dan yenidən yamaqla yaxud quraşdır</string>
+    <string name="home_app_info_install_unverified">Nivqo quraşdırılmış tətbiqin öz yamaqladığı qurulma olduğunu təsdiqləyə bilmir. Fəaliyyətlərini bərpa etmək üçün onu saxlanılan APK-dan yenidən yamaqla yaxud quraşdır</string>
     <string name="home_app_info_no_saved_apk">Saxlanılan APK yoxdur. Yamaqlanma APK faylını təkrar seçmək istəyəcək</string>
     <string name="home_version_requires_android">Android %s+ tələb olunur</string>
     <string name="home_apk_no_compatible_versions_title">Bu cihazda dəstəklənmir</string>
@@ -244,7 +244,7 @@ Bu veb saytdan əlavə etdiyiniz hər şey öz riskinizlə istifadə olunur"</st
     <string name="home_download_instructions_step2_generic">Veb səhifəni aşağı sürüşdür və yükləmə düyməsini bas</string>
     <string name="home_download_instructions_step2_variant">Veb səhifəni aşağı sürüşdür və ən yuxarıdakı &lt;b&gt;APK variantının&lt;/b&gt; yükləmə düyməsini bas</string>
     <string name="home_download_instructions_step2_search">Etibar etdiyiniz veb saytdan axtarış nəticəsini açın</string>
-    <string name="home_download_instructions_step2_search_note">Morphe bu veb saytlara zəmanət verə bilməz. APK faylı əvəzinə öz tətbiq mağazasını təklif edənləri ötür</string>
+    <string name="home_download_instructions_step2_search_note">Nivqo bu veb saytlara zəmanət verə bilməz. APK faylı əvəzinə öz tətbiq mağazasını təklif edənləri ötür</string>
     <string name="home_download_instructions_step3_search">Həmin veb-saytda ən yenisini deyil, &lt;b&gt;%s&lt;/b&gt; versiyasının APK-sını yüklə</string>
     <string name="home_download_instructions_step3_search_any">Həmin veb-saytda tətbiqin APK-sını yüklə. &lt;b&gt;İstənilən versiya&lt;/b&gt; yamaqlana bilər</string>
     <string name="home_download_instructions_download_button_toast">Burada deyil, vebsaytdakı yükləməyə toxun 😊</string>
@@ -252,11 +252,11 @@ Bu veb saytdan əlavə etdiyiniz hər şey öz riskinizlə istifadə olunur"</st
     <string name="home_download_instructions_download_button_toast_3">Təcrübə mükəmməlləşdirir və siz hədəfə yaxınlaşırsınız 💪</string>
     <string name="home_download_instructions_download_button_toast_4">Hələ burada deyil... hələ burada deyil... 🙈 </string>
     <string name="home_download_instructions_download_button_toast_5">Yaxşı, inadkarlığa hörmət edirəm 🫡 </string>
-    <string name="home_download_instructions_download_button_toast_6">Artıq rəsmi Morphe düyməsi sınaqçısısınız 🏅</string>
+    <string name="home_download_instructions_download_button_toast_6">Artıq rəsmi Nivqo düyməsi sınaqçısısınız 🏅</string>
     <string name="home_download_instructions_step3">Endirmənin tamamlanmasını gözləyin və &lt;/b&gt;APK quraşdırmayın&lt;/b&gt;</string>
     <string name="home_download_instructions_step3_mount">Endirmənin tamamlanmasını gözləyin, sonra &lt;b&gt;APK quraşdırın&lt;/b&gt;</string>
-    <string name="home_download_instructions_step4">Yükləmə bitəndən sonra Morphe-yə qayıt</string>
-    <string name="home_download_instructions_step4_mount">Əsil APK-nı quraşdırandan sonra, Morphe-yə qayıt</string>
+    <string name="home_download_instructions_step4">Yükləmə bitəndən sonra Nivqo-yə qayıt</string>
+    <string name="home_download_instructions_step4_mount">Əsil APK-nı quraşdırandan sonra, Nivqo-yə qayıt</string>
     <string name="home_download_instructions_continue_to">%s ilə davam et</string>
     <string name="home_download_instructions_destination">yükləmə səhifəsi</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
@@ -472,8 +472,8 @@ Xarici sahə (ştrixli): başladıcı örtüyündən kəsilə bilər - mühüm h
     <string name="home_app_info_newest_supported_version">Ən yeni dəstəklənən</string>
     <string name="home_app_info_version_move">%1$s quraşdırılıb, ən yeni dəstəklənən %2$s</string>
     <string name="home_app_info_app_deleted_warning">Tətbiq quraşdırması silindi</string>
-    <string name="home_app_info_app_deleted_description">Bu tətbiq Morphe xarici silindi. Funksionallığı qaytarmaq üçün onu təkrar quraşdır</string>
-    <string name="home_app_info_not_patched_description">Bu tətbiqin yamaqlanmamış versiyası quraşdırılıb. Morphe-də hələ də əvvəlki yamaq qeydi qalır</string>
+    <string name="home_app_info_app_deleted_description">Bu tətbiq Nivqo xarici silindi. Funksionallığı qaytarmaq üçün onu təkrar quraşdır</string>
+    <string name="home_app_info_not_patched_description">Bu tətbiqin yamaqlanmamış versiyası quraşdırılıb. Nivqo-də hələ də əvvəlki yamaq qeydi qalır</string>
     <string name="patcher_rename_title">Bu dublikatı quraşdıracaq</string>
     <string name="patcher_rename_description">Yamaqlar bu tətbiqi öz paket adı altında qurdu, bu səbəbdən quraşdırmaq onu yeniləmək əvəzinə &lt;b&gt;%s&lt;/b&gt; ilə birlikdə dublikatını əlavə edir</string>
     <string name="patcher_rename_result_package">Bu adla quraşdırılacaq</string>
@@ -486,7 +486,7 @@ Xarici sahə (ştrixli): başladıcı örtüyündən kəsilə bilər - mühüm h
     <string name="root_pre_patch_installer_description">Cihazınızın root girişi var. Bu tətbiqin root montajı yoxsa standart quraşdırma məqsədilə yamaqlanmalı olub-olmadığını seçin</string>
     <string name="root_pre_patch_installer_mount_title">Root montajı rejimi</string>
     <string name="root_pre_patch_installer_mount_description">Root montajı üçün yamaqlayır, sonra APK-nı uyğun əsas tətbiqin üzərinə montaj edir. GmsCore tələb olunmur</string>
-    <string name="root_mount_module_unmount_warning">KernelSU-nun modullarını ilkin olaraq çıxarmaq aktivdirsə, KernelSU &gt; Superuser &gt; montaj etdiyiniz tətbiq &gt; Profil &gt; Fərdi bölməsini açın və modulların çıxarılmasını qapadın. Əks halda, Morphe onu montajlanmış kimi göstərsə belə, montajlanmış yamaqlı APK işləməyə bilər</string>
+    <string name="root_mount_module_unmount_warning">KernelSU-nun modullarını ilkin olaraq çıxarmaq aktivdirsə, KernelSU &gt; Superuser &gt; montaj etdiyiniz tətbiq &gt; Profil &gt; Fərdi bölməsini açın və modulların çıxarılmasını qapadın. Əks halda, Nivqo onu montajlanmış kimi göstərsə belə, montajlanmış yamaqlı APK işləməyə bilər</string>
     <string name="root_pre_patch_installer_standard_title">Standart quraşdırma rejimi</string>
     <string name="root_pre_patch_installer_standard_description">GmsCore dəstəyi ilə adi APK kimi yamaqlayır. Quraşdırıcı tənzimləməniz yamaqlanmadan sonra istifadə olunur</string>
     <string name="root_pre_patch_installer_hint">Bu yamaqlama rejimi Tənzimləmələr &gt; Sistem &gt; Quraşdırıcıdan ayrıdır və yamaqlanmadan sonra dəyişdirmək olmur</string>
@@ -548,7 +548,7 @@ Xarici sahə (ştrixli): başladıcı örtüyündən kəsilə bilər - mühüm h
     <string name="patcher_conflict_subtitle">Mövcud versiyanı silməlisiniz</string>
     <string name="patcher_conflict_hint">Yamaqlanan tətbiq quraşdırılan versiyadan fərqli sertifikat istifadə edir. Quraşdırma ləğvi bütün tətbiq məlumatını siləcək</string>
     <string name="patcher_installed_conflict_title">Silinmə tələb olunur</string>
-    <string name="patcher_installed_conflict_body">"Morphe, yamaqlanan tətbiqləri orijinaldan fərqlənən öz sertifikatı ilə imzalayır. Android yamaqlanan tətbiqi quraşdıra bilməsi öncəsi mövcud versiyanı silməyi tələb edir.
+    <string name="patcher_installed_conflict_body">"Nivqo, yamaqlanan tətbiqləri orijinaldan fərqlənən öz sertifikatı ilə imzalayır. Android yamaqlanan tətbiqi quraşdıra bilməsi öncəsi mövcud versiyanı silməyi tələb edir.
 
 Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="patcher_install_error_title">Quraşdırma xətası</string>
@@ -558,9 +558,9 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="patcher_back_to_game_hint">Oyununuza qayıtmaq üçün %1$s toxunun</string>
     <string name="patcher_storage_permission_dialog_title">Saxlanc keçidinə keçmək olmur</string>
     <string name="patcher_incompatible_patcher_title">Yenilənmə tələb olundu</string>
-    <string name="patcher_incompatible_patcher_description">&lt;b&gt;%1$s&lt;/b&gt; paketi &lt;b&gt;%2$s&lt;/b&gt; və ya daha yeni versiya yamaqlayıcı tələb edir. Xahiş olunur, bu tətbiqi yamaqlamaq üçün Morphe-ni yenilə</string>
-    <string name="patcher_incompatible_patcher_update_button">Morphe-ni yüklə və yenilə</string>
-    <string name="patcher_storage_permission_description_api30">Bir və ya daha çox yamaq seçimi Morphe-nin oxuya bilmədiyi yolları işarə edir. Saxlanc girişin qəbul et və düyməyə toxun, sonra yamaqlanma birbaşa başlayacaq</string>
+    <string name="patcher_incompatible_patcher_description">&lt;b&gt;%1$s&lt;/b&gt; paketi &lt;b&gt;%2$s&lt;/b&gt; və ya daha yeni versiya yamaqlayıcı tələb edir. Xahiş olunur, bu tətbiqi yamaqlamaq üçün Nivqo-ni yenilə</string>
+    <string name="patcher_incompatible_patcher_update_button">Nivqo-ni yüklə və yenilə</string>
+    <string name="patcher_storage_permission_description_api30">Bir və ya daha çox yamaq seçimi Nivqo-nin oxuya bilmədiyi yolları işarə edir. Saxlanc girişin qəbul et və düyməyə toxun, sonra yamaqlanma birbaşa başlayacaq</string>
     <string name="patcher_storage_permission_description_legacy">Bir və ya daha çox yamaq seçimi giriş olmayan yolları göstərir. Yamaq seçimlərindəki yolları yeniləyin və təkrar cəhd edin</string>
     <string name="patcher_storage_permission_grant">Saxlanc icazəsin qəbul et</string>
     <string name="patcher_storage_permission_denied_warning">Saxlanc icazəsi rədd edildi. Bu yolu istifadə etmək üçün icazəni qəbul et və ya faylları tətbiqin şəxsi qovluğuna köçür</string>
@@ -574,7 +574,7 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="patcher_option_paths_gone_title">Yamaq seçim faylları çatışmır</string>
     <string name="patcher_option_paths_gone_description">Bir və ya bir neçə yamaq seçimi artıq yerində olmayan fayllara istinad edir. Onlar olmadan yamaqlamaq üçün keçidləri sil və ya faylları geri qaytarıb təkrar cəhd et</string>
     <string name="patcher_option_paths_clear">Fayl yollarını sil və davam et</string>
-    <string name="patcher_storage_permission_hint">İpucu: Faylları /Android/data/app.morphe.manager/files/ -a köçür - əlavə icazələrə ehtiyac yoxdur</string>
+    <string name="patcher_storage_permission_hint">İpucu: Faylları /Android/data/app.nivqo.manager/files/ -a köçür - əlavə icazələrə ehtiyac yoxdur</string>
     <!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Hazırlanır</string>
     <string name="patcher_step_load_patches">Yamaqlar yüklənilir</string>
@@ -586,7 +586,7 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="patcher_step_sign_apk">Yamaqlanan APK faylı imzalanır</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Fon yamaqlanma müdafiəsi</string>
-    <string name="battery_optimization_dialog_description">Bəzi cihazlar tətbiqi qısanda yamaqlayıcını dayandıra bilər. Etibarlı tamamlanan yamaqlanmaya əmin olmaq üçün Morphe-ni batareya məhdudiyyətləri olmadan işlətməyə icazə ver</string>
+    <string name="battery_optimization_dialog_description">Bəzi cihazlar tətbiqi qısanda yamaqlayıcını dayandıra bilər. Etibarlı tamamlanan yamaqlanmaya əmin olmaq üçün Nivqo-ni batareya məhdudiyyətləri olmadan işlətməyə icazə ver</string>
     <string name="battery_optimization_not_now">İndi deyil</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">Kifayət qədər yaddaş yoxdur</string>
@@ -643,8 +643,8 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="install_ignore_signature">Yenə də quraşdır</string>
     <string name="install_ignore_signature_description">Tətbiq məlumatlarını saxlayır, lakin yalnız root modulu Android-in imza təsdiqləməsini qapatdıqda işləyir</string>
     <string name="uninstall_app_fail">Tətbiqi silmək olmadı: %s</string>
-    <string name="uninstall_app_unverified">Yerində saxlanıldı: Morphe quraşdırılmış tətbiqin öz yamaqladığı qurulma olduğunu təsdiqləyə bilmədi</string>
-    <string name="launch_app_unverified">Morphe quraşdırılmış tətbiqin öz yamaqladığı qurulma olduğunu təsdiqləyə bilmədi</string>
+    <string name="uninstall_app_unverified">Yerində saxlanıldı: Nivqo quraşdırılmış tətbiqin öz yamaqladığı qurulma olduğunu təsdiqləyə bilmədi</string>
+    <string name="launch_app_unverified">Nivqo quraşdırılmış tətbiqin öz yamaqladığı qurulma olduğunu təsdiqləyə bilmədi</string>
     <string name="uninstall_timeout">Silinmə vaxtı bitdi</string>
     <string name="save_apk_success">APK Saxlanıldı</string>
     <string name="saved_app_export_failed">Yamaqlanan tətbiqi ixrac etmək olmadı</string>
@@ -752,7 +752,7 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="settings_appearance_app_card_colors_bundle_description">Bura hər tətbiqin öz rəngini istifadə et, uyğunlaşdırmaq üçün avtomatik kölgələndir</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Tətbiq simvolu</string>
-    <string name="settings_appearance_app_icon_selector_description">Morphe-nin əsas ekranınızda və tətbiq bölməsində necə göründüyü</string>
+    <string name="settings_appearance_app_icon_selector_description">Nivqo-nin əsas ekranınızda və tətbiq bölməsində necə göründüyü</string>
     <string name="settings_appearance_app_icon_default">İlkin</string>
     <string name="settings_appearance_app_icon_light_2">Səma</string>
     <string name="settings_appearance_app_icon_light_3">Qürub</string>
@@ -768,14 +768,14 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="settings_advanced_patcher">Yamaqlayıcı</string>
     <string name="settings_advanced_updates_manager_prereleases">İlkin buraxılış yeniləmələri</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
-    <string name="settings_advanced_updates_manager_prereleases_description">Yeni Morphe versiyalarına erkən keçid</string>
+    <string name="settings_advanced_updates_manager_prereleases_description">Yeni Nivqo versiyalarına erkən keçid</string>
     <string name="settings_advanced_updates_prerelease_warning_title">İlkin buraxılış yeniləmələrini aktivləşdirsin?</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
-    <string name="settings_advanced_updates_prerelease_warning_message">"Morphe-nin ilkin buraxılış versiyaları hələ inkişaf mərhələsindədir və qeyri-sabit ola bilər.
+    <string name="settings_advanced_updates_prerelease_warning_message">"Nivqo-nin ilkin buraxılış versiyaları hələ inkişaf mərhələsindədir və qeyri-sabit ola bilər.
 
 ​Yamaqlar təsirlənmir: yamaq mənbələri siyahısındakı hər bir mənbə üçün ilkin buraxılış yamaqlarını aktivləşdir"</string>
     <string name="settings_advanced_updates_allow_metered">Mobil data yenilənmələri</string>
-    <string name="settings_advanced_updates_allow_metered_description">Morphe və yamaq yeniləmələrini mobil məlumat üzərindən yükləməyə icazə verilir</string>
+    <string name="settings_advanced_updates_allow_metered_description">Nivqo və yamaq yeniləmələrini mobil məlumat üzərindən yükləməyə icazə verilir</string>
     <string name="settings_advanced_updates_background_notifications">Fon yenilənmə bildirişləri</string>
     <string name="settings_advanced_updates_background_notifications_description">Fonda yeniləmələri dövri yoxla və əlçatandırsa elan et</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Hətta tətbiq bağlandıqda, yeni buraxılışlar üçün təkan bildirişləri</string>
@@ -792,27 +792,27 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="settings_advanced_external_batch_patch">Xarici tətikləyicilərə icazə ver</string>
     <string name="settings_advanced_external_batch_patch_description">Avtomatlaşdırma tətbiqlərinə intent vasitəsilə toplu yamaqlamağa başlamağa icazə verir</string>
     <string name="external_batch_patch_title">Toplu yamaqlamaya başlanılsın?</string>
-    <string name="external_batch_patch_description">%s Morphe-nin tətbiqləri yamaqlamasını və quraşdırmasını istəyir</string>
+    <string name="external_batch_patch_description">%s Nivqo-nin tətbiqləri yamaqlamasını və quraşdırmasını istəyir</string>
     <string name="external_batch_patch_trust_caller">Bu tətbiqə həmişə icazə ver</string>
     <string name="external_batch_patch_unknown_caller">Bilinməyən tətbiq</string>
     <!-- Notification content -->
-    <string name="notification_manager_update_title">Əlçatan Morphe yenilənməsi</string>
+    <string name="notification_manager_update_title">Əlçatan Nivqo yenilənməsi</string>
     <string name="notification_bundle_update_title">Yeni yamaqlar var</string>
     <string name="notification_update_text">%s versiyası yüklənilməyə hazırdır</string>
-    <string name="notification_bundle_update_text_unversioned">Morphe-ni açmaq və yeniləmək üçün toxun</string>
+    <string name="notification_bundle_update_text_unversioned">Nivqo-ni açmaq və yeniləmək üçün toxun</string>
     <string name="notification_permission_dialog_title">Bildirişləri qəbul et</string>
-    <string name="notification_permission_dialog_description">Morphe fonda yeniləmələr əlçatan olduqda sizə bildirmək üçün bildiriş icazəsi istəyir</string>
+    <string name="notification_permission_dialog_description">Nivqo fonda yeniləmələr əlçatan olduqda sizə bildirmək üçün bildiriş icazəsi istəyir</string>
     <string name="notification_post_patch_dialog_title">Yeniləmələr əlçatandırsa bildiriş almaq istərdiniz?</string>
-    <string name="notification_channel_manager_updates">Morphe yenilənmələri</string>
-    <string name="notification_channel_manager_updates_description">Yeni Morphe buraxılışları haqqında bildirişlər</string>
+    <string name="notification_channel_manager_updates">Nivqo yenilənmələri</string>
+    <string name="notification_channel_manager_updates_description">Yeni Nivqo buraxılışları haqqında bildirişlər</string>
     <string name="notification_channel_patch_updates">Yamaq yeniləmələri</string>
     <string name="notification_channel_patch_updates_description">Yeni yamaq buraxılışları haqqında bildirişlər</string>
     <string name="notification_channel_patcher">Yamaqlanır</string>
-    <string name="notification_channel_patcher_description">Morphe tətbiqi fonda yamaqlayarkən görünür</string>
+    <string name="notification_channel_patcher_description">Nivqo tətbiqi fonda yamaqlayarkən görünür</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Mütəxəssis tənzimləmələri</string>
     <string name="settings_advanced_expert_mode">Mütəxəssis rejimi</string>
-    <string name="settings_advanced_expert_mode_description">Qəliz Morphe yamaqlanma tənzimləmələrin və fərdiləşdirmə seçimlərin aktivləşdirir</string>
+    <string name="settings_advanced_expert_mode_description">Qəliz Nivqo yamaqlanma tənzimləmələrin və fərdiləşdirmə seçimlərin aktivləşdirir</string>
     <string name="settings_advanced_expert_mode_dialog_title">Mütəxəssis rejimi aktivləşdirilsin?</string>
     <string name="settings_advanced_expert_mode_dialog_message">Mütəxəssis rejimi yamaqların necə tətbiq olunduğuna daha çox nəzarət verir, lakin mütəxəssis rejimindəki tənzimləmələri səhv qurma tətbiqi funksional pozuntuya sala bilər</string>
     <string name="settings_advanced_strip_unused_libs">Cihaz quruluşu üçün optimallaşdır</string>
@@ -827,7 +827,7 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="settings_advanced_github_pat_dialog_description">"Pull request-ləri xarici mənbələr kimi əlavə edə bilmək üçün %3$s təyin et. %1$s üzərində %2$s əhatə dairəsinə malik PAT yarat"</string>
     <string name="settings_advanced_github_pat_export_include_label">Tənzimləmələr ixracında yerləşdir</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
-    <string name="settings_advanced_github_pat_export_include_supporting">Bu PAT-ı ixrac edilən Morphe tənzimləmələrinə əlavə edir</string>
+    <string name="settings_advanced_github_pat_export_include_supporting">Bu PAT-ı ixrac edilən Nivqo tənzimləmələrinə əlavə edir</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">PAT-ınızı paylaşmayın. Bunu tənzimləmələr ixracına daxil etsəniz, o faylı gizli saxlayın, çünki onun token-i var</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
@@ -923,7 +923,7 @@ morphe_header_custom_light.png morphe_header_custom_dark.png
     <string name="installer_status_not_supported">Bu fəaliyyət üçün dəstəklənən deyil</string>
     <string name="installer_status_shizuku_not_installed">Bu seçimi istifadə etmək üçün Shizuku və ya Sui quraşdır</string>
     <string name="installer_status_shizuku_not_running">Shizuku yaxud Sui-ni başlat və təkrar sına</string>
-    <string name="installer_status_shizuku_permission">Shizuku tətbiqindən Morphe üçün icazəni qəbul et</string>
+    <string name="installer_status_shizuku_permission">Shizuku tətbiqindən Nivqo üçün icazəni qəbul et</string>
     <string name="installer_mount_warning_install">İlkin quraşdırıcınız rootlu montaj quraşdırıcısına tənzimlənib. Saxlanılan bu tətbiq montaj istifadə edilərək quraşdırılan deyil</string>
     <string name="mount_version_mismatch_message">Əsas tətbiq versiyası (%2$s) yamaqlanan tətbiq versiyasına (%1$s) uyğun deyil. Uyuşan əsas versiyanı montajla, sonra təkrar sına</string>
     <string name="mount_stock_restore_failed_message">Android saxlanılan orijinal APK-nı qəbul etmədi. Uyğun əsas versiyanı quraşdır, sonra təkrar montaj etməyə çalış</string>
@@ -953,7 +953,7 @@ morphe_header_custom_light.png morphe_header_custom_dark.png
     <string name="settings_auto_uninstall_with_shizuku">Ziddiyyət zamanı avtomatik sil</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Shizuku ilə avtomatik quraşdırarkən, Android imza ziddiyyəti bildirərsə, əvvəlcə mövcud tətbiqi sil. Bu, tətbiq məlumatlarını təmizləyə bilər</string>
     <string name="settings_auto_uninstall_warning_title">Avtomatik silmə aktivləşdirilsin?</string>
-    <string name="settings_auto_uninstall_warning_message">Android Shizuku avtomatik quraşdırılması zamanı imza münaqişəsini bildirərsə, Morphe yamaqlanmış APK-nı quraşdırmadan əvvəl mövcud tətbiqi siləcək</string>
+    <string name="settings_auto_uninstall_warning_message">Android Shizuku avtomatik quraşdırılması zamanı imza münaqişəsini bildirərsə, Nivqo yamaqlanmış APK-nı quraşdırmadan əvvəl mövcud tətbiqi siləcək</string>
     <string name="settings_auto_uninstall_warning_risk">Bu, tətbiq məlumatlarını silə bilər. Silinmədən sonra yamaqlanmış APK-nı quraşdırmaq mümkün olmasa, əvvəlki tətbiq artıq itirilmiş ola bilər</string>
     <string name="installer_shizuku_status_action">Shizuku vəziyyətini yoxla</string>
     <string name="installer_shizuku_status_title">Shizuku vəziyyəti</string>
@@ -971,7 +971,7 @@ morphe_header_custom_light.png morphe_header_custom_dark.png
     <string name="installer_shizuku_install_fail_with_details">"Shizuku quraşdırmaq olmadı: %1$s
 
 Təfərrüatlar: %2$s"</string>
-    <string name="installer_shizuku_error_permission">Shizuku icazəsi yoxdur. Morphe üçün icazəni qəbul et və təkrar cəhd et</string>
+    <string name="installer_shizuku_error_permission">Shizuku icazəsi yoxdur. Nivqo üçün icazəni qəbul et və təkrar cəhd et</string>
     <string name="installer_shizuku_error_timeout">Shizuku quraşdırma nəticəsi qaytarmadı. Onun hələ də işlədiyinə əmin ol və təkrar cəhd et</string>
     <string name="installer_shizuku_error_downgrade">Android bunu blokladı, çünki quraşdırılmış tətbiqin versiyasını aşağı salacaqdı</string>
     <string name="installer_shizuku_error_signature">Android bunu blokladı, çünki quraşdırılmış tətbiqin imzası fərqlidir</string>
@@ -986,7 +986,7 @@ Təfərrüatlar: %2$s"</string>
     <string name="settings_system_process_runtime_memory_limit_description">Daha yüksək hədlər keyfiyyətli cihazlarda yamaqlanmanı sürətləndirir</string>
     <string name="settings_system_process_runtime_enable">Emal icra olunma müddətin aktivləşdir</string>
     <string name="settings_system_memory_limit_subtitle">Yamaqlanma üçün əlçatan yaddaş</string>
-    <string name="settings_system_process_runtime_heap_limit_ignored">Bu cihaz sonuncu icra zamanı yaddaş məhdudiyyətinə məhəl qoymadı, buna görə də yamaqlama Morphe daxilində icraya keçə bilər</string>
+    <string name="settings_system_process_runtime_heap_limit_ignored">Bu cihaz sonuncu icra zamanı yaddaş məhdudiyyətinə məhəl qoymadı, buna görə də yamaqlama Nivqo daxilində icraya keçə bilər</string>
     <string name="settings_system_memory_limit_warning">Daha həcmli tətbiqlər yamaqlananda aşağı yaddaş həddi, uğursuzluqlara səbəb ola bilər</string>
     <string name="settings_system_memory_limit_high_warning">Yüksək yaddaş həddi bəzi cihazlarda yamaqlamanı xeyli ləngidə bilər. Limiti yalnız daha aşağı hədlərdə yamaqlama uğursuz olduqda artır</string>
     <string name="settings_system_process_runtime_enabled_description">%s MB hədd</string>
@@ -1009,8 +1009,8 @@ Təfərrüatlar: %2$s"</string>
     <string name="settings_system_import_export">İdxal &amp; ixrac</string>
     <string name="settings_system_signing_key">İmzalama açarı</string>
     <string name="settings_system_signing_key_description">Yamaqladığınız tətbiqlərin imzalandığı açarı nüsxələyir və bərpa edir</string>
-    <string name="settings_system_signing_key_dialog_description">Morphe yamaqları üzrə hər bir tətbiq bu açarla imzalanır. Bir nüsxəsini saxla: onsuz, yamaqlanmış tətbiqlər yalnız silindikdən sonra yenilənə bilər</string>
-    <string name="settings_system_signing_key_missing">Morphe ilk yamaqla birini yaradır</string>
+    <string name="settings_system_signing_key_dialog_description">Nivqo yamaqları üzrə hər bir tətbiq bu açarla imzalanır. Bir nüsxəsini saxla: onsuz, yamaqlanmış tətbiqlər yalnız silindikdən sonra yenilənə bilər</string>
+    <string name="settings_system_signing_key_missing">Nivqo ilk yamaqla birini yaradır</string>
     <string name="settings_system_signing_key_created">%s yaradıldı</string>
     <string name="settings_system_signing_key_fingerprint">SHA-256 barmaq izi</string>
     <string name="settings_system_backup_appearance_description">Kolorit, rənglər və dil</string>
@@ -1033,11 +1033,11 @@ Təfərrüatlar: %2$s"</string>
     <string name="settings_system_export_keystore_failed">Keystore-u ixrac etmək olmadı</string>
     <string name="settings_system_show_password_field">Parolu göstər</string>
     <string name="settings_system_hide_password_field">Parolu gizlət</string>
-    <string name="settings_system_morphe_settings">Morphe tənzimləmələri</string>
-    <string name="settings_system_import_manager_settings_description">Morphe tənzimləmələrinizi nüsxələyir və bərpa edir</string>
-    <string name="settings_system_import_manager_settings_fail">Morphe tənzimləmələrin idxal etmək olmadı: %s</string>
-    <string name="settings_system_import_manager_settings_success">Morphe tənzimləmələri idxal edildi</string>
-    <string name="settings_system_import_manager_settings_mode_title">Morphe tənzimləmələrin idxal et</string>
+    <string name="settings_system_morphe_settings">Nivqo tənzimləmələri</string>
+    <string name="settings_system_import_manager_settings_description">Nivqo tənzimləmələrinizi nüsxələyir və bərpa edir</string>
+    <string name="settings_system_import_manager_settings_fail">Nivqo tənzimləmələrin idxal etmək olmadı: %s</string>
+    <string name="settings_system_import_manager_settings_success">Nivqo tənzimləmələri idxal edildi</string>
+    <string name="settings_system_import_manager_settings_mode_title">Nivqo tənzimləmələrin idxal et</string>
     <string name="settings_system_import_manager_settings_mode_description">İdxal olunmuş tənzimləmələrin və mənbələrin necə tətbiq olunacağını seç</string>
     <string name="settings_system_import_selections_mode_title">Yamaq seçimlərini idxal et</string>
     <string name="settings_system_import_selections_mode_description">İdxal olunmuş seçimlərin və yamaq üstünlüklərinin necə tətbiq olunacağını seç</string>
@@ -1045,8 +1045,8 @@ Təfərrüatlar: %2$s"</string>
     <string name="import_mode_replace_description">Nüsxələməni tam olaraq uyğunlaşdır. Nüsxələmədən çatışmayan elementlər silinəcək</string>
     <string name="import_mode_merge_title">Mövcud olanla birləşdir</string>
     <string name="import_mode_merge_description">Nüsxələmədən çatışmayan elementləri əlavə et. Mövcud elementlər dəyişməz saxlanılır</string>
-    <string name="settings_system_export_manager_settings_fail">Morphe tənzimləmələrin ixrac etmək olmadı: %s</string>
-    <string name="settings_system_export_manager_settings_success">Morphe tənzimləmələri ixrac olundu</string>
+    <string name="settings_system_export_manager_settings_fail">Nivqo tənzimləmələrin ixrac etmək olmadı: %s</string>
+    <string name="settings_system_export_manager_settings_success">Nivqo tənzimləmələri ixrac olundu</string>
     <string name="settings_system_export_debug_logs">Sazlanma jurnalların köçür</string>
     <string name="settings_system_export_debug_logs_description">Problemlərin düzəldilməsi üçün sistem jurnalların saxlayır</string>
     <string name="settings_system_export_debug_logs_export_read_failed">Jurnalları oxumaq olmadı (çıxış şifrəsi %s)</string>
@@ -1082,7 +1082,7 @@ Təfərrüatlar: %2$s"</string>
     <string name="settings_system_storage_cleared">%s boşaldıldı</string>
     <string name="settings_system_storage_nothing_to_clear">Təmizlənəcək bir şey yoxdur</string>
     <string name="settings_system_storage_open_app_info_title">Android tətbiq saxlama yerini aç</string>
-    <string name="settings_system_storage_open_app_info_description">Bütün Morphe məlumatlarını sistem tənzimləmələri vasitəsilə idarə et və ya təmizlə</string>
+    <string name="settings_system_storage_open_app_info_description">Bütün Nivqo məlumatlarını sistem tənzimləmələri vasitəsilə idarə et və ya təmizlə</string>
     <string name="settings_system_save_original_apks_title">Orijinal APK-ları saxla</string>
     <string name="settings_system_save_original_apks_description">Fayl təkrar seçilmədən yenidən yamaqlamaq üçün istifadə oluna bilsin deyə yamaq öncəsi APK-nı saxla</string>
     <string name="settings_system_save_patched_apks_title">Yamaqlanmış APK-ları saxla</string>
@@ -1130,12 +1130,12 @@ Təfərrüatlar: %2$s"</string>
     <string name="copy_selection_same_source">Eyni mənbə</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Fərdi fayl seçici</string>
-    <string name="settings_system_custom_file_picker_description">Sistem standartı əvəzinə Morphe-nin qurulu fayl seçicisi ilə saxlama yerini araşdır</string>
+    <string name="settings_system_custom_file_picker_description">Sistem standartı əvəzinə Nivqo-nin qurulu fayl seçicisi ilə saxlama yerini araşdır</string>
     <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">APK yükləmə köməkçisi</string>
     <string name="settings_system_apk_download_helper_trusted_count">Etibarlı: %2$d-dən %1$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Köməkçi tətbiqlər sizin üçün orijinal APK-ları yükləyə bilər. Yükləmə təlimatlarında yalnız burada etibar etdiyin tətbiqlər təklif olunur</string>
-    <string name="settings_system_apk_download_helper_warning">APK köməkçi tətbiqdən əldə edilir, buna görə də yalnız tanıdığınız tətbiqlərə etibar edin. Morphe yamaqlamadan əvvəl hər bir faylın paketini, versiyasını və imzasını yoxlayır</string>
+    <string name="settings_system_apk_download_helper_warning">APK köməkçi tətbiqdən əldə edilir, buna görə də yalnız tanıdığınız tətbiqlərə etibar edin. Nivqo yamaqlamadan əvvəl hər bir faylın paketini, versiyasını və imzasını yoxlayır</string>
     <string name="settings_system_apk_download_helper_installed_by">%s tərəfindən quraşdırılıb</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Bilinməyən quraşdırıcı</string>
     <!-- File Picker -->
@@ -1318,7 +1318,7 @@ Təfərrüatlar: %2$s"</string>
     <string name="update_completed">Yenilənmə quraşdırıldı</string>
     <string name="install_update_manager_failed">Yeniləməni quraşdırmaq olmadı</string>
     <string name="installing_manager_update">Yeniləmə quraşdırılır…</string>
-    <string name="installing_manager_update_hint">Morphe yeniləməni tamamlamaq üçün qapanacaq</string>
+    <string name="installing_manager_update_hint">Nivqo yeniləməni tamamlamaq üçün qapanacaq</string>
     <string name="downloading_manager_update">Yenilənmə yüklənilir…</string>
     <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB yüklənildi</string>
@@ -1339,7 +1339,7 @@ Hələ də davam etmək istəyirsiniz?"</string>
     <string name="onboarding_sources_desc">Yamaq mənbələrinizi idarə edin. Hər mənbə tətbiqlərinizə tətbiq oluna bilən yamaqlar təmin edir</string>
     <string name="onboarding_swipe_title">Sürüşdürmə jestləri</string>
     <string name="onboarding_swipe_desc">Mövcud yamaqlara baxmaq üçün tətbiq kartında sağa sürüşdür. Kartı əsas ekrandan gizlətmək üçün sola sürüşdür</string>
-    <string name="onboarding_settings_desc">Morphe-ni fərdiləşdir: görünüş, qabaqcıl seçimlər və sistem alətləri</string>
+    <string name="onboarding_settings_desc">Nivqo-ni fərdiləşdir: görünüş, qabaqcıl seçimlər və sistem alətləri</string>
     <string name="onboarding_sources_patches_desc">Bu mənbədən əlçatan bütün yamaqlara baxmaq üçün toxun</string>
     <string name="onboarding_sources_version_desc">Bu mənbə üçün tam dəyişiklik jurnalına baxmaq məqsədilə versiyaya toxun</string>
     <string name="onboarding_sources_prerelease_desc">Bu mənbədən ilkin buraxılış yamaq versiyalarını almaq üçün bunu aktivləşdir</string>
@@ -1354,7 +1354,7 @@ Hələ də davam etmək istəyirsiniz?"</string>
     <string name="onboarding_system_file_picker_desc">APK və ya açar ehtiyatları seçəndə sistem seçicisi əvəzinə qurulu fayl tədqiqin istifadə etmək məqsədilə aktivləşdir</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Sürətli xüsusiyyət tanışlığı</string>
-    <string name="tour_prompt_desc">Morphe-nin əsas xüsusiyyətlərinə qısa baxış istəyirsiniz?</string>
+    <string name="tour_prompt_desc">Nivqo-nin əsas xüsusiyyətlərinə qısa baxış istəyirsiniz?</string>
     <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Mənə göstər</string>
     <string name="onboarding_restart_title">Xüsusiyyət tanışlığı</string>
