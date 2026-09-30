@@ -157,4 +157,4 @@ Nivqo 的中文化、整合與修改不代表任何上游作者對本專案提�
 
 Nivqo 自行修改的 GPL 衍生程式碼依其適用的 GPLv3 條款提供。第三方元件維持各自原始授權，請查看各 source 子目錄中的 `LICENSE` / `NOTICE`。
 
-Nivqo 為獨立第三方專案，與 Meta、Facebook、Messenger、Morphe 或 SysAdminDoc 無官方隸屬關係。
+Nivqo 為獨立第三方專案，與 Meta、Facebook、Messenger、Morphe 或 SysAdminDoc 無官方隸屬關係。完整的授權、品牌與台灣法律風險整理請見 [`docs/LEGAL.md`](docs/LEGAL.md)。

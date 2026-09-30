@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Home Screen -->
     <string name="home_other_apps">其他應用程式</string>
@@ -1155,7 +1155,7 @@ morphe_header_custom_dark.png
     <string name="file_picker_show_hidden_files">顯示隱藏的檔案</string>
     <!-- Settings - System Tab - About Section -->
     <string name="settings_system_about">關於</string>
-    <string name="settings_system_manager_description">\"這是一個開源專案，用於對熱門的 Android 應用程式進行現代、簡化的修補，並由社群的意見回饋和貢獻所驅動\"</string>
+    <string name="settings_system_manager_description">Nivqo 是獨立第三方開源修補管理器，與 Meta、Facebook、Messenger、Morphe 或 SysAdminDoc 無官方隸屬、授權、贊助或認可關係。相關名稱僅用於相容性與上游來源說明；上游授權與 NOTICE 可於「開源授權」查看。</string>
     <string name="credits">鳴謝</string>
     <string name="credits_current_development">目前開發</string>
     <string name="credits_prior_development">先前開發</string>

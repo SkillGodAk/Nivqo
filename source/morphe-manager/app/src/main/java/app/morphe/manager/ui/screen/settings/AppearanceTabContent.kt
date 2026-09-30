@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright 2026 Morphe.
  * https://github.com/MorpheApp/morphe-manager
  */
@@ -41,7 +41,7 @@ import app.morphe.manager.ui.viewmodel.ThemeSettingsViewModel
 import app.morphe.manager.util.AppCardColorDefaults
 import app.morphe.manager.util.AppCardColorMode
 import app.morphe.manager.util.AppLocale
-import app.morphe.manager.util.MORPHE_WEBSITE_URL
+import app.morphe.manager.util.NIVQO_ISSUES_URL
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -225,7 +225,7 @@ fun AppearanceTabContent(
                 R.string.settings_appearance_translations_info_text,
                 stringResource(R.string.settings_appearance_translations_info_url)
             ),
-            urlLink = "$MORPHE_WEBSITE_URL/translate",
+            urlLink = NIVQO_ISSUES_URL,
             onDismiss = {
                 showTranslationInfoDialog.value = false
                 scope.launch {

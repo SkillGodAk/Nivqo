@@ -155,4 +155,4 @@ If Nivqo is useful to you, you can support the author.
 
 Nivqo's GPL-derived modifications are provided under the applicable GPLv3 terms. Third-party components retain their own original licenses. See the `LICENSE` / `NOTICE` files in each source directory.
 
-Nivqo is an independent third-party project and is not officially affiliated with Meta, Facebook, Messenger, Morphe, or SysAdminDoc.
+Nivqo is an independent third-party project and is not officially affiliated with Meta, Facebook, Messenger, Morphe, or SysAdminDoc. See [`docs/LEGAL.md`](docs/LEGAL.md) for licensing, branding, and Taiwan-specific legal risk notes.

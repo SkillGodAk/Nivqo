@@ -2421,9 +2421,9 @@ class PatchBundleRepository(
             "morphe-hush/hushmessenger-0.6.0.mpp"
 
         internal const val HUSHFACEBOOK_UPDATE_ENDPOINT =
-            "https://raw.githubusercontent.com/SkillGodAk/Nivqo/refs/heads/main/updates/hushfacebook.json"
+            "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook.json"
         internal const val HUSHMESSENGER_UPDATE_ENDPOINT =
-            "https://raw.githubusercontent.com/SkillGodAk/Nivqo/refs/heads/main/updates/hushmessenger.json"
+            "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushmessenger.json"
 
         // Create default entity with sortOrder 0
         fun createDefaultEntity(now: Long = System.currentTimeMillis()) = PatchBundleEntity(

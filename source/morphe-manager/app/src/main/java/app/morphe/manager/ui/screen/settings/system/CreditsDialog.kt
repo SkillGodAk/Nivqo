@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright 2026 Morphe.
  * https://github.com/MorpheApp/morphe-manager
  */
@@ -32,13 +32,18 @@ private data class Contributor(
 
 private val currentContributors = listOf(
     Contributor(
-        name = "Morphe",
-        organisation = "MorpheApp",
-        url = "https://github.com/MorpheApp/morphe-manager/graphs/contributors"
+        name = "Nivqo",
+        organisation = "SkillGodAk",
+        url = "https://github.com/SkillGodAk/Nivqo/graphs/contributors"
     )
 )
 
 private val priorContributors = listOf(
+    Contributor(
+        name = "Morphe",
+        organisation = "MorpheApp",
+        url = "https://github.com/MorpheApp/morphe-manager/graphs/contributors"
+    ),
     Contributor(
         name = "URV",
         organisation = "Jman-Github",

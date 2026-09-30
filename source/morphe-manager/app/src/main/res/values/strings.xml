@@ -777,7 +777,7 @@ Uninstalling will permanently erase all app data"</string>
     <string name="settings_appearance_translations_info_title">Translations for some languages may be missing or incomplete</string>
     <string name="settings_appearance_translations_info_text">"To translate new languages or improve the existing translations, visit
 %s"</string>
-    <string name="settings_appearance_translations_info_url" translatable="false">morphe.software/translate</string>
+    <string name="settings_appearance_translations_info_url" translatable="false">github.com/SkillGodAk/Nivqo/issues</string>
 
     <!-- Settings - Appearance Tab - Interface Scale -->
     <string name="settings_appearance_ui_scale">Interface scale</string>
@@ -1243,7 +1243,7 @@ Details: %2$s"</string>
 
     <!-- Settings - System Tab - About Section -->
     <string name="settings_system_about">About</string>
-    <string name="settings_system_manager_description">An open-source project for modern, streamlined patching of popular Android apps, driven by community feedback and contributions</string>
+    <string name="settings_system_manager_description">Nivqo is an independent third-party open-source patch manager. It is not affiliated with or endorsed by Meta, Facebook, Messenger, Morphe, or SysAdminDoc. Compatibility names are used only for identification; upstream licenses and notices remain available under Open-source licenses.</string>
     <string name="credits">Credits</string>
     <string name="credits_current_development">Current development</string>
     <string name="credits_prior_development">Prior development</string>

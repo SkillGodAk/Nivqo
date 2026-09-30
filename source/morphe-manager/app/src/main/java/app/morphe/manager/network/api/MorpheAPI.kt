@@ -1,4 +1,4 @@
-package app.morphe.manager.network.api
+﻿package app.morphe.manager.network.api
 
 import android.util.Log
 import app.morphe.manager.BuildConfig
@@ -59,6 +59,53 @@ internal fun parseReleaseAssetUrl(downloadUrl: String): ReleaseAssetRef? {
         tag = parts[4],
         fileName = fileName
     )
+}
+
+/**
+ * Derives the sibling CHANGELOG.md URL from a remote bundle manifest endpoint.
+ *
+ * Nivqo historically used raw GitHub URLs with an explicit refs/heads/main segment. Raw GitHub
+ * accepts that form, but it means the branch reference spans three path segments instead of one.
+ * Keep supporting it so older Nivqo source URLs and imported backups continue to resolve correctly.
+ */
+internal fun changelogUrlFromBundleEndpointUrl(endpoint: String): String? {
+    return try {
+        val uri = java.net.URI(endpoint)
+        val host = uri.host?.lowercase(java.util.Locale.US) ?: return null
+        val parts = uri.path?.trim('/')?.split('/')?.filter { it.isNotBlank() } ?: return null
+
+        when (host) {
+            "raw.githubusercontent.com" -> {
+                if (parts.size < 3) return null
+                val refLength = if (
+                    parts.getOrNull(2) == "refs" &&
+                    parts.getOrNull(3) in listOf("heads", "tags") &&
+                    parts.size >= 5
+                ) 5 else 3
+                val base = parts.take(refLength).joinToString("/")
+                "https://raw.githubusercontent.com/$base/CHANGELOG.md"
+            }
+
+            "github.com" -> {
+                if (parts.size < 2) return null
+                val branch = if (parts.size >= 4 && parts[2] in listOf("tree", "blob")) parts[3] else "main"
+                "https://raw.githubusercontent.com/${parts[0]}/${parts[1]}/$branch/CHANGELOG.md"
+            }
+
+            "gitlab.com" -> {
+                if (parts.size < 2) return null
+                val rawIndex = parts.indexOf("raw")
+                val branch = if (rawIndex >= 0 && parts.getOrNull(rawIndex - 1) == "-") {
+                    parts.getOrNull(rawIndex + 1) ?: "main"
+                } else "main"
+                "https://gitlab.com/${parts[0]}/${parts[1]}/-/raw/$branch/CHANGELOG.md"
+            }
+
+            else -> null
+        }
+    } catch (_: Exception) {
+        null
+    }
 }
 
 /**
@@ -603,43 +650,8 @@ class MorpheAPI(
      *
      * Returns null for unrecognized URL formats.
      */
-    fun changelogUrlFromBundleEndpoint(endpoint: String): String? {
-        return try {
-            val uri = java.net.URI(endpoint)
-            val host = uri.host?.lowercase(java.util.Locale.US) ?: return null
-            val parts = uri.path?.trim('/')?.split('/')?.filter { it.isNotBlank() } ?: return null
-
-            when (host) {
-                "raw.githubusercontent.com" -> {
-                    // path: owner/repo/branch/...
-                    if (parts.size < 3) return null
-                    val base = parts.take(3).joinToString("/")
-                    "https://raw.githubusercontent.com/$base/CHANGELOG.md"
-                }
-
-                "github.com" -> {
-                    // path: owner/repo  or  owner/repo/tree/branch/...
-                    if (parts.size < 2) return null
-                    val branch = if (parts.size >= 4 && parts[2] in listOf("tree", "blob")) parts[3] else "main"
-                    "https://raw.githubusercontent.com/${parts[0]}/${parts[1]}/$branch/CHANGELOG.md"
-                }
-
-                "gitlab.com" -> {
-                    // path: owner/repo/-/raw/branch/...
-                    if (parts.size < 2) return null
-                    val rawIndex = parts.indexOf("raw")
-                    val branch = if (rawIndex >= 0 && parts.getOrNull(rawIndex - 1) == "-") {
-                        parts.getOrNull(rawIndex + 1) ?: "main"
-                    } else "main"
-                    "https://gitlab.com/${parts[0]}/${parts[1]}/-/raw/$branch/CHANGELOG.md"
-                }
-
-                else -> null
-            }
-        } catch (_: Exception) {
-            null
-        }
-    }
+    fun changelogUrlFromBundleEndpoint(endpoint: String): String? =
+        changelogUrlFromBundleEndpointUrl(endpoint)
 
     /**
      * Fetches the latest GitHub Actions artifact for a pull request.

@@ -1,4 +1,4 @@
-package app.morphe.manager.network.dto
+﻿package app.morphe.manager.network.dto
 
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
@@ -14,6 +14,8 @@ data class MorpheAsset (
     val signatureDownloadUrl: String? = null,
     @SerialName("page_url")
     val pageUrl: String? = null,
+    @SerialName("changelog_url")
+    val changelogUrl: String? = null,
     val description: String,
     val version: String,
 )

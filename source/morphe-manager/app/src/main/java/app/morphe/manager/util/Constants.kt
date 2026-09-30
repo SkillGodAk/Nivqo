@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright 2026 Morphe.
  * https://github.com/MorpheApp/morphe-manager
  */
@@ -17,6 +17,8 @@ const val tag = "Morphe Manager"
 
 const val SOURCE_NAME = "Morphe Patches"
 const val MANAGER_REPO_URL = "https://github.com/SkillGodAk/Nivqo"
+const val MANAGER_RELEASES_URL = "$MANAGER_REPO_URL/releases"
+const val NIVQO_ISSUES_URL = "$MANAGER_REPO_URL/issues"
 const val SOURCE_REPO_URL = "https://github.com/MorpheApp/morphe-patches"
 const val MORPHE_API_URL = "https://api.morphe.software"
 const val MORPHE_WEBSITE_URL = "https://morphe.software"
