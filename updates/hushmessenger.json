@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-09-29T06:02:00",
-  "description": "Nivqo HushMessenger Traditional Chinese/custom bundle with settings integrated inside Messenger. Supports Messenger 580.0.0.49.91 versionCode 346013387, 346013440 and 346013442.",
-  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/refs/heads/main/updates/bundles/hushmessenger.mpp",
-  "signature_download_url": "",
-  "version": "0.4.2-nivqo.1"
+    "created_at":  "2026-09-30T23:02:47",
+    "description":  "HushMessenger v0.6.0 Nivqo 繁中核心；跟進上游 main 4b259a71，28 個 patch，支援 Messenger 580.0.0.49.91 的 21 個 arm64 versionCode。改用作者正式 Menu／隱藏應用程式清單圖示入口，並將語言切換改為選項式。",
+    "signature_download_url":  "",
+    "download_url":  "https://raw.githubusercontent.com/SkillGodAk/Nivqo/refs/heads/main/updates/bundles/hushmessenger.mpp",
+    "version":  "0.6.0-nivqo.1"
 }

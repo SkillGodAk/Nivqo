@@ -30,9 +30,9 @@ import app.morphe.extension.shared.diagnostics.DiagnosticCategory;
  * Saves one DASH video track and one audio track as one MP4 file.
  *
  * <p>A DASH manifest keeps the picture and the sound in two files. One plain fetch gets each file.
- * Then {@code MediaMuxer} copies the samples of both into one file. It does not decode or encode
- * them again. So the file has the quality that the player streams, and the join takes less than a
- * second.
+ * Then {@code MediaMuxer} copies the samples of both into one file, or {@link Mp4Join} does for a
+ * picture the muxer won't write ({@link #ownWriter}). Neither decodes or encodes them again. So the
+ * file has the quality that the player streams, and the join takes less than a second.
  *
  * <p>The two tracks and the result go into the cache of the app first, because the muxer must seek
  * in its files. Only the finished file goes into the gallery, through the same
@@ -65,8 +65,9 @@ final class DashSave {
     private static volatile Boolean canWriteAv1;
 
     /**
-     * Whether this device can save an AV1 track. The muxer writes AV1 into an MP4 from Android 14.
-     * The device must also have an AV1 decoder, or it cannot play the file.
+     * Whether this device can save an AV1 track: whether it has an AV1 decoder, without which it
+     * can't play the file. The muxer writes AV1 into an MP4 from Android 14, and {@link Mp4Join}
+     * before that.
      */
     static boolean canWriteAv1() {
         if (canWriteAv1 == null) canWriteAv1 = hasAv1Decoder();
@@ -74,8 +75,6 @@ final class DashSave {
     }
 
     private static boolean hasAv1Decoder() {
-        if (Build.VERSION.SDK_INT < 34) return false;
-
         try {
             for (MediaCodecInfo codec : new MediaCodecList(MediaCodecList.REGULAR_CODECS).getCodecInfos()) {
                 if (codec.isEncoder()) continue;
@@ -104,46 +103,15 @@ final class DashSave {
     }
 
     /**
-     * Download [video] and [audio], join them, and write the result to [sink]. This blocks and
-     * never throws. [audio] is {@code null} for a video with no sound. Both tracks go through the
-     * same checks as a single file, so nothing reaches the gallery unless both are Meta's media.
-     */
-    static Downloader.Result save(
-        Context application,
-        DashManifest.Track video,
-        DashManifest.Track audio,
-        Downloader.Sink sink
-    ) {
-        return save(application, video, audio, sink, MediaUrlPolicy.META);
-    }
-
-    static Downloader.Result save(
-        Context application,
-        DashManifest.Track video,
-        DashManifest.Track audio,
-        Downloader.Sink sink,
-        MediaUrlPolicy policy
-    ) {
-        return save(application, video, audio, sink, policy, Downloader.MAX_BYTES);
-    }
-
-    /**
-     * [maxBytes] holds the two tracks together, the way it holds a single file: the sound gets
+     * Download [video] and [audio], join them, and write the result to [sink], reporting each
+     * track's fetch to [progress] and stopping when it's cancelled. This blocks and never throws.
+     * [audio] is {@code null} for a video with no sound. Both tracks go through the same checks as
+     * a single file, so nothing reaches the gallery unless both are Meta's media.
+     *
+     * <p>[maxBytes] holds the two tracks together, the way it holds a single file: the sound gets
      * what the picture left of it, and the joined file is held to it too. So what reaches the
      * gallery is never over the cap, whichever way it was saved.
      */
-    static Downloader.Result save(
-        Context application,
-        DashManifest.Track video,
-        DashManifest.Track audio,
-        Downloader.Sink sink,
-        MediaUrlPolicy policy,
-        long maxBytes
-    ) {
-        return save(application, video, audio, sink, policy, maxBytes, Downloader.SILENT);
-    }
-
-    /** As above, reporting each track's fetch to [progress] and stopping when it's cancelled. */
     static Downloader.Result save(
         Context application,
         DashManifest.Track video,
@@ -182,7 +150,15 @@ final class DashSave {
             if (reserve(joined, room) < room) {
                 return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "not enough free space to join the tracks");
             }
-            if (!join(videoFile, audioFile, joined, progress)) return cancelledJoining();
+            boolean own = ownWriter(video.codecs, Build.VERSION.SDK_INT);
+            if (own) {
+                String codec = video.codecs.startsWith("vp09") ? "VP9" : "AV1 before Android 14";
+                MediaDownload.info(() -> "joining the tracks without MediaMuxer, which can't write " + codec
+                    + " into an MP4");
+            }
+            if (!(own ? Mp4Join.join(videoFile, audioFile, joined, progress) : join(videoFile, audioFile, joined, progress))) {
+                return cancelledJoining();
+            }
             // The tracks are in the joined file now. Kept, they'd sit beside it and the gallery's
             // copy of it: the video on the phone four times over.
             videoFile = discard(videoFile);
@@ -195,8 +171,9 @@ final class DashSave {
 
             Downloader.Result published = Downloader.publish(joined, "video/mp4", sink, progress);
             if (published.ok()) {
-                String holds = savedFormat(joined);
-                MediaDownload.info(() -> "the saved file holds " + holds);
+                ReadBack holds = savedFormat(joined);
+                MediaDownload.info(() -> "the saved file holds " + holds.text);
+                if (holds.refused) return published.refused();
             }
             return published;
         } catch (Throwable t) {
@@ -210,6 +187,15 @@ final class DashSave {
             discard(audioFile);
             discard(joined);
         }
+    }
+
+    /**
+     * Whether a picture of [codecs] is joined by {@link Mp4Join} on Android [sdk], rather than by
+     * MediaMuxer: VP9, which the muxer never writes into an MP4, and AV1 before Android 14, when the
+     * muxer learned it. H.264, H.265 and AV1 from Android 14 keep the muxer, as every save did.
+     */
+    static boolean ownWriter(String codecs, int sdk) {
+        return codecs.startsWith("vp09") || (codecs.startsWith("av01") && sdk < 34);
     }
 
     // ---------------------------------------------------------------- work files
@@ -453,6 +439,28 @@ final class DashSave {
     private static final int MAX_DESCRIBED_TRACKS = 4;
 
     /**
+     * The short side of the first video track [file] holds, in pixels, or 0 when it has none or the
+     * phone can't read it. What a save's "lower" note is weighed against: the file that actually
+     * reached the gallery, never a label read off its address or a track's own declared size.
+     */
+    static int savedVideoShortSide(File file) {
+        MediaExtractor extractor = null;
+        try {
+            extractor = new MediaExtractor();
+            extractor.setDataSource(file.getPath());
+            MediaFormat format = selectTrack(extractor, "video/");
+            if (format == null) return 0;
+            Integer width = number(format, MediaFormat.KEY_WIDTH);
+            Integer height = number(format, MediaFormat.KEY_HEIGHT);
+            return width == null || height == null ? 0 : Math.min(width, height);
+        } catch (Throwable t) {
+            return 0;
+        } finally {
+            if (extractor != null) attempt(null, extractor::release);
+        }
+    }
+
+    /**
      * What [file] holds, read back from the file itself: each track's codec and profile, its size or
      * its sample rate and channels, and its duration. Reports like #11 and #14 can't be settled from
      * a candidate's address, its quality label or an MP4 type. What the file doesn't say is
@@ -460,25 +468,71 @@ final class DashSave {
      * HE-AAC with implicit signalling is the LC core. Only codec facts go in, cut to a fixed size,
      * and never an address, a path, a name or an id.
      */
-    static String savedFormat(File file) {
+    static ReadBack savedFormat(File file) {
         MediaExtractor extractor = null;
         try {
             extractor = new MediaExtractor();
             extractor.setDataSource(file.getPath());
             int count = extractor.getTrackCount();
-            if (count <= 0) return "no track the phone could read";
+            if (count <= 0) return new ReadBack("no track the phone could read", false);
             StringBuilder tracks = new StringBuilder();
-            for (int i = 0; i < Math.min(count, MAX_DESCRIBED_TRACKS); i++) {
+            boolean refused = false;
+            for (int i = 0; i < count; i++) {
+                MediaFormat format = extractor.getTrackFormat(i);
+                refused |= othersMayRefuse(token(text(format, MediaFormat.KEY_MIME)), aacType(format));
+                if (i >= MAX_DESCRIBED_TRACKS) continue;
                 if (tracks.length() > 0) tracks.append(", ");
-                tracks.append(describe(extractor.getTrackFormat(i)));
+                tracks.append(describe(format));
             }
             if (count > MAX_DESCRIBED_TRACKS) tracks.append(", ").append(count - MAX_DESCRIBED_TRACKS).append(" more track(s)");
-            return tracks.toString();
+            return new ReadBack(tracks.toString(), refused);
         } catch (Throwable t) {
-            return "nothing the phone could read (" + t.getClass().getSimpleName() + ")";
+            return new ReadBack("nothing the phone could read (" + t.getClass().getSimpleName() + ")", false);
         } finally {
             if (extractor != null) attempt(null, extractor::release);
         }
+    }
+
+    /** What {@link #savedFormat} read back from a saved file. */
+    static final class ReadBack {
+        /** Each track's codec facts, for the report. */
+        final String text;
+        /**
+         * A track the file declares is one WhatsApp and some editors refuse ({@link #othersMayRefuse}).
+         * A file the phone couldn't read isn't one: the message says what's known, never a guess.
+         */
+        final boolean refused;
+
+        ReadBack(String text, boolean refused) {
+            this.text = text;
+            this.refused = refused;
+        }
+    }
+
+    /**
+     * Whether a track of type [mime], of AAC object type [aacType] when it's AAC, is one WhatsApp
+     * and some editors refuse: AV1, VP9 or HEVC pictures, or xHE-AAC sound. #11's failed file was
+     * AV1 (dav1d), and WhatsApp stopped at 40%; #14's POCO gallery couldn't play an AV1 reel with
+     * xHE-AAC sound. H.264 and the other AAC types every one of them plays.
+     */
+    static boolean othersMayRefuse(String mime, Integer aacType) {
+        if (mime == null) return false;
+        switch (mime) {
+            case "video/av01":
+            case "video/x-vnd.on2.vp9":
+            case "video/hevc":
+                return true;
+            case "audio/mp4a-latm":
+                return aacType != null && aacType == MediaCodecInfo.CodecProfileLevel.AACObjectXHE;
+            default:
+                return false;
+        }
+    }
+
+    /** The AAC object type a track declares, or null. */
+    private static Integer aacType(MediaFormat format) {
+        Integer type = number(format, MediaFormat.KEY_AAC_PROFILE);
+        return type != null ? type : number(format, MediaFormat.KEY_PROFILE);
     }
 
     private static String describe(MediaFormat format) {
@@ -493,8 +547,7 @@ final class DashSave {
             track.append(' ').append(width == null || height == null ? "size unknown" : width + "x" + height);
         } else if (mime != null && mime.startsWith("audio/")) {
             if (mime.equals("audio/mp4a-latm")) {
-                Integer type = number(format, MediaFormat.KEY_AAC_PROFILE);
-                if (type == null) type = number(format, MediaFormat.KEY_PROFILE);
+                Integer type = aacType(format);
                 track.append(' ').append(type == null ? "AAC object type unknown" : "AAC object type " + type + aacName(type));
             }
             Integer rate = number(format, MediaFormat.KEY_SAMPLE_RATE);

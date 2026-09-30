@@ -42,6 +42,7 @@ import java.util.Set;
 
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.SettingsContextRule;
+import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.PauseForTests;
 import app.morphe.extension.shared.settings.preference.LogBufferManager;
@@ -64,6 +65,7 @@ public class SettingsL10nTest {
 
     @Before
     public void everyPatchIn() {
+        BaseSettings.HUSHFACEBOOK_LANGUAGE.save("facebook");
         PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
         // Another class may have left a bundle's own sentences set; this one reads the catalog's.
         LogBufferManager.clearedMessage = null;
@@ -73,6 +75,7 @@ public class SettingsL10nTest {
 
     @After
     public void restore() {
+        BaseSettings.HUSHFACEBOOK_LANGUAGE.resetToDefault();
         PatchFamily.inBuildForTests = null;
         HushfacebookPreferenceFragment.failNextInitialization = null;
         PauseForTests.resume();
@@ -152,7 +155,7 @@ public class SettingsL10nTest {
      */
     @Test
     public void inEveryShippedLanguageNothingOnTheScreenStaysEnglish() throws Exception {
-        String[][] languages = {{"de", "de"}, {"es", "es"}, {"in-rID", "in"}, {"pt-rBR", "pt-rbr"}, {"tr", "tr"}};
+        String[][] languages = {{"de", "de"}, {"es", "es"}, {"in-rID", "in"}, {"pt-rBR", "pt-rbr"}, {"tr", "tr"}, {"zh-rTW", "zh-rtw"}};
         for (String[] language : languages) {
             RuntimeEnvironment.setQualifiers("+" + language[0]);
             Map<String, String> table = TranslationsForTests.of(language[1]);
@@ -236,7 +239,7 @@ public class SettingsL10nTest {
         String other = "%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, "
                 + "patch again and leave out the patch in brackets after it.";
         String[][] languages = {{"en", null}, {"de", "de"}, {"es", "es"}, {"in-rID", "in"}, {"pt-rBR", "pt-rbr"},
-                {"tr", "tr"}};
+                {"tr", "tr"}, {"zh-rTW", "zh-rtw"}};
         for (String[] language : languages) {
             RuntimeEnvironment.setQualifiers("+" + language[0]);
             Map<String, String> table = language[1] == null ? null : TranslationsForTests.of(language[1]);
@@ -244,8 +247,10 @@ public class SettingsL10nTest {
             String single = PatchFamily.staysWhilePausedSummary(EnumSet.of(PatchFamily.AD_PREFETCH));
             String item = row(table, PatchFamily.AD_PREFETCH.staysWhilePaused);
             assertNotNull(single);
-            assertTrue(language[0] + " doesn't start with a capital: " + single,
-                    Character.isUpperCase(single.codePointAt(0)));
+            int first = single.codePointAt(0);
+            boolean uncased = Character.toUpperCase(first) == Character.toLowerCase(first);
+            assertTrue(language[0] + " doesn't start with a capital or uncased letter: " + single,
+                    Character.isUpperCase(first) || uncased);
             assertTrue(language[0] + " lost its item: " + single,
                     single.toLowerCase(Locale.ROOT).contains(item.toLowerCase(Locale.ROOT).substring(1)));
             // One item takes the language's own form for one: Indonesian has none and takes the other.
@@ -284,7 +289,7 @@ public class SettingsL10nTest {
                 "Disable Audience Network"));
 
         List<String> repeats = new ArrayList<>();
-        for (String language : new String[]{"en", "de", "es", "in-rID", "pt-rBR", "tr"}) {
+        for (String language : new String[]{"en", "de", "es", "in-rID", "pt-rBR", "tr", "zh-rTW"}) {
             RuntimeEnvironment.setQualifiers("+" + language);
             for (PatchFamily family : PatchFamily.values()) {
                 if (family.staysWhilePaused == null) continue;

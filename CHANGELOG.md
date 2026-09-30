@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-09-30 — Core channel update
+
+Manager 版本維持 `v1.32.0`；本次只更新可由 Nivqo 自動取得的插件核心。
+
+### HushFacebook
+
+- 更新到 HushFacebook `0.5.0`，跟進上游 main `6d312196bc9ae8a7c9bd77f936c60b6e6de579d2`。
+- 最新 bundle 共 54 個 patch。
+- 移除 Nivqo 舊的 Facebook → Messenger 自製跳轉 hook，改用上游正式 `Open the Messenger app` 開關。
+- 上游新增／改寫的可見設定文字已補齊繁體中文；繁中表涵蓋 490 個上游字串，另含 5 個 Nivqo 語言選擇字串。
+- Nivqo 核心通道版本：`0.5.0-nivqo.1`。
+
+### HushMessenger
+
+- 更新到 HushMessenger `0.6.0`，跟進上游 main `4b259a712e1b3c90edb7d0262d2b7d23bf45b093`。
+- 最新 `patches-list.json` 共 28 個 patch entry。
+- 支援 Messenger `580.0.0.49.91` 的 21 個 arm64 `versionCode`。
+- 移除 Nivqo 舊的 `SettingsEntry / SettingsEntryHooks`，改用上游正式的 Messenger「選單」列、Patch 控制快捷鍵與「隱藏應用程式清單圖示」。
+- 語言切換改為選項式：先選「跟隨系統 / 繁體中文 / English」，按「套用」後才切換，不再點一下直接輪切。
+- 最新設定文字繁中完整性：157 / 157 key，placeholder 0 錯誤。
+- Nivqo 核心通道版本：`0.6.0-nivqo.1`。
+
 ## 2026-09-29 — v1.32.0
 
 - HushFacebook / HushMessenger 改用 Nivqo GitHub 遠端更新通道。

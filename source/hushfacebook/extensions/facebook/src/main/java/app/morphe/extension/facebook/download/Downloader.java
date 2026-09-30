@@ -205,19 +205,41 @@ final class Downloader {
         final String reason;
         /** The type of what was fetched, once it is known to be one. */
         final String mime;
+        /**
+         * The saved picture is below the best one the manifest offered within the quality setting,
+         * the one Facebook's player can show, so the person saving is told.
+         */
+        final boolean lower;
+        /**
+         * The saved file, read back, holds a track WhatsApp and some editors refuse, so with Save
+         * videos other apps can open off the person saving is pointed at it (#11, #14).
+         */
+        final boolean refused;
 
-        private Result(Status status, String reason, String mime) {
+        private Result(Status status, String reason, String mime, boolean lower, boolean refused) {
             this.status = status;
             this.reason = reason;
             this.mime = mime;
+            this.lower = lower;
+            this.refused = refused;
         }
 
         static Result ok(String mime) {
-            return new Result(Status.OK, null, mime);
+            return new Result(Status.OK, null, mime, false, false);
         }
 
         static Result fail(Status status, String reason) {
-            return new Result(status, reason, null);
+            return new Result(status, reason, null, false, false);
+        }
+
+        /** This result, told that the saved picture is below the manifest's. */
+        Result lower() {
+            return new Result(status, reason, mime, true, refused);
+        }
+
+        /** This result, told that the saved file holds a track other apps refuse. */
+        Result refused() {
+            return new Result(status, reason, mime, lower, true);
         }
 
         boolean ok() {
@@ -274,54 +296,14 @@ final class Downloader {
     private static final String HEIF = "image/heif";
 
     /**
-     * Fetch [url] into a new file in [folder], check it, and publish it through [sink]. Blocking.
-     * Never throws. The file in [folder] is gone when this returns, whatever happened.
-     */
-    static Result save(String url, Kind kind, File folder, Sink sink) {
-        return save(url, kind, folder, sink, MediaUrlPolicy.META, MAX_BYTES);
-    }
-
-    static Result save(String url, Kind kind, File folder, Sink sink, MediaUrlPolicy policy, long maxBytes) {
-        return save(url, kind, folder, sink, policy, maxBytes, SILENT);
-    }
-
-    static Result save(String url, Kind kind, File folder, Sink sink, MediaUrlPolicy policy, long maxBytes,
-            Progress progress) {
-        File temp = null;
-        try {
-            temp = File.createTempFile(kind.name().toLowerCase(Locale.US), ".part", folder);
-            Result fetched = fetch(url, kind, temp, policy, maxBytes, progress);
-            if (!fetched.ok()) return fetched;
-            return publish(temp, fetched.mime, sink, progress);
-        } catch (Throwable t) {
-            return Result.fail(Status.WRITE_ERROR, "the cache could not hold the file");
-        } finally {
-            delete(temp);
-        }
-    }
-
-    /** {@link #fetch(String, Kind, File, MediaUrlPolicy, long)} with Meta's policy and the real cap. */
-    static Result fetch(String url, Kind kind, File into) {
-        return fetch(url, kind, into, MediaUrlPolicy.META, MAX_BYTES);
-    }
-
-    /** {@link #fetch(String, Kind, File, MediaUrlPolicy, long)} with the real cap. */
-    static Result fetch(String url, Kind kind, File into, MediaUrlPolicy policy) {
-        return fetch(url, kind, into, policy, MAX_BYTES);
-    }
-
-    /**
-     * Fetch [url] into [into]. Blocking. Never throws. On anything but OK, [into] is deleted.
+     * Fetch [url] into [into], reporting to [progress] and stopping with CANCELLED when it says so.
+     * [maxBytes] is the most the file may hold. Blocking. Never throws. On anything but OK, [into]
+     * is deleted.
      *
      * <p>No header is set on the request. A captured address was fetched from an unrelated machine
      * with none at all and answered 200, so a guessed {@code User-Agent} or {@code Referer} can
      * only make a refusal more likely.
      */
-    static Result fetch(String url, Kind kind, File into, MediaUrlPolicy policy, long maxBytes) {
-        return fetch(url, kind, into, policy, maxBytes, SILENT);
-    }
-
-    /** As above, reporting to [progress] and stopping with CANCELLED when it says so. */
     static Result fetch(String url, Kind kind, File into, MediaUrlPolicy policy, long maxBytes, Progress progress) {
         HttpURLConnection connection = null;
         boolean kept = false;
@@ -417,13 +399,8 @@ final class Downloader {
 
     /**
      * Copy a finished, checked [file] into [sink] as [mime]. If anything fails once the sink is
-     * open, the entry is removed again.
+     * open, the entry is removed again, and a cancel before the commit leaves no row.
      */
-    static Result publish(File file, String mime, Sink sink) {
-        return publish(file, mime, sink, SILENT);
-    }
-
-    /** As above, and a cancel before the commit leaves no row. */
     static Result publish(File file, String mime, Sink sink, Progress progress) {
         boolean committed = false;
 
@@ -506,6 +483,11 @@ final class Downloader {
                 // disconnect(), never the stream's close(): over HTTPS on Android only disconnect()
                 // ends a read that's waiting (SaveControl.Save.cancel has the measurements).
                 progress.reading(connection::disconnect);
+                // A cancel's close that runs before the connection exists closes nothing, on the
+                // JDK and on Android alike, and the fetch then waited for an answer until the read
+                // timeout. So the flag is read again once connected; a close after that ends the wait.
+                connection.connect();
+                if (progress.cancelled()) return cancelled();
 
                 int code = connection.getResponseCode();
                 if (code != 301 && code != 302 && code != 303 && code != 307 && code != 308) {

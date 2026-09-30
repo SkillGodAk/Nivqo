@@ -346,6 +346,57 @@ public class SettingsNavigationTest {
         throw new AssertionError("No section " + title);
     }
 
+    /** Paused, the overview says what to do in order. It used to read as if a restart came before Resume. */
+    @Test public void aPausedOverviewSaysToTapResumeThenRestart() {
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        recreate();
+        layout(dialog.getView());
+        TextView summary = list().getChildAt(0).findViewById(android.R.id.summary);
+        assertEquals("Your choices are saved. Tap Resume, then restart Facebook.", String.valueOf(summary.getText()));
+    }
+
+    /**
+     * At twice the text size the button beside the status text left the name too little room and
+     * "Hushfacebook" broke inside the word. From one and a half times, the button goes under the text.
+     */
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void atLargeTextTheStatusActionSitsUnderItsText() {
+        org.robolectric.RuntimeEnvironment.setFontScale(2f);
+        try {
+            recreate();
+            layout(dialog.getView());
+            View row = list().getChildAt(0);
+            TextView title = row.findViewById(android.R.id.title);
+            TextView summary = row.findViewById(android.R.id.summary);
+            android.text.Layout lines = title.getLayout();
+            for (int line = 0; line + 1 < lines.getLineCount(); line++) {
+                char last = title.getText().charAt(lines.getLineEnd(line) - 1);
+                assertTrue("\"" + title.getText() + "\" breaks inside a word after line " + line, Character.isWhitespace(last));
+            }
+            assertEquals(View.GONE, row.findViewById(android.R.id.widget_frame).getVisibility());
+            android.widget.Button action = firstButton(row);
+            assertNotNull("no Pause button in the status row", action);
+            assertEquals(summary.getParent(), action.getParent());
+            assertTrue("the button isn't under the text", action.getTop() >= summary.getBottom());
+            assertEquals("Pause", action.getText().toString());
+        } finally {
+            org.robolectric.RuntimeEnvironment.setFontScale(1f);
+        }
+    }
+
+    private static android.widget.Button firstButton(View view) {
+        if (view instanceof android.widget.Button) return (android.widget.Button) view;
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                android.widget.Button found = firstButton(group.getChildAt(i));
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
     private android.widget.Button statusAction() {
         android.view.ViewGroup frame = list().getChildAt(0).findViewById(android.R.id.widget_frame);
         assertEquals(1, frame.getChildCount());
@@ -492,6 +543,7 @@ public class SettingsNavigationTest {
         String[][] links = {
                 {Settings.HIDE_FEED_REELS.key, "News feed"},
                 {Settings.TAP_TO_PLAY.key, "Playback"},
+                {Settings.HIDE_REELS_TAB.key, "Reels and Watch"},
                 {Settings.MARKETPLACE_ONLY.key, "Opening Facebook"}};
         for (String[] link : links) {
             page.navigation.navigate("Reels and Watch");
@@ -506,6 +558,46 @@ public class SettingsNavigationTest {
             while (page.navigation.back()) { }
         }
         assertEquals(before, savedValues());
+    }
+
+    /**
+     * A build that lacks default patches says how many under the card, and a tap opens and closes
+     * their names. Every default patch in, the row isn't there (the nine rows of the first test).
+     */
+    @Test public void theOverviewNamesTheDefaultPatchesABuildLacks() {
+        assertFalse(contains(HushfacebookPreferenceFragment.MISSING_DEFAULTS));
+        controller.close();
+        PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
+        PatchFamily.inBuildForTests.remove(PatchFamily.MATERIAL_YOU_THEME);
+        PatchFamily.inBuildForTests.remove(PatchFamily.SPONSORED_REELS);
+        controller = Robolectric.buildActivity(Activity.class).setup().visible();
+        dialog = SettingsL10nTest.show(controller.get());
+        page = page(dialog);
+        Map<String, Object> before = savedValues();
+
+        assertEquals(10, list().getCount());
+        assertEquals(1, position(HushfacebookPreferenceFragment.MISSING_DEFAULTS));
+        Preference row = (Preference) list().getItemAtPosition(1);
+        assertEquals("1 default patch isn't in this build", String.valueOf(row.getTitle()));
+        assertEquals("Tap to see which.", String.valueOf(row.getSummary()));
+        tap(HushfacebookPreferenceFragment.MISSING_DEFAULTS);
+        assertEquals("Not in this build: " + L10n.isolate("Hide sponsored reels") + ". Morphe Manager selects it by "
+                + "default. Patch again with it selected to get what it does.", String.valueOf(row.getSummary()));
+        tap(HushfacebookPreferenceFragment.MISSING_DEFAULTS);
+        assertEquals("Tap to see which.", String.valueOf(row.getSummary()));
+        assertEquals(before, savedValues());
+
+        controller.close();
+        PatchFamily.inBuildForTests.remove(PatchFamily.SPONSORED_POSTS);
+        controller = Robolectric.buildActivity(Activity.class).setup().visible();
+        dialog = SettingsL10nTest.show(controller.get());
+        page = page(dialog);
+        row = (Preference) list().getItemAtPosition(1);
+        assertEquals("2 default patches aren't in this build", String.valueOf(row.getTitle()));
+        tap(HushfacebookPreferenceFragment.MISSING_DEFAULTS);
+        assertEquals("Not in this build: " + L10n.isolate("Hide sponsored posts") + " and "
+                + L10n.isolate("Hide sponsored reels") + ". Morphe Manager selects them by default. Patch again with "
+                + "them selected to get what they do.", String.valueOf(row.getSummary()));
     }
 
     /** Without its patch a line names the patch to add, can't be tapped and says nothing is installed. */
@@ -530,7 +622,15 @@ public class SettingsNavigationTest {
                     + " patch in Morphe Manager and patch again.",
                     String.valueOf(((Preference) list().getItemAtPosition(row)).getSummary()));
         }
+        // Without Hide the Reels tab, the tab's line is Facebook's own setting, and it names the patch.
+        int tab = titles().indexOf("The Reels tab");
+        assertFalse("The Reels tab can be tapped", list().getAdapter().isEnabled(tab));
+        assertEquals("Facebook's own setting blocks it. Open Settings, Tab bar, Customize the bar and choose Hide next "
+                        + "to Reels, which some accounts call Video. If neither is listed, choose the "
+                        + L10n.isolate("Hide the Reels tab") + " patch in Morphe Manager and patch again.",
+                String.valueOf(((Preference) list().getItemAtPosition(tab)).getSummary()));
         assertNull(page.findPreference(Settings.HIDE_FEED_REELS.key));
+        assertNull(page.findPreference(Settings.HIDE_REELS_TAB.key));
         assertEquals(before, savedValues());
     }
 
@@ -538,7 +638,8 @@ public class SettingsNavigationTest {
         page.navigation.open(page.findPreference(Settings.TAP_TO_PLAY.key));
         recreate();
         assertTrue(contains(Settings.TAP_TO_PLAY.key));
-        assertEquals(2, list().getCount());
+        // Playback: Tap to play, Resume long videos, Default playback quality and its Playback quality list.
+        assertEquals(4, list().getCount());
         page.navigation.back();
         findSearch(dialog.getView()).setText("other apps");
         recreate();
@@ -694,6 +795,36 @@ public class SettingsNavigationTest {
                 assertUncutText(dialog.getView());
             }
             capture("large-rtl-about");
+        } finally {
+            org.robolectric.RuntimeEnvironment.setFontScale(1f);
+        }
+    }
+
+    /**
+     * Brazilian Portuguese runs longer than English (PR #15's wording). Every page still wraps its
+     * whole text at twice the text size, and the table is the one on screen.
+     */
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(qualifiers = "pt-rBR-w390dp-h844dp-night-xhdpi")
+    public void brazilianPortuguesePagesKeepTheirCompleteText() throws Exception {
+        assertEquals("Feed de not\u00edcias", String.valueOf(page.sections().get(1).getTitle()));
+        capture("pt-br-overview");
+        page.navigation.navigate("News feed");
+        capture("pt-br-news-feed");
+        org.robolectric.RuntimeEnvironment.setFontScale(2f);
+        try {
+            recreate();
+            for (Preference section : page.sections()) {
+                page.navigation.open(section);
+                layout(dialog.getView());
+                assertUncutText(dialog.getView());
+            }
+            page.navigation.navigate("News feed");
+            capture("pt-br-large-news-feed");
+            page.navigation.navigate("Reels and Watch");
+            capture("pt-br-large-reels");
+            page.navigation.navigate("Pause, backup and diagnostics");
+            capture("pt-br-large-pause");
         } finally {
             org.robolectric.RuntimeEnvironment.setFontScale(1f);
         }

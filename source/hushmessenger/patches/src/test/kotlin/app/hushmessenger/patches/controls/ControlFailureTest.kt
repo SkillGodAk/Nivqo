@@ -57,7 +57,7 @@ class ControlFailureTest {
                 fixtureMethod("LX/2Wl;->A03()Z", pluginBody(listEnd)),
                 peopleJewelMethod(),
             ).groupBy { it.definingClass }.map { (type, methods) -> fixtureClass(type, methods) }
-                .plus(peopleJewelKeyHolder()).toSet()
+                .plus(peopleJewelKeyHolder()).plus(screenHostClasses()).toSet()
             val context = BytecodePatchContext::class.java.declaredConstructors.single()
                 .newInstance(config, resources.packageMetadata) as BytecodePatchContext
             val patchClasses = Class.forName("app.morphe.patcher.util.PatchClasses")
@@ -71,6 +71,8 @@ class ControlFailureTest {
                     else hidePeoplePatch.execute(context)
                     feature.finalize(resources)
                     assertEquals(!broken, resources.hasPeopleFeature())
+                    // A Root Mount install reads the same list from the patched code.
+                    assertEquals(if (broken) emptySet() else setOf("people"), bundledControls.toSet())
                 } finally {
                     discovery.finalize(context)
                 }
@@ -78,10 +80,27 @@ class ControlFailureTest {
         }
     }
 
-    private fun ResourcePatchContext.hasPeopleFeature(): Boolean = document("AndroidManifest.xml").use { document ->
+    @Test fun aMenuRowThatFailsIsNeverAdvertised(@TempDir temporary: Path) {
+        val record = menuSettingsPatch.dependencies.filterIsInstance<ResourcePatch>().single()
+        withResourceContext(temporary) { resources, config ->
+            val context = BytecodePatchContext::class.java.declaredConstructors.single()
+                .newInstance(config, resources.packageMetadata) as BytecodePatchContext
+            context.use {
+                record.execute(resources)
+                discoveredControls = emptyMap()
+                assertFailsWith<PatchException> { menuSettingsPatch.execute(context) }
+                record.finalize(resources)
+                assertEquals(false, resources.hasFeature("menu_row"), "A failed Menu row was advertised")
+            }
+        }
+    }
+
+    private fun ResourcePatchContext.hasPeopleFeature(): Boolean = hasFeature("people")
+
+    private fun ResourcePatchContext.hasFeature(key: String): Boolean = document("AndroidManifest.xml").use { document ->
         val metadata = document.getElementsByTagName("meta-data")
         (0 until metadata.length).any {
-            (metadata.item(it) as Element).getAttribute("android:name") == "hush.feature.people"
+            (metadata.item(it) as Element).getAttribute("android:name") == "hush.feature.$key"
         }
     }
 

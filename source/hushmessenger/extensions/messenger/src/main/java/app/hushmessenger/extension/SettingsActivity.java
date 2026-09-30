@@ -5,6 +5,7 @@ import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
@@ -13,6 +14,7 @@ import android.graphics.Rect;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.PersistableBundle;
+import android.view.DisplayCutout;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -25,12 +27,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.EditText;
 import android.text.Editable;
+import android.text.InputFilter;
+import android.graphics.drawable.Drawable;
+import android.util.TypedValue;
 import android.text.TextWatcher;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 
-/** Settings is opened from Messenger's in-app HushMessenger settings entry. */
+/** A launcher entry keeps settings discoverable without replacing a Messenger menu action. */
 public final class SettingsActivity extends Activity {
     private SettingsUi ui;
     private SettingsText text;
@@ -52,17 +58,18 @@ public final class SettingsActivity extends Activity {
     private final List<View> tabLines = new ArrayList<>();
     private TextView searchStatus, enabledCount, setupNote;
     private LinearLayout emptyState;
-    private Button clearSearch;
+    // Process-wide so a page recreated by the theme switch can still replace the last toast.
+    private static Toast toast;
     static final String[][] CONTROLS = {
-        {"ads", "Hide inbox ads", "Supported inbox ad cards. Live removal isn't verified yet.", "inbox"},
+        {"ads", "Hide inbox ads", "Removes inbox ad cards if Meta brings back the inbox ads it stopped selling in November 2025.", "inbox"},
         {"people", "Hide People You May Know", "Removes suggested people from chats and Notifications.", "inbox"},
         {"friend_requests", "Hide friend request cards", "Hides cards without accepting or rejecting requests.", "inbox"},
         {"growth", "Hide growth prompts", "Removes add-more-people prompts.", "inbox"},
         {"inbox_promotions", "Hide inbox promotions", "Hides Messenger's quick-promotion banners in the chat list.", "inbox"},
         {"stories", "Hide stories and notes", "Removes the horizontal tray above your chats.", "inbox"},
         {"subtabs", "Hide inbox tabs", "Hides the Home and Channels tabs inside the inbox.", "inbox"},
-        {"facebook", "Hide Facebook shortcuts", "Hides Facebook buttons, profile shortcuts and sharing shortcuts.", "navigation"},
-        {"meta_ai", "Hide Meta AI buttons", "Hides the floating button, toolbar button and AI menu entries. Search and existing AI chats stay available.", "navigation"},
+        {"facebook", "Hide Facebook shortcuts", "Hides Facebook buttons, profile and sharing shortcuts, and Also from Meta in the Menu tab.", "navigation"},
+        {"meta_ai", "Hide Meta AI", "Hides the floating button, toolbar button, Meta AI tab, menu entries and search AI.", "navigation"},
         {"moments", "Hide Chat Moments", "Hides Chat Moments from the menu.", "navigation"},
         {"reels_badge", "Hide Reels badge", "Hides the Reels notification badge.", "navigation"},
         {"ai_stickers", "Hide AI sticker tools", "Hides the generated-sticker tab and AI sticker suggestions.", "stickers"},
@@ -71,13 +78,45 @@ public final class SettingsActivity extends Activity {
         {"suggested_replies", "Hide business reply suggestions", "Hides suggested replies in business conversations.", "conversations"},
         {"business_suggestions", "Hide business typing suggestions", "Hides business suggestions as you type.", "conversations"},
         {"event_prompts", "Hide event prompts", "Hides event quick-promotion prompts inside chats.", "conversations"},
-        {"typing", "Hide typing indicator", "Stops your outgoing active-typing signal. Messages and read receipts are separate.", "conversations"},
+        {"typing", "Hide typing indicator", "Stops your outgoing active-typing signal, including in end-to-end encrypted chats.", "conversations"},
+        {"use_system_emoji", "Use system emoji", "Renders emoji with your phone's own font instead of Messenger's built-in set.", "conversations"},
+        {"original_photo", "Send photos at original quality", "With HD on, sends a JPEG photo's own image data instead of Messenger's re-encoded copy. Its metadata, such as location and camera details, is left out, as it is from Messenger's copy, except the tag that turns a sideways photo upright. Photos over 20 MB and videos still get Messenger's compression.", "conversations"},
         {"external_browser", "Open web links externally", "Uses your default browser for HTTP and HTTPS links. Other link types keep their original behavior.", "links_bubbles"},
         {"bubbles", "Allow chat bubbles", "Removes the low-memory restriction on Android 11 or newer. Enable bubbles in Android notification settings too.", "links_bubbles"},
+        {"allow_screenshot", "Allow screenshots", "Lets you screenshot photos, media and video Messenger protects in a chat, and stops screenshot notices. View-once media stays protected.", "privacy"},
+        {"hide_read_receipts", "Hide read receipts", "Stops your read receipt from being sent. In end-to-end encrypted chats, chats you open stay unread until you reply.", "privacy"},
+        {"keep_unsent", "Keep unsent messages", "Keeps messages other people remove for everyone, except in end-to-end encrypted chats. Your own unsend ability may be limited.", "privacy"},
     };
 
+    static final String DRAWER_ALIAS = "app.hushmessenger.extension.SettingsLauncher";
+
+    /**
+     * Shows or hides the app drawer entry, an alias of this screen that only a patched Messenger has.
+     * The screen itself stays enabled for the long-press shortcut and the Menu tab row.
+     */
+    static void syncDrawerIcon(Context context) {
+        applyDrawerIcon(context, Settings.drawerIconHidden());
+    }
+
+    static void applyDrawerIcon(Context context, boolean hidden) {
+        PackageManager packages = context.getPackageManager();
+        ComponentName alias = new ComponentName(context.getPackageName(), DRAWER_ALIAS);
+        try {
+            boolean disabled = packages.getComponentEnabledSetting(alias) == PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
+            if (hidden != disabled) {
+                packages.setComponentEnabledSetting(alias, hidden ? PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+                    : PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, PackageManager.DONT_KILL_APP);
+            }
+        } catch (IllegalArgumentException | SecurityException missing) {
+            android.util.Log.w("HushMessenger", "Can't change the app drawer icon", missing);
+        }
+    }
+
     @Override @SuppressWarnings("deprecation") public void onCreate(Bundle state) {
+        // On a Root Mount install this screen can be the first thing in the process, before any hook.
+        HostScreens.start(this);
         Settings.initialize(this);
+        syncDrawerIcon(this);
         boolean light = Settings.preferences.getBoolean("light", false);
         lightTheme = light;
         setTheme(light ? android.R.style.Theme_Material_Light_NoActionBar : android.R.style.Theme_Material_NoActionBar);
@@ -85,6 +124,8 @@ public final class SettingsActivity extends Activity {
         text = new SettingsText(this);
         ui = new SettingsUi(this, light);
         setTitle(text.get(Settings.preview ? "preview_title" : "settings"));
+        // Hosted in a stock Messenger screen, recents would otherwise label this task "Messenger".
+        if (HostScreens.hosted(this)) setTaskDescription(new android.app.ActivityManager.TaskDescription(getTitle().toString()));
         getWindow().setNavigationBarColor(ui.background);
         getWindow().setStatusBarColor(ui.background);
         getWindow().getDecorView().setSystemUiVisibility(light ? View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR : 0);
@@ -120,12 +161,23 @@ public final class SettingsActivity extends Activity {
         };
         root.setOrientation(LinearLayout.VERTICAL);
         root.setLayoutDirection(text.layoutDirection());
+        // Mirrored text starts with an override mark, so first-strong detection would align it left.
+        if (text.layoutDirection() == View.LAYOUT_DIRECTION_RTL) root.setTextDirection(View.TEXT_DIRECTION_RTL);
         root.setBackgroundColor(ui.background);
         root.setFocusableInTouchMode(true);
         root.setOnApplyWindowInsetsListener((view, insets) -> {
-            view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(),
-                insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
-            return insets.consumeSystemWindowInsets();
+            // Edge-to-edge windows can sit under a camera cutout, which the system window insets leave out.
+            DisplayCutout cutout = insets.getDisplayCutout();
+            int left = insets.getSystemWindowInsetLeft(), top = insets.getSystemWindowInsetTop();
+            int right = insets.getSystemWindowInsetRight(), bottom = insets.getSystemWindowInsetBottom();
+            if (cutout != null) {
+                left = Math.max(left, cutout.getSafeInsetLeft());
+                top = Math.max(top, cutout.getSafeInsetTop());
+                right = Math.max(right, cutout.getSafeInsetRight());
+                bottom = Math.max(bottom, cutout.getSafeInsetBottom());
+            }
+            view.setPadding(left, top, right, bottom);
+            return insets.consumeSystemWindowInsets().consumeDisplayCutout();
         });
         setContentView(root);
         buildHeader(root);
@@ -137,7 +189,7 @@ public final class SettingsActivity extends Activity {
         controlsContent = pageContent(controlsScroll);
         buildControls(controlsContent);
         reminder = ui.text(text.get("reopen"), 12, ui.muted, false);
-        reminder.setPadding(ui.dp(24), ui.dp(12), ui.dp(24), ui.dp(16));
+        reminder.setPadding(ui.dp(20), ui.dp(12), ui.dp(20), ui.dp(16));
         ui.add(controlsPage, reminder, 0);
         appPage = ui.column();
         appPage.setTag("app_page");
@@ -202,11 +254,12 @@ public final class SettingsActivity extends Activity {
         if (compact == next && scrollHeader == nextScrollHeader) return;
         compact = next;
         scrollHeader = nextScrollHeader;
-        header.setPadding(ui.dp(scrollHeader ? 4 : 24), ui.dp(compact ? 8 : 50), ui.dp(scrollHeader ? 4 : 24), 0);
+        // Content pages already pad 20dp, so a header or reminder moved inside them adds none.
+        header.setPadding(ui.dp(scrollHeader ? 0 : 20), ui.dp(compact ? 8 : 50), ui.dp(scrollHeader ? 0 : 20), 0);
         placeBrand();
         placeHeader();
         ((ViewGroup) reminder.getParent()).removeView(reminder);
-        reminder.setPadding(ui.dp(compact ? 4 : 24), ui.dp(12), ui.dp(compact ? 4 : 24), ui.dp(16));
+        reminder.setPadding(ui.dp(compact ? 0 : 20), ui.dp(12), ui.dp(compact ? 0 : 20), ui.dp(16));
         ui.add(compact ? controlsContent : controlsPage, reminder, 0);
     }
 
@@ -229,13 +282,17 @@ public final class SettingsActivity extends Activity {
 
     private void buildHeader(LinearLayout root) {
         header = ui.column();
-        header.setPadding(ui.dp(24), ui.dp(50), ui.dp(24), 0);
+        header.setPadding(ui.dp(20), ui.dp(50), ui.dp(20), 0);
         ui.add(root, header, 0);
         brand = ui.row();
         if (ui.largeText) brand.setOrientation(LinearLayout.VERTICAL);
         LinearLayout wordmark = ui.column();
         TextView title = ui.text("HushMessenger", 28, ui.text, true);
+        title.setTag("wordmark");
         title.setAccessibilityHeading(true);
+        // Linear font scaling on Android 13 and older could otherwise split the wordmark mid-word.
+        title.setMaxLines(1);
+        title.setAutoSizeTextTypeUniformWithConfiguration(18, 28, 1, TypedValue.COMPLEX_UNIT_SP);
         ui.add(wordmark, title, 0);
         TextView subtitle = ui.text(text.get(Settings.preview ? "preview_notice" : "tagline"), 14,
             Settings.preview ? ui.warning : ui.muted, false);
@@ -305,14 +362,17 @@ public final class SettingsActivity extends Activity {
         setupNote = ui.text("", 13, ui.muted, false);
         ui.add(setup, setupNote, 6);
         ui.rule(setup, 12);
-        ui.add(setup, controlRow("paused", text.base("paused"), "", false), 0);
+        ui.add(setup, controlRow("paused", text.format("paused"), "", false), 0);
         ui.add(content, setup, 0);
         search = new EditText(this);
         search.setTag("find_control");
+        // The hint labels the field; a content description would make TalkBack skip what was typed.
         search.setHint(text.get("search"));
-        search.setContentDescription(text.get("search"));
         search.setTextSize(16);
         search.setSingleLine(true);
+        search.setFilters(new InputFilter[] {new InputFilter.LengthFilter(100)});
+        search.setHighlightColor((ui.accent & 0x00ffffff) | 0x55000000);
+        tintTextHandles(search);
         search.setTextColor(ui.text);
         search.setHintTextColor(ui.muted);
         search.setMinHeight(ui.dp(48));
@@ -354,17 +414,22 @@ public final class SettingsActivity extends Activity {
                 ui.add(content, group, 24);
                 groups.add(group);
             }
-            LinearLayout row = controlRow(spec[0], spec[1], spec[2], true);
+            LinearLayout row = controlRow(spec[0], text.control(spec, 1), text.control(spec, 2), true);
             row.setTag(spec[3]);
             ui.add(group, row, 0);
             controlRows.add(row);
             installedControls.add(spec);
         }
+        if (installedControls.isEmpty()) {
+            // Nothing to search; the status line explains how to add controls.
+            search.setVisibility(View.GONE);
+            filters.setVisibility(View.GONE);
+        }
         emptyState = ui.panel();
         emptyState.setTag("empty_state");
         ui.add(emptyState, ui.text(text.get("empty_title"), 18, ui.text, true), 0);
         ui.add(emptyState, ui.text(text.get("empty_help"), 14, ui.muted, false), 10);
-        clearSearch = ui.button(text.get("clear"));
+        Button clearSearch = ui.button(text.get("clear"));
         clearSearch.setTag("clear_filters");
         clearSearch.setOnClickListener(view -> {
             category = "all";
@@ -383,7 +448,7 @@ public final class SettingsActivity extends Activity {
     @SuppressWarnings("deprecation")
     private LinearLayout controlRow(String key, String title, String description, boolean divided) {
         boolean available = Settings.available(key);
-        if (!available) description += " " + text.base("unavailable");
+        if (!available) description += " " + text.format("unavailable");
         LinearLayout row = ui.row();
         LinearLayout labels = ui.column();
         labels.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
@@ -400,19 +465,41 @@ public final class SettingsActivity extends Activity {
         }
         ui.add(labels, titleLine, 0);
         if (!description.isEmpty()) ui.add(labels, ui.text(text.display(description), 14, ui.muted, false), 6);
+        // A switch records a use only when Messenger reaches its screen or event, so an off switch shows nothing.
+        // A failure newer than the last use means the switch isn't doing its job, so that shows instead.
+        TextView activeLabel = null;
+        if (divided) {
+            long lastActive = Settings.lastActive(key);
+            long failedAt = Settings.hookErrorAt(key);
+            boolean failed = failedAt > 0 && failedAt >= lastActive;
+            String status = failed ? formatSince(failedAt, "error_now", "error_ago")
+                : lastActive == 0 ? text.get("not_active") : formatSince(lastActive, "active_now", "active_ago");
+            activeLabel = ui.text(status, 12, failed ? ui.warning : lastActive > 0 ? ui.accent : ui.muted, false);
+            activeLabel.setAlpha(0.7f);
+            activeLabel.setTag("active_" + key);
+            activeLabel.setVisibility(Settings.preferences.getBoolean(key, false) ? View.VISIBLE : View.GONE);
+            ui.add(labels, activeLabel, 4);
+        }
+        TextView usage = activeLabel;
         row.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
-        Switch control = ui.toggle(key, text.display(title), text.display(("ads".equals(key) ? text.base("experimental") + ". " : "") + description), Settings.preferences.getBoolean(key, false));
+        Switch control = ui.toggle(key, text.display(title), text.display(("ads".equals(key) ? text.format("experimental") + ". " : "") + description), Settings.preferences.getBoolean(key, false));
         LinearLayout.LayoutParams switchParams = new LinearLayout.LayoutParams(ui.dp(48), -2);
         switchParams.setMarginStart(ui.dp(12));
         row.addView(control, switchParams);
         switches.add(control);
         control.setEnabled(available);
+        // The custom track has no disabled state, so dim it; the description says why.
+        if (!available) control.setAlpha(0.4f);
         control.setOnCheckedChangeListener((button, checked) -> {
+            if (usage != null) usage.setVisibility(checked ? View.VISIBLE : View.GONE);
             if (binding) return;
             Settings.preferences.edit().putBoolean(key, checked).apply();
+            if ("paused".equals(key) && !checked && CrashGuard.isSafeMode()) CrashGuard.clearSafeMode();
             updateSetup();
-            Toast.makeText(this, text.get(checked ? "choice_on" : "choice_off", title), Toast.LENGTH_SHORT).show();
+            feedback("paused".equals(key) ? text.get(checked ? "changes_paused" : "changes_resumed")
+                : text.get(checked ? "choice_on" : "choice_off", title), Toast.LENGTH_SHORT);
             if ("light".equals(key)) refreshChoices();
+            if ("hide_drawer_icon".equals(key)) applyDrawerIcon(this, checked);
         });
         row.setOnClickListener(view -> { if (control.isEnabled()) control.toggle(); });
         row.setEnabled(available);
@@ -434,44 +521,82 @@ public final class SettingsActivity extends Activity {
         row.setPadding(0, ui.dp(4), 0, ui.dp(4));
         LinearLayout labels = ui.column();
         ui.add(labels, ui.text(text.get("language"), 16, ui.text, true), 0);
-        ui.add(labels, ui.text(text.get("language_help"), 14, ui.muted, false), 6);
+        TextView current = ui.text(text.languageLabel(), 14, ui.muted, false);
+        current.setTag("language_mode_value");
+        ui.add(labels, current, 6);
         row.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
-        Button choose = ui.button(text.languageLabel());
+        Button choose = ui.button(text.get("choose_language"));
         choose.setTag("language_mode_button");
         choose.setContentDescription(text.get("language") + ": " + text.languageLabel());
-        choose.setOnClickListener(view -> {
-            String next = nextLanguageMode(text.languageMode());
-            Settings.preferences.edit().putString("language_mode", next).apply();
-            recreate();
-        });
+        choose.setOnClickListener(view -> showLanguageDialog());
         LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(ui.largeText ? -1 : ui.dp(116), -2);
         buttonParams.setMarginStart(ui.dp(ui.largeText ? 0 : 12));
         buttonParams.topMargin = ui.dp(ui.largeText ? 12 : 0);
         row.addView(choose, buttonParams);
         if (ui.largeText) row.setOrientation(LinearLayout.VERTICAL);
-        row.setOnClickListener(view -> choose.performClick());
+        row.setOnClickListener(view -> showLanguageDialog());
         return row;
     }
 
-    private static String nextLanguageMode(String mode) {
-        if (SettingsText.LANGUAGE_SYSTEM.equals(mode)) return SettingsText.LANGUAGE_TRADITIONAL_CHINESE;
-        if (SettingsText.LANGUAGE_TRADITIONAL_CHINESE.equals(mode)) return SettingsText.LANGUAGE_ENGLISH;
-        return SettingsText.LANGUAGE_SYSTEM;
+    private void showLanguageDialog() {
+        final String[] modes = {
+            SettingsText.LANGUAGE_SYSTEM,
+            SettingsText.LANGUAGE_TRADITIONAL_CHINESE,
+            SettingsText.LANGUAGE_ENGLISH
+        };
+        final CharSequence[] labels = {
+            text.get("language_system"),
+            text.get("language_zh_tw"),
+            text.get("language_en")
+        };
+        int checked = 0;
+        for (int i = 0; i < modes.length; i++) if (modes[i].equals(text.languageMode())) checked = i;
+        android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(this)
+            .setTitle(text.get("language"))
+            .setSingleChoiceItems(labels, checked, null)
+            .setNegativeButton(text.get("cancel"), null)
+            .setPositiveButton(text.get("apply"), null)
+            .create();
+        dialog.setOnShowListener(ignored -> dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+            int selected = dialog.getListView().getCheckedItemPosition();
+            if (selected < 0 || selected >= modes.length) return;
+            String next = modes[selected];
+            if (!next.equals(text.languageMode())) {
+                Settings.preferences.edit().putString("language_mode", next).apply();
+                dialog.dismiss();
+                recreate();
+            } else {
+                dialog.dismiss();
+            }
+        }));
+        dialog.show();
     }
 
     private void buildApp(LinearLayout content) {
         ui.add(content, ui.heading(text.get("quick_access")), 4);
         LinearLayout access = ui.panel();
-        ui.add(access, ui.text(text.get("access_help"), 14, ui.muted, false), 0);
+        // The Menu tab row is its own patch, recorded as menu_row only when it applied.
+        boolean menuRow = Settings.installed.contains("menu_row");
+        // A Root Mount install has no drawer entry to mention or hide.
+        boolean hosted = HostScreens.hosted(this);
+        TextView accessHelp = ui.text(text.get((hosted ? "access_help_hosted" : "access_help") + (menuRow ? "_menu" : "")), 14, ui.muted, false);
+        accessHelp.setTag("access_help");
+        ui.add(access, accessHelp, 0);
         Button restart = ui.button(text.get("restart"));
         restart.setTag("restart_messenger");
-        restart.setOnClickListener(view -> startActivity(new Intent(this, RestartActivity.class)));
+        restart.setOnClickListener(view -> HostScreens.open(this, HostScreens.RESTART));
         ui.add(access, restart, 14);
+        // Without the Menu row, a launcher that has no app shortcuts would leave no way back in.
+        if (menuRow && !hosted) {
+            ui.rule(access, 14);
+            ui.add(access, controlRow("hide_drawer_icon", text.format("hide_drawer_icon"), text.format("hide_drawer_icon_help"), false), 14);
+        }
         ui.add(content, access, 12);
         ui.add(content, ui.heading(text.get("appearance")), 22);
         LinearLayout appearance = ui.panel();
-        ui.add(appearance, controlRow("light", text.base("light"), text.base("light_help"), false), 0);
-        ui.add(appearance, languageModeRow(), 12);
+        ui.add(appearance, languageModeRow(), 0);
+        ui.rule(appearance, 14);
+        ui.add(appearance, controlRow("light", text.format("light"), text.format("light_help"), false), 14);
         ui.rule(appearance, 14);
         ui.add(appearance, ui.text(text.get("theme_help"), 13, ui.muted, false), 14);
         ui.add(content, appearance, 12);
@@ -486,7 +611,27 @@ public final class SettingsActivity extends Activity {
         copy.setOnClickListener(view -> copySetup());
         ui.add(about, copy, 8);
         ui.add(about, ui.text(text.get("copy_help"), 13, ui.muted, false), 8);
+        ui.rule(about, 12);
+        Button exportBtn = ui.button(text.get("export"));
+        exportBtn.setTag("export_choices");
+        exportBtn.setOnClickListener(view -> exportChoices());
+        ui.add(about, exportBtn, 8);
+        ui.add(about, ui.text(text.get("export_help"), 13, ui.muted, false), 8);
+        ui.rule(about, 12);
+        Button importBtn = ui.button(text.get("import_choices"));
+        importBtn.setTag("import_choices");
+        importBtn.setOnClickListener(view -> importChoices());
+        ui.add(about, importBtn, 8);
+        ui.add(about, ui.text(text.get("import_help"), 13, ui.muted, false), 8);
         ui.add(content, about, 12);
+        LinearLayout updates = ui.panel();
+        ui.add(updates, controlRow("check_updates", text.format("check_updates"), text.format("check_updates_help"), false), 0);
+        TextView updateStatus = ui.text("", 13, ui.muted, false);
+        updateStatus.setTag("update_status");
+        updateStatus.setVisibility(View.GONE);
+        ui.add(updates, updateStatus, 8);
+        ui.add(content, updates, 12);
+        if (Settings.preferences.getBoolean("check_updates", false)) checkForUpdates(updateStatus);
         ui.add(content, ui.heading(text.get("usage")), 22);
         ui.add(content, ui.text(text.get("save_help"), 14, ui.muted, false), 16);
         ui.add(content, ui.text(text.get("pause_help"), 14, ui.muted, false), 14);
@@ -500,7 +645,7 @@ public final class SettingsActivity extends Activity {
         source.setTag("source_licenses");
         source.setOnClickListener(view -> {
             try { startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/SysAdminDoc/HushMessenger#research-and-credits"))); }
-            catch (android.content.ActivityNotFoundException error) { Toast.makeText(this, text.get("no_browser"), Toast.LENGTH_LONG).show(); }
+            catch (android.content.ActivityNotFoundException error) { feedback(text.get("no_browser"), Toast.LENGTH_LONG); }
         });
         ui.add(content, source, 16);
         ui.add(content, ui.text(text.get("credits"), 12, ui.muted, false), 16);
@@ -511,20 +656,37 @@ public final class SettingsActivity extends Activity {
         try {
             PackageInfo host = getPackageManager().getPackageInfo(getPackageName(), 0);
             boolean paused = Settings.preferences.getBoolean("paused", false);
+            boolean safeMode = CrashGuard.isSafeMode();
             StringBuilder summary = new StringBuilder("HushMessenger v").append(BuildConfig.VERSION_NAME)
                 .append("\nHost package: ").append(getPackageName())
                 .append("\nHost version: ").append(host.versionName == null ? "unknown" : host.versionName)
                 .append("\nHost version code: ").append(host.getLongVersionCode())
                 .append("\nAndroid API: ").append(Build.VERSION.SDK_INT)
-                .append("\nPaused: ").append(paused).append("\nControls:\n");
+                .append("\nPaused: ").append(paused)
+                .append("\nSafe mode: ").append(safeMode).append('\n');
             if (Settings.preview) summary.append("Mode: UI preview. Does not change Messenger.\n");
+            summary.append("Controls:\n");
             for (String[] spec : CONTROLS) {
                 String key = spec[0];
                 boolean installed = Settings.installed.contains(key);
                 boolean selected = Settings.preferences.getBoolean(key, false);
+                long lastActive = Settings.lastActive(key);
                 summary.append(key).append(": installed=").append(installed)
                     .append(", selected=").append(selected)
-                    .append(", active=").append(!Settings.preview && installed && selected && !paused && Settings.available(key)).append('\n');
+                    .append(", active=").append(!Settings.preview && installed && selected && !paused && !safeMode && Settings.available(key))
+                    .append(", last_active=").append(lastActive == 0 ? "none" : ((System.currentTimeMillis() - lastActive) / 1000) + "s ago")
+                    .append('\n');
+            }
+            summary.append("Facebook caller checks: ").append(MessengerSignature.callerSummary()).append('\n');
+            // Only controls that failed get a line: the exception's class, where it hit HushMessenger's code and when.
+            Map<String, String> errors = Settings.lastHookErrors();
+            if (!errors.isEmpty()) summary.append("Hook errors:\n");
+            for (Map.Entry<String, String> error : errors.entrySet()) {
+                String record = error.getValue();
+                int split = record.lastIndexOf('|');
+                summary.append(error.getKey()).append(": ").append(split < 0 ? record : record.substring(0, split)).append(", ")
+                    .append(java.time.Instant.ofEpochMilli(Settings.hookErrorTime(record)).truncatedTo(java.time.temporal.ChronoUnit.SECONDS))
+                    .append('\n');
             }
             ClipData clip = ClipData.newPlainText(text.get("clipboard"), summary.toString());
             PersistableBundle extras = new PersistableBundle();
@@ -533,10 +695,180 @@ public final class SettingsActivity extends Activity {
             ClipboardManager clipboard = getSystemService(ClipboardManager.class);
             if (clipboard == null) throw new IllegalStateException("Clipboard service unavailable");
             clipboard.setPrimaryClip(clip);
-            if (Build.VERSION.SDK_INT < 33) Toast.makeText(this, text.get("copied"), Toast.LENGTH_SHORT).show();
+            if (Build.VERSION.SDK_INT < 33) feedback(text.get("copied"), Toast.LENGTH_SHORT);
         } catch (PackageManager.NameNotFoundException | SecurityException | IllegalStateException error) {
             android.util.Log.e("HushMessenger", "Can't copy setup", error);
-            Toast.makeText(this, text.get("copy_failed"), Toast.LENGTH_LONG).show();
+            feedback(text.get("copy_failed"), Toast.LENGTH_LONG);
+        }
+    }
+
+    /** Where the update check asks, and how long it waits. Tests point these at a local server. */
+    static String releasesUrl = "https://api.github.com/repos/SysAdminDoc/HushMessenger/releases/latest";
+    static int updateTimeoutMillis = 5000;
+
+    /**
+     * Compares release numbers part by part as integers, so 0.10.0 is newer than 0.9.0. A leading "v"
+     * is ignored and a missing or non-numeric part counts as 0. A pre-release suffix after "-" (0.7.0-dev.1)
+     * sorts before the same number without one, and two suffixes compare as text.
+     */
+    static int compareVersions(String a, String b) {
+        String[] left = a.trim().replaceFirst("^v", "").split("-", 2);
+        String[] right = b.trim().replaceFirst("^v", "").split("-", 2);
+        String[] x = left[0].split("\\."), y = right[0].split("\\.");
+        for (int i = 0; i < Math.max(x.length, y.length); i++) {
+            int diff = Integer.compare(versionPart(x, i), versionPart(y, i));
+            if (diff != 0) return diff;
+        }
+        if (left.length != right.length) return left.length > right.length ? -1 : 1;
+        return left.length == 1 ? 0 : left[1].compareTo(right[1]);
+    }
+
+    private static int versionPart(String[] parts, int index) {
+        if (index >= parts.length) return 0;
+        try { return Integer.parseInt(parts[index]); } catch (NumberFormatException e) { return 0; }
+    }
+
+    /** The release page to offer, or "" when the response points anywhere but this project's releases. */
+    static String releasePage(String htmlUrl) {
+        // A plain tag page only, so "../" or an encoded path can't walk out of this project.
+        return htmlUrl.matches("https://github\\.com/SysAdminDoc/HushMessenger/releases/tag/[0-9A-Za-z._+-]+")
+            && !htmlUrl.contains("..") ? htmlUrl : "";
+    }
+
+    private void checkForUpdates(TextView status) {
+        new Thread(() -> {
+            java.net.HttpURLConnection conn = null;
+            try {
+                conn = (java.net.HttpURLConnection) new java.net.URL(releasesUrl).openConnection();
+                conn.setRequestProperty("Accept", "application/vnd.github.v3+json");
+                conn.setConnectTimeout(updateTimeoutMillis);
+                conn.setReadTimeout(updateTimeoutMillis);
+                if (conn.getResponseCode() != 200) throw new java.io.IOException("HTTP " + conn.getResponseCode());
+                java.io.ByteArrayOutputStream response = new java.io.ByteArrayOutputStream();
+                try (java.io.InputStream stream = conn.getInputStream()) {
+                    byte[] bytes = new byte[4096];
+                    int read;
+                    while ((read = stream.read(bytes)) != -1) response.write(bytes, 0, read);
+                }
+                String body = response.toString("UTF-8");
+                int tagStart = body.indexOf("\"tag_name\"");
+                if (tagStart < 0) throw new java.io.IOException("No tag_name");
+                int valueStart = body.indexOf('"', tagStart + 10) + 1;
+                int valueEnd = body.indexOf('"', valueStart);
+                String tag = body.substring(valueStart, valueEnd);
+                String latest = tag.startsWith("v") ? tag.substring(1) : tag;
+                boolean newer = compareVersions(latest, BuildConfig.VERSION_NAME) > 0;
+                String htmlUrl = "";
+                int urlStart = body.indexOf("\"html_url\"");
+                if (urlStart >= 0) {
+                    int us = body.indexOf('"', urlStart + 10) + 1;
+                    int ue = body.indexOf('"', us);
+                    htmlUrl = body.substring(us, ue);
+                }
+                String releaseUrl = releasePage(htmlUrl);
+                runOnUiThread(() -> {
+                    if (newer) {
+                        status.setText(text.get("update_available", latest));
+                        status.setTextColor(ui.accent);
+                        if (!releaseUrl.isEmpty()) {
+                            Button view = ui.button(text.get("update_action"));
+                            view.setTag("update_release");
+                            view.setOnClickListener(v -> {
+                                try { startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(releaseUrl))); }
+                                catch (android.content.ActivityNotFoundException e) { feedback(text.get("no_browser"), Toast.LENGTH_LONG); }
+                            });
+                            ViewGroup parent = (ViewGroup) status.getParent();
+                            int idx = parent.indexOfChild(status);
+                            parent.addView(view, idx + 1);
+                        }
+                    } else {
+                        status.setText(text.get("up_to_date"));
+                    }
+                    status.setVisibility(View.VISIBLE);
+                });
+            } catch (Exception error) {
+                android.util.Log.e("HushMessenger", "Update check failed", error);
+                runOnUiThread(() -> { status.setText(text.get("update_error")); status.setVisibility(View.VISIBLE); });
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }).start();
+    }
+
+    private String formatSince(long timestamp, String now, String ago) {
+        long seconds = (System.currentTimeMillis() - timestamp) / 1000;
+        if (seconds < 10) return text.get(now);
+        if (seconds < 60) return text.get(ago, text.format("seconds_short", seconds));
+        long minutes = seconds / 60;
+        if (minutes < 60) return text.get(ago, text.format("minutes_short", minutes));
+        long hours = minutes / 60;
+        return text.get(ago, text.format("hours_short", hours));
+    }
+
+    private static final String EXPORT_HEADER = "hushmessenger:choices";
+
+    private void exportChoices() {
+        try {
+            StringBuilder export = new StringBuilder(EXPORT_HEADER).append('\n');
+            export.append("paused=").append(Settings.preferences.getBoolean("paused", false)).append('\n');
+            for (String[] spec : CONTROLS) {
+                String key = spec[0];
+                if (Settings.installed.contains(key)) {
+                    export.append(key).append('=').append(Settings.preferences.getBoolean(key, false)).append('\n');
+                }
+            }
+            ClipData clip = ClipData.newPlainText(text.get("clipboard"), export.toString());
+            PersistableBundle extras = new PersistableBundle();
+            extras.putBoolean(Build.VERSION.SDK_INT >= 33 ? ClipDescription.EXTRA_IS_SENSITIVE : "android.content.extra.IS_SENSITIVE", true);
+            clip.getDescription().setExtras(extras);
+            ClipboardManager clipboard = getSystemService(ClipboardManager.class);
+            if (clipboard == null) throw new IllegalStateException("Clipboard unavailable");
+            clipboard.setPrimaryClip(clip);
+            if (Build.VERSION.SDK_INT < 33) feedback(text.get("exported"), Toast.LENGTH_SHORT);
+        } catch (Exception error) {
+            android.util.Log.e("HushMessenger", "Can't export choices", error);
+            feedback(text.get("export_failed"), Toast.LENGTH_LONG);
+        }
+    }
+
+    private void importChoices() {
+        try {
+            ClipboardManager clipboard = getSystemService(ClipboardManager.class);
+            if (clipboard == null || !clipboard.hasPrimaryClip()) {
+                feedback(text.get("import_empty"), Toast.LENGTH_LONG);
+                return;
+            }
+            ClipData clip = clipboard.getPrimaryClip();
+            if (clip == null || clip.getItemCount() == 0) {
+                feedback(text.get("import_empty"), Toast.LENGTH_LONG);
+                return;
+            }
+            CharSequence raw = clip.getItemAt(0).getText();
+            if (raw == null || !raw.toString().startsWith(EXPORT_HEADER)) {
+                feedback(text.get("import_invalid"), Toast.LENGTH_LONG);
+                return;
+            }
+            java.util.Set<String> knownKeys = new java.util.HashSet<>();
+            for (String[] spec : CONTROLS) knownKeys.add(spec[0]);
+            knownKeys.add("paused");
+            SharedPreferences.Editor editor = Settings.preferences.edit();
+            int restored = 0;
+            for (String line : raw.toString().split("\n")) {
+                int eq = line.indexOf('=');
+                if (eq < 1) continue;
+                String key = line.substring(0, eq);
+                String value = line.substring(eq + 1);
+                if (!knownKeys.contains(key)) continue;
+                if (!"true".equals(value) && !"false".equals(value)) continue;
+                editor.putBoolean(key, "true".equals(value));
+                restored++;
+            }
+            editor.apply();
+            feedback(text.count("imported", restored), Toast.LENGTH_SHORT);
+            recreate();
+        } catch (Exception error) {
+            android.util.Log.e("HushMessenger", "Can't import choices", error);
+            feedback(text.get("import_invalid"), Toast.LENGTH_LONG);
         }
     }
 
@@ -576,9 +908,18 @@ public final class SettingsActivity extends Activity {
             saved++;
             if (Settings.available(spec[0])) enabled++;
         }
+        boolean safeMode = CrashGuard.isSafeMode();
         boolean paused = Settings.preferences.getBoolean("paused", false);
-        enabledCount.setText(paused ? text.get("changes_paused") : text.count("enabled", enabled));
-        setupNote.setText(paused ? text.count("saved", saved) : text.get("saved"));
+        if (safeMode) {
+            enabledCount.setText(text.get("safe_mode"));
+            setupNote.setText(text.get("safe_mode_help"));
+        } else if (paused) {
+            enabledCount.setText(text.get("changes_paused"));
+            setupNote.setText(text.count("saved", saved));
+        } else {
+            enabledCount.setText(text.count("enabled", enabled));
+            setupNote.setText(text.get("saved"));
+        }
     }
 
     private void filterControls(String query) {
@@ -589,8 +930,8 @@ public final class SettingsActivity extends Activity {
             String bucket = "inbox".equals(spec[3]) ? "inbox" :
                 ("conversations".equals(spec[3]) || "stickers".equals(spec[3])) ? "chats" : "more";
             boolean match = ("all".equals(category) || category.equals(bucket)) &&
-                (spec[1] + " " + spec[2] + " " + text.base(spec[3]) + " " +
-                    text.display(spec[1]) + " " + text.display(spec[2]) + " " + text.get(spec[3])).toLowerCase(Locale.ROOT).contains(needle);
+                (spec[1] + " " + spec[2] + " " + SettingsText.english(spec[3]) + " " +
+                    text.display(text.control(spec, 1)) + " " + text.display(text.control(spec, 2)) + " " + text.get(spec[3])).toLowerCase(Locale.ROOT).contains(needle);
             controlRows.get(i).setVisibility(match ? View.VISIBLE : View.GONE);
             if (match) visible++;
         }
@@ -605,13 +946,14 @@ public final class SettingsActivity extends Activity {
             button.setSelected(selected);
             button.setTextColor(selected ? ui.selectedText : ui.muted);
             button.setBackground(new android.graphics.drawable.InsetDrawable(
-                ui.interactive(selected ? ui.selected : ui.background, selected ? 0 : ui.outline, 8), 0, ui.dp(6), 0, ui.dp(6)));
+                ui.interactive(selected ? ui.selected : ui.background, selected ? 0 : ui.outline, 8, selected ? ui.text : ui.accent),
+                0, ui.dp(6), 0, ui.dp(6)));
             button.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
         }
         searchStatus.setText(controlRows.isEmpty() ? text.get("none_installed") :
             visible == 0 ? text.get("no_matches") : text.get(controlRows.size() == 1 ? "results_one" : "results_many", visible, controlRows.size()));
-        emptyState.setVisibility(visible == 0 ? View.VISIBLE : View.GONE);
-        clearSearch.setVisibility(controlRows.isEmpty() ? View.GONE : View.VISIBLE);
+        // With nothing installed, the status line already explains what to do.
+        emptyState.setVisibility(visible == 0 && !controlRows.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
     @Override protected void onSaveInstanceState(Bundle state) {
@@ -640,6 +982,30 @@ public final class SettingsActivity extends Activity {
                 android.util.Log.e("HushMessenger", "Messenger launcher is unavailable", error);
             }
         }
-        Toast.makeText(this, text.get("open_help"), Toast.LENGTH_LONG).show();
+        feedback(text.get("open_help"), Toast.LENGTH_LONG);
+    }
+
+    /** One toast at a time, built on the app context so no destroyed page is kept alive. */
+    private void feedback(String message, int length) {
+        if (toast != null) toast.cancel();
+        toast = Toast.makeText(getApplicationContext(), message, length);
+        toast.show();
+    }
+
+    /** Framework Material themes draw the cursor and handles in teal; match the settings accent. */
+    private void tintTextHandles(EditText field) {
+        if (Build.VERSION.SDK_INT < 29) return;
+        Drawable cursor = field.getTextCursorDrawable(), middle = field.getTextSelectHandle();
+        Drawable left = field.getTextSelectHandleLeft(), right = field.getTextSelectHandleRight();
+        if (cursor != null) field.setTextCursorDrawable(tinted(cursor));
+        if (middle != null) field.setTextSelectHandle(tinted(middle));
+        if (left != null) field.setTextSelectHandleLeft(tinted(left));
+        if (right != null) field.setTextSelectHandleRight(tinted(right));
+    }
+
+    private Drawable tinted(Drawable drawable) {
+        Drawable copy = drawable.mutate();
+        copy.setTint(ui.accent);
+        return copy;
     }
 }

@@ -27,24 +27,58 @@ internal fun fixtureMethod(
         .apply { addInstructionsWithLabels(0, body) }
 }
 
-internal fun fixtureClass(type: String, methods: List<Method> = emptyList(), originalName: String? = null): MutableClass {
+internal fun fixtureClass(
+    type: String,
+    methods: List<Method> = emptyList(),
+    originalName: String? = null,
+    interfaces: List<String> = emptyList(),
+): MutableClass {
     val fields = originalName?.let {
         listOf(ImmutableField(type, "__redex_internal_original_name", "Ljava/lang/String;",
             AccessFlags.STATIC.value, ImmutableStringEncodedValue(it), null, null))
     }.orEmpty()
     return MutableClass(ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;",
-        emptyList(), null, emptySet(), fields, methods))
+        interfaces, null, emptySet(), fields, methods))
 }
+
+/** The stock app component factory's two entry points, cut down to the shape the screen-host hooks check. */
+internal fun factoryActivity(registers: Int = 12, id: String = INSTANTIATE_ACTIVITY) = fixtureMethod(id, """
+    const/4 v0, 0x0
+    invoke-super {p0, p1, p2, p3}, Landroid/app/AppComponentFactory;->instantiateActivity(Ljava/lang/ClassLoader;Ljava/lang/String;Landroid/content/Intent;)Landroid/app/Activity;
+    move-result-object v0
+    return-object v0
+""".trimIndent(), registers)
+
+internal fun factoryApplication(body: String = """
+    invoke-super {p0, p1, p2}, Landroid/app/AppComponentFactory;->instantiateApplication(Ljava/lang/ClassLoader;Ljava/lang/String;)Landroid/app/Application;
+    move-result-object v1
+    sput-object v1, $FACTORY_TYPE->messengerApp:Landroid/app/Application;
+    return-object v1
+""".trimIndent()) = fixtureMethod(INSTANTIATE_APPLICATION, body, 5)
+
+internal fun bundledControlsMethod(body: String = "const-string v0, \"\"\nreturn-object v0") =
+    fixtureMethod(BUNDLED_CONTROLS, body, 1, AccessFlags.STATIC.value)
+
+/** The factory and the extension class every settings run touches, as a supported APK plus the extension has them. */
+internal fun screenHostClasses() = listOf(
+    fixtureClass(FACTORY_TYPE, listOf(factoryActivity(), factoryApplication())),
+    fixtureClass(HOST_SCREENS, listOf(bundledControlsMethod())),
+)
 
 internal const val PEOPLE_JEWEL_HOOK = "LX/HAR;->A01(LX/HAR;)Z"
 
-/** Instructions 0-20 match both supported APKs; one instruction stands in for the list reset. */
+/**
+ * Instructions 0-20 match the supported APKs; one instruction stands in for the list reset. With [inlinedReset],
+ * 346013423's single call replaces the two calls at 14-15, so the server flag moves from 17 to 16.
+ */
 internal fun peopleJewelMethod(
     key: String = "LX/JTx;->A01:LX/1BL;",
     resultRegister: String = "v0",
     serverFlag: String = "72344235860374863L",
     serverTarget: String = ":shown",
     flags: Int = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value,
+    inlinedReset: Boolean = false,
+    extraFlag: Boolean = false,
 ) = fixtureMethod(PEOPLE_JEWEL_HOOK, """
     iget-object v0, p0, LX/HAR;->A07:LX/17Z;
     invoke-static {v0}, LX/17Z;->A0F(LX/17Z;)Ljava/lang/Object;
@@ -60,14 +94,15 @@ internal fun peopleJewelMethod(
     move-result $resultRegister
     if-eqz v0, :shown
     iget-object v0, p0, LX/HAR;->A06:LX/17Z;
-    invoke-static {v0}, LX/17Z;->A0I(LX/17Z;)V
-    invoke-static {v2, v4}, LX/1Aa;->A07(Ljava/lang/Object;I)LX/4nI;
+    ${if (inlinedReset) "invoke-static {v0, v2}, LX/H7e;->A0T(LX/17Z;Ljava/lang/Object;)LX/4qb;"
+      else "invoke-static {v0}, LX/17Z;->A0I(LX/17Z;)V\n    invoke-static {v2, v4}, LX/1Aa;->A07(Ljava/lang/Object;I)LX/4nI;"}
     move-result-object v2
     const-wide v0, $serverFlag
     invoke-static {v2, v0, v1}, LX/16z;->A1Z(Ljava/lang/Object;J)Z
     move-result v0
     if-nez v0, $serverTarget
     iget-object v3, p0, LX/HAR;->A0F:LX/WZw;
+    ${if (extraFlag) "const-wide v0, $serverFlag" else ""}
     :hidden
     const/4 v0, 0x1
     return v0
@@ -80,6 +115,75 @@ internal fun peopleJewelKeyHolder() = fixtureClass("LX/JTx;", listOf(fixtureMeth
     sput-object v0, LX/JTx;->A01:LX/1BL;
     return-void
 """.trimIndent(), flags = AccessFlags.STATIC.value or AccessFlags.CONSTRUCTOR.value)))
+
+internal fun debugDumperFixture(
+    textGetter: String = "BWn",
+    idGetter: String = "B9c",
+    unsentGetter: String = "Btc",
+    itemType: String = "Lfixture/KKn;",
+): MutableClass {
+    val method = fixtureMethod("Lfixture/Dumper;->A02(Lfixture/MessageRow;)Ljava/lang/String;", """
+        invoke-interface {p1}, $itemType->$unsentGetter()Z
+        move-result v0
+        const-string v0, "is_unsent="
+        invoke-static {v0, v1, v2}, Lfixture/Helper;->A09(Ljava/lang/String;Ljava/util/AbstractCollection;Z)V
+        invoke-interface {p1}, $itemType->$idGetter()Ljava/lang/String;
+        move-result-object v0
+        if-eqz v0, :skip_id
+        const-string v0, "message_id="
+        invoke-static {v0, v1, v2}, Lfixture/Helper;->A1V(Ljava/lang/String;Ljava/lang/String;Ljava/util/AbstractCollection;)V
+        :skip_id
+        invoke-interface {p1}, $itemType->$textGetter()Ljava/lang/String;
+        move-result-object v0
+        if-eqz v0, :skip_text
+        const-string v0, "text="
+        invoke-static {v0, v1, v2}, Lfixture/Helper;->A1V(Ljava/lang/String;Ljava/lang/String;Ljava/util/AbstractCollection;)V
+        :skip_text
+        return-object v1
+    """.trimIndent(), registers = 4)
+    return fixtureClass("Lfixture/Dumper;", listOf(method))
+}
+
+internal fun messageWrapperFixture(
+    type: String = "Lfixture/MessageWrapper;",
+    interfaceType: String = "Lfixture/MessageRow;",
+    textGetter: String = "BWo",
+    idGetter: String = "B9d",
+    unsentGetter: String = "Btd",
+): MutableClass {
+    val bwoMethod = fixtureMethod("$type->$textGetter(I)Ljava/lang/String;", """
+        invoke-static {p0, p1}, $type->A00(${type}I)Lfixture/KKn;
+        move-result-object v0
+        invoke-interface {v0}, Lfixture/KKn;->BWn()Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+    """.trimIndent(), registers = 3)
+    val b9dMethod = fixtureMethod("$type->$idGetter(I)Ljava/lang/String;", """
+        invoke-static {p0, p1}, $type->A00(${type}I)Lfixture/KKn;
+        move-result-object v0
+        invoke-interface {v0}, Lfixture/KKn;->B9c()Ljava/lang/String;
+        move-result-object v0
+        return-object v0
+    """.trimIndent(), registers = 3)
+    val btdMethod = fixtureMethod("$type->$unsentGetter(I)Z", """
+        invoke-static {p0, p1}, $type->A00(${type}I)Lfixture/KKn;
+        move-result-object v0
+        invoke-interface {v0}, Lfixture/KKn;->Btc()Z
+        move-result v0
+        return v0
+    """.trimIndent(), registers = 3)
+    val getCountMethod = fixtureMethod("$type->getCount()I", """
+        iget-object v0, p0, $type->A00:Ljava/util/List;
+        invoke-interface {v0}, Ljava/util/List;->size()I
+        move-result v0
+        return v0
+    """.trimIndent(), registers = 2)
+    val fields = listOf(ImmutableField(type, "A00", "Ljava/util/List;", 0, null, null, null))
+    return MutableClass(ImmutableClassDef(type,
+        AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value,
+        "Ljava/lang/Object;", listOf(interfaceType), null, emptySet(), fields,
+        listOf(bwoMethod, b9dMethod, btdMethod, getCountMethod)))
+}
 
 internal fun pluginBody(anchor: String, branch: String = "if-eq") = """
     iget-object v0, p0, Lfixture/Gate;->cache:Ljava/lang/Object;

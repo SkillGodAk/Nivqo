@@ -1,3 +1,4 @@
+import org.apache.tools.ant.filters.FixCrLfFilter
 import org.gradle.jvm.tasks.Jar
 
 group = "com.sysadmindoc.hushmessenger"
@@ -27,11 +28,24 @@ tasks.test {
 
 tasks.named<Jar>("jar") {
     manifest.attributes["Timestamp"] = providers.gradleProperty("bundleTimestampMillis").get()
-    from(listOf(rootProject.file("LICENSE"), rootProject.file("NOTICE"))) { into("META-INF") }
+    from(listOf(rootProject.file("LICENSE"), rootProject.file("NOTICE"))) {
+        into("META-INF")
+        // Git writes LF or CRLF depending on the checkout; the bundle bytes must not.
+        filter(mapOf("eol" to FixCrLfFilter.CrLf.newInstance("lf")), FixCrLfFilter::class.java)
+    }
 }
 
 dependencyLocking {
     lockAllConfigurations()
+}
+
+// The patcher and the Android build tools bring Bouncy Castle 1.77 and 1.79 into this graph.
+// See gradle/libs.versions.toml for the advisories and why 1.86.
+val safeBouncyCastleVersion = libs.versions.bouncycastle.get()
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.bouncycastle") useVersion(safeBouncyCastleVersion)
+    }
 }
 
 for ((taskName, mode) in mapOf("generatePatchCatalog" to "generate", "checkPatchCatalog" to "check")) {
@@ -47,6 +61,28 @@ for ((taskName, mode) in mapOf("generatePatchCatalog" to "generate", "checkPatch
 }
 
 tasks.check { dependsOn("checkPatchCatalog") }
+
+tasks.register<JavaExec>("scanDex") {
+    group = "verification"
+    description = "Scan a stock Messenger APK for hookable method anchors."
+    dependsOn("testClasses")
+    classpath = sourceSets["test"].output + configurations["testRuntimeClasspath"]
+    mainClass.set("app.hushmessenger.tools.DexScanner")
+    val apkPath = providers.gradleProperty("apkPath").orNull
+    val feature = providers.gradleProperty("feature").orNull ?: "all"
+    args(listOfNotNull(apkPath, feature))
+}
+
+tasks.register<JavaExec>("inspectDex") {
+    group = "verification"
+    description = "Deep-inspect specific classes/methods in a stock Messenger APK."
+    dependsOn("testClasses")
+    classpath = sourceSets["test"].output + configurations["testRuntimeClasspath"]
+    mainClass.set("app.hushmessenger.tools.DexInspector")
+    val apkPath = providers.gradleProperty("apkPath").orNull
+    val target = providers.gradleProperty("target").orNull ?: "all"
+    args(listOfNotNull(apkPath, target))
+}
 
 tasks.register<Exec>("verifyReleaseMetadata") {
     group = "verification"

@@ -69,7 +69,9 @@ import java.util.function.BooleanSupplier;
 
 import app.morphe.extension.facebook.download.DownloadQuality;
 import app.morphe.extension.facebook.comments.CommentOrder;
+import app.morphe.extension.facebook.media.PlaybackQuality;
 import app.morphe.extension.facebook.navigation.StartTab;
+import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.WorkerPoolForTests;
@@ -113,9 +115,20 @@ public class SettingsBackupTest {
      * test below. Keys, not the settings: a Setting read before the context rule has run poisons
      * the registry for the rest of the sandbox.
      */
-    private static final Map<String, String> VALUES_STAY_OUT = Collections.singletonMap("hushfacebook_font_source",
-            "it names the font file Use the system font draws in, whose copy only this install holds. A settings "
-                    + "file can't carry the font itself, and the name alone would point at nothing on another phone.");
+    private static final Map<String, String> VALUES_STAY_OUT = valuesStayOut();
+
+    private static Map<String, String> valuesStayOut() {
+        Map<String, String> out = new java.util.LinkedHashMap<>();
+        out.put("hushfacebook_font_source",
+                "it names the font file Use the system font draws in, whose copy only this install holds. A settings "
+                        + "file can't carry the font itself, and the name alone would point at nothing on another phone.");
+        String notYet = "the file format has no field for Send to an app's two rows yet (#41), and an import that "
+                + "dropped them without a word would be worse than one that says they stay out. The README says so "
+                + "until the format carries them.";
+        out.put("hushfacebook_download_action", notYet);
+        out.put("hushfacebook_send_to_app", notYet);
+        return Collections.unmodifiableMap(out);
+    }
 
     /** Hushfacebook's own state and its diagnostics. None of them is ever in a file. */
     private static List<Setting<?>> neverInAFile() {
@@ -142,6 +155,11 @@ public class SettingsBackupTest {
 
     @After
     public void restore() throws Exception {
+        // A test that stopped while the app still held its file would leave that run holding a
+        // worker and the rows for the tests after it. Letting the open go ends the run, and the
+        // rows come back the way they do in the app.
+        CountDownLatch held = SettingsFileProvider.stall;
+        if (held != null) held.countDown();
         Utils.awaitBackgroundTasksForTests();
         ShadowLooper.idleMainLooper();
         for (BooleanSetting setting : SettingsBackup.ALLOWLIST) setting.resetToDefault();
@@ -150,6 +168,7 @@ public class SettingsBackupTest {
         Settings.FILENAME_TEMPLATE.resetToDefault();
         Settings.START_TAB.resetToDefault();
         Settings.COMMENT_ORDER.resetToDefault();
+        Settings.PLAYBACK_QUALITY.resetToDefault();
         Settings.HIDDEN_WORDS.resetToDefault();
         Settings.KEPT_WORDS.resetToDefault();
         BaseSettings.PAUSED.resetToDefault();
@@ -195,8 +214,8 @@ public class SettingsBackupTest {
             assertFalse(setting.key + " is carried and kept out at once", VALUES_STAY_OUT.containsKey(setting.key));
         }
         assertEquals(Arrays.<Setting<?>>asList(Settings.HIDDEN_WORDS, Settings.KEPT_WORDS, Settings.SAVE_FOLDER,
-                Settings.DOWNLOAD_QUALITY, Settings.FILENAME_TEMPLATE, Settings.START_TAB, Settings.COMMENT_ORDER),
-                SettingsBackup.VALUES);
+                Settings.DOWNLOAD_QUALITY, Settings.FILENAME_TEMPLATE, Settings.START_TAB, Settings.COMMENT_ORDER,
+                Settings.PLAYBACK_QUALITY), SettingsBackup.VALUES);
         assertEquals(Settings.HIDDEN_WORDS, SettingsBackup.HIDDEN);
         assertEquals(Settings.KEPT_WORDS, SettingsBackup.KEPT);
         assertEquals(Settings.SAVE_FOLDER, SettingsBackup.FOLDER);
@@ -204,6 +223,7 @@ public class SettingsBackupTest {
         assertEquals(Settings.FILENAME_TEMPLATE, SettingsBackup.FILE_NAME);
         assertEquals(Settings.START_TAB, SettingsBackup.START);
         assertEquals(Settings.COMMENT_ORDER, SettingsBackup.ORDER);
+        assertEquals(Settings.PLAYBACK_QUALITY, SettingsBackup.PLAYBACK);
     }
 
     @Test
@@ -1093,6 +1113,89 @@ public class SettingsBackupTest {
                 SettingsBackupPreference.importedMessage(0, null, null, null, null, CommentOrder.FACEBOOK));
     }
 
+    /**
+     * The quality videos play at goes out as its file value and comes back only as one this build
+     * offers: any other value, or one that isn't text, refuses the whole file.
+     */
+    @Test
+    public void thePlaybackQualityRoundTripsAndComesBackOnlyAsOneThisBuildOffers() throws Exception {
+        for (PlaybackQuality quality : PlaybackQuality.values()) {
+            Settings.PLAYBACK_QUALITY.save(quality);
+            String file = SettingsBackup.create();
+            assertEquals(quality.fileValue, new JSONObject(file).getJSONObject("settings").get(SettingsBackup.PLAYBACK.key));
+            Settings.PLAYBACK_QUALITY.save(quality == PlaybackQuality.P720 ? PlaybackQuality.AUTO : PlaybackQuality.P720);
+
+            SettingsBackup.Snapshot snapshot = SettingsBackup.parse(file);
+            assertEquals(quality, snapshot.playback);
+            assertEquals(quality, snapshot.playbackChange());
+            assertEquals(0, snapshot.switchChanges());
+            assertEquals(Collections.singletonMap(SettingsBackup.PLAYBACK, quality), snapshot.changes());
+            assertEquals(1, SettingsBackup.apply(snapshot));
+            assertEquals(quality, Settings.PLAYBACK_QUALITY.savedValue());
+            assertEquals("a file read back is the file", file, SettingsBackup.create());
+            assertEquals("the same quality again changes nothing", 0, SettingsBackup.parse(file).changes().size());
+        }
+
+        Settings.PLAYBACK_QUALITY.save(PlaybackQuality.DATA_SAVER);
+        String file = SettingsBackup.create();
+        Map<String, ?> before = store();
+        for (Object refused : new Object[]{"DATA_SAVER", "Data saver", "480", " 720p", "", "1080p", 720, true,
+                JSONObject.NULL, new JSONObject(), new org.json.JSONArray()}) {
+            JSONObject hostile = new JSONObject(file);
+            hostile.getJSONObject("settings").put(SettingsBackup.PLAYBACK.key, refused);
+            try {
+                SettingsBackup.parse(hostile.toString());
+                fail("a file with the playback quality " + printable(String.valueOf(refused)) + " was read");
+            } catch (SettingsBackup.Rejected rejected) {
+                assertEquals(printable(String.valueOf(refused)), SettingsBackup.Reason.VALUE, rejected.reason);
+            }
+        }
+        assertEquals("a refused file wrote something", before, store());
+
+        // A file from before the quality was carried leaves it alone.
+        SettingsBackup.Snapshot older = SettingsBackup.parse(fileWith(Settings.HIDE_SUGGESTED_POSTS, false));
+        assertNull(older.playback);
+        assertNull(older.playbackChange());
+        SettingsBackup.apply(older);
+        assertEquals(PlaybackQuality.DATA_SAVER, Settings.PLAYBACK_QUALITY.savedValue());
+
+        // A preview kept across a rebuild keeps its quality, and only one this build offers comes back.
+        Bundle state = SettingsBackup.parse(file).toBundle();
+        assertEquals(PlaybackQuality.DATA_SAVER, SettingsBackup.Snapshot.fromBundle(state).playback);
+        state.putString("playback_quality", "DATA_SAVER");
+        assertNull(SettingsBackup.Snapshot.fromBundle(state).playback);
+        state.putInt("playback_quality", 3);
+        assertNull(SettingsBackup.Snapshot.fromBundle(state).playback);
+    }
+
+    /** A file that changes the playback quality says what videos will play at, before and after. */
+    @Test
+    public void importOfAPlaybackQualitySaysWhatVideosWillPlayAt() throws Exception {
+        JSONObject file = new JSONObject(fileWith(Settings.DOWNLOAD_REELS, false));
+        file.getJSONObject("settings").put(SettingsBackup.PLAYBACK.key, "720p")
+                .put(SettingsBackup.ORDER.key, "newest");
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            HushfacebookPreferenceFragment page = SettingsL10nTest.pageOf(SettingsL10nTest.show(activity));
+            deliver(activity, tap(activity, page, IMPORT_ROW), file.toString());
+            AlertDialog preview = shownPreview();
+            String order = "Comments will open with Newest picked in their sort menu.";
+            String quality = "Playback quality will be set to Up to " + L10n.isolate("720p") + ".";
+            assertEquals("1 switch will change.\n\n" + order + "\n\n" + quality,
+                    String.valueOf(shadowOf(preview).getMessage()));
+            preview.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+            settle();
+            assertEquals("Settings imported. 1 switch changed. " + order + " " + quality,
+                    ShadowToast.getTextOfLatestToast());
+            assertEquals(PlaybackQuality.P720, Settings.PLAYBACK_QUALITY.savedValue());
+            assertEquals("the playback quality row still shows the old quality",
+                    HushfacebookPreferenceFragment.playbackQualitySummary(PlaybackQuality.P720),
+                    String.valueOf(page.findPreference(Settings.PLAYBACK_QUALITY.key).getSummary()));
+        }
+        assertEquals("Settings imported. Facebook will pick the quality videos play at.",
+                SettingsBackupPreference.importedMessage(0, null, null, null, null, null, null, null, PlaybackQuality.AUTO));
+    }
+
     /** A file that changes the start tab says where Facebook will open, before and after. */
     @Test
     public void importOfAStartTabSaysWhereFacebookWillOpen() throws Exception {
@@ -1641,6 +1744,50 @@ public class SettingsBackupTest {
         }
     }
 
+    /**
+     * An import that fails after it has claimed the rows, before a worker has it, gives them back
+     * and changes nothing. That path has no wait to run out, so nothing else would: the rows would
+     * stay out of reach until Facebook restarts. Here the folder the toast names can't be read once
+     * Import is pressed, so the toast's text can't be built.
+     */
+    @Test
+    public void anImportThatFailsBeforeItsWorkerStartsGivesTheRowsBack() throws Exception {
+        JSONObject file = new JSONObject(fileWith(Settings.HIDE_SPONSORED_POSTS, false));
+        file.getJSONObject("settings").put(SettingsBackup.FOLDER.key, "Clips");
+        Field value = Setting.class.getDeclaredField("value");
+        value.setAccessible(true);
+        Object folder = value.get(Settings.SAVE_FOLDER);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            HushfacebookPreferenceFragment page = SettingsL10nTest.pageOf(SettingsL10nTest.show(activity));
+            deliver(activity, tap(activity, page, IMPORT_ROW), file.toString());
+            AlertDialog preview = shownPreview();
+            RuntimeException escaped = null;
+            // Not a folder name, so no sentence can be worded around it.
+            value.set(Settings.SAVE_FOLDER, 7);
+            try {
+                preview.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+                settle();
+            } catch (RuntimeException failure) {
+                escaped = failure;
+            } finally {
+                value.set(Settings.SAVE_FOLDER, folder);
+            }
+            assertTrue("the rows stayed out of reach", page.findPreference(IMPORT_ROW).isEnabled());
+            assertTrue(page.findPreference(EXPORT_ROW).isEnabled());
+            assertFalse(AbstractPreferenceFragment.settingImportInProgress);
+            assertNull("the failure reached Facebook", escaped);
+            assertEquals("Couldn't start that. Try again in a moment.", ShadowToast.getTextOfLatestToast());
+            assertTrue("a switch changed", Settings.HIDE_SPONSORED_POSTS.savedValue());
+
+            // And the next import goes through.
+            deliver(activity, tap(activity, page, IMPORT_ROW), fileWith(Settings.HIDE_SPONSORED_POSTS, false));
+            shownPreview().getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+            settle();
+            assertFalse(Settings.HIDE_SPONSORED_POSTS.savedValue());
+        }
+    }
+
     // ---- The app holding the file ------------------------------------------------------------
 
     private static final String EXPORT_TIMEOUT = "The app holding the settings file is taking too long, so Hushfacebook "
@@ -1744,6 +1891,7 @@ public class SettingsBackupTest {
                         new Intent().setData(uri));
                 ShadowLooper.idleMainLooper();
                 assertFalse(importRow.isEnabled());
+                awaitHeldOpen();
                 waitOut();
                 assertEquals(IMPORT_TIMEOUT, ShadowToast.getTextOfLatestToast());
                 assertTrue(importRow.isEnabled());
@@ -1786,6 +1934,7 @@ public class SettingsBackupTest {
             shadowOf(activity).receiveResult(tap(activity, page, EXPORT_ROW).intent, Activity.RESULT_OK,
                     new Intent().setData(uri));
             ShadowLooper.idleMainLooper();
+            awaitHeldOpen();
             waitOut();
             assertEquals(EXPORT_TIMEOUT, ShadowToast.getTextOfLatestToast());
             assertEquals(1, SettingsFileProvider.cancels.get());
@@ -1800,6 +1949,7 @@ public class SettingsBackupTest {
                 shadowOf(activity).receiveResult(tap(activity, page, EXPORT_ROW).intent, Activity.RESULT_OK,
                         new Intent().setData(uri));
                 ShadowLooper.idleMainLooper();
+                awaitHeldOpen();
                 waitOut();
                 assertEquals(EXPORT_TIMEOUT, ShadowToast.getTextOfLatestToast());
                 ShadowToast.reset();
@@ -1816,6 +1966,36 @@ public class SettingsBackupTest {
 
             SettingsFileProvider.stall = null;
             export(activity, page, uri);
+            assertEquals("Settings exported.", ShadowToast.getTextOfLatestToast());
+        }
+    }
+
+    /**
+     * A test that stops while the app still holds its file, as a failed assertion does, leaves the
+     * next test nothing busy. The cleanup lets the open go, so the run ends and gives the rows back
+     * the way it does in the app. A held open used to outlast the cleanup's wait for background
+     * work, which skipped the rest of the cleanup and kept the rows claimed for every later test.
+     */
+    @Test
+    public void aTestThatStopsWhileTheAppHoldsItsFileLeavesTheNextOneFree() throws Exception {
+        SettingsFileProvider.stall = new CountDownLatch(1);
+        Uri held = SettingsFileProvider.put(AUTHORITY, "held.json", SettingsBackup.create().getBytes(StandardCharsets.UTF_8));
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            HushfacebookPreferenceFragment page = SettingsL10nTest.pageOf(SettingsL10nTest.show(activity));
+            shadowOf(activity).receiveResult(tap(activity, page, IMPORT_ROW).intent, Activity.RESULT_OK,
+                    new Intent().setData(held));
+            assertFalse(page.findPreference(EXPORT_ROW).isEnabled());
+            awaitHeldOpen();
+        }
+        // What runs after a failed test and before the next one.
+        restore();
+        startClean();
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            HushfacebookPreferenceFragment page = SettingsL10nTest.pageOf(SettingsL10nTest.show(activity));
+            assertTrue("the next test started with the rows busy", page.findPreference(EXPORT_ROW).isEnabled());
+            export(activity, page, SettingsFileProvider.put(AUTHORITY, "next.json", new byte[0]));
             assertEquals("Settings exported.", ShadowToast.getTextOfLatestToast());
         }
     }
@@ -1844,6 +2024,15 @@ public class SettingsBackupTest {
     /** Lets the screen's wait for the file's app run out. */
     private static void waitOut() {
         ShadowLooper.idleMainLooper(SettingsBackupPreference.timeoutMs, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Waits until the app holds the open with its cancel listener in place, as it has long before
+     * 30 seconds run out on a phone. waitOut moves only the main thread's clock, so without this the
+     * worker may not have reached the app when the cancel goes out, and the app never counts it.
+     */
+    private static void awaitHeldOpen() throws InterruptedException {
+        assertTrue("the app never got the open", SettingsFileProvider.holding.tryAcquire(5, TimeUnit.SECONDS));
     }
 
     /** Answers a picker with a file holding [text], and waits for what that sets off. */

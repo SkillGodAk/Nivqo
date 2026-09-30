@@ -24,6 +24,9 @@ public class SetupSummaryTest {
     @Before public void reset() {
         Settings.initialize(RuntimeEnvironment.getApplication());
         Settings.preferences.edit().clear().commit();
+        Settings.hookErrors.clear();
+        Settings.activeAt.clear();
+        CrashGuard.resetForTests();
         RuntimeEnvironment.getApplication().getSystemService(ClipboardManager.class).clearPrimaryClip();
     }
 
@@ -60,10 +63,11 @@ public class SetupSummaryTest {
             assertTrue(text.contains("\nHost package: " + activity.getPackageName() + "\n"));
             assertTrue(text.contains("\nHost version: 580.0.0.49.91\n"));
             assertTrue(text.contains("\nHost version code: " + ((7L << 32) | 346013387L) + "\n"));
-            assertTrue(text.contains("\nAndroid API: " + Build.VERSION.SDK_INT + "\nPaused: false\n"));
-            assertTrue(text.contains("people: installed=true, selected=true, active=true\n"));
-            assertTrue(text.contains("stories: installed=false, selected=true, active=false\n"));
-            assertEquals(27, text.split("\n").length);
+            assertTrue(text.contains("\nAndroid API: " + Build.VERSION.SDK_INT + "\nPaused: false\nSafe mode: false\n"));
+            assertTrue(text.contains("people: installed=true, selected=true, active=true,"));
+            assertTrue(text.contains("stories: installed=false, selected=true, active=false,"));
+            assertTrue(text.matches("(?s).*\nFacebook caller checks: trusted=\\d+, signer_differs=\\d+, meta_signed_build=\\d+, not_family=\\d+, error=\\d+\n"));
+            assertEquals(34, text.split("\n").length);
             assertFalse(text.contains("private-"));
             assertFalse(text.contains("account-secret"));
             assertFalse(text.contains("account_id"));
@@ -84,9 +88,155 @@ public class SetupSummaryTest {
             root.findViewWithTag("tab_app").performClick();
             root.findViewWithTag("copy_setup").performClick();
             String text = screen.get().getSystemService(ClipboardManager.class).getPrimaryClip().getItemAt(0).getText().toString();
-            assertTrue(text.contains("stories: installed=false, selected=true, active=false\n"));
+            assertTrue(text.contains("stories: installed=false, selected=true, active=false,"));
             assertFalse(text.contains("installed=true"));
             assertFalse(text.contains("active=true"));
+        }
+    }
+
+    @Test public void quickAccessNamesTheMenuTabOnlyWhenTheRowWasPatchedIn() throws Exception {
+        for (boolean menuRow : new boolean[] {false, true}) {
+            if (menuRow) installedFeatures("people", "menu_row"); else installedFeatures("people");
+            try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+                View root = screen.get().getWindow().getDecorView();
+                root.findViewWithTag("tab_app").performClick();
+                String text = ((android.widget.TextView) root.findViewWithTag("access_help")).getText().toString();
+                assertEquals(menuRow, text.contains("Menu tab"));
+                assertTrue(text.contains("app drawer"));
+                assertTrue(text.contains("Patch controls"));
+            }
+        }
+    }
+
+    @Test public void usageLabelShowsOnlyForSwitchesThatAreOnAndSaysWhetherTheyWereUsed() throws Exception {
+        installedFeatures("people", "stories");
+        Settings.preferences.edit().putBoolean("people", true).putBoolean("stories", false).commit();
+        Settings.activeAt.clear();
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View root = screen.get().getWindow().getDecorView();
+            android.widget.TextView people = root.findViewWithTag("active_people");
+            android.widget.TextView stories = root.findViewWithTag("active_stories");
+            assertEquals(View.VISIBLE, people.getVisibility());
+            assertEquals("Nothing to change yet since restart", people.getText().toString());
+            // An off switch has nothing to report, and turning it on shows its label.
+            assertEquals(View.GONE, stories.getVisibility());
+            ((android.widget.Switch) root.findViewWithTag("stories")).setChecked(true);
+            assertEquals(View.VISIBLE, stories.getVisibility());
+            ((android.widget.Switch) root.findViewWithTag("stories")).setChecked(false);
+            assertEquals(View.GONE, stories.getVisibility());
+        }
+        assertTrue(Settings.enabled("people"));
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            android.widget.TextView people = screen.get().getWindow().getDecorView().findViewWithTag("active_people");
+            assertEquals("Used just now", people.getText().toString());
+        }
+    }
+
+    private String copiedSetup(View root) {
+        root.findViewWithTag("tab_app").performClick();
+        root.findViewWithTag("copy_setup").performClick();
+        return RuntimeEnvironment.getApplication().getSystemService(ClipboardManager.class).getPrimaryClip().getItemAt(0).getText().toString();
+    }
+
+    @Test public void aFailedHookShowsInCopySetupAndOnItsSwitchWithoutTheExceptionMessage() throws Exception {
+        installedFeatures("avatar_stickers", "people");
+        Settings.preferences.edit().putBoolean("avatar_stickers", true).putBoolean("people", true).commit();
+        assertTrue(Settings.enabled("people"));
+        // Messenger hands over a list that can't be changed, so removing the avatar tab throws.
+        Settings.removeAvatarTabs(java.util.Collections.unmodifiableList(new java.util.ArrayList<>(java.util.List.of("tab"))));
+        Settings.hookFailed("menu_row", "test", new IllegalStateException("private-chat-text"));
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View root = screen.get().getWindow().getDecorView();
+            assertEquals("Stopped with an error just now", ((android.widget.TextView) root.findViewWithTag("active_avatar_stickers")).getText().toString());
+            assertEquals("Used just now", ((android.widget.TextView) root.findViewWithTag("active_people")).getText().toString());
+            String text = copiedSetup(root);
+            String time = ", \\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ\n";
+            assertTrue(text, text.matches("(?s).*\nFacebook caller checks: [^\n]*\nHook errors:\n"
+                + "avatar_stickers: java\\.lang\\.UnsupportedOperationException at Settings\\.removeAvatarTabs:\\d+" + time
+                + "menu_row: java\\.lang\\.IllegalStateException at SetupSummaryTest\\.aFailedHookShowsInCopySetupAndOnItsSwitchWithoutTheExceptionMessage:\\d+" + time));
+            assertEquals(37, text.split("\n").length);
+            assertFalse(text.contains("private-"));
+            assertFalse(Settings.preferences.getAll().toString().contains("private-"));
+        }
+        // A later use of the switch replaces the error on its usage line.
+        Settings.activeAt.put("avatar_stickers", Settings.hookErrorAt("avatar_stickers") + 1);
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View root = screen.get().getWindow().getDecorView();
+            assertEquals("Used just now", ((android.widget.TextView) root.findViewWithTag("active_avatar_stickers")).getText().toString());
+        }
+    }
+
+    @Test public void aHookErrorOutlivesARestartAndARepeatDoesntRewriteIt() throws Exception {
+        installedFeatures("avatar_stickers");
+        Settings.preferences.edit().putBoolean("avatar_stickers", true).commit();
+        java.util.List<Object> locked = java.util.Collections.unmodifiableList(new java.util.ArrayList<>(java.util.List.of("tab")));
+        Settings.removeAvatarTabs(locked);
+        String saved = Settings.preferences.getString("hook_error_avatar_stickers", null);
+        assertNotNull(saved);
+        Thread.sleep(5);
+        Settings.removeAvatarTabs(locked);
+        assertNotEquals(saved, Settings.hookErrors.get("avatar_stickers"));
+        assertEquals(saved, Settings.preferences.getString("hook_error_avatar_stickers", null));
+        // After a restart nothing has run yet, so the saved failure is what the switch reports.
+        Settings.hookErrors.clear();
+        Settings.activeAt.clear();
+        Settings.initialize(RuntimeEnvironment.getApplication());
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View root = screen.get().getWindow().getDecorView();
+            assertTrue(((android.widget.TextView) root.findViewWithTag("active_avatar_stickers")).getText().toString().startsWith("Stopped with an error"));
+            assertTrue(copiedSetup(root).contains("\navatar_stickers: java.lang.UnsupportedOperationException at Settings.removeAvatarTabs:"));
+        }
+    }
+
+    @Test public void hidingTheDrawerIconDisablesOnlyTheLauncherAlias() throws Exception {
+        installedFeatures("people", "menu_row");
+        var app = RuntimeEnvironment.getApplication();
+        PackageManager packages = app.getPackageManager();
+        var alias = new android.content.ComponentName(app.getPackageName(), SettingsActivity.DRAWER_ALIAS);
+        var screenComponent = new android.content.ComponentName(app.getPackageName(), SettingsActivity.class.getName());
+        Shadows.shadowOf(packages).addActivityIfNotPresent(alias);
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View root = screen.get().getWindow().getDecorView();
+            root.findViewWithTag("tab_app").performClick();
+            android.widget.Switch hide = root.findViewWithTag("hide_drawer_icon");
+            assertFalse(hide.isChecked());
+            assertNotEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED, packages.getComponentEnabledSetting(alias));
+            hide.setChecked(true);
+            assertEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED, packages.getComponentEnabledSetting(alias));
+            assertNotEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED, packages.getComponentEnabledSetting(screenComponent));
+            assertTrue(Settings.preferences.getBoolean("hide_drawer_icon", false));
+            hide.setChecked(false);
+            assertNotEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED, packages.getComponentEnabledSetting(alias));
+        }
+        // A saved choice is applied again when settings open or Messenger starts.
+        Settings.preferences.edit().putBoolean("hide_drawer_icon", true).commit();
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            assertEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED, packages.getComponentEnabledSetting(alias));
+        }
+        Settings.preferences.edit().putBoolean("hide_drawer_icon", false).commit();
+        SettingsActivity.syncDrawerIcon(app);
+        assertNotEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED, packages.getComponentEnabledSetting(alias));
+    }
+
+    @Test public void withoutTheMenuRowTheDrawerIconCantBeHiddenAndComesBack() throws Exception {
+        installedFeatures("people");
+        var app = RuntimeEnvironment.getApplication();
+        PackageManager packages = app.getPackageManager();
+        var alias = new android.content.ComponentName(app.getPackageName(), SettingsActivity.DRAWER_ALIAS);
+        Shadows.shadowOf(packages).addActivityIfNotPresent(alias);
+        packages.setComponentEnabledSetting(alias, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+        Settings.initialize(app);
+        Settings.preferences.edit().putBoolean("hide_drawer_icon", true).commit();
+        try {
+            SettingsActivity.syncDrawerIcon(app);
+            assertNotEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED, packages.getComponentEnabledSetting(alias));
+            try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+                View root = screen.get().getWindow().getDecorView();
+                root.findViewWithTag("tab_app").performClick();
+                assertNull(root.findViewWithTag("hide_drawer_icon"));
+            }
+        } finally {
+            Settings.preferences.edit().putBoolean("hide_drawer_icon", false).commit();
         }
     }
 
@@ -99,15 +249,15 @@ public class SetupSummaryTest {
             root.findViewWithTag("tab_app").performClick();
             root.findViewWithTag("copy_setup").performClick();
             String paused = clipboard.getPrimaryClip().getItemAt(0).getText().toString();
-            assertTrue(paused.contains("\nPaused: true\n"));
-            assertTrue(paused.contains("bubbles: installed=true, selected=true, active=false\n"));
-            assertTrue(paused.contains("people: installed=true, selected=true, active=false\n"));
+            assertTrue(paused.contains("\nPaused: true\nSafe mode: false\n"));
+            assertTrue(paused.contains("bubbles: installed=true, selected=true, active=false,"));
+            assertTrue(paused.contains("people: installed=true, selected=true, active=false,"));
             assertFalse(paused.contains("active=true"));
             Settings.preferences.edit().putBoolean("paused", false).commit();
             root.findViewWithTag("copy_setup").performClick();
             String resumed = clipboard.getPrimaryClip().getItemAt(0).getText().toString();
-            assertTrue(resumed.contains("people: installed=true, selected=true, active=true\n"));
-            assertTrue(resumed.contains("bubbles: installed=true, selected=true, active=" + (Build.VERSION.SDK_INT >= 30) + "\n"));
+            assertTrue(resumed.contains("people: installed=true, selected=true, active=true,"));
+            assertTrue(resumed.contains("bubbles: installed=true, selected=true, active=" + (Build.VERSION.SDK_INT >= 30) + ","));
         }
     }
 }

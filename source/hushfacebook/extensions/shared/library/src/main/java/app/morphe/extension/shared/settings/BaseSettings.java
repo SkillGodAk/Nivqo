@@ -39,13 +39,11 @@ public class BaseSettings {
     public static final EnumSetting<AppLanguage> MORPHE_LANGUAGE = new EnumSetting<>("morphe_language", AppLanguage.DEFAULT, true, "morphe_language_user_dialog_message");
 
     /**
-     * Hushfacebook's own UI language. Unlike MORPHE_LANGUAGE this never changes Facebook itself;
-     * SYSTEM follows the phone, and FOLLOW_FACEBOOK lets L10n read Facebook's current application configuration.
-     * Kept out of settings backups so restoring another phone's file does not unexpectedly change
-     * the language of the settings screen.
+     * Nivqo/Hushfacebook UI language only. It does not change Facebook itself.
+     * SYSTEM follows Android, FOLLOW_FACEBOOK uses Facebook's app locale, and the other values force this UI.
      */
-    public static final EnumSetting<HushLanguage> HUSHFACEBOOK_LANGUAGE =
-            new EnumSetting<>("hushfacebook_language", HushLanguage.SYSTEM, true, false);
+    public static final StringSetting HUSHFACEBOOK_LANGUAGE =
+            new StringSetting("hushfacebook_language", "system", true, false);
 
     /**
      * Use the icons declared in the preferences created during patching. If no icons or styles are declared then this setting does nothing.

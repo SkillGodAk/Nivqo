@@ -23,13 +23,19 @@
     stub left unfilled, calling another class, or calling a class that isn't the only one
     answering its type name, Clean up Reels' hook deleted from Facebook's Follow check or put
     after a branch there, Use the phone's emoji's hooks deleted from Facebook's emoji typeface
-    provider and from its maker of emoji picture addresses, or put after a branch there, and the
-    GenAI reel stub left unfilled, filled with a call that stays in the extension, or calling
+    provider and from its maker of emoji picture addresses, or put after a branch there, Open
+    Messenger from the top bar's hooks deleted from the Messenger icon's tap and from its button
+    handler, or put after a branch there, Turn off double tap to like's hooks deleted from the reel
+    like helper's like and from the feed attachment's onDoubleTap, or put after a branch there, Keep
+    the reel speed's hook deleted from the Reels menu's speed toast, or put after a branch there, and
+    the GenAI reel stub left unfilled, filled with a call that stays in the extension, or calling
     Facebook's finder only after it has returned. Each start-call hook is also put first in a method
     holding part of what its rule picks by (the tray controller, onPause, another method naming both
     surfaces, a method holding the emoji provider's log tag alone, an instance method holding the
-    emoji pictures' base address), and one rule is given two methods to choose from; all six fail
-    naming the method the rule picks. The Follow hook is also put first in that other method as
+    emoji pictures' base address, a method of the tap's shape holding one entry point, a method of
+    another shape holding "long_press", a static method holding the like's trace, a static method
+    holding "translationY", an instance method holding the toast's selector name), and one rule is
+    given two methods to choose from; all eleven fail naming the method the rule picks. The Follow hook is also put first in that other method as
     well as in the check. A register out of range fails as its own finding:
     named by a helper added to a host class, as the upper half of a long read from the last
     register, as a long an extension method writes there, and in the feed guard. Each of the five
@@ -615,6 +621,31 @@ try {
             'https://www.facebook.com/images/mobileemoji: first in Lfixture/EmojiPictures;->makeUrl('))) `
         "The good build's emoji picture hook was not first in Facebook's maker of emoji picture addresses.`n$($good.Output -join "`n")"
     Assert-True (($good.Output -join "`n") -match [regex]::Escape(
+        ('MessengerIcon;->open(Landroid/content/Context;Z)Z in static (Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;*)V ' +
+            'holding entry_point_navbar_global_icon_ entry_point_navbar_global_icon_reels_tab: first in Lfixture/MessengerBar;->tap('))) `
+        "The good build's Messenger icon hook was not first in the icon's tap.`n$($good.Output -join "`n")"
+    Assert-True (($good.Output -join "`n") -match [regex]::Escape(
+        ('MessengerIcon;->open(Landroid/content/Context;Z)Z in static (Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;' +
+            'Ljava/lang/String;ZZ)V holding long_press: first in Lfixture/MessengerBar;->button('))) `
+        "The good build's Messenger icon hook was not first in the Messenger button handler.`n$($good.Output -join "`n")"
+    Assert-True (($good.Output -join "`n") -match [regex]::Escape(
+        ('DoubleTapLike;->holdBackLike(Ljava/lang/String;)Z in instance (Lcom/facebook/auth/usersession/FbUserSession;*)V ' +
+            'holding FbShortsMutationUtil.mutateViewerLikeReaction: first in Lfixture/ReelLikeHelper;->like('))) `
+        "The good build's double tap like hook was not first in the reel like helper's like.`n$($good.Output -join "`n")"
+    Assert-True (($good.Output -join "`n") -match [regex]::Escape(
+        ('DoubleTapLike;->holdBackTap()Z in instance (Landroid/view/MotionEvent;)Z holding translationY: ' +
+            'first in Lfixture/AttachmentTap;->onDoubleTap('))) `
+        "The good build's double tap hook was not first in the feed attachment's onDoubleTap.`n$($good.Output -join "`n")"
+    Assert-True (($good.Output -join "`n") -match [regex]::Escape(
+        ('ReelSpeed;->picked(F)V in static (Landroid/content/Context;F)V holding InlinePlaybackSpeedAttributeSelector: ' +
+            'first in Lfixture/SpeedToast;->show('))) `
+        "The good build's reel speed hook was not first in the Reels menu's speed toast.`n$($good.Output -join "`n")"
+    Assert-True (($good.Output -join "`n") -match [regex]::Escape(
+        ('ReelsTabDot;->clear(Ljava/lang/Object;)Z in static (Lcom/facebook/auth/usersession/FbUserSession;*' +
+            'Lcom/facebook/navigation/tabbar/state/model/TabTag;I)I holding ' +
+            'FbMainTabActivityJewelController.getTrackedCountWithLogging: first in Lfixture/JewelController;->count('))) `
+        "The good build's Reels tab dot hook was not first in the tab bar's jewel count.`n$($good.Output -join "`n")"
+    Assert-True (($good.Output -join "`n") -match [regex]::Escape(
         'GenAiReelFilter;->transparencyAttribution(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object; outside ' +
         'Lapp/morphe/extension/: calls Lfixture/Attributions;->A02(Lfixture/ReelModel;Ljava/lang/String;)Lfixture/Model; ' +
         'before its first return')) `
@@ -784,6 +815,18 @@ try {
         'bad-emoji-hook-late' = 'contract'
         'bad-emoji-pictures-hook-missing' = 'contract'
         'bad-emoji-pictures-hook-late' = 'contract'
+        'bad-messenger-tap-hook-missing' = 'contract'
+        'bad-messenger-tap-hook-late' = 'contract'
+        'bad-messenger-button-hook-missing' = 'contract'
+        'bad-messenger-button-hook-late' = 'contract'
+        'bad-double-tap-like-hook-missing' = 'contract'
+        'bad-double-tap-like-hook-late' = 'contract'
+        'bad-double-tap-tap-hook-missing' = 'contract'
+        'bad-double-tap-tap-hook-late' = 'contract'
+        'bad-reel-speed-hook-missing' = 'contract'
+        'bad-reel-speed-hook-late' = 'contract'
+        'bad-reels-tab-dot-hook-missing' = 'contract'
+        'bad-reels-tab-dot-hook-late' = 'contract'
         'bad-logo-hook-missing' = 'contract'
         'bad-logo-hook-other-call' = 'contract'
         'bad-logo-hook-other-view' = 'contract'
@@ -812,6 +855,12 @@ try {
         'bad-follow-hook-wrong-method' = 'contract'
         'bad-emoji-hook-wrong-method' = 'contract'
         'bad-emoji-pictures-hook-wrong-method' = 'contract'
+        'bad-messenger-tap-hook-wrong-method' = 'contract'
+        'bad-messenger-button-hook-wrong-method' = 'contract'
+        'bad-double-tap-like-hook-wrong-method' = 'contract'
+        'bad-double-tap-tap-hook-wrong-method' = 'contract'
+        'bad-reel-speed-hook-wrong-method' = 'contract'
+        'bad-reels-tab-dot-hook-wrong-method' = 'contract'
         'bad-follow-hook-also-elsewhere' = 'contract'
         'bad-register-added-helper' = 'register'
         'bad-register-wide-source' = 'register'
@@ -965,6 +1014,36 @@ try {
             'is not called in Lfixture/EmojiPictures;->makeUrl(Ljava/lang/String;Lfixture/EmojiSize;Ljava/lang/String;I)Ljava/lang/String;, ' +
             'the one method holding "https://www.facebook.com/images/mobileemoji" with the shape static (Ljava/lang/String;*)Ljava/lang/String;; ' +
             'the host methods that call it: Lfixture/EmojiPictures;->pictureAddress()Ljava/lang/String;'))
+        'bad-messenger-tap-hook-wrong-method' = @(('*contract: Lapp/morphe/extension/facebook/chats/MessengerIcon;->open(Landroid/content/Context;Z)Z ' +
+            'is not called in Lfixture/MessengerBar;->tap(Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;Z)V, ' +
+            'the one method holding "entry_point_navbar_global_icon_" and "entry_point_navbar_global_icon_reels_tab" with the shape ' +
+            'static (Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;*)V; the host methods that call it: ' +
+            '*Lfixture/MessengerBar;->tapEntry(Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;Z)V*'))
+        'bad-messenger-button-hook-wrong-method' = @(('*contract: Lapp/morphe/extension/facebook/chats/MessengerIcon;->open(Landroid/content/Context;Z)Z ' +
+            'is not called in Lfixture/MessengerBar;->button(Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;ZZ)V, ' +
+            'the one method holding "long_press" with the shape static (Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;' +
+            'Ljava/lang/String;ZZ)V; the host methods that call it: ' +
+            '*Lfixture/MessengerBar;->buttonLog(Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;Z)V*'))
+        'bad-double-tap-like-hook-wrong-method' = @(('*contract: Lapp/morphe/extension/facebook/reels/DoubleTapLike;->holdBackLike(Ljava/lang/String;)Z ' +
+            'is not called in Lfixture/ReelLikeHelper;->like(Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/Object;Ljava/lang/String;)V, ' +
+            'the one method holding "FbShortsMutationUtil.mutateViewerLikeReaction" with the shape instance ' +
+            '(Lcom/facebook/auth/usersession/FbUserSession;*)V; the host methods that call it: ' +
+            '*Lfixture/ReelLikeHelper;->likeStatic(Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/Object;Ljava/lang/String;)V*'))
+        'bad-double-tap-tap-hook-wrong-method' = @(('*contract: Lapp/morphe/extension/facebook/reels/DoubleTapLike;->holdBackTap()Z ' +
+            'is not called in Lfixture/AttachmentTap;->onDoubleTap(Landroid/view/MotionEvent;)Z, the one method holding "translationY" ' +
+            'with the shape instance (Landroid/view/MotionEvent;)Z; the host methods that call it: ' +
+            '*Lfixture/AttachmentTap;->animateHeart(Landroid/view/MotionEvent;)Z*'))
+        'bad-reel-speed-hook-wrong-method' = @(('*contract: Lapp/morphe/extension/facebook/media/ReelSpeed;->picked(F)V ' +
+            'is not called in Lfixture/SpeedToast;->show(Landroid/content/Context;F)V, the one method holding ' +
+            '"InlinePlaybackSpeedAttributeSelector" with the shape static (Landroid/content/Context;F)V; the host methods ' +
+            'that call it: *Lfixture/SpeedToast;->showOver(Landroid/content/Context;F)V*'))
+        'bad-reels-tab-dot-hook-wrong-method' = @(('*contract: Lapp/morphe/extension/facebook/navigation/ReelsTabDot;->clear(Ljava/lang/Object;)Z ' +
+            'is not called in Lfixture/JewelController;->count(Lcom/facebook/auth/usersession/FbUserSession;Lfixture/JewelController;' +
+            'Lcom/facebook/navigation/tabbar/state/model/TabTag;I)I, the one method holding ' +
+            '"FbMainTabActivityJewelController.getTrackedCountWithLogging" with the shape static ' +
+            '(Lcom/facebook/auth/usersession/FbUserSession;*Lcom/facebook/navigation/tabbar/state/model/TabTag;I)I; ' +
+            'the host methods that call it: *Lfixture/JewelController;->countOver(Lcom/facebook/auth/usersession/FbUserSession;' +
+            'Lfixture/JewelController;Lcom/facebook/navigation/tabbar/state/model/TabTag;I)I*'))
         'bad-follow-hook-also-elsewhere' = @(('*contract: Lapp/morphe/extension/facebook/reels/ReelDeclutter;->hideFollowButton()Z ' +
             'is called in Lfixture/FollowCheck;->offersFollowHere(Lcom/facebook/auth/usersession/FbUserSession;)Z as well as in ' +
             'Lfixture/FollowCheck;->offersFollow(Lcom/facebook/auth/usersession/FbUserSession;)Z, the one method holding ' +

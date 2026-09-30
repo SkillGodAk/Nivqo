@@ -39,11 +39,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import app.morphe.extension.facebook.ads.AffiliateLinks;
 import app.morphe.extension.facebook.ads.MarketplaceAdFilterForTests;
 import app.morphe.extension.facebook.ads.ProfileAdFilterForTests;
 import app.morphe.extension.facebook.ads.ReelsAdFilter;
 import app.morphe.extension.facebook.ads.SearchAdFilterForTests;
 import app.morphe.extension.facebook.chats.MessengerCardForTests;
+import app.morphe.extension.facebook.chats.MessengerIconForTests;
 import app.morphe.extension.facebook.download.MediaDownload;
 import app.morphe.extension.facebook.download.PlayerSourcesForTests;
 import app.morphe.extension.facebook.download.ReelDownload;
@@ -53,11 +55,14 @@ import app.morphe.extension.facebook.emoji.SystemEmoji;
 import app.morphe.extension.facebook.feed.FeedFilter;
 import app.morphe.extension.facebook.feed.ReturnRefresh;
 import app.morphe.extension.facebook.feed.FeedGuardForTests;
+import app.morphe.extension.facebook.feed.PostPrompts;
 import app.morphe.extension.facebook.feed.ProfileSuggestionsForTests;
 import app.morphe.extension.facebook.feed.TypedFeedUnit;
 import app.morphe.extension.facebook.font.OwnFont;
 import app.morphe.extension.facebook.comments.DefaultCommentOrderForTests;
 import app.morphe.extension.facebook.composer.TagSuggestionsForTests;
+import app.morphe.extension.facebook.media.QualityChoiceForTests;
+import app.morphe.extension.facebook.media.ReelSpeedForTests;
 import app.morphe.extension.facebook.media.ResumePlaybackForTests;
 import app.morphe.extension.facebook.media.TapToPlay;
 import app.morphe.extension.facebook.media.TapToPlayForTests;
@@ -65,12 +70,18 @@ import app.morphe.extension.facebook.menu.MenuSectionsForTests;
 import app.morphe.extension.facebook.misc.ExternalBrowser;
 import app.morphe.extension.facebook.misc.LinkCleaner;
 import app.morphe.extension.facebook.navigation.MarketplaceOnlyForTests;
+import app.morphe.extension.facebook.navigation.ReelsTabForTests;
 import app.morphe.extension.facebook.navigation.StartTabRouteForTests;
 import app.morphe.extension.facebook.notifications.NotificationKindsForTests;
+import app.morphe.extension.facebook.reels.DoubleTapLike;
+import app.morphe.extension.facebook.reels.ReelHold;
+import app.morphe.extension.facebook.reels.ReelHoldForTests;
 import app.morphe.extension.facebook.reels.ReelDeclutter;
+import app.morphe.extension.facebook.reels.ReelPrompts;
 import app.morphe.extension.facebook.reels.SeenStateSendForTests;
 import app.morphe.extension.facebook.search.MetaAiSearchForTests;
 import app.morphe.extension.facebook.stories.StoryAdvance;
+import app.morphe.extension.facebook.stories.StorySeen;
 import app.morphe.extension.facebook.stories.SuggestedStoriesForTests;
 import app.morphe.extension.facebook.updates.UpdatePrompts;
 import app.morphe.extension.shared.SettingsContextRule;
@@ -213,10 +224,22 @@ public class PausedHooksTest {
                 () -> FeedGuardForTests.hidesReels(Category.FB_SHORTS, new Object()),
                 () -> FeedGuardForTests.hidesShowcaseReels(Category.SHOWCASE, ShowcaseStoryType.SHOWCASE_SHORT_VIDEO),
                 FeedFilter::hidePreEofReels));
-        probes.put(PatchFamily.RETURN_REFRESH, Collections.singletonList(() -> {
-            ReturnRefresh.uiHidden();
-            return ReturnRefresh.skip();
-        }));
+        // The refresh controller's resume callback, the feed's warm-start check and the foreground
+        // auto-scroll, each the first check of a return, and the feed teardown while away.
+        probes.put(PatchFamily.RETURN_REFRESH, Arrays.asList(
+                () -> {
+                    ReturnRefresh.uiHidden();
+                    return ReturnRefresh.skip();
+                },
+                () -> {
+                    ReturnRefresh.uiHidden();
+                    return ReturnRefresh.holdWarmStart();
+                },
+                () -> {
+                    ReturnRefresh.uiHidden();
+                    return ReturnRefresh.holdAutoScroll();
+                },
+                ReturnRefresh::keepFeedWhileAway));
         // A story Facebook's own detection marked as made with AI, one only its creator labelled as AI,
         // and a reel whose GenAI attribution carries the detected flag, at both levels a page of reels
         // enters.
@@ -237,10 +260,14 @@ public class PausedHooksTest {
         probes.put(PatchFamily.POST_WORDS, Collections.singletonList(
                 () -> FeedGuardForTests.hidesByWords(Category.ORGANIC, new GraphQLStory(),
                         FeedGuardForTests.postText("Big SPOILER inside"))));
+        // A story with a bumper is answered as one without, so no strip is drawn and no room kept.
+        probes.put(PatchFamily.POST_PROMPTS, Collections.singletonList(() -> !PostPrompts.keep(true)));
         probes.put(PatchFamily.SPONSORED_STORIES, Collections.singletonList(FeedFilter::hideSponsoredStories));
         // A tray of a friend's bucket, a suggested one and one labelled SUGGESTED keeps only the friend's.
         probes.put(PatchFamily.SUGGESTED_STORIES, Collections.singletonList(SuggestedStoriesForTests::hidesSuggestions));
         probes.put(PatchFamily.STORY_AUTO_ADVANCE, Collections.singletonList(StoryAdvance::waitForTap));
+        // The story viewer's report of the stories you viewed goes out.
+        probes.put(PatchFamily.STORY_SEEN, Collections.singletonList(StorySeen::holdBack));
         probes.put(PatchFamily.SPONSORED_REELS, Arrays.asList(
                 () -> {
                     VideoAd ad = new VideoAd();
@@ -257,10 +284,18 @@ public class PausedHooksTest {
         // A timeline story with sponsored data isn't drawn on a profile.
         probes.put(PatchFamily.SPONSORED_PROFILE_POSTS,
                 Collections.singletonList(ProfileAdFilterForTests::hidesASponsoredStory));
-        // Marketplace's feed query asks to skip its ads, and an ads-only query isn't sent.
+        // Marketplace's feed query asks to skip its ads, an ads-only query isn't sent, and a search
+        // answer loses its ad.
         probes.put(PatchFamily.SPONSORED_MARKETPLACE, Arrays.asList(
                 MarketplaceAdFilterForTests::asksTheFeedToSkipAds,
-                MarketplaceAdFilterForTests::holdsBackAnAdsQuery));
+                MarketplaceAdFilterForTests::holdsBackAnAdsQuery,
+                MarketplaceAdFilterForTests::dropsASearchAd));
+        // A reel's product card is answered away, and so are a feed post's product footer and the
+        // comment sheet's floating card.
+        probes.put(PatchFamily.AFFILIATE_LINKS, Arrays.asList(
+                () -> !AffiliateLinks.keepReelCard(true),
+                () -> AffiliateLinks.keepFooter("footer") == null,
+                () -> AffiliateLinks.keepCommentCard(new Object()) == null));
         // A Remix chip under a reel, the Follow and Following buttons beside its author, and both
         // footer queries.
         probes.put(PatchFamily.REEL_DECLUTTER, Arrays.asList(
@@ -269,8 +304,33 @@ public class PausedHooksTest {
                 ReelDeclutter::hideFollowingButton,
                 ReelDeclutter::skipHotComment,
                 ReelDeclutter::skipSocialBubbles));
+        // A reel that would get the interest prompt is answered as one that doesn't.
+        probes.put(PatchFamily.REEL_PROMPTS, Collections.singletonList(() -> !ReelPrompts.keep(true)));
         // The Reels batcher's send of the reels you watched never reaches its executor.
         probes.put(PatchFamily.REEL_WATCH_HISTORY, Collections.singletonList(SeenStateSendForTests::heldBack));
+        // A double tap on a reel finds no handler and no heart, the reel like helper finds no key and
+        // sends no like from a double tap, and a feed attachment leaves its double tap unhandled.
+        probes.put(PatchFamily.DOUBLE_TAP_LIKE, Arrays.asList(
+                () -> DoubleTapLike.handler(new Object()) == null,
+                () -> DoubleTapLike.heart(new Object()) == null,
+                () -> DoubleTapLike.likeKey("reel") == null,
+                () -> DoubleTapLike.holdBackLike("DOUBLE_TAP"),
+                DoubleTapLike::holdBackTap));
+        // A long press on a reel goes to Facebook's speed-up wherever it lands, the reel gets its
+        // release listener, a hold speed of normal becomes 2x, the lift of a hold puts the speed back,
+        // and that lift's speed is the one the reel had before the hold.
+        probes.put(PatchFamily.REEL_HOLD, Arrays.asList(
+                () -> ReelHold.longPress(false),
+                () -> ReelHold.anywhere(false),
+                () -> ReelHold.speedUp(false),
+                () -> ReelHold.holdSpeed(1.0) != 1.0,
+                () -> {
+                    ReelHold.held();
+                    return ReelHold.release(false);
+                },
+                ReelHoldForTests::putsBackTheSpeedBeforeAHold));
+        // A speed picked on a reel is set on the next reel the viewer starts.
+        probes.put(PatchFamily.KEEP_REEL_SPEED, Collections.singletonList(ReelSpeedForTests::keepsAPickedSpeed));
         // A player's start with no tap before it is held, and Facebook's Autoplay setting reads Off.
         probes.put(PatchFamily.TAP_TO_PLAY, Arrays.asList(
                 () -> {
@@ -285,6 +345,8 @@ public class PausedHooksTest {
                 () -> TapToPlay.showReelPlayButton(false)));
         // A long video left at 5:00 is saved, and its next start seeks back there.
         probes.put(PatchFamily.RESUME_LONG_VIDEOS, Collections.singletonList(ResumePlaybackForTests::resumesALongVideo));
+        // A new video's first choice plays the chosen quality rather than Facebook's.
+        probes.put(PatchFamily.PLAYBACK_QUALITY, Collections.singletonList(QualityChoiceForTests::playsTheChosenQuality));
         // The repository's answer for one of Meta's families, a variable-font builder's, and React
         // Native's for a family Facebook registered there.
         probes.put(PatchFamily.SYSTEM_FONT, Arrays.asList(
@@ -330,6 +392,12 @@ public class PausedHooksTest {
         probes.put(PatchFamily.MARKETPLACE_ONLY, Arrays.asList(
                 MarketplaceOnlyForTests::hidesHome, MarketplaceOnlyForTests::quietsNotifications,
                 MarketplaceOnlyForTests::skipsFeedPrefetch));
+        // The tab bar builder is told to leave the Reels tab out.
+        // Facebook's push of its Reels launcher shortcut is held back too.
+        probes.put(PatchFamily.REELS_TAB, Arrays.asList(ReelsTabForTests::hidesTheTab,
+                ReelsTabForTests::dropsTheShortcut));
+        // The tab bar's count for the Reels tab reads none.
+        probes.put(PatchFamily.REELS_TAB_DOT, Collections.singletonList(ReelsTabForTests::clearsTheDot));
         // A request for a post's comments that names no order asks for the chosen one.
         probes.put(PatchFamily.DEFAULT_COMMENT_ORDER,
                 Collections.singletonList(DefaultCommentOrderForTests::asksForTheChosenOrder));
@@ -340,6 +408,8 @@ public class PausedHooksTest {
                 TagSuggestionsForTests::closesAListLeftOpen));
         // With Messenger installed, the card's show question answers no in Chats.
         probes.put(PatchFamily.MESSENGER_CARD, Collections.singletonList(MessengerCardForTests::hidesWithMessenger));
+        // With Messenger installed, a tap on the top bar's Messenger icon opens Messenger instead of Chats.
+        probes.put(PatchFamily.MESSENGER_ICON, Collections.singletonList(MessengerIconForTests::opensMessenger));
         // The Menu's Upgrades and Also from Meta groups build nothing, in the section Facebook
         // draws and in the one carrying what the server sends.
         probes.put(PatchFamily.MENU_PROMOTIONS, Arrays.asList(

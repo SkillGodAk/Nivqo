@@ -6,13 +6,16 @@
  */
 package app.morphe.patches.facebook.misc.extension
 
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.util.ControlFlow
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.RegisterLiveness
 import app.morphe.util.returnEarly
 import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import java.util.BitSet
@@ -29,11 +32,24 @@ internal const val SETTINGS_STATUS = "$EXTENSION_PACKAGE/settings/SettingsStatus
  * depend on the Facebook extension patch, which is what merges `SettingsStatus` into the APK.
  */
 internal fun BytecodePatchContext.enableStatus(name: String) {
-    val method = mutableClassDefBy(SETTINGS_STATUS).methods.singleOrNull {
-        it.name == name && it.returnType == "Z" && it.parameterTypes.isEmpty()
-    } ?: throw PatchException("SettingsStatus has no boolean method $name()")
+    val method = statusMethod(name)
     method.returnEarly(true)
 }
+
+/**
+ * Throws naming [name] unless `SettingsStatus` has a boolean method of that name, the same check
+ * [enableStatus] makes. A patch whose own find phase changes bytecode before it calls [enableStatus]
+ * should call this first, so a missing method refuses before anything is mutated rather than after,
+ * through [enableStatus], once the patch's own hooks are already in.
+ */
+internal fun BytecodePatchContext.requireStatusMethod(name: String) {
+    statusMethod(name)
+}
+
+private fun BytecodePatchContext.statusMethod(name: String): MutableMethod =
+    mutableClassDefBy(SETTINGS_STATUS).methods.singleOrNull {
+        it.name == name && it.returnType == "Z" && it.parameterTypes.isEmpty()
+    } ?: throw PatchException("SettingsStatus has no boolean method $name()")
 
 /** How many registers a parameter of this type takes: two for a long or a double. */
 private fun CharSequence.width(): Int = if (toString() == "J" || toString() == "D") 2 else 1
@@ -193,6 +209,56 @@ internal fun Method.requireFreeAt(
         throw PatchException(
             "$what: $definingClass->$name still reads ${live.joinToString { "v$it" }} after instruction $index, " +
                 "so the hook there can't borrow ${if (live.size == 1) "it" else "them"}",
+        )
+    }
+}
+
+/**
+ * Hands each answer the boolean method gives to [hook], a static (I)Z, and returns what the hook
+ * says instead. The answer's own register carries it there and back, so nothing is borrowed, and
+ * the call goes in at each return's control flow label, so every branch to a return runs it too.
+ *
+ * The hook takes an int because ART lets a boolean method return a register it types as int or
+ * byte (code such as `and-int/lit8 v0, v0, 0x1` before the return), and handing that register to a
+ * boolean parameter fails verification when the class loads. An int parameter takes all of them.
+ */
+internal fun MutableMethod.filterBooleanReturns(what: String, hook: String) {
+    if (returnType != "Z") throw PatchException("$what: $definingClass->$name answers $returnType, not a boolean")
+    if (!hook.endsWith("(I)Z")) throw PatchException("$what: $hook must take the answer as an int, (I)Z")
+    val returns = implementation!!.instructions.withIndex().filter { it.value.opcode == Opcode.RETURN }.map { it.index }
+    if (returns.isEmpty()) throw PatchException("$what: $definingClass->$name never returns")
+    for (index in returns.asReversed()) {
+        val answer = getInstruction<OneRegisterInstruction>(index).registerA
+        addInstructionsAtControlFlowLabel(
+            index,
+            """
+                invoke-static/range { v$answer .. v$answer }, $hook
+                move-result v$answer
+            """,
+        )
+    }
+}
+
+/**
+ * [filterBooleanReturns] for a method that answers an object: each answer goes to [hook], a static
+ * method taking and answering one object, and the method returns what the hook says instead. When
+ * the hook answers a wider type than the method, the answer is cast back to the method's own.
+ */
+internal fun MutableMethod.filterObjectReturns(what: String, hook: String) {
+    if (!returnType.startsWith("L") && !returnType.startsWith("[")) {
+        throw PatchException("$what: $definingClass->$name answers $returnType, not an object")
+    }
+    val returns = implementation!!.instructions.withIndex().filter { it.value.opcode == Opcode.RETURN_OBJECT }.map { it.index }
+    if (returns.isEmpty()) throw PatchException("$what: $definingClass->$name never returns")
+    val castBack = !hook.endsWith(")$returnType")
+    for (index in returns.asReversed()) {
+        val answer = getInstruction<OneRegisterInstruction>(index).registerA
+        addInstructionsAtControlFlowLabel(
+            index,
+            """
+                invoke-static/range { v$answer .. v$answer }, $hook
+                move-result-object v$answer
+            """ + if (castBack) "check-cast v$answer, $returnType\n" else "",
         )
     }
 }

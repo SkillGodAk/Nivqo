@@ -1,17 +1,96 @@
 # Changelog
 
+## Unreleased
+
+None of this is in a release yet. It'll ship together in the next one.
+
+### New
+
+- Messenger 580 builds `346013394` and `346013423` are supported now. They were the last two arm64 "nodpi" builds on APKMirror that the patch turned away, so all six of those work. All 27 patches apply to both in Morphe Desktop 1.17.0. Build `346013423` checks the Notifications tab's suggestions setting one step earlier than the others, so that check now finds its spot instead of counting on a fixed position.
+- The 14 Messenger 580 builds made for one screen density each are supported too: `346013355`, `346013356`, `346013357`, `346013358`, `346013359`, `346013372`, `346013374`, `346013375`, `346013391`, `346013427`, `346013441`, `346013443`, `346013444` and `346013445`. That covers all 21 arm64 variants APKMirror has for 580.0.0.49.91, so grabbing "the APK for my screen" no longer ends in "version code ... is not supported". All 27 patches apply to each of them in Morphe Desktop 1.17.0. Seven of them share one new set of internal names and two share another. The other five reuse ones the patch already had.
+- Adding a Messenger build now starts with running `scripts/CompatReport.java <apk> --save` (dexlib2 and Guava on the classpath). It records the build under `scripts/profiles/` and prints the Kotlin to paste. If a control doesn't resolve or any other check fails, it lists what failed and writes nothing. The install checker and the changed-APK check read those records, so each build is listed in one place, and a Gradle test fails if a record and the Kotlin tables disagree.
+- A switch whose code fails inside Messenger now says so. Its usage line reads "Stopped with an error" and how long ago, until the next time it works. **Copy setup** adds a line for each control that failed, with the error's type, the spot in HushMessenger's code where it happened and the time. The error's message is left out because it could quote a chat. The last failure is kept across restarts, so it's still there to copy after Messenger comes back up. The sticker keyboard, system emoji and Menu tab row are covered today. Before this, those failures only reached the system log.
+- Releases will now come with `SHA256SUMS.txt.sig`, an SSH signature over the checksum file, starting with the next one. The release key's fingerprint is `SHA256:Z+UfHy7IUbtgNRO/wHkIr68+u4I+SIKPY9avfx/VAPU` and its public key is committed as `scripts/release_signers`. The README shows how to check it with `ssh-keygen`, since Morphe Manager and Desktop don't. `check_release.py --verify-signature` checks it before a release goes out and fails if the checksum file was edited or signed by any other key. The source index still leaves `signature_download_url` empty, because no manager verifies it yet.
+- The settings screen can be translated now. A language is one table of text in the extension, and the screen follows Messenger's language when a table matches it, falling back to English otherwise. A test fails the build when a table leaves out any text, changes a `%s` or `%d`, or has a stray `%` that wouldn't format. If one slips through anyway, that line shows in English instead of closing the screen. The "Used 5m ago" units can be translated too. No translations ship yet, the English text is unchanged, and saved choices don't depend on the language. The README says how to add one.
+- A new **Send photos at original quality** switch sits with the other conversation controls. Even with HD on, Messenger re-encodes a photo on your phone before encrypting and sending it, so a 6.4 MB photo went out as about 1.8 MB. With the switch on, an HD JPEG goes out with its own image data instead. Its metadata stays behind, the same as with Messenger's copy: location, camera details, capture time, the embedded thumbnail and a motion photo's video clip. In a test between two accounts the received photo was byte for byte the file that was sent. A photo saved sideways with a rotation tag, the way many phones save portrait shots, keeps just that tag, so it still shows upright. Photos over 20 MB and videos still go through Messenger's compression, and a photo just over the limit still sends as Messenger's copy.
+- README's troubleshooting list covers Samsung's Auto Blocker and Google's Advanced Protection. Either one stops the patched Messenger from installing on a Galaxy phone, and the note gives the settings path to turn each off for the install and back on afterwards.
+
+### Changed and fixed
+
+- Settings open on installs made with Morphe Manager's Root Mount now (#12). Those installs leave Android with stock Messenger's list of screens, so **Patch controls**, **Restart Messenger** and the Menu tab row pointed at screens Android didn't know, and every switch stayed off because the list of patched controls was never read. Both shortcuts and the row now open settings inside one of Messenger's own screens, and the patched app carries its own list of controls. A normal install opens the same screens as before. There's no app drawer icon on a mount install, and Messenger's alternate app icons don't get the long-press shortcuts there, so use the Menu tab row with those. Safe mode still works when settings are the first thing you open. The patch checks both stock screens it uses and fails while patching if a build changes either of them.
+- Hide Meta AI now removes the Meta AI tab too (#13). Some accounts get it in the bottom bar between People and Notifications, and the switch used to leave it there. With the switch on, Messenger builds the bar without it, the same way it does for accounts that never get the tab, so the other tabs keep their places. It takes effect after **Restart Messenger**, and so does pausing.
+- Hide Facebook shortcuts now says that it also removes the "Also from Meta" section in the Menu tab (#14), with Muse, Subscriptions, Facebook Reels and whatever else Meta lists there. It already did that, header and all, but the description only mentioned toolbar, profile and sharing shortcuts, so you had no way to know.
+- The build now uses the Kotlin Gradle plugin 2.4.20 instead of 2.4.10, which had an unsafe deserialization flaw in its build cache (CVE-2026-53914). Bouncy Castle, which the build uses for signing, is now 1.86 everywhere. The 1.77 and 1.79 copies it replaces predate fixes for several published advisories. This only changes how the bundle is built. All 27 patches still apply in Morphe Desktop.
+- The update check now compares release numbers as numbers. It used to compare them as text, so a future 0.10.0 would have looked older than 0.9.0 and you'd have been told you were up to date. It also only offers a button for this project's own release pages, and it always closes its connection. Tests now cover a newer release, the same release, GitHub's rate limit, a reply with no version in it and a server that never answers.
+- Hide inbox ads now says what it's for. Meta stopped selling ads in the Messenger inbox on November 11, 2025 and in Messenger Stories on August 27, 2026, so there's nothing live for it to remove today. The switch works the same way and stays as a guard in case those ads come back.
+- `check_install.py` now finds Messenger data left behind by an uninstall that kept the data, which is what caused the "INSTALL_FAILED_VERSION_DOWNGRADE ... 2147483647" error in #9. It used to look only at installed apps, so it passed and the install failed anyway. A version code of 2147483647, installed or left behind, is now called out as another patch set's spoofed version, with a pointer to the README fix. A normal downgrade reads the same as before.
+- The settings screen now also makes room for a camera cutout when Android reports it apart from the status and navigation bars. On a Galaxy S22 with Android 16 it already kept clear of the camera in both landscape directions, and its layout there is unchanged.
+- The README now covers chat heads, photo quality and update prompts. None of these needed a patch. Chat heads still work on Android 16, but on Android 12 and newer they need Messenger's battery use set to Unrestricted. The gallery's HD switch already sends photos at full resolution. Play's in-app update prompt doesn't run on a patched Messenger.
+
+## 0.6.0 (2026-09-29)
+
+### New
+
+- A new **Hide app drawer icon** switch in the App tab removes the separate "HushMessenger settings" icon from your app list. Settings still open from the long-press **Patch controls** shortcut and the Menu tab row, and turning the switch off brings the icon back. The switch is only offered when the Menu tab row applied, so a launcher without app shortcuts can't leave you locked out, and Messenger restores the icon at startup if a later patch drops that row. Checked on the S25.
+- Support for build 346013370, the arm64 nodpi APK that Morphe Manager's download link gave two people who reported it. Before, patching stopped with "version code 346013370 is not supported". It's the same app with its internals under different names, so it has its own checked list, and all 27 patches apply to it. Hide avatar stickers finds that build's sticker keyboard too, which fills its tab list in a different way. Neither test phone can install it (both run newer builds), so it hasn't been tried on a phone yet.
+- Support for build 346013354, APKMirror's arm64 nodpi bundle of Messenger 580.0.0.49.91. It's the same app as the builds already supported, and all 27 patches apply to it. Before, patching stopped with "version code 346013354 is not supported".
+
+### Changed and fixed
+
+- The line under each switch no longer reads "Not active since restart", which looked like the switch was broken. It only appears while the switch is on, says "Nothing to change yet since restart" until Messenger reaches that screen or event, and then "Used ... ago".
+- A Facebook patched with the same key as Messenger, such as Hushfacebook, is no longer turned away when it asks Messenger for its shared message keys. Messenger used to refuse it because its certificate wasn't Meta's. Now, while that Facebook is the app calling Messenger and its current signing key is exactly the one Messenger carries, Messenger checks it the way it checks Meta's own Facebook, so Meta's rules still decide what it may read. Any other app, a Facebook signed with a different key, and a Messenger that still carries Meta's key all get the old answer. Copy setup counts each outcome. Tests cover each case, and on the test phone a Hushfacebook build's two reads of Messenger's shared message keys were both answered.
+- Allow screenshots now also covers Android 14 and newer, where Messenger learns about a screenshot from Android itself rather than by watching your photos, and the photo and media viewers that lock their window in a protected chat. Before, it only stopped the older screenshot check and the block on protected video. Its description no longer mentions vanish mode, which encrypted chats don't have. View-once media stays protected. Neither the notice nor the viewer lock turned on for the test account, so this is checked with tests and on all three supported builds rather than with a live notice.
+- The README explains how to get alerts from only the chats you choose, using Messenger's own chat settings and Android's per-conversation notifications. Stock Messenger already offers everything needed, so there's no new switch. The order matters: silence Chats first, then set the chats you want to Alert, because a chat only keeps its own setting once you change it. Checked on the S25 with a live message.
+- The App tab's Quick access card now mentions the HushMessenger row in Messenger's Menu tab, on builds that have it. The text stays whole at twice the normal text size in both themes.
+- Pass 247 local tests. All five supported APKs apply all 27 patches, and clean builds from two separate checkouts produce the same bundle.
+
+## 0.5.0 (2026-09-28)
+
+### New
+
+- Restore screens on re-signed builds, always on. Messenger checks its own signing certificate against Meta's, and a re-signed build used to fail that check quietly and open to a blank screen. The patch answers that one check with Meta's original certificate for Messenger itself. Every other app still gets the real answer. On the S25 a fully patched build now opens straight to the signed-in chat list.
+- A HushMessenger row in the Menu tab, always on. It sits right under Messenger's own Settings row and opens the HushMessenger settings screen, while Settings still opens Messenger's settings. Accounts that get Messenger's folder grid instead of the list use a separate path that no test account has shown yet.
+- Three privacy switches, all off by default: Allow screenshots, Hide read receipts and Keep unsent messages. A kept message shows "[unsent]" before its text and stays after a restart. Hide read receipts also works in end-to-end encrypted chats, which Messenger uses for most one-to-one chats. There, Messenger marks a chat read and sends the receipt in one step, so chats you open stay unread until you reply or turn the switch off. Keep unsent messages doesn't work in end-to-end encrypted chats: Messenger removes those messages below the part of the app HushMessenger can change.
+- Use system emoji, off by default. Emoji are drawn with your phone's own font instead of Messenger's. If the phone has no emoji font, Messenger's set stays.
+- Each switch shows when it last took effect since Messenger started, and Copy setup includes that. A switch that's on but never active usually means Messenger uses a different screen on your account.
+- Export and Import in the App tab copy your switch choices to and from the clipboard. Only known switches with on or off values are accepted. It helps after a reinstall with a different signing key wipes Messenger's data.
+- Crash-loop safe mode. If Messenger closes unexpectedly three times within a minute of starting, every switch turns off and your choices stay saved. The settings screen says why, and Resume turns them back on.
+- An update check in the App tab, off by default. When it's on, opening settings looks for a newer release on GitHub. Nothing is sent while it's off.
+- Support for the arm64 build 346013442 (213-240dpi) from APKPure. Build 346013445 is organized differently inside and isn't supported.
+- For developers, `scripts/CompatReport.java` checks a Messenger APK without changing it. It prints the package, version code, ABI and signer, then pass or fail for each of the 27 patches.
+
+### Changed and fixed
+
+- Hide avatar stickers now also removes the Avatar stickers tab from Messenger's newer sticker keyboard. Pausing brings it back.
+- Hide typing indicator now also works in end-to-end encrypted chats, which Messenger uses for most one-to-one chats. Before, the other person still saw "is typing" there. In a two-phone check the indicator stayed hidden with the switch on and came back while paused, and messages still went through.
+- Hide Meta AI also removes the "Ask Meta AI" button that appears in the search bar once you type, and turns off the AI agent behind search. People, messages and group results still show, and pausing brings the button back. The search field's "Ask Meta AI or search" hint doesn't change.
+- Other apps can no longer restart Messenger. Restart Messenger used to accept a request from any app on the phone, which could close Messenger at any moment, even during a call. The long-press shortcut and the App tab button still work.
+- The long-press shortcuts are found wherever a build keeps them, so build 346013442 gets them too.
+- The search field now reads back what you typed with a screen reader. The selected filter keeps a visible focus ring, and switches that can't work on your Android version look unavailable.
+- Quick toggles, including the theme switch, no longer stack up old messages. Pause now says "Changes paused" or "Changes resumed".
+- The selected filter in the light theme is filled like it is in the dark theme. On Android 10 and newer the search cursor uses the app's blue, and the restart screen and its system bars follow your theme. The header now lines up with the cards.
+- The title stays on one line at large text sizes on older Android versions, and very long pasted searches are trimmed.
+- In the right-to-left test language, headings and descriptions now line up on the right instead of running into their counts.
+- The README links the two APKMirror builds that work, since six look alike on that page. The Install beside Meta apps description no longer says signed builds don't open chats.
+- Checked Messenger at Android's largest font size (2x) on the S25. The chat list, chats, composer and HushMessenger settings all scale and stay usable, so there's no font patch. Long labels shorten with an ellipsis the way they do in stock Messenger.
+- Checked the README's "Add HushMessenger to Morphe Manager" link on a phone. It opens the morphe.software page, and its Open in Morphe button brings up Morphe Manager's Add source dialog with this repository filled in.
+- Building the same source now gives the same bundle from any checkout. The license files used to carry whichever line endings Git wrote, so a fresh clone couldn't reproduce the published checksum.
+- Release checks compare every README link to this project's own releases, and the permission failure check says when Morphe Desktop never started.
+- The README screenshots show this release's settings, with all 24 controls.
+- Pass 204 local tests. All three supported APKs apply all 27 patches, and clean builds from two separate checkouts produce the same bundle.
+
 ## 0.4.2 (2026-09-28)
 
 - Hide People You May Know now also clears the suggestions on Messenger's Notifications tab and the block after the last chat. It takes the same path as Messenger's own Hide option, even on accounts where Meta turns that option off from its servers, and it never changes Messenger's settings. Pausing HushMessenger or turning the switch off brings the suggestions back. Checked on the S25: the Notifications tab lost its suggestions, they returned while paused, and chats and notifications still showed. The end-of-list block and the server override didn't apply to that account, so they're covered by build checks only.
 - Pass 157 local tests. Both supported APKs apply all 21 patches, and two clean builds produce the same bundle.
-- Explain where to find the settings after patching: open Messenger settings and tap HushMessenger settings.
+- Explain where to find the settings after patching: long-press Messenger for Patch controls, or open HushMessenger settings from the app drawer.
 ## 0.4.1 (2026-09-27)
 
-- Open HushMessenger from Messenger settings; use Restart Messenger inside HushMessenger settings when needed. Remove standalone app-drawer and long-press entries.
+- Long-press Messenger for Patch controls or Restart Messenger. Keep the app-drawer settings entry and cover Messenger's alternate icons.
 - Add Quick access and a restart button at the top of the App tab. Explain when inbox changes need a restart.
 - Save pending choices before restarting the main process. A failed save leaves Messenger running and shows an error. Restarting doesn't clear app data.
 - Preserve Messenger's direct-share target, all original resource values and existing hook behavior. Rebuild both supported APKs with all 21 patches and verify their signatures.
-- Pass 153 local tests. Exercise the embedded settings flow and fresh-process restart in a temporary S25 test app, retain saved choices, and recapture both settings pages and themes. Remove the test app afterward.
+- Pass 153 local tests. Exercise the long-press menu and fresh-process restart in a temporary S25 test app, retain saved choices, and recapture both settings pages and themes. Remove the test app afterward.
 
 Update the already patched S25 in place with its matching Morphe key. Both real launcher actions and the settings restart button pass, the signed-in chat screen returns in a fresh process, and 19 enabled controls survive. S22 remains stock. Fresh-install sign-in and encrypted-history recovery still need testing.
 
@@ -70,7 +149,7 @@ Update the already patched S25 in place with its matching Morphe key. Both real 
 ## 0.1.0 (2026-09-27)
 
 - Add seven optional controls adapted from existing Messenger patches: stories and notes, inbox tabs, Facebook shortcuts, Meta AI buttons, external web links, typing signals and bubble eligibility. All switches start off.
-- Add embedded HushMessenger settings with saved switches, a pause control and a light theme. Inbox changes take effect after reopening Messenger.
+- Add a HushMessenger settings launcher entry with saved switches, a pause control and a light theme. Inbox changes take effect after reopening Messenger.
 - Check the complete hook set on both supported 580 APKs. Changed hooks stop patching rather than silently skipping a feature.
 - Verify the settings screen, light theme, pause and Messenger launch on an isolated S25 diagnostic copy. Stories, the Facebook toolbar shortcut and the Meta AI floating button passed before/after checks. The original-package startup failure remains unresolved.
 - Pass 20 patch, nine Android settings and 11 certificate tests. Both exact APKs patch and sign successfully.

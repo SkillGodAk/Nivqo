@@ -210,6 +210,29 @@ function Resolve-DesktopCli {
     return $found
 }
 
+function Select-FixtureBuild {
+    <#
+    .SYNOPSIS
+        The .apk and .apkm files in -Folder whose names hold -Version, with the one .apkm picked
+        when there are several.
+    .DESCRIPTION
+        A version can name its split bundle beside a single APK made from it, such as the
+        -minapi28.apk the emulator installs, and the bundle is the fixture the tests read. With more
+        than one bundle, or several APKs and no bundle, every match comes back, for the caller to
+        refuse with its own message.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Folder,
+        [Parameter(Mandatory = $true)][string]$Version
+    )
+
+    $matching = @(Get-ChildItem -LiteralPath $Folder -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Extension -in '.apk', '.apkm' -and $_.Name.Contains($Version) })
+    $bundles = @($matching | Where-Object { $_.Extension -eq '.apkm' })
+    if ($matching.Count -gt 1 -and $bundles.Count -eq 1) { return $bundles }
+    return $matching
+}
+
 function Get-BaseApk {
     <#
     .SYNOPSIS
@@ -404,9 +427,13 @@ function Find-MachineNames {
             Pattern = @((($serial -join '') + '[A-Z0-9]{8}'), ((& $wideLe $serial) + '(?:[A-Z0-9]\x00){8}'),
                 ((& $wideBe $serial) + '(?:\x00[A-Z0-9]){8}')) -join '|' }
     )
+    # The console reads UTF-8 while git runs, as Invoke-RepoGit explains, so a hit is reported as
+    # the file has it.
     $preference = $ErrorActionPreference
+    $encoding = [Console]::OutputEncoding
     try {
         $ErrorActionPreference = 'Continue'
+        [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
         foreach ($scan in $scans) {
             foreach ($batch in $batches) {
                 $arguments = @('-C', $Root, 'grep', '-n', '-a') + $scan.Flags + @('-e', $scan.Pattern) + @($batch) +
@@ -421,6 +448,7 @@ function Find-MachineNames {
             }
         }
     } finally {
+        [Console]::OutputEncoding = $encoding
         $ErrorActionPreference = $preference
         foreach ($name in $saved.Keys) { Set-Item -LiteralPath ('Env:\' + $name) -Value $saved[$name] }
     }
