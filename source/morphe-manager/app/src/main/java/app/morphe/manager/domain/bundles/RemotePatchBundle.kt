@@ -407,10 +407,16 @@ class JsonPatchBundle(
             // pre-release and the stable update would go unnoticed
             coroutineScope {
                 val devDeferred = async {
-                    runCatching { http.request<MorpheAsset> { url(switchBranchInUrl(endpoint, BRANCH_DEV)) }.getOrThrow() }.getOrNull()
+                    runCatching { http.request<MorpheAsset> {
+                        url(switchBranchInUrl(endpoint, BRANCH_DEV))
+                        header("Cache-Control", "no-cache")
+                    }.getOrThrow() }.getOrNull()
                 }
                 val stableDeferred = async {
-                    runCatching { http.request<MorpheAsset> { url(switchBranchInUrl(endpoint, BRANCH_STABLE)) }.getOrThrow() }.getOrNull()
+                    runCatching { http.request<MorpheAsset> {
+                        url(switchBranchInUrl(endpoint, BRANCH_STABLE))
+                        header("Cache-Control", "no-cache")
+                    }.getOrThrow() }.getOrNull()
                 }
                 val devAsset = devDeferred.await()
                 val stableAsset = stableDeferred.await()
@@ -423,7 +429,10 @@ class JsonPatchBundle(
                 }
             }
         } else {
-            http.request<MorpheAsset> { url(resolveBranchUrl(endpoint)) }.getOrThrow()
+            http.request<MorpheAsset> {
+                url(resolveBranchUrl(endpoint))
+                header("Cache-Control", "no-cache")
+            }.getOrThrow()
         }
 
         // If pageUrl is not set, try to infer it from the endpoint and add version tag
@@ -443,7 +452,10 @@ class JsonPatchBundle(
 
     private suspend fun resolveChangelogUrl(endpointUrl: String, api: MorpheAPI): String? {
         val explicit = runCatching {
-            http.request<MorpheAsset> { url(endpointUrl) }.getOrThrow().changelogUrl
+            http.request<MorpheAsset> {
+                url(endpointUrl)
+                header("Cache-Control", "no-cache")
+            }.getOrThrow().changelogUrl
         }.getOrNull()?.takeIf { it.isNotBlank() }
         return explicit ?: api.changelogUrlFromBundleEndpoint(endpointUrl)
     }

@@ -1301,7 +1301,14 @@ fun BundleIcon(
         color = animatedColor
     ) {
         when {
-            bundle.isDefault -> MorpheLauncherLogo(modifier = Modifier.fillMaxSize())
+            bundle.isDefault -> {
+                Icon(
+                    imageVector = Icons.Outlined.Source,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.bundleGlyph()
+                )
+            }
 
             hasBundleError -> {
                 Icon(
