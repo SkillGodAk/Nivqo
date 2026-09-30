@@ -15,7 +15,7 @@ import kotlin.time.Duration.Companion.minutes
 
 const val tag = "Morphe Manager"
 
-const val SOURCE_NAME = "Morphe Patches"
+const val SOURCE_NAME = "Morphe Patches（上游）"
 const val MANAGER_REPO_URL = "https://github.com/SkillGodAk/Nivqo"
 const val MANAGER_RELEASES_URL = "$MANAGER_REPO_URL/releases"
 const val NIVQO_ISSUES_URL = "$MANAGER_REPO_URL/issues"
