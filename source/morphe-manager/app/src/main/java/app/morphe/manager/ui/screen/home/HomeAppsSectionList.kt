@@ -44,7 +44,6 @@ internal fun LazyListScope.reorderableAppCards(
         ReorderableItem(reorderableState, key = item.id) { itemIsDragging ->
             DynamicAppCard(
                 item = item,
-                isLoading = false,
                 onAppClick = {
                     if (selectedPackages.isNotEmpty) {
                         selectedPackages.toggle(item.id)
@@ -171,7 +170,6 @@ internal fun LazyListScope.groupedAppCards(
                         (state.selectedGroupKey == null || state.selectedGroupKey == groupKey)
                 DynamicAppCard(
                     item = item,
-                    isLoading = state.isLoading,
                     onAppClick = {
                         if (state.isMultiSelectMode) {
                             state.toggleInGroup(item.id, groupKey)
@@ -235,7 +233,6 @@ internal fun LazyListScope.flatAppCards(
 
         DynamicAppCard(
             item = item,
-            isLoading = state.isLoading,
             onAppClick = {
                 if (state.isMultiSelectMode) {
                     // In multi-select mode taps toggle selection

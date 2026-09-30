@@ -41,9 +41,6 @@
     <string name="home_update_skipped_metered">已略過更新</string>
     <string name="home_update_skipped_metered_subtitle">已啟用行動數據</string>
     <string name="home_updating_sources">正在更新來源…</string>
-    <!-- Download progress across several bundles. "%1$d" and "%2$d" count the bundles, "%3$s" and
-         "%4$s" are the megabytes read and expected, "%5$d" is the percentage. -->
-    <string name="home_update_bundle_count_with_bytes">%1$d / %2$d  ·  %3$s / %4$s MB（%5$d%%）</string>
     <string name="home_update_success">更新來源完成</string>
     <string name="home_update_success_subtitle">來源已是最新狀態</string>
     <string name="home_sources_are_loading">正在載入來源，請稍候…</string>
@@ -141,14 +138,13 @@
     <string name="sources_management_report_issue">回報問題</string>
     <string name="sources_management_failed_to_open_url">無法開啟網址</string>
     <string name="sources_apps">應用程式</string>
-    <string name="sources_apps_title">來自 %1$s 的應用程式</string>
     <string name="sources_apps_description">輕觸應用程式可將其從此來源排除或重新加入，長按則可選取多個。當沒有來源提供它時，該應用程式就會從主畫面移除。</string>
     <string name="sources_apps_brought">由此來源提供</string>
     <string name="sources_apps_left_out">已從此來源排除</string>
     <string name="sources_apps_leave_out">排除</string>
     <string name="sources_apps_leave_out_done">已排除</string>
     <string name="sources_apps_bring_back">重新加入</string>
-    <string name="sources_management_prerelease_toggle">預先發布版修補程式</string>
+    <string name="sources_management_prerelease_toggle">預先發佈版修補程式</string>
     <string name="sources_management_prerelease_toggle_description">搶先取得新實驗性修補程式版本</string>
     <string name="sources_prerelease_warning_title">啟用預發佈修補程式？</string>
     <string name="sources_prerelease_warning_message">預發佈版本仍在開發中。修補程式可能失敗或導致應用程式損壞，功能也可能在未經警告的情況下變更</string>
@@ -174,21 +170,22 @@
     <string name="sources_dialog_rename">重新命名修補來源</string>
     <string name="sources_dialog_duplicate_name_error">已存在同名的修補程式來源</string>
     <string name="sources_dialog_missing_error">無法更新此修補來源</string>
-    <string name="sources_dialog_view_any_version">任何版本</string>
-    <string name="sources_dialog_view_any_package">任何套件</string>
     <string name="sources_dialog_add_source">新增修補程式來源</string>
-    <string name="sources_dialog_delete_confirm_message">確定要刪除來源「%s」？此操作無法復原</string>
+    <string name="sources_dialog_delete_confirm_body">此操作無法復原</string>
     <string name="sources_dialog_remote">遠端</string>
     <string name="sources_dialog_remote_url">來源 URL</string>
-    <string name="sources_dialog_remote_url_formats_title">範例：</string>
+    <string name="sources_dialog_remote_url_hint">一個存放庫或修補程式套件 .json 的連結。一次貼上多個即可全部新增。</string>
+    <string name="sources_dialog_paste_no_links">在剪貼簿上找不到任何連結</string>
     <string name="sources_dialog_local">本機</string>
-    <string name="sources_dialog_local_file">選取修補來源檔案</string>
+    <string name="sources_dialog_local_files">選取修補程式來源檔案</string>
+    <!-- Button under the files already picked, which opens the picker again -->
+    <string name="sources_dialog_local_add_more">新增更多檔案</string>
     <string name="sources_dialog_local_file_tap_hint">輕觸以瀏覽儲存空間</string>
-    <string name="sources_dialog_local_file_description">從儲存空間中選取 .mpp 修補來源檔案</string>
     <string name="sources_dialog_local_invalid_extension">檔案必須具有 .mpp 副檔名</string>
+    <!-- %s is the name of the local source that another version of the same bundle replaces -->
+    <string name="sources_dialog_local_updates">更新 %s</string>
     <string name="sources_dialog_url_valid">有效的存放庫或 JSON URL</string>
     <string name="sources_dialog_url_invalid">URL 必須指向 GitHub/GitLab 存放庫或 .json 檔案</string>
-    <string name="sources_dialog_local_change_file">變更檔案</string>
     <string name="sources_dialog_preinstalled">預先安裝</string>
     <string name="sources_dialog_community">社群修補程式</string>
     <string name="sources_dialog_choose_apps">選擇應用程式</string>
@@ -218,7 +215,8 @@
     <string name="home_apk_helper_download">使用輔助應用程式</string>
     <string name="home_apk_helper_title">使用輔助應用程式下載</string>
     <string name="home_apk_helper_description">Morphe 會要求下方的輔助應用程式下載原始 APK 並交回檔案</string>
-    <string name="home_apk_helper_continue">開啟輔助應用程式</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="home_apk_helper_continue">開啟小幫手</string>
     <string name="home_apk_helper_warning">僅在您信任此輔助應用程式時才繼續。Morphe 在修補之前會檢查其接收到的套件、版本和簽章</string>
     <string name="home_apk_helper_warning_unverified">僅在您信任此輔助應用程式時才繼續。Morphe 無法驗證此 APK 的簽章，因此無法偵測到已修改的檔案</string>
     <string name="home_apk_helper_no_result">輔助應用程式未傳回 APK</string>
@@ -240,7 +238,6 @@
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; 沒有支援 Android %2$s (API %3$s) 的版本。所有已宣告的版本都需要更高版本的 Android</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">下載原始 APK</string>
-    <string name="home_download_instructions_steps_title">步驟如下：</string>
     <string name="home_download_instructions_finding">正在尋找下載頁面…</string>
     <string name="home_download_instructions_step1">請選取下方的「%s」按鈕</string>
     <string name="home_download_instructions_step2_part1">請往下滑動網頁，然後點選</string>
@@ -283,7 +280,6 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_title">專家模式</string>
     <string name="expert_mode_search">搜尋修補程式</string>
-    <string name="expert_mode_proceed">繼續修補</string>
     <string name="expert_mode_disable_all">全部停用</string>
     <string name="expert_mode_disable_all_done">已停用所有修補程式</string>
     <string name="expert_mode_enable_all">全部啟用</string>
@@ -325,6 +321,7 @@
     <string name="morphe_experimental_app_version_dialog_message"><b>%s</b> 的此版本具有早期實驗性支援<br/><br/>🔧 由於針對此應用程式版本的修補程式仍在完善中，因此請預期會出現奇怪的應用程式行為或未知的錯誤</string>
     <string name="home_dialog_unsupported_version_dialog_title">不支援的版本</string>
     <string name="home_dialog_unsupported_version_dialog_description">此 APK 不是推薦的應用程式版本。繼續操作可能會導致應用程式無法正常運作</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_dialog_unsupported_version_dialog_proceed">仍要繼續</string>
     <string name="home_dialog_unsupported_version_compatible_versions">相容版本：</string>
     <string name="home_dialog_unsupported_version_unsupported_label">不支援</string>
@@ -360,12 +357,21 @@
     <string name="patch_option_slider_range_end">至</string>
     <string name="patch_option_list_duplicate">此值已存在</string>
     <string name="patch_option_list_empty">值不能為空</string>
-    <string name="patch_option_list_empty_state">尚未新增任何值</string>
     <string name="patch_option_required_missing">%s：填寫所有必要選項</string>
+    <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <string name="patch_option_changed">已變更</string>
+    <!-- Badge on a patch option that has to be filled in before patching -->
+    <string name="patch_option_required">必填</string>
+    <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
+    <string name="patch_option_recommended_size">建議：%1$s×%2$s</string>
     <!-- Adaptive Icon Creator -->
     <string name="adaptive_icon_create">建立自動調整圖示</string>
     <string name="adaptive_icon_select_image">選取影像</string>
     <string name="adaptive_icon_change_image">變更影像</string>
+    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
+    <string name="adaptive_icon_foreground">前景圖片</string>
+    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
+    <string name="adaptive_icon_launcher">啟動器圖示</string>
     <string name="adaptive_icon_background_color">背景顏色</string>
     <string name="adaptive_icon_reset_transform">重設位置與縮放比例</string>
     <string name="adaptive_icon_safe_zone_inner">安全區域（一律可見）</string>
@@ -417,16 +423,18 @@
     <string name="batch_patch_source_file">附加檔案</string>
     <string name="batch_patch_source_unavailable">無法準備 APK</string>
     <string name="batch_patch_force_version">仍要繼續</string>
-    <string name="batch_patch_force_version_done">已排隊處理，但為其他版本所做的修補程式可能會導致應用程式出現問題</string>
-    <string name="batch_patch_accept_signature_done">無論如何已排入佇列，此 APK 可能不是原始檔案</string>
+    <string name="batch_patch_force_version_done">已照樣排入佇列，應用程式可能無法正常運作</string>
+    <string name="batch_patch_accept_signature_done">已照樣排入佇列，APK 未經驗證</string>
     <string name="batch_patch_edit_patches">選擇修補程式</string>
     <string name="batch_patch_state_no_apk">沒有 APK</string>
     <string name="batch_patch_state_no_patches">沒有修補程式</string>
     <string name="batch_patch_policy_install">完成後安裝</string>
     <string name="batch_patch_policy_install_description">佇列完成後會立即安裝每個已修補的應用程式。關閉後保留 APK 以供日後使用</string>
-    <string name="batch_patch_start">開始修補</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_patch_start">開始</string>
     <string name="batch_patch_stop_title">停止批次修補？</string>
     <string name="batch_patch_stop_description">目前正在修補的應用程式以及所有排隊的應用程式將會取消</string>
+    <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_install_all">全選</string>
     <string name="batch_patch_install_failed">安裝失敗</string>
     <string name="batch_patch_in_progress">批次修補正在執行</string>
@@ -529,8 +537,8 @@
     <string name="patcher_success_subtitle">你的應用程式現已修補與安裝！</string>
     <string name="patcher_complete_title">修補完成！ ✨</string>
     <string name="patcher_failed_title">糟糕！發生錯誤</string>
-    <string name="patcher_failed_hint">輕觸 %s 以查看哪裡出了問題</string>
     <string name="patcher_failed_dialog_title">修補失敗</string>
+    <string name="patcher_error_details">錯誤詳細資料</string>
     <string name="patcher_unknown_error">發生未知錯誤</string>
     <string name="patcher_split_step_extracting">提取分割 APK</string>
     <string name="patcher_split_step_merging">合併 %s</string>
@@ -545,7 +553,6 @@
 解除安裝將永久刪除所有應用程式資料"</string>
     <string name="patcher_install_error_title">安裝錯誤</string>
     <string name="patcher_install_error_subtitle">嘗試解除安裝並重新安裝</string>
-    <string name="patcher_ready_to_install_subtitle">點擊下方的按鈕進行安裝</string>
     <string name="patcher_ready_to_mount_subtitle">點擊下方的按鈕進行掛載</string>
     <string name="patcher_patches_excluded_for_installer">未針對此安裝方法提供且已排除：%s</string>
     <string name="patcher_back_to_game_hint">點擊%1$s返回您的遊戲</string>
@@ -654,6 +661,8 @@
     <string name="mini_game_try_again">再試一次</string>
     <string name="mini_game_paused">已暫停</string>
     <string name="mini_game_resume">繼續</string>
+    <string name="mini_game_restart">重新開始</string>
+    <string name="mini_game_change">選擇其他遊戲</string>
     <string name="mini_game_2048_picker_subtitle">滑動方塊合併</string>
     <string name="mini_game_flappy_picker_subtitle">點擊穿過管道</string>
     <string name="mini_game_flappy_tap_to_start">點擊飛行</string>
@@ -673,6 +682,7 @@
     <string name="system">系統</string>
     <!-- Settings - Appearance Tab - Background animation -->
     <string name="settings_appearance_background">背景動畫</string>
+    <string name="settings_appearance_background_description">在應用程式畫面後方播放的動畫</string>
     <string name="settings_appearance_background_circles">圓圈</string>
     <string name="settings_appearance_background_rings">圓環</string>
     <string name="settings_appearance_background_mesh">網格</string>
@@ -701,6 +711,10 @@
     <string name="settings_appearance_accent_color">強調色</string>
     <string name="settings_appearance_pure_black">純黑</string>
     <string name="settings_appearance_pure_black_description">使用純黑背景</string>
+    <string name="settings_appearance_color_accents">應用程式與來源顏色</string>
+    <string name="settings_appearance_color_accents_description">使用每個應用程式和來源自己的顏色，而不是強調色。</string>
+    <string name="settings_appearance_outlines">輪廓線</string>
+    <string name="settings_appearance_outlines_description">在卡片、面板和按鈕周圍繪製細邊</string>
     <!-- Settings - Appearance Tab - Language Selector -->
     <string name="settings_appearance_language_and_display">語言與顯示</string>
     <string name="settings_appearance_app_language">應用程式語言</string>
@@ -740,6 +754,7 @@
     <string name="settings_appearance_app_card_colors_bundle_description">在此處使用每個應用程式自己的顏色，並自動調整陰影以適應</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">應用程式圖示</string>
+    <string name="settings_appearance_app_icon_selector_description">Morphe 在您的主畫面與應用程式抽屜中的外觀</string>
     <string name="settings_appearance_app_icon_default">預設</string>
     <string name="settings_appearance_app_icon_light_2">天空</string>
     <string name="settings_appearance_app_icon_light_3">日落</string>
@@ -748,11 +763,12 @@
     <string name="settings_appearance_app_icon_dark_3">靛藍</string>
     <string name="settings_appearance_app_icon_change_dialog_title">變更應用程式圖示？</string>
     <string name="settings_appearance_app_icon_change_dialog_message">變更為 <b>%s</b> 並重新啟動？</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">變更圖示</string>
     <!-- Settings - Advanced Tab - Updates Section -->
     <string name="settings_advanced_updates">更新</string>
     <string name="settings_advanced_patcher">修補程式</string>
-    <string name="settings_advanced_updates_manager_prereleases">預先發布版更新</string>
+    <string name="settings_advanced_updates_manager_prereleases">預先發佈版更新</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <string name="settings_advanced_updates_manager_prereleases_description">搶先取得新版 Morphe</string>
     <string name="settings_advanced_updates_prerelease_warning_title">啟用預發佈更新？</string>
@@ -1078,7 +1094,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_patched_apks_description">管理儲存的修補後應用程式檔案</string>
     <string name="settings_system_patched_apks_empty">尚未儲存已修補的 APK</string>
     <string name="settings_system_patched_apks_delete_title">刪除已修補的 APK？</string>
-    <string name="settings_system_patched_apks_delete_confirm">確定要為 &lt;b&gt;%s&lt;/b&gt; 刪除儲存的修補後 APK 嗎？</string>
     <string name="settings_system_patched_apks_deleted">已成功刪除已修補的 APK</string>
     <string name="settings_system_patched_apks_delete_all_title">刪除所有已修補的 APK？</string>
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
@@ -1087,7 +1102,7 @@ morphe_header_custom_dark.png
     <string name="settings_system_original_apks_empty">未儲存原始 APK</string>
     <string name="settings_system_original_apks_deleted">已成功刪除原始 APK</string>
     <string name="settings_system_original_apks_delete_title">要刪除原始 APK 嗎？</string>
-    <string name="settings_system_original_apks_delete_confirm">刪除 &lt;b&gt;%s&lt;/b&gt; 的原始 APK？若不提供新的 APK，您將無法重新修補</string>
+    <string name="settings_system_original_apks_delete_notice">如果沒有提供新的 APK，您將無法重新修補。</string>
     <string name="settings_system_original_apks_delete_all_title">刪除所有原始 APK？</string>
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
     <string name="settings_system_patch_selections_title">修補選擇</string>
@@ -1108,7 +1123,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_import_source_data_fail">無法匯入來源資料</string>
     <string name="settings_system_import_source_data_success">來源資料匯入成功</string>
     <string name="settings_system_selected_patches_section">已選取的修補程式</string>
-    <string name="settings_system_patch_options_section">修補選項</string>
     <string name="settings_system_no_patches_or_options">未儲存任何修補程式或選項</string>
     <!-- Copy selection from another bundle -->
     <string name="copy_selection_title">從…複製選取項目</string>
@@ -1127,7 +1141,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_apk_download_helper_installed_by">由 %s 安裝</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">安裝者未知</string>
     <!-- File Picker -->
-    <string name="file_picker_previous_directory">上一目錄</string>
     <string name="file_picker_no_files">這裡沒有檔案</string>
     <string name="file_picker_read_error">無法讀取此目錄</string>
     <string name="file_picker_internal_storage">內部儲存空間</string>
@@ -1158,11 +1171,9 @@ morphe_header_custom_dark.png
     <string name="easter_egg_pill_red_toast_again">回到雨中</string>
     <string name="easter_egg_pill_blue_toast_again">已拔除。回去的路一直在原處。</string>
     <!-- Shared strings -->
-    <!-- Download progress of a bundle or of the manager itself. "%1$s" and "%2$s" are the
-         megabytes read and expected, "%3$s" is the percentage; the doubled "%%" after it is
-         how a literal percent sign is written here. -->
-    <string name="download_progress">%1$s MB / %2$s MB（%3$s%%）</string>
     <string name="select_file">選擇檔案</string>
+    <string name="select_files">選取檔案</string>
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="select_folder">選取資料夾</string>
     <string name="patches">修補</string>
     <string name="home">首頁</string>
@@ -1189,6 +1200,7 @@ morphe_header_custom_dark.png
     <string name="done">完成</string>
     <string name="skip">跳過</string>
     <string name="clear">清除</string>
+    <string name="paste">貼上</string>
     <string name="delete">刪除</string>
     <string name="delete_all">全部刪除</string>
     <string name="remove">刪除</string>
@@ -1198,7 +1210,6 @@ morphe_header_custom_dark.png
     <string name="disable">停用</string>
     <string name="enable">啟用</string>
     <string name="loading">載入中……</string>
-    <string name="loading_older_releases">正在載入較舊的版本…</string>
     <string name="creating">正在建立…</string>
     <string name="processing_apk">正在處理 APK…</string>
     <string name="exporting_apks">正在匯出 APK…</string>
@@ -1241,6 +1252,7 @@ morphe_header_custom_dark.png
     <string name="continue_">繼續</string>
     <string name="version">版本</string>
     <string name="clone">複製</string>
+    <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patch">修補</string>
     <string name="patching">修補中</string>
     <string name="patched">修補時間</string>
@@ -1280,18 +1292,41 @@ morphe_header_custom_dark.png
     <string name="changelog_description">此版本的新功能</string>
     <string name="changelog_download_fail">無法下載變更紀錄：%s</string>
     <string name="changelog_empty">沒有可用的變更紀錄</string>
-    <string name="changelog_show_older">顯示舊版本</string>
+    <string name="changelog_earlier_releases">先前版本</string>
     <string name="changelog_older_empty">尚無較舊版本可顯示</string>
+    <string name="changelog_older_failed">無法載入較舊版本</string>
+    <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="changelog_release_page">版本頁面</string>
+    <string name="content_translate">翻譯</string>
+    <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <string name="content_show_original">原始</string>
+    <string name="content_translation_failed">翻譯失敗：%s</string>
+    <string name="changelog_section_new">新增</string>
+    <string name="changelog_section_fixes">修正</string>
+    <string name="changelog_section_performance">效能</string>
+    <string name="changelog_section_improvements">改進</string>
+    <string name="changelog_section_app_support">應用程式支援</string>
+    <string name="changelog_section_other">變更</string>
+    <string name="changelog_badge_latest">最新</string>
+    <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <string name="changelog_badge_downloaded">已下載</string>
+    <string name="changelog_badge_prerelease">預先發佈</string>
+    <!-- "%s" is the number of changes in the section -->
+    <string name="changelog_show_all">顯示全部（%s）</string>
+    <string name="changelog_show_less">顯示較少</string>
     <string name="no_network_toast">沒有可用的網際網路連線</string>
     <string name="update_available">有可用的更新</string>
     <string name="ready_to_install_update">準備安裝更新</string>
     <string name="update_completed">更新已安裝</string>
     <string name="install_update_manager_failed">無法安裝更新</string>
     <string name="installing_manager_update">正在安裝更新……</string>
+    <string name="installing_manager_update_hint">Morphe 將關閉以完成更新</string>
     <string name="downloading_manager_update">正在下載更新……</string>
-    <!-- Shown while downloading, before the total size is known. "%1$s" is the megabytes so far. -->
+    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB 已下載</string>
-    <string name="manager_update_not_ready">此版本仍在發布中。請幾分鐘後再試</string>
+    <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
+    <string name="manager_update_progress_size">%1$s / %2$s MB</string>
+    <string name="manager_update_not_ready">此版本仍在發佈中。請幾分鐘後再試</string>
     <string name="update_download_missing">下載的更新已不再可用。請重新下載</string>
     <string name="download_manager_failed">無法下載更新：%s</string>
     <string name="failed_to_check_updates">無法檢查更新：%s</string>
@@ -1309,7 +1344,7 @@ morphe_header_custom_dark.png
     <string name="onboarding_settings_desc">自訂 Morphe：外觀、進階選項和系統工具</string>
     <string name="onboarding_sources_patches_desc">點擊以查看此來源提供的可用修補</string>
     <string name="onboarding_sources_version_desc">點擊版本以查看此來源的完整變更紀錄</string>
-    <string name="onboarding_sources_prerelease_desc">啟用此選項可從此來源接收預先發布版</string>
+    <string name="onboarding_sources_prerelease_desc">啟用此選項可從此來源接收預先發佈版</string>
     <string name="onboarding_appearance_tab_desc">自訂應用程式的外觀：主題、重點顏色和背景</string>
     <string name="onboarding_appearance_theme_desc">在淺色、深色或系統主題之間切換。您還可以選擇自訂重點顏色或啟用動態色彩</string>
     <string name="onboarding_expert_mode_desc">啟用專家模式以解鎖修補選擇、自訂選項和其他進階功能</string>
@@ -1322,6 +1357,7 @@ morphe_header_custom_dark.png
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">快速功能導覽</string>
     <string name="tour_prompt_desc">想要快速導覽 Morphe 的主要功能嗎？</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">帶我走一趟</string>
     <string name="onboarding_restart_title">功能導覽</string>
     <string name="onboarding_restart_desc">主要功能導覽</string>

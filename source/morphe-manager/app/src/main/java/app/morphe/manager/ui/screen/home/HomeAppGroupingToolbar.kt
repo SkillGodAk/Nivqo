@@ -6,7 +6,6 @@
 package app.morphe.manager.ui.screen.home
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Apps
@@ -22,7 +21,6 @@ import app.morphe.manager.R
 import app.morphe.manager.domain.manager.HomeAppCategoryViewMode
 import app.morphe.manager.ui.screen.shared.Defaults
 import app.morphe.manager.ui.screen.shared.GlassButton
-import app.morphe.manager.ui.screen.shared.GlassButtonDefaults
 
 /**
  * Segmented pill row for switching between [HomeAppCategoryViewMode]s from the home footer.
@@ -75,9 +73,6 @@ private fun RowScope.AppGroupingModeButton(
         label = label,
         selected = selected,
         modifier = if (selected) Modifier.weight(1f) else Modifier.width(48.dp),
-        containerColor = GlassButtonDefaults.containerColor(selected),
-        contentColor = GlassButtonDefaults.contentColor(selected),
-        border = BorderStroke(1.dp, GlassButtonDefaults.borderColor(selected)),
         pressScale = true,
         hapticFeedback = true
     )

@@ -12,6 +12,27 @@
         <item quantity="many">%s параметры патчей</item>
         <item quantity="other">%s параметры патчей</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s элемент</item>
+        <item quantity="few">%s элемента</item>
+        <item quantity="many">%s элементов</item>
+        <item quantity="other">%s элемента</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Выбрать %s файл</item>
+        <item quantity="few">Выбрать %s файла</item>
+        <item quantity="many">Выбрать %s файлов</item>
+        <item quantity="other">Выбрать %s файла</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Добавить %s источник</item>
+        <item quantity="few">Добавить %s источника</item>
+        <item quantity="many">Добавить %s источников</item>
+        <item quantity="other">Добавить %s источника</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Источники патчей для %s приложения</item>
         <item quantity="few">Источники патчей для %s приложений</item>
@@ -137,5 +158,29 @@
         <item quantity="few">%s ядра</item>
         <item quantity="many">%s ядер</item>
         <item quantity="other">%s ядра</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="one">%s новое</item>
+        <item quantity="few">%s новых</item>
+        <item quantity="many">%s новых</item>
+        <item quantity="other">%s новых</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s исправление</item>
+        <item quantity="few">%s исправления</item>
+        <item quantity="many">%s исправлений</item>
+        <item quantity="other">%s исправления</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s изменение</item>
+        <item quantity="few">%s изменения</item>
+        <item quantity="many">%s изменений</item>
+        <item quantity="other">%s изменения</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s новый релиз</item>
+        <item quantity="few">%s новых релиза</item>
+        <item quantity="many">%s новых релизов</item>
+        <item quantity="other">%s новых релиза</item>
     </plurals>
 </resources>

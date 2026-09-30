@@ -5,7 +5,6 @@
 
 package app.morphe.manager.ui.screen.home
 
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -21,9 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -33,10 +29,14 @@ import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.domain.manager.HomeAppCategoryState
 import app.morphe.manager.ui.model.HomeAppItem
+import app.morphe.manager.ui.screen.shared.CardBorder
 import app.morphe.manager.ui.screen.shared.GlassButtonDefaults
+import app.morphe.manager.ui.screen.shared.MorpheLauncherLogo
+import app.morphe.manager.ui.screen.shared.appAccentBorder
+import app.morphe.manager.ui.screen.shared.appAccentCardFill
 import app.morphe.manager.ui.viewmodel.HomeAppSourceGroup
 import app.morphe.manager.util.RemoteAvatar
-import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import app.morphe.manager.util.rememberSourceAccent
 
 internal const val SOURCE_CATEGORY_ID_PREFIX = "source_"
 
@@ -182,7 +182,7 @@ private fun List<HomeAppItem>.orderedByPackageOrder(packageOrder: List<String>):
  * on a non-tappable row.
  *
  * A non-null [color] replaces the frosted fill, for rows that belong to something already
- * carrying a color of its own.
+ * carrying a color of its own. [below] goes under the row inside the same card.
  */
 @Composable
 internal fun HomeGlassCategoryRow(
@@ -194,11 +194,13 @@ internal fun HomeGlassCategoryRow(
     count: String? = null,
     cornerRadius: Dp = 20.dp,
     color: Color? = null,
+    borderColor: Color? = null,
+    below: (@Composable () -> Unit)? = null,
     trailing: @Composable RowScope.() -> Unit = {}
 ) {
     val shape = RoundedCornerShape(cornerRadius)
     val containerColor = color ?: GlassButtonDefaults.containerColor()
-    val borderColor = GlassButtonDefaults.borderColor()
+    val borderColor = borderColor ?: GlassButtonDefaults.borderColor()
     val contentColor = MaterialTheme.colorScheme.onSurface
     val mutedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -219,40 +221,45 @@ internal fun HomeGlassCategoryRow(
         color = containerColor,
         contentColor = contentColor,
         shape = shape,
-        border = BorderStroke(1.dp, borderColor)
+        border = CardBorder.of(borderColor)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            leading?.invoke()
+        Column {
             Row(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-                if (count != null) {
+                leading?.invoke()
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Text(
-                        text = count,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = mutedContentColor,
-                        maxLines = 1
+                        text = title,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
+                    if (count != null) {
+                        Text(
+                            text = count,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = mutedContentColor,
+                            maxLines = 1
+                        )
+                    }
                 }
+                trailing()
             }
-            trailing()
+            if (below != null) {
+                Box(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) { below() }
+            }
         }
     }
 }
@@ -279,6 +286,8 @@ internal fun HomeCategoryHeader(
     // Surface pending updates on the header so collapsed groups still hint at work to do
     val hasPendingUpdate = group.items.any { it.showsRebuildBadge }
     val folderTint = if (hasPendingUpdate) MaterialTheme.colorScheme.primary else mutedContentColor
+    // A source's group takes on the color of its icon, as the source's own dialogs do
+    val sourceAccent = rememberSourceAccent(group.sourceIsDefault, group.sourceAvatarUrl, group.sourceFallbackAvatarUrl)
 
     HomeGlassCategoryRow(
         title = group.title,
@@ -311,6 +320,8 @@ internal fun HomeCategoryHeader(
                 )
             }
         },
+        color = appAccentCardFill(sourceAccent),
+        borderColor = sourceAccent?.let { appAccentBorder(it) },
         modifier = modifier
     )
 }
@@ -334,25 +345,7 @@ private fun SourceCategoryIcon(
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
     ) {
         when {
-            group.sourceIsDefault -> {
-                val context = LocalContext.current
-                Image(
-                    painter = rememberDrawablePainter(
-                        drawable = AppCompatResources.getDrawable(
-                            context,
-                            R.drawable.ic_launcher_foreground
-                        )
-                    ),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            scaleX = 1.5f
-                            scaleY = 1.5f
-                        }
-                )
-            }
+            group.sourceIsDefault -> MorpheLauncherLogo(modifier = Modifier.fillMaxSize())
 
             group.sourceAvatarUrl != null -> {
                 RemoteAvatar(

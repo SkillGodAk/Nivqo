@@ -18,6 +18,7 @@ import android.util.Log
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.core.content.pm.PackageInfoCompat
 import app.morphe.manager.domain.apk.ApkSignatureCache
+import app.morphe.patcher.apk.ApkUtils
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
@@ -231,19 +232,33 @@ class PM(
         val stamp = signatureCache.stamp(file) ?: return emptySet()
         signatureCache.get(stamp)?.let { return it }
 
-        return try {
-            val info = app.packageManager.getPackageArchiveInfo(file.absolutePath, signingFlags())
-                ?: return emptySet()
-            info.applicationInfo?.apply {
-                sourceDir = file.absolutePath
-                publicSourceDir = file.absolutePath
-            }
-            signatureHashes(info).also { signatureCache.putIfUnchanged(file, stamp, it) }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to read APK file signatures", e)
-            emptySet()
+        // Some builds report no signers for an archive they would install, so an empty answer is
+        // settled by verifying the archive itself rather than remembered as unsigned
+        val hashes = platformSignatureHashes(file).ifEmpty {
+            verifiedSignatureHashes(file) ?: return emptySet()
         }
+        signatureCache.putIfUnchanged(file, stamp, hashes)
+        return hashes
     }
+
+    /** Fingerprints the package manager reports for [file], empty where it reports none. */
+    private fun platformSignatureHashes(file: File): Set<String> = try {
+        app.packageManager.getPackageArchiveInfo(file.absolutePath, signingFlags())
+            ?.let(::signatureHashes)
+            .orEmpty()
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to read APK file signatures", e)
+        emptySet()
+    }
+
+    /**
+     * Fingerprints of [file] once it verifies as this device checks it on install. Empty for an
+     * archive that does not verify, and null for one that could not be read, which is not worth
+     * remembering.
+     */
+    private fun verifiedSignatureHashes(file: File): Set<String>? =
+        ApkUtils.verifiedSigningCertificates(file, Build.VERSION.SDK_INT)
+            ?.mapTo(mutableSetOf()) { it.encoded.sha256Fingerprint() }
 
     /**
      * Parsed [file] when it is the signed APK the record describes, or null otherwise.
@@ -302,13 +317,8 @@ class PM(
         }
     }
 
-    private fun Array<Signature>.toSha256Hashes(): Set<String> {
-        val digest = MessageDigest.getInstance("SHA-256")
-        return mapTo(mutableSetOf()) { sig ->
-            digest.reset()
-            digest.digest(sig.toByteArray()).joinToString("") { b -> "%02x".format(b) }
-        }
-    }
+    private fun Array<Signature>.toSha256Hashes(): Set<String> =
+        mapTo(mutableSetOf()) { it.toByteArray().sha256Fingerprint() }
 }
 
 /**
@@ -316,15 +326,21 @@ class PM(
  *
  * Apps without a real label fall back to their package or a launcher class, and only those are
  * worth reducing to a last segment. A brand that simply contains a dot must survive, so a dotted
- * label only qualifies with the shape of a package: no spaces, three or more segments, and a
- * lowercase top-level domain in front.
+ * label only qualifies with the shape of a package: no spaces, three or more segments that each
+ * start with a letter or underscore, and a lowercase top-level domain in front.
  */
 private fun looksLikeIdentifierLabel(label: String, packageName: String): Boolean {
     if (label.any(Char::isWhitespace)) return false
     if (packageName.isNotEmpty() && label.contains(packageName)) return true
-    if (label.count { it == '.' } < 2) return false
-    if (!label.all { it.isLetterOrDigit() || it == '.' || it == '_' }) return false
-    return label.substringBefore('.').none(Char::isUpperCase)
+    val segments = label.split('.')
+    if (segments.size < 3) return false
+    if (!segments.all(::isIdentifierSegment)) return false
+    return segments.first().none(Char::isUpperCase)
+}
+
+private fun isIdentifierSegment(segment: String): Boolean {
+    val first = segment.firstOrNull() ?: return false
+    return (first.isLetter() || first == '_') && segment.all { it.isLetterOrDigit() || it == '_' }
 }
 
 /**
@@ -364,6 +380,12 @@ internal fun matchesSavedApkRecord(
             archiveVersionName == trackedVersion &&
             isSigned()
 
+/** Lowercase hex of these bytes, the form every digest and fingerprint here is compared in. */
+private fun ByteArray.toHex(): String = joinToString("") { byte -> "%02x".format(byte) }
+
+/** SHA-256 fingerprint of an encoded certificate, alike from the platform, apksig or a keystore. */
+fun ByteArray.sha256Fingerprint(): String = MessageDigest.getInstance("SHA-256").digest(this).toHex()
+
 fun File.sha256OrNull(): String? = runCatching {
     if (!isFile) return@runCatching null
     val digest = MessageDigest.getInstance("SHA-256")
@@ -376,7 +398,7 @@ fun File.sha256OrNull(): String? = runCatching {
         }
     }
     if (Thread.currentThread().isInterrupted) return@runCatching null
-    digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+    digest.digest().toHex()
 }.getOrNull()
 
 /** Opens the system screen that lets the user grant the "install unknown apps" permission. */

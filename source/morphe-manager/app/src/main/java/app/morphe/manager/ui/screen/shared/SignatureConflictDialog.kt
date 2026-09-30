@@ -34,6 +34,7 @@ fun SignatureConflictDialog(
     AppDialog(
         onDismissRequest = onDismiss,
         title = title,
+        description = message,
         footer = {
             if (onIgnore == null) {
                 AppDialogButtonRow(
@@ -65,14 +66,6 @@ fun SignatureConflictDialog(
             }
         }
     ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            color = LocalDialogSecondaryTextColor.current,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-
         if (onIgnore != null) {
             Spacer(Modifier.height(Defaults.ContentPadding))
 

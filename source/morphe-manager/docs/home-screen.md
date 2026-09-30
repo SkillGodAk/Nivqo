@@ -5,6 +5,10 @@ reorder, group, hide, and act on several apps at once, so a long list stays your
 
 ## The app list
 
+<p align="center">
+  <img src="images/common/choose-app.jpg" width="320" alt="Home screen with the list of patchable apps" />
+</p>
+
 Each card shows an app, a version, and quick status. For an app you have patched that is the
 version of the patched build; for one you have not, it is the version sitting on your device,
 next to **Not patched yet**. An **Update** badge appears when newer patches exist or when the

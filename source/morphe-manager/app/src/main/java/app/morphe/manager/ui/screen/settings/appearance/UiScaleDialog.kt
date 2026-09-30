@@ -37,6 +37,7 @@ fun UiScaleDialog(
     AppDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.settings_appearance_ui_scale),
+        description = stringResource(R.string.settings_appearance_ui_scale_description),
         titleTrailingContent = {
             TitleAction(
                 icon = Icons.Outlined.Restore,

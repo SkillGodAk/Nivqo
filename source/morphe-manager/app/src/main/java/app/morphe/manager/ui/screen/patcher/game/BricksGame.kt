@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.ui.screen.shared.Defaults
+import app.morphe.manager.ui.theme.MorpheBrandTeal
 import kotlinx.coroutines.isActive
 import kotlin.math.abs
 import kotlin.math.cos
@@ -309,7 +310,7 @@ private fun BricksCanvas(state: BricksGameState, modifier: Modifier) {
 }
 
 private val BricksBg     = Color(0xFF101828)
-private val BricksPaddle = Color(0xFF00AFAE)
+private val BricksPaddle = MorpheBrandTeal
 private val BricksBall   = Color(0xFFF5F7FA)
 private val BricksLife   = Color(0xFF5CE8E7)
 

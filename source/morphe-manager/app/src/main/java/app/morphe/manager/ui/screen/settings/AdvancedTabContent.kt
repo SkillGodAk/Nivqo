@@ -72,6 +72,7 @@ fun AdvancedTabContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScrollFade(scrollState)
             .verticalScroll(scrollState)
             .animateContentSize()
             .padding(settingsTabPadding()),

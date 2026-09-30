@@ -10,6 +10,7 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class OriginalApkStagingTest {
@@ -40,6 +41,29 @@ class OriginalApkStagingTest {
         val unreadableSource = dir.resolve("missing.apk")
 
         assertFails { copyThroughStaging(unreadableSource, target) }
+
+        assertEquals("old archive", target.readText())
+        assertTrue(stagedCopies().isEmpty())
+    }
+
+    @Test
+    fun `a moved file replaces the archive and leaves nothing at its old path`() {
+        target.writeText("old archive")
+        val source = dir.resolve("merged.apk").apply { writeText("new archive") }
+
+        moveIntoPlace(source, target)
+
+        assertEquals("new archive", target.readText())
+        assertFalse(source.exists())
+        assertTrue(stagedCopies().isEmpty())
+    }
+
+    @Test
+    fun `a move that fails leaves the previous archive in place`() {
+        target.writeText("old archive")
+        val missingSource = dir.resolve("missing.apk")
+
+        assertFails { moveIntoPlace(missingSource, target) }
 
         assertEquals("old archive", target.readText())
         assertTrue(stagedCopies().isEmpty())

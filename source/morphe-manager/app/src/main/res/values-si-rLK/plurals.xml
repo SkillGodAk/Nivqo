@@ -8,6 +8,9 @@
         <item quantity="one">%s පැච් විකල්පය</item>
         <item quantity="other">%s පැච් විකල්ප</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <!-- Button that confirms the files checked in the file picker -->
+    <!-- Button that adds every source waiting in the add source dialog -->
     <plurals name="source_count">
         <item quantity="one">%s මූලාශ්‍රය</item>
         <item quantity="other">%s මූලාශ්‍ර</item>

@@ -12,6 +12,27 @@
         <item quantity="many">%s možností záplaty</item>
         <item quantity="other">%s možností záplaty</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s položka</item>
+        <item quantity="few">%s položky</item>
+        <item quantity="many">%s položky</item>
+        <item quantity="other">%s položek</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Vybrat %s soubor</item>
+        <item quantity="few">Vybrat %s soubory</item>
+        <item quantity="many">Vybrat %s souborů</item>
+        <item quantity="other">Vybrat %s souboru</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Přidat %s zdroj</item>
+        <item quantity="few">Přidat %s zdroje</item>
+        <item quantity="many">Přidat %s zdrojů</item>
+        <item quantity="other">Přidat %s zdroje</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Zdroje záplat pro %s aplikaci</item>
         <item quantity="few">Zdroje záplat pro %s aplikace</item>
@@ -137,5 +158,29 @@
         <item quantity="few">%s jádra</item>
         <item quantity="many">%s jader</item>
         <item quantity="other">%s jádra</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="one">%s novinka</item>
+        <item quantity="few">%s novinky</item>
+        <item quantity="many">%s novinek</item>
+        <item quantity="other">%s novinek</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s oprava</item>
+        <item quantity="few">%s opravy</item>
+        <item quantity="many">%s oprav</item>
+        <item quantity="other">%s oprav</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s změna</item>
+        <item quantity="few">%s změny</item>
+        <item quantity="many">%s změn</item>
+        <item quantity="other">%s změn</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s nová verze</item>
+        <item quantity="few">%s nové verze</item>
+        <item quantity="many">%s nových verzí</item>
+        <item quantity="other">%s nových verzí</item>
     </plurals>
 </resources>

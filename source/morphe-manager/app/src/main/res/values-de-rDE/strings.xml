@@ -32,7 +32,7 @@
     <string name="home_outdated_manager_title">Morphe ist veraltet</string>
     <string name="home_outdated_manager_subtitle">Einige Patch-Quellen benötigen eine neuere Version</string>
     <string name="home_held_back_title">Eine Patch-Quelle hat Morphe zum Absturz gebracht</string>
-    <string name="home_held_back_subtitle">Es wurde übersprungen, damit die App starten konnte. Zum Überprüfen tippen. \"test\" </string>
+    <string name="home_held_back_subtitle">Es wurde übersprungen, damit die App starten konnte. Zum Überprüfen tippen.</string>
     <string name="home_metered_skipped_title">Updates über mobile Daten wurden pausiert</string>
     <string name="home_metered_skipped_subtitle">Tippe, um Updates über mobile Daten zu erlauben</string>
     <string name="home_repatch_available_subtitle">Tippen, um alle in die Warteschlange zu stellen</string>
@@ -41,9 +41,6 @@
     <string name="home_update_skipped_metered">Updates übersprungen</string>
     <string name="home_update_skipped_metered_subtitle">Mobile Daten sind aktiv</string>
     <string name="home_updating_sources">Quellen werden aktualisiert…</string>
-    <!-- Download progress across several bundles. "%1$d" and "%2$d" count the bundles, "%3$s" and
-         "%4$s" are the megabytes read and expected, "%5$d" is the percentage. -->
-    <string name="home_update_bundle_count_with_bytes">%1$d / %2$d  ·  %3$s / %4$s MB (%5$d%%)</string>
     <string name="home_update_success">Aktualisierung der Quellen abgeschlossen</string>
     <string name="home_update_success_subtitle">Deine Quellen sind auf dem neuesten Stand</string>
     <string name="home_sources_are_loading"> Quellen werden geladen, bitte warten…</string>
@@ -141,7 +138,6 @@
     <string name="sources_management_report_issue">Problem melden</string>
     <string name="sources_management_failed_to_open_url">Fehler beim Öffnen der URL</string>
     <string name="sources_apps">Apps</string>
-    <string name="sources_apps_title">Apps von %1$s</string>
     <string name="sources_apps_description">Tippe auf eine App, um sie von dieser Quelle auszuschließen oder wieder aufzunehmen, oder halte sie gedrückt, um mehrere auszuwählen. Eine App wird vom Startbildschirm entfernt, sobald keine Quelle sie mehr bereitstellt.</string>
     <string name="sources_apps_brought">Von dieser Quelle bereitgestellt</string>
     <string name="sources_apps_left_out">Von dieser Quelle ausgeschlossen</string>
@@ -165,7 +161,7 @@
     <string name="sources_management_outdated_manager_badge">Morphe aktualisieren</string>
     <string name="sources_management_outdated_manager_hint">Diese Quelle ist für Patcher %1$s erstellt, aber Morphe %2$s enthält Patcher %3$s. Aktualisieren Sie Morphe, um diese zu verwenden.</string>
     <string name="sources_management_held_back_badge">Abgestürzt</string>
-    <string name="sources_management_held_back_hint">Diese Quelle hat Morphe beim Laden zum Absturz gebracht und wird daher übersprungen. Aktualisiere sie oder importiere sie erneut, um es noch einmal zu versuchen.    </string>
+    <string name="sources_management_held_back_hint">Diese Quelle hat Morphe beim Laden zum Absturz gebracht und wird daher übersprungen. Aktualisiere sie oder importiere sie erneut, um es noch einmal zu versuchen.</string>
     <string name="sources_management_source_enabled">Quelle aktiviert</string>
     <string name="sources_management_source_disabled">Quelle deaktiviert</string>
     <string name="sources_management_source_updating">Quellen werden aktualisiert</string>
@@ -174,21 +170,22 @@
     <string name="sources_dialog_rename">Patch-Quelle umbenennen</string>
     <string name="sources_dialog_duplicate_name_error">Eine Patch-Quelle mit diesem Namen existiert bereits</string>
     <string name="sources_dialog_missing_error">Fehler beim Aktualisieren dieser Patch-Quelle</string>
-    <string name="sources_dialog_view_any_version">Beliebige Version</string>
-    <string name="sources_dialog_view_any_package">Beliebiges Paket</string>
     <string name="sources_dialog_add_source">Patch-Quelle hinzufügen</string>
-    <string name="sources_dialog_delete_confirm_message">Quelle \"%s\" löschen? Dies kann nicht rückgängig gemacht werden</string>
+    <string name="sources_dialog_delete_confirm_body">Diese Aktion kann nicht rückgängig gemacht werden</string>
     <string name="sources_dialog_remote">Remote</string>
     <string name="sources_dialog_remote_url">URL der Quelle</string>
-    <string name="sources_dialog_remote_url_formats_title">Beispiele:</string>
+    <string name="sources_dialog_remote_url_hint">Ein Repository oder ein Link zu einem Patch-Bundle .json. Füge mehrere auf einmal ein, um alle hinzuzufügen.</string>
+    <string name="sources_dialog_paste_no_links">Keine Links in der Zwischenablage gefunden.</string>
     <string name="sources_dialog_local">Lokal</string>
-    <string name="sources_dialog_local_file">Wählen Sie die Patch-Quell-Datei aus</string>
+    <string name="sources_dialog_local_files">Patch-Quelldateien auswählen</string>
+    <!-- Button under the files already picked, which opens the picker again -->
+    <string name="sources_dialog_local_add_more">Weitere Dateien hinzufügen</string>
     <string name="sources_dialog_local_file_tap_hint">Tippen Sie, um den Speicher zu durchsuchen</string>
-    <string name="sources_dialog_local_file_description">Wählen Sie eine .mpp-Patch-Quell-Datei aus dem Speicher aus</string>
     <string name="sources_dialog_local_invalid_extension">Die Datei muss die Erweiterung .mpp haben</string>
+    <!-- %s is the name of the local source that another version of the same bundle replaces -->
+    <string name="sources_dialog_local_updates">Updates für %s</string>
     <string name="sources_dialog_url_valid">Gültige Repository- oder JSON-URL</string>
     <string name="sources_dialog_url_invalid">Die URL muss auf ein GitHub-/GitLab-Repository oder eine .json Datei verweisen</string>
-    <string name="sources_dialog_local_change_file">Datei ändern</string>
     <string name="sources_dialog_preinstalled">Vorinstalliert</string>
     <string name="sources_dialog_community">Community-Patches</string>
     <string name="sources_dialog_choose_apps">Apps auswählen</string>
@@ -217,7 +214,8 @@ Alles, was Sie von dieser Website hinzufügen, geschieht auf eigenes Risiko"</st
     <string name="home_apk_helper_download">Eine Hilfs-App verwenden</string>
     <string name="home_apk_helper_title">Mit einer Hilfs-App herunterladen</string>
     <string name="home_apk_helper_description">Morphe wird die untenstehende Hilfs-App bitten, die ursprüngliche APK herunterzuladen und die Datei zurückzugeben</string>
-    <string name="home_apk_helper_continue">Hilfs-App öffnen</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="home_apk_helper_continue">Hilfe öffnen</string>
     <string name="home_apk_helper_warning">Fahren Sie nur fort, wenn Sie dieser Hilfs-App vertrauen. Morphe überprüft das Paket, die Version und die Signatur der empfangenen Datei, bevor sie gepatcht wird</string>
     <string name="home_apk_helper_warning_unverified">Fahren Sie nur fort, wenn Sie dieser Hilfs-App vertrauen. Morphe kann die Signatur dieser APK nicht überprüfen, sodass eine geänderte Datei nicht erkannt würde</string>
     <string name="home_apk_helper_no_result">Die Hilfs-App hat keine APK zurückgegeben</string>
@@ -239,7 +237,6 @@ Alles, was Sie von dieser Website hinzufügen, geschieht auf eigenes Risiko"</st
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; hat keine unterstützten Versionen für Android %2$s (API %3$s). Alle deklarierten Versionen erfordern eine höhere Android-Version</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">Laden Sie die originale APK herunter </string>
-    <string name="home_download_instructions_steps_title">Anleitung:</string>
     <string name="home_download_instructions_finding">Suche nach der Download-Seite …</string>
     <string name="home_download_instructions_step1">Drücken Sie die Taste \'%s\' unten </string>
     <string name="home_download_instructions_step2_part1">Scrollen Sie auf der Webseite nach unten und drücken Sie </string>
@@ -282,7 +279,6 @@ Alles, was Sie von dieser Website hinzufügen, geschieht auf eigenes Risiko"</st
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_title">Experten-Modus</string>
     <string name="expert_mode_search">Suche nach Patches</string>
-    <string name="expert_mode_proceed">Fortfahren zum Patchen</string>
     <string name="expert_mode_disable_all">Deaktiviere alle</string>
     <string name="expert_mode_disable_all_done">Alle Patches deaktiviert</string>
     <string name="expert_mode_enable_all">Alle aktivieren</string>
@@ -324,6 +320,7 @@ Für optimale Ergebnisse empfiehlt diese App, eine &lt;b&gt;vollständige APK&lt
     <string name="morphe_experimental_app_version_dialog_message">Diese Version von &lt;b&gt;%s&lt;/b&gt; befindet sich in einer frühen Testphase mit experimentellen Funktionen&lt;br/&gt;&lt;br/&gt;🔧 Rechne mit ungewöhnlichem App-Verhalten oder unbekannten Fehlern, da die Patches für diese App-Version noch optimiert werden</string>
     <string name="home_dialog_unsupported_version_dialog_title">Nicht unterstützte Version</string>
     <string name="home_dialog_unsupported_version_dialog_description">Diese APK-Version wird nicht empfohlen. Fortfahren kann zu einer nicht funktionierenden App führen.</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_dialog_unsupported_version_dialog_proceed">Trotzdem fortfahren</string>
     <string name="home_dialog_unsupported_version_compatible_versions">Kompatible Versionen:</string>
     <string name="home_dialog_unsupported_version_unsupported_label">Nicht unterstützt</string>
@@ -359,12 +356,21 @@ Für optimale Ergebnisse empfiehlt diese App, eine &lt;b&gt;vollständige APK&lt
     <string name="patch_option_slider_range_end">Bis</string>
     <string name="patch_option_list_duplicate">Dieser Wert existiert bereits</string>
     <string name="patch_option_list_empty">Wert darf nicht leer sein</string>
-    <string name="patch_option_list_empty_state">Noch keine Werte hinzugefügt</string>
     <string name="patch_option_required_missing">%s: Alle Pflichtfelder ausfüllen</string>
+    <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <string name="patch_option_changed">Geändert</string>
+    <!-- Badge on a patch option that has to be filled in before patching -->
+    <string name="patch_option_required">Erforderlich</string>
+    <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
+    <string name="patch_option_recommended_size">Empfohlen: %1$s×%2$s</string>
     <!-- Adaptive Icon Creator -->
     <string name="adaptive_icon_create">Adaptives Icon erstellen</string>
     <string name="adaptive_icon_select_image">Bild auswählen</string>
     <string name="adaptive_icon_change_image">Bild ändern</string>
+    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
+    <string name="adaptive_icon_foreground">Vordergrundbild</string>
+    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
+    <string name="adaptive_icon_launcher">Startbildschirm-Symbol</string>
     <string name="adaptive_icon_background_color">Hintergrundfarbe</string>
     <string name="adaptive_icon_reset_transform">Position und Skalierung zurücksetzen</string>
     <string name="adaptive_icon_safe_zone_inner">Sicherheitszone (immer sichtbar)</string>
@@ -416,16 +422,18 @@ Für optimale Ergebnisse empfiehlt diese App, eine &lt;b&gt;vollständige APK&lt
     <string name="batch_patch_source_file">Angehängte Datei</string>
     <string name="batch_patch_source_unavailable">Die APK konnte nicht vorbereitet werden</string>
     <string name="batch_patch_force_version">Trotzdem fortfahren</string>
-    <string name="batch_patch_force_version_done">Warteschlange trotzdem aktiviert. Patches, die für andere Versionen erstellt wurden, können die App beschädigen.</string>
-    <string name="batch_patch_accept_signature_done">Trotzdem eingereiht, diese APK ist möglicherweise nicht die Originalversion.</string>
+    <string name="batch_patch_force_version_done">Trotzdem eingereiht, die App funktioniert möglicherweise nicht mehr</string>
+    <string name="batch_patch_accept_signature_done">Trotzdem eingereiht, APK nicht verifiziert</string>
     <string name="batch_patch_edit_patches">Patches auswählen</string>
     <string name="batch_patch_state_no_apk">Keine APK</string>
     <string name="batch_patch_state_no_patches">Keine Patches</string>
     <string name="batch_patch_policy_install">Beim Fertigstellen installieren</string>
     <string name="batch_patch_policy_install_description">Installiert jede gepatchte App direkt nach Abschluss der Warteschlange. Aus deaktiviert behält die APKs für später bei</string>
-    <string name="batch_patch_start">Mit dem Patchen beginnen</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_patch_start">Start</string>
     <string name="batch_patch_stop_title">Batch-Patchen anhalten?</string>
     <string name="batch_patch_stop_description">Die App, die gerade gepatcht wird, und alles, was noch in der Warteschlange steht, wird abgebrochen</string>
+    <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_install_all">Alle installieren</string>
     <string name="batch_patch_install_failed">Installation fehlgeschlagen</string>
     <string name="batch_patch_in_progress">Batch-Patchen ist bereits aktiv</string>
@@ -528,8 +536,8 @@ Für optimale Ergebnisse empfiehlt diese App, eine &lt;b&gt;vollständige APK&lt
     <string name="patcher_success_subtitle">Ihre App ist gepatcht und installiert!</string>
     <string name="patcher_complete_title">Patch-Vorgang abgeschlossen! ✨</string>
     <string name="patcher_failed_title">Hoppla! Da ist etwas schiefgelaufen</string>
-    <string name="patcher_failed_hint">Tippe auf %s, um zu sehen, was schiefgelaufen ist.</string>
     <string name="patcher_failed_dialog_title">Patch-Vorgang fehlgeschlagen</string>
+    <string name="patcher_error_details">Fehlerdetails</string>
     <string name="patcher_unknown_error">Ein unbekannter Fehler ist aufgetreten</string>
     <string name="patcher_split_step_extracting">Extrahiere Split-APKs</string>
     <string name="patcher_split_step_merging">%s wird zusammengeführt</string>
@@ -545,7 +553,6 @@ Für optimale Ergebnisse empfiehlt diese App, eine &lt;b&gt;vollständige APK&lt
 Durch die Deinstallation werden alle App-Daten dauerhaft gelöscht"</string>
     <string name="patcher_install_error_title">Fehler bei der Installation</string>
     <string name="patcher_install_error_subtitle">Versuche, die App zu entfernen und erneut zu installieren</string>
-    <string name="patcher_ready_to_install_subtitle">Drücke die Schaltfläche unten zum Installieren</string>
     <string name="patcher_ready_to_mount_subtitle">Drücke die Schaltfläche unten zum Mounten</string>
     <string name="patcher_patches_excluded_for_installer">Nicht verfügbar für diese Installationsmethode und ausgeschlossen: %s</string>
     <string name="patcher_back_to_game_hint">Tippe auf %1$s, um zu deinem Spiel zurückzukehren</string>
@@ -654,6 +661,8 @@ Durch die Deinstallation werden alle App-Daten dauerhaft gelöscht"</string>
     <string name="mini_game_try_again">Erneut versuchen</string>
     <string name="mini_game_paused">Pausiert</string>
     <string name="mini_game_resume">Weiter</string>
+    <string name="mini_game_restart">Neu starten</string>
+    <string name="mini_game_change">Ein anderes Spiel wählen</string>
     <string name="mini_game_2048_picker_subtitle">Schieben Sie die Kacheln, um sie zu verbinden</string>
     <string name="mini_game_flappy_picker_subtitle">Tippen, um durch Rohre zu fliegen</string>
     <string name="mini_game_flappy_tap_to_start">Tippen zum Fliegen</string>
@@ -673,6 +682,7 @@ Durch die Deinstallation werden alle App-Daten dauerhaft gelöscht"</string>
     <string name="system">System</string>
     <!-- Settings - Appearance Tab - Background animation -->
     <string name="settings_appearance_background">Hintergrundanimation</string>
+    <string name="settings_appearance_background_description">Die Animation, die hinter den Bildschirmen der App abgespielt wird.</string>
     <string name="settings_appearance_background_circles">Kreise</string>
     <string name="settings_appearance_background_rings">Ringe</string>
     <string name="settings_appearance_background_mesh">Netz</string>
@@ -701,6 +711,10 @@ Durch die Deinstallation werden alle App-Daten dauerhaft gelöscht"</string>
     <string name="settings_appearance_accent_color">Akzentfarbe</string>
     <string name="settings_appearance_pure_black">OLED-Optimierung</string>
     <string name="settings_appearance_pure_black_description">Verwendet echte schwarze Hintergründe</string>
+    <string name="settings_appearance_color_accents">App- und Quellenfarben</string>
+    <string name="settings_appearance_color_accents_description">Verwendet die eigene Farbe jeder App und Quelle anstelle der Akzentfarbe</string>
+    <string name="settings_appearance_outlines">Umrandungen</string>
+    <string name="settings_appearance_outlines_description">Zeichnet eine dünne Umrandung um Karten, Panels und Schaltflächen</string>
     <!-- Settings - Appearance Tab - Language Selector -->
     <string name="settings_appearance_language_and_display">Sprache &amp; Anzeige</string>
     <string name="settings_appearance_app_language">App-Sprache</string>
@@ -741,6 +755,7 @@ Durch die Deinstallation werden alle App-Daten dauerhaft gelöscht"</string>
     <string name="settings_appearance_app_card_colors_bundle_description">Hier wird die Farbe der jeweiligen App verwendet, die automatisch angepasst wird, um zu passen</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">App-Icon</string>
+    <string name="settings_appearance_app_icon_selector_description">Wie Morphe auf deinem Startbildschirm und in der App-Schublade aussieht.</string>
     <string name="settings_appearance_app_icon_default">Standard</string>
     <string name="settings_appearance_app_icon_light_2">Himmel</string>
     <string name="settings_appearance_app_icon_light_3">Sonne</string>
@@ -749,6 +764,7 @@ Durch die Deinstallation werden alle App-Daten dauerhaft gelöscht"</string>
     <string name="settings_appearance_app_icon_dark_3">Indigo</string>
     <string name="settings_appearance_app_icon_change_dialog_title">App-Icon ändern?</string>
     <string name="settings_appearance_app_icon_change_dialog_message">Zu &lt;b&gt;%s&lt;/b&gt; ändern und neu starten?</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">Icon ändern</string>
     <!-- Settings - Advanced Tab - Updates Section -->
     <string name="settings_advanced_updates">Updates</string>
@@ -1081,7 +1097,6 @@ Details: %2$s"</string>
     <string name="settings_system_patched_apks_description">Verwaltet gespeicherte gepatchte Anwendungsdateien</string>
     <string name="settings_system_patched_apks_empty">Bisher keine gepatchten APKs gespeichert</string>
     <string name="settings_system_patched_apks_delete_title">Gepatchte APK löschen?</string>
-    <string name="settings_system_patched_apks_delete_confirm">Sind Sie sicher, dass Sie die gespeicherte gepatchte APK für &lt;b&gt;%s&lt;/b&gt; löschen möchten?</string>
     <string name="settings_system_patched_apks_deleted">Gepatchte APK erfolgreich gelöscht</string>
     <string name="settings_system_patched_apks_delete_all_title">Alle gepatchten APKs löschen?</string>
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
@@ -1090,7 +1105,7 @@ Details: %2$s"</string>
     <string name="settings_system_original_apks_empty">Keine gespeicherten Original-APKs vorhanden</string>
     <string name="settings_system_original_apks_deleted">Originale APK erfolgreich gelöscht</string>
     <string name="settings_system_original_apks_delete_title">Originale APK löschen?</string>
-    <string name="settings_system_original_apks_delete_confirm">Originale APK für &lt;b&gt;%s&lt;/b&gt; löschen? Ohne eine neue APK ist ein erneutes Patchen nicht möglich.</string>
+    <string name="settings_system_original_apks_delete_notice">Ohne eine neue APK ist ein erneutes Patchen nicht möglich</string>
     <string name="settings_system_original_apks_delete_all_title">Alle Original-APKs löschen?</string>
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
     <string name="settings_system_patch_selections_title">Patchauswahlen</string>
@@ -1111,7 +1126,6 @@ Details: %2$s"</string>
     <string name="settings_system_import_source_data_fail">Import der Quelldaten fehlgeschlagen</string>
     <string name="settings_system_import_source_data_success">Quelldaten erfolgreich importiert</string>
     <string name="settings_system_selected_patches_section">Ausgewählte Patches</string>
-    <string name="settings_system_patch_options_section">Patch-Optionen</string>
     <string name="settings_system_no_patches_or_options">Keine Patches oder Optionen gespeichert</string>
     <!-- Copy selection from another bundle -->
     <string name="copy_selection_title">Auswahl von… kopieren</string>
@@ -1130,7 +1144,6 @@ Details: %2$s"</string>
     <string name="settings_system_apk_download_helper_installed_by">Installiert von %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Unbekannter Installateur</string>
     <!-- File Picker -->
-    <string name="file_picker_previous_directory">Vorheriges Verzeichnis</string>
     <string name="file_picker_no_files">Keine Dateien hier</string>
     <string name="file_picker_read_error">Kann dieses Verzeichnis nicht lesen</string>
     <string name="file_picker_internal_storage">Interner Speicher</string>
@@ -1161,11 +1174,9 @@ Details: %2$s"</string>
     <string name="easter_egg_pill_red_toast_again">Zurück im Regen</string>
     <string name="easter_egg_pill_blue_toast_again">Ausgesteckt. Der Weg zurück ist, wo er immer war.</string>
     <!-- Shared strings -->
-    <!-- Download progress of a bundle or of the manager itself. "%1$s" and "%2$s" are the
-         megabytes read and expected, "%3$s" is the percentage; the doubled "%%" after it is
-         how a literal percent sign is written here. -->
-    <string name="download_progress">%1$s MB / %2$s MB (%3$s%%)</string>
     <string name="select_file">Datei auswählen</string>
+    <string name="select_files">Dateien auswählen</string>
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="select_folder">Ordner auswählen</string>
     <string name="patches">Patches</string>
     <string name="home">Startseite</string>
@@ -1192,6 +1203,7 @@ Details: %2$s"</string>
     <string name="done">Fertig</string>
     <string name="skip">Überspringen</string>
     <string name="clear">Löschen</string>
+    <string name="paste">Einfügen</string>
     <string name="delete">Löschen</string>
     <string name="delete_all">Alle löschen</string>
     <string name="remove">Entfernen</string>
@@ -1201,7 +1213,6 @@ Details: %2$s"</string>
     <string name="disable">Deaktivieren</string>
     <string name="enable">Aktivieren</string>
     <string name="loading">Lädt…</string>
-    <string name="loading_older_releases">Lade ältere Versionen…</string>
     <string name="creating">Erstelle…</string>
     <string name="processing_apk">APK wird verarbeitet…</string>
     <string name="exporting_apks">APKs werden exportiert…</string>
@@ -1244,6 +1255,7 @@ Details: %2$s"</string>
     <string name="continue_">Weiter</string>
     <string name="version">Version</string>
     <string name="clone">Klonen</string>
+    <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patch">Patchen</string>
     <string name="patching">Patchen</string>
     <string name="patched">Gepatcht am</string>
@@ -1283,17 +1295,40 @@ Details: %2$s"</string>
     <string name="changelog_description">Was ist neu in dieser Version?</string>
     <string name="changelog_download_fail">Download des Changelogs fehlgeschlagen: %s</string>
     <string name="changelog_empty">Kein Changelog verfügbar</string>
-    <string name="changelog_show_older">Ältere Versionen anzeigen</string>
+    <string name="changelog_earlier_releases">Frühere Versionen</string>
     <string name="changelog_older_empty">Keine älteren Versionen zum Anzeigen</string>
+    <string name="changelog_older_failed">Ältere Versionen konnten nicht geladen werden</string>
+    <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="changelog_release_page">Release-Seite</string>
+    <string name="content_translate">Übersetzen</string>
+    <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <string name="content_show_original">Original</string>
+    <string name="content_translation_failed">Übersetzung fehlgeschlagen: %s</string>
+    <string name="changelog_section_new">Neu</string>
+    <string name="changelog_section_fixes">Fehlerbehebungen</string>
+    <string name="changelog_section_performance">Leistung</string>
+    <string name="changelog_section_improvements">Verbesserungen</string>
+    <string name="changelog_section_app_support">App-Support</string>
+    <string name="changelog_section_other">Änderungen</string>
+    <string name="changelog_badge_latest">Neueste</string>
+    <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <string name="changelog_badge_downloaded">Heruntergeladen</string>
+    <string name="changelog_badge_prerelease">Vorabversion</string>
+    <!-- "%s" is the number of changes in the section -->
+    <string name="changelog_show_all">Alle anzeigen (%s)</string>
+    <string name="changelog_show_less">Weniger anzeigen</string>
     <string name="no_network_toast">Keine Internetverbindung verfügbar</string>
     <string name="update_available">Ein Update ist verfügbar</string>
     <string name="ready_to_install_update">Update bereit zur Installation</string>
     <string name="update_completed">Update installiert</string>
     <string name="install_update_manager_failed">Installation des Updates fehlgeschlagen</string>
     <string name="installing_manager_update">Installiere Update…</string>
+    <string name="installing_manager_update_hint">Morphe wird geschlossen, um das Update abzuschließen.</string>
     <string name="downloading_manager_update">Lade Update herunter…</string>
-    <!-- Shown while downloading, before the total size is known. "%1$s" is the megabytes so far. -->
+    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB heruntergeladen</string>
+    <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
+    <string name="manager_update_progress_size">%1$s / %2$s MB</string>
     <string name="manager_update_not_ready">Diese Version wird noch veröffentlicht. Versuchen Sie es in wenigen Minuten erneut</string>
     <string name="update_download_missing">Das heruntergeladene Update ist nicht mehr verfügbar. Laden Sie es erneut herunter.</string>
     <string name="download_manager_failed">Herunterladen des Updates fehlgeschlagen: %s</string>
@@ -1325,6 +1360,7 @@ Wollen Sie trotzdem fortfahren?"</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Schnelle Feature-Tour</string>
     <string name="tour_prompt_desc">Möchten Sie eine kurze Tour durch die wichtigsten Funktionen von Morphe machen?</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Zeigen Sie mir alles</string>
     <string name="onboarding_restart_title">Feature-Tour</string>
     <string name="onboarding_restart_desc">Eine geführte Tour durch die wichtigsten Funktionen.</string>

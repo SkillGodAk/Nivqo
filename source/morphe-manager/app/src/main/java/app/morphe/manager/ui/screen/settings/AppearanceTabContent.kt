@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -33,7 +32,6 @@ import app.morphe.manager.R
 import app.morphe.manager.domain.manager.HomeAppButtonPreferences
 import app.morphe.manager.ui.screen.settings.appearance.*
 import app.morphe.manager.ui.screen.shared.*
-import app.morphe.manager.ui.screen.shared.LanguageRepository.getLanguageDisplayName
 import app.morphe.manager.ui.theme.Theme
 import app.morphe.manager.ui.theme.ThemeStyle
 import app.morphe.manager.ui.theme.resolveThemeStyle
@@ -42,8 +40,8 @@ import app.morphe.manager.ui.viewmodel.RandomInterval
 import app.morphe.manager.ui.viewmodel.ThemeSettingsViewModel
 import app.morphe.manager.util.AppCardColorDefaults
 import app.morphe.manager.util.AppCardColorMode
+import app.morphe.manager.util.AppLocale
 import app.morphe.manager.util.MORPHE_WEBSITE_URL
-import app.morphe.manager.util.saveLanguageToPrefs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -68,9 +66,11 @@ fun AppearanceTabContent(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val supportsDynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    val appLanguage by themeViewModel.prefs.appLanguage.getAsState()
+    val appLanguage by AppLocale.selected.collectAsStateWithLifecycle()
     val showGreetingPhrases by themeViewModel.prefs.showGreetingPhrases.getAsState()
     val showRepatchNotice by themeViewModel.prefs.showRepatchNotice.getAsState()
+    val colorAccents by themeViewModel.prefs.colorAccents.getAsState()
+    val outlines by themeViewModel.prefs.outlines.getAsState()
     val appCardColorMode by themeViewModel.prefs.appCardColorMode.getAsState()
     val customAppCardColors by themeViewModel.prefs.customAppCardColors.getAsState()
     val showAppGroupingSwitcher by homeAppButtonPrefs.showCategoryViewSwitcher.collectAsStateWithLifecycle()
@@ -108,8 +108,10 @@ fun AppearanceTabContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScrollFade(scrollState)
             .verticalScroll(scrollState)
-            .padding(settingsTabPadding())
+            .padding(settingsTabPadding()),
+        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
     ) {
         LanguageAndDisplaySection(
             appLanguage = appLanguage,
@@ -127,6 +129,10 @@ fun AppearanceTabContent(
             onThemeSelected = themeViewModel::setThemeMode,
             onStyleSelected = themeViewModel::setThemeStyle,
             onPureBlackToggle = { themeViewModel.setPureBlackTheme(!pureBlackTheme) },
+            colorAccents = colorAccents,
+            onColorAccentsToggle = { themeViewModel.toggleColorAccents(colorAccents) },
+            outlines = outlines,
+            onOutlinesToggle = { themeViewModel.toggleOutlines(outlines) },
             backgroundType = backgroundType,
             randomInterval = randomInterval,
             onBackgroundClick = { showBackgroundDialog.value = true },
@@ -239,10 +245,8 @@ fun AppearanceTabContent(
         LanguagePickerDialog(
             currentLanguage = appLanguage,
             onLanguageSelected = { languageCode ->
-                saveLanguageToPrefs(context, languageCode)
                 themeViewModel.setAppLanguage(languageCode)
                 showLanguageDialog.value = false
-                (context as? Activity)?.recreate()
             },
             onDismiss = { showLanguageDialog.value = false }
         )
@@ -262,52 +266,45 @@ private fun LanguageAndDisplaySection(
 ) {
     val context = LocalContext.current
     val currentLanguage = remember(appLanguage, context) {
-        getLanguageDisplayName(appLanguage, context)
+        LanguageRepository.getLanguage(appLanguage, context)
     }
 
-    val currentLanguageOption = remember(appLanguage, context) {
-        LanguageRepository.getSupportedLanguages(context)
-            .find { it.code == appLanguage }
-    }
+    SectionTitle(
+        text = stringResource(R.string.settings_appearance_language_and_display),
+        icon = Icons.Outlined.Language
+    )
 
-    Column(verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)) {
-        SectionTitle(
-            text = stringResource(R.string.settings_appearance_language_and_display),
-            icon = Icons.Outlined.Language
-        )
-
-        SettingsGroup(modifier = Modifier.padding(bottom = Defaults.ContentPadding)) {
-            SettingsItem(
-                onClick = onLanguageClick,
-                title = stringResource(R.string.settings_appearance_app_language_current),
-                subtitle = currentLanguage,
-                leadingContent = {
-                    Box(
-                        modifier = Modifier.size(Defaults.IconSize),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = currentLanguageOption?.flag ?: "🌐",
-                            fontSize = 20.sp,
-                            lineHeight = 20.sp
-                        )
-                    }
+    SettingsGroup {
+        SettingsItem(
+            onClick = onLanguageClick,
+            title = stringResource(R.string.settings_appearance_app_language_current),
+            subtitle = currentLanguage.displayName,
+            leadingContent = {
+                Box(
+                    modifier = Modifier.size(Defaults.IconSize),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = currentLanguage.flag,
+                        fontSize = 20.sp,
+                        lineHeight = 20.sp
+                    )
                 }
-            )
-            SettingsDivider()
-            SettingsItem(
-                onClick = onUiScaleClick,
-                title = stringResource(R.string.settings_appearance_ui_scale),
-                subtitle = "${uiScale.toUiScalePercent()}%",
-                leadingContent = { ThemedIcon(icon = Icons.Outlined.FormatSize) }
-            )
-        }
+            }
+        )
+        SettingsDivider()
+        SettingsItem(
+            onClick = onUiScaleClick,
+            title = stringResource(R.string.settings_appearance_ui_scale),
+            subtitle = "${uiScale.toUiScalePercent()}%",
+            leadingContent = { ThemedIcon(icon = Icons.Outlined.FormatSize) }
+        )
     }
 }
 
 /**
- * Theme mode and color style, then how the rest of the manager is dressed: pure black, the
- * animated background and the launcher icon.
+ * Theme mode and color style, then how the rest of the manager is dressed: pure black, the colors
+ * apps and sources wear, outlines, the animated background and the launcher icon.
  */
 @Composable
 private fun ThemeSection(
@@ -319,20 +316,23 @@ private fun ThemeSection(
     onThemeSelected: (Theme) -> Unit,
     onStyleSelected: (ThemeStyle) -> Unit,
     onPureBlackToggle: () -> Unit,
+    colorAccents: Boolean,
+    onColorAccentsToggle: () -> Unit,
+    outlines: Boolean,
+    onOutlinesToggle: () -> Unit,
     backgroundType: BackgroundType,
     randomInterval: RandomInterval,
     onBackgroundClick: () -> Unit,
     onSelectorPositioned: ((Rect) -> Unit)?,
     onSelectorScrollTarget: ((Int) -> Unit)?
 ) {
-    SectionHeader(
+    SectionTitle(
         text = stringResource(R.string.settings_appearance_theme),
         icon = Icons.Outlined.Palette
     )
 
     Box(
         Modifier
-            .padding(bottom = Defaults.ContentPadding)
             .fillMaxWidth()
             .then(
                 if (onSelectorPositioned != null || onSelectorScrollTarget != null)
@@ -352,7 +352,7 @@ private fun ThemeSection(
         )
     }
 
-    SettingsGroup(modifier = Modifier.padding(bottom = Defaults.ContentPadding)) {
+    SettingsGroup {
         AnimatedVisibility(
             visible = supportsPureBlack,
             enter = Animations.expandFadeEnter,
@@ -369,6 +369,34 @@ private fun ThemeSection(
                 SettingsDivider()
             }
         }
+
+        // Monochrome already trades every app's and source's color for its own accent
+        AnimatedVisibility(
+            visible = themeStyle != ThemeStyle.MONOCHROME,
+            enter = Animations.expandFadeEnter,
+            exit = Animations.shrinkFadeExit
+        ) {
+            Column {
+                SettingsSwitchItem(
+                    title = stringResource(R.string.settings_appearance_color_accents),
+                    subtitle = stringResource(R.string.settings_appearance_color_accents_description),
+                    icon = Icons.Outlined.FormatColorFill,
+                    checked = colorAccents,
+                    onToggle = onColorAccentsToggle
+                )
+                SettingsDivider()
+            }
+        }
+
+        SettingsSwitchItem(
+            title = stringResource(R.string.settings_appearance_outlines),
+            subtitle = stringResource(R.string.settings_appearance_outlines_description),
+            icon = Icons.Outlined.BorderStyle,
+            checked = outlines,
+            onToggle = onOutlinesToggle
+        )
+
+        SettingsDivider()
 
         BackgroundSettingsItem(
             selectedBackground = backgroundType,
@@ -394,7 +422,7 @@ private fun ColorsSection(
     onAccentSelected: (Color?) -> Unit,
     onAppCardColorsClick: () -> Unit
 ) {
-    SectionHeader(
+    SectionTitle(
         text = stringResource(R.string.settings_appearance_colors),
         icon = Icons.Outlined.ColorLens
     )
@@ -402,9 +430,9 @@ private fun ColorsSection(
     // Dynamic color derives the accent from the wallpaper, leaving nothing to pick here
     val showAccent = themeStyle != ThemeStyle.MATERIAL_YOU
 
-    // Monochrome leaves app cards colorless and Material You has no accent to pick, and no style
+    // Monochrome leaves app cards colorless and `Material You` has no accent to pick, and no style
     // is both, so the group always has at least one of the two
-    SettingsGroup(modifier = Modifier.padding(bottom = Defaults.ContentPadding)) {
+    SettingsGroup {
         AnimatedVisibility(
             visible = showAccent,
             enter = Animations.expandFadeEnter,
@@ -449,12 +477,12 @@ private fun HomeScreenSection(
     onSortButtonToggle: () -> Unit,
     onAppGroupingToggle: () -> Unit
 ) {
-    SectionHeader(
+    SectionTitle(
         text = stringResource(R.string.settings_appearance_home_screen),
         icon = Icons.Outlined.Dashboard
     )
 
-    SettingsGroup(modifier = Modifier.padding(bottom = Defaults.ContentPadding)) {
+    SettingsGroup {
         SettingsSwitchItem(
             title = stringResource(R.string.settings_appearance_greeting_phrases),
             subtitle = stringResource(R.string.settings_appearance_greeting_phrases_subtitle),
@@ -488,14 +516,3 @@ private fun HomeScreenSection(
         )
     }
 }
-
-/**
- * [SectionTitle] with the spacing every section on this tab uses.
- */
-@Composable
-private fun SectionHeader(text: String, icon: ImageVector) {
-    Box(Modifier.padding(bottom = Defaults.ContentPadding).fillMaxWidth()) {
-        SectionTitle(text = text, icon = icon)
-    }
-}
-

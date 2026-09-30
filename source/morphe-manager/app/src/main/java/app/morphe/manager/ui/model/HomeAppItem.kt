@@ -22,6 +22,8 @@ data class HomeAppItem(
     val gradientColors: List<Color>,
     val installedApp: InstalledApp?,
     val packageInfo: PackageInfo?,
+    /** Installed version from the device, else the one the record kept. */
+    val version: String,
     val isPinnedByDefault: Boolean,
     val isInstalledOnDevice: Boolean,
     val isDeleted: Boolean,
@@ -32,12 +34,11 @@ data class HomeAppItem(
     val hasUpdate: Boolean,
     val versionStatus: AppVersionStatus?,
     val patchCount: Int,
-    val isClone: Boolean
+    val isClone: Boolean,
+    /** What tells the card from another app of the same name, see [withNameSuffixes]. */
+    val nameSuffix: String? = null
 ) {
     val hasSavedCopy: Boolean get() = savedApkFile != null
-
-    /** The version this card is about: what the device reports, or what the record kept of it. */
-    val version: String get() = packageInfo?.versionName ?: installedApp?.version.orEmpty()
 
     /**
      * Whether the install is settled enough for pending work on it to be worth surfacing. A record
@@ -62,6 +63,46 @@ data class HomeAppItem(
      * install as it went in, so queueing and sorting stay with [showsUpdateBadge] alone.
      */
     val showsRebuildBadge: Boolean get() = showsUpdateBadge || showsVersionBadge
+}
+
+/**
+ * These cards with a [HomeAppItem.nameSuffix] where different apps share a name, such as two builds
+ * of Telegram. Clones of one app share its package, so they are left as they are.
+ */
+fun List<HomeAppItem>.withNameSuffixes(): List<HomeAppItem> {
+    // One map of first packages finds the shared names, so a list with none builds nothing more
+    val firstPackages = HashMap<String, String>(size * 2)
+    val sharedNames = HashSet<String>()
+    for (item in this) {
+        val first = firstPackages.putIfAbsent(item.displayName, item.packageName)
+        if (first != null && first != item.packageName) sharedNames += item.displayName
+    }
+    if (sharedNames.isEmpty()) return this
+
+    val packagesByName = HashMap<String, MutableSet<String>>()
+    for (item in this) {
+        if (item.displayName in sharedNames) {
+            packagesByName.getOrPut(item.displayName) { HashSet() } += item.packageName
+        }
+    }
+
+    return map { item ->
+        val namesakes = packagesByName[item.displayName] ?: return@map item
+        item.copy(nameSuffix = packageNameSuffix(item.packageName, namesakes - item.packageName))
+    }
+}
+
+/**
+ * The segments of [packageName] that none of [others] has in the same place, or null where there
+ * are none, as for the package the others only extend: `web` for `org.telegram.messenger.web`
+ * against `org.telegram.messenger`, and nothing the other way round.
+ */
+internal fun packageNameSuffix(packageName: String, others: Collection<String>): String? {
+    val otherSegments = others.map { it.split('.') }
+    return packageName.split('.')
+        .filterIndexed { index, segment -> otherSegments.none { it.getOrNull(index) == segment } }
+        .joinToString(".")
+        .ifEmpty { null }
 }
 
 /**

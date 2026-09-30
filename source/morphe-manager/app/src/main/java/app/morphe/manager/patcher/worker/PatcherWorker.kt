@@ -9,8 +9,11 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.drawable.Icon
 import android.os.Build
+import android.os.Bundle
 import android.os.PowerManager
 import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.core.app.NotificationCompat
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
@@ -36,7 +39,6 @@ import app.morphe.manager.patcher.runtime.ProcessRuntime
 import app.morphe.manager.patcher.runtime.coerceMemoryLimit
 import app.morphe.manager.patcher.runtime.heapLimitMebibytes
 import app.morphe.manager.patcher.split.SplitApkPreparer
-import app.morphe.manager.patcher.util.NativeLibStripper
 import app.morphe.manager.ui.model.SelectedApp
 import app.morphe.manager.ui.model.State
 import app.morphe.manager.util.*
@@ -133,12 +135,33 @@ class PatcherWorker(
                     setSubText("$completed / $total")
                     setProgress(total, completed, false)
                 }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+                    applyLiveUpdate(patchProgress)
+                }
             }
             .setSmallIcon(Icon.createWithResource(applicationContext, R.drawable.ic_notification))
             .setContentIntent(pendingIntent)
             .setCategory(Notification.CATEGORY_SERVICE)
             .setOngoing(true)
             .build()
+    }
+
+    /** Request promotion to a Live Update, shown as a status bar chip while the manager is in the background. */
+    @RequiresApi(Build.VERSION_CODES.BAKLAVA)
+    private fun Notification.Builder.applyLiveUpdate(patchProgress: Pair<Int, Int>?) {
+        val style = Notification.ProgressStyle()
+        if (patchProgress != null) {
+            val (completed, total) = patchProgress
+            // The bar length is the sum of its segments, a single one spans every patch
+            style.progressSegments = listOf(Notification.ProgressStyle.Segment(total.coerceAtLeast(1)))
+            style.progress = completed
+            setShortCriticalText("$completed/$total")
+        } else {
+            style.isProgressIndeterminate = true
+        }
+        setStyle(style)
+        // The builder setter only exists from 36.1, the extra is what the framework reads on 36.0
+        addExtras(Bundle().apply { putBoolean(NotificationCompat.EXTRA_REQUEST_PROMOTED_ONGOING, true) })
     }
 
     private fun updatePatcherNotification(
@@ -410,7 +433,8 @@ class PatcherWorker(
             val options = args.options.restrictTo(args.selectedPatches)
 
             // After merging a split archive (in either runtime), save the resulting mono-APK
-            // directly to originalApksDir so it is used for repatching instead of the archive
+            // directly to originalApksDir so it is used for repatching instead of the archive.
+            // The runtime is done with the file by then, so it is moved rather than copied
             val onMergedApkReady: suspend (File) -> Unit = { mergedFile ->
                 val version = pm.getPackageInfo(mergedFile)?.versionName
                     ?.takeUnless { it.isBlank() }
@@ -419,7 +443,8 @@ class PatcherWorker(
                 val savedFile = originalApkRepository.saveOriginalApk(
                     packageName = args.packageName,
                     version = version,
-                    sourceFile = mergedFile
+                    sourceFile = mergedFile,
+                    moveSource = true
                 )
                 args.setInputFile(savedFile ?: mergedFile, true, true)
             }
@@ -468,10 +493,6 @@ class PatcherWorker(
                     onMergedApkReady,
                     onRestart
                 )
-            }
-
-            if (stripNativeLibs && !inputIsSplitArchive) {
-                NativeLibStripper.strip(patchedApk, args.logger)
             }
 
             updatePatcherNotification(stepName = signingApkLabel, patchProgress = null)

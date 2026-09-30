@@ -8,7 +8,7 @@ package app.morphe.manager.patcher.patch
 import android.os.Build
 import app.morphe.manager.patcher.split.SplitApkPreparer
 import app.morphe.manager.patcher.util.Abi
-import app.morphe.manager.patcher.util.NativeLibStripper
+import app.morphe.manager.patcher.util.NativeLibs
 import app.morphe.manager.ui.model.SelectedApp
 import app.morphe.manager.util.PM
 import app.morphe.patcher.patch.ApkArchitecture
@@ -56,10 +56,10 @@ object ApkArchitectureResolver {
         }
         if (present.isEmpty()) return ApkArchitecture.UNIVERSAL
 
-        // Asked of the stripper rather than decided here, so the answer stays the ABI the run
+        // Asked of NativeLibs rather than decided here, so the answer stays the ABI the run
         // actually keeps. An APK carrying nothing this device runs is still answered by what it
         // does carry, so patches see the file for what it is instead of where it was opened
-        val abi = NativeLibStripper.preferredAbi(present, deviceAbis.map { it.lowercase(Locale.ROOT) })
+        val abi = NativeLibs.preferredAbi(present, deviceAbis.map { it.lowercase(Locale.ROOT) })
             ?: Abi.NAMES.first { it in present }
 
         return Abi.architectureOf(abi) ?: ApkArchitecture.UNIVERSAL
@@ -72,5 +72,5 @@ object ApkArchitectureResolver {
 
     private fun abisOf(file: File): List<String> =
         if (SplitApkPreparer.isSplitArchive(file)) SplitApkPreparer.splitArchiveAbis(file)
-        else NativeLibStripper.extractAbisFromApk(file)
+        else NativeLibs.extractAbisFromApk(file)
 }

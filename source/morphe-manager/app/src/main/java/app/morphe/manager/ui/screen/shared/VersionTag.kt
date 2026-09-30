@@ -15,7 +15,6 @@ import androidx.compose.material.icons.outlined.Recommend
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import app.morphe.manager.R
@@ -49,6 +48,13 @@ sealed interface VersionTag {
     /** The version the app is at on the device right now. */
     data object Installed : VersionTag
 }
+
+/**
+ * Whether the tag is about an APK on hand rather than the version itself, which a row notes in a
+ * quiet line of its own instead of a badge, leaving its badge to what it says of the version.
+ */
+val VersionTag.isOnHand: Boolean
+    get() = this == VersionTag.Saved || this == VersionTag.Installed
 
 val VersionTag.tone: SemanticTone
     get() = when (this) {
@@ -126,15 +132,6 @@ fun versionTagsOf(
     if (isInstalled) add(VersionTag.Installed)
 }
 
-/**
- * The color the version string itself takes, so text and badge never disagree about it. Only
- * an experimental version recolors: the rest either dim their whole row or are carried by the
- * badge alone.
- */
-@Composable
-fun List<VersionTag>.versionTextColor(default: Color): Color =
-    if (contains(VersionTag.Experimental)) SemanticTone.Warning.accent else default
-
 /** Tag labels for a row's content description, read out in the order they are shown. */
 @Composable
 fun List<VersionTag>.labels(): List<String> = map { it.label() }
@@ -147,17 +144,4 @@ fun VersionTagBadge(tag: VersionTag, modifier: Modifier = Modifier) {
         icon = tag.icon,
         tone = tag.tone
     )
-}
-
-/**
- * Every tag of a version, stacked at the edge of its row. A long version string shortens
- * itself rather than pushing the tags out of shape, and they line up down the card edge.
- */
-@Composable
-fun VersionTagBadges(tags: List<VersionTag>, modifier: Modifier = Modifier) {
-    if (tags.isEmpty()) return
-
-    StatusBadgeColumn(modifier = modifier) {
-        tags.forEach { VersionTagBadge(it) }
-    }
 }

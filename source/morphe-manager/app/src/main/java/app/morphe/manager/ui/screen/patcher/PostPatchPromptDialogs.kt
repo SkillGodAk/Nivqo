@@ -5,21 +5,15 @@
 
 package app.morphe.manager.ui.screen.patcher
 
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.morphe.manager.R
 import app.morphe.manager.ui.model.PostPatchPrompts
 import app.morphe.manager.ui.screen.settings.system.NotificationPermissionDialog
 import app.morphe.manager.ui.screen.shared.AppDialog
 import app.morphe.manager.ui.screen.shared.AppDialogButtonRow
-import app.morphe.manager.ui.screen.shared.LocalDialogSecondaryTextColor
 
 /**
  * Notification permission and onboarding tour dialogs raised by [PostPatchPrompts].
@@ -54,6 +48,7 @@ fun PostPatchPromptDialogs(
                 onDeclineTour()
             },
             title = stringResource(R.string.tour_prompt_title),
+            description = stringResource(R.string.tour_prompt_desc),
             footer = {
                 AppDialogButtonRow(
                     primaryText = stringResource(R.string.tour_prompt_confirm),
@@ -70,14 +65,6 @@ fun PostPatchPromptDialogs(
                     }
                 )
             }
-        ) {
-            Text(
-                text = stringResource(R.string.tour_prompt_desc),
-                style = MaterialTheme.typography.bodyLarge,
-                color = LocalDialogSecondaryTextColor.current,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        )
     }
 }

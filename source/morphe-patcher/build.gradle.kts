@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin)
     alias(libs.plugins.binary.compatibility.validator)
     `maven-publish`
+    signing
     jacoco
 }
 
@@ -48,7 +49,7 @@ repositories {
         url = uri("https://jitpack.io")
         content {
             includeGroup("com.github.MorpheApp.smali")
-            includeGroup("com.github.REAndroid")
+            includeGroup("com.github.MorpheApp")
         }
     }
     maven {
@@ -160,3 +161,7 @@ publishing {
     }
 }
 
+signing {
+    useGpgCmd()
+    sign(publishing.publications["morphe-patcher-publication"])
+}

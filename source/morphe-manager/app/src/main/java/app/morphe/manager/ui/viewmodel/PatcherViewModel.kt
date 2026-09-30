@@ -401,7 +401,8 @@ class PatcherViewModel(
 
     /**
      * Collects app and bundle metadata to populate [PatcherErrorInfo] in the error dialog.
-     * Called after patching fails so the dialog opens instantly without an extra async wait.
+     * Called as soon as patching fails so the dialog opens without an extra async wait, and
+     * before the dialog opens on a failed install.
      */
     suspend fun buildErrorInfo(): PatcherErrorInfo {
         // Read from what the run started with, since a failed run leaves no output APK to name
@@ -411,9 +412,7 @@ class PatcherViewModel(
                 else -> pm.getPackageInfo(packageName)
             }?.let { with(pm) { it.label() } }
         }.getOrNull()
-        val bundles = collectSelectedBundleMetadata().map {
-            PatcherErrorInfo.BundleInfo(name = it.name, version = it.version)
-        }
+        val bundles = collectSelectedBundleMetadata()
         return PatcherErrorInfo(
             appName = label ?: packageName,
             packageName = packageName,
@@ -467,7 +466,7 @@ class PatcherViewModel(
 
     val outputFile = tempDir.resolve("output.apk")
 
-    private val patchCount = input.selectedPatches.values.sumOf { it.size }
+    val patchCount = input.selectedPatches.values.sumOf { it.size }
 
     private val restoredProgress: Bundle? = savedStateHandle[KEY_PROGRESS]
 
@@ -492,8 +491,8 @@ class PatcherViewModel(
     val patchesProgress get() = patchRun.patchesProgress
 
     private val workManager = WorkManager.getInstance(app)
-    private val _patcherSucceeded = MutableLiveData<Boolean?>()
-    val patcherSucceeded: LiveData<Boolean?> = _patcherSucceeded
+    private val _patcherSucceeded = MutableStateFlow<Boolean?>(null)
+    val patcherSucceeded: StateFlow<Boolean?> = _patcherSucceeded.asStateFlow()
     private var observeWorkerJob: Job? = null
     private val handledFailureIds = mutableSetOf<UUID>()
     private var forceKeepLocalInput = false
@@ -1001,7 +1000,7 @@ class PatcherViewModel(
                                     cleanupTemporaryInput()
                                     refreshExportMetadata()
                                     patchingCompletedAt = System.currentTimeMillis()
-                                    patchingCompletedInForeground = _patcherSucceeded.hasActiveObservers()
+                                    patchingCompletedInForeground = _patcherSucceeded.subscriptionCount.value > 0
                                     isPatching = false
                                     _patcherSucceeded.value = true
                                     scheduleSuccessScreen()

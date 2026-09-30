@@ -16,15 +16,21 @@ import androidx.compose.material.icons.outlined.Colorize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -32,6 +38,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.ui.screen.shared.Defaults
+import app.morphe.manager.ui.screen.shared.horizontalScrollFade
 import app.morphe.manager.util.darken
 import app.morphe.manager.util.readableOn
 
@@ -71,8 +78,18 @@ private val SwatchSize = Defaults.MinTouchTarget
 private val SwatchSpacing = 8.dp
 
 /**
+ * A preset of a [ColorPresetGrid].
+ *
+ * @param key What the preset stands for, which the grid matches the selection against.
+ * @param label Name of the preset, read out in place of the color where it has one.
+ */
+@Immutable
+data class ColorPresetSwatch(val key: Any, val color: Color, val label: String? = null)
+
+/**
  * One preset color. Selection is carried by the border rather than an overlay, so the swatch keeps
- * showing the color it stands for at full strength.
+ * showing the color it stands for at full strength. A see-through color sits on a checkerboard so
+ * its transparency shows.
  */
 @Composable
 private fun ColorSwatch(
@@ -80,31 +97,63 @@ private fun ColorSwatch(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    label: String? = null,
     enabled: Boolean = true,
     size: Dp = SwatchSize
 ) {
     val shape = RoundedCornerShape(Defaults.CompactCornerRadius)
+    val scheme = MaterialTheme.colorScheme
     val selectedLabel = stringResource(R.string.selected)
     val notSelectedLabel = stringResource(R.string.not_selected)
+    // A darker shade of the color itself frames it best, where it is solid enough to darken
+    val selectedBorder = if (color.alpha >= 0.5f) color.darken(0.4f) else scheme.primary
 
     val borderWidth by animateDpAsState(if (selected) 3.dp else 1.dp, label = "swatch_border_width")
     val borderColor by animateColorAsState(
-        if (selected) color.darken(0.4f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+        if (selected) selectedBorder else scheme.outline.copy(alpha = 0.5f),
         label = "swatch_border_color"
     )
+    val alpha = if (enabled) 1f else 0.5f
 
     Box(
         modifier = modifier
             .size(size)
             .clip(shape)
-            .background(color.copy(alpha = if (enabled) 1f else 0.5f), shape)
+            .then(
+                if (color.alpha < 1f) {
+                    Modifier.transparencyChecker().background(color.copy(alpha = color.alpha * alpha))
+                } else {
+                    Modifier.background(color.copy(alpha = alpha))
+                }
+            )
             .border(borderWidth, borderColor, shape)
             .clickable(enabled = enabled, onClick = onClick)
             .semantics(mergeDescendants = true) {
                 role = Role.RadioButton
+                if (label != null) contentDescription = label
                 stateDescription = if (selected) selectedLabel else notSelectedLabel
             }
     )
+}
+
+private val CheckerCell = 6.dp
+private val CheckerDark = Color(0xFFCCCCCC)
+
+/** Checkerboard behind a see-through color, the usual sign of what transparency lets through. */
+private fun Modifier.transparencyChecker(): Modifier = drawBehind {
+    val cell = CheckerCell.toPx()
+    drawRect(Color.White)
+    var y = 0f
+    var row = 0
+    while (y < size.height) {
+        var x = if (row % 2 == 0) 0f else cell
+        while (x < size.width) {
+            drawRect(CheckerDark, topLeft = Offset(x, y), size = Size(cell, cell))
+            x += cell * 2
+        }
+        y += cell
+        row++
+    }
 }
 
 /**
@@ -119,11 +168,14 @@ fun ColorPresetRow(
     modifier: Modifier = Modifier
 ) {
     val selectedArgb = selected?.toArgb()
+    val scrollState = rememberScrollState()
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
+            // Fades out at an end the row runs past, so there are plainly more swatches to reach
+            .horizontalScrollFade(scrollState)
+            .horizontalScroll(scrollState),
         horizontalArrangement = Arrangement.spacedBy(SwatchSpacing)
     ) {
         colors.forEach { preset ->
@@ -137,12 +189,7 @@ fun ColorPresetRow(
 }
 
 /**
- * Grid of [colors], [PRESET_GRID_COLUMNS] to a row, bracketed by the two choices that are not
- * colors: clearing the selection and picking something the palette does not carry. Swatches shrink
- * to keep that many to a row on a narrow screen, and centering keeps a partly filled last row
- * balanced under the ones above it.
- *
- * Both ends are optional, and each one added is a cell the row count has to account for.
+ * [ColorPresetGrid] of plain [colors], each preset being the color it shows.
  *
  * @param onClear Adds the leading swatch, for keeping no color at all.
  * @param onCustomClick Adds the trailing swatch, which opens the picker.
@@ -158,9 +205,46 @@ fun ColorPresetGrid(
     onCustomClick: (() -> Unit)? = null
 ) {
     val selectedArgb = selected?.toArgb()
-    // A color the user picked rather than took from the grid is what the trailing swatch stands for
-    val isCustom = selected != null && colors.none { it.toArgb() == selectedArgb }
 
+    ColorPresetGrid(
+        presets = remember(colors) { colors.map { ColorPresetSwatch(key = it.toArgb(), color = it) } },
+        selectedKey = selectedArgb,
+        onSelect = { preset -> onSelect(preset.color) },
+        modifier = modifier,
+        enabled = enabled,
+        onClear = onClear,
+        // A color the user picked rather than took from the grid is what the trailing swatch stands for
+        customColor = selected.takeIf { colors.none { it.toArgb() == selectedArgb } },
+        onCustomClick = onCustomClick
+    )
+}
+
+/**
+ * Grid of [presets], [PRESET_GRID_COLUMNS] to a row, bracketed by the two choices that are not
+ * presets: clearing the selection and picking something the presets do not carry. Swatches shrink
+ * to keep that many to a row on a narrow screen, and centering keeps a partly filled last row
+ * balanced under the ones above it.
+ *
+ * Both ends are optional, and each one added is a cell the row count has to account for.
+ *
+ * @param selectedKey [ColorPresetSwatch.key] of the preset in effect, or null for none.
+ * @param onClear Adds the leading swatch, for keeping no color at all, selected while [selectedKey]
+ *   is null.
+ * @param customColor The color in effect when it is none of the presets, which the trailing swatch
+ *   wears.
+ * @param onCustomClick Adds the trailing swatch, which opens the picker.
+ */
+@Composable
+fun ColorPresetGrid(
+    presets: List<ColorPresetSwatch>,
+    selectedKey: Any?,
+    onSelect: (ColorPresetSwatch) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    onClear: (() -> Unit)? = null,
+    customColor: Color? = null,
+    onCustomClick: (() -> Unit)? = null
+) {
     val density = LocalDensity.current
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         // Worked out in whole pixels, the way the row lays them out: a size that only fits before
@@ -179,18 +263,19 @@ fun ColorPresetGrid(
             // Leads the row, being where the grid starts out rather than one more color to weigh
             if (onClear != null) {
                 NoColorSwatch(
-                    selected = selected == null,
+                    selected = selectedKey == null,
                     onClick = onClear,
                     enabled = enabled,
                     size = swatchSize
                 )
             }
 
-            colors.forEach { preset ->
+            presets.forEach { preset ->
                 ColorSwatch(
-                    color = preset,
-                    selected = preset.toArgb() == selectedArgb,
+                    color = preset.color,
+                    selected = preset.key == selectedKey,
                     onClick = { onSelect(preset) },
+                    label = preset.label,
                     enabled = enabled,
                     size = swatchSize
                 )
@@ -199,7 +284,7 @@ fun ColorPresetGrid(
             // Trails it, standing for none of the above rather than for one more of them
             if (onCustomClick != null) {
                 CustomColorSwatch(
-                    color = selected.takeIf { isCustom },
+                    color = customColor,
                     onClick = onCustomClick,
                     enabled = enabled,
                     size = swatchSize

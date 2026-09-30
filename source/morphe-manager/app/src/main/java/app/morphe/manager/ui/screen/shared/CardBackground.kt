@@ -18,6 +18,16 @@ import app.morphe.manager.util.ensureContrast
  */
 val LocalCardBackground = compositionLocalOf<Color?> { null }
 
+/**
+ * Color of the app or source the surface in this subtree stands for: a card, a dialog or its
+ * header. The controls on it take it on by default, so they read as part of that surface rather
+ * than of the theme around it. Null for a surface in the theme's palette.
+ *
+ * Already made usable, see [usableAppAccent], by whatever provides it through [ProvideAccent] or
+ * [ProvideCardAccent].
+ */
+val LocalAccent = compositionLocalOf<Color?> { null }
+
 /** How far a fill is pushed off a card it would otherwise match. */
 private const val CardSeparation = 0.15f
 

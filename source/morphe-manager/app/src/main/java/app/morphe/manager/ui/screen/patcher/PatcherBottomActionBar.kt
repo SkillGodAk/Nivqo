@@ -9,7 +9,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.outlined.InstallMobile
 import androidx.compose.material.icons.outlined.Save
@@ -31,7 +30,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Patcher bottom action bar.
- * Left: Cancel Patching | Center: Home | Right: Save / Error button.
+ * Left: Cancel Patching | Center: Home | Right: Save / Copy logs button.
  *
  * Pass a zero [horizontalPadding] where the bar sits in a column that is inset already, so the
  * two insets do not stack and the buttons keep the edges of the content above them.
@@ -45,16 +44,14 @@ fun PatcherBottomActionBar(
     showCancelButton: Boolean = true,
     showHomeButton: Boolean = true,
     showSaveButton: Boolean = false,
-    showErrorButton: Boolean = false,
     showCopyLogsButton: Boolean = false,
     showLogsButton: Boolean = false,
     showInstallButton: Boolean = false,
 
-    // Actions
-    onCancelClick: () -> Unit,
-    onHomeClick: () -> Unit,
-    onSaveClick: () -> Unit,
-    onErrorClick: () -> Unit,
+    // Actions, needed only for the buttons shown
+    onCancelClick: () -> Unit = {},
+    onHomeClick: () -> Unit = {},
+    onSaveClick: () -> Unit = {},
     onCopyLogsClick: () -> Unit = {},
     onLogsClick: () -> Unit = {},
     onInstallClick: () -> Unit = {},
@@ -77,7 +74,6 @@ fun PatcherBottomActionBar(
     val homeLabel = if (showHomeButton && !showInstallButton) stringResource(R.string.home) else ""
     val trailingLabel = when {
         showCopyLogsButton -> stringResource(android.R.string.copy)
-        showErrorButton -> stringResource(R.string.error_)
         showSaveButton -> stringResource(R.string.save)
         else -> ""
     }
@@ -122,7 +118,7 @@ fun PatcherBottomActionBar(
             )
         }
 
-        // Right: Save / Error / Copy logs button
+        // Right: Save / Copy logs button
         if (showCopyLogsButton) {
             BottomActionButton(
                 onClick = {
@@ -139,15 +135,14 @@ fun PatcherBottomActionBar(
                 // The tone alone reports the copy, so the label keeps a stable width
                 tone = if (copied.value) BottomActionTone.Highlight else BottomActionTone.Neutral
             )
-        } else if (showSaveButton || showErrorButton) {
+        } else if (showSaveButton) {
             BottomActionButton(
-                onClick = if (showErrorButton) onErrorClick else onSaveClick,
-                icon = if (showErrorButton) Icons.Default.Error else Icons.Outlined.Save,
+                onClick = onSaveClick,
+                icon = Icons.Outlined.Save,
                 text = trailingLabel,
                 showLabel = showLabels,
-                tone = if (showErrorButton) BottomActionTone.Destructive else BottomActionTone.Neutral,
                 enabled = !isSaving,
-                showProgress = isSaving && !showErrorButton
+                showProgress = isSaving
             )
         }
     }

@@ -10,6 +10,24 @@
         <item quantity="two">שתי אופציות תיקון</item>
         <item quantity="other">%s אופציות תיקון</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s פריט</item>
+        <item quantity="two">%s פריטים</item>
+        <item quantity="other">%s פריטים</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">בחר %s קובץ</item>
+        <item quantity="two">בחר %s קבצים</item>
+        <item quantity="other">בחר %s קבצים</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">הוסף %s מקור</item>
+        <item quantity="two">הוסף %s מקורות</item>
+        <item quantity="other">הוסף %s מקורות</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">מקורות תיקון עבור %s אפליקציה</item>
         <item quantity="two">מקורות תיקון עבור %s אפליקציות</item>
@@ -114,5 +132,25 @@
         <item quantity="one">%s ליבה</item>
         <item quantity="two">%s ליבות</item>
         <item quantity="other">%s ליבות</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="one">%s חדש</item>
+        <item quantity="two">%s חדשים</item>
+        <item quantity="other">%s חדשים</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s תיקון</item>
+        <item quantity="two">%s תיקונים</item>
+        <item quantity="other">%s תיקונים</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s שינוי</item>
+        <item quantity="two">%s שינויים</item>
+        <item quantity="other">%s שינויים</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s גרסה חדשה</item>
+        <item quantity="two">%s גרסאות חדשות</item>
+        <item quantity="other">%s גרסאות חדשות</item>
     </plurals>
 </resources>

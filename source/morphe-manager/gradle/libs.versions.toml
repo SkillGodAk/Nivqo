@@ -1,11 +1,11 @@
 [versions]
 about-libraries = "15.2.0"
-accompanist = "0.37.3"
 activity = "1.13.0"
 android-gradle-plugin = "9.4.1"
 app-icon-loader-coil = "1.5.0"
 appcompat = "1.8.0"
-arsclib = "a28c6fb2a7"
+# MorpheApp fork until its changes (MorpheApp/ARSCLib#1) land in REAndroid/ARSCLib
+arsclib = "88d5e0811f"
 coil = "2.7.0"
 collection = "0.5.2"
 compose-bom = "2026.09.00"
@@ -13,7 +13,6 @@ compose-icons = "1.2.4"
 datetime = "0.8.0"
 dev-tools-gradle-plugin = "2.3.12"
 documentfile = "1.1.0"
-enumutil = "1.1.1"
 fading-edges = "1.0.4"
 firebase-bom = "34.19.0"
 google-services = "4.5.0"
@@ -25,13 +24,12 @@ kotlin-process = "1.5.1"
 ktor = "3.6.0"
 ktx = "1.19.1"
 libsu = "6.0.0"
-markdown-renderer = "0.45.0"
-# Remove when released stable 1.5.0 in Compose BOM. Fix for https://github.com/MorpheApp/morphe-manager/issues/74
-material3 = "1.5.0-alpha29" # 1.5.0-alpha09 API Changes: Remove deprecated experimental ModalBottomSheet
+# Ahead of the Compose BOM, which still ships 1.4.0: the sheets build on the 1.5 bottom sheet API
+# (rememberBottomSheetState). Drop the override once the BOM ships a stable 1.5.0
+material3 = "1.5.0-alpha29"
 morphe-library = "1.4.0"
-morphe-patcher = "1.14.1"
+morphe-patcher = "1.15.0"
 navigation = "2.10.2"
-placeholder = "2.0.0"
 play-services-base = "18.11.0"
 preferences-datastore = "1.2.1"
 reorderable = "3.1.0"
@@ -61,7 +59,6 @@ compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = 
 compose-ui = { group = "androidx.compose.ui", name = "ui" }
 compose-ui-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
-compose-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata" }
 compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
@@ -69,12 +66,7 @@ navigation-compose = { group = "androidx.navigation", name = "navigation-compose
 # Coil
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 coil-appiconloader = { group = "me.zhanghai.android.appiconloader", name = "appiconloader-coil", version.ref = "app-icon-loader-coil" }
-
-# Accompanist
-accompanist-drawablepainter = { group = "com.google.accompanist", name = "accompanist-drawablepainter", version.ref = "accompanist" }
-
-# Placeholder
-placeholder-material3 = { group = "io.github.fornewid", name = "placeholder-material3", version.ref = "placeholder"}
+appiconloader-iconloaderlib = { group = "me.zhanghai.android.appiconloader", name = "appiconloader-iconloaderlib", version.ref = "app-icon-loader-coil" }
 
 # Kotlinx
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
@@ -87,14 +79,13 @@ room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room-ver
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room-version" }
 
 # Patcher
-arsclib = { module = "com.github.REAndroid:arsclib", version.ref = "arsclib" }
+arsclib = { module = "com.github.MorpheApp:ARSCLib", version.ref = "arsclib" }
 morphe-patcher = { group = "app.morphe", name = "morphe-patcher", version.ref = "morphe-patcher" }
 morphe-library = { group = "app.morphe", name = "morphe-library", version.ref = "morphe-library" }
 
 # Koin
 koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
 koin-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin" }
-koin-compose-navigation = { group = "io.insert-koin", name = "koin-androidx-compose-navigation", version.ref = "koin" }
 koin-workmanager = { group = "io.insert-koin", name = "koin-androidx-workmanager", version.ref = "koin" }
 
 # About Libraries
@@ -103,13 +94,9 @@ about-libraries-m3 = { group = "com.mikepenz", name = "aboutlibraries-compose-m3
 
 # Ktor
 ktor-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
-ktor-logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktor" }
 ktor-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 ktor-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-serialization = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
-
-# Markdown
-markdown-renderer = { group = "com.mikepenz", name = "multiplatform-markdown-renderer-m3", version.ref = "markdown-renderer" }
 
 # Fading Edges
 fading-edges = { group = "com.github.GIGAMOLE", name = "ComposeFadingEdges", version.ref = "fading-edges"}
@@ -127,10 +114,6 @@ hidden-api-bypass = { group = "org.lsposed.hiddenapibypass", name = "hiddenapiby
 libsu-core = { group = "com.github.topjohnwu.libsu", name = "core", version.ref = "libsu" }
 libsu-service = { group = "com.github.topjohnwu.libsu", name = "service", version.ref = "libsu" }
 libsu-nio = { group = "com.github.topjohnwu.libsu", name = "nio", version.ref = "libsu" }
-
-# EnumUtil
-enumutil = { group = "io.github.materiiapps", name = "enumutil", version.ref = "enumutil" }
-enumutil-ksp = { group = "io.github.materiiapps", name = "enumutil-ksp", version.ref = "enumutil" }
 
 # Reorderable lists
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }

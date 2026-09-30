@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -19,6 +20,8 @@ import app.morphe.manager.util.AppCardColorDefaults
 import app.morphe.manager.util.AppCardColorMode
 import app.morphe.manager.util.AppCardColorResolver
 import app.morphe.manager.util.AppCardColorValues
+import app.morphe.manager.util.contrastingContent
+import app.morphe.manager.util.isDarkBackground
 import app.morphe.manager.util.toColorOrNull
 import kotlinx.serialization.Serializable
 
@@ -86,6 +89,77 @@ private val LightColorScheme = lightColorScheme(
     scrim = theme_light_scrim,
 )
 
+private fun monochromeColorScheme(darkTheme: Boolean): ColorScheme =
+    if (darkTheme) {
+        DarkColorScheme.copy(
+            primary = monochrome_dark_primary,
+            onPrimary = monochrome_dark_onPrimary,
+            primaryContainer = monochrome_dark_primaryContainer,
+            onPrimaryContainer = monochrome_dark_onPrimaryContainer,
+            secondary = monochrome_dark_secondary,
+            onSecondary = monochrome_dark_onSecondary,
+            secondaryContainer = monochrome_dark_secondaryContainer,
+            onSecondaryContainer = monochrome_dark_onSecondaryContainer,
+            tertiary = monochrome_dark_tertiary,
+            onTertiary = monochrome_dark_onTertiary,
+            tertiaryContainer = monochrome_dark_tertiaryContainer,
+            onTertiaryContainer = monochrome_dark_onTertiaryContainer,
+            background = monochrome_dark_background,
+            onBackground = monochrome_dark_onBackground,
+            surface = monochrome_dark_surface,
+            onSurface = monochrome_dark_onSurface,
+            surfaceVariant = monochrome_dark_surfaceVariant,
+            onSurfaceVariant = monochrome_dark_onSurfaceVariant,
+            outline = monochrome_dark_outline,
+            outlineVariant = monochrome_dark_outlineVariant,
+            inverseOnSurface = monochrome_dark_inverseOnSurface,
+            inverseSurface = monochrome_dark_inverseSurface,
+            inversePrimary = monochrome_dark_inversePrimary,
+            surfaceTint = monochrome_dark_surfaceTint,
+            surfaceContainerLowest = monochrome_dark_surfaceContainerLowest,
+            surfaceContainerLow = monochrome_dark_surfaceContainerLow,
+            surfaceContainer = monochrome_dark_surfaceContainer,
+            surfaceContainerHigh = monochrome_dark_surfaceContainerHigh,
+            surfaceContainerHighest = monochrome_dark_surfaceContainerHighest,
+            surfaceBright = monochrome_dark_surfaceBright,
+            surfaceDim = monochrome_dark_surfaceDim
+        )
+    } else {
+        LightColorScheme.copy(
+            primary = monochrome_light_primary,
+            onPrimary = monochrome_light_onPrimary,
+            primaryContainer = monochrome_light_primaryContainer,
+            onPrimaryContainer = monochrome_light_onPrimaryContainer,
+            secondary = monochrome_light_secondary,
+            onSecondary = monochrome_light_onSecondary,
+            secondaryContainer = monochrome_light_secondaryContainer,
+            onSecondaryContainer = monochrome_light_onSecondaryContainer,
+            tertiary = monochrome_light_tertiary,
+            onTertiary = monochrome_light_onTertiary,
+            tertiaryContainer = monochrome_light_tertiaryContainer,
+            onTertiaryContainer = monochrome_light_onTertiaryContainer,
+            background = monochrome_light_background,
+            onBackground = monochrome_light_onBackground,
+            surface = monochrome_light_surface,
+            onSurface = monochrome_light_onSurface,
+            surfaceVariant = monochrome_light_surfaceVariant,
+            onSurfaceVariant = monochrome_light_onSurfaceVariant,
+            outline = monochrome_light_outline,
+            outlineVariant = monochrome_light_outlineVariant,
+            inverseOnSurface = monochrome_light_inverseOnSurface,
+            inverseSurface = monochrome_light_inverseSurface,
+            inversePrimary = monochrome_light_inversePrimary,
+            surfaceTint = monochrome_light_surfaceTint,
+            surfaceContainerLowest = monochrome_light_surfaceContainerLowest,
+            surfaceContainerLow = monochrome_light_surfaceContainerLow,
+            surfaceContainer = monochrome_light_surfaceContainer,
+            surfaceContainerHigh = monochrome_light_surfaceContainerHigh,
+            surfaceContainerHighest = monochrome_light_surfaceContainerHighest,
+            surfaceBright = monochrome_light_surfaceBright,
+            surfaceDim = monochrome_light_surfaceDim
+        )
+    }
+
 /**
  * Resolves home app card colors from the appearance settings, or `null` when cards keep the
  * per-app colors declared by their bundle.
@@ -97,7 +171,7 @@ fun ManagerTheme(
     darkTheme: Boolean,
     dynamicColor: Boolean,
     pureBlackTheme: Boolean,
-    monochromeTheme: Boolean = false,
+    traits: ThemeTraits = ThemeTraits(),
     accentColorHex: String? = null,
     themeColorHex: String? = null,
     appCardColorMode: AppCardColorMode = AppCardColorMode.DEFAULT,
@@ -105,12 +179,7 @@ fun ManagerTheme(
     content: @Composable () -> Unit
 ) {
     val baseScheme = when {
-        monochromeTheme -> {
-            monochromeColorScheme(
-                base = if (darkTheme) DarkColorScheme else LightColorScheme,
-                darkTheme = darkTheme
-            )
-        }
+        traits.monochrome -> monochromeColorScheme(darkTheme)
 
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
@@ -134,7 +203,7 @@ fun ManagerTheme(
         applyCustomAccent(baseScheme, it, darkTheme)
     } ?: baseScheme
 
-    val finalScheme = if (monochromeTheme) {
+    val finalScheme = if (traits.monochrome) {
         schemeWithAccent
     } else {
         themeColorHex.toColorOrNull()?.let {
@@ -158,13 +227,13 @@ fun ManagerTheme(
     // Monochrome cards draw on neutral theme surfaces, so custom card colors never apply there.
     // Remembered because a new resolver instance would invalidate every card that reads it
     val appCardColorResolver = remember(
-        monochromeTheme,
+        traits.monochrome,
         appCardColorMode,
         accentColorHex,
         finalScheme.primary,
         appCardColorValues
     ) {
-        if (monochromeTheme) {
+        if (traits.monochrome) {
             null
         } else {
             AppCardColorDefaults.resolver(
@@ -177,7 +246,7 @@ fun ManagerTheme(
     }
 
     CompositionLocalProvider(
-        LocalMonochromeTheme provides monochromeTheme,
+        LocalThemeTraits provides traits,
         LocalAppCardColorResolver provides appCardColorResolver
     ) {
         MaterialTheme(
@@ -203,6 +272,14 @@ enum class ThemeStyle(val displayName: Int) {
 }
 
 /**
+ * Whether the theme in effect is a dark one. Read from the background rather than the mode picked
+ * in the settings, so a pure black or custom colored theme still gets the colors meant for it.
+ */
+@Composable
+@ReadOnlyComposable
+fun isDarkTheme(): Boolean = MaterialTheme.colorScheme.background.isDarkBackground()
+
+/**
  * Downgrades [ThemeStyle.MATERIAL_YOU] to [ThemeStyle.MORPHE] on devices that
  * do not expose the platform dynamic color palette.
  */
@@ -222,17 +299,17 @@ private fun applyCustomAccent(
     val tertiaryContainer = accent.adjustLightness(if (darkTheme) 0.4f else -0.4f)
     return colorScheme.copy(
         primary = accent,
-        onPrimary = accent.contrastingForeground(),
+        onPrimary = accent.contrastingContent(),
         primaryContainer = primaryContainer,
-        onPrimaryContainer = primaryContainer.contrastingForeground(),
+        onPrimaryContainer = primaryContainer.contrastingContent(),
         secondary = secondary,
-        onSecondary = secondary.contrastingForeground(),
+        onSecondary = secondary.contrastingContent(),
         secondaryContainer = secondaryContainer,
-        onSecondaryContainer = secondaryContainer.contrastingForeground(),
+        onSecondaryContainer = secondaryContainer.contrastingContent(),
         tertiary = tertiary,
-        onTertiary = tertiary.contrastingForeground(),
+        onTertiary = tertiary.contrastingContent(),
         tertiaryContainer = tertiaryContainer,
-        onTertiaryContainer = tertiaryContainer.contrastingForeground(),
+        onTertiaryContainer = tertiaryContainer.contrastingContent(),
         surfaceTint = accent,
         inversePrimary = accent.adjustLightness(if (darkTheme) -0.4f else 0.4f)
     )
@@ -306,9 +383,9 @@ private fun applyCustomThemeColor(
         themeColor.adjustLightness(0.6f)
     }
 
-    val onBackground = background.contrastingForeground()
-    val onSurface = surface.contrastingForeground()
-    val onSurfaceVariant = surfaceVariant.contrastingForeground()
+    val onBackground = background.contrastingContent()
+    val onSurface = surface.contrastingContent()
+    val onSurfaceVariant = surfaceVariant.contrastingContent()
 
     return colorScheme.copy(
         background = background,
@@ -333,9 +410,4 @@ private fun Color.adjustLightness(delta: Float): Color {
     ColorUtils.colorToHSL(this.toArgb(), hsl)
     hsl[2] = (hsl[2] + delta).coerceIn(0f, 1f)
     return Color(ColorUtils.HSLToColor(hsl))
-}
-
-private fun Color.contrastingForeground(): Color {
-    val luminance = ColorUtils.calculateLuminance(this.toArgb())
-    return if (luminance > 0.5) Color.Black else Color.White
 }

@@ -9,6 +9,8 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,7 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -28,9 +30,7 @@ import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.domain.batch.BatchRunState
 import app.morphe.manager.domain.repository.PatchBundleRepository
-import app.morphe.manager.ui.screen.shared.Animations
-import app.morphe.manager.ui.screen.shared.CardBorder
-import app.morphe.manager.ui.screen.shared.ThemedIcon
+import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.ui.viewmodel.BundleUpdateStatus
 import app.morphe.manager.util.formatMegabytes
 
@@ -91,7 +91,7 @@ fun NotificationsOverlay(
             // Blocked source alert takes priority and cannot be dismissed while the block persists
             AlertSnackbar(
                 visible = notifications.blockedSources.visible,
-                level = AlertLevel.Error,
+                tone = SemanticTone.Error,
                 icon = Icons.Outlined.Block,
                 title = stringResource(R.string.home_blocked_source_title),
                 subtitle = stringResource(R.string.home_blocked_source_subtitle),
@@ -104,7 +104,7 @@ fun NotificationsOverlay(
             // that might, so it sits above the rest
             AlertSnackbar(
                 visible = notifications.heldBackSources.visible,
-                level = AlertLevel.Error,
+                tone = SemanticTone.Error,
                 icon = Icons.Outlined.ErrorOutline,
                 title = stringResource(R.string.home_held_back_title),
                 subtitle = stringResource(R.string.home_held_back_subtitle),
@@ -115,7 +115,7 @@ fun NotificationsOverlay(
             // A source built for a newer patcher stays unusable until the app itself is updated
             AlertSnackbar(
                 visible = notifications.outdatedManager.visible,
-                level = AlertLevel.Error,
+                tone = SemanticTone.Error,
                 icon = Icons.Outlined.SystemUpdate,
                 title = stringResource(R.string.home_outdated_manager_title),
                 subtitle = stringResource(R.string.home_outdated_manager_subtitle),
@@ -125,7 +125,7 @@ fun NotificationsOverlay(
 
             AlertSnackbar(
                 visible = notifications.meteredSkipped.visible,
-                level = AlertLevel.Warning,
+                tone = SemanticTone.Warning,
                 icon = Icons.Outlined.SignalCellularAlt,
                 title = stringResource(R.string.home_metered_skipped_title),
                 subtitle = stringResource(R.string.home_metered_skipped_subtitle),
@@ -135,7 +135,7 @@ fun NotificationsOverlay(
 
             AlertSnackbar(
                 visible = notifications.metadataErrors.visible,
-                level = AlertLevel.Warning,
+                tone = SemanticTone.Warning,
                 icon = Icons.Outlined.CloudOff,
                 title = stringResource(R.string.home_metadata_errors_title),
                 subtitle = stringResource(R.string.home_metadata_errors_subtitle),
@@ -145,7 +145,7 @@ fun NotificationsOverlay(
 
             AlertSnackbar(
                 visible = notifications.managerUpdate.visible,
-                level = AlertLevel.Info,
+                tone = SemanticTone.Primary,
                 icon = Icons.Outlined.Update,
                 title = stringResource(R.string.home_update_available),
                 subtitle = stringResource(R.string.home_update_available_subtitle),
@@ -161,9 +161,9 @@ fun NotificationsOverlay(
             // single-app patching back meanwhile, so it cannot be swiped away
             AlertSnackbar(
                 visible = batchRunning,
-                level = AlertLevel.Info,
+                tone = SemanticTone.Primary,
                 icon = Icons.Outlined.AutoFixHigh,
-                loading = true,
+                progress = batchRun?.let { run -> if (run.total > 0) run.processed.toFloat() / run.total else 0f },
                 title = stringResource(R.string.batch_patch_title),
                 subtitle = stringResource(
                     R.string.batch_patch_progress_counter,
@@ -179,8 +179,8 @@ fun NotificationsOverlay(
             val batchSucceeded = (batchRun?.succeeded ?: 0) > 0
             AlertSnackbar(
                 visible = batchFinished,
-                level = if (batchSucceeded) AlertLevel.Success else AlertLevel.Error,
-                icon = if (batchSucceeded) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
+                tone = if (batchSucceeded) SemanticTone.Success else SemanticTone.Error,
+                icon = if (batchSucceeded) Icons.Outlined.Check else Icons.Outlined.ErrorOutline,
                 title = stringResource(
                     if (batchSucceeded) R.string.patcher_complete_title else R.string.patcher_failed_title
                 ),
@@ -201,7 +201,7 @@ fun NotificationsOverlay(
                 visible = notifications.repatchAvailable.visible &&
                         notifications.repatchAvailable.count > 0 &&
                         !batchRunning && !batchFinished,
-                level = AlertLevel.Info,
+                tone = SemanticTone.Primary,
                 icon = Icons.Outlined.AutoFixHigh,
                 title = pluralStringResource(
                     R.plurals.repatch_available_count,
@@ -223,124 +223,47 @@ fun NotificationsOverlay(
     }
 }
 
-/** Semantic level of an [AlertSnackbar], resolved into a Material color pair at call time. */
-enum class AlertLevel { Info, Warning, Error, Success }
-
-private data class AlertColorPair(val container: Color, val content: Color)
-
-@Composable
-private fun alertColorsFor(level: AlertLevel): AlertColorPair = when (level) {
-    AlertLevel.Info -> AlertColorPair(
-        MaterialTheme.colorScheme.tertiaryContainer,
-        MaterialTheme.colorScheme.onTertiaryContainer
-    )
-    AlertLevel.Warning -> AlertColorPair(
-        MaterialTheme.colorScheme.secondaryContainer,
-        MaterialTheme.colorScheme.onSecondaryContainer
-    )
-    AlertLevel.Error -> AlertColorPair(
-        MaterialTheme.colorScheme.errorContainer,
-        MaterialTheme.colorScheme.onErrorContainer
-    )
-    AlertLevel.Success -> AlertColorPair(
-        MaterialTheme.colorScheme.primaryContainer,
-        MaterialTheme.colorScheme.onPrimaryContainer
-    )
-}
-
 /**
- * Dismissible card-style alert used for the home-screen notification strip. Swipe-dismiss clears
- * the alert for the current session; it reappears next launch while [visible] stays true.
+ * Dismissible alert of the home screen's notification strip. Swipe-dismiss clears the alert for
+ * the current session; it reappears next launch while [visible] stays true.
  *
- * @param loading Shows a spinner in place of [icon], for work that is still in progress.
+ * @param progress Share of the work done, which puts [icon] inside a ring filling up with it, for
+ *   work still in progress.
  */
 @Composable
 fun AlertSnackbar(
     visible: Boolean,
-    level: AlertLevel,
+    tone: SemanticTone,
     icon: ImageVector,
     title: String,
     subtitle: String,
     onShowDetails: () -> Unit,
     modifier: Modifier = Modifier,
     swipeEnabled: Boolean = true,
-    loading: Boolean = false
+    progress: Float? = null
 ) {
-    val colors = alertColorsFor(level)
-    val dismissed = remember { mutableStateOf(false) }
-    LaunchedEffect(visible) { if (visible) dismissed.value = false }
-
-    val swipeState = rememberSwipeToDismissBoxState(
-        positionalThreshold = { totalDistance -> totalDistance * 0.4f }
-    )
-    LaunchedEffect(swipeState.currentValue) {
-        if (swipeEnabled && swipeState.currentValue != SwipeToDismissBoxValue.Settled) {
-            dismissed.value = true
-        }
-    }
-
-    AnimatedVisibility(
-        visible = visible && !dismissed.value,
-        enter = Animations.slideUpFadeEnter,
-        exit = Animations.slideUpFadeExit,
-        modifier = modifier
-    ) {
-        SwipeToDismissBox(
-            state = swipeState,
-            backgroundContent = {},
-            enableDismissFromStartToEnd = swipeEnabled,
-            enableDismissFromEndToStart = swipeEnabled
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                onClick = onShowDetails,
-                colors = CardDefaults.cardColors(containerColor = colors.container),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                shape = RoundedCornerShape(16.dp),
-                border = CardBorder.tinted(colors.content)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (loading) {
-                        AlertSpinner(color = colors.content)
-                    } else {
-                        ThemedIcon(icon = icon, tint = colors.content)
-                    }
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.content
-                        )
-                        Text(
-                            text = subtitle,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = colors.content.copy(alpha = 0.8f)
+    DismissibleAlert(visible = visible, swipeEnabled = swipeEnabled, modifier = modifier) {
+        StatusCard(
+            tone = tone,
+            title = title,
+            subtitle = subtitle,
+            onClick = onShowDetails,
+            leading = {
+                if (progress != null) {
+                    ProgressRing(progress = progress) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                } else {
+                    StatusDisc(icon = icon, tone = tone)
                 }
             }
-        }
+        )
     }
-}
-
-/** Stands in for an alert's icon while the work it reports on is still running. */
-@Composable
-private fun AlertSpinner(color: Color) {
-    CircularProgressIndicator(
-        modifier = Modifier.size(24.dp),
-        strokeWidth = 2.5.dp,
-        color = color
-    )
 }
 
 /**
@@ -353,23 +276,121 @@ fun BundleUpdateSnackbar(
     progress: PatchBundleRepository.BundleUpdateProgress?,
     modifier: Modifier = Modifier
 ) {
-    val dismissed = remember { mutableStateOf(false) }
-    // Reset when a new update cycle starts
-    LaunchedEffect(visible, status) {
-        if (visible && status == BundleUpdateStatus.Updating) dismissed.value = false
+    // Swipe only for terminal states, so an update in progress cannot be dismissed. A new status
+    // brings the alert back, which is how a new update cycle shows up after the last was swiped
+    DismissibleAlert(
+        visible = visible,
+        swipeEnabled = status != BundleUpdateStatus.Updating,
+        resetKey = status,
+        modifier = modifier
+    ) {
+        BundleUpdateCard(status = status, progress = progress)
+    }
+}
+
+/** The card of the bundle update, from its progress while it runs to how it ended. */
+@Composable
+private fun BundleUpdateCard(
+    status: BundleUpdateStatus,
+    progress: PatchBundleRepository.BundleUpdateProgress?
+) {
+    val sourcesByUid = rememberSourcesByUid()
+
+    val downloadFraction = progress?.bytesTotal
+        ?.takeIf { it > 0L }
+        ?.let { progress.bytesRead.toFloat() / it }
+    val isDownloading = progress?.phase == PatchBundleRepository.BundleUpdatePhase.Downloading &&
+            downloadFraction != null && downloadFraction > 0f
+    val countFraction = progress
+        ?.takeIf { it.total > 1 && it.completed > 0 }
+        ?.let { it.completed.toFloat() / it.total }
+    // Null until there is a share to show, which spins the ring rather than parking it at zero
+    val ringProgress = if (isDownloading) downloadFraction else countFraction
+
+    val tone = when (status) {
+        BundleUpdateStatus.Updating -> SemanticTone.Neutral
+        BundleUpdateStatus.Success -> SemanticTone.Success
+        BundleUpdateStatus.Warning -> SemanticTone.Warning
+        BundleUpdateStatus.Error -> SemanticTone.Error
     }
 
-    // Allow swipe only for terminal states - don't let user dismiss an in-progress update
-    val swipeable = status != BundleUpdateStatus.Updating
-
-    val swipeState = rememberSwipeToDismissBoxState(
-        positionalThreshold = { totalDistance -> totalDistance * 0.4f }
-    )
-    LaunchedEffect(swipeState.currentValue) {
-        if (swipeable && swipeState.currentValue != SwipeToDismissBoxValue.Settled) {
-            dismissed.value = true
+    val title = stringResource(
+        when (status) {
+            BundleUpdateStatus.Updating -> R.string.home_updating_sources
+            BundleUpdateStatus.Success -> R.string.home_update_success
+            BundleUpdateStatus.Warning -> R.string.home_update_skipped_metered
+            BundleUpdateStatus.Error -> R.string.home_update_error
         }
+    )
+
+    // One line names the source at work and how much of it has arrived, while the badge carries
+    // how far along the whole update is: its share, or how many sources are done when several run
+    val activeName = progress?.activeNames?.firstOrNull() ?: progress?.currentBundleName
+    val arrived = progress?.takeIf { isDownloading }?.let {
+        stringResource(
+            R.string.manager_update_progress_size,
+            formatMegabytes(it.bytesRead),
+            formatMegabytes(it.bytesTotal ?: 0L)
+        )
     }
+    val subtitle = when (status) {
+        BundleUpdateStatus.Updating -> listOfNotNull(activeName, arrived).joinToString(DETAIL_SEPARATOR)
+        BundleUpdateStatus.Success -> stringResource(R.string.home_update_success_subtitle)
+        BundleUpdateStatus.Warning -> stringResource(R.string.home_update_skipped_metered_subtitle)
+        BundleUpdateStatus.Error -> stringResource(R.string.home_update_error_subtitle)
+    }
+    val badge = when {
+        status != BundleUpdateStatus.Updating || progress == null -> null
+        progress.total > 1 -> stringResource(R.string.home_update_bundle_count, progress.completed, progress.total)
+        isDownloading -> stringResource(R.string.patcher_percentage, (downloadFraction * 100).toInt().toString())
+        else -> null
+    }
+    val activeSource = progress?.activeUids?.firstOrNull()?.let(sourcesByUid::get)
+
+    StatusCard(
+        tone = tone,
+        title = title,
+        subtitle = subtitle,
+        badge = badge,
+        leading = {
+            Crossfade(targetState = status, label = "bundleUpdateLeading") { shown ->
+                when (shown) {
+                    BundleUpdateStatus.Updating -> ProgressRing(progress = ringProgress) {
+                        if (activeSource != null) {
+                            BundleIcon(bundle = activeSource, modifier = Modifier.size(24.dp))
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.Sync,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    BundleUpdateStatus.Success -> StatusDisc(Icons.Outlined.Check, SemanticTone.Success)
+                    BundleUpdateStatus.Warning -> StatusDisc(Icons.Outlined.SignalCellularAlt, SemanticTone.Warning)
+                    BundleUpdateStatus.Error -> StatusDisc(Icons.Outlined.Warning, SemanticTone.Error)
+                }
+            }
+        }
+    )
+}
+
+/**
+ * Shows [content] while [visible], sliding it in and out, and lets a swipe put it away for the rest
+ * of the session while [swipeEnabled]. A change of [resetKey] while visible brings a swiped alert
+ * back.
+ */
+@Composable
+private fun DismissibleAlert(
+    visible: Boolean,
+    swipeEnabled: Boolean,
+    modifier: Modifier = Modifier,
+    resetKey: Any? = null,
+    content: @Composable () -> Unit
+) {
+    val dismissed = remember { mutableStateOf(false) }
+    LaunchedEffect(visible, resetKey) { if (visible) dismissed.value = false }
 
     AnimatedVisibility(
         visible = visible && !dismissed.value,
@@ -377,199 +398,155 @@ fun BundleUpdateSnackbar(
         exit = Animations.slideUpFadeExit,
         modifier = modifier
     ) {
+        // Made anew each time the alert shows, so one swiped away earlier does not come back
+        // still pushed off to the side
+        val swipeState = rememberSwipeToDismissBoxState(
+            positionalThreshold = { totalDistance -> totalDistance * 0.4f }
+        )
+        LaunchedEffect(swipeState.currentValue) {
+            if (swipeEnabled && swipeState.currentValue != SwipeToDismissBoxValue.Settled) {
+                dismissed.value = true
+            }
+        }
+
         SwipeToDismissBox(
             state = swipeState,
             backgroundContent = {},
-            enableDismissFromStartToEnd = swipeable,
-            enableDismissFromEndToStart = swipeable
+            enableDismissFromStartToEnd = swipeEnabled,
+            enableDismissFromEndToStart = swipeEnabled
         ) {
-            BundleUpdateSnackbarContent(status = status, progress = progress)
+            content()
         }
     }
 }
 
 /**
- * Snackbar content with status indicator.
+ * Card of one alert in the notification strip: [leading] beside its [title] over a [subtitle],
+ * with an optional [badge], and a chevron when a tap opens more. Laid on the app's own card
+ * surface, lightly tinted with [tone], and lifted just enough to stand apart from what it floats over.
  */
 @Composable
-private fun BundleUpdateSnackbarContent(
-    status: BundleUpdateStatus,
-    progress: PatchBundleRepository.BundleUpdateProgress?
+private fun StatusCard(
+    tone: SemanticTone,
+    title: String,
+    subtitle: String,
+    leading: @Composable () -> Unit,
+    badge: String? = null,
+    onClick: (() -> Unit)? = null
 ) {
-    val fraction = if (progress == null || progress.total == 0) 0f
-                   else progress.completed.toFloat() / progress.total
-
-    val downloadFraction = progress?.bytesTotal
-        ?.takeIf { it > 0L }
-        ?.let { progress.bytesRead.toFloat() / it }
-        ?: 0f
-
-    val isDownloading = progress?.phase == PatchBundleRepository.BundleUpdatePhase.Downloading &&
-            downloadFraction > 0f
-    val displayProgress = if (isDownloading) downloadFraction else fraction
-
+    val surface = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
+    val neutral = tone == SemanticTone.Neutral
     val containerColor by animateColorAsState(
-        targetValue = when (status) {
-            BundleUpdateStatus.Success -> MaterialTheme.colorScheme.primaryContainer
-            BundleUpdateStatus.Warning -> MaterialTheme.colorScheme.secondaryContainer
-            BundleUpdateStatus.Error -> MaterialTheme.colorScheme.errorContainer
-            BundleUpdateStatus.Updating -> MaterialTheme.colorScheme.surfaceVariant
-        },
-        animationSpec = tween(durationMillis = 300),
-        label = "containerColor"
+        targetValue = if (neutral) surface else tone.container.copy(alpha = 0.35f).compositeOver(surface),
+        animationSpec = tween(Defaults.ANIMATION_DURATION),
+        label = "statusCardContainer"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (neutral) MaterialTheme.colorScheme.outlineVariant else tone.accent.copy(alpha = 0.35f),
+        animationSpec = tween(Defaults.ANIMATION_DURATION),
+        label = "statusCardBorder"
     )
 
-    val contentColor by animateColorAsState(
-        targetValue = when (status) {
-            BundleUpdateStatus.Success -> MaterialTheme.colorScheme.onPrimaryContainer
-            BundleUpdateStatus.Warning -> MaterialTheme.colorScheme.onSecondaryContainer
-            BundleUpdateStatus.Error -> MaterialTheme.colorScheme.onErrorContainer
-            BundleUpdateStatus.Updating -> MaterialTheme.colorScheme.onSurfaceVariant
-        },
-        animationSpec = tween(durationMillis = 300),
-        label = "contentColor"
-    )
-
-    Card(
+    Surface(
+        onClick = onClick ?: {},
+        enabled = onClick != null,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        border = CardBorder.tinted(contentColor)
+            .padding(horizontal = Defaults.ContentPadding),
+        shape = RoundedCornerShape(Defaults.CardCornerRadius),
+        color = containerColor,
+        border = CardBorder.of(borderColor),
+        shadowElevation = 2.dp
     ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+        Row(
+            modifier = Modifier
+                .animateContentSize()
+                .padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            leading()
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                // Icon based on status
-                Crossfade(targetState = status, label = "snackbarIcon") { s ->
-                    when (s) {
-                        BundleUpdateStatus.Success -> ThemedIcon(
-                            icon = Icons.Outlined.CheckCircle,
-                            tint = contentColor
-                        )
-                        BundleUpdateStatus.Warning -> ThemedIcon(
-                            icon = Icons.Outlined.SignalCellularAlt,
-                            tint = contentColor
-                        )
-                        BundleUpdateStatus.Error -> ThemedIcon(
-                            icon = Icons.Outlined.Warning,
-                            tint = contentColor
-                        )
-                        BundleUpdateStatus.Updating -> AlertSpinner(color = contentColor)
-                    }
-                }
-
-                // Text content
-                Column(modifier = Modifier.weight(1f)) {
-                    Crossfade(targetState = status, label = "snackbarTitle") { s ->
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (subtitle.isNotEmpty()) {
+                    // Eased from one text to the next, but keyed by what comes before its details,
+                    // so the figures of a running update tick over in place
+                    AnimatedContent(
+                        targetState = subtitle,
+                        transitionSpec = Animations.fadeCrossfade(200),
+                        contentKey = { it.substringBefore(DETAIL_SEPARATOR) },
+                        label = "statusCardSubtitle"
+                    ) { text ->
                         Text(
-                            text = when (s) {
-                                BundleUpdateStatus.Success -> stringResource(R.string.home_update_success)
-                                BundleUpdateStatus.Warning -> stringResource(R.string.home_update_skipped_metered)
-                                BundleUpdateStatus.Error -> stringResource(R.string.home_update_error)
-                                BundleUpdateStatus.Updating -> stringResource(R.string.home_updating_sources)
-                            },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = contentColor
-                        )
-                    }
-
-                    val subtitleColor = contentColor.copy(alpha = 0.8f)
-
-                    if (status == BundleUpdateStatus.Warning) {
-                        Text(
-                            text = stringResource(R.string.home_update_skipped_metered_subtitle),
+                            text = text,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = subtitleColor
-                        )
-                    }
-
-                    if (status == BundleUpdateStatus.Updating && progress != null) {
-                        val totalMb = formatMegabytes(progress.bytesTotal ?: 0L)
-                        val readMb = formatMegabytes(progress.bytesRead)
-                        val percent = (downloadFraction * 100).toInt()
-                        val (subtitleKey, subtitle) = when {
-                            progress.total > 1 && isDownloading -> 1 to stringResource(
-                                R.string.home_update_bundle_count_with_bytes,
-                                progress.completed, progress.total, readMb, totalMb, percent
-                            )
-                            progress.total > 1 -> 2 to stringResource(
-                                R.string.home_update_bundle_count,
-                                progress.completed, progress.total
-                            )
-                            isDownloading -> 3 to stringResource(
-                                R.string.download_progress,
-                                readMb, totalMb, percent.toString()
-                            )
-                            progress.currentBundleName != null -> 4 to progress.currentBundleName
-                            else -> 0 to null
-                        }
-                        AnimatedContent(
-                            targetState = subtitleKey to subtitle,
-                            contentKey = { it.first },
-                            transitionSpec = Animations.fadeCrossfade(200),
-                            label = "subtitle"
-                        ) { (_, text) ->
-                            if (text != null) {
-                                Text(
-                                    text = text,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = subtitleColor,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                        AnimatedVisibility(visible = progress.activeNames.isNotEmpty()) {
-                            Crossfade(
-                                targetState = progress.activeNames.joinToString(", "),
-                                label = "activeNames"
-                            ) { names ->
-                                Text(
-                                    text = names,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = contentColor.copy(alpha = 0.6f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                    }
-
-                    if (status == BundleUpdateStatus.Success) {
-                        Text(
-                            text = stringResource(R.string.home_update_success_subtitle),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = subtitleColor
-                        )
-                    }
-                    if (status == BundleUpdateStatus.Error) {
-                        Text(
-                            text = stringResource(R.string.home_update_error_subtitle),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = subtitleColor
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
             }
 
-            // Progress bar for updating state
-            if (status == BundleUpdateStatus.Updating && displayProgress > 0f) {
-                LinearProgressIndicator(
-                    progress = { displayProgress },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+            if (badge != null) {
+                StatusBadge(text = badge, tone = if (neutral) SemanticTone.Primary else tone)
+            }
+            if (onClick != null) {
+                ForwardChevronIcon(size = 18.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
+
+/** Leading icon of a [StatusCard] whose work is done, on a disc in [tone]. */
+@Composable
+private fun StatusDisc(icon: ImageVector, tone: SemanticTone) {
+    StatusCircleIcon(
+        icon = icon,
+        containerColor = tone.container,
+        contentColor = tone.content,
+        size = StatusLeadingSize
+    )
+}
+
+/**
+ * Leading of a [StatusCard] whose work is still running: [content] inside a ring filling with
+ * [progress], or spinning while there is no share to show yet.
+ */
+@Composable
+private fun ProgressRing(progress: Float?, content: @Composable () -> Unit) {
+    // Eased, since the share arrives in steps as the download reports back
+    val animated by animateFloatAsState(
+        targetValue = progress ?: 0f,
+        animationSpec = tween(Defaults.ANIMATION_DURATION),
+        label = "statusRingProgress"
+    )
+
+    Box(
+        modifier = Modifier.size(StatusLeadingSize),
+        contentAlignment = Alignment.Center
+    ) {
+        WavyProgressRing(
+            progress = progress?.let { { animated } },
+            wavelength = 10.dp,
+            accentColor = null,
+            strokeWidth = 3.5.dp,
+            modifier = Modifier.matchParentSize()
+        )
+        content()
+    }
+}
+
+private val StatusLeadingSize = 44.dp
+
+/** Joins the parts of a [StatusCard]'s subtitle, a name and the details about it. */
+private const val DETAIL_SEPARATOR = " · "

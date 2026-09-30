@@ -50,7 +50,8 @@ fun SelectionTile(
         color = containerColor,
         contentColor = GlassButtonDefaults.contentColor(selected)
             .readableOn(containerColor, MaterialTheme.colorScheme.surface),
-        border = BorderStroke(if (selected) 2.dp else 1.dp, borderColor),
+        // The thicker edge is what marks the picked tile, so only the resting one follows the setting
+        border = if (selected) BorderStroke(2.dp, borderColor) else CardBorder.of(borderColor),
         onClick = onClick,
         enabled = enabled
     ) {

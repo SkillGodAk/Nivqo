@@ -26,11 +26,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -96,92 +96,23 @@ fun HeaderCreatorDialog(
     onHeaderCreated: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     // YouTube Music has no light theme - show only the dark variant section
     val showLightVariant = packageName != KnownApps.YOUTUBE_MUSIC
 
-    var lightHeaderUri by remember { mutableStateOf<Uri?>(null) }
-    var lightHeaderBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var darkHeaderUri by remember { mutableStateOf<Uri?>(null) }
-    var darkHeaderBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    val light = remember { HeaderVariantState() }
+    val dark = remember { HeaderVariantState() }
 
-    // Scaling and positioning state for light header
-    var lightScale by remember { mutableFloatStateOf(1f) }
-    var lightOffsetX by remember { mutableFloatStateOf(0f) }
-    var lightOffsetY by remember { mutableFloatStateOf(0f) }
-
-    // Scaling and positioning state for dark header
-    var darkScale by remember { mutableFloatStateOf(1f) }
-    var darkOffsetX by remember { mutableFloatStateOf(0f) }
-    var darkOffsetY by remember { mutableFloatStateOf(0f) }
-
-    val context = LocalContext.current
-
-    // Light header image picker
-    val openLightHeaderPicker = rememberAdaptiveFilePicker(
-        mimeTypes = arrayOf("image/*"),
-        onResult = { uri ->
-            uri?.let {
-                lightHeaderUri = it
-                scope.launch(Dispatchers.IO) {
-                    try {
-                        val inputStream = context.contentResolver.openInputStream(it)
-                        val bitmap = BitmapFactory.decodeStream(inputStream)
-                        inputStream?.close()
-                        lightHeaderBitmap = bitmap
-                        // Reset transform when new image is loaded
-                        withContext(Dispatchers.Main) {
-                            lightScale = 1f
-                            lightOffsetX = 0f
-                            lightOffsetY = 0f
-                        }
-                    } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            context.toast("Failed to load image: ${e.message}")
-                        }
-                    }
-                }
-            }
-        }
-    )
-
-    // Dark header image picker
-    val openDarkHeaderPicker = rememberAdaptiveFilePicker(
-        mimeTypes = arrayOf("image/*"),
-        onResult = { uri ->
-            uri?.let {
-                darkHeaderUri = it
-                scope.launch(Dispatchers.IO) {
-                    try {
-                        val inputStream = context.contentResolver.openInputStream(it)
-                        val bitmap = BitmapFactory.decodeStream(inputStream)
-                        inputStream?.close()
-                        darkHeaderBitmap = bitmap
-                        // Reset transform when new image is loaded
-                        withContext(Dispatchers.Main) {
-                            darkScale = 1f
-                            darkOffsetX = 0f
-                            darkOffsetY = 0f
-                        }
-                    } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            context.toast("Failed to load image: ${e.message}")
-                        }
-                    }
-                }
-            }
-        }
-    )
-
-    // Folder picker for saving
     val successMessage = stringResource(R.string.header_creator_success)
     val failureMessage = stringResource(R.string.header_creator_failed)
 
     // Whether all required images are provided
-    val canCreate = darkHeaderBitmap != null && (!showLightVariant || lightHeaderBitmap != null)
+    val canCreate = dark.bitmap != null && (!showLightVariant || light.bitmap != null)
 
     var isCreating by remember { mutableStateOf(false) }
 
+    // Folder picker for saving
     val openFolderPicker = rememberFolderPicker { uri ->
         scope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) { isCreating = true }
@@ -190,14 +121,14 @@ fun HeaderCreatorDialog(
                     context = context,
                     baseUri = uri,
                     packageName = packageName,
-                    lightHeaderBitmap = if (showLightVariant) lightHeaderBitmap else null,
-                    darkHeaderBitmap = darkHeaderBitmap!!,
-                    lightScale = lightScale,
-                    lightOffsetX = lightOffsetX,
-                    lightOffsetY = lightOffsetY,
-                    darkScale = darkScale,
-                    darkOffsetX = darkOffsetX,
-                    darkOffsetY = darkOffsetY
+                    lightHeaderBitmap = if (showLightVariant) light.bitmap else null,
+                    darkHeaderBitmap = dark.bitmap!!,
+                    lightScale = light.scale,
+                    lightOffsetX = light.offsetX,
+                    lightOffsetY = light.offsetY,
+                    darkScale = dark.scale,
+                    darkOffsetX = dark.offsetX,
+                    darkOffsetY = dark.offsetY
                 )
                 withContext(Dispatchers.Main) {
                     isCreating = false
@@ -218,184 +149,131 @@ fun HeaderCreatorDialog(
         }
     }
 
-    val showInfoDialog = remember { mutableStateOf(false) }
-
-    AppDialog(
-        onDismissRequest = { if (!isCreating) onDismiss() },
+    CreatorDialogFrame(
+        packageName = packageName,
         title = stringResource(R.string.header_creator_create),
-        titleTrailingContent = {
-            TitleAction(
-                icon = Icons.Outlined.Info,
-                contentDescription = stringResource(R.string.header_creator_guide),
-                onClick = { showInfoDialog.value = true }
-            )
-        },
-        footer = {
-            AppDialogButton(
-                text = stringResource(R.string.header_creator_create),
-                onClick = { openFolderPicker() },
-                enabled = canCreate && !isCreating,
-                icon = Icons.Outlined.Save,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        guideTitle = stringResource(R.string.header_creator_guide),
+        guide = listOf(
+            stringResource(R.string.header_creator_guide_image_title) to stringResource(R.string.header_creator_guide_image_body),
+            stringResource(R.string.header_creator_guide_themes_title) to stringResource(R.string.header_creator_guide_themes_body),
+            stringResource(R.string.header_creator_guide_positioning_title) to stringResource(R.string.header_creator_guide_positioning_body)
+        ),
+        createEnabled = canCreate,
+        isCreating = isCreating,
+        onCreate = { openFolderPicker() },
+        onDismiss = onDismiss
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
-            ) {
-                // Light header section
-                if (showLightVariant) {
-                    Text(
-                        text = stringResource(R.string.header_creator_light_theme),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = LocalDialogTextColor.current
-                    )
-
-                    AppDialogOutlinedButton(
-                        text = if (lightHeaderUri == null)
-                            stringResource(R.string.adaptive_icon_select_image)
-                        else
-                            stringResource(R.string.adaptive_icon_change_image),
-                        onClick = { openLightHeaderPicker() },
-                        icon = Icons.Outlined.LightMode,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    HeaderPreview(
-                        headerBitmap = lightHeaderBitmap,
-                        scale = lightScale,
-                        offsetX = lightOffsetX,
-                        offsetY = lightOffsetY,
-                        isDarkTheme = false,
-                        onScaleChange = { newScale ->
-                            lightScale = newScale.coerceIn(HeaderConfig.MIN_SCALE, HeaderConfig.MAX_SCALE)
-                        },
-                        onOffsetChange = { newOffsetX, newOffsetY ->
-                            lightOffsetX = newOffsetX.coerceIn(-HeaderConfig.MAX_OFFSET, HeaderConfig.MAX_OFFSET)
-                            lightOffsetY = newOffsetY.coerceIn(-HeaderConfig.MAX_OFFSET, HeaderConfig.MAX_OFFSET)
-                        }
-                    )
-
-                    if (lightHeaderBitmap != null) {
-                        ScaleSliderRow(
-                            value = lightScale,
-                            onValueChange = { lightScale = it },
-                            valueRange = HeaderConfig.MIN_SCALE..HeaderConfig.MAX_SCALE
-                        ) {
-                            SliderResetAction(
-                                visible = lightScale != 1f || lightOffsetX != 0f || lightOffsetY != 0f,
-                                contentDescription = null,
-                                onReset = { lightScale = 1f; lightOffsetX = 0f; lightOffsetY = 0f }
-                            )
-                        }
-                    }
-
-                    HorizontalDivider()
-                }
-
-                // Dark header section
-                Text(
-                    text = stringResource(R.string.header_creator_dark_theme),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = LocalDialogTextColor.current
-                )
-
-                AppDialogOutlinedButton(
-                    text = if (darkHeaderUri == null)
-                        stringResource(R.string.adaptive_icon_select_image)
-                    else
-                        stringResource(R.string.adaptive_icon_change_image),
-                    onClick = { openDarkHeaderPicker() },
-                    icon = Icons.Outlined.DarkMode,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                HeaderPreview(
-                    headerBitmap = darkHeaderBitmap,
-                    scale = darkScale,
-                    offsetX = darkOffsetX,
-                    offsetY = darkOffsetY,
-                    isDarkTheme = true,
-                    onScaleChange = { newScale ->
-                        darkScale = newScale.coerceIn(HeaderConfig.MIN_SCALE, HeaderConfig.MAX_SCALE)
-                    },
-                    onOffsetChange = { newOffsetX, newOffsetY ->
-                        darkOffsetX = newOffsetX.coerceIn(-HeaderConfig.MAX_OFFSET, HeaderConfig.MAX_OFFSET)
-                        darkOffsetY = newOffsetY.coerceIn(-HeaderConfig.MAX_OFFSET, HeaderConfig.MAX_OFFSET)
-                    }
-                )
-
-                if (darkHeaderBitmap != null) {
-                    ScaleSliderRow(
-                        value = darkScale,
-                        onValueChange = { darkScale = it },
-                        valueRange = HeaderConfig.MIN_SCALE..HeaderConfig.MAX_SCALE
-                    ) {
-                        SliderResetAction(
-                            visible = darkScale != 1f || darkOffsetX != 0f || darkOffsetY != 0f,
-                            contentDescription = null,
-                            onReset = { darkScale = 1f; darkOffsetX = 0f; darkOffsetY = 0f }
-                        )
-                    }
-                }
-            }
-            ContentOverlay(visible = isCreating) {
-                PulsingLogoWithCaption(caption = stringResource(R.string.creating))
-            }
+        if (showLightVariant) {
+            HeaderVariantCard(
+                title = stringResource(R.string.header_creator_light_theme),
+                icon = Icons.Outlined.LightMode,
+                state = light,
+                isDarkTheme = false
+            )
         }
-    }
 
-    if (showInfoDialog.value) {
-        AppDialog(
-            onDismissRequest = { showInfoDialog.value = false },
-            title = stringResource(R.string.header_creator_guide),
-            footer = {
-                AppDialogOutlinedButton(
-                    text = stringResource(R.string.close),
-                    onClick = { showInfoDialog.value = false },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                HeaderCreatorGuideSection(
-                    title = stringResource(R.string.header_creator_guide_image_title),
-                    body = stringResource(R.string.header_creator_guide_image_body)
-                )
-                HeaderCreatorGuideSection(
-                    title = stringResource(R.string.header_creator_guide_themes_title),
-                    body = stringResource(R.string.header_creator_guide_themes_body)
-                )
-                HeaderCreatorGuideSection(
-                    title = stringResource(R.string.header_creator_guide_positioning_title),
-                    body = stringResource(R.string.header_creator_guide_positioning_body)
-                )
-            }
-        }
+        HeaderVariantCard(
+            title = stringResource(R.string.header_creator_dark_theme),
+            icon = Icons.Outlined.DarkMode,
+            state = dark,
+            isDarkTheme = true
+        )
     }
 }
 
+/** One theme's header: the picture picked for it and where it sits in the header's frame. */
+@Stable
+private class HeaderVariantState {
+    var uri by mutableStateOf<Uri?>(null)
+    var bitmap by mutableStateOf<Bitmap?>(null)
+    var scale by mutableFloatStateOf(1f)
+    var offsetX by mutableFloatStateOf(0f)
+    var offsetY by mutableFloatStateOf(0f)
+
+    val isTransformed: Boolean get() = scale != 1f || offsetX != 0f || offsetY != 0f
+
+    fun resetTransform() {
+        scale = 1f
+        offsetX = 0f
+        offsetY = 0f
+    }
+}
+
+/**
+ * Card of one theme's header: the picture to pick, its preview to pinch and drag into place, and
+ * the scale slider once there is a picture to scale.
+ */
 @Composable
-private fun HeaderCreatorGuideSection(title: String, body: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = LocalDialogTextColor.current
+private fun HeaderVariantCard(
+    title: String,
+    icon: ImageVector,
+    state: HeaderVariantState,
+    isDarkTheme: Boolean
+) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    val openPicker = rememberAdaptiveFilePicker(
+        mimeTypes = arrayOf("image/*"),
+        onResult = { uri ->
+            uri?.let {
+                state.uri = it
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        val bitmap = context.contentResolver.openInputStream(it)?.use { stream -> BitmapFactory.decodeStream(stream) }
+                        withContext(Dispatchers.Main) {
+                            state.bitmap = bitmap
+                            // Reset transform when new image is loaded
+                            state.resetTransform()
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            context.toast("Failed to load image: ${e.message}")
+                        }
+                    }
+                }
+            }
+        }
+    )
+
+    CreatorCard(title = title) {
+        AppDialogOutlinedButton(
+            text = stringResource(
+                if (state.uri == null) R.string.adaptive_icon_select_image else R.string.adaptive_icon_change_image
+            ),
+            onClick = { openPicker() },
+            icon = icon,
+            modifier = Modifier.fillMaxWidth()
         )
-        Text(
-            text = body,
-            style = MaterialTheme.typography.bodySmall,
-            color = LocalDialogSecondaryTextColor.current
+
+        HeaderPreview(
+            headerBitmap = state.bitmap,
+            scale = state.scale,
+            offsetX = state.offsetX,
+            offsetY = state.offsetY,
+            isDarkTheme = isDarkTheme,
+            onScaleChange = { newScale ->
+                state.scale = newScale.coerceIn(HeaderConfig.MIN_SCALE, HeaderConfig.MAX_SCALE)
+            },
+            onOffsetChange = { newOffsetX, newOffsetY ->
+                state.offsetX = newOffsetX.coerceIn(-HeaderConfig.MAX_OFFSET, HeaderConfig.MAX_OFFSET)
+                state.offsetY = newOffsetY.coerceIn(-HeaderConfig.MAX_OFFSET, HeaderConfig.MAX_OFFSET)
+            }
         )
+
+        if (state.bitmap != null) {
+            ScaleSliderRow(
+                value = state.scale,
+                onValueChange = { state.scale = it },
+                valueRange = HeaderConfig.MIN_SCALE..HeaderConfig.MAX_SCALE
+            ) {
+                SliderResetAction(
+                    visible = state.isTransformed,
+                    contentDescription = stringResource(R.string.adaptive_icon_reset_transform),
+                    onReset = state::resetTransform
+                )
+            }
+        }
     }
 }
 

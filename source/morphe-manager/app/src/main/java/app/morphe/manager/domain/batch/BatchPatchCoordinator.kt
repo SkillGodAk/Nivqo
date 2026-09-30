@@ -296,7 +296,14 @@ class BatchPatchCoordinator(
                 withContext(NonCancellable) {
                     activeWorkId = null
                     installUnattendedIfRequested()
-                    _state.update { it.copy(phase = BatchPhase.FINISHED, activeIndex = null, activeRun = null) }
+                    _state.update {
+                        it.copy(
+                            phase = BatchPhase.FINISHED,
+                            activeIndex = null,
+                            activeRun = null,
+                            finishedInForeground = ManagerApplication.isInForeground
+                        )
+                    }
                     announceCompletion()
                 }
             }
@@ -408,7 +415,8 @@ class BatchPatchCoordinator(
             )
         }
 
-        if (prefs.patcherCompletionSound.get()) {
+        // A queue stopped before its end closes quietly rather than sounding like a result
+        if (prefs.patcherCompletionSound.get() && !state.wasStopped) {
             CompletionSound.play(
                 context = app,
                 succeeded = state.succeeded > 0,

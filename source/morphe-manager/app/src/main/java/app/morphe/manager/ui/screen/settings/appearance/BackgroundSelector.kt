@@ -74,6 +74,7 @@ fun BackgroundPickerDialog(
     AppDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.settings_appearance_background),
+        description = stringResource(R.string.settings_appearance_background_description),
         footer = {
             AppDialogOutlinedButton(
                 text = stringResource(R.string.close),

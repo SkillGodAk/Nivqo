@@ -5,43 +5,46 @@
 
 package app.morphe.manager.ui.screen.home
 
-import android.annotation.SuppressLint
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import android.graphics.drawable.Drawable
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Restore
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.patcher.patch.*
 import app.morphe.manager.ui.screen.shared.*
+import app.morphe.manager.ui.screen.shared.colorpicker.ColorPresetGrid
+import app.morphe.manager.ui.screen.shared.colorpicker.ColorPresetSwatch
 import app.morphe.manager.util.*
 import kotlinx.collections.immutable.ImmutableList
 import kotlin.math.roundToInt
 
 /**
  * Represents the resolved UI kind of patch option.
- * Used to drive an exhaustive when-expression in [PatchOptionsDialog].
+ * Used to drive an exhaustive when-expression in [PatchOptionEditor].
  */
 private sealed interface OptionKind {
     data object StringList      : OptionKind
@@ -175,291 +178,132 @@ private fun Any?.asFloatRange(): ClosedFloatingPointRange<Float>? {
 }
 
 /**
- * Options dialog for configuring patch options.
+ * Whether an option holds nothing: no value, a blank text or an empty list. A cleared field stores
+ * a blank, which the patcher reads as unset too, so it counts the same as a missing value.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+private fun Any?.isUnsetOptionValue(): Boolean = when (this) {
+    null -> true
+    is String -> isBlank()
+    is Collection<*> -> isEmpty()
+    else -> false
+}
+
+/**
+ * Whether two option values mean the same. A number can come back from storage as another type
+ * than the option declares, so numbers are compared by value, and an unset value matches any other.
+ */
+private fun optionValueEquals(a: Any?, b: Any?): Boolean = when {
+    a.isUnsetOptionValue() && b.isUnsetOptionValue() -> true
+    a is Number && b is Number -> a.toDouble() == b.toDouble()
+    a is List<*> && b is List<*> -> a.size == b.size && a.indices.all { optionValueEquals(a[it], b[it]) }
+    else -> a == b
+}
+
+/**
+ * Options dialog for configuring patch options. Headed by the app the patch is for, as the patch
+ * list it opens from is, with each option on a card of its own that says where it stands.
+ *
+ * @param packageName App being patched, whose icon heads the dialog.
+ * @param appName Name of that app, shown with the option count under the patch name.
+ * @param appIcon Icon of that app where no source has one.
+ * @param accentColor Color of that app, which tints the header band.
+ */
 @Composable
 internal fun PatchOptionsDialog(
     patch: PatchInfo,
+    packageName: String,
+    appName: String,
+    appIcon: Drawable?,
+    accentColor: Color?,
     isDefaultBundle: Boolean,
     values: Map<String, Any?>?,
     onValueChange: (String, Any?) -> Unit,
     onReset: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    // Derive the target package from the patch's compatible packages list
-    val packageName = patch.compatiblePackages?.firstOrNull()?.packageName.orEmpty()
+    val options = patch.options.orEmpty()
+    // A key the stored map lacks is still on the patch's own value
+    fun valueOf(option: Option<*>): Any? =
+        if (values == null || option.key !in values) option.default else values[option.key]
+    val anyChanged = options.any { !optionValueEquals(valueOf(it), it.default) }
 
     val showColorPicker = remember { mutableStateOf<Pair<String, String>?>(null) }
+    val scrollState = rememberScrollState()
 
     AppDialog(
         onDismissRequest = onDismiss,
-        title = patch.displayName,
-        titleTrailingContent = {
-            TitleAction(
-                icon = Icons.Outlined.Restore,
-                contentDescription = stringResource(R.string.reset),
-                onClick = onReset
-            )
-        },
+        accentColor = accentColor,
         footer = {
             AppDialogOutlinedButton(
                 text = stringResource(R.string.close),
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth()
             )
-        }
+        },
+        padding = DialogPadding.Compact,
+        scrollable = false,
+        contentArrangement = Arrangement.Top,
+        fillContentHeight = true,
+        hideFooterWhileTyping = true
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // Patch description
+        ListDialogHeader(
+            icon = { modifier ->
+                AppIcon(packageName = packageName, icon = appIcon, contentDescription = null, modifier = modifier)
+            },
+            title = patch.displayName,
+            subtitle = listOf(
+                appName,
+                pluralStringResource(R.plurals.option_count, options.size, options.size.toString())
+            ).joinToString(" · ")
+        ) {
+            TitleAction(
+                icon = Icons.Outlined.Restore,
+                contentDescription = stringResource(R.string.reset),
+                onClick = onReset,
+                style = TitleActionStyle.Accent,
+                enabled = anyChanged
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScrollFade(scrollState)
+                .verticalScroll(scrollState)
+                .padding(vertical = Defaults.ItemSpacing),
+            // Spaced as the patch list the dialog opens from
+            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
+        ) {
+            // What the patch does leads into its options
             if (!patch.description.isNullOrBlank()) {
                 Text(
-                    text = patch.description,
+                    text = rememberTranslated(patch.description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = LocalDialogSecondaryTextColor.current
                 )
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = Defaults.ItemSpacing),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                    thickness = 0.5.dp
-                )
             }
 
-            if (patch.options == null) return@Column
-
-            // Patch options
-            patch.options.forEachIndexed { index, option ->
-                val key   = option.key
-                val value = if (values == null || key !in values) option.default else values[key]
-
-                if (index > 0) {
-                    val prevOption = patch.options[index - 1]
-                    val prevValue = if (values == null || prevOption.key !in values) prevOption.default else values[prevOption.key]
-                    val bothBooleans = resolveOptionKind(option, value) == OptionKind.BooleanToggle &&
-                            resolveOptionKind(prevOption, prevValue) == OptionKind.BooleanToggle
-                    // Consecutive boolean toggles get a small spacer instead of a divider.
-                    // Dividers between toggles look redundant since each toggle is already a distinct row
-                    if (bothBooleans) {
-                        Spacer(modifier = Modifier.height(Defaults.ContentPaddingSmall))
-                    } else {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = Defaults.ItemSpacing),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                            thickness = 0.5.dp
-                        )
-                    }
-                }
-
-                // The patcher rejects a Long where an Int is declared, so the text is read as the
-                // option's own type. A cleared field drops the value back to the patch default
-                fun onNumberInput(text: String) {
-                    if (text.isBlank()) return onValueChange(key, null)
-                    coerceOptionValue(option.type, text)?.let { onValueChange(key, it) }
-                }
-
-                when (val kind = resolveOptionKind(option, value)) {
-                    OptionKind.StringList -> ListStringInputOption(
+            options.forEach { option ->
+                val value = valueOf(option)
+                PatchOptionEditor(
+                    option = option,
+                    value = value,
+                    heading = OptionHeading(
                         title = option.title,
-                        description = option.description,
-                        value = when (value) {
-                            is List<*> -> value.filterIsInstance<String>()
-                            is String  -> value.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-                            else       -> emptyList()
-                        },
-                        onValueChange = { newList ->
-                            // Check the KType classifier to determine how the patcher expects the value.
-                            // List<String> options need a real List<String>, while plain String options expect a comma-separated String.
-                            if (option.type.classifier == List::class) {
-                                onValueChange(key, newList.ifEmpty { null })
-                            } else {
-                                onValueChange(key, newList.joinToString(", ").ifBlank { null })
-                            }
-                        }
-                    )
-
-                    OptionKind.Color -> ColorOptionWithPresets(
-                        title = option.title,
-                        description = option.description,
-                        value = value as? String ?: "#000000",
-                        presets = option.presets,
-                        onPresetSelect = { onValueChange(key, it) },
-                        onCustomColorClick = {
-                            showColorPicker.value = key to (value as? String ?: "#000000")
-                        }
-                    )
-
-                    OptionKind.PathWithPresets -> {
-                        val presets = option.presets as Map<String, Any?>
-                        PathWithPresetsOption(
-                            title = option.title,
-                            description = option.description,
-                            value = value?.toString() ?: "",
-                            presets = presets,
-                            packageName = packageName,
-                            isDefaultBundle = isDefaultBundle,
-                            required = option.required,
-                            onValueChange = { onValueChange(key, it) }
-                        )
-                    }
-
-                    OptionKind.StringDropdown -> {
-                        val presets = option.presets as Map<String, Any?>
-                        DropdownOptionItem(
-                            title = option.title,
-                            description = option.description,
-                            value = value?.toString() ?: "",
-                            presets = presets,
-                            onValueChange = { onValueChange(key, it) }
-                        )
-                    }
-
-                    OptionKind.Path -> PathInputOption(
-                        title = option.title,
-                        description = option.description,
-                        value = value?.toString() ?: "",
-                        packageName = packageName,
-                        isDefaultBundle = isDefaultBundle,
+                        // Only shown translated, the option kind is still told from the original
+                        description = rememberTranslated(option.description),
                         required = option.required,
-                        onValueChange = { onValueChange(key, it) }
-                    )
-
-                    OptionKind.FilePath -> FilePathInputOption(
-                        title = option.title,
-                        description = option.description,
-                        value = value?.toString() ?: "",
-                        required = option.required,
-                        onValueChange = { onValueChange(key, it) }
-                    )
-
-                    OptionKind.FolderPicker -> FolderPickerOption(
-                        title = option.title,
-                        description = option.description,
-                        value = value?.toString() ?: "",
-                        packageName = packageName,
-                        isDefaultBundle = isDefaultBundle,
-                        required = option.required,
-                        onValueChange = { onValueChange(key, it) }
-                    )
-
-                    OptionKind.FilePicker -> FilePickerOption(
-                        title = option.title,
-                        description = option.description,
-                        value = value?.toString() ?: "",
-                        required = option.required,
-                        allowedExtensions = option.allowedExtensions,
-                        onValueChange = { onValueChange(key, it) }
-                    )
-
-                    OptionKind.Image -> ImageInputOption(
-                        title = option.title,
-                        description = option.description,
-                        value = value?.toString() ?: "",
-                        required = option.required,
-                        allowedExtensions = option.allowedExtensions,
-                        recommendedSize = option.recommendedSize,
-                        onValueChange = { onValueChange(key, it) }
-                    )
-
-                    OptionKind.StringText -> TextInputOption(
-                        title = option.title,
-                        description = option.description,
-                        value = value?.toString() ?: "",
-                        required = option.required,
-                        keyboardType = KeyboardType.Text,
-                        // Pass "" explicitly so the field stays visually cleared after
-                        // the user taps ✕. updateOption stores "" as a valid value (key
-                        // is kept in the map), which prevents the repository from re-injecting
-                        // the bundled default on the next load.
-                        // "" is stripped back to null (→ patcher default) in
-                        // Options.sanitizeForPatcher() before being sent to the patcher.
-                        onValueChange = { onValueChange(key, it) }
-                    )
-
-                    OptionKind.BooleanToggle -> BooleanOptionItem(
-                        title = option.title,
-                        description = option.description,
-                        value = value as? Boolean == true,
-                        onValueChange = { onValueChange(key, it) }
-                    )
-
-                    OptionKind.IntLong -> TextInputOption(
-                        title = option.title,
-                        description = option.description,
-                        value = (value as? Number)?.toLong()?.toString() ?: "",
-                        required = option.required,
-                        keyboardType = KeyboardType.Number,
-                        onValueChange = ::onNumberInput
-                    )
-
-                    OptionKind.FloatDouble -> TextInputOption(
-                        title = option.title,
-                        description = option.description,
-                        value = (value as? Number)?.toFloat()?.toString() ?: "",
-                        required = option.required,
-                        keyboardType = KeyboardType.Decimal,
-                        onValueChange = ::onNumberInput
-                    )
-
-                    OptionKind.ArrayDropdown -> DropdownOptionItem(
-                        title = option.title,
-                        description = option.description,
-                        value = value?.toString() ?: "",
-                        presets = option.presets ?: emptyMap(),
-                        onValueChange = { onValueChange(key, it) }
-                    )
-
-                    is OptionKind.IntSlider -> SliderOptionInput(
-                        title = option.title,
-                        description = option.description,
-                        value = (value as? Number)?.toFloat() ?: kind.bounds.min,
-                        min = kind.bounds.min,
-                        max = kind.bounds.max,
-                        step = kind.bounds.step,
-                        isInteger = true,
-                        required = option.required,
-                        onValueChange = { onValueChange(key, it.roundToInt()) }
-                    )
-
-                    is OptionKind.FloatSlider -> SliderOptionInput(
-                        title = option.title,
-                        description = option.description,
-                        value = (value as? Number)?.toFloat() ?: kind.bounds.min,
-                        min = kind.bounds.min,
-                        max = kind.bounds.max,
-                        step = kind.bounds.step,
-                        isInteger = false,
-                        required = option.required,
-                        onValueChange = { onValueChange(key, it) }
-                    )
-
-                    is OptionKind.IntRangeSlider -> RangeSliderOptionInput(
-                        title = option.title,
-                        description = option.description,
-                        value = value.asFloatRange() ?: (kind.bounds.min..kind.bounds.max),
-                        min = kind.bounds.min,
-                        max = kind.bounds.max,
-                        step = kind.bounds.step,
-                        isInteger = true,
-                        required = option.required,
-                        onValueChange = { range ->
-                            onValueChange(key, listOf(range.start.roundToInt(), range.endInclusive.roundToInt()))
-                        }
-                    )
-
-                    is OptionKind.FloatRangeSlider -> RangeSliderOptionInput(
-                        title = option.title,
-                        description = option.description,
-                        value = value.asFloatRange() ?: (kind.bounds.min..kind.bounds.max),
-                        min = kind.bounds.min,
-                        max = kind.bounds.max,
-                        step = kind.bounds.step,
-                        isInteger = false,
-                        required = option.required,
-                        onValueChange = { range ->
-                            onValueChange(key, listOf(range.start, range.endInclusive))
-                        }
-                    )
-                }
+                        missing = option.required && value.isUnsetOptionValue(),
+                        changed = !optionValueEquals(value, option.default),
+                        // Dropping the stored value puts the option back on the patch's own
+                        onReset = { onValueChange(option.key, null) }
+                    ),
+                    packageName = packageName,
+                    isDefaultBundle = isDefaultBundle,
+                    onValueChange = { onValueChange(option.key, it) },
+                    onCustomColorClick = { showColorPicker.value = option.key to it }
+                )
             }
         }
     }
@@ -467,7 +311,7 @@ internal fun PatchOptionsDialog(
     // Color picker dialog
     showColorPicker.value?.let { (key, currentColor) ->
         ColorPickerDialog(
-            title = patch.options?.find { it.key == key }?.title ?: key,
+            title = options.find { it.key == key }?.title ?: key,
             currentColor = currentColor,
             onColorSelected = { newColor ->
                 onValueChange(key, newColor)
@@ -478,313 +322,311 @@ internal fun PatchOptionsDialog(
     }
 }
 
+/**
+ * The card of one option, with the control its [OptionKind] calls for.
+ *
+ * @param onCustomColorClick Opens the color picker on the color the option holds.
+ */
+@Composable
+private fun PatchOptionEditor(
+    option: Option<*>,
+    value: Any?,
+    heading: OptionHeading,
+    packageName: String,
+    isDefaultBundle: Boolean,
+    onValueChange: (Any?) -> Unit,
+    onCustomColorClick: (String) -> Unit
+) {
+    // The patcher rejects a Long where an Int is declared, so the text is read as the
+    // option's own type. A cleared field drops the value back to the patch default
+    fun onNumberInput(text: String) {
+        if (text.isBlank()) return onValueChange(null)
+        coerceOptionValue(option.type, text)?.let(onValueChange)
+    }
+
+    when (val kind = resolveOptionKind(option, value)) {
+        OptionKind.StringList -> ListStringInputOption(
+            heading = heading,
+            value = when (value) {
+                is List<*> -> value.filterIsInstance<String>()
+                is String  -> value.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                else       -> emptyList()
+            },
+            onValueChange = { newList ->
+                // Check the KType classifier to determine how the patcher expects the value.
+                // List<String> options need a real List<String>, while plain String options expect a comma-separated String.
+                if (option.type.classifier == List::class) {
+                    onValueChange(newList.ifEmpty { null })
+                } else {
+                    onValueChange(newList.joinToString(", ").ifBlank { null })
+                }
+            }
+        )
+
+        OptionKind.Color -> {
+            val color = value as? String ?: "#000000"
+            ColorOptionWithPresets(
+                heading = heading,
+                value = color,
+                presets = option.presets,
+                onPresetSelect = onValueChange,
+                onCustomColorClick = { onCustomColorClick(color) }
+            )
+        }
+
+        OptionKind.PathWithPresets -> PathWithPresetsOption(
+            heading = heading,
+            value = value?.toString() ?: "",
+            presets = option.presets as Map<String, Any?>,
+            packageName = packageName,
+            isDefaultBundle = isDefaultBundle,
+            onValueChange = onValueChange
+        )
+
+        OptionKind.StringDropdown -> DropdownOption(
+            heading = heading,
+            value = value?.toString() ?: "",
+            presets = option.presets as Map<String, Any?>,
+            onValueChange = onValueChange
+        )
+
+        OptionKind.Path -> FolderOptionCard(
+            heading = heading,
+            value = value?.toString() ?: "",
+            typed = false,
+            asset = optionAssetOf(heading, isDefaultBundle),
+            packageName = packageName,
+            onValueChange = onValueChange
+        )
+
+        OptionKind.FilePath -> FilePathInputOption(
+            heading = heading,
+            value = value?.toString() ?: "",
+            onValueChange = onValueChange
+        )
+
+        OptionKind.FolderPicker -> FolderOptionCard(
+            heading = heading,
+            value = value?.toString() ?: "",
+            typed = true,
+            asset = optionAssetOf(heading, isDefaultBundle),
+            packageName = packageName,
+            onValueChange = onValueChange
+        )
+
+        OptionKind.FilePicker -> FilePickerOption(
+            heading = heading,
+            value = value?.toString() ?: "",
+            allowedExtensions = option.allowedExtensions,
+            onValueChange = onValueChange
+        )
+
+        OptionKind.Image -> ImageInputOption(
+            heading = heading,
+            value = value?.toString() ?: "",
+            allowedExtensions = option.allowedExtensions,
+            recommendedSize = option.recommendedSize,
+            onValueChange = onValueChange
+        )
+
+        OptionKind.StringText -> TextInputOption(
+            heading = heading,
+            value = value?.toString() ?: "",
+            keyboardType = KeyboardType.Text,
+            // Pass "" explicitly so the field stays visually cleared after
+            // the user taps ✕. updateOption stores "" as a valid value (key
+            // is kept in the map), which prevents the repository from re-injecting
+            // the bundled default on the next load.
+            // "" is stripped back to null (→ patcher default) in
+            // Options.sanitizeForPatcher() before being sent to the patcher.
+            onValueChange = onValueChange
+        )
+
+        OptionKind.BooleanToggle -> BooleanOptionItem(
+            heading = heading,
+            value = value as? Boolean == true,
+            onValueChange = onValueChange
+        )
+
+        OptionKind.IntLong -> TextInputOption(
+            heading = heading,
+            value = (value as? Number)?.toLong()?.toString() ?: "",
+            keyboardType = KeyboardType.Number,
+            onValueChange = ::onNumberInput
+        )
+
+        OptionKind.FloatDouble -> TextInputOption(
+            heading = heading,
+            value = (value as? Number)?.toFloat()?.toString() ?: "",
+            keyboardType = KeyboardType.Decimal,
+            onValueChange = ::onNumberInput
+        )
+
+        OptionKind.ArrayDropdown -> DropdownOption(
+            heading = heading,
+            value = value?.toString() ?: "",
+            presets = option.presets ?: emptyMap(),
+            onValueChange = onValueChange
+        )
+
+        is OptionKind.IntSlider -> OptionCard(heading) {
+            SliderOptionInput(
+                value = (value as? Number)?.toFloat() ?: kind.bounds.min,
+                min = kind.bounds.min,
+                max = kind.bounds.max,
+                step = kind.bounds.step,
+                isInteger = true,
+                onValueChange = { onValueChange(it.roundToInt()) }
+            )
+        }
+
+        is OptionKind.FloatSlider -> OptionCard(heading) {
+            SliderOptionInput(
+                value = (value as? Number)?.toFloat() ?: kind.bounds.min,
+                min = kind.bounds.min,
+                max = kind.bounds.max,
+                step = kind.bounds.step,
+                isInteger = false,
+                onValueChange = onValueChange
+            )
+        }
+
+        is OptionKind.IntRangeSlider -> OptionCard(heading) {
+            RangeSliderOptionInput(
+                value = value.asFloatRange() ?: (kind.bounds.min..kind.bounds.max),
+                min = kind.bounds.min,
+                max = kind.bounds.max,
+                step = kind.bounds.step,
+                isInteger = true,
+                onValueChange = { range ->
+                    onValueChange(listOf(range.start.roundToInt(), range.endInclusive.roundToInt()))
+                }
+            )
+        }
+
+        is OptionKind.FloatRangeSlider -> OptionCard(heading) {
+            RangeSliderOptionInput(
+                value = value.asFloatRange() ?: (kind.bounds.min..kind.bounds.max),
+                min = kind.bounds.min,
+                max = kind.bounds.max,
+                step = kind.bounds.step,
+                isInteger = false,
+                onValueChange = { range ->
+                    onValueChange(listOf(range.start, range.endInclusive))
+                }
+            )
+        }
+    }
+}
+
+/**
+ * What the creator of [heading] makes, told from how the option names itself, or null where it
+ * asks for neither picture. Only the default Morphe bundle reads what the creators make.
+ */
+private fun optionAssetOf(heading: OptionHeading, isDefaultBundle: Boolean): OptionAsset? {
+    if (!isDefaultBundle) return null
+    // Check header first, then icon (header takes priority)
+    return when {
+        heading.title.contains("header", ignoreCase = true) ||
+                heading.description.contains("header", ignoreCase = true) -> OptionAsset.Header
+
+        heading.title.contains("icon", ignoreCase = true) ||
+                heading.description.contains("mipmap", ignoreCase = true) -> OptionAsset.Icon
+
+        else -> null
+    }
+}
+
+/**
+ * Color option as the swatches every color choice in the app is made from, its presets first and
+ * the picker for any other color last. A preset no single color can show, such as a Material You
+ * role or a color of the app's own theme, is told apart by its name alone, so those go ahead of
+ * the swatches as named choices.
+ */
 @Composable
 private fun ColorOptionWithPresets(
-    title: String,
-    description: String,
+    heading: OptionHeading,
     value: String,
     presets: Map<String, *>?,
     onPresetSelect: (String) -> Unit,
     onCustomColorClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
-    ) {
-        // Title and description
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = LocalDialogTextColor.current
-            )
-            if (description.isNotBlank()) {
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = LocalDialogSecondaryTextColor.current
-                )
-            }
-        }
-
-        // Presets
-        if (!presets.isNullOrEmpty()) {
-            presets.forEach { (label, presetValue) ->
-                val colorValue = presetValue?.toString() ?: return@forEach
-                ColorPresetItem(
-                    label = label,
-                    colorValue = colorValue,
-                    isSelected = value == colorValue,
-                    onClick = { onPresetSelect(colorValue) }
-                )
-            }
-        }
-
-        val isValueInPresets = presets?.values?.any { it.toString() == value } == true
-        val isCustomSelected = !isValueInPresets
-
-        // Custom color button
-        ColorPresetItem(
-            label = stringResource(R.string.custom_color),
-            colorValue = value,
-            isSelected = isCustomSelected,
-            isCustom = true,
-            onClick = onCustomColorClick
-        )
+    val entries = remember(presets) {
+        presets.orEmpty().mapNotNull { (label, presetValue) -> presetValue?.toString()?.let { label to it } }
     }
-}
-
-/** Color preset item for the color picker option. */
-@Composable
-fun ColorPresetItem(
-    label: String,
-    colorValue: String,
-    isSelected: Boolean,
-    isCustom: Boolean = false,
-    enabled: Boolean = true,
-    onClick: (() -> Unit)? = null
-) {
-    val shape = RoundedCornerShape(Defaults.CompactCornerRadius)
-
-    val isMaterialYou = colorValue.contains("system_neutral", ignoreCase = true) ||
-            colorValue.contains("system_accent", ignoreCase = true) ||
-            colorValue.contains("material_you", ignoreCase = true)
-
-    val parsedColor = if (!isMaterialYou) {
-        when (colorValue) {
-            "@android:color/transparent" -> Color.Transparent
-            "@android:color/black", "#000000", "#FF000000" -> Color.Black
-            "@android:color/white", "#FFFFFF", "#ffffff", "#FFFFFFFF" -> Color.White
-            else -> colorValue.toColorOrNull()
+    val swatches = remember(entries) {
+        entries.mapNotNull { (label, preset) ->
+            optionSwatchColor(preset)?.let { ColorPresetSwatch(key = preset, color = it, label = label) }
         }
-    } else null
+    }
+    val named = remember(entries, swatches) { entries.filter { (_, preset) -> swatches.none { it.key == preset } } }
+    val selectedSwatch = swatches.find { it.key == value }
+    val isCustom = entries.none { (_, preset) -> preset == value }
 
-    val hasTransparency = parsedColor != null && parsedColor.alpha < 0.99f
-
-    val contentColor = parsedColor?.let {
-        val opaque = it.copy(alpha = 1f)
-        // For very transparent colors the checkerboard dominates (light background)
-        // For opaque/semi-opaque colors use effective luminance against dark background
-        val effectiveLuminance = if (it.alpha < 0.4f) {
-            // Blend against white checkerboard
-            opaque.luminance() * it.alpha + (1f - it.alpha)
-        } else {
-            opaque.luminance() * it.alpha
-        }
-        if (effectiveLuminance > 0.18f) Color.Black.copy(alpha = 0.85f)
-        else Color.White.copy(alpha = 0.9f)
-    } ?: MaterialTheme.colorScheme.onSurface
-
-    val borderColor = parsedColor?.let {
-        if (it.luminance() > 0.35f) Color.Black.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.15f)
-    } ?: if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-    else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .then(
-                if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick)
-                else Modifier
-            )
-            .then(
-                when {
-                    isCustom -> if (parsedColor != null) Modifier.background(Color.Transparent, shape)
-                    else Modifier.background(
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                        shape
-                    )
-                    isMaterialYou -> Modifier.background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFF6650A4).copy(alpha = 0.25f),
-                                Color(0xFF4B86B4).copy(alpha = 0.25f),
-                                Color(0xFF2D9596).copy(alpha = 0.25f),
-                            )
-                        )
-                    )
-                    parsedColor != null -> Modifier.background(Color.Transparent, shape)
-                    else -> Modifier.background(
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                        shape
-                    )
-                }
-            )
-            .border(1.dp, borderColor, shape)
-    ) {
-        // Checkerboard underlay for transparent/semi-transparent colors
-        if (parsedColor != null && hasTransparency) {
-            Canvas(modifier = Modifier.matchParentSize()) {
-                val cellSize = 12.dp.toPx()
-                val cols = (size.width / cellSize).toInt() + 1
-                val rows = (size.height / cellSize).toInt() + 1
-                for (row in 0..rows) {
-                    for (col in 0..cols) {
-                        val isLight = (row + col) % 2 == 0
-                        drawRect(
-                            color = if (isLight) Color.White else Color(0xFFCCCCCC),
-                            topLeft = Offset(col * cellSize, row * cellSize),
-                            size = Size(cellSize, cellSize)
-                        )
-                    }
-                }
+    OptionCard(heading) {
+        // The choices the app gives everywhere, one card to a named preset, named in the type of
+        // the option cards they sit in
+        named.forEach { (label, preset) ->
+            RadioSelectionCard(
+                selected = preset == value,
+                onSelect = { onPresetSelect(preset) }
+            ) {
+                CardHeadingText(name = label, description = null, modifier = Modifier.weight(1f))
             }
         }
-        // Color overlay
-        if (parsedColor != null) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(parsedColor)
-            )
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (isCustom || isMaterialYou || parsedColor != null) {
-                Icon(
-                    imageVector = when {
-                        isCustom -> Icons.Outlined.Palette
-                        isMaterialYou -> Icons.Outlined.AutoAwesome
-                        else -> Icons.Outlined.Palette
-                    },
-                    contentDescription = null,
-                    tint = contentColor.copy(alpha = 0.7f),
-                    modifier = Modifier.size(Defaults.IconSizeSmall)
-                )
-            }
 
-            Text(
-                text = if (isCustom) stringResource(R.string.custom_color) else label,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                color = contentColor,
-                modifier = Modifier.weight(1f)
+        // A named choice shows its name, while a swatch carries none of its own, so the one in
+        // effect is named under the grid. The name keeps its gap to the grid inside the fold, so
+        // the line leaves no gap behind once it has folded away
+        val swatchName = if (selectedSwatch != null || isCustom) selectedSwatch?.label ?: value else null
+        var lastSwatchName by remember { mutableStateOf(swatchName.orEmpty()) }
+        LaunchedEffect(swatchName) { swatchName?.let { lastSwatchName = it } }
+
+        Column {
+            ColorPresetGrid(
+                presets = swatches,
+                selectedKey = selectedSwatch?.key,
+                onSelect = { onPresetSelect(it.key as String) },
+                customColor = if (isCustom) optionSwatchColor(value) else null,
+                onCustomClick = onCustomColorClick
             )
 
-            if (isSelected) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null,
-                    tint = contentColor,
-                    modifier = Modifier.size(Defaults.IconSizeSmall)
-                )
+            AnimatedVisibility(
+                visible = swatchName != null,
+                enter = Animations.expandFadeEnter,
+                exit = Animations.shrinkFadeExit
+            ) {
+                AnimatedContent(
+                    targetState = swatchName ?: lastSwatchName,
+                    transitionSpec = Animations.fadeCrossfade(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = Defaults.ItemSpacing),
+                    label = "colorOptionSwatchName"
+                ) { name ->
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = LocalDialogTextColor.current,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
     }
 }
 
-@Composable
-private fun PathInputOption(
-    title: String,
-    description: String,
-    value: String,
-    packageName: String,
-    isDefaultBundle: Boolean,
-    required: Boolean = false,
-    onValueChange: (String) -> Unit
-) {
-    val showIconCreator = remember { mutableStateOf(false) }
-    val showHeaderCreator = remember { mutableStateOf(false) }
-    val isInvalid = required && value.isBlank()
-
-    // Detect if this is icon-related or header-related field
-    // Check header first, then icon (header takes priority)
-    val isHeaderField = title.contains("header", ignoreCase = true) ||
-            description.contains("header", ignoreCase = true)
-
-    val isIconField = !isHeaderField && (
-            title.contains("icon", ignoreCase = true) ||
-                    description.contains("mipmap", ignoreCase = true)
-            )
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
-    ) {
-        // Folder picker button (needs permissions for icon/header creation)
-        val folderPicker = rememberFolderPickerWithPermission { uri ->
-            // Convert URI to path for patch options compatibility
-            onValueChange(uri.toFilePath())
-        }
-
-        AppDialogTextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = {
-                Text(if (required) "$title *" else title)
-            },
-            placeholder = {
-                Text("/storage/emulated/0/folder", maxLines = 1, overflow = TextOverflow.Ellipsis)
-            },
-            isError = isInvalid,
-            showClearButton = true,
-            onFolderPickerClick = { folderPicker() }
-        )
-
-        // Create Icon button (only for the default Morphe bundle)
-        if (isIconField && isDefaultBundle) {
-            AppDialogOutlinedButton(
-                text = stringResource(R.string.adaptive_icon_create),
-                onClick = { showIconCreator.value = true },
-                icon = Icons.Outlined.AutoAwesome,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // Create Header button (only for the default Morphe bundle)
-        if (isHeaderField && isDefaultBundle) {
-            AppDialogOutlinedButton(
-                text = stringResource(R.string.header_creator_create),
-                onClick = { showHeaderCreator.value = true },
-                icon = Icons.Outlined.Image,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // Instructions
-        if (description.isNotBlank()) {
-            ExpandableSurface(
-                title = stringResource(R.string.patch_option_instructions),
-                content = {
-                    ScrollableInstruction(
-                        description = description,
-                        maxHeight = 280.dp
-                    )
-                }
-            )
-        }
-    }
-
-    // Icon creator dialog
-    if (showIconCreator.value) {
-        AdaptiveIconCreatorDialog(
-            packageName = packageName,
-            onDismiss = { showIconCreator.value = false },
-            onIconCreated = { path ->
-                onValueChange(path)
-                showIconCreator.value = false
-            }
-        )
-    }
-
-    // Header creator dialog
-    if (showHeaderCreator.value) {
-        HeaderCreatorDialog(
-            packageName = packageName,
-            onDismiss = { showHeaderCreator.value = false },
-            onHeaderCreated = { path ->
-                onValueChange(path)
-                showHeaderCreator.value = false
-            }
-        )
-    }
+/**
+ * Swatch color of a color option value: a hex color or one of the plain Android colors, or null
+ * for one no single color can show, such as a Material You role or a color of the app's own theme.
+ */
+private fun optionSwatchColor(value: String): Color? = when (value) {
+    "@android:color/transparent" -> Color.Transparent
+    "@android:color/black" -> Color.Black
+    "@android:color/white" -> Color.White
+    else -> value.toColorOrNull()
 }
 
 /**
@@ -793,40 +635,24 @@ private fun PathInputOption(
  */
 @Composable
 private fun FilePathInputOption(
-    title: String,
-    description: String,
+    heading: OptionHeading,
     value: String,
-    required: Boolean = false,
     onValueChange: (String) -> Unit
 ) {
-    val isInvalid = required && value.isBlank()
-
     val filePicker = rememberAdaptiveFilePicker(
         mimeTypes = arrayOf(WILDCARD_MIMETYPE),
         onResult = { uri -> uri?.toFilePath()?.let { onValueChange(it) } }
     )
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
-    ) {
+    OptionCard(heading) {
         AppDialogTextField(
             value = value,
             onValueChange = onValueChange,
-            label = { Text(if (required) "$title *" else title) },
             placeholder = { Text("/storage/emulated/0/file", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            isError = isInvalid,
+            isError = heading.missing,
             showClearButton = true,
             onFilePickerClick = { filePicker() }
         )
-
-        if (description.isNotBlank()) {
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = LocalDialogSecondaryTextColor.current
-            )
-        }
     }
 }
 
@@ -836,46 +662,25 @@ private fun FilePathInputOption(
  */
 @Composable
 private fun PathWithPresetsOption(
-    title: String,
-    description: String,
+    heading: OptionHeading,
     value: String,
     presets: Map<String, *>,
     packageName: String,
     isDefaultBundle: Boolean,
-    required: Boolean = false,
     onValueChange: (String) -> Unit
 ) {
-    val showIconCreator = remember { mutableStateOf(false) }
-    val showHeaderCreator = remember { mutableStateOf(false) }
+    // Folder picker
+    val folderPicker = rememberFolderPickerWithPermission { uri ->
+        onValueChange(uri.toFilePath())
+    }
 
-    // Detect if this is icon-related or header-related field
-    // Check header first, then icon (header takes priority)
-    val isHeaderField = title.contains("header", ignoreCase = true) ||
-            description.contains("header", ignoreCase = true)
-
-    val isIconField = !isHeaderField && (
-            title.contains("icon", ignoreCase = true) ||
-                    description.contains("mipmap", ignoreCase = true)
-            )
-
-    // Convert presets to Map<String, String> for dropdown
-    val dropdownItems = presets.mapValues { it.value.toString() }
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
-    ) {
-        // Folder picker
-        val folderPicker = rememberFolderPickerWithPermission { uri ->
-            onValueChange(uri.toFilePath())
-        }
-
+    OptionCard(heading, showDescription = false) {
         // Dropdown TextField with folder picker and clear button
         AppDialogDropdownTextField(
             value = value,
             onValueChange = onValueChange,
-            dropdownItems = dropdownItems,
-            label = if (required) ({ Text("$title *") }) else null,
+            // Convert presets to Map<String, String> for dropdown
+            dropdownItems = presets.mapValues { it.value.toString() },
             placeholder = {
                 Text("/storage/emulated/0/folder", maxLines = 1, overflow = TextOverflow.Ellipsis)
             },
@@ -883,88 +688,37 @@ private fun PathWithPresetsOption(
             onFolderPickerClick = { folderPicker() }
         )
 
-        // Create Icon button (only for the default Morphe bundle)
-        if (isIconField && isDefaultBundle) {
-            AppDialogOutlinedButton(
-                text = stringResource(R.string.adaptive_icon_create),
-                onClick = { showIconCreator.value = true },
-                icon = Icons.Outlined.AutoAwesome,
-                modifier = Modifier.fillMaxWidth()
-            )
+        optionAssetOf(heading, isDefaultBundle)?.let { asset ->
+            AssetCreatorAction(asset, packageName, onCreated = onValueChange)
         }
-
-        // Create Header button (only for the default Morphe bundle)
-        if (isHeaderField && isDefaultBundle) {
-            AppDialogOutlinedButton(
-                text = stringResource(R.string.header_creator_create),
-                onClick = { showHeaderCreator.value = true },
-                icon = Icons.Outlined.Image,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // Instructions (collapsed by default)
-        if (description.isNotBlank()) {
-            ExpandableSurface(
-                title = stringResource(R.string.patch_option_instructions),
-                content = {
-                    ScrollableInstruction(
-                        description = description,
-                        maxHeight = 200.dp
-                    )
-                },
-                icon = Icons.Outlined.Info,
-                initialExpanded = false
-            )
-        }
+        OptionInstructions(heading.description)
     }
+}
 
-    // Icon creator dialog
-    if (showIconCreator.value) {
-        AdaptiveIconCreatorDialog(
-            packageName = packageName,
-            onDismiss = { showIconCreator.value = false },
-            onIconCreated = { path ->
-                onValueChange(path)
-                showIconCreator.value = false
-            }
-        )
-    }
-
-    // Header creator dialog
-    if (showHeaderCreator.value) {
-        HeaderCreatorDialog(
-            packageName = packageName,
-            onDismiss = { showHeaderCreator.value = false },
-            onHeaderCreated = { path ->
-                onValueChange(path)
-                showHeaderCreator.value = false
-            }
-        )
+/** Dropdown for an option that declares a set of values. */
+@Composable
+private fun DropdownOption(
+    heading: OptionHeading,
+    value: String,
+    presets: Map<String, Any?>,
+    onValueChange: (Any?) -> Unit
+) {
+    OptionCard(heading) {
+        DropdownOptionField(value = value, presets = presets, onValueChange = onValueChange)
     }
 }
 
 @Composable
 private fun TextInputOption(
-    title: String,
-    description: String = "",
+    heading: OptionHeading,
     value: String,
-    required: Boolean = false,
     keyboardType: KeyboardType,
     onValueChange: (String) -> Unit
 ) {
-    val isInvalid = required && value.isBlank()
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
-    ) {
+    OptionCard(heading) {
         AppDialogTextField(
             value = value,
             onValueChange = onValueChange,
-            label = {
-                Text(if (required) "$title *" else title)
-            },
             placeholder = {
                 Text(
                     stringResource(
@@ -976,411 +730,105 @@ private fun TextInputOption(
                     )
                 )
             },
-            isError = isInvalid,
+            isError = heading.missing,
             showClearButton = true,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType)
         )
-
-        // Patch option description
-        if (description.isNotBlank()) {
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = LocalDialogSecondaryTextColor.current
-            )
-        }
     }
 }
 
+/** Switch at the end of the title row, with the whole card toggling it as a patch card does. */
 @Composable
 private fun BooleanOptionItem(
-    title: String,
-    description: String,
+    heading: OptionHeading,
     value: Boolean,
     onValueChange: (Boolean) -> Unit
 ) {
-    SettingsSwitchItem(
-        checked = value,
-        onToggle = { onValueChange(!value) },
-        title = title,
-        subtitle = description.ifBlank { null },
-        showBorder = true
+    OptionCard(
+        heading = heading,
+        showStatus = false,
+        onClick = { onValueChange(!value) },
+        trailing = { ToggleSwitch(checked = value, onCheckedChange = onValueChange) }
     )
 }
 
 /**
- * Subtle tinted container used for grouped patch-option content inside dialogs.
- * Uses the dialog text color at 5% alpha so it adapts to light/dark dialog surfaces.
- */
-@Composable
-private fun DialogTintedSurface(
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
-    content: @Composable () -> Unit
-) {
-    val shape = RoundedCornerShape(Defaults.CompactCornerRadius)
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        shape = shape,
-        color = LocalDialogTextColor.current.copy(alpha = 0.05f),
-        content = content
-    )
-}
-
-/**
- * Inline option row that shows current item count and opens [ListStringEditorDialog].
+ * List option edited in place, as every other option is: its values as chips that remove
+ * themselves when tapped, and a field that adds what is typed. Several values can go in at once,
+ * separated by commas, the way list options describe themselves.
  */
 @Composable
 private fun ListStringInputOption(
-    title: String,
-    description: String,
+    heading: OptionHeading,
     value: List<String>,
     onValueChange: (List<String>) -> Unit
 ) {
-    val showEditor = remember { mutableStateOf(false) }
-    val textColor = LocalDialogTextColor.current
-    val secondaryColor = LocalDialogSecondaryTextColor.current
+    var input by rememberSaveable { mutableStateOf("") }
+    var error by remember { mutableStateOf<Int?>(null) }
+    // A list of numbers is most likely added to with more numbers, so the keyboard offers digits
+    val numeric = value.isNotEmpty() && value.all { it.toDoubleOrNull() != null }
 
-    DialogTintedSurface(onClick = { showEditor.value = true }) {
+    fun addInput() {
+        val entries = input.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        error = when {
+            entries.isEmpty() -> R.string.patch_option_list_empty
+            entries.distinct().size != entries.size || entries.any { it in value } -> R.string.patch_option_list_duplicate
+            else -> {
+                onValueChange(value + entries)
+                input = ""
+                null
+            }
+        }
+    }
+
+    OptionCard(heading) {
+        if (value.isNotEmpty()) {
+            // A chip already keeps a touch target's height around it, which spaces the lines
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)) {
+                value.forEachIndexed { index, item ->
+                    AppInputChip(
+                        label = item,
+                        onRemove = { onValueChange(value.filterIndexed { i, _ -> i != index }) }
+                    )
+                }
+            }
+        }
+
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Defaults.ContentPadding, vertical = Defaults.ItemSpacing),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = textColor
-                )
-                if (description.isNotBlank()) {
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = secondaryColor,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            Spacer(Modifier.width(Defaults.ItemSpacing))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (value.isNotEmpty()) {
-                    StatusBadge(
-                        text = "${value.size}",
-                        tone = SemanticTone.Primary
-                    )
-                }
-                Icon(
-                    imageVector = Icons.Outlined.Edit,
-                    contentDescription = null,
-                    tint = secondaryColor,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        }
-    }
-
-    if (showEditor.value) {
-        ListStringEditorDialog(
-            title = title,
-            description = description,
-            initialItems = value,
-            onDismiss = { showEditor.value = false },
-            onConfirm = { newList ->
-                onValueChange(newList)
-                showEditor.value = false
-            }
-        )
-    }
-}
-
-/**
- * Dialog for managing a list of string values.
- */
-@SuppressLint("MutableCollectionMutableState")
-@Composable
-private fun ListStringEditorDialog(
-    title: String,
-    description: String,
-    initialItems: List<String>,
-    onDismiss: () -> Unit,
-    onConfirm: (List<String>) -> Unit
-) {
-    var items by remember { mutableStateOf(initialItems.toMutableStateList()) }
-    var inputText by remember { mutableStateOf("") }
-    var inputError by remember { mutableStateOf(false) }
-
-    fun addItem() {
-        val trimmed = inputText.trim()
-        if (trimmed.isBlank()) {
-            inputError = true
-            return
-        }
-        if (trimmed in items) {
-            inputError = true
-            return
-        }
-        items.add(trimmed)
-        inputText = ""
-        inputError = false
-    }
-
-    AppDialog(
-        onDismissRequest = onDismiss,
-        title = title,
-        dismissOnClickOutside = false,
-        footer = {
-            AppDialogButtonRow(
-                primaryText = stringResource(R.string.save),
-                onPrimaryClick = { onConfirm(items.toList()) },
-                secondaryText = stringResource(android.R.string.cancel),
-                onSecondaryClick = onDismiss
+            AppDialogTextField(
+                value = input,
+                onValueChange = {
+                    input = it
+                    error = null
+                },
+                placeholder = { Text(stringResource(R.string.patch_option_enter_value)) },
+                isError = error != null,
+                showClearButton = input.isNotBlank(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = if (numeric) KeyboardType.Number else KeyboardType.Text,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(onDone = { addInput() }),
+                modifier = Modifier.weight(1f)
+            )
+            TitleAction(
+                icon = Icons.Outlined.Add,
+                contentDescription = stringResource(R.string.add),
+                onClick = ::addInput,
+                style = TitleActionStyle.Accent
             )
         }
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
-        ) {
-            // Description
-            if (description.isNotBlank()) {
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = LocalDialogSecondaryTextColor.current
-                )
-            }
 
-            // Input row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                AppDialogTextField(
-                    value = inputText,
-                    onValueChange = {
-                        inputText = it
-                        inputError = false
-                    },
-                    placeholder = { Text(stringResource(R.string.patch_option_enter_value)) },
-                    isError = inputError,
-                    showClearButton = inputText.isNotBlank(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
-                        onDone = { addItem() }
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-                FilledTonalIconButton(onClick = { addItem() }) {
-                    Icon(
-                        imageVector = Icons.Outlined.Add,
-                        contentDescription = stringResource(R.string.add)
-                    )
-                }
-            }
-
-            if (inputError) {
-                Text(
-                    text = stringResource(
-                        if (inputText.trim() in items)
-                            R.string.patch_option_list_duplicate
-                        else
-                            R.string.patch_option_list_empty
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-
-            // Items list
-            if (items.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = Defaults.ContentPadding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(R.string.patch_option_list_empty_state),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = LocalDialogSecondaryTextColor.current
-                    )
-                }
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    items.forEachIndexed { index, item ->
-                        ListStringItemRow(
-                            value = item,
-                            onRemove = { items.removeAt(index) }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Single item row inside [ListStringEditorDialog].
- */
-@Composable
-private fun ListStringItemRow(
-    value: String,
-    onRemove: () -> Unit
-) {
-    val textColor = LocalDialogTextColor.current
-
-    DialogTintedSurface {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        error?.let {
             Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                color = textColor,
-                modifier = Modifier.weight(1f),
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 2
-            )
-            IconButton(
-                onClick = onRemove,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Close,
-                    contentDescription = stringResource(R.string.remove),
-                    tint = textColor.copy(alpha = 0.6f),
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        }
-    }
-}
-
-/**
- * Button-only folder picker for a typed folder option
- * (`app.morphe.patcher.patch.FolderOption`). Options declared as plain
- * `stringOption` render via [PathInputOption] instead.
- */
-@Composable
-private fun FolderPickerOption(
-    title: String,
-    description: String,
-    value: String,
-    packageName: String,
-    isDefaultBundle: Boolean,
-    required: Boolean = false,
-    onValueChange: (String) -> Unit
-) {
-    val showIconCreator = remember { mutableStateOf(false) }
-    val showHeaderCreator = remember { mutableStateOf(false) }
-    val isInvalid = required && value.isBlank()
-
-    // Detect if this is icon-related or header-related field.
-    // Check header first, then icon (header takes priority).
-    val isHeaderField = title.contains("header", ignoreCase = true) ||
-            description.contains("header", ignoreCase = true)
-
-    val isIconField = !isHeaderField && (
-            title.contains("icon", ignoreCase = true) ||
-                    description.contains("mipmap", ignoreCase = true)
-            )
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
-    ) {
-        // Folder picker (needs permissions for icon/header creation)
-        val folderPicker = rememberFolderPickerWithPermission { uri ->
-            onValueChange(uri.toFilePath())
-        }
-
-        PickerFieldHeader(title = title, required = required, isInvalid = isInvalid)
-
-        PickerButtonRow(
-            label = stringResource(R.string.select_folder),
-            selectedPath = value,
-            icon = Icons.Outlined.Folder,
-            onPick = { folderPicker() },
-            onClear = { onValueChange("") },
-        )
-
-        // Create Icon button (only for the default Morphe bundle)
-        if (isIconField && isDefaultBundle) {
-            AppDialogOutlinedButton(
-                text = stringResource(R.string.adaptive_icon_create),
-                onClick = { showIconCreator.value = true },
-                icon = Icons.Outlined.AutoAwesome,
-                modifier = Modifier.fillMaxWidth()
+                text = stringResource(it),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
             )
         }
-
-        // Create Header button (only for the default Morphe bundle)
-        if (isHeaderField && isDefaultBundle) {
-            AppDialogOutlinedButton(
-                text = stringResource(R.string.header_creator_create),
-                onClick = { showHeaderCreator.value = true },
-                icon = Icons.Outlined.Image,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // Instructions
-        if (description.isNotBlank()) {
-            ExpandableSurface(
-                title = stringResource(R.string.patch_option_instructions),
-                content = {
-                    ScrollableInstruction(description = description, maxHeight = 280.dp)
-                }
-            )
-        }
-    }
-
-    // Icon creator dialog
-    if (showIconCreator.value) {
-        AdaptiveIconCreatorDialog(
-            packageName = packageName,
-            onDismiss = { showIconCreator.value = false },
-            onIconCreated = { path ->
-                onValueChange(path)
-                showIconCreator.value = false
-            }
-        )
-    }
-
-    // Header creator dialog
-    if (showHeaderCreator.value) {
-        HeaderCreatorDialog(
-            packageName = packageName,
-            onDismiss = { showHeaderCreator.value = false },
-            onHeaderCreated = { path ->
-                onValueChange(path)
-                showHeaderCreator.value = false
-            }
-        )
     }
 }
 
@@ -1391,15 +839,11 @@ private fun FolderPickerOption(
  */
 @Composable
 private fun FilePickerOption(
-    title: String,
-    description: String,
+    heading: OptionHeading,
     value: String,
-    required: Boolean = false,
     allowedExtensions: ImmutableList<String>? = null,
     onValueChange: (String) -> Unit
 ) {
-    val isInvalid = required && value.isBlank()
-
     val mimeTypes = remember(allowedExtensions) {
         extensionsToMimeTypes(allowedExtensions).ifEmpty { arrayOf(WILDCARD_MIMETYPE) }
     }
@@ -1409,12 +853,7 @@ private fun FilePickerOption(
         onResult = { uri -> uri?.toFilePath()?.let { onValueChange(it) } }
     )
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
-    ) {
-        PickerFieldHeader(title = title, required = required, isInvalid = isInvalid)
-
+    OptionCard(heading) {
         PickerButtonRow(
             label = stringResource(R.string.select_file),
             selectedPath = value,
@@ -1422,14 +861,6 @@ private fun FilePickerOption(
             onPick = { filePicker() },
             onClear = { onValueChange("") },
         )
-
-        if (description.isNotBlank()) {
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = LocalDialogSecondaryTextColor.current
-            )
-        }
     }
 }
 
@@ -1439,16 +870,12 @@ private fun FilePickerOption(
  */
 @Composable
 private fun ImageInputOption(
-    title: String,
-    description: String,
+    heading: OptionHeading,
     value: String,
-    required: Boolean = false,
     allowedExtensions: ImmutableList<String>? = null,
     recommendedSize: ImageSize? = null,
     onValueChange: (String) -> Unit
 ) {
-    val isInvalid = required && value.isBlank()
-
     // Fall back to image/* when no explicit extensions are declared.
     val mimeTypes = remember(allowedExtensions) {
         extensionsToMimeTypes(allowedExtensions).ifEmpty { arrayOf(IMAGE_MIMETYPE) }
@@ -1459,12 +886,7 @@ private fun ImageInputOption(
         onResult = { uri -> uri?.toFilePath()?.let { onValueChange(it) } }
     )
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
-    ) {
-        PickerFieldHeader(title = title, required = required, isInvalid = isInvalid)
-
+    OptionCard(heading) {
         PickerButtonRow(
             label = stringResource(R.string.adaptive_icon_select_image),
             selectedPath = value,
@@ -1473,16 +895,13 @@ private fun ImageInputOption(
             onClear = { onValueChange("") },
         )
 
-        val subtitle = buildString {
-            if (description.isNotBlank()) append(description)
-            if (recommendedSize != null) {
-                if (isNotEmpty()) append(" · ")
-                append("Recommended: ${recommendedSize.width}×${recommendedSize.height}")
-            }
-        }
-        if (subtitle.isNotEmpty()) {
+        if (recommendedSize != null) {
             Text(
-                text = subtitle,
+                text = stringResource(
+                    R.string.patch_option_recommended_size,
+                    recommendedSize.width.toString(),
+                    recommendedSize.height.toString()
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = LocalDialogSecondaryTextColor.current
             )

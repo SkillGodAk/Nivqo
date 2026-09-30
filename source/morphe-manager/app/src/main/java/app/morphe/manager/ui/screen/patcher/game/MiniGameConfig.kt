@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsRun
@@ -32,15 +33,24 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.domain.manager.PreferencesManager
 import app.morphe.manager.ui.screen.patcher.PatcherCardPadding
-import app.morphe.manager.ui.screen.shared.GradientCircleIcon
+import app.morphe.manager.ui.screen.shared.AccentAlpha
+import app.morphe.manager.ui.screen.shared.ActionPillButton
 import app.morphe.manager.ui.screen.shared.Animations
-import app.morphe.manager.ui.screen.shared.SurfaceCard
+import app.morphe.manager.ui.screen.shared.AppAccentBadge
+import app.morphe.manager.ui.screen.shared.CardAction
+import app.morphe.manager.ui.screen.shared.CardActionRow
 import app.morphe.manager.ui.screen.shared.Defaults
+import app.morphe.manager.ui.screen.shared.SurfaceCard
+import app.morphe.manager.ui.screen.shared.ThemedIcon
+import app.morphe.manager.ui.screen.shared.appAccentBorder
+import app.morphe.manager.ui.screen.shared.usableAppAccent
+import app.morphe.manager.ui.screen.shared.verticalScrollFade
+import app.morphe.manager.ui.theme.MorpheBrandBlue
+import app.morphe.manager.ui.theme.MorpheBrandTeal
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -52,24 +62,64 @@ import kotlinx.coroutines.launch
  * Available mini-games that can be played during patching.
  * Each entry carries what the picker needs to present it, so a new game is one entry
  * here plus its state in [MiniGameState] and its canvas in [GameCanvasSlot].
+ *
+ * @param accent The color the game is known by, taken from its own palette, which its picker
+ *   card wears the way an app card wears the app's.
  */
 enum class MiniGame(
     @StringRes val titleRes: Int,
     @StringRes val subtitleRes: Int,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val accent: Color
 ) {
-    GAME_2048(R.string.mini_game_2048, R.string.mini_game_2048_picker_subtitle, Icons.Outlined.Grid4x4),
-    FLAPPY(R.string.mini_game_flappy, R.string.mini_game_flappy_picker_subtitle, Icons.Outlined.Air),
-    SNAKE(R.string.mini_game_snake, R.string.mini_game_snake_picker_subtitle, Icons.Outlined.Gesture),
+    GAME_2048(
+        R.string.mini_game_2048,
+        R.string.mini_game_2048_picker_subtitle,
+        Icons.Outlined.Grid4x4,
+        Color(0xFFF59563)
+    ),
+    FLAPPY(
+        R.string.mini_game_flappy,
+        R.string.mini_game_flappy_picker_subtitle,
+        Icons.Outlined.Air,
+        Color(0xFF73C02A)
+    ),
+    SNAKE(
+        R.string.mini_game_snake,
+        R.string.mini_game_snake_picker_subtitle,
+        Icons.Outlined.Gesture,
+        MorpheBrandTeal
+    ),
     DINO(
         R.string.mini_game_dino,
         R.string.mini_game_dino_picker_subtitle,
-        Icons.AutoMirrored.Outlined.DirectionsRun
+        Icons.AutoMirrored.Outlined.DirectionsRun,
+        Color(0xFFC8B060)
     ),
-    BLOCKS(R.string.mini_game_blocks, R.string.mini_game_blocks_picker_subtitle, Icons.Outlined.Dashboard),
-    BRICKS(R.string.mini_game_bricks, R.string.mini_game_bricks_picker_subtitle, Icons.Outlined.SportsTennis),
-    MINER(R.string.mini_game_miner, R.string.mini_game_miner_picker_subtitle, Icons.Outlined.Flag),
-    PAIRS(R.string.mini_game_pairs, R.string.mini_game_pairs_picker_subtitle, Icons.Outlined.Style)
+    BLOCKS(
+        R.string.mini_game_blocks,
+        R.string.mini_game_blocks_picker_subtitle,
+        Icons.Outlined.Dashboard,
+        Color(0xFF7E57C2)
+    ),
+    BRICKS(
+        R.string.mini_game_bricks,
+        R.string.mini_game_bricks_picker_subtitle,
+        Icons.Outlined.SportsTennis,
+        Color(0xFFEF5350)
+    ),
+    MINER(
+        R.string.mini_game_miner,
+        R.string.mini_game_miner_picker_subtitle,
+        Icons.Outlined.Flag,
+        Color(0xFF64B5F6)
+    ),
+    PAIRS(
+        R.string.mini_game_pairs,
+        R.string.mini_game_pairs_picker_subtitle,
+        Icons.Outlined.Style,
+        MorpheBrandBlue
+    )
 }
 
 /** Common state contract for all mini-games, exposes only what the shared UI layer needs. */
@@ -234,37 +284,12 @@ class MiniGameState(prefs: PreferencesManager, scope: CoroutineScope) {
     }
 }
 
-/**
- * Reusable chip used in the header row of every mini-game.
- */
-@Composable
-internal fun GameChip(
-    onClick: (() -> Unit)? = null,
-    verticalPadding: Dp = 12.dp,
-    content: @Composable () -> Unit
-) {
-    if (onClick != null) {
-        Surface(
-            onClick = onClick,
-            shape = RoundedCornerShape(10.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant
-        ) {
-            Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = verticalPadding)) { content() }
-        }
-    } else {
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant
-        ) {
-            Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = verticalPadding)) { content() }
-        }
-    }
-}
-
 // Cards keep a readable width and the column count follows the space available, so the
 // picker stays two-up on a phone and fills the row on a tablet or in landscape
 private val GamePickerMinCardWidth = 150.dp
 private val GamePickerCardHeight = 140.dp
+private val GamePickerIconTileSize = 44.dp
+private val GamePickerIconTileShape = RoundedCornerShape(14.dp)
 
 /**
  * Game selection screen shown when no game is active yet.
@@ -274,18 +299,19 @@ internal fun GamePickerContent(
     onSelect: (MiniGame) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val gridState = rememberLazyGridState()
+
     LazyVerticalGrid(
         columns = GridCells.Adaptive(GamePickerMinCardWidth),
-        modifier = modifier,
+        state = gridState,
+        modifier = modifier.verticalScrollFade(gridState),
         contentPadding = PaddingValues(PatcherCardPadding),
         horizontalArrangement = Arrangement.spacedBy(PatcherCardPadding),
         verticalArrangement = Arrangement.spacedBy(PatcherCardPadding)
     ) {
         items(MiniGame.entries, key = { it.name }) { game ->
             GamePickerGridCard(
-                icon = game.icon,
-                title = stringResource(game.titleRes),
-                subtitle = stringResource(game.subtitleRes),
+                game = game,
                 onClick = { onSelect(game) },
                 modifier = Modifier.height(GamePickerCardHeight)
             )
@@ -295,16 +321,18 @@ internal fun GamePickerContent(
 
 @Composable
 private fun GamePickerGridCard(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
+    game: MiniGame,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Falls back to the theme's accent where the appearance settings keep colors off cards
+    val accent = usableAppAccent(game.accent) ?: MaterialTheme.colorScheme.primary
+
     SurfaceCard(
         onClick = onClick,
         cornerRadius = Defaults.CompactCornerRadius,
-        borderWidth = 1.dp,
+        showBorder = true,
+        borderColor = appAccentBorder(game.accent),
         modifier = modifier
     ) {
         Column(
@@ -316,10 +344,17 @@ private fun GamePickerGridCard(
             // whether a card's subtitle takes one line or two
             verticalArrangement = Arrangement.Top
         ) {
-            GradientCircleIcon(icon = icon, size = 44.dp, iconSize = 24.dp)
+            Box(
+                modifier = Modifier
+                    .size(GamePickerIconTileSize)
+                    .background(accent.copy(alpha = AccentAlpha.STEP), GamePickerIconTileShape),
+                contentAlignment = Alignment.Center
+            ) {
+                ThemedIcon(icon = game.icon, tint = accent)
+            }
             Spacer(Modifier.height(10.dp))
             Text(
-                text = title,
+                text = stringResource(game.titleRes),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -327,7 +362,7 @@ private fun GamePickerGridCard(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = subtitle,
+                text = stringResource(game.subtitleRes),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -341,10 +376,7 @@ private fun GamePickerGridCard(
  * Handles all picker/game switching internally so callers only need to pass state.
  */
 @Composable
-internal fun MiniGameContent(
-    state: MiniGameState,
-    progress: Float? = null
-) {
+internal fun MiniGameContent(state: MiniGameState) {
     AnimatedContent(
         targetState = state.selectedGame,
         transitionSpec = Animations.fadeCrossfade(200),
@@ -365,7 +397,6 @@ internal fun MiniGameContent(
                 ) {
                     GameScoreRow(
                         score = activeState.score,
-                        progress = progress,
                         onRestart = activeState::restart,
                         onChangeGame = { state.selectedGame = null }
                     )
@@ -422,13 +453,12 @@ private fun GameCanvasSlot(selected: MiniGame, state: MiniGameState) {
 }
 
 /**
- * Shared score row shown at the top of every mini-game (portrait layout).
- * Displays the [score], an optional patching [progress] percentage chip, and a restart button.
+ * Shared score row shown at the top of every mini-game: the [score], then the actions to start
+ * over and to pick another game, in the pills every other action on the screen wears.
  */
 @Composable
 internal fun GameScoreRow(
     score: Int,
-    progress: Float?,
     onRestart: () -> Unit,
     onChangeGame: () -> Unit
 ) {
@@ -437,37 +467,22 @@ internal fun GameScoreRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        GameChip(verticalPadding = 8.dp) {
-            Text(
-                stringResource(R.string.mini_game_score, score),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-        if (progress != null) {
-            GameChip(verticalPadding = 8.dp) {
-                Text(
-                    "${(progress * 100).toInt()}%",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
+        AppAccentBadge(text = stringResource(R.string.mini_game_score, score))
         Spacer(Modifier.weight(1f))
-        GameChip(onClick = onRestart) {
-            Icon(
-                imageVector = Icons.Outlined.Refresh,
-                contentDescription = null,
-                modifier = Modifier.size(Defaults.IconSizeSmall)
-            )
-        }
-        GameChip(onClick = onChangeGame) {
-            Icon(
-                imageVector = Icons.Outlined.SportsEsports,
-                contentDescription = null,
-                modifier = Modifier.size(Defaults.IconSizeSmall)
-            )
-        }
+        val restart = stringResource(R.string.mini_game_restart)
+        ActionPillButton(
+            onClick = onRestart,
+            icon = Icons.Outlined.Refresh,
+            contentDescription = restart,
+            tooltip = restart
+        )
+        val changeGame = stringResource(R.string.mini_game_change)
+        ActionPillButton(
+            onClick = onChangeGame,
+            icon = Icons.Outlined.SportsEsports,
+            contentDescription = changeGame,
+            tooltip = changeGame
+        )
     }
 }
 
@@ -514,9 +529,15 @@ internal fun GameOverOverlay(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Button(onClick = onRestart) {
-                Text(stringResource(R.string.mini_game_try_again))
-            }
+            CardActionRow(
+                actions = listOf(
+                    CardAction(
+                        icon = Icons.Outlined.Refresh,
+                        label = stringResource(R.string.mini_game_try_again),
+                        onClick = onRestart
+                    )
+                )
+            )
         }
     }
 }
@@ -538,9 +559,15 @@ internal fun GamePauseOverlay(onResume: () -> Unit, modifier: Modifier = Modifie
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Button(onClick = onResume) {
-                Text(stringResource(R.string.mini_game_resume))
-            }
+            CardActionRow(
+                actions = listOf(
+                    CardAction(
+                        icon = Icons.Outlined.PlayArrow,
+                        label = stringResource(R.string.mini_game_resume),
+                        onClick = onResume
+                    )
+                )
+            )
         }
     }
 }

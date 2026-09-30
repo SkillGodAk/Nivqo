@@ -6,6 +6,18 @@
     <plurals name="option_count">
         <item quantity="other">%s 個修補選項</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="other">%s 個項目</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="other">選取%s個檔案</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="other">新增%s個來源</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="other">適用於 %s 個應用程式的修補程式來源</item>
     </plurals>
@@ -68,5 +80,17 @@
     </plurals>
     <plurals name="core_count">
         <item quantity="other">%s 個核心</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="other">%s 個新項目</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="other">%s 項修正</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="other">%s 項變更</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="other">%s 個新版本</item>
     </plurals>
 </resources>

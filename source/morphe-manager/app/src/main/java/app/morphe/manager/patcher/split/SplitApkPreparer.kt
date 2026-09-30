@@ -17,7 +17,8 @@ import android.util.Log
 import app.morphe.manager.patcher.logger.LogLevel
 import app.morphe.manager.patcher.logger.Logger
 import app.morphe.manager.patcher.util.Abi
-import app.morphe.manager.patcher.util.NativeLibStripper
+import app.morphe.manager.patcher.util.NativeLibs
+import com.reandroid.arsc.chunk.xml.AndroidManifestBlock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
 import java.io.File
@@ -26,12 +27,33 @@ import java.nio.file.Files
 import java.util.Locale
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
+import java.util.zip.ZipInputStream
 
 sealed class SplitPreparationEvent {
     data object Extracting : SplitPreparationEvent()
     data class Merging(val apkName: String) : SplitPreparationEvent()
     data object Writing : SplitPreparationEvent()
     data object Finalizing : SplitPreparationEvent()
+
+    /** The name this event crosses the patcher process boundary under, read back by [fromWire]. */
+    val wireType: String
+        get() = when (this) {
+            Extracting -> "Extracting"
+            is Merging -> "Merging"
+            Writing -> "Writing"
+            Finalizing -> "Finalizing"
+        }
+
+    companion object {
+        /** The event sent as [wireType] and, for [Merging], the module name, or null if unknown. */
+        fun fromWire(type: String?, apkName: String?): SplitPreparationEvent? = when (type) {
+            "Extracting" -> Extracting
+            "Merging" -> Merging(apkName.orEmpty())
+            "Writing" -> Writing
+            "Finalizing" -> Finalizing
+            else -> null
+        }
+    }
 }
 
 /**
@@ -66,8 +88,7 @@ object SplitApkPreparer {
         workspace: File,
         logger: Logger = DefaultLogger,
         skipUnneededSplits: Boolean = false,
-        onEvent: ((SplitPreparationEvent) -> Unit)? = null,
-        sortMergedApkEntries: Boolean = false
+        onEvent: ((SplitPreparationEvent) -> Unit)? = null
     ): PreparationResult {
         if (!isSplitArchive(source)) {
             return PreparationResult(source, merged = false)
@@ -81,34 +102,13 @@ object SplitApkPreparer {
         return try {
             val sourceSize = source.length()
             logger.info("Preparing split APK bundle from ${source.name} (size=${sourceSize} bytes)")
-            val entries = extractSplitEntries(source, modulesDir, onEvent)
-            logger.info("Found ${entries.size} split modules: ${entries.joinToString { it.name }}")
+            val entries = extractSplitEntries(source, modulesDir, skipUnneededSplits, logger, onEvent)
+            logger.info("Extracted ${entries.size} split modules: ${entries.joinToString { it.name }}")
             logger.info("Module sizes: ${entries.joinToString { "${it.name}=${it.file.length()} bytes" }}")
-            val mergeOrder = Merger.listMergeOrder(modulesDir.toPath())
-            val supportedTokens = supportedAbiTokens()
-            val skippedModules = buildSet {
-                if (skipUnneededSplits) {
-                    addAll(mergeOrder.filter { shouldSkipModule(it, supportedTokens) })
-                    val localeTokens = deviceLocaleTokens()
-                    val deviceDensity = deviceDensityQualifier()
-                    val effectiveDensity = resolveEffectiveDensityQualifier(mergeOrder, deviceDensity)
-                    addAll(
-                        mergeOrder.filter {
-                            shouldSkipModuleForDevice(
-                                moduleName = it,
-                                localeTokens = localeTokens,
-                                densityQualifier = effectiveDensity
-                            )
-                        }
-                    )
-                }
-            }
             Merger.merge(
                 apkDir = modulesDir.toPath(),
                 outputApk = mergedApk,
-                skipModules = skippedModules,
-                onEvent = onEvent,
-                sortApkEntries = sortMergedApkEntries
+                onEvent = onEvent
             )
 
             onEvent?.invoke(SplitPreparationEvent.Finalizing)
@@ -144,7 +144,7 @@ object SplitApkPreparer {
                 modules.mapNotNull { Abi.namedIn(it.name) }.distinct().ifEmpty {
                     modules
                         .flatMap { module ->
-                            zip.getInputStream(module).use(NativeLibStripper::extractAbisFromStream)
+                            zip.getInputStream(module).use(NativeLibs::extractAbisFromStream)
                         }
                         .distinct()
                 }
@@ -323,19 +323,61 @@ object SplitApkPreparer {
         return deviceQualifier
     }
 
+    // Decided from the archive's index, so the unneeded splits are never unpacked. A name is only
+    // a hint: an .xapk names its base after the package, which can read like a config split, so
+    // a module whose manifest declares no split is kept whatever its name says
+    private fun unneededModules(zip: ZipFile, entries: List<ZipEntry>): Set<String> {
+        val names = entries.map { it.name }
+        val supportedTokens = supportedAbiTokens()
+        val localeTokens = deviceLocaleTokens()
+        val effectiveDensity = resolveEffectiveDensityQualifier(names, deviceDensityQualifier())
+        return entries
+            .filter { entry ->
+                val unneeded = shouldSkipModule(entry.name, supportedTokens) ||
+                        shouldSkipModuleForDevice(
+                            moduleName = entry.name,
+                            localeTokens = localeTokens,
+                            densityQualifier = effectiveDensity
+                        )
+                unneeded && !isBaseModule(zip, entry)
+            }
+            .mapTo(LinkedHashSet()) { it.name }
+    }
+
+    /**
+     * Whether the manifest of the module in [entry] declares no split. The module is streamed
+     * rather than extracted, which stops early as build tools write the manifest first.
+     */
+    internal fun isBaseModule(zip: ZipFile, entry: ZipEntry): Boolean =
+        runCatching {
+            ZipInputStream(zip.getInputStream(entry)).use { module ->
+                generateSequence { module.nextEntry }
+                    .firstOrNull { it.name == "AndroidManifest.xml" }
+                    ?.let { !AndroidManifestBlock.load(module).isSplit }
+            }
+        }.getOrNull() == true
+
     private suspend fun extractSplitEntries(
         source: File,
         targetDir: File,
+        skipUnneededSplits: Boolean,
+        logger: Logger,
         onEvent: ((SplitPreparationEvent) -> Unit)? = null
     ): List<ExtractedModule> =
         runInterruptible(Dispatchers.IO) {
             val extracted = mutableListOf<ExtractedModule>()
             ZipFile(source).use { zip ->
-                val apkEntries = splitModuleEntries(zip).toList()
+                val allEntries = splitModuleEntries(zip).toList()
 
-                if (apkEntries.isEmpty()) {
+                if (allEntries.isEmpty()) {
                     throw IOException("Split archive does not contain any APK entries.")
                 }
+
+                val skipped = if (skipUnneededSplits) unneededModules(zip, allEntries) else emptySet()
+                if (skipped.isNotEmpty()) {
+                    logger.info("Skipping ${skipped.size} unneeded split modules: ${skipped.joinToString()}")
+                }
+                val apkEntries = allEntries.filterNot { it.name in skipped }
 
                 onEvent?.invoke(SplitPreparationEvent.Extracting)
                 apkEntries.forEach { entry ->

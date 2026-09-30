@@ -9,7 +9,9 @@ import android.widget.Toast
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
@@ -21,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -226,6 +229,8 @@ private fun ApkDownloadSource.instructionSteps(
  */
 @Composable
 internal fun DownloadInstructionsDialog(
+    appName: String,
+    packageName: String?,
     downloadUrl: String?,
     requestedVersion: String?,
     usingMountInstall: Boolean,
@@ -263,7 +268,10 @@ internal fun DownloadInstructionsDialog(
 
     AppDialog(
         onDismissRequest = onDismiss,
+        accentColor = rememberAppColor(packageName),
         title = stringResource(R.string.home_download_instructions_title),
+        // What the steps fetch, since the dialog before this one named it and is gone by now
+        description = listOfNotNull(appName, requestedVersion?.withVersionPrefix()).joinToString(" · "),
         footer = {
             if (offersHelper) {
                 AppDialogButtonRow(
@@ -275,8 +283,7 @@ internal fun DownloadInstructionsDialog(
                     // Nothing to open once the action is withdrawn, which is only the case
                     // while the dialog is on its way out
                     onSecondaryClick = { onOpenApkDownloadHelper?.invoke() },
-                    secondaryIcon = Icons.Outlined.Download,
-                    layout = DialogButtonLayout.Vertical
+                    secondaryIcon = Icons.Outlined.Download
                 )
             } else {
                 AppDialogButton(
@@ -289,9 +296,6 @@ internal fun DownloadInstructionsDialog(
             }
         }
     ) {
-        val textColor = LocalDialogTextColor.current
-        val secondaryColor = LocalDialogSecondaryTextColor.current
-
         // Waiting shows as waiting rather than as instructions that rewrite themselves once
         // the destination turns out to be a different website
         Crossfade(
@@ -317,46 +321,50 @@ internal fun DownloadInstructionsDialog(
                 mountInstallRequired = mountInstallRequired
             )
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            // On a card of their own, as the version lists before them are, numbered down a rail
+            SurfaceCard(
+                cornerRadius = Defaults.SettingsCornerRadius,
+                showBorder = true,
+                color = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.home_download_instructions_steps_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor
-                )
-
-                steps.forEachIndexed { index, step ->
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.padding(
+                        horizontal = Defaults.ContentPadding,
+                        vertical = Defaults.ItemSpacing
+                    )
+                ) {
+                    steps.forEachIndexed { index, step ->
                         InstructionStep(
-                            number = "${index + 1}",
-                            text = step.text,
-                            textColor = textColor,
-                            secondaryColor = secondaryColor
-                        )
+                            number = index + 1,
+                            isLast = index == steps.lastIndex
+                        ) {
+                            Text(
+                                text = step.text,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = LocalDialogTextColor.current
+                            )
 
-                        step.button?.let { button ->
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                SiteDownloadButton(
-                                    button = button,
-                                    downloadColor = downloadColor,
-                                    isApkBundle = isApkBundle
+                            step.button?.let { button ->
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    SiteDownloadButton(
+                                        button = button,
+                                        downloadColor = downloadColor,
+                                        isApkBundle = isApkBundle
+                                    )
+                                }
+                            }
+
+                            step.note?.let { note ->
+                                Notice(
+                                    text = note,
+                                    tone = SemanticTone.Warning,
+                                    icon = Icons.Outlined.Warning,
+                                    density = NoticeDensity.Compact
                                 )
                             }
-                        }
-
-                        step.note?.let { note ->
-                            Notice(
-                                text = note,
-                                tone = SemanticTone.Warning,
-                                icon = Icons.Outlined.Warning,
-                                density = NoticeDensity.Compact
-                            )
                         }
                     }
                 }
@@ -398,7 +406,7 @@ private fun SiteDownloadButton(
         // APKMirror tints its download button with the app's own accent color
         SiteButton.ApkMirror -> {
             val buttonColor = downloadColor.ensureContrast(MaterialTheme.colorScheme.background)
-            val contentColor = if (buttonColor.requiresLightContent()) Color.White else Color.Black
+            val contentColor = buttonColor.contrastingContent()
 
             Surface(
                 onClick = onClick,
@@ -443,7 +451,7 @@ private fun SiteDownloadButton(
         SiteButton.Uptodown -> Surface(
             onClick = onClick,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(UptodownButtonCornerRadius),
             color = UptodownBrandColor
         ) {
             Row(
@@ -474,28 +482,55 @@ private fun SiteDownloadButton(
     }
 }
 
+/** Side of the disc a step's number sits on. */
+private val StepNumberSize = 26.dp
+
+/** Rounding Uptodown gives its own download button, which the copy of it keeps. */
+private val UptodownButtonCornerRadius = 8.dp
+
+/**
+ * One step of the instructions: its [number] on a disc in the color of the app being patched, and a
+ * rail down to the next one, so the steps read as a sequence rather than a list of remarks.
+ */
 @Composable
 private fun InstructionStep(
-    number: String,
-    text: AnnotatedString,
-    textColor: Color,
-    secondaryColor: Color
+    number: Int,
+    isLast: Boolean,
+    content: @Composable ColumnScope.() -> Unit
 ) {
+    val accent = LocalAccent.current ?: MaterialTheme.colorScheme.primary
+    val disc = accent.copy(alpha = AccentAlpha.LEAD)
+
     Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top
+        modifier = Modifier.height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
     ) {
-        Text(
-            text = number,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = textColor.copy(alpha = 0.6f)
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = secondaryColor,
-            modifier = Modifier.weight(1f)
+        Column(
+            modifier = Modifier.fillMaxHeight(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(StepNumberSize)
+                    .background(disc, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = number.toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = appAccentContent(disc)
+                )
+            }
+            if (!isLast) AccentRail(modifier = Modifier.weight(1f))
+        }
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                // Past the last step there is no rail to leave room for
+                .padding(top = 3.dp, bottom = if (isLast) 0.dp else Defaults.ContentPadding),
+            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
+            content = content
         )
     }
 }

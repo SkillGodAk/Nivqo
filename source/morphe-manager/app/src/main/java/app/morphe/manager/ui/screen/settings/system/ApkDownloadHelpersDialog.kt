@@ -11,12 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.ui.screen.shared.*
@@ -65,6 +62,7 @@ fun ApkDownloadHelpersDialog(
     AppDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.settings_system_apk_download_helper),
+        description = stringResource(R.string.settings_system_apk_download_helper_dialog_description),
         footer = {
             AppDialogOutlinedButton(
                 text = stringResource(R.string.close),
@@ -78,14 +76,6 @@ fun ApkDownloadHelpersDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
         ) {
-            Text(
-                text = stringResource(R.string.settings_system_apk_download_helper_dialog_description),
-                style = MaterialTheme.typography.bodyMedium,
-                color = LocalDialogSecondaryTextColor.current,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
             SettingsGroup {
                 helpers.forEachIndexed { index, helper ->
                     if (index > 0) SettingsDivider()

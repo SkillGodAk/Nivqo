@@ -41,9 +41,6 @@
     <string name="home_update_skipped_metered">업데이트를 건너뜁니다</string>
     <string name="home_update_skipped_metered_subtitle">모바일 데이터가 활성화되어 있습니다</string>
     <string name="home_updating_sources">소스를 업데이트하는 중…</string>
-    <!-- Download progress across several bundles. "%1$d" and "%2$d" count the bundles, "%3$s" and
-         "%4$s" are the megabytes read and expected, "%5$d" is the percentage. -->
-    <string name="home_update_bundle_count_with_bytes">%1$d / %2$d  ·  %3$s / %4$s MB (%5$d%%)</string>
     <string name="home_update_success">소스 업데이트 완료</string>
     <string name="home_update_success_subtitle">소스가 최신 상태입니다</string>
     <string name="home_sources_are_loading">소스를 불러오는 중, 잠시만 기다려 주세요…</string>
@@ -141,7 +138,6 @@
     <string name="sources_management_report_issue">문제 보고</string>
     <string name="sources_management_failed_to_open_url">URL을 열 수 없습니다</string>
     <string name="sources_apps">앱</string>
-    <string name="sources_apps_title">%1$s의 앱</string>
     <string name="sources_apps_description">앱을 탭하면 이 소스에서 제외하거나 다시 가져올 수 있습니다. 길게 누르면 여러 앱을 선택할 수 있습니다. 앱을 가져오는 소스가 하나도 없으면 홈 화면에서 사라집니다.</string>
     <string name="sources_apps_brought">이 소스에서 가져온 앱</string>
     <string name="sources_apps_left_out">이 소스에서 제외된 앱</string>
@@ -174,21 +170,22 @@
     <string name="sources_dialog_rename">패치 소스 이름 변경</string>
     <string name="sources_dialog_duplicate_name_error">이 이름의 패치 소스가 이미 존재합니다</string>
     <string name="sources_dialog_missing_error">이 패치 소스를 업데이트할 수 없습니다</string>
-    <string name="sources_dialog_view_any_version">모든 버전</string>
-    <string name="sources_dialog_view_any_package">모든 패키지</string>
     <string name="sources_dialog_add_source">패치 소스 추가</string>
-    <string name="sources_dialog_delete_confirm_message">\'%s\' 소스를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다</string>
+    <string name="sources_dialog_delete_confirm_body">이 작업은 되돌릴 수 없습니다</string>
     <string name="sources_dialog_remote">원격</string>
     <string name="sources_dialog_remote_url">소스 URL</string>
-    <string name="sources_dialog_remote_url_formats_title">예시:</string>
+    <string name="sources_dialog_remote_url_hint">저장소 또는 패치 번들 .json 링크를 입력하세요. 여러 개를 한 번에 붙여넣어 모두 추가할 수 있습니다</string>
+    <string name="sources_dialog_paste_no_links">클립보드에서 링크를 찾을 수 없습니다</string>
     <string name="sources_dialog_local">로컬</string>
-    <string name="sources_dialog_local_file">패치 소스 파일 선택</string>
-    <string name="sources_dialog_local_file_tap_hint">기기 저장소를 탐색하려면 탭하세요</string>
-    <string name="sources_dialog_local_file_description">저장소에서 .mpp 패치 소스 파일을 선택하세요</string>
+    <string name="sources_dialog_local_files">패치 소스 파일 선택</string>
+    <!-- Button under the files already picked, which opens the picker again -->
+    <string name="sources_dialog_local_add_more">파일 더 추가</string>
+    <string name="sources_dialog_local_file_tap_hint">저장소를 탐색하려면 탭하세요</string>
     <string name="sources_dialog_local_invalid_extension">파일은 .mpp 확장자를 가져야 합니다</string>
+    <!-- %s is the name of the local source that another version of the same bundle replaces -->
+    <string name="sources_dialog_local_updates">%s 업데이트</string>
     <string name="sources_dialog_url_valid">유효한 리포지토리 또는 JSON URL</string>
     <string name="sources_dialog_url_invalid">URL은 GitHub/GitLab 리포지토리 또는 .json 파일을 가리켜야 합니다</string>
-    <string name="sources_dialog_local_change_file">파일 변경</string>
     <string name="sources_dialog_preinstalled">미리 설치됨</string>
     <string name="sources_dialog_community">커뮤니티 패치</string>
     <string name="sources_dialog_choose_apps">앱 선택</string>
@@ -218,7 +215,8 @@
     <string name="home_apk_helper_download">Helper 앱 사용</string>
     <string name="home_apk_helper_title">Helper 앱으로 다운로드</string>
     <string name="home_apk_helper_description">Morphe는 아래의 Helper 앱에 원본 APK를 다운로드하고 파일을 다시 전달하도록 요청합니다</string>
-    <string name="home_apk_helper_continue">Helper 앱 열기</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="home_apk_helper_continue">Helper 열기</string>
     <string name="home_apk_helper_warning">이 Helper 앱을 신뢰하는 경우에만 계속 진행하세요. Morphe는 패치하기 전에 수신하는 모든 파일의 패키지, 버전 및 서명을 확인합니다</string>
     <string name="home_apk_helper_warning_unverified">이 Helper 앱을 신뢰하는 경우에만 계속 진행하세요. Morphe는 이 APK의 서명을 검증할 수 없으므로, 파일이 변조되었더라도 이를 감지하지 못할 수 있습니다</string>
     <string name="home_apk_helper_no_result">Helper 앱에서 APK 파일을 반환하지 않았습니다</string>
@@ -240,7 +238,6 @@
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt;는 Android %2$s (API %3$s)에서 지원되는 버전이 없습니다. 선언된 모든 앱 버전은 더 높은 Android 버전을 요구합니다</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">원본 APK 다운로드</string>
-    <string name="home_download_instructions_steps_title">설명서:</string>
     <string name="home_download_instructions_finding">다운로드 페이지를 찾는 중…</string>
     <string name="home_download_instructions_step1">아래 \'%s\' 버튼을 탭하세요</string>
     <string name="home_download_instructions_step2_part1">웹페이지를 아래로 스크롤 한 후에 이 버튼을 탭하세요</string>
@@ -283,7 +280,6 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_title">전문가 모드</string>
     <string name="expert_mode_search">패치 검색</string>
-    <string name="expert_mode_proceed">패치 진행</string>
     <string name="expert_mode_disable_all">모두 비활성화</string>
     <string name="expert_mode_disable_all_done">모든 패치 비활성화됨</string>
     <string name="expert_mode_enable_all">모두 활성화</string>
@@ -325,6 +321,7 @@
     <string name="morphe_experimental_app_version_dialog_message">이 &lt;b&gt;%s&lt;/b&gt; 버전은 초기 실험적 지원이 제공됩니다&lt;br/&gt;&lt;br/&gt;🔧 이 앱 버전에 맞게 패치가 개선되는 과정이므로, 예상되지 않은 동작이나 확인되지 않은 버그가 발생할 수 있습니다</string>
     <string name="home_dialog_unsupported_version_dialog_title">지원되지 않는 버전</string>
     <string name="home_dialog_unsupported_version_dialog_description">이 APK는 권장 앱 버전이 아닙니다. 계속 진행하면 앱이 제대로 작동하지 않을 수 있습니다</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_dialog_unsupported_version_dialog_proceed">계속 진행</string>
     <string name="home_dialog_unsupported_version_compatible_versions">호환 가능한 버전:</string>
     <string name="home_dialog_unsupported_version_unsupported_label">지원되지 않음</string>
@@ -360,12 +357,21 @@
     <string name="patch_option_slider_range_end">끝</string>
     <string name="patch_option_list_duplicate">이 값은 이미 존재합니다</string>
     <string name="patch_option_list_empty">값을 비워 둘 수 없습니다</string>
-    <string name="patch_option_list_empty_state">아직 값이 추가되지 않았습니다</string>
     <string name="patch_option_required_missing">%s: 모든 필수 옵션을 입력하세요</string>
+    <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <string name="patch_option_changed">변경됨</string>
+    <!-- Badge on a patch option that has to be filled in before patching -->
+    <string name="patch_option_required">필수</string>
+    <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
+    <string name="patch_option_recommended_size">권장 크기: %1$s×%2$s</string>
     <!-- Adaptive Icon Creator -->
     <string name="adaptive_icon_create">적응형 아이콘 만들기</string>
     <string name="adaptive_icon_select_image">이미지 선택</string>
     <string name="adaptive_icon_change_image">이미지 변경</string>
+    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
+    <string name="adaptive_icon_foreground">전경 이미지</string>
+    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
+    <string name="adaptive_icon_launcher">런처 아이콘</string>
     <string name="adaptive_icon_background_color">배경 색상</string>
     <string name="adaptive_icon_reset_transform">위치 및 크기 초기화</string>
     <string name="adaptive_icon_safe_zone_inner">안전한 영역 (항상 표시됨)</string>
@@ -417,16 +423,18 @@
     <string name="batch_patch_source_file">첨부된 파일</string>
     <string name="batch_patch_source_unavailable">APK를 준비할 수 없습니다</string>
     <string name="batch_patch_force_version">버전 강제 적용</string>
-    <string name="batch_patch_force_version_done">패치 목록에 추가하였습니다. 다른 버전용으로 제작된 패치는 앱에 문제를 일으킬 수 있습니다</string>
-    <string name="batch_patch_accept_signature_done">그래도 패치 목록에 추가되었습니다. 이 APK는 원본이 아닐 수 있습니다</string>
+    <string name="batch_patch_force_version_done">그래도 패치 목록에 추가됨, 앱이 손상될 수 있음</string>
+    <string name="batch_patch_accept_signature_done">그래도 패치 목록에 추가됨, APK가 검증되지 않음</string>
     <string name="batch_patch_edit_patches">패치 선택</string>
     <string name="batch_patch_state_no_apk">APK 없음</string>
     <string name="batch_patch_state_no_patches">패치 없음</string>
     <string name="batch_patch_policy_install">완료 후 설치</string>
     <string name="batch_patch_policy_install_description">패치 목록이 완료되면 패치된 각 앱을 즉시 설치합니다. 비활성화하면 나중에 사용할 수 있도록 APK를 유지합니다</string>
-    <string name="batch_patch_start">패치 시작</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_patch_start">시작</string>
     <string name="batch_patch_stop_title">일괄 패치 중지</string>
     <string name="batch_patch_stop_description">현재 패치 중인 앱과 대기 중인 모든 앱을 취소합니다</string>
+    <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_install_all">모두 설치</string>
     <string name="batch_patch_install_failed">설치 실패</string>
     <string name="batch_patch_in_progress">일괄 패치가 이미 실행 중입니다</string>
@@ -460,7 +468,7 @@
     <string name="home_app_info_patch_update_available">패치 업데이트 사용 가능</string>
     <string name="home_app_info_patch_update_available_description">새 버전의 패치가 있습니다. 최신 개선 사항 및 수정 사항을 적용하려면 앱을 다시 패치하세요</string>
     <string name="home_app_info_app_update_available">앱 업데이트 사용 가능</string>
-    <string name="home_app_info_app_update_available_description">패치 소스가 이 앱의 최신 버전을 지원합니다. 해당 버전으로 이동하려면 다시 패치하세요.</string>
+    <string name="home_app_info_app_update_available_description">패치 소스가 이 앱의 최신 버전을 지원합니다. 해당 버전으로 이동하려면 다시 패치하세요</string>
     <string name="home_app_info_newest_supported_version">지원되는 최신 버전</string>
     <string name="home_app_info_version_move">설치된 버전 %1$s, 지원되는 최신 버전 %2$s</string>
     <string name="home_app_info_app_deleted_warning">앱이 제거되었습니다</string>
@@ -504,7 +512,7 @@
     <string name="patcher_field_device">기기</string>
     <!-- Free and total RAM of the device, never its storage -->
     <string name="patcher_field_memory">메모리</string>
-    <string name="patcher_field_storage">기기 저장소</string>
+    <string name="patcher_field_storage">저장소</string>
     <!-- Size of the patched APK, once patching finished -->
     <string name="patcher_field_output_size">출력 크기</string>
     <!-- How long patching took -->
@@ -529,8 +537,8 @@
     <string name="patcher_success_subtitle">앱을 패치 및 설치하였습니다!</string>
     <string name="patcher_complete_title">패치 완료! ✨</string>
     <string name="patcher_failed_title">이런! 오류가 발생하였습니다</string>
-    <string name="patcher_failed_hint">무엇이 잘못되었는지 확인하려면 \'%s\'를 탭하세요</string>
     <string name="patcher_failed_dialog_title">패치 실패</string>
+    <string name="patcher_error_details">오류 세부 정보</string>
     <string name="patcher_unknown_error">알 수 없는 오류가 발생하였습니다</string>
     <string name="patcher_split_step_extracting">분할 APK를 추출하는 중</string>
     <string name="patcher_split_step_merging">%s를 병합하는 중</string>
@@ -545,7 +553,6 @@
 앱을 제거하면 모든 앱 데이터가 영구적으로 삭제됩니다"</string>
     <string name="patcher_install_error_title">설치 오류</string>
     <string name="patcher_install_error_subtitle">앱을 제거한 후에 다시 설치하세요</string>
-    <string name="patcher_ready_to_install_subtitle">설치하시려면 아래 버튼을 탭하세요</string>
     <string name="patcher_ready_to_mount_subtitle">마운트하려면 아래 버튼을 탭하세요</string>
     <string name="patcher_patches_excluded_for_installer">이 설치 방법에는 사용할 수 없으며 제외됩니다: %s</string>
     <string name="patcher_back_to_game_hint">게임으로 돌아가려면 \'%1$s\'를 탭하세요</string>
@@ -654,6 +661,8 @@
     <string name="mini_game_try_again">다시 시도</string>
     <string name="mini_game_paused">일시 중지</string>
     <string name="mini_game_resume">계속 진행</string>
+    <string name="mini_game_restart">다시 시작</string>
+    <string name="mini_game_change">다른 게임 선택</string>
     <string name="mini_game_2048_picker_subtitle">타일 밀어서 합치기</string>
     <string name="mini_game_flappy_picker_subtitle">탭하여 파이프 사이 날아가기</string>
     <string name="mini_game_flappy_tap_to_start">날아보려면 탭하세요</string>
@@ -673,6 +682,7 @@
     <string name="system">시스템</string>
     <!-- Settings - Appearance Tab - Background animation -->
     <string name="settings_appearance_background">배경 애니메이션</string>
+    <string name="settings_appearance_background_description">앱 화면 뒤에서 재생되는 애니메이션</string>
     <string name="settings_appearance_background_circles">원</string>
     <string name="settings_appearance_background_rings">링</string>
     <string name="settings_appearance_background_mesh">그물망</string>
@@ -682,7 +692,7 @@
     <string name="settings_appearance_background_grid">격자</string>
     <string name="settings_appearance_background_particles">입자</string>
     <string name="settings_appearance_background_none">없음</string>
-    <string name="settings_appearance_background_random">무작의</string>
+    <string name="settings_appearance_background_random">무작위</string>
     <string name="settings_appearance_background_random_interval_launch">앱 실행 시</string>
     <string name="settings_appearance_background_random_interval_daily">매일</string>
     <string name="settings_appearance_background_random_interval_3days">3일마다</string>
@@ -701,6 +711,10 @@
     <string name="settings_appearance_accent_color">강조 색상</string>
     <string name="settings_appearance_pure_black">순수 검정</string>
     <string name="settings_appearance_pure_black_description">순수 검정 배경을 사용합니다</string>
+    <string name="settings_appearance_color_accents">앱 및 소스 색상</string>
+    <string name="settings_appearance_color_accents_description">강조 색상 대신 각 앱과 소스의 고유 색상을 사용합니다</string>
+    <string name="settings_appearance_outlines">윤곽선</string>
+    <string name="settings_appearance_outlines_description">카드, 패널, 버튼의 가장자리에 얇은 테두리를 표시합니다</string>
     <!-- Settings - Appearance Tab - Language Selector -->
     <string name="settings_appearance_language_and_display">언어 및 디스플레이</string>
     <string name="settings_appearance_app_language">앱 언어</string>
@@ -740,6 +754,7 @@
     <string name="settings_appearance_app_card_colors_bundle_description">각 앱의 고유 색상을 사용하고, 화면에 맞게 자동으로 명암을 조정합니다</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">앱 아이콘</string>
+    <string name="settings_appearance_app_icon_selector_description">홈 화면과 앱 서랍에서 Morphe의 모양</string>
     <string name="settings_appearance_app_icon_default">기본값</string>
     <string name="settings_appearance_app_icon_light_2">하늘</string>
     <string name="settings_appearance_app_icon_light_3">일몰</string>
@@ -748,6 +763,7 @@
     <string name="settings_appearance_app_icon_dark_3">남색</string>
     <string name="settings_appearance_app_icon_change_dialog_title">앱 아이콘을 변경할까요?</string>
     <string name="settings_appearance_app_icon_change_dialog_message">&lt;b&gt;%s&lt;/b&gt;으로 변경하고 다시 시작하시겠습니까?</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">앱 아이콘 변경</string>
     <!-- Settings - Advanced Tab - Updates Section -->
     <string name="settings_advanced_updates">업데이트</string>
@@ -804,7 +820,7 @@
     <string name="settings_advanced_strip_unused_libs">기기 아키텍처에 맞게 최적화</string>
     <string name="settings_advanced_strip_unused_libs_description">사용하지 않는 CPU 아키텍처 라이브러리 및 분할 APK 모듈을 제거합니다</string>
     <!-- Settings - Advanced Tab - GitHub PAT Settings -->
-    <string name="settings_advanced_github_pat_description">풀 리퀘스트 소스에 필요합니다</string>
+    <string name="settings_advanced_github_pat_description">Pull requests 소스에 필요합니다</string>
     <string name="settings_advanced_github_pat_configured">토큰을 설정하였습니다</string>
     <string name="settings_advanced_github_pat_how_to_get">토큰 얻는 방법</string>
     <!-- "%s" is "GitHub Personal Access Token", kept in English because GitHub has no localized UI -->
@@ -1079,7 +1095,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_patched_apks_description">저장된 패치된 앱 파일을 관리합니다</string>
     <string name="settings_system_patched_apks_empty">저장된 패치된 APK가 없습니다</string>
     <string name="settings_system_patched_apks_delete_title">패치된 APK 삭제</string>
-    <string name="settings_system_patched_apks_delete_confirm">&lt;b&gt;%s&lt;/b&gt;에 대한 저장된 패치된 APK를 삭제하시겠습니까?</string>
     <string name="settings_system_patched_apks_deleted">패치된 APK를 성공적으로 삭제하였습니다</string>
     <string name="settings_system_patched_apks_delete_all_title">패치된 APK 모두 삭제</string>
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
@@ -1088,7 +1103,7 @@ morphe_header_custom_dark.png
     <string name="settings_system_original_apks_empty">저장된 원본 APK가 없습니다</string>
     <string name="settings_system_original_apks_deleted">원본 APK를 성공적으로 삭제하였습니다</string>
     <string name="settings_system_original_apks_delete_title">원본 APK 삭제</string>
-    <string name="settings_system_original_apks_delete_confirm">&lt;b&gt;%s&lt;/b&gt;에 대한 원본 APK를 삭제하시겠습니까? 다시 패치할 경우에 새 APK를 사용해야 합니다</string>
+    <string name="settings_system_original_apks_delete_notice">새 APK를 제공하지 않으면 다시 패치할 수 없습니다</string>
     <string name="settings_system_original_apks_delete_all_title">원본 APK 모두 삭제</string>
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
     <string name="settings_system_patch_selections_title">패치 선택 목록</string>
@@ -1109,7 +1124,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_import_source_data_fail">소스 데이터를 가저올 수 없습니다</string>
     <string name="settings_system_import_source_data_success">소스 데이터를 성공적으로 가져왔습니다</string>
     <string name="settings_system_selected_patches_section">선택된 패치</string>
-    <string name="settings_system_patch_options_section">패치 옵션</string>
     <string name="settings_system_no_patches_or_options">저장된 패치 또는 옵션이 없습니다</string>
     <!-- Copy selection from another bundle -->
     <string name="copy_selection_title">선택 목록 복사…</string>
@@ -1128,7 +1142,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_apk_download_helper_installed_by">%s에 의해 설치됨</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">설치 프로그램 알 수 없음</string>
     <!-- File Picker -->
-    <string name="file_picker_previous_directory">이전 디렉터리</string>
     <string name="file_picker_no_files">파일이 없습니다</string>
     <string name="file_picker_read_error">이 디렉터리를 읽을 수 없습니다</string>
     <string name="file_picker_internal_storage">내부 저장소</string>
@@ -1159,11 +1172,9 @@ morphe_header_custom_dark.png
     <string name="easter_egg_pill_red_toast_again">다시 비 속으로</string>
     <string name="easter_egg_pill_blue_toast_again">플러그를 뽑았습니다. 돌아가는 길은 언제나 그곳에 있었습니다</string>
     <!-- Shared strings -->
-    <!-- Download progress of a bundle or of the manager itself. "%1$s" and "%2$s" are the
-         megabytes read and expected, "%3$s" is the percentage; the doubled "%%" after it is
-         how a literal percent sign is written here. -->
-    <string name="download_progress">%1$s MB / %2$s MB (%3$s%%)</string>
     <string name="select_file">파일 선택</string>
+    <string name="select_files">파일 선택</string>
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="select_folder">폴더 선택</string>
     <string name="patches">패치</string>
     <string name="home">홈</string>
@@ -1190,6 +1201,7 @@ morphe_header_custom_dark.png
     <string name="done">완료</string>
     <string name="skip">건너뛰기</string>
     <string name="clear">지우기</string>
+    <string name="paste">붙여넣기</string>
     <string name="delete">파일 삭제</string>
     <string name="delete_all">모두 삭제</string>
     <string name="remove">제거</string>
@@ -1199,7 +1211,6 @@ morphe_header_custom_dark.png
     <string name="disable">비활성화</string>
     <string name="enable">활성화</string>
     <string name="loading">불러오는 중…</string>
-    <string name="loading_older_releases">이전 릴리스를 불러오는 중…</string>
     <string name="creating">생성하는 중…</string>
     <string name="processing_apk">APK를 처리하는 중…</string>
     <string name="exporting_apks">APK를 내보내는 중…</string>
@@ -1242,6 +1253,7 @@ morphe_header_custom_dark.png
     <string name="continue_">계속</string>
     <string name="version">버전</string>
     <string name="clone">복제</string>
+    <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patch">패치</string>
     <string name="patching">패치</string>
     <string name="patched">패치됨</string>
@@ -1281,17 +1293,40 @@ morphe_header_custom_dark.png
     <string name="changelog_description">이 버전의 새로운 기능</string>
     <string name="changelog_download_fail">변경 사항을 다운로드할 수 없습니다: %s</string>
     <string name="changelog_empty">변경 사항이 없습니다</string>
-    <string name="changelog_show_older">이전 릴리스 보기</string>
+    <string name="changelog_earlier_releases">이전 릴리스</string>
     <string name="changelog_older_empty">표시할 이전 릴리스가 없습니다</string>
+    <string name="changelog_older_failed">이전 릴리스를 불러올 수 없습니다</string>
+    <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="changelog_release_page">릴리스 페이지</string>
+    <string name="content_translate">번역</string>
+    <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <string name="content_show_original">원문</string>
+    <string name="content_translation_failed">번역할 수 없습니다: %s</string>
+    <string name="changelog_section_new">신규 사항</string>
+    <string name="changelog_section_fixes">수정 사항</string>
+    <string name="changelog_section_performance">성능</string>
+    <string name="changelog_section_improvements">개선 사항</string>
+    <string name="changelog_section_app_support">앱 지원</string>
+    <string name="changelog_section_other">변경 사항</string>
+    <string name="changelog_badge_latest">최신</string>
+    <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <string name="changelog_badge_downloaded">다운로드</string>
+    <string name="changelog_badge_prerelease">Pre-release</string>
+    <!-- "%s" is the number of changes in the section -->
+    <string name="changelog_show_all">모두 표시 (%s)</string>
+    <string name="changelog_show_less">간략히 보기</string>
     <string name="no_network_toast">인터넷에 연결할 수 없습니다</string>
     <string name="update_available">업데이트 사용 가능</string>
     <string name="ready_to_install_update">업데이트 설치 준비 완료</string>
     <string name="update_completed">업데이트하였습니다</string>
     <string name="install_update_manager_failed">업데이트를 할 수 없습니다</string>
     <string name="installing_manager_update">업데이트를 설치하는 중…</string>
+    <string name="installing_manager_update_hint">Morphe가 업데이트를 완료하기 위해 종료됩니다</string>
     <string name="downloading_manager_update">업데이트를 다운로드하는 중…</string>
-    <!-- Shown while downloading, before the total size is known. "%1$s" is the megabytes so far. -->
+    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB 다운로드됨</string>
+    <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
+    <string name="manager_update_progress_size">%1$s / %2$s MB</string>
     <string name="manager_update_not_ready">이 릴리스를 게시하는 중입니다. 몇 분 후 다시 시도해 주세요</string>
     <string name="update_download_missing">다운로드한 업데이트를 더 이상 사용할 수 없습니다. 다시 다운로드하세요</string>
     <string name="download_manager_failed">업데이트를 다운로드할 수 없습니다: %s</string>
@@ -1323,6 +1358,7 @@ morphe_header_custom_dark.png
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">빠른 기능 투어</string>
     <string name="tour_prompt_desc">Morphe의 주요 기능을 빠르게 둘러보시겠습니까?</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">안내해 드릴게요</string>
     <string name="onboarding_restart_title">기능 투어</string>
     <string name="onboarding_restart_desc">주요 기능 둘러보기</string>

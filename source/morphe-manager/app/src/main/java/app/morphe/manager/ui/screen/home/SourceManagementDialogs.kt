@@ -6,20 +6,14 @@
 package app.morphe.manager.ui.screen.home
 
 import android.net.Uri
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -29,22 +23,25 @@ import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.morphe.manager.R
@@ -53,9 +50,14 @@ import app.morphe.manager.domain.bundles.PatchBundleSource
 import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.usesPrerelease
 import app.morphe.manager.domain.bundles.RemotePatchBundle
 import app.morphe.manager.domain.repository.PatchBundleRepository
+import app.morphe.manager.domain.repository.PatchBundleRepository.LocalFileCheck
+import app.morphe.manager.domain.repository.PatchBundleRepository.RemoteSourceRejection
+import app.morphe.manager.domain.repository.PatchBundleRepository.RemoteUrlCheck
 import app.morphe.manager.domain.repository.SourceMuteRepository
 import app.morphe.manager.patcher.patch.PatchInfo
+import app.morphe.manager.patcher.patch.appIconColorOf
 import app.morphe.manager.ui.screen.shared.*
+import app.morphe.manager.ui.viewmodel.HomeViewModel.PickedBundle
 import app.morphe.manager.util.*
 import compose.icons.FontAwesomeIcons
 import compose.icons.fontawesomeicons.Brands
@@ -66,33 +68,37 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Locale
 import org.koin.compose.koinInject
-import com.mikepenz.markdown.model.State as MarkdownRenderState
-
-private val ColorValid = Color(0xFF4CAF50)
+import java.util.Locale
 
 /**
- * Dialog for adding patch bundles.
+ * Dialog for adding patch sources, several at once: links pasted in any form on the remote tab,
+ * or any number of picked files on the local one. Each pending source says whether it will be
+ * added, and only those that will are counted and submitted.
+ *
+ * @param localFiles Files picked so far with what importing each would do, held by the caller
+ * since the picker opens outside.
+ * @param onCheckUrl Checks a link the way the add will, so a refusal shows before submitting.
  */
 @Composable
 fun AddSourceDialog(
     onDismiss: () -> Unit,
+    onRemoteSubmit: (urls: List<String>, chooseApps: Boolean) -> Unit,
     onLocalSubmit: (chooseApps: Boolean) -> Unit,
-    onRemoteSubmit: (url: String, chooseApps: Boolean) -> Unit,
     onLocalPick: () -> Unit,
-    selectedLocalPath: String?,
-    selectedLocalUri: Uri?,
-    onValidateUrl: (String) -> Boolean
+    onLocalRemove: (Uri) -> Unit,
+    localFiles: List<PickedBundle>,
+    onCheckUrl: (String) -> RemoteUrlCheck
 ) {
-    var remoteUrl by rememberSaveable { mutableStateOf("") }
     var selectedTab by rememberSaveable { mutableIntStateOf(0) } // 0 = Remote, 1 = Local
     var chooseApps by rememberSaveable { mutableStateOf(false) }
+    val remote = rememberRemoteLinksState(onCheckUrl)
 
-    val urlValidation = rememberUrlValidation(remoteUrl, onValidateUrl)
-    val isRemoteValid = remoteUrl.isNotBlank() && urlValidation != FieldValidation.Invalid
-    val localFileValidation = rememberLocalFileValidation(selectedLocalPath)
-    val isLocalValid = localFileValidation == FieldValidation.Valid
+    val readyCount = if (selectedTab == 0) {
+        remote.readyLinks.size
+    } else {
+        localFiles.count { it.check is LocalFileCheck.New || it.check is LocalFileCheck.Update }
+    }
 
     val uriHandler = LocalUriHandler.current
     var showCommunityNotice by rememberSaveable { mutableStateOf(false) }
@@ -134,66 +140,54 @@ fun AddSourceDialog(
                     }
                 }
                 AppDialogButtonRow(
-                    primaryText = stringResource(R.string.add),
+                    primaryText = if (readyCount > 1) {
+                        pluralStringResource(R.plurals.sources_dialog_add_count, readyCount, readyCount.toString())
+                    } else {
+                        stringResource(R.string.add)
+                    },
                     onPrimaryClick = {
                         when (selectedTab) {
-                            0 -> if (isRemoteValid) onRemoteSubmit(normalizeUrl(remoteUrl), chooseApps)
-                            1 -> if (isLocalValid) onLocalSubmit(chooseApps)
+                            0 -> onRemoteSubmit(remote.readyLinks, chooseApps)
+                            1 -> onLocalSubmit(chooseApps)
                         }
                     },
-                    primaryEnabled = if (selectedTab == 0) isRemoteValid else isLocalValid,
+                    primaryEnabled = readyCount > 0,
                     secondaryText = stringResource(android.R.string.cancel),
                     onSecondaryClick = onDismiss
                 )
             }
         }
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
-        ) {
-            // Type selector cards
-            CardSelectorRow(
-                options = listOf(
-                    CardSelectorOption(
-                        label = stringResource(R.string.sources_dialog_remote),
-                        icon = Icons.Outlined.Language
-                    ),
-                    CardSelectorOption(
-                        label = stringResource(R.string.sources_dialog_local),
-                        icon = Icons.AutoMirrored.Outlined.InsertDriveFile
-                    )
+        SegmentedTabs(
+            options = listOf(
+                SegmentedTab(
+                    label = stringResource(R.string.sources_dialog_remote),
+                    icon = Icons.Outlined.Language
                 ),
-                selectedIndex = selectedTab,
-                onSelect = { selectedTab = it }
-            )
-
-            // Tab content
-            AnimatedContent(
-                targetState = selectedTab,
-                transitionSpec = Animations.fadeCrossfade()
-            ) { tab ->
-                when (tab) {
-                    0 -> RemoteTabContent(
-                        remoteUrl = remoteUrl,
-                        onUrlChange = { remoteUrl = it },
-                        urlValidation = urlValidation
-                    )
-                    1 -> LocalTabContent(
-                        selectedPath = selectedLocalPath,
-                        selectedUri = selectedLocalUri,
-                        onPickFile = onLocalPick,
-                        validation = localFileValidation
-                    )
-                }
+                SegmentedTab(
+                    label = stringResource(R.string.sources_dialog_local),
+                    icon = Icons.AutoMirrored.Outlined.InsertDriveFile
+                )
+            ),
+            selectedIndex = selectedTab,
+            onSelect = { selectedTab = it },
+            below = {
+                // What a source holds is only known once it has loaded, so this asks now and
+                // the list opens then
+                ChooseAppsToggle(
+                    checked = chooseApps,
+                    onCheckedChange = { chooseApps = it }
+                )
             }
-
-            // What a source holds is only known once it has loaded, so this asks now and the
-            // list opens then
-            ChooseAppsToggle(
-                checked = chooseApps,
-                onCheckedChange = { chooseApps = it }
-            )
+        ) { tab ->
+            when (tab) {
+                0 -> RemoteTabContent(state = remote)
+                1 -> LocalTabContent(
+                    entries = localFiles,
+                    onPickFiles = onLocalPick,
+                    onRemove = onLocalRemove
+                )
+            }
         }
     }
 }
@@ -218,17 +212,241 @@ internal fun ChooseAppsToggle(
     )
 }
 
-private enum class FieldValidation { Empty, Valid, Invalid }
+/** Links in pasted text however they came: one per line, in a list, or inside prose or markdown. */
+private val LINK_PATTERN = Regex(
+    """(?:https?://)?(?:[\w-]+\.)+[a-z]{2,}(?::\d+)?(?:/[^\s,;<>()\[\]"'`]*)?""",
+    RegexOption.IGNORE_CASE
+)
+
+private fun extractLinks(text: String): List<String> =
+    LINK_PATTERN.findAll(text).map { it.value.trimEnd('.') }.toList()
+
+/** A link waiting in the remote tab, with what adding it would do. */
+private class RemoteLinkEntry(val link: String, val check: RemoteUrlCheck) {
+    /** Two links reading the same bundle are the same source, however each was written. */
+    val key = ((check as? RemoteUrlCheck.Accepted)?.endpoint ?: link).lowercase(Locale.US)
+}
+
+/**
+ * Links of the remote tab: the ones taken into the list, and the ones still in the field, which
+ * count as well. A paste of several links or the keyboard's Done moves the field into the list.
+ *
+ * Typing is never rewritten. A field reset under the keyboard races the keys still on their way,
+ * and whichever lands in between is lost, so links typed one after another simply stay in the
+ * field until Done.
+ */
+@Stable
+private class RemoteLinksState(
+    private val check: (String) -> RemoteUrlCheck,
+    linksState: MutableState<List<String>>,
+    inputState: MutableState<String>
+) {
+    private var links by linksState
+    var input by inputState
+        private set
+
+    val entries by derivedStateOf { links.map { RemoteLinkEntry(it, check(it)) } }
+
+    /** Links in the field. Text that holds none is still checked, to say why it is not one. */
+    private val inputEntries by derivedStateOf {
+        if (input.isBlank()) emptyList()
+        else extractLinks(input).ifEmpty { listOf(input.trim()) }.map { RemoteLinkEntry(it, check(it)) }
+    }
+
+    /** What the field holds, checked: the first link it would leave out, or null while it is empty. */
+    val inputCheck by derivedStateOf {
+        inputEntries.firstOrNull { it.check is RemoteUrlCheck.Rejected }?.check
+            ?: inputEntries.firstOrNull()?.check
+    }
+
+    /** Links that will become sources, the ones in the field included. */
+    val readyLinks by derivedStateOf {
+        (entries + inputEntries)
+            .distinctBy { it.key }
+            .filter { it.check is RemoteUrlCheck.Accepted }
+            .map { it.link }
+    }
+
+    fun onInputChange(text: String) {
+        // Grown by more than a key at once is a paste, which leaves nothing in flight to race
+        val pastedLinks = extractLinks(text).takeIf { text.length - input.length > 1 && it.size > 1 }
+        input = if (pastedLinks != null && add(pastedLinks)) "" else text
+    }
+
+    fun clearInput() {
+        input = ""
+    }
+
+    fun commitInput() {
+        if (add(extractLinks(input))) input = ""
+    }
+
+    /** @return Whether [text] held any link. */
+    fun paste(text: String): Boolean = add(extractLinks(text))
+
+    fun remove(link: String) {
+        links = links - link
+    }
+
+    private fun add(newLinks: List<String>): Boolean {
+        if (newLinks.isEmpty()) return false
+        val taken = entries.mapTo(mutableSetOf()) { it.key }
+        links = links + newLinks.filter { taken.add(RemoteLinkEntry(it, check(it)).key) }
+        return true
+    }
+}
 
 @Composable
-private fun rememberUrlValidation(url: String, validate: (String) -> Boolean): FieldValidation =
-    remember(url) {
-        when {
-            url.isBlank() -> FieldValidation.Empty
-            validate(normalizeUrl(url)) -> FieldValidation.Valid
-            else -> FieldValidation.Invalid
+private fun rememberRemoteLinksState(check: (String) -> RemoteUrlCheck): RemoteLinksState {
+    val links = rememberSaveable(
+        stateSaver = listSaver<List<String>, String>(save = { it }, restore = { it })
+    ) { mutableStateOf(emptyList()) }
+    val input = rememberSaveable { mutableStateOf("") }
+    return remember(check) { RemoteLinksState(check, links, input) }
+}
+
+private val RemoteSourceRejection.hintRes: Int
+    get() = when (this) {
+        // Says what a link has to be rather than only that it is not
+        RemoteSourceRejection.Invalid -> R.string.sources_dialog_url_invalid
+        else -> messageRes
+    }
+
+/** Hosts whose links name a repository, by the icon they show. Any other host serves a bundle file. */
+private val REPOSITORY_HOST_ICONS: Map<String, ImageVector> by lazy {
+    mapOf(
+        "github.com" to FontAwesomeIcons.Brands.Github,
+        "raw.githubusercontent.com" to FontAwesomeIcons.Brands.Github,
+        "gitlab.com" to FontAwesomeIcons.Brands.Gitlab
+    )
+}
+
+/** The link without its scheme, the way it reads in the address bar. */
+private fun String.bareLink() = substringAfter("://").removePrefix("www.")
+
+private fun String.linkHost() = bareLink().substringBefore('/').lowercase(Locale.US)
+
+/** A repository as owner/repo, anything else as its bare link. */
+private fun remoteLinkTitle(link: String): String {
+    val bare = link.bareLink()
+    val segments = bare.substringAfter('/', "").split('/').filter { it.isNotBlank() }
+    return if (link.linkHost() in REPOSITORY_HOST_ICONS && segments.size >= 2) "${segments[0]}/${segments[1]}" else bare
+}
+
+private fun remoteLinkIcon(link: String): ImageVector = REPOSITORY_HOST_ICONS[link.linkHost()] ?: Icons.Outlined.Link
+
+@Composable
+private fun RemoteTabContent(state: RemoteLinksState) {
+    val context = LocalContext.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    val inputCheck = state.inputCheck
+    val noLinksMessage = stringResource(R.string.sources_dialog_paste_no_links)
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        AppDialogTextField(
+            value = state.input,
+            onValueChange = state::onInputChange,
+            label = { Text(stringResource(R.string.sources_dialog_remote_url)) },
+            placeholder = { Text("github.com/owner/repo") },
+            trailingIcon = {
+                if (state.input.isNotEmpty()) {
+                    IconButton(onClick = state::clearInput) {
+                        Icon(Icons.Outlined.Clear, contentDescription = stringResource(R.string.clear))
+                    }
+                } else {
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                val text = clipboard.getClipEntry()?.clipData
+                                    ?.takeIf { it.itemCount > 0 }
+                                    ?.getItemAt(0)?.coerceToText(context)?.toString()
+                                if (text == null || !state.paste(text)) {
+                                    context.toast(noLinksMessage)
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Outlined.ContentPaste, contentDescription = stringResource(R.string.paste))
+                    }
+                }
+            },
+            isError = inputCheck is RemoteUrlCheck.Rejected,
+            keyboardOptions = KeyboardOptions(
+                // A keyboard fixing "github" into "GitHub" or capitalizing a pasted link rewrites it
+                capitalization = KeyboardCapitalization.None,
+                autoCorrectEnabled = false,
+                keyboardType = KeyboardType.Uri,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(onDone = { state.commitInput() })
+        )
+
+        // Live validation feedback on the link being typed
+        AnimatedVisibility(visible = inputCheck != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                val (icon, color, text) = when (inputCheck) {
+                    is RemoteUrlCheck.Rejected -> Triple(
+                        Icons.Outlined.ErrorOutline,
+                        MaterialTheme.colorScheme.error,
+                        stringResource(inputCheck.reason.hintRes)
+                    )
+                    is RemoteUrlCheck.Accepted -> Triple(
+                        Icons.Outlined.CheckCircle,
+                        SemanticTone.Success.accent,
+                        stringResource(R.string.sources_dialog_url_valid)
+                    )
+                    // Cleared while the row fades out
+                    null -> Triple(Icons.Outlined.Info, Color.Transparent, "")
+                }
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(15.dp))
+                Text(text, style = MaterialTheme.typography.bodySmall, color = color)
+            }
+        }
+
+        // What a link can be, shown until the first one is in the list to point at
+        if (state.entries.isEmpty()) {
+            // A sentence rather than a name, so it leads the card as text instead of heading it
+            LabeledSection {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(horizontal = Defaults.ContentPadding)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = null,
+                        tint = LocalDialogSecondaryTextColor.current,
+                        modifier = Modifier.padding(top = 1.dp).size(14.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.sources_dialog_remote_url_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LocalDialogSecondaryTextColor.current
+                    )
+                }
+                UrlFormatRow(icon = FontAwesomeIcons.Brands.Github, text = "github.com/owner/repo")
+                UrlFormatRow(icon = FontAwesomeIcons.Brands.Gitlab, text = "gitlab.com/owner/repo")
+                UrlFormatRow(icon = Icons.Outlined.Link, text = "example.com/patches-bundle.json")
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(CompactCardSpacing)) {
+                state.entries.forEach { entry ->
+                    val rejection = (entry.check as? RemoteUrlCheck.Rejected)?.reason
+                    PendingSourceRow(
+                        icon = remoteLinkIcon(entry.link),
+                        title = remoteLinkTitle(entry.link),
+                        detail = rejection?.let { stringResource(it.hintRes) } ?: entry.link.bareLink(),
+                        isError = rejection != null,
+                        onRemove = { state.remove(entry.link) }
+                    )
+                }
+            }
         }
     }
+}
 
 @Composable
 private fun UrlFormatRow(
@@ -238,113 +456,37 @@ private fun UrlFormatRow(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(horizontal = 4.dp)
+        modifier = Modifier.padding(horizontal = Defaults.ContentPadding)
     ) {
-        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp)
-            )
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = LocalDialogSecondaryTextColor.current,
+            modifier = Modifier.size(14.dp)
+        )
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            color = LocalDialogSecondaryTextColor.current,
+            fontFamily = FontFamily.Monospace
         )
     }
-}
-
-@Composable
-private fun RemoteTabContent(
-    remoteUrl: String,
-    onUrlChange: (String) -> Unit,
-    urlValidation: FieldValidation,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        AppDialogTextField(
-            value = remoteUrl,
-            onValueChange = onUrlChange,
-            label = { Text(stringResource(R.string.sources_dialog_remote_url)) },
-            placeholder = { Text("https://github.com/owner/repo") },
-            showClearButton = true,
-            isError = urlValidation == FieldValidation.Invalid,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Uri,
-                imeAction = ImeAction.Done
-            )
-        )
-
-        // Live validation feedback
-        AnimatedVisibility(visible = urlValidation != FieldValidation.Empty) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                val (icon, color, text) = when (urlValidation) {
-                    FieldValidation.Valid -> Triple(
-                        Icons.Outlined.CheckCircle,
-                        ColorValid,
-                        stringResource(R.string.sources_dialog_url_valid)
-                    )
-                    FieldValidation.Invalid -> Triple(
-                        Icons.Outlined.ErrorOutline,
-                        MaterialTheme.colorScheme.error,
-                        stringResource(R.string.sources_dialog_url_invalid)
-                    )
-                    FieldValidation.Empty -> Triple(Icons.Outlined.Info, Color.Transparent, "")
-                }
-                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(15.dp))
-                Text(text, style = MaterialTheme.typography.bodySmall, color = color)
-            }
-        }
-
-        // URL format hint
-        StatusBadge(
-            icon = Icons.Outlined.Info,
-            text = stringResource(R.string.sources_dialog_remote_url_formats_title),
-            tone = SemanticTone.Neutral
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            UrlFormatRow(
-                icon = FontAwesomeIcons.Brands.Github,
-                text = "github.com/owner/repo"
-            )
-            UrlFormatRow(
-                icon = FontAwesomeIcons.Brands.Gitlab,
-                text = "gitlab.com/owner/repo"
-            )
-            UrlFormatRow(
-                icon = Icons.Outlined.Link,
-                text = "example.com/patches-bundle.json"
-            )
-        }
-    }
-}
-
-@Composable
-private fun rememberLocalFileValidation(path: String?): FieldValidation = remember(path) {
-    if (path == null) return@remember FieldValidation.Empty
-    if (!path.endsWith(".mpp", ignoreCase = true)) FieldValidation.Invalid
-    else FieldValidation.Valid
 }
 
 @Composable
 private fun LocalTabContent(
-    selectedPath: String?,
-    selectedUri: Uri?,
-    onPickFile: () -> Unit,
-    validation: FieldValidation
+    entries: List<PickedBundle>,
+    onPickFiles: () -> Unit,
+    onRemove: (Uri) -> Unit
 ) {
     val textColor = LocalDialogTextColor.current
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (selectedPath == null) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (entries.isEmpty()) {
             // Drop zone
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onPickFile() },
+                    .clickable { onPickFiles() },
                 shape = RoundedCornerShape(16.dp),
                 color = Color.Transparent,
                 border = BorderStroke(
@@ -363,7 +505,7 @@ private fun LocalTabContent(
                         tint = textColor.copy(alpha = 0.4f)
                     )
                     Text(
-                        text = stringResource(R.string.sources_dialog_local_file),
+                        text = stringResource(R.string.sources_dialog_local_files),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = textColor
@@ -376,67 +518,63 @@ private fun LocalTabContent(
                 }
             }
         } else {
-            // Selected file
-            val isValid = validation == FieldValidation.Valid
-            Surface(
-                shape = RoundedCornerShape(Defaults.CompactCornerRadius),
-                color = if (isValid)
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                else
-                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+            entries.forEach { entry ->
+                val check = entry.check
+                PendingSourceRow(
+                    icon = if (check is LocalFileCheck.Update) Icons.Outlined.Update else Icons.AutoMirrored.Outlined.InsertDriveFile,
+                    title = entry.name,
+                    detail = when (check) {
+                        is LocalFileCheck.Update -> stringResource(R.string.sources_dialog_local_updates, check.title)
+                        LocalFileCheck.Duplicate -> stringResource(R.string.sources_management_already_exists)
+                        LocalFileCheck.NotBundle -> stringResource(R.string.sources_dialog_local_invalid_extension)
+                        // Where it is read from, while it is checked and once it is known to be new
+                        else -> entry.uri.toFilePath().takeIf { it.startsWith("/") }?.substringBeforeLast("/").orEmpty()
+                    },
+                    isError = check == LocalFileCheck.Duplicate || check == LocalFileCheck.NotBundle,
+                    onRemove = { onRemove(entry.uri) }
+                )
+            }
+            AppDialogOutlinedButton(
+                text = stringResource(R.string.sources_dialog_local_add_more),
+                onClick = onPickFiles,
+                icon = Icons.Outlined.Add,
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isValid) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
-                        contentDescription = null,
-                        modifier = Modifier.size(Defaults.IconSizeSmall),
-                        tint = if (isValid) ColorValid else MaterialTheme.colorScheme.error
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = selectedPath,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = textColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = when (validation) {
-                                FieldValidation.Invalid -> stringResource(R.string.sources_dialog_local_invalid_extension)
-                                else -> selectedUri?.toFilePath()?.takeIf { it.startsWith("/") }?.substringBeforeLast("/") ?: ""
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isValid) textColor.copy(alpha = 0.5f) else MaterialTheme.colorScheme.error,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    IconButton(
-                        onClick = onPickFile,
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Refresh,
-                            contentDescription = stringResource(R.string.sources_dialog_local_change_file),
-                            modifier = Modifier.size(24.dp),
-                            tint = textColor.copy(alpha = 0.5f)
-                        )
-                    }
-                }
+            )
+        }
+    }
+}
+
+/**
+ * One source waiting to be added, as either tab lists it: what it is, and under it where it comes
+ * from or why it will be left out.
+ */
+@Composable
+private fun PendingSourceRow(
+    icon: ImageVector,
+    title: String,
+    detail: String,
+    isError: Boolean,
+    onRemove: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    CompactListCard(onClick = null) {
+        if (isError) {
+            CompactCardIconTile(containerColor = colors.errorContainer, contentColor = colors.onErrorContainer) {
+                Icon(Icons.Outlined.ErrorOutline, contentDescription = null, modifier = Modifier.size(CompactCardGlyphSize))
+            }
+        } else {
+            CompactCardIconTile {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(CompactCardGlyphSize))
             }
         }
-
-        // Description
-        UrlFormatRow(
-            icon = Icons.Outlined.Info,
-            text = stringResource(R.string.sources_dialog_local_file_description)
-        )
+        CardHeadingText(name = title, description = detail, modifier = Modifier.weight(1f))
+        IconButton(onClick = onRemove) {
+            Icon(
+                imageVector = Icons.Outlined.Close,
+                contentDescription = stringResource(R.string.remove),
+                tint = LocalDialogSecondaryTextColor.current
+            )
+        }
     }
 }
 
@@ -455,6 +593,7 @@ fun RenameBundleDialog(
     AppDialog(
         onDismissRequest = onDismissRequest,
         title = stringResource(R.string.sources_dialog_display_name),
+        description = stringResource(R.string.sources_dialog_rename),
         dismissOnClickOutside = false,
         footer = {
             AppDialogButtonRow(
@@ -471,34 +610,17 @@ fun RenameBundleDialog(
             )
         }
     ) {
-        val secondaryColor = LocalDialogSecondaryTextColor.current
-
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
         ) {
-            Text(
-                text = stringResource(R.string.sources_dialog_rename),
-                style = MaterialTheme.typography.bodyLarge,
-                color = secondaryColor,
-                textAlign = TextAlign.Center
-            )
-
             AppDialogTextField(
                 value = textValue,
                 onValueChange = { textValue = it },
-                placeholder = {
-                    Text(
-                        text = stringResource(R.string.patch_option_enter_value),
-                        color = secondaryColor.copy(alpha = 0.5f)
-                    )
-                },
+                placeholder = { Text(stringResource(R.string.patch_option_enter_value)) },
                 leadingIcon = {
-                    ThemedIcon(
-                        icon = Icons.Outlined.Edit,
-                        tint = secondaryColor
-                    )
+                    Icon(imageVector = Icons.Outlined.Edit, contentDescription = null)
                 },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -514,11 +636,10 @@ fun RenameBundleDialog(
 }
 
 /**
- * Dialog displaying patches from a bundle with search field and chips.
+ * Dialog listing the patches of a source, one block per app they patch and the universal ones last.
  *
  * @param initialQuery Query to open filtered by, carried over from the search that found the source.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BundlePatchesDialog(
     onDismissRequest: () -> Unit,
@@ -526,484 +647,99 @@ fun BundlePatchesDialog(
     initialQuery: String = ""
 ) {
     val patchBundleRepository: PatchBundleRepository = koinInject()
+    val context = LocalContext.current
     // Read across every source rather than the enabled ones alone: a disabled source is one the
     // user is still deciding about, and what it holds is what that decision is made on
     val patches by remember(src.uid) {
         patchBundleRepository.allBundlesInfoFlow.mapNotNull { it[src.uid]?.patches }
     }.collectAsStateWithLifecycle(emptyList())
 
-    var searchQuery by remember { mutableStateOf(initialQuery) }
-    var selectedPackages by remember { mutableStateOf(emptySet<String>()) }
-    val showFilterSheet = remember { mutableStateOf(false) }
+    val universalTitle = stringResource(R.string.expert_mode_universal_patches)
+    val sections = remember(patches, universalTitle) { patchesByApp(patches, universalTitle) }
+    val appCount = sections.count { it.packageName != null }
+    val expertBadgeTooltip = stringResource(R.string.sources_patch_expert_badge_tooltip)
 
-    val isLoading = patches.isEmpty()
-
-    // packageName -> display label (displayName ?: packageName)
-    val appLabels: Map<String, String> = remember(patches) {
-        patches
-            .flatMap { it.compatiblePackages.orEmpty() }
-            .distinctBy { it.packageName }
-            .mapNotNull { pkg ->
-                val name = pkg.packageName ?: return@mapNotNull null
-                name to (pkg.displayName ?: name)
-            }
-            .toMap()
-    }
-
-    val hasMultiplePackages = appLabels.size > 1
-
-    // Carries each patch's position in the unfiltered list: a bundle may declare several patches
-    // under one name and compatibility, so nothing derived from the patch itself is a unique key
-    val filteredPatches: List<IndexedValue<PatchInfo>> = remember(patches, searchQuery, selectedPackages) {
-        patches.withIndex()
-            .filter { (_, patch) ->
-                val packageMatch = selectedPackages.isEmpty() ||
-                        patch.compatiblePackages
-                            ?.any { it.packageName in selectedPackages } == true
-                packageMatch && patch.matchesQuery(searchQuery)
-            }
-            .sortedBy { (_, patch) -> patch.displayName }
-    }
-
-    // Per-patch accent color: first non-null appIconColor across all compatible packages,
-    // converted from 0xRRGGBB to a full-opacity Compose Color. Null falls back to surfaceVariant.
-    val patchAccentColors: Map<String, Color> = remember(patches) {
-        patches.associate { patch ->
-            val rgb = patch.compatiblePackages
-                ?.firstNotNullOfOrNull { it.appIconColor }
-            patch.name to if (rgb != null) Color(rgb or (0xFF shl 24)) else Color.Unspecified
-        }
-    }
-
-    val isFiltering = searchQuery.isNotBlank() || selectedPackages.isNotEmpty()
-
-    val patchSections = rememberPatchSectionState()
-    val patchFolds = patchSections.folds
-    val patchGroups = rememberPatchGroups(
-        patches = filteredPatches,
-        infoOf = { (_, patch) -> patch }
-    )
-
-    AppDialog(
-        onDismissRequest = {
-            when {
-                searchQuery.isNotBlank() -> searchQuery = ""
-                selectedPackages.isNotEmpty() -> selectedPackages = emptySet()
-                else -> onDismissRequest()
-            }
-        },
-        title = null,
-        footer = {
-            AppDialogOutlinedButton(
-                text = stringResource(R.string.close),
-                onClick = onDismissRequest,
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        padding = DialogPadding.Compact,
-        scrollable = false,
-        contentArrangement = Arrangement.Top
-    ) {
-        AnimatedContent(
-            targetState = isLoading,
-            transitionSpec = Animations.fadeCrossfade(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            label = "bundlePatches"
-        ) { loading ->
-            if (loading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    PulsingLogoIndicator()
-                }
-
-                return@AnimatedContent
-            }
-
-            val listState = rememberLazyListState()
-            var displayedPackages by remember { mutableStateOf(emptySet<String>()) }
-            LaunchedEffect(selectedPackages) {
-                if (selectedPackages.isNotEmpty()) displayedPackages = selectedPackages
-            }
-
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
-            ) {
-                PatchesListSearchRow(
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { searchQuery = it },
-                    showFilterButton = hasMultiplePackages,
-                    isFilterActive = selectedPackages.isNotEmpty(),
-                    onFilterClick = { showFilterSheet.value = true }
+    PatchListDialog(
+        icon = { modifier -> BundleIcon(bundle = src, modifier = modifier) },
+        title = src.displayTitle,
+        subtitle = listOfNotNull(
+            pluralStringResource(R.plurals.patch_count, patches.size, patches.size.toString()),
+            pluralStringResource(R.plurals.home_category_app_count, appCount, appCount.toString())
+                .takeIf { appCount > 1 }
+        ).joinToString(" · "),
+        sections = sections,
+        isLoading = patches.isEmpty(),
+        saveStateKey = "bundle_${src.uid}",
+        onDismiss = onDismissRequest,
+        initialQuery = initialQuery,
+        accentColor = rememberSourceHeaderColor(src),
+        // The list is reachable while the source is off, so it says so up front rather than
+        // reading as patches that are ready to be applied
+        notice = if (src.enabled) null else {
+            {
+                Notice(
+                    text = stringResource(R.string.sources_patches_source_disabled_hint),
+                    icon = Icons.Outlined.VisibilityOff,
+                    tone = SemanticTone.Warning,
+                    density = NoticeDensity.Compact
                 )
-
-                AnimatedVisibility(
-                    visible = selectedPackages.isNotEmpty(),
-                    enter = Animations.expandFadeEnter,
-                    exit = Animations.shrinkFadeExit
-                ) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        displayedPackages.forEach { pkg ->
-                            val label = appLabels[pkg] ?: pkg
-                            InputChip(
-                                selected = true,
-                                onClick = { selectedPackages = selectedPackages - pkg },
-                                label = { Text(label) },
-                                trailingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Close,
-                                        contentDescription = stringResource(R.string.remove),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            )
-                        }
-                    }
-                }
-
-                Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
-                    ) {
-                        // Bundle header
-                        item {
-                            PatchesListHeaderCard(
-                                title = src.displayTitle,
-                                totalCount = patches.size,
-                                filteredCount = filteredPatches.size,
-                                isFiltering = isFiltering
-                            )
-                        }
-
-                        // The list is reachable while the source is off, so it says so up front
-                        // rather than reading as patches that are ready to be applied
-                        if (!src.enabled) {
-                            item(key = "disabled_hint") {
-                                Notice(
-                                    text = stringResource(R.string.sources_patches_source_disabled_hint),
-                                    icon = Icons.Outlined.VisibilityOff,
-                                    tone = SemanticTone.Warning,
-                                    density = NoticeDensity.Compact
-                                )
-                            }
-                        }
-
-                        if (filteredPatches.isEmpty()) {
-                            item(key = "empty_state") {
-                                PatchesListEmptyState(
-                                    modifier = Modifier.animateItem()
-                                )
-                            }
-                        }
-
-                        // Filtered patches list
-                        patchGroupRows(
-                            sectionKey = src.uid,
-                            groups = patchGroups,
-                            key = { (index, _): IndexedValue<PatchInfo> -> index },
-                            isFiltering = isFiltering,
-                            folds = patchFolds,
-                            onToggle = { group -> patchSections.toggle(src.uid, group) }
-                        ) { (_, patch) ->
-                            val context = LocalContext.current
-                            val expertBadgeTooltip = stringResource(R.string.sources_patch_expert_badge_tooltip)
-                            val accentColor = patchAccentColors[patch.name]
-                                ?.takeIf { it != Color.Unspecified }
-                            PatchItemCard(
-                                patch = patch,
-                                saveStateKey = "bundle_${src.uid}",
-                                onExpertBadgeClick = if (!patch.include) {
-                                    { context.toast(expertBadgeTooltip) }
-                                } else null,
-                                accentColor = accentColor,
-                                modifier = Modifier.animateItem(
-                                    fadeInSpec = tween(Defaults.ANIMATION_DURATION),
-                                    fadeOutSpec = tween(Defaults.ANIMATION_DURATION_SHORT),
-                                    placementSpec = spring(stiffness = 400f, dampingRatio = 0.8f)
-                                )
-                            )
-                        }
-                    }
-
-                    ListScrollbar(
-                        listState = listState,
-                        modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
-                    )
-
-                    ScrollToTopButton(
-                        listState = listState,
-                        modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
-                    )
-                }
             }
-        }
-    }
-
-    // App filter bottom sheet
-    if (showFilterSheet.value) {
-        AppBottomSheet(
-            onDismissRequest = { showFilterSheet.value = false }
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-            ) {
-                PanelHeader(title = { PanelTitle(text = stringResource(R.string.filter)) })
-
-                LazyColumn(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
-                    item {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            // "All" chip
-                            AppFilterChip(
-                                selected = selectedPackages.isEmpty(),
-                                onClick = { selectedPackages = emptySet() },
-                                label = stringResource(R.string.all),
-                                selectedIcon = Icons.Outlined.DoneAll
-                            )
-                            // Per-app chips
-                            appLabels.entries
-                                .sortedBy { it.value }
-                                .forEach { (pkg, label) ->
-                                    val isSelected = pkg in selectedPackages
-                                    AppFilterChip(
-                                        selected = isSelected,
-                                        onClick = {
-                                            selectedPackages = if (isSelected)
-                                                selectedPackages - pkg
-                                            else
-                                                selectedPackages + pkg
-                                        },
-                                        label = label
-                                    )
-                                }
-                        }
-                    }
-                }
-            }
-        }
-    }
+        },
+        onExpertBadgeClick = { context.toast(expertBadgeTooltip) }
+    )
 }
 
 /**
- * Patch item card.
+ * [patches] as one block per app, by name, then the universal ones. A patch for several apps joins
+ * the block of each, so every block holds all that its app can be patched with.
  */
-@Composable
-fun PatchItemCard(
-    modifier: Modifier = Modifier,
-    patch: PatchInfo,
-    saveStateKey: String,
-    onExpertBadgeClick: (() -> Unit)? = null,
-    accentColor: Color? = null
-) {
-    val textColor = LocalDialogTextColor.current
-    val secondaryColor = LocalDialogSecondaryTextColor.current
+private fun patchesByApp(patches: List<PatchInfo>, universalTitle: String): List<PatchListSection> {
+    val sorted = patches.sortedBy { it.displayName }
+    val (universal, specific) = sorted.partition { it.isUniversal }
+    val apps = specific
+        .flatMap { it.compatiblePackages.orEmpty() }
+        .filter { it.packageName != null }
+        .distinctBy { it.packageName }
+        .sortedBy { (it.displayName ?: it.packageName)?.lowercase() }
 
-    var expandVersions by rememberSaveable(saveStateKey, patch.name, "versions") {
-        mutableStateOf(false)
-    }
-    var expandOptions by rememberSaveable(saveStateKey, patch.name, "options") {
-        mutableStateOf(false)
-    }
-
-    val rotationAngle by animateFloatAsState(
-        targetValue = if (expandOptions) 180f else 0f,
-        animationSpec = tween(Defaults.ANIMATION_DURATION),
-        label = "expand_rotation"
-    )
-
-    val cardColor = rememberAccentCardColor(accentColor)
-
-    val effectiveCardColor = cardColor ?: MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-    // Card colors come from the app's own icon, so no fixed badge fill can be counted on to show
-    val cardBackground = effectiveCardColor.compositeOver(MaterialTheme.colorScheme.background)
-
-    SettingsItemCard(
-        onClick = if (!patch.options.isNullOrEmpty()) {
-            { expandOptions = !expandOptions }
-        } else null,
-        modifier = modifier,
-        borderWidth = 1.dp,
-        color = effectiveCardColor
-    ) {
-        CompositionLocalProvider(LocalCardBackground provides cardBackground) {
-            Column(
-                modifier = Modifier.padding(Defaults.ContentPadding),
-                verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
-            ) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = patch.displayName,
-                        color = textColor,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    if (!patch.options.isNullOrEmpty()) {
-                        ThemedIcon(
-                            icon = Icons.Outlined.ExpandMore,
-                            contentDescription = if (expandOptions)
-                                stringResource(R.string.collapse)
-                            else
-                                stringResource(R.string.expand),
-                            tint = secondaryColor,
-                            modifier = Modifier.rotate(rotationAngle)
+    return buildList {
+        apps.forEach { app ->
+            val packageName = app.packageName ?: return@forEach
+            add(
+                PatchListSection(
+                    key = packageName,
+                    title = app.displayName ?: packageName,
+                    patches = specific.filter { patch ->
+                        patch.compatiblePackages?.any { it.packageName == packageName } == true
+                    },
+                    packageName = packageName,
+                    // Tinted after the app's own icon, so each block reads as that app at a glance
+                    accentColor = app.appIconColor?.let(::appIconColorOf),
+                    icon = { modifier ->
+                        AppIcon(packageName = packageName, contentDescription = null, modifier = modifier)
+                    }
+                )
+            )
+        }
+        if (universal.isNotEmpty()) {
+            add(
+                PatchListSection(
+                    key = UNIVERSAL_GROUP_KEY,
+                    title = universalTitle,
+                    patches = universal,
+                    packageName = null,
+                    icon = { modifier ->
+                        Icon(
+                            imageVector = Icons.Outlined.Public,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = modifier
                         )
                     }
-                }
-
-                // Description
-                patch.description?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = secondaryColor
-                    )
-                }
-
-                // Compatibility info
-                if (patch.isUniversal) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        StatusBadge(
-                            text = stringResource(R.string.sources_dialog_view_any_package),
-                            icon = Icons.Outlined.Apps
-                        )
-                        StatusBadge(
-                            text = stringResource(R.string.sources_dialog_view_any_version),
-                            icon = Icons.Outlined.Code
-                        )
-                    }
-                } else {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        patch.compatiblePackages.orEmpty().forEach { compatiblePackage ->
-                            val anyString = stringResource(R.string.any_version)
-                            val appName = compatiblePackage.displayName ?: compatiblePackage.packageName ?: anyString
-                            val versions = compatiblePackage.versions.orEmpty()
-
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                StatusBadge(
-                                    text = appName,
-                                    icon = Icons.Outlined.Apps,
-                                    tone = SemanticTone.Primary,
-                                    modifier = Modifier.align(Alignment.CenterVertically)
-                                )
-
-                                if (versions.isNotEmpty()) {
-                                    val shownVersions =
-                                        if (expandVersions) versions else versions.take(1)
-                                    shownVersions.forEach { version ->
-                                        PatchVersionBadge(
-                                            version = version,
-                                            isExperimental = compatiblePackage.experimentalVersions
-                                                ?.contains(version) == true,
-                                            modifier = Modifier.align(Alignment.CenterVertically)
-                                        )
-                                    }
-
-                                    if (versions.size > 1) {
-                                        StatusBadge(
-                                            text = if (expandVersions)
-                                                stringResource(R.string.less)
-                                            else
-                                                "+${versions.size - 1}",
-                                            modifier = Modifier.align(Alignment.CenterVertically),
-                                            onClick = { expandVersions = !expandVersions }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Expert badge - shown only for patches that are disabled by default
-                if (!patch.include && onExpertBadgeClick != null) {
-                    StatusBadge(
-                        text = stringResource(R.string.sources_patch_expert_badge),
-                        icon = Icons.Outlined.Lock,
-                        tone = SemanticTone.Warning,
-                        onClick = onExpertBadgeClick
-                    )
-                }
-
-                // Options
-                if (!patch.options.isNullOrEmpty()) {
-                    AnimatedVisibility(
-                        visible = expandOptions,
-                        enter = Animations.expandFadeEnter,
-                        exit = Animations.shrinkFadeExit
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(top = 4.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            patch.options.forEach { option ->
-                                Surface(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(Defaults.CompactCornerRadius),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(12.dp),
-                                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Text(
-                                            text = option.title,
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = textColor
-                                        )
-                                        Text(
-                                            text = option.description,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = secondaryColor
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                )
+            )
         }
     }
-}
-
-/**
- * One version a patch declares support for, tagged the way every version list tags it.
- */
-@Composable
-private fun PatchVersionBadge(
-    version: String,
-    isExperimental: Boolean,
-    modifier: Modifier = Modifier
-) {
-    StatusBadge(
-        modifier = modifier,
-        text = version,
-        icon = if (isExperimental) VersionTag.Experimental.icon else Icons.Outlined.Code,
-        tone = if (isExperimental) VersionTag.Experimental.tone else SemanticTone.Neutral
-    )
 }
 
 /**
@@ -1062,7 +798,7 @@ fun BundleChangelogDialog(
 ) {
     val generalChangesHeading = stringResource(R.string.changelog_general_changes)
     var state: BundleChangelogState by remember { mutableStateOf(BundleChangelogState.Loading) }
-    var olderState: OlderBundleState by remember { mutableStateOf(OlderBundleState.Collapsed) }
+    var olderState: OlderBundleState by remember { mutableStateOf(OlderBundleState.Idle) }
     val scope = rememberCoroutineScope()
     // 0 = waiting for dialog enter; incremented to trigger fetch, again on retry
     var fetchTrigger by remember { mutableIntStateOf(0) }
@@ -1115,7 +851,6 @@ fun BundleChangelogDialog(
                 if (entries.isNotEmpty() || appNames.isNotEmpty()) {
                     BundleChangelogState.Entries(
                         entries = entries,
-                        parsedMarkdown = preParseChangelogEntries(entries),
                         latestPageUrl = latestPageUrl
                     )
                 } else {
@@ -1130,7 +865,6 @@ fun BundleChangelogDialog(
                     )
                     BundleChangelogState.Entries(
                         entries = fallbackEntries,
-                        parsedMarkdown = preParseChangelogEntries(fallbackEntries),
                         latestPageUrl = asset.pageUrl
                     )
                 }
@@ -1141,12 +875,10 @@ fun BundleChangelogDialog(
     }
 
     val loadOlder: () -> Unit = load@{
-        if (olderState !is OlderBundleState.Collapsed) return@load
-        val shownVersions = (state as? BundleChangelogState.Entries)
-            ?.entries
-            ?.map { it.version.removePrefix("v").trim() }
-            ?.toSet()
-            .orEmpty()
+        if (olderState is OlderBundleState.Loading || olderState is OlderBundleState.Loaded) return@load
+        val shownEntries = (state as? BundleChangelogState.Entries)?.entries.orEmpty()
+        val shownVersions = shownEntries.map { it.version.removePrefix("v").trim() }.toSet()
+        val oldestShown = shownEntries.lastOrNull()?.version
         olderState = OlderBundleState.Loading
         scope.launch {
             olderState = withContext(Dispatchers.Default) {
@@ -1157,45 +889,55 @@ fun BundleChangelogDialog(
                         // history is meaningful only as the stable timeline
                         it.version.removePrefix("v").trim() !in shownVersions
                                 && !it.version.contains("-")
+                                // A dev changelog lagging behind the stable one must not put newer
+                                // releases under the earlier ones
+                                && (oldestShown == null || !isNewerVersion(oldestShown, it.version))
                     }
                     OlderBundleState.Loaded(
                         ChangelogParser.entriesFor(filtered, appNames, generalChangesHeading)
                     )
                 }.getOrElse {
-                    // Surface failure as collapsed so a retry click re-triggers the fetch
-                    OlderBundleState.Collapsed
+                    // Kept apart from Idle, so the list waits for a retry instead of loading again
+                    OlderBundleState.Failed
                 }
             }
         }
     }
 
+    val older = OlderReleases(
+        entries = (olderState as? OlderBundleState.Loaded)?.entries,
+        isLoading = olderState is OlderBundleState.Loading,
+        isFailed = olderState is OlderBundleState.Failed,
+        onLoad = loadOlder
+    )
+
     AppDialog(
         onDismissRequest = onDismissRequest,
+        accentColor = rememberSourceHeaderColor(src),
         // Start fetch only after the dialog enter animation completes so the shimmer
         // is always visible first, even when data is cached and would resolve instantly
         onEntered = { if (fetchTrigger == 0) fetchTrigger = 1 },
         scrollable = false,
-        title = when (state) {
-            // Entries carry their own headers, so only a list narrowed to one app needs a title
-            is BundleChangelogState.Entries ->
-                appNames.firstOrNull()?.let { stringResource(R.string.changelog_for_app, it) }
-
-            is BundleChangelogState.Error -> stringResource(R.string.changelog)
-            BundleChangelogState.Loading -> stringResource(R.string.changelog)
-        },
+        // The timeline gives up its leading edge to the rail, so the list takes the wider layout.
+        // The header holds the top, and an error sits centered in the room below it
+        padding = DialogPadding.Compact,
+        contentArrangement = Arrangement.Top,
+        fillContentHeight = true,
         footer = {
             when (val current = state) {
                 is BundleChangelogState.Entries -> {
-                    AppDialogActions(
-                        actions = listOfNotNull(
-                            changelogAction(current.latestPageUrl),
+                    // An empty changelog has nothing to translate
+                    val hasList = current.entries.isNotEmpty()
+                    ChangelogFooter(
+                        actions = listOf(
                             DialogAction(
                                 text = stringResource(R.string.close),
                                 onClick = onDismissRequest,
                                 emphasis = DialogActionEmphasis.Outlined
                             )
                         ),
-                        layout = DialogButtonLayout.Vertical
+                        translatable = hasList,
+                        pageUrl = current.latestPageUrl
                     )
                 }
                 is BundleChangelogState.Error -> {
@@ -1203,7 +945,8 @@ fun BundleChangelogDialog(
                         actions = listOf(
                             DialogAction(
                                 text = stringResource(R.string.retry),
-                                onClick = { fetchTrigger++ }
+                                onClick = { fetchTrigger++ },
+                                icon = Icons.Outlined.Refresh
                             ),
                             DialogAction(
                                 text = stringResource(R.string.close),
@@ -1224,127 +967,65 @@ fun BundleChangelogDialog(
             }
         }
     ) {
+        // Releases show only their versions, so the header names whose they are, and which app
+        // they were narrowed to. It stays the same through loading, so nothing shifts once the
+        // entries arrive
+        ListDialogHeader(
+            icon = { modifier -> BundleIcon(bundle = src, modifier = modifier) },
+            title = src.displayTitle,
+            subtitle = appNames.firstOrNull()?.let { stringResource(R.string.changelog_for_app, it) }
+                ?: src.installedVersionSignature?.withVersionPrefix()?.isolateLtr().orEmpty()
+        )
+
         BundleChangelogContent(
             state = state,
-            olderState = olderState,
-            onExpandOlder = loadOlder
+            installedVersion = src.installedVersionSignature,
+            older = older,
+            modifier = Modifier.weight(1f)
         )
-    }
-
-    Overlay(visible = olderState is OlderBundleState.Loading) {
-        PulsingLogoWithCaption(caption = stringResource(R.string.loading_older_releases))
     }
 }
 
 @Composable
 private fun BundleChangelogContent(
     state: BundleChangelogState,
-    olderState: OlderBundleState,
-    onExpandOlder: () -> Unit,
+    installedVersion: String?,
+    older: OlderReleases,
+    modifier: Modifier = Modifier
 ) {
     Crossfade(
         targetState = state,
         animationSpec = tween(Defaults.ANIMATION_DURATION),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         label = "changelog_state"
     ) { current ->
         when (current) {
-            BundleChangelogState.Loading -> ChangelogSectionLoading()
-            is BundleChangelogState.Error -> BundleChangelogError(error = current.throwable)
+            BundleChangelogState.Loading -> ChangelogListLoading(
+                modifier = Modifier.padding(top = Defaults.ItemSpacing)
+            )
+            is BundleChangelogState.Error -> ChangelogError(error = current.throwable)
             is BundleChangelogState.Entries -> {
                 if (current.entries.isEmpty()) {
                     Text(
                         text = stringResource(R.string.changelog_empty),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = Defaults.ItemSpacing)
                     )
                 } else {
-                    val listState = rememberLazyListState()
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            itemsIndexed(current.entries) { index, entry ->
-                                if (index > 0) {
-                                    HorizontalDivider(
-                                        modifier = Modifier.padding(
-                                            top = Defaults.ContentPaddingSmall,
-                                            bottom = Defaults.ContentPadding
-                                        ),
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                                    )
-                                }
-                                ChangelogEntrySection(
-                                    entry = entry,
-                                    headerIcon = Icons.Outlined.History,
-                                    precomputedMarkdown = current.parsedMarkdown.getOrNull(index)
-                                )
-                            }
-                            changelogOlderItems(
-                                entries = (olderState as? OlderBundleState.Loaded)?.entries,
-                                isLoading = olderState is OlderBundleState.Loading,
-                                onExpand = onExpandOlder
-                            )
-                        }
-
-                        ListScrollbar(
-                            listState = listState,
-                            modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
-                        )
-
-                        ScrollToTopButton(
-                            listState = listState,
-                            modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BundleChangelogError(
-    error: Throwable
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 48.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            // Error icon with circular background
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
-                modifier = Modifier.size(80.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Outlined.ErrorOutline,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(40.dp)
+                    ChangelogList(
+                        entries = current.entries,
+                        older = older,
+                        currentVersion = installedVersion,
+                        // The gap under the header is the list's own, so releases scroll up to its edge
+                        contentPadding = PaddingValues(top = Defaults.ItemSpacing),
+                        // The version a source holds is the one it patches with, nothing on the device
+                        currentBadge = ChangelogBadge.DOWNLOADED
                     )
                 }
             }
-
-            // Error details
-            Text(
-                text = stringResource(
-                    R.string.changelog_download_fail,
-                    error.simpleMessage().orEmpty()
-                ),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = LocalDialogTextColor.current
-            )
         }
     }
 }
@@ -1354,15 +1035,15 @@ private sealed interface BundleChangelogState {
     /** [entries] are already filtered to "missed" versions, newest-first. */
     data class Entries(
         val entries: List<ChangelogEntry>,
-        val parsedMarkdown: List<MarkdownRenderState?>,
         val latestPageUrl: String?
     ) : BundleChangelogState
     data class Error(val throwable: Throwable) : BundleChangelogState
 }
 
 private sealed interface OlderBundleState {
-    data object Collapsed : OlderBundleState
+    data object Idle : OlderBundleState
     data object Loading : OlderBundleState
+    data object Failed : OlderBundleState
     /** [entries] are full-history stable entries, already filtered to exclude what's shown above. */
     data class Loaded(val entries: List<ChangelogEntry>) : OlderBundleState
 }
@@ -1375,22 +1056,6 @@ private fun String.sanitizePatchChangelogMarkdown(): String =
         val link = match.groupValues[2]
         "[\\[$label\\]]($link)"
     }
-
-/**
- * Normalizes a URL by adding https:// if no protocol is specified.
- */
-private fun normalizeUrl(url: String): String {
-    val trimmed = url.trim()
-
-    return when {
-        // Already has protocol
-        trimmed.startsWith("http://", ignoreCase = true) ||
-                trimmed.startsWith("https://", ignoreCase = true) -> trimmed
-
-        // Add https:// by default
-        else -> "https://$trimmed"
-    }
-}
 
 /**
  * Which of the apps a source brings the user wants from it.
@@ -1454,18 +1119,8 @@ fun SourceAppsDialog(
 
     AppDialog(
         onDismissRequest = onDismissRequest,
+        accentColor = rememberSourceHeaderColor(src),
         dismissOnClickOutside = !isMultiSelectMode,
-        title = stringResource(R.string.sources_apps_title, src.displayTitle),
-        titleTrailingContent = {
-            TitleAction(
-                icon = if (search.visible) Icons.Outlined.SearchOff else Icons.Outlined.Search,
-                contentDescription = stringResource(R.string.search),
-                onClick = { search.toggle() },
-                style = TitleActionStyle.Toggle,
-                active = search.visible,
-                enabled = apps.size > 1
-            )
-        },
         footer = {
             AppDialogOutlinedButton(
                 text = stringResource(R.string.close),
@@ -1508,96 +1163,104 @@ fun SourceAppsDialog(
             }
         } else null,
         padding = DialogPadding.Compact,
-        scrollable = false
+        scrollable = false,
+        contentArrangement = Arrangement.Top,
+        fillContentHeight = true,
+        hideFooterWhileTyping = true
     ) {
         SearchFieldBackHandler(search)
 
-        Text(
-            text = stringResource(R.string.sources_apps_description),
-            style = MaterialTheme.typography.bodyMedium,
-            color = LocalDialogSecondaryTextColor.current,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = Defaults.ContentPaddingSmall)
+        // Headed by the source, as its patches are
+        ListDialogHeader(
+            icon = { modifier -> BundleIcon(bundle = src, modifier = modifier) },
+            title = src.displayTitle,
+            subtitle = pluralStringResource(R.plurals.home_category_app_count, apps.size, apps.size.toString()),
+            search = search,
+            searchLabel = stringResource(R.string.home_search_apps),
+            // A lone app leaves nothing to search through
+            searchEnabled = apps.size > 1
         )
 
-        val listState = rememberLazyListState()
-        Box(modifier = Modifier.fillMaxWidth()) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(itemSpacing)
-            ) {
-                stickyHeader(key = "search") {
-                    AppDialogSearchHeader(
-                        visible = search.visible,
-                        value = search.query,
-                        onValueChange = { search.query = it },
-                        label = stringResource(R.string.home_search_apps)
+        DialogLazyList(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(itemSpacing),
+            pinnedFirstRow = true
+        ) {
+            // Kept while the field is closed, so its share of the spacing makes the gap under
+            // the header
+            stickyHeader(key = "search") {
+                AppDialogSearchHeader(
+                    visible = search.visible,
+                    value = search.query,
+                    onValueChange = { search.query = it },
+                    label = stringResource(R.string.home_search_apps),
+                    // Opaque, so rows scrolled under the gap stay hidden
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(top = Defaults.ItemSpacing)
+                )
+            }
+
+            // Scrolls with the apps, so it gives the list its room back once read
+            item(key = "description") {
+                Text(
+                    text = stringResource(R.string.sources_apps_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = LocalDialogSecondaryTextColor.current,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (filtered.isEmpty() && search.query.isNotBlank()) {
+                item(key = "empty_state") {
+                    EmptyState(
+                        message = stringResource(R.string.search_no_results),
+                        icon = Icons.Outlined.SearchOff,
+                        modifier = Modifier.animateItem()
                     )
-                }
-
-                if (filtered.isEmpty() && search.query.isNotBlank()) {
-                    item(key = "empty_state") {
-                        EmptyState(
-                            message = stringResource(R.string.search_no_results),
-                            icon = Icons.Outlined.SearchOff,
-                            modifier = Modifier.animateItem()
-                        )
-                    }
-                }
-
-                items(items = filtered, key = { (packageName, _) -> packageName }) { (packageName, label) ->
-                    val brought = src.uid !in keptFrom[packageName].orEmpty()
-                    val gradientColors = appMetadata[packageName]?.gradientColors
-                        ?: AppCardColorDefaults.defaultGradientColors
-
-                    SelectableCard(
-                        modifier = Modifier
-                            .animatedListItem(this)
-                            // An app left out reads as one this source no longer brings, the
-                            // same way the selection dims what it leaves unpicked
-                            .alpha(if (brought || isMultiSelectMode) 1f else 0.55f),
-                        isSelected = selection.contains(packageName),
-                        isSelectionMode = isMultiSelectMode
-                    ) {
-                        AppCardLayout(
-                            gradientColors = gradientColors,
-                            onClick = {
-                                if (isMultiSelectMode) selection.toggle(packageName)
-                                else bring(listOf(packageName), brought = !brought)
-                            },
-                            onLongClick = {
-                                isMultiSelectMode = true
-                                selection.toggle(packageName)
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            AppCardContent(
-                                packageName = packageName,
-                                packageInfo = null,
-                                displayName = label,
-                                subtitle = stringResource(
-                                    if (brought) R.string.sources_apps_brought
-                                    else R.string.sources_apps_left_out
-                                ),
-                                gradientColors = gradientColors
-                            )
-                        }
-                    }
                 }
             }
 
-            ListScrollbar(
-                listState = listState,
-                modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
-            )
+            items(items = filtered, key = { (packageName, _) -> packageName }) { (packageName, label) ->
+                val brought = src.uid !in keptFrom[packageName].orEmpty()
+                val gradientColors = appMetadata[packageName]?.gradientColors
+                    ?: AppCardColorDefaults.defaultGradientColors
 
-            ScrollToTopButton(
-                listState = listState,
-                modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
-            )
+                SelectableCard(
+                    modifier = Modifier
+                        .animatedListItem(this)
+                        // An app left out reads as one this source no longer brings, the
+                        // same way the selection dims what it leaves unpicked
+                        .alpha(if (brought || isMultiSelectMode) 1f else 0.55f),
+                    isSelected = selection.contains(packageName),
+                    isSelectionMode = isMultiSelectMode
+                ) {
+                    AppCardLayout(
+                        gradientColors = gradientColors,
+                        onClick = {
+                            if (isMultiSelectMode) selection.toggle(packageName)
+                            else bring(listOf(packageName), brought = !brought)
+                        },
+                        onLongClick = {
+                            isMultiSelectMode = true
+                            selection.toggle(packageName)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        AppCardContent(
+                            packageName = packageName,
+                            packageInfo = null,
+                            displayName = label,
+                            subtitle = stringResource(
+                                if (brought) R.string.sources_apps_brought
+                                else R.string.sources_apps_left_out
+                            ),
+                            gradientColors = gradientColors
+                        )
+                    }
+                }
+            }
         }
     }
 }

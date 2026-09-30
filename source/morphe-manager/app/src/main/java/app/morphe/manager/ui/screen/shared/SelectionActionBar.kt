@@ -19,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -27,7 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
-import app.morphe.manager.ui.theme.MonochromeThemeDefaults
+import app.morphe.manager.ui.theme.ThemeTraitsDefaults
 
 /** Shape of the [MultiSelectShell] surface: rounded where it leaves the bottom edge, like a sheet. */
 private val ShellShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
@@ -66,9 +67,11 @@ fun MultiSelectShell(
                 .padding(horizontal = Defaults.SheetSideInset)
                 .predictiveBackSlide(backProgress),
             shape = ShellShape,
-            color = MonochromeThemeDefaults.surfaceColor(MaterialTheme.colorScheme.surfaceContainerHigh),
-            shadowElevation = 8.dp,
-            tonalElevation = 4.dp
+            // Drawn like an AppBottomSheet, on the dialogs' background with an edge of its own, so
+            // a panel docked over a list reads as the same kind of surface as a sheet
+            color = ThemeTraitsDefaults.surfaceColor(MaterialTheme.colorScheme.background),
+            border = CardBorder.neutral,
+            shadowElevation = 8.dp
         ) {
             Box(modifier = Modifier.navigationBarsPadding().padding(bottom = 4.dp)) { content() }
         }
@@ -144,6 +147,11 @@ fun PanelSubtitle(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
 }
+
+/** Gap between a panel's edge and the plate a pressed action row lights up. */
+private val PanelActionInset = Defaults.ContentPaddingSmall
+
+private val PanelActionShape = RoundedCornerShape(Defaults.CompactCornerRadius)
 
 /** What an action of a panel does, as far as its color goes. */
 enum class ActionTone { Neutral, Primary, Secondary, Tertiary, Destructive }
@@ -222,7 +230,8 @@ fun SelectionActionBar(
                 TitleAction(
                     icon = Icons.Outlined.Close,
                     contentDescription = cancelLabel,
-                    onClick = onCancel
+                    onClick = onCancel,
+                    style = TitleActionStyle.Neutral
                 )
             }
         }
@@ -244,9 +253,7 @@ fun PanelActions(actions: List<SelectionAction>, enabled: Boolean = true) {
         val startsDestructiveGroup = action.tone == ActionTone.Destructive &&
                 index > 0 && actions[index - 1].tone != ActionTone.Destructive
         if (startsDestructiveGroup) {
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = Defaults.ContentPadding, vertical = 4.dp)
-            )
+            SettingsDivider(modifier = Modifier.padding(vertical = 4.dp))
         }
         // Keyed so a row keeps its own state when an action ahead of it comes or goes
         key(action.label) {
@@ -265,9 +272,13 @@ private fun PanelActionRow(action: SelectionAction, enabled: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            // Pressed like a menu item, on a rounded plate held off the panel's edge, so the
+            // highlight does not run into the border and the corners the panel is drawn with
+            .padding(horizontal = PanelActionInset)
+            .clip(PanelActionShape)
             .heightIn(min = 48.dp)
             .clickable(enabled = enabled, role = Role.Button, onClick = action.onClick)
-            .padding(horizontal = Defaults.ContentPadding),
+            .padding(horizontal = Defaults.ContentPadding - PanelActionInset),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -294,5 +305,5 @@ private fun ActionTone.accentColor(): Color = when (this) {
     ActionTone.Primary -> MaterialTheme.colorScheme.primary
     ActionTone.Secondary -> MaterialTheme.colorScheme.secondary
     ActionTone.Tertiary -> MaterialTheme.colorScheme.tertiary
-    ActionTone.Destructive -> MaterialTheme.colorScheme.error
+    ActionTone.Destructive -> destructiveColor()
 }

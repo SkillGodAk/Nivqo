@@ -110,7 +110,7 @@ fun PatchOptionsSection(
             noPatchesAvailable -> {
                 Notice(
                     text = stringResource(R.string.settings_advanced_patch_options_waiting_for_source),
-                    tone = SemanticTone.Success,
+                    tone = SemanticTone.Primary,
                     icon = Icons.Outlined.Info
                 )
             }
@@ -128,7 +128,7 @@ fun PatchOptionsSection(
                 Notice(
                     icon = Icons.Outlined.Info,
                     text = stringResource(R.string.settings_advanced_patch_options_restart_message),
-                    tone = SemanticTone.Success
+                    tone = SemanticTone.Primary
                 )
 
                 // YouTube

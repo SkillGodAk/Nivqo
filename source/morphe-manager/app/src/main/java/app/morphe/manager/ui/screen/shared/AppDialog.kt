@@ -7,6 +7,8 @@ package app.morphe.manager.ui.screen.shared
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -22,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -29,7 +32,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
-import app.morphe.manager.util.isDarkBackground
+import app.morphe.manager.ui.theme.isDarkTheme
 import kotlin.time.Duration.Companion.milliseconds
 
 /** Provides the primary text color for dialog content. */
@@ -63,9 +66,9 @@ object FullscreenDialogs {
 
 /** Controls outer padding and inset behavior of [AppDialog]. */
 enum class DialogPadding {
-    /** Standard 32dp outer padding with system bar insets. */
+    /** 32dp at the sides and 16dp above and below, with system bar insets. */
     Normal,
-    /** Compact 16dp outer padding with system bar insets. */
+    /** 16dp all round, with system bar insets. */
     Compact,
     /** No padding and no insets, the caller handles layout entirely. */
     None
@@ -76,8 +79,14 @@ enum class DialogPadding {
  *
  * @param onDismissRequest Called when user dismisses the dialog.
  * @param title Optional title displayed at the top.
+ * @param description What the dialog asks or explains, set under the [title] in one style for
+ *   every dialog and held in place with it while the content below scrolls. Plain text or an
+ *   [AnnotatedString] for one with emphasis.
  * @param titleTrailingContent Optional actions displayed after the title, laid out in a row.
  * @param footer Optional footer content.
+ * @param accentColor Color of the app or source the dialog is about. Its header, content and
+ *   buttons all take it on through [LocalAccent], so the dialog reads as one surface in that color.
+ *   Null leaves them in the theme's palette, or in whatever color surrounds the dialog.
  * @param bottomBar Optional bar docked to the bottom edge of the screen, edge to edge, such as a
  * [MultiSelectShell] while a selection is being made. While there is one it takes the place of
  * the [footer], clears the navigation bar and the keyboard itself, and the content ends right
@@ -93,25 +102,31 @@ enum class DialogPadding {
  * to the bottom of the dialog. Set to true for list dialogs, where the buttons belong at the
  * bottom however short the list is. Compact dialogs leave it false so their content and buttons
  * stay together as one centered block. Default is false.
- * @param content Dialog content.
+ * @param hideFooterWhileTyping Folds the [footer] away while the keyboard is up, for a list dialog
+ * whose search wants every row of room it can get. A dialog whose buttons act on what is typed
+ * leaves it off, so they stay above the keyboard. Default is false.
+ * @param content Dialog content, left out by a dialog its [description] says everything for.
  */
 @Composable
 fun AppDialog(
     onDismissRequest: () -> Unit,
     title: String? = null,
+    description: CharSequence? = null,
     titleTrailingContent: (@Composable RowScope.() -> Unit)? = null,
     footer: (@Composable () -> Unit)? = null,
+    accentColor: Color? = null,
     bottomBar: (@Composable () -> Unit)? = null,
     dismissOnClickOutside: Boolean = false,
     scrollable: Boolean = true,
     padding: DialogPadding = DialogPadding.Normal,
     contentArrangement: Arrangement.Vertical = Arrangement.Center,
     fillContentHeight: Boolean = false,
+    hideFooterWhileTyping: Boolean = false,
     backdrop: (@Composable BoxScope.() -> Unit)? = null,
     onEntered: (() -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit = {}
 ) {
-    val isDarkTheme = MaterialTheme.colorScheme.background.isDarkBackground()
+    val isDarkTheme = isDarkTheme()
     var visible by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
@@ -162,18 +177,24 @@ fun AppDialog(
                 exit = Animations.dialogExit,
                 modifier = Modifier.fillMaxSize()
             ) {
-                DialogContent(
-                    title = title,
-                    titleTrailingContent = titleTrailingContent,
-                    footer = footer,
-                    bottomBar = bottomBar,
-                    isDarkTheme = isDarkTheme,
-                    scrollable = scrollable,
-                    padding = padding,
-                    contentArrangement = contentArrangement,
-                    fillContentHeight = fillContentHeight,
-                    content = content
-                )
+                val dialogContent = @Composable {
+                    DialogContent(
+                        title = title,
+                        description = description,
+                        titleTrailingContent = titleTrailingContent,
+                        footer = footer,
+                        bottomBar = bottomBar,
+                        isDarkTheme = isDarkTheme,
+                        scrollable = scrollable,
+                        padding = padding,
+                        contentArrangement = contentArrangement,
+                        fillContentHeight = fillContentHeight,
+                        hideFooterWhileTyping = hideFooterWhileTyping,
+                        content = content
+                    )
+                }
+                // Provided only when there is one, so a dialog opened from a colored one keeps its color
+                if (accentColor != null) ProvideAccent(accentColor, dialogContent) else dialogContent()
             }
         }
     }
@@ -215,7 +236,7 @@ fun Overlay(
 ) {
     // Drawn over the theme background, so the bars read against the same thing an AppDialog gives
     // them even though this one lets some of the screen behind show through
-    val isDarkTheme = MaterialTheme.colorScheme.background.isDarkBackground()
+    val isDarkTheme = isDarkTheme()
 
     AnimatedVisibility(
         visible = visible,
@@ -281,9 +302,11 @@ fun BoxScope.ContentOverlay(
 /**
  * Main dialog content area.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DialogContent(
     title: String?,
+    description: CharSequence?,
     titleTrailingContent: (@Composable RowScope.() -> Unit)?,
     footer: (@Composable () -> Unit)?,
     bottomBar: (@Composable () -> Unit)?,
@@ -292,6 +315,7 @@ private fun DialogContent(
     padding: DialogPadding,
     contentArrangement: Arrangement.Vertical,
     fillContentHeight: Boolean,
+    hideFooterWhileTyping: Boolean,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val isLandscape = isLandscape()
@@ -327,17 +351,25 @@ private fun DialogContent(
     } else {
         Defaults.ContentPaddingExpanded
     }
-    // Compact mode zeroes its top padding when there is no title to fill it
-    val topPadding = when (padding) {
-        DialogPadding.Compact -> if (title != null) Defaults.ContentPadding else 0.dp
-        else -> Defaults.ContentPaddingExpanded
+    // The system bars already set the dialog off the screen's edges, so above and below it keeps
+    // only the gap its rows keep from each other, whatever it gives its sides. Compact mode zeroes
+    // its top padding when there is no title to fill it, leaving the room to a header of its own
+    val topPadding = if (padding == DialogPadding.Compact && title == null) {
+        0.dp
+    } else {
+        Defaults.ContentPadding
     }
-    // A docked bar takes the bottom edge, so the content stops right above it
-    val bottomPadding = when {
-        bottomBar != null -> 0.dp
-        padding == DialogPadding.Compact -> Defaults.ContentPadding
-        else -> Defaults.ContentPaddingExpanded
-    }
+    val footerFolded = hideFooterWhileTyping && WindowInsets.isImeVisible
+    // A docked bar takes the bottom edge, so the content stops right above it. A folded footer
+    // takes its margin along, so the list runs right down to the keyboard, easing there with it
+    val bottomPadding by animateDpAsState(
+        targetValue = when {
+            bottomBar != null || footerFolded -> 0.dp
+            else -> Defaults.ContentPadding
+        },
+        animationSpec = tween(Defaults.ANIMATION_DURATION),
+        label = "dialog_bottom_padding"
+    )
     // The keyboard is one more thing the dialog has to fit above, and its inset already spans the
     // navigation bar, so the two are taken together rather than stacked. A docked bar clears both
     // itself, from the edge it sits on
@@ -376,12 +408,20 @@ private fun DialogContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = contentArrangement
                 ) {
-                    // Title section
+                    // Title section. The headline's tall line box already adds space below the
+                    // text, so a small gap reads as much as the one above the footer
+                    val titleAlign =
+                        if (titleTrailingContent != null) TextAlign.Start else TextAlign.Center
+                    val titleBottom = if (description != null) 4.dp else Defaults.ContentPaddingSmall
                     if (title != null) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = horizontalPadding, end = horizontalPadding, bottom = Defaults.ContentPadding),
+                                .padding(
+                                    start = horizontalPadding,
+                                    end = horizontalPadding,
+                                    bottom = titleBottom
+                                ),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -395,9 +435,9 @@ private fun DialogContent(
                             ) { currentTitle ->
                                 Text(
                                     text = currentTitle,
-                                    style = MaterialTheme.typography.headlineMedium,
+                                    style = MaterialTheme.typography.headlineSmall,
                                     fontWeight = FontWeight.Bold,
-                                    textAlign = if (titleTrailingContent != null) TextAlign.Start else TextAlign.Center,
+                                    textAlign = titleAlign,
                                     color = textColor,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -409,6 +449,34 @@ private fun DialogContent(
                                     content = titleTrailingContent
                                 )
                             }
+                        }
+                    }
+
+                    if (description != null) {
+                        val descriptionStyle = MaterialTheme.typography.bodyLarge
+                        val descriptionModifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                start = horizontalPadding,
+                                end = horizontalPadding,
+                                bottom = Defaults.ContentPadding
+                            )
+                        if (description is AnnotatedString) {
+                            Text(
+                                text = description,
+                                style = descriptionStyle,
+                                color = secondaryTextColor,
+                                textAlign = titleAlign,
+                                modifier = descriptionModifier
+                            )
+                        } else {
+                            Text(
+                                text = description.toString(),
+                                style = descriptionStyle,
+                                color = secondaryTextColor,
+                                textAlign = titleAlign,
+                                modifier = descriptionModifier
+                            )
                         }
                     }
 
@@ -424,11 +492,17 @@ private fun DialogContent(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = horizontalPadding)
                                 .then(
                                     if (scrollState != null) {
-                                        Modifier.verticalScroll(scrollState)
-                                    } else Modifier
+                                        // Ahead of the padding, so the fade spans the dialog's full
+                                        // width and clips nothing that reaches into the padding
+                                        Modifier
+                                            .verticalScrollFade(scrollState)
+                                            .padding(horizontal = horizontalPadding)
+                                            .verticalScroll(scrollState)
+                                    } else {
+                                        Modifier.padding(horizontal = horizontalPadding)
+                                    }
                                 )
                         ) {
                             content()
@@ -442,12 +516,22 @@ private fun DialogContent(
 
                     // Footer section, which a bottom bar stands in for while there is one
                     if (footer != null && bottomBar == null) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = horizontalPadding, end = horizontalPadding, top = Defaults.ContentPadding)
+                        AnimatedVisibility(
+                            visible = !footerFolded,
+                            enter = Animations.expandFadeEnter,
+                            exit = Animations.shrinkFadeExit
                         ) {
-                            footer()
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        start = horizontalPadding,
+                                        end = horizontalPadding,
+                                        top = Defaults.ContentPadding
+                                    )
+                            ) {
+                                footer()
+                            }
                         }
                     }
                 }

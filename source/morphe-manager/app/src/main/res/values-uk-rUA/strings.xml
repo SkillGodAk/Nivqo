@@ -8,7 +8,7 @@
     <string name="home_unpatched_badge">Не патчено</string>
     <string name="home_no_patches_available">Немає доступних патчів</string>
     <string name="home_app_hide_title">Приховати цей застосунок?</string>
-    <string name="home_app_hide_message">Цей застосунок буде приховано з головного екрану. Ви можете відновити його пізніше, використовуючи кнопку \"\" внизу списку</string>
+    <string name="home_app_hide_message">Цей застосунок буде приховано з головного екрану. Ви можете відновити його пізніше, використовуючи кнопку внизу списку</string>
     <string name="home_app_will_be_hidden">Цей застосунок буде приховано</string>
     <string name="home_app_no_hidden">Немає прихованих застосунків</string>
     <string name="home_app_hidden_apps_title">Приховані застосунки</string>
@@ -41,9 +41,6 @@
     <string name="home_update_skipped_metered">Оновлення пропущено</string>
     <string name="home_update_skipped_metered_subtitle">Мобільна мережа активна</string>
     <string name="home_updating_sources">Оновлення джерел…</string>
-    <!-- Download progress across several bundles. "%1$d" and "%2$d" count the bundles, "%3$s" and
-         "%4$s" are the megabytes read and expected, "%5$d" is the percentage. -->
-    <string name="home_update_bundle_count_with_bytes">%1$d / %2$d  ·  %3$s / %4$s МБ (%5$d%%)</string>
     <string name="home_update_success">Оновлення джерел завершено</string>
     <string name="home_update_success_subtitle">Ваші джерела актуальні</string>
     <string name="home_sources_are_loading">Джерела завантажуються, будь ласка, зачекайте…</string>
@@ -141,7 +138,6 @@
     <string name="sources_management_report_issue">Повідомити про проблему</string>
     <string name="sources_management_failed_to_open_url">Не вдалося відкрити URL</string>
     <string name="sources_apps">Застосунки</string>
-    <string name="sources_apps_title">Застосунки з %1$s</string>
     <string name="sources_apps_description">Натисніть на застосунок, щоб виключити його з цього джерела або повернути, або затисніть, щоб вибрати кілька. Застосунок зникає з головного екрана, якщо жодне джерело його не містить</string>
     <string name="sources_apps_brought">Додано цим джерелом</string>
     <string name="sources_apps_left_out">Виключено з цього джерела</string>
@@ -174,21 +170,22 @@
     <string name="sources_dialog_rename">Перейменувати джерело патчів</string>
     <string name="sources_dialog_duplicate_name_error">Джерело з такою назвою вже існує</string>
     <string name="sources_dialog_missing_error">Не вдалося оновити це джерело патчів</string>
-    <string name="sources_dialog_view_any_version">Будь-яка версія</string>
-    <string name="sources_dialog_view_any_package">Будь-який пакет</string>
     <string name="sources_dialog_add_source">Додати джерело патчів</string>
-    <string name="sources_dialog_delete_confirm_message">Видалити джерело \"%s\"? Цю дію неможливо скасувати</string>
+    <string name="sources_dialog_delete_confirm_body">Це неможливо скасувати</string>
     <string name="sources_dialog_remote">Віддалене</string>
     <string name="sources_dialog_remote_url">URL джерела</string>
-    <string name="sources_dialog_remote_url_formats_title">Приклади:</string>
+    <string name="sources_dialog_remote_url_hint">Репозиторій або посилання на файл .json пакета патчів. Вставте кілька одразу, щоб додати їх усі</string>
+    <string name="sources_dialog_paste_no_links">У буфері обміну не знайдено посилань</string>
     <string name="sources_dialog_local">Локальне</string>
-    <string name="sources_dialog_local_file">Виберіть файл джерела патчів</string>
+    <string name="sources_dialog_local_files">Виберіть файли джерел патчів</string>
+    <!-- Button under the files already picked, which opens the picker again -->
+    <string name="sources_dialog_local_add_more">Додати більше файлів</string>
     <string name="sources_dialog_local_file_tap_hint">Натисніть, щоб переглянути сховище</string>
-    <string name="sources_dialog_local_file_description">Виберіть файл джерела патчів .mpp зі сховища</string>
     <string name="sources_dialog_local_invalid_extension">Файл повинен мати розширення .mpp</string>
+    <!-- %s is the name of the local source that another version of the same bundle replaces -->
+    <string name="sources_dialog_local_updates">Оновлює %s</string>
     <string name="sources_dialog_url_valid">Дійсне посилання на репозиторій або JSON-файл</string>
     <string name="sources_dialog_url_invalid">URL має вказувати на репозиторій GitHub/GitLab або .json файл</string>
-    <string name="sources_dialog_local_change_file">Змінити файл</string>
     <string name="sources_dialog_preinstalled">Вбудоване</string>
     <string name="sources_dialog_community">Патчі спільноти</string>
     <string name="sources_dialog_choose_apps">Виберіть застосунки</string>
@@ -218,6 +215,7 @@
     <string name="home_apk_helper_download">Допоміжний застосунок</string>
     <string name="home_apk_helper_title">Завантажувати за допомогою допоміжного застосунку</string>
     <string name="home_apk_helper_description">Morphe попросить допоміжний застосунок нижче завантажити оригінальний APK та передати файл назад</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">Відкрити допоміжний застосунок</string>
     <string name="home_apk_helper_warning">Продовжуйте лише якщо довіряєте цьому допоміжному застосунку. Morphe перевіряє пакет, версію та підпис усього отриманого перед патчингом</string>
     <string name="home_apk_helper_warning_unverified">Продовжуйте лише якщо довіряєте цьому допоміжному застосунку. Morphe не може перевірити підпис цього APK, тому змінений файл не буде виявлено</string>
@@ -240,7 +238,6 @@
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; не має підтримуваних версій для Android %2$s (API %3$s). Усі заявлені версії вимагають вищу версію Android</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">Завантажити оригінальний APK файл</string>
-    <string name="home_download_instructions_steps_title">Інструкції:</string>
     <string name="home_download_instructions_finding">Пошук сторінки завантаження…</string>
     <string name="home_download_instructions_step1">Натисніть кнопку \'%s\' нижче</string>
     <string name="home_download_instructions_step2_part1">Прокрутіть вниз і натисніть</string>
@@ -283,7 +280,6 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_title">Експертний режим</string>
     <string name="expert_mode_search">Пошук патчів</string>
-    <string name="expert_mode_proceed">Перейти до патчингу</string>
     <string name="expert_mode_disable_all">Вимкнути всі</string>
     <string name="expert_mode_disable_all_done">Усі патчі вимкнено</string>
     <string name="expert_mode_enable_all">Увімкнути всі</string>
@@ -325,6 +321,7 @@
     <string name="morphe_experimental_app_version_dialog_message">Ця версія &lt;b&gt;%s&lt;/b&gt; має ранню експериментальну підтримку&lt;br/&gt;&lt;br/&gt;🔧 Очікуйте нестандартну поведінку застосунку або непередбачувані помилки, оскільки патчі ще доопрацьовуються для цієї версії</string>
     <string name="home_dialog_unsupported_version_dialog_title">Непідтримувана версія</string>
     <string name="home_dialog_unsupported_version_dialog_description">Цей APK файл має не рекомендовану версію застосунку. Продовження може призвести до некоректної роботи застосунку</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_dialog_unsupported_version_dialog_proceed">Продовжити все одно</string>
     <string name="home_dialog_unsupported_version_compatible_versions">Сумісні версії:</string>
     <string name="home_dialog_unsupported_version_unsupported_label">Непідтримувана</string>
@@ -360,12 +357,21 @@
     <string name="patch_option_slider_range_end">По</string>
     <string name="patch_option_list_duplicate">Це значення вже існує</string>
     <string name="patch_option_list_empty">Значення не може бути порожнім</string>
-    <string name="patch_option_list_empty_state">Значень ще не додано</string>
     <string name="patch_option_required_missing">%s: заповніть усі обов\'язкові параметри</string>
+    <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <string name="patch_option_changed">Змінено</string>
+    <!-- Badge on a patch option that has to be filled in before patching -->
+    <string name="patch_option_required">Обов\'язково</string>
+    <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
+    <string name="patch_option_recommended_size">Рекомендовано: %1$s×%2$s</string>
     <!-- Adaptive Icon Creator -->
     <string name="adaptive_icon_create">Створити адаптивну іконку</string>
     <string name="adaptive_icon_select_image">Вибрати зображення</string>
     <string name="adaptive_icon_change_image">Змінити зображення</string>
+    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
+    <string name="adaptive_icon_foreground">Зображення переднього плану</string>
+    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
+    <string name="adaptive_icon_launcher">Іконка застосунку</string>
     <string name="adaptive_icon_background_color">Колір фону</string>
     <string name="adaptive_icon_reset_transform">Скинути позицію та масштаб</string>
     <string name="adaptive_icon_safe_zone_inner">Безпечна зона (завжди видима)</string>
@@ -417,16 +423,18 @@
     <string name="batch_patch_source_file">Доданий файл</string>
     <string name="batch_patch_source_unavailable">Не вдалося підготувати APK</string>
     <string name="batch_patch_force_version">Патчити все одно</string>
-    <string name="batch_patch_force_version_done">Все одно додано до черги, патчі для інших версій можуть зламати застосунок</string>
-    <string name="batch_patch_accept_signature_done">Все одно додано до черги, цей APK може бути не оригінальним</string>
+    <string name="batch_patch_force_version_done">Все одно додано до черги, застосунок може зламатись</string>
+    <string name="batch_patch_accept_signature_done">Все одно додано до черги, APK не перевірено</string>
     <string name="batch_patch_edit_patches">Вибрати патчі</string>
     <string name="batch_patch_state_no_apk">Немає APK</string>
     <string name="batch_patch_state_no_patches">Немає патчів</string>
     <string name="batch_patch_policy_install">Встановити після завершення</string>
     <string name="batch_patch_policy_install_description">Встановлює кожен пропатчений застосунок одразу після завершення черги. Вимкнення зберігає APK на потім</string>
-    <string name="batch_patch_start">Почати патчинг</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_patch_start">Почати</string>
     <string name="batch_patch_stop_title">Зупинити пакетний патчинг?</string>
     <string name="batch_patch_stop_description">Застосунок, що патчиться зараз, і все, що ще в черзі, буде скасовано</string>
+    <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_install_all">Встановити всі</string>
     <string name="batch_patch_install_failed">Встановлення не вдалося</string>
     <string name="batch_patch_in_progress">Пакетний патчинг вже виконується</string>
@@ -529,8 +537,8 @@
     <string name="patcher_success_subtitle">Ваш застосунок пропатчено та встановлено!</string>
     <string name="patcher_complete_title">Патчинг завершено! ✨</string>
     <string name="patcher_failed_title">Ой! Щось пішло не так</string>
-    <string name="patcher_failed_hint">Натисніть %s, щоб побачити, що пішло не так</string>
     <string name="patcher_failed_dialog_title">Помилка патчингу</string>
+    <string name="patcher_error_details">Деталі помилки</string>
     <string name="patcher_unknown_error">Сталася невідома помилка</string>
     <string name="patcher_split_step_extracting">Видобування split APK файлів</string>
     <string name="patcher_split_step_merging">Об\'єднання %s</string>
@@ -545,7 +553,6 @@
 Видалення призведе до безповоротної втрати всіх даних застосунку"</string>
     <string name="patcher_install_error_title">Помилка встановлення</string>
     <string name="patcher_install_error_subtitle">Спробуйте видалити та встановити знову</string>
-    <string name="patcher_ready_to_install_subtitle">Натисніть кнопку нижче, щоб встановити</string>
     <string name="patcher_ready_to_mount_subtitle">Натисніть кнопку нижче, щоб монтувати</string>
     <string name="patcher_patches_excluded_for_installer">Недоступно для цього методу встановлення і виключено: %s</string>
     <string name="patcher_back_to_game_hint">Натисніть %1$s, щоб повернутися до гри</string>
@@ -654,6 +661,8 @@
     <string name="mini_game_try_again">Спробувати ще раз</string>
     <string name="mini_game_paused">Призупинено</string>
     <string name="mini_game_resume">Продовжити</string>
+    <string name="mini_game_restart">Почати спочатку</string>
+    <string name="mini_game_change">Виберіть іншу гру</string>
     <string name="mini_game_2048_picker_subtitle">Зсувайте плитки, щоб об’єднати їх</string>
     <string name="mini_game_flappy_picker_subtitle">Натискайте, щоб пролетіти крізь труби</string>
     <string name="mini_game_flappy_tap_to_start">Натисніть, щоб полетіти</string>
@@ -673,6 +682,7 @@
     <string name="system">Система</string>
     <!-- Settings - Appearance Tab - Background animation -->
     <string name="settings_appearance_background">Анімація фону</string>
+    <string name="settings_appearance_background_description">Анімація, що відтворюється за екранами застосунку</string>
     <string name="settings_appearance_background_circles">Кола</string>
     <string name="settings_appearance_background_rings">Кільця</string>
     <string name="settings_appearance_background_mesh">Сітка</string>
@@ -701,6 +711,10 @@
     <string name="settings_appearance_accent_color">Акцентний колір</string>
     <string name="settings_appearance_pure_black">Повністю чорний</string>
     <string name="settings_appearance_pure_black_description">Використовує справжній чорний фон</string>
+    <string name="settings_appearance_color_accents">Кольори застосунку та джерела</string>
+    <string name="settings_appearance_color_accents_description">Використовує власний колір кожного застосунку та джерела замість акцентного кольору</string>
+    <string name="settings_appearance_outlines">Контури</string>
+    <string name="settings_appearance_outlines_description">Малює тонкий контур навколо карток, панелей та кнопок</string>
     <!-- Settings - Appearance Tab - Language Selector -->
     <string name="settings_appearance_language_and_display">Мова та відображення</string>
     <string name="settings_appearance_app_language">Мова застосунку</string>
@@ -741,6 +755,7 @@
     <string name="settings_appearance_app_card_colors_bundle_description">Використовувати власний колір застосунку тут, автоматично затінений для відповідності</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Іконка застосунку</string>
+    <string name="settings_appearance_app_icon_selector_description">Як Morphe виглядає на головному екрані та в списку застосунків</string>
     <string name="settings_appearance_app_icon_default">Стандартна</string>
     <string name="settings_appearance_app_icon_light_2">Небо</string>
     <string name="settings_appearance_app_icon_light_3">Захід сонця</string>
@@ -749,6 +764,7 @@
     <string name="settings_appearance_app_icon_dark_3">Індіго</string>
     <string name="settings_appearance_app_icon_change_dialog_title">Змінити іконку застосунку?</string>
     <string name="settings_appearance_app_icon_change_dialog_message">Змінити на &lt;b&gt;%s&lt;/b&gt; і перезапустити?</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">Змінити іконку</string>
     <!-- Settings - Advanced Tab - Updates Section -->
     <string name="settings_advanced_updates">Оновлення</string>
@@ -1081,7 +1097,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_patched_apks_description">Керує збереженими файлами патчених застосунків</string>
     <string name="settings_system_patched_apks_empty">Патчених APK файлів ще не збережено</string>
     <string name="settings_system_patched_apks_delete_title">Видалити патчений APK файл?</string>
-    <string name="settings_system_patched_apks_delete_confirm">Ви впевнені, що хочете видалити збережений пропатчений APK файл для &lt;b&gt;%s&lt;/b&gt;?</string>
     <string name="settings_system_patched_apks_deleted">Патчений APK файл видалено успішно</string>
     <string name="settings_system_patched_apks_delete_all_title">Видалити всі пропатчені APK?</string>
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
@@ -1090,7 +1105,7 @@ morphe_header_custom_dark.png
     <string name="settings_system_original_apks_empty">Не збережено жодних оригінальних APK файлів</string>
     <string name="settings_system_original_apks_deleted">Оригінальний APK файл видалено успішно</string>
     <string name="settings_system_original_apks_delete_title">Видалити оригінальний APK файл?</string>
-    <string name="settings_system_original_apks_delete_confirm">Видалити оригінальний APK файл для &lt;b&gt;%s&lt;/b&gt;? Ви не зможете повторно пропатчити без надання нового APK файлу</string>
+    <string name="settings_system_original_apks_delete_notice">Ви не зможете повторно пропатчити без надання нового APK</string>
     <string name="settings_system_original_apks_delete_all_title">Видалити всі оригінальні APK?</string>
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
     <string name="settings_system_patch_selections_title">Вибір патчів</string>
@@ -1111,7 +1126,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_import_source_data_fail">Не вдалося імпортувати дані джерела</string>
     <string name="settings_system_import_source_data_success">Дані джерела імпортовано успішно</string>
     <string name="settings_system_selected_patches_section">Вибрані патчі</string>
-    <string name="settings_system_patch_options_section">Параметри патчів</string>
     <string name="settings_system_no_patches_or_options">Не збережено жодних патчів або параметрів</string>
     <!-- Copy selection from another bundle -->
     <string name="copy_selection_title">Копіювати вибір з…</string>
@@ -1130,7 +1144,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_apk_download_helper_installed_by">Встановлено %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Інсталятор невідомий</string>
     <!-- File Picker -->
-    <string name="file_picker_previous_directory">Попередня тека</string>
     <string name="file_picker_no_files">Тут немає файлів</string>
     <string name="file_picker_read_error">Не вдалося прочитати цю теку</string>
     <string name="file_picker_internal_storage">Внутрішнє сховище</string>
@@ -1158,14 +1171,12 @@ morphe_header_custom_dark.png
     <string name="easter_egg_pill_red_toast">Розблоковано фон Matrix</string>
     <string name="easter_egg_pill_blue_toast">Реклама на вас чекатиме</string>
     <string name="easter_egg_pill_message_again">Ви вже в Матриці. Червона пігулка поверне вас у дощ, синя - розбудить вас</string>
-    <string name="easter_egg_pill_red_toast_again">Повернутись у дощ</string>
+    <string name="easter_egg_pill_red_toast_again">Повернулись у дощ</string>
     <string name="easter_egg_pill_blue_toast_again">Відключено. Шлях назад там, де він завжди був</string>
     <!-- Shared strings -->
-    <!-- Download progress of a bundle or of the manager itself. "%1$s" and "%2$s" are the
-         megabytes read and expected, "%3$s" is the percentage; the doubled "%%" after it is
-         how a literal percent sign is written here. -->
-    <string name="download_progress">%1$s МБ / %2$s МБ (%3$s%%)</string>
     <string name="select_file">Вибрати файл</string>
+    <string name="select_files">Виберіть файли</string>
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="select_folder">Вибрати теку</string>
     <string name="patches">Патчі</string>
     <string name="home">Головна</string>
@@ -1192,6 +1203,7 @@ morphe_header_custom_dark.png
     <string name="done">Готово</string>
     <string name="skip">Пропустити</string>
     <string name="clear">Очистити</string>
+    <string name="paste">Вставити</string>
     <string name="delete">Видалити</string>
     <string name="delete_all">Видалити все</string>
     <string name="remove">Видалити</string>
@@ -1201,7 +1213,6 @@ morphe_header_custom_dark.png
     <string name="disable">Вимкнути</string>
     <string name="enable">Увімкнути</string>
     <string name="loading">Завантаження…</string>
-    <string name="loading_older_releases">Завантаження старіших релізів…</string>
     <string name="creating">Створення…</string>
     <string name="processing_apk">Обробка APK…</string>
     <string name="exporting_apks">Експортування APK…</string>
@@ -1244,6 +1255,7 @@ morphe_header_custom_dark.png
     <string name="continue_">Продовжити</string>
     <string name="version">Версія</string>
     <string name="clone">Клон</string>
+    <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patch">Патчити</string>
     <string name="patching">Патчинг</string>
     <string name="patched">Пропатчено</string>
@@ -1283,17 +1295,40 @@ morphe_header_custom_dark.png
     <string name="changelog_description">Що нового в цій версії</string>
     <string name="changelog_download_fail">Не вдалося завантажити список змін: %s</string>
     <string name="changelog_empty">Список змін відсутній</string>
-    <string name="changelog_show_older">Показати старіші релізи</string>
+    <string name="changelog_earlier_releases">Попередні релізи</string>
     <string name="changelog_older_empty">Немає старіших релізів для показу</string>
+    <string name="changelog_older_failed">Не вдалося завантажити попередні релізи</string>
+    <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="changelog_release_page">Сторінка релізу</string>
+    <string name="content_translate">Перекласти</string>
+    <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <string name="content_show_original">Оригінал</string>
+    <string name="content_translation_failed">Не вдалося перекласти: %s</string>
+    <string name="changelog_section_new">Нове</string>
+    <string name="changelog_section_fixes">Виправлення</string>
+    <string name="changelog_section_performance">Продуктивність</string>
+    <string name="changelog_section_improvements">Покращення</string>
+    <string name="changelog_section_app_support">Підтримка застосунку</string>
+    <string name="changelog_section_other">Зміни</string>
+    <string name="changelog_badge_latest">Найновіша</string>
+    <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <string name="changelog_badge_downloaded">Завантажено</string>
+    <string name="changelog_badge_prerelease">Передреліз</string>
+    <!-- "%s" is the number of changes in the section -->
+    <string name="changelog_show_all">Показати всі (%s)</string>
+    <string name="changelog_show_less">Менше</string>
     <string name="no_network_toast">Немає підключення до Інтернету</string>
     <string name="update_available">У наявності є оновлення</string>
     <string name="ready_to_install_update">Готово до установки оновлення</string>
     <string name="update_completed">Оновлення встановлено</string>
     <string name="install_update_manager_failed">Не вдалося встановити оновлення</string>
     <string name="installing_manager_update">Встановлення оновлення…</string>
+    <string name="installing_manager_update_hint">Morphe закриється, щоб завершити оновлення</string>
     <string name="downloading_manager_update">Завантаження оновлення…</string>
-    <!-- Shown while downloading, before the total size is known. "%1$s" is the megabytes so far. -->
+    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">Завантажено %1$s МБ</string>
+    <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
+    <string name="manager_update_progress_size">%1$s / %2$s МБ</string>
     <string name="manager_update_not_ready">Цей реліз ще публікується. Спробуйте знову за кілька хвилин</string>
     <string name="update_download_missing">Завантажене оновлення більше недоступне. Завантажте його знову</string>
     <string name="download_manager_failed">Помилка завантаження оновлення: %s</string>
@@ -1325,6 +1360,7 @@ morphe_header_custom_dark.png
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Швидкий огляд функцій</string>
     <string name="tour_prompt_desc">Хочете швидкий огляд ключових функцій Morphe?</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Покажіть мені</string>
     <string name="onboarding_restart_title">Огляд функцій</string>
     <string name="onboarding_restart_desc">Покроковий огляд ключових функцій</string>

@@ -8,6 +8,21 @@
         <item quantity="one">%s patch-alternativ</item>
         <item quantity="other">%s patch-alternativer</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s element</item>
+        <item quantity="other">%s elementer</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Velg %s fil</item>
+        <item quantity="other">Velg %s filer</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Legg til %s kilde</item>
+        <item quantity="other">Legg til %s kilder</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Patchkilder for %s app</item>
         <item quantity="other">Patchkilder for %s apper</item>
@@ -91,5 +106,21 @@
     <plurals name="core_count">
         <item quantity="one">%s kjerne</item>
         <item quantity="other">%s kjerner</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="one">%s ny</item>
+        <item quantity="other">%s nye</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s rettelse</item>
+        <item quantity="other">%s rettelser</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s endring</item>
+        <item quantity="other">%s endringer</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s ny utgivelse</item>
+        <item quantity="other">%s nye utgivelser</item>
     </plurals>
 </resources>

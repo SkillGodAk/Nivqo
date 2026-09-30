@@ -42,7 +42,6 @@ import java.net.URI
 import java.net.URISyntaxException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
@@ -134,7 +133,7 @@ class PatchBundleRepository(
      * every point that offers the user a choice reads.
      *
      * The unnarrowed flow stays the description of what exists, and a run reads that one. A
-     * selection is answered for by the sources it was made from, whether or not the app has since
+     * selection is answered for by the sources it was made from, whether the app has since
      * been kept from one.
      */
     fun offeredBundleInfoFlow(packageName: String, version: String?, versionCode: Long? = null) =
@@ -830,20 +829,18 @@ class PatchBundleRepository(
     }
 
     private data class UpdateRequest(
-        val force: Boolean,
-        val showToast: Boolean,
-        val allowUnsafeNetwork: Boolean,
-        val onPerBundleProgress: ((bundle: RemotePatchBundle, bytesRead: Long, bytesTotal: Long?) -> Unit)?,
         val target: UpdateTarget,
+        val force: Boolean = false,
+        val showToast: Boolean = false,
+        val allowUnsafeNetwork: Boolean = false,
     ) {
         /**
          * True when running this request already does everything [other] asks for. A request
-         * carrying a progress callback, a toast or a forced redownload has an observable effect
-         * of its own, so it always runs even when its bundles are already being updated.
+         * carrying a toast or a forced redownload has an observable effect of its own, so it
+         * always runs even when its bundles are already being updated.
          */
         fun covers(other: UpdateRequest) =
-            other.onPerBundleProgress == null &&
-                    !other.force &&
+            !other.force &&
                     !other.showToast &&
                     (allowUnsafeNetwork || !other.allowUnsafeNetwork) &&
                     target.covers(other.target)
@@ -856,17 +853,10 @@ class PatchBundleRepository(
     }
 
     private fun mergeUpdateRequests(requests: List<UpdateRequest>): UpdateRequest {
-        val callbacks = requests.mapNotNull { it.onPerBundleProgress }
-        val mergedCallback: ((RemotePatchBundle, Long, Long?) -> Unit)? = if (callbacks.isEmpty()) {
-            null
-        } else {
-            { bundle, read, total -> callbacks.forEach { it(bundle, read, total) } }
-        }
         return UpdateRequest(
             force = requests.any { it.force },
             showToast = requests.any { it.showToast },
             allowUnsafeNetwork = requests.all { it.allowUnsafeNetwork },
-            onPerBundleProgress = mergedCallback,
             target = requests.map { it.target }.reduce(UpdateTarget::plus),
         )
     }
@@ -937,10 +927,6 @@ class PatchBundleRepository(
                 Log.d(tag, "Triggering update for re-enabled bundles: $beingEnabledUids")
                 startRemoteUpdateJob(
                     UpdateRequest(
-                        force = false,
-                        showToast = false,
-                        allowUnsafeNetwork = false,
-                        onPerBundleProgress = null,
                         target = UpdateTarget(custom = { bundle ->
                             val matches = bundle.uid in beingEnabledUids && bundle.enabled
                             Log.d(tag, "  predicate check uid=${bundle.uid} inEnabled=${bundle.uid in beingEnabledUids} enabled=${bundle.enabled} ??$matches")
@@ -1063,11 +1049,8 @@ class PatchBundleRepository(
         // Trigger update so the new channel takes effect immediately.
         startRemoteUpdateJob(
             UpdateRequest(
+                target = UpdateTarget(uids = setOf(uid)),
                 force = true,
-                showToast = false,
-                allowUnsafeNetwork = false,
-                onPerBundleProgress = null,
-                target = UpdateTarget(uids = setOf(uid))
             )
         )
     }
@@ -1085,6 +1068,7 @@ class PatchBundleRepository(
         prefs.bundleExperimentalVersionsEnabled.update(current)
     }
 
+    /** @return The uid of the source the file landed under, or null when it could not be read. */
     suspend fun createLocal(expectedSize: Long? = null, createStream: suspend () -> InputStream) =
         importLocal(targetUid = null, expectedSize = expectedSize, createStream = createStream)
 
@@ -1106,10 +1090,11 @@ class PatchBundleRepository(
         targetUid: Int?,
         expectedSize: Long?,
         createStream: suspend () -> InputStream
-    ) {
+    ): Int? {
         var copyTotal: Long? = expectedSize?.takeIf { it > 0L }
         var copyRead = 0L
         var displayName: String? = null
+        var importedUid: Int? = null
         enqueueLocalImport()
         localImportMutex.withLock {
             val baseProcessed = localImportBaseSteps()
@@ -1127,8 +1112,7 @@ class PatchBundleRepository(
                     File.createTempFile("local_bundle", ".jar", app.cacheDir)
                 }
                 try {
-                    val sha256 = MessageDigest.getInstance("SHA-256")
-                    withContext(Dispatchers.IO) {
+                    val precomputedDigest = withContext(Dispatchers.IO) {
                         tempFile.outputStream().use { output ->
                             createStream().use { input ->
                                 if (copyTotal == null) {
@@ -1146,12 +1130,8 @@ class PatchBundleRepository(
                                     bytesTotal = copyTotal,
                                 )
 
-                                val buffer = ByteArray(256 * 1024)
-                                while (true) {
-                                    val read = input.read(buffer)
-                                    if (read == -1) break
+                                sha256Of(input) { buffer, read ->
                                     output.write(buffer, 0, read)
-                                    sha256.update(buffer, 0, read)
                                     copyRead += read
                                     setLocalImportProgress(
                                         baseProcessed = baseProcessed,
@@ -1165,7 +1145,6 @@ class PatchBundleRepository(
                             }
                         }
                     }
-                    val precomputedDigest = sha256.digest()
                     if (copyTotal == null && copyRead > 0L) {
                         copyTotal = copyRead
                     }
@@ -1174,7 +1153,7 @@ class PatchBundleRepository(
                         PatchBundle(tempFile.absolutePath).manifestAttributes?.name
                     }.getOrNull()?.takeUnless { it.isBlank() }
 
-                    val uid = targetUid ?: stableLocalUid(manifestName, tempFile, precomputedDigest)
+                    val uid = targetUid ?: localUidOf(precomputedDigest)
                     val existingProps = dao.getProps(uid)
                     displayName = (manifestName ?: existingProps?.name).orEmpty()
 
@@ -1231,6 +1210,7 @@ class PatchBundleRepository(
                                 }
                             }
                         }
+                        importedUid = uid
                     } catch (e: Exception) {
                         if (e is CancellationException) throw e
                         Log.e(tag, "Got exception while importing bundle", e)
@@ -1269,99 +1249,150 @@ class PatchBundleRepository(
                 completeLocalImport()
             }
         }
+        return importedUid
     }
 
-    private fun stableLocalUid(manifestName: String?, file: File, precomputedDigest: ByteArray? = null): Int {
-        val digest = precomputedDigest?.let { MessageDigest.getInstance("SHA-256").also { d -> d.update(it) } }
-            ?: MessageDigest.getInstance("SHA-256").also { d ->
-                val hashedFile = runCatching {
-                    file.inputStream().use { input ->
-                        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                        while (true) {
-                            val read = input.read(buffer)
-                            if (read == -1) break
-                            d.update(buffer, 0, read)
-                        }
-                    }
-                }.isSuccess
+    /** Reads [input] to its end, handing each chunk to [onChunk] as it goes, and returns its SHA-256. */
+    private inline fun sha256Of(input: InputStream, onChunk: (buffer: ByteArray, read: Int) -> Unit = { _, _ -> }): ByteArray {
+        val sha256 = MessageDigest.getInstance("SHA-256")
+        val buffer = ByteArray(256 * 1024)
+        while (true) {
+            val read = input.read(buffer)
+            if (read == -1) break
+            sha256.update(buffer, 0, read)
+            onChunk(buffer, read)
+        }
+        return sha256.digest()
+    }
 
-                if (!hashedFile) {
-                    val normalizedName = manifestName?.trim()?.takeUnless(String::isEmpty)
-                    if (normalizedName != null) {
-                        d.update("local:name".toByteArray(StandardCharsets.UTF_8))
-                        d.update(normalizedName.lowercase(Locale.US).toByteArray(StandardCharsets.UTF_8))
-                    } else {
-                        d.update(file.absolutePath.toByteArray(StandardCharsets.UTF_8))
-                    }
-                }
-            }
-
-        val raw = ByteBuffer.wrap(digest.digest(), 0, 4).order(ByteOrder.BIG_ENDIAN).int
+    /** The uid a local source is saved under, derived from the SHA-256 of its file's contents. */
+    private fun localUidOf(contentDigest: ByteArray): Int {
+        val digest = MessageDigest.getInstance("SHA-256").digest(contentDigest)
+        val raw = ByteBuffer.wrap(digest, 0, 4).order(ByteOrder.BIG_ENDIAN).int
         return if (raw != 0) raw else 1
     }
 
-    suspend fun createRemote(
-        url: String,
-        autoUpdate: Boolean,
-        createdAt: Long? = null,
-        updatedAt: Long? = null,
-        onProgress: PatchBundleDownloadProgress? = null,
-    ) =
-        dispatchAction("Add bundle ($url)") { state ->
-            val normalizedUrl = try {
-                normalizeRemoteBundleUrl(url)
-            } catch (e: IllegalArgumentException) {
-                Log.e(tag, "Invalid bundle URL: $url", e)
-                toast(R.string.sources_management_invalid_url)
-                return@dispatchAction state
-            }
+    /**
+     * Checks a file the way importing it would land it, so a form can say what the import will do.
+     * The file adds a source, is one already added, or is another version of a local source, which
+     * it then replaces as that source's update action does.
+     *
+     * @param manifestName The bundle name the file's manifest declares, which a new version keeps.
+     */
+    suspend fun checkLocal(manifestName: String?, createStream: suspend () -> InputStream): LocalFileCheck {
+        val uid = localUidOf(withContext(Dispatchers.IO) { createStream().use { sha256Of(it) } })
+        val sources = (store.state.value as? BundleState.Ready)?.sources ?: persistentMapOf()
+        if (uid in sources) return LocalFileCheck.Duplicate
 
-            // Website gate is UX-only, so enforce the blocklist here for every code path
-            val blocklistKey = toBlocklistKey(normalizedUrl)
-            if (blocklistKey != null && blocklistRepository.isBlocked(blocklistKey)) {
-                Log.i(tag, "Refused blocked source: $blocklistKey")
-                toast(R.string.sources_management_blocked)
-                return@dispatchAction state
-            }
-
-            // Check for duplicate source
-            val ready = state as? BundleState.Ready ?: return@dispatchAction state
-
-            val isDuplicate = ready.sources.values.any { src ->
-                src is RemotePatchBundle && src.endpoint.equals(normalizedUrl, ignoreCase = true)
-            }
-
-            if (isDuplicate) {
-                toast(R.string.sources_management_already_exists)
-                return@dispatchAction state
-            }
-
-            var src = createEntity(
-                "",
-                SourceInfo.from(normalizedUrl),
-                autoUpdate,
-                createdAt = createdAt,
-                updatedAt = updatedAt
-            ).load() as RemotePatchBundle
-
-            // Auto-enable prerelease if the URL explicitly targets the "dev" branch
-            if (src is JsonPatchBundle && src.endpointBranch == "dev") {
-                val current = prefs.bundlePrereleasesEnabled.get().toMutableSet()
-                current.add(src.uid.toString())
-                prefs.bundlePrereleasesEnabled.update(current)
-                src = src.copy(usePrerelease = true)
-            }
-
-            val allowUnsafeDownload = prefs.allowMeteredUpdates.get()
-            update(
-                src,
-                allowUnsafeNetwork = allowUnsafeDownload,
-                onPerBundleProgress = { bundle, bytesRead, bytesTotal ->
-                    if (bundle.uid == src.uid) onProgress?.invoke(bytesRead, bytesTotal)
-                }
-            )
-            ready.copy(sources = ready.sources.putting(src.uid, src))
+        val sameBundle = manifestName?.let { name ->
+            sources.values.firstOrNull { it is LocalPatchBundle && it.name.equals(name, ignoreCase = true) }
         }
+        return if (sameBundle != null) {
+            LocalFileCheck.Update(sameBundle.uid, sameBundle.displayTitle)
+        } else {
+            LocalFileCheck.New(uid)
+        }
+    }
+
+    /**
+     * Adds a remote source for each of [urls] and downloads them in one update pass, so a batch
+     * reports as one download rather than one per source. A URL that is invalid, blocked or
+     * already added is skipped, with one toast per kind of refusal.
+     *
+     * @return The uid of each source added, in the order of [urls].
+     */
+    suspend fun createRemotes(urls: List<String>, autoUpdate: Boolean): List<Int> {
+        val added = CompletableDeferred<List<Int>>()
+        dispatchAction("Add bundles (${urls.size})") { state ->
+            val ready = state as? BundleState.Ready
+            if (ready == null) {
+                added.complete(emptyList())
+                return@dispatchAction state
+            }
+
+            val takenKeys = ready.remoteSourceKeys().toMutableSet()
+            val rejections = linkedSetOf<RemoteSourceRejection>()
+            val created = mutableListOf<RemotePatchBundle>()
+            try {
+                for (url in urls) {
+                    when (val check = checkRemoteUrl(url, takenKeys)) {
+                        is RemoteUrlCheck.Rejected -> {
+                            Log.i(tag, "Skipped source $url: ${check.reason}")
+                            rejections += check.reason
+                        }
+                        is RemoteUrlCheck.Accepted -> {
+                            // The same repository pasted twice is one source
+                            takenKeys += check.endpoint.lowercase(Locale.US)
+                            created += createRemoteEntity(check.endpoint, autoUpdate)
+                        }
+                    }
+                }
+            } finally {
+                // A caller waits on this, so it is answered even when an entity fails to save
+                added.complete(created.map { it.uid })
+            }
+
+            rejections.forEach { toast(it.messageRes) }
+            if (created.isEmpty()) return@dispatchAction state
+
+            update(*created.toTypedArray(), allowUnsafeNetwork = prefs.allowMeteredUpdates.get())
+            ready.copy(sources = ready.sources.mutate { sources -> created.forEach { sources[it.uid] = it } })
+        }
+        return added.await()
+    }
+
+    /**
+     * Checks [url] against the sources there are now, the way [createRemotes] will, so a form can
+     * flag it before it is submitted.
+     */
+    fun checkRemoteUrl(url: String): RemoteUrlCheck =
+        checkRemoteUrl(url, (store.state.value as? BundleState.Ready)?.remoteSourceKeys().orEmpty())
+
+    private fun checkRemoteUrl(url: String, takenKeys: Set<String>): RemoteUrlCheck {
+        val endpoint = try {
+            normalizeRemoteBundleUrl(url)
+        } catch (_: IllegalArgumentException) {
+            return RemoteUrlCheck.Rejected(RemoteSourceRejection.Invalid)
+        }
+
+        // Website gate is UX-only, so enforce the blocklist here for every code path
+        val blocklistKey = toBlocklistKey(endpoint)
+        if (blocklistKey != null && blocklistRepository.isBlocked(blocklistKey)) {
+            return RemoteUrlCheck.Rejected(RemoteSourceRejection.Blocked)
+        }
+        // A pull request is a source of its own, though it shares its repository with one
+        val repositoryKey = blocklistKey.takeUnless { SourceInfo.from(endpoint) is SourceInfo.GitHubPullRequest }
+        if (endpoint.lowercase(Locale.US) in takenKeys || repositoryKey in takenKeys) {
+            return RemoteUrlCheck.Rejected(RemoteSourceRejection.Duplicate)
+        }
+        return RemoteUrlCheck.Accepted(endpoint)
+    }
+
+    /**
+     * What the remote sources are recognized by when a new one is checked against them: each
+     * endpoint, lowercased. The built-in source's endpoint is an API identifier no link reads as,
+     * so it is also known by the repository it publishes, in the form [toBlocklistKey] gives.
+     */
+    private fun BundleState.Ready.remoteSourceKeys(): Set<String> = buildSet {
+        sources.values.filterIsInstance<RemotePatchBundle>().forEach { source ->
+            add(source.endpoint.lowercase(Locale.US))
+            if (source is APIPatchBundle) toBlocklistKey(normalizeRemoteBundleUrl(SOURCE_REPO_URL))?.let(::add)
+        }
+    }
+
+    /** Saves and loads a new remote source for [endpoint]. Do not use this outside an action. */
+    private suspend fun createRemoteEntity(endpoint: String, autoUpdate: Boolean): RemotePatchBundle {
+        val src = createEntity("", SourceInfo.from(endpoint), autoUpdate).load() as RemotePatchBundle
+
+        // Auto-enable prerelease if the URL explicitly targets the "dev" branch
+        if (src is JsonPatchBundle && src.endpointBranch == "dev") {
+            val current = prefs.bundlePrereleasesEnabled.get().toMutableSet()
+            current.add(src.uid.toString())
+            prefs.bundlePrereleasesEnabled.update(current)
+            return src.copy(usePrerelease = true)
+        }
+        return src
+    }
 
     /**
      * Returns true if 'usePrerelease' should be enabled for a [JsonPatchBundle] with the given [url].
@@ -1439,7 +1470,8 @@ class PatchBundleRepository(
     } catch (_: Exception) { null }
 
     fun normalizeRemoteBundleUrl(input: String): String {
-        val trimmed = input.trim()
+        // A link is usually pasted without its scheme, and every host here serves https
+        val trimmed = input.trim().let { if ("://" in it) it else "https://$it" }
         val parsed = try {
             Url(trimmed)
         } catch (e: Exception) {
@@ -1616,19 +1648,25 @@ class PatchBundleRepository(
             }?.key
     }
 
+    /**
+     * Updates [sources] from their endpoints. With [force] the latest release is downloaded even
+     * when its version matches the installed one, which repairs a bundle that failed to load.
+     */
     suspend fun update(
         vararg sources: RemotePatchBundle,
+        force: Boolean = false,
         showToast: Boolean = false,
         allowUnsafeNetwork: Boolean = false,
-        onPerBundleProgress: ((bundle: RemotePatchBundle, bytesRead: Long, bytesTotal: Long?) -> Unit)? = null,
     ) {
         val uids = sources.map { it.uid }.toSet()
         store.dispatch(
             Update(
-                target = UpdateTarget(uids = uids),
-                showToast = showToast,
-                allowUnsafeNetwork = allowUnsafeNetwork,
-                onPerBundleProgress = onPerBundleProgress,
+                UpdateRequest(
+                    target = UpdateTarget(uids = uids),
+                    force = force,
+                    showToast = showToast,
+                    allowUnsafeNetwork = allowUnsafeNetwork,
+                )
             )
         )
     }
@@ -1649,11 +1687,8 @@ class PatchBundleRepository(
         awaitCurrentUpdateJob()
         performRemoteUpdateWithResult(
             UpdateRequest(
-                force = false,
-                showToast = false,
-                allowUnsafeNetwork = allowUnsafeNetwork,
-                onPerBundleProgress = null,
                 target = UpdateTarget(autoUpdatable = true),
+                allowUnsafeNetwork = allowUnsafeNetwork,
             )
         )
     }
@@ -1673,8 +1708,10 @@ class PatchBundleRepository(
     suspend fun updateCheck(allowUnsafeNetwork: Boolean = false) {
         store.dispatch(
             Update(
-                target = UpdateTarget(autoUpdatable = true),
-                allowUnsafeNetwork = allowUnsafeNetwork,
+                UpdateRequest(
+                    target = UpdateTarget(autoUpdatable = true),
+                    allowUnsafeNetwork = allowUnsafeNetwork,
+                )
             )
         )
         checkManualUpdates()
@@ -1739,27 +1776,13 @@ class PatchBundleRepository(
     suspend fun checkManualUpdates(vararg bundleUids: Int) =
         store.dispatch(ManualUpdateCheck(bundleUids.toSet().takeIf { it.isNotEmpty() }))
 
-    private inner class Update(
-        private val target: UpdateTarget,
-        private val force: Boolean = false,
-        private val showToast: Boolean = false,
-        private val allowUnsafeNetwork: Boolean = false,
-        private val onPerBundleProgress: ((bundle: RemotePatchBundle, bytesRead: Long, bytesTotal: Long?) -> Unit)? = null,
-    ) : Action<BundleState> {
-        override fun toString() = if (force) "Redownload remote bundles" else "Update check"
+    private inner class Update(private val request: UpdateRequest) : Action<BundleState> {
+        override fun toString() = if (request.force) "Redownload remote bundles" else "Update check"
 
         override suspend fun ActionContext.execute(
             current: BundleState
         ): BundleState {
-            startRemoteUpdateJob(
-                UpdateRequest(
-                    force = force,
-                    showToast = showToast,
-                    allowUnsafeNetwork = allowUnsafeNetwork,
-                    onPerBundleProgress = onPerBundleProgress,
-                    target = target,
-                )
-            )
+            startRemoteUpdateJob(request)
             return current
         }
 
@@ -1809,7 +1832,6 @@ class PatchBundleRepository(
         val force = request.force
         val showToast = request.showToast
         val allowUnsafeNetwork = request.allowUnsafeNetwork
-        val onPerBundleProgress = request.onPerBundleProgress
         val predicate = predicateFor(request.target)
         try {
             // Check network connectivity first
@@ -1892,7 +1914,10 @@ class PatchBundleRepository(
                             Log.d(tag, "Updating patch bundle: ${bundle.name}")
 
                             activeNamesMap[bundle.uid] = progressLabelFor(bundle)
-                            bundleUpdateProgressFlow.update { it?.copy(activeNames = activeNamesMap.values.toMutableList()) }
+                            val active = activeNamesMap.entries.toMutableList()
+                            bundleUpdateProgressFlow.update {
+                                it?.copy(activeNames = active.map { e -> e.value }, activeUids = active.map { e -> e.key })
+                            }
 
                             val result = try {
                                 val onProgress: PatchBundleDownloadProgress = { bytesRead, bytesTotal ->
@@ -1909,7 +1934,6 @@ class PatchBundleRepository(
                                             bytesTotal = aggTotal,
                                         )
                                     }
-                                    onPerBundleProgress?.invoke(bundle, bytesRead, bytesTotal)
                                 }
                                 val r = if (force) bundle.downloadLatest(onProgress) else bundle.update(onProgress)
                                 // Clear any previous metadata error on success
@@ -1932,10 +1956,12 @@ class PatchBundleRepository(
                             val nextTotal = currentUpdateTotal(targets.size)
                             val newCompleted = completedCount.incrementAndGet().coerceAtMost(nextTotal)
                             activeNamesMap.remove(bundle.uid)
+                            val stillActive = activeNamesMap.entries.toMutableList()
                             bundleUpdateProgressFlow.update { progress ->
                                 progress?.copy(
                                     completed = newCompleted,
-                                    activeNames = activeNamesMap.values.toMutableList(),
+                                    activeNames = stillActive.map { it.value },
+                                    activeUids = stillActive.map { it.key },
                                 )
                             }
 
@@ -2112,6 +2138,36 @@ class PatchBundleRepository(
         ) : BundleState()
     }
 
+    /** Why [createRemotes] leaves a URL out. */
+    enum class RemoteSourceRejection(@StringRes val messageRes: Int) {
+        Invalid(R.string.sources_management_invalid_url),
+        Blocked(R.string.sources_management_blocked),
+        Duplicate(R.string.sources_management_already_exists),
+    }
+
+    /** What importing a file as a local source would do, as [checkLocal] finds it. */
+    sealed interface LocalFileCheck {
+        /** Becomes a source of its own, saved under [uid]. */
+        data class New(val uid: Int) : LocalFileCheck
+
+        /** Is another version of the local source [uid], shown as [title], which it replaces. */
+        data class Update(val uid: Int, val title: String) : LocalFileCheck
+
+        /** Is the very file a source already holds. */
+        data object Duplicate : LocalFileCheck
+
+        /** Is not a patch bundle at all. */
+        data object NotBundle : LocalFileCheck
+    }
+
+    /** A URL checked against what [createRemotes] accepts. */
+    sealed interface RemoteUrlCheck {
+        /** Would be added, as a source reading [endpoint]. */
+        data class Accepted(val endpoint: String) : RemoteUrlCheck
+
+        data class Rejected(val reason: RemoteSourceRejection) : RemoteUrlCheck
+    }
+
     enum class BundleUpdateResult {
         None,           // Update in progress
         Success,        // Successfully updated
@@ -2126,6 +2182,8 @@ class PatchBundleRepository(
         val completed: Int,
         val currentBundleName: String? = null,
         val activeNames: List<String> = emptyList(),
+        /** Sources being downloaded right now, read in the same pass as [activeNames]. */
+        val activeUids: List<Int> = emptyList(),
         val phase: BundleUpdatePhase = BundleUpdatePhase.Checking,
         val bytesRead: Long = 0L,
         val bytesTotal: Long? = null,
@@ -2330,10 +2388,7 @@ class PatchBundleRepository(
 
             startRemoteUpdateJob(
                 UpdateRequest(
-                    force = false,
-                    showToast = false,
                     allowUnsafeNetwork = prefs.allowMeteredUpdates.get(),
-                    onPerBundleProgress = null,
                     target = UpdateTarget(custom = { bundle ->
                         bundle.uid != DEFAULT_SOURCE_UID &&
                                 // Disabled bundles are not refreshed, but ones that were never

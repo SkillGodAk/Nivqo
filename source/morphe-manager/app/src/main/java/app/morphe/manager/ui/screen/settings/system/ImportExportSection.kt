@@ -6,8 +6,10 @@
 package app.morphe.manager.ui.screen.settings.system
 
 import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Settings
@@ -17,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -29,6 +32,7 @@ import app.morphe.manager.R
 import app.morphe.manager.domain.manager.SettingsSection
 import app.morphe.manager.domain.manager.SigningKeyInfo
 import app.morphe.manager.ui.screen.shared.*
+import app.morphe.manager.ui.theme.ThemeTraitsDefaults
 import app.morphe.manager.ui.viewmodel.ImportExportViewModel
 import java.text.DateFormat
 import java.util.Date
@@ -80,8 +84,11 @@ fun ImportExportSection(
     if (showSettingsDialog) {
         ImportExportDialog(
             title = stringResource(R.string.settings_system_morphe_settings),
-            // The sections below say what the backup holds, which is all the row's subtitle said
-            description = null,
+            // The sections below say what the backup holds, so this says the one thing no settings
+            // backup carries: moving to a new phone with only this file would otherwise look like
+            // a complete backup. Held above the list, a list taller than the screen cannot push
+            // it out of sight
+            description = stringResource(R.string.settings_system_backup_signing_key_note),
             onImport = onImportSettings,
             onExport = onExportSettings,
             onDismiss = { showSettingsDialog = false },
@@ -141,6 +148,7 @@ private fun ImportExportDialog(
     AppDialog(
         onDismissRequest = onDismiss,
         title = title,
+        description = description,
         footer = {
             ImportExportFooter(
                 onImport = onImport,
@@ -152,16 +160,6 @@ private fun ImportExportDialog(
         }
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)) {
-            description?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = LocalDialogSecondaryTextColor.current,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
             content()
         }
     }
@@ -181,7 +179,7 @@ private fun SigningKeyPreview(key: SigningKeyInfo) {
     val copyToClipboard = rememberCopyToClipboard()
     val view = LocalView.current
 
-    SettingsItemCard(onClick = null, borderWidth = 1.dp) {
+    SettingsItemCard(onClick = null, showBorder = true) {
         Column(
             modifier = Modifier
                 .combinedClickable(
@@ -200,11 +198,7 @@ private fun SigningKeyPreview(key: SigningKeyInfo) {
                 horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                GradientCircleIcon(
-                    icon = Icons.Outlined.Key,
-                    size = 48.dp,
-                    gradientColors = fingerprintColors(key.sha256)
-                )
+                FingerprintBadge(key.sha256)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = key.alias,
@@ -234,25 +228,12 @@ private fun SigningKeyPreview(key: SigningKeyInfo) {
     }
 }
 
-/**
- * Sections of the settings a backup moves, picked the same way for both directions, under a note
- * on the one thing no settings backup carries: moving to a new phone with only this file would
- * otherwise look like a complete backup. The note leads so a list taller than the screen cannot
- * push it out of sight.
- */
+/** Sections of the settings a backup moves, picked the same way for both directions. */
 @Composable
 private fun SettingsBackupContents(
     selected: Set<SettingsSection>,
     onToggle: (SettingsSection) -> Unit
 ) {
-    Text(
-        text = stringResource(R.string.settings_system_backup_signing_key_note),
-        style = MaterialTheme.typography.bodyMedium,
-        color = LocalDialogSecondaryTextColor.current,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth()
-    )
-
     Column(verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)) {
         SettingsSection.entries.forEach { section ->
             val isSelected = section in selected
@@ -290,6 +271,24 @@ private val SettingsSection.descriptionRes: Int
         SettingsSection.SOURCES -> R.string.settings_system_backup_sources_description
         SettingsSection.PATCH_SELECTIONS -> R.string.settings_system_backup_patch_selections_description
     }
+
+/** Key icon on a gradient of two hues read off [sha256], see [fingerprintColors]. */
+@Composable
+private fun FingerprintBadge(sha256: String) {
+    val colors = remember(sha256) { fingerprintColors(sha256) }
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(brush = ThemeTraitsDefaults.iconBackground(colors)),
+        contentAlignment = Alignment.Center
+    ) {
+        ThemedIcon(
+            icon = Icons.Outlined.Key,
+            tint = ThemeTraitsDefaults.iconTint(Color.White)
+        )
+    }
+}
 
 /** Two hues read off the fingerprint: always the same for one key, and rarely alike for two. */
 private fun fingerprintColors(sha256: String): List<Color> {

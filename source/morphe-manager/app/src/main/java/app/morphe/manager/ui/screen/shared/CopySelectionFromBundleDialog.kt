@@ -6,15 +6,14 @@
 package app.morphe.manager.ui.screen.shared
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -77,7 +76,7 @@ fun CopySelectionFromBundleDialog(
 
     AppDialog(
         onDismissRequest = onDismiss,
-        title = stringResource(R.string.copy_selection_title),
+        accentColor = rememberAppColor(target.packageName),
         footer = {
             AppDialogButtonRow(
                 primaryText = confirmLabel,
@@ -96,18 +95,21 @@ fun CopySelectionFromBundleDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
         ) {
-            HeroInfoCard(
-                icon = Icons.Outlined.Extension,
+            // Headed by the app the selection lands on, with the source it lands in, while the
+            // question the list below answers sits right above it
+            ListDialogHeader(
+                icon = { modifier ->
+                    AppIcon(packageName = target.packageName, contentDescription = null, modifier = modifier)
+                },
                 title = target.appDisplayName,
-                subtitle = {
-                    Text(
-                        text = target.bundleName,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = LocalDialogSecondaryTextColor.current,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                subtitle = target.bundleName,
+                modifier = Modifier.padding(bottom = Defaults.ContentPaddingSmall)
+            )
+            Text(
+                text = stringResource(R.string.copy_selection_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = LocalDialogTextColor.current
             )
 
             when {
@@ -139,36 +141,25 @@ private fun ColumnScope.CandidateList(
     selectedIndex: Int,
     onSelect: (Int) -> Unit
 ) {
-    val listState = rememberLazyListState()
-    Box(
+    val sourcesByUid = rememberSourcesByUid()
+    DialogLazyList(
         modifier = Modifier
             .fillMaxWidth()
-            .weight(1f, fill = false)
+            .weight(1f, fill = false),
+        verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
     ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
-        ) {
-            items(
-                items = candidates.withIndex().toList(),
-                key = { (_, c) -> "${c.bundleUid}:${c.packageName}" }
-            ) { (index, candidate) ->
-                CandidateRow(
-                    candidate = candidate,
-                    selected = index == selectedIndex,
-                    onSelect = { onSelect(index) }
-                )
-            }
+        items(
+            items = candidates.withIndex().toList(),
+            key = { (_, c) -> "${c.bundleUid}:${c.packageName}" }
+        ) { (index, candidate) ->
+            CandidateRow(
+                candidate = candidate,
+                selected = index == selectedIndex,
+                onSelect = { onSelect(index) },
+                // Named after the source it copies from, so the card wears that source's color once picked
+                accentColor = sourcesByUid[candidate.bundleUid]?.let { rememberBundleAccent(it) }
+            )
         }
-        ListScrollbar(
-            listState = listState,
-            modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
-        )
-        ScrollToTopButton(
-            listState = listState,
-            modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
-        )
     }
 }
 
@@ -176,7 +167,8 @@ private fun ColumnScope.CandidateList(
 private fun CandidateRow(
     candidate: CopySelectionCandidate,
     selected: Boolean,
-    onSelect: () -> Unit
+    onSelect: () -> Unit,
+    accentColor: Color? = null
 ) {
     val enabled = candidate.applicableCount > 0
     val availableText = stringResource(
@@ -189,7 +181,8 @@ private fun CandidateRow(
         selected = selected,
         onSelect = onSelect,
         enabled = enabled,
-        contentDescription = "${candidate.packageDisplayName}, ${candidate.bundleName}, $availableText"
+        contentDescription = "${candidate.packageDisplayName}, ${candidate.bundleName}, $availableText",
+        accentColor = accentColor
     ) {
         Column(
             modifier = Modifier.weight(1f),

@@ -12,7 +12,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -20,7 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
-import app.morphe.manager.util.isDarkBackground
+import app.morphe.manager.ui.theme.isDarkTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.cos
@@ -41,7 +40,7 @@ fun SpaceBackground(
     speedMultiplier: Float = 1f,
     patchingCompleted: Boolean = false
 ) {
-    val isDarkTheme = MaterialTheme.colorScheme.background.isDarkBackground()
+    val isDarkTheme = isDarkTheme()
     val starColor = if (isDarkTheme) Color.White else Color(0xFF1A2530)
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()

@@ -12,6 +12,27 @@
         <item quantity="few">%s možnosti popravka</item>
         <item quantity="other">%s možnosti popravka</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s element</item>
+        <item quantity="two">%s elementa</item>
+        <item quantity="few">%s elementi</item>
+        <item quantity="other">%s elementov</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Izberi %s datoteko</item>
+        <item quantity="two">Izberi %s datoteki</item>
+        <item quantity="few">Izberi %s datoteke</item>
+        <item quantity="other">Izberi %s datotek</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Dodaj %s vir</item>
+        <item quantity="two">Dodaj %s vira</item>
+        <item quantity="few">Dodaj %s vire</item>
+        <item quantity="other">Dodaj %s virov</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Viri popravkov za %s aplikacijo</item>
         <item quantity="two">Viri popravkov za %s aplikaciji</item>
@@ -137,5 +158,29 @@
         <item quantity="two">%s jedri</item>
         <item quantity="few">%s jedra</item>
         <item quantity="other">%s jeder</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="one">%s nova</item>
+        <item quantity="two">%s novi</item>
+        <item quantity="few">%s nove</item>
+        <item quantity="other">%s novih</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s popravek</item>
+        <item quantity="two">%s popravka</item>
+        <item quantity="few">%s popravki</item>
+        <item quantity="other">%s popravkov</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s sprememba</item>
+        <item quantity="two">%s spremembi</item>
+        <item quantity="few">%s spremembe</item>
+        <item quantity="other">%s sprememb</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s nova izdaja</item>
+        <item quantity="two">%s novi izdaji</item>
+        <item quantity="few">%s nove izdaje</item>
+        <item quantity="other">%s novih izdaj</item>
     </plurals>
 </resources>

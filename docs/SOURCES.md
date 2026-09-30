@@ -55,6 +55,12 @@ Nivqo Manager 基於 Morphe Manager 與其相關元件。
 - Morphe patches Gradle plugin: `source/morphe-patches-gradle-plugin`
 - JADB: `source/jadb`
 
+
+Current Nivqo Manager sync:
+
+- Morphe Manager `v1.33.0` / upstream main `2d9e7f65af9e03370650d7840d20a47096def3be`
+- Morphe Patcher `v1.15.0` / upstream `524b9d8de5c2ec8f8cea0022cbce9a026d098679`
+
 Nivqo 使用獨立品牌與 package `app.nivqo.manager`，用來清楚區分本專案與原始 Morphe 版本。
 
 ## Meta / Facebook / Messenger

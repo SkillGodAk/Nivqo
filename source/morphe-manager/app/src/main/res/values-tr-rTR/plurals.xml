@@ -8,6 +8,21 @@
         <item quantity="one">%s yama seçeneği</item>
         <item quantity="other">%s yama seçeneği</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s öğe</item>
+        <item quantity="other">%s öğe</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">%s dosya seç</item>
+        <item quantity="other">%s dosya seç</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">%s kaynak ekle</item>
+        <item quantity="other">%s kaynak ekle</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">%s uygulama için yama kaynakları</item>
         <item quantity="other">%s uygulama için yama kaynakları</item>
@@ -91,5 +106,21 @@
     <plurals name="core_count">
         <item quantity="one">%s çekirdek</item>
         <item quantity="other">%s çekirdek</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="one">%s yeni</item>
+        <item quantity="other">%s yeni</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s düzeltme</item>
+        <item quantity="other">%s düzeltme</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s değişiklik</item>
+        <item quantity="other">%s değişiklik</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s yeni sürüm</item>
+        <item quantity="other">%s yeni sürüm</item>
     </plurals>
 </resources>

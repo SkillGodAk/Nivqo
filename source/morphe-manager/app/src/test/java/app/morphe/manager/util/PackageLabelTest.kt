@@ -42,6 +42,11 @@ class PackageLabelTest {
     }
 
     @Test
+    fun `numeric dotted names survive`() {
+        assertEquals("1.1.1.1", cleanPackageLabel("1.1.1.1", "com.cloudflare.onedotonedotonedotone"))
+    }
+
+    @Test
     fun `blank label stays blank`() {
         assertEquals("", cleanPackageLabel("   ", "com.example.app"))
     }

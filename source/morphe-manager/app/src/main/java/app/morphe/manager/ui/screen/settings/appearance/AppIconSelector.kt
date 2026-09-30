@@ -30,7 +30,6 @@ import app.morphe.manager.R
 import app.morphe.manager.domain.manager.AppIconManager
 import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.util.htmlAnnotatedString
-import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.launch
 
 /**
@@ -58,6 +57,7 @@ fun AppIconSettingsItem() {
         AppDialog(
             onDismissRequest = { showPicker.value = false },
             title = stringResource(R.string.settings_appearance_app_icon_selector_title),
+            description = stringResource(R.string.settings_appearance_app_icon_selector_description),
             footer = {
                 AppDialogOutlinedButton(
                     text = stringResource(R.string.close),
@@ -138,7 +138,7 @@ private fun AppIconCard(
         stateDescription = stringResource(
             if (isSelected) R.string.selected else R.string.not_selected
         ),
-        modifier = modifier.height(cardHeight)
+        modifier = modifier.heightIn(min = cardHeight)
     ) {
         Column(
             modifier = Modifier
@@ -182,6 +182,10 @@ private fun AppIconChangeDialog(
     AppDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.settings_appearance_app_icon_change_dialog_title),
+        description = htmlAnnotatedString(stringResource(
+            R.string.settings_appearance_app_icon_change_dialog_message,
+            stringResource(icon.displayNameResId)
+        )),
         footer = {
             AppDialogButtonRow(
                 primaryText = stringResource(R.string.settings_appearance_app_icon_change_dialog_confirm),
@@ -190,16 +194,5 @@ private fun AppIconChangeDialog(
                 onSecondaryClick = onDismiss
             )
         }
-    ) {
-        Text(
-            text = htmlAnnotatedString(stringResource(
-                R.string.settings_appearance_app_icon_change_dialog_message,
-                stringResource(icon.displayNameResId)
-            )),
-            style = MaterialTheme.typography.bodyLarge,
-            color = LocalDialogSecondaryTextColor.current,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
+    )
 }

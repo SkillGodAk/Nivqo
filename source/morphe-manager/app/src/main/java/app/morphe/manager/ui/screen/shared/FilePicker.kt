@@ -9,19 +9,17 @@ import android.content.Context
 import android.content.pm.PackageInfo
 import android.graphics.BitmapFactory
 import android.os.Environment
+import android.text.format.DateFormat
 import android.util.LruCache
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.*
@@ -30,21 +28,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.state.ToggleableState
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.domain.manager.PreferencesManager
@@ -142,6 +138,7 @@ private val iconLoadDispatcher = Dispatchers.IO.limitedParallelism(2)
 private val apkPackageInfoCache = LruCache<String, PackageInfo>(100)
 private val imageThumbnailCache = LruCache<String, ImageBitmap>(30)
 private val splitIconCache = LruCache<String, ImageBitmap>(50)
+private val folderItemCountCache = LruCache<String, Int>(200)
 
 private fun decodeSplitIcon(file: File): ImageBitmap? = runCatching {
     java.util.zip.ZipFile(file).use { zip ->
@@ -201,23 +198,28 @@ private fun applySort(files: List<File>, mode: SortMode): List<File> {
     return dirs.sortedBy { it.name.lowercase() } + sortedFiles
 }
 
-private val modDateFormatter = ThreadLocal.withInitial {
-    SimpleDateFormat("dd.MM.yyyy, HH:mm", Locale.getDefault())
+/** How a file's modification time reads, the time as the device's 12 or 24-hour clock shows it. */
+private fun modDateFormat(context: Context): SimpleDateFormat {
+    val locale = Locale.getDefault()
+    val skeleton = if (DateFormat.is24HourFormat(context)) "Hm" else "hm"
+    return SimpleDateFormat("dd.MM.yyyy, ${DateFormat.getBestDateTimePattern(locale, skeleton)}", locale)
 }
 
-private fun formatModDate(timestamp: Long): String =
-    modDateFormatter.get()!!.format(Date(timestamp))
-
 /**
- * Fullscreen file browser dialog styled to match the Morphe design system.
- * Navigates storage roots and subdirectories; shows file size and modification time.
+ * Fullscreen file browser dialog, headed and laid out like the app's other list dialogs.
+ * Navigates storage roots and subdirectories, shown as a trail of the folders above the open one;
+ * files show their size and modification time, folders how much they hold.
  * Filters visible files to [mimeTypes] when a precise mapping exists.
+ *
+ * [onPicked] gets the open folder with [allowFolderSelection], the tapped file by default, and
+ * with [multiple] the files checked across every folder visited, in the order they were checked.
  */
 @Composable
 fun FilePicker(
     mimeTypes: Array<String>,
     onDismiss: () -> Unit,
-    onFilePicked: (File) -> Unit,
+    onPicked: (List<File>) -> Unit,
+    multiple: Boolean = false,
     allowFolderSelection: Boolean = false
 ) {
     val prefs: PreferencesManager = koinInject()
@@ -226,6 +228,7 @@ fun FilePicker(
     val coroutineScope = rememberCoroutineScope()
     val allowedExtensions = remember(mimeTypes) { resolveAllowedExtensions(mimeTypes) }
     val mppIcon = rememberMorpheLogoBitmap()
+    val modDateFormat = remember { modDateFormat(context) }
     val hasRoot = remember { Shell.isAppGrantedRoot() == true }
     val roots = remember(hasRoot) { storageRoots(context, hasRoot) }
 
@@ -236,15 +239,13 @@ fun FilePicker(
 
     var currentDir by remember { mutableStateOf(downloadsDir) }
     var refreshKey by remember { mutableIntStateOf(0) }
-    var showBreadcrumbs by remember { mutableStateOf(false) }
     var sortMode by remember {
         mutableStateOf(runCatching { SortMode.valueOf(prefs.filePickerSortMode.getBlocking()) }.getOrDefault(SortMode.NAME_ASC))
     }
     var showHiddenFiles by remember { mutableStateOf(prefs.filePickerShowHiddenFiles.getBlocking()) }
-    var showSortMenu by remember { mutableStateOf(false) }
-    var showSearch by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
-    val searchFocusRequester = remember { FocusRequester() }
+    var showViewMenu by remember { mutableStateOf(false) }
+    val search = rememberSearchFieldState(searchable = currentDir != null)
+    val checkedFiles = remember { mutableStateListOf<File>() }
 
     val breadcrumbs = remember(currentDir, roots) {
         val dir = currentDir ?: return@remember emptyList()
@@ -259,60 +260,8 @@ fun FilePicker(
         segments
     }
 
-    val displayPath = remember(breadcrumbs) {
-        when {
-            breadcrumbs.size <= 2 -> breadcrumbs.joinToString(" / ") { it.first }
-            else -> "… / " + breadcrumbs.takeLast(2).joinToString(" / ") { it.first }
-        }
-    }
-
-    // key() disposes and recreates the State in the same frame currentDir/refreshKey change,
-    // guaranteeing dirContents is null (loading) before the producer runs.
-    // Result.success = read OK; Result.failure = listFiles() returned null (permission denied / I/O error)
-    val dirContents by key(currentDir, refreshKey) {
-        produceState<Result<List<File>>?>(initialValue = null) {
-            val dir = currentDir
-            if (dir == null) {
-                value = Result.success(emptyList())
-            } else {
-                var files = withContext(Dispatchers.IO) { listDir(dir, allowedExtensions) }
-                if (files == null) {
-                    // On Android 11+, MANAGE_EXTERNAL_STORAGE is granted via a separate Settings
-                    // screen. The system flag updates immediately, but the kernel GID propagation
-                    // can lag by a few hundred ms, causing listFiles() to return null right after
-                    // the user returns to the app. One retry covers the vast majority of devices
-                    delay(300.milliseconds)
-                    files = withContext(Dispatchers.IO) { listDir(dir, allowedExtensions) }
-                }
-                value = if (files != null) Result.success(files) else Result.failure(SecurityException())
-                if (files != null) prefs.lastFilePickerPath.update(dir.absolutePath)
-            }
-        }
-    }
-
-    val sortedContents = remember(dirContents, sortMode, showHiddenFiles) {
-        dirContents?.getOrNull()
-            ?.let { if (showHiddenFiles) it else it.filterNot { file -> file.name.startsWith(".") } }
-            ?.let { applySort(it, sortMode) }
-            ?: emptyList()
-    }
-    val displayedContents = remember(sortedContents, searchQuery) {
-        if (searchQuery.isBlank()) sortedContents
-        else sortedContents.filter { it.name.contains(searchQuery, ignoreCase = true) }
-    }
-
-    LaunchedEffect(showSearch) {
-        if (showSearch) {
-            searchFocusRequester.requestFocus()
-        } else {
-            // Clear query only after the exit animation finishes so the text doesn't flash away
-            delay(Defaults.ANIMATION_DURATION.toLong().milliseconds)
-            searchQuery = ""
-        }
-    }
-
-    // Clear search when navigating to a different directory
-    LaunchedEffect(currentDir) { searchQuery = ""; showSearch = false }
+    // A new folder starts unfiltered
+    LaunchedEffect(currentDir) { search.collapse() }
 
     // Restore the last visited directory on open; Downloads stays as fallback until then
     LaunchedEffect(Unit) {
@@ -331,457 +280,486 @@ fun FilePicker(
     AppDialog(
         onDismissRequest = {
             when {
-                showSearch -> { showSearch = false }
+                search.visible -> search.collapse()
                 currentDir != null -> navigateBack()
                 else -> onDismiss()
             }
         },
-        title = null,
-        padding = DialogPadding.None,
-        scrollable = false,
-        footer = null
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // New content appears instantly; old content fades out
-            AnimatedContent(
-                targetState = showSearch,
-                transitionSpec = Animations.fadeCrossfade(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(start = 4.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
-                label = "FilePickerHeader"
-            ) { isSearching ->
-                if (isSearching) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = { showSearch = false }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = stringResource(R.string.back),
-                                tint = LocalDialogTextColor.current
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 4.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            if (searchQuery.isEmpty()) {
-                                Text(
-                                    text = stringResource(R.string.search),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = LocalDialogTextColor.current.copy(alpha = 0.45f)
-                                )
-                            }
-                            BasicTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                singleLine = true,
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                    color = LocalDialogTextColor.current
-                                ),
-                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(searchFocusRequester)
-                            )
-                        }
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = stringResource(
-                                if (allowFolderSelection) R.string.select_folder
-                                else R.string.select_file
-                            ),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = LocalDialogTextColor.current,
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 16.dp)
-                        )
-                        Box {
-                            IconButton(onClick = { showSortMenu = true }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Outlined.Sort,
-                                    contentDescription = stringResource(R.string.sort),
-                                    tint = LocalDialogTextColor.current
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = showSortMenu,
-                                onDismissRequest = { showSortMenu = false }
-                            ) {
-                                SortMode.entries.forEach { mode ->
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(mode.labelRes())) },
-                                        trailingIcon = if (sortMode == mode) {
-                                            { Icon(Icons.Outlined.Check, contentDescription = null) }
-                                        } else null,
-                                        onClick = {
-                                            sortMode = mode
-                                            showSortMenu = false
-                                            coroutineScope.launch { prefs.filePickerSortMode.update(mode.name) }
-                                        }
-                                    )
-                                }
-                                HorizontalDivider()
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.file_picker_show_hidden_files)) },
-                                    trailingIcon = {
-                                        SelectionCheckIndicator(
-                                            if (showHiddenFiles) ToggleableState.On else ToggleableState.Off
-                                        )
-                                    },
-                                    modifier = Modifier.semantics { role = Role.Checkbox },
-                                    onClick = {
-                                        val next = !showHiddenFiles
-                                        showHiddenFiles = next
-                                        coroutineScope.launch { prefs.filePickerShowHiddenFiles.update(next) }
-                                    }
-                                )
-                            }
-                        }
-                        IconButton(onClick = { refreshKey++ }) {
-                            Icon(
-                                imageVector = Icons.Outlined.Refresh,
-                                contentDescription = stringResource(R.string.refresh),
-                                tint = LocalDialogTextColor.current
-                            )
-                        }
-                        IconButton(onClick = { showSearch = true }) {
-                            Icon(
-                                imageVector = Icons.Outlined.Search,
-                                contentDescription = stringResource(R.string.search),
-                                tint = LocalDialogTextColor.current
-                            )
-                        }
-                    }
-                }
-            }
-
-            HorizontalDivider(color = LocalDialogTextColor.current.copy(alpha = 0.08f))
-
-            AnimatedVisibility(
-                visible = currentDir != null,
-                enter = Animations.expandFadeEnter,
-                exit = Animations.shrinkFadeExit
-            ) {
-                Column {
-                    Box {
-                        Text(
-                            text = displayPath,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = LocalDialogSecondaryTextColor.current,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { showBreadcrumbs = true }
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                        )
-                        DropdownMenu(
-                            expanded = showBreadcrumbs,
-                            onDismissRequest = { showBreadcrumbs = false }
-                        ) {
-                            breadcrumbs.forEachIndexed { index, (label, dir) ->
-                                val isRoot = index == 0
-                                val isCurrent = index == breadcrumbs.lastIndex
-                                DropdownMenuItem(
-                                    text = { Text(label) },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = if (isRoot) storageRootIcon(dir) else Icons.Outlined.Folder,
-                                            contentDescription = null
-                                        )
-                                    },
-                                    trailingIcon = if (isCurrent) {
-                                        { Icon(Icons.Outlined.Check, contentDescription = null) }
-                                    } else null,
-                                    onClick = {
-                                        currentDir = dir
-                                        showBreadcrumbs = false
-                                    }
-                                )
-                            }
-                            val otherRoots = roots.filter { (_, root) -> breadcrumbs.none { (_, dir) -> dir == root } }
-                            if (otherRoots.isNotEmpty()) {
-                                HorizontalDivider()
-                                otherRoots.forEach { (label, root) ->
-                                    DropdownMenuItem(
-                                        text = { Text(label) },
-                                        leadingIcon = {
-                                            Icon(storageRootIcon(root), contentDescription = null)
-                                        },
-                                        onClick = {
-                                            currentDir = root
-                                            showBreadcrumbs = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    HorizontalDivider(color = LocalDialogTextColor.current.copy(alpha = 0.06f))
-                }
-            }
-
-            val listState = rememberLazyListState()
-            Box(modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (currentDir == null) {
-                        items(roots, key = { it.second.absolutePath }) { (label, root) ->
-                            FilePickerRow(
-                                icon = storageRootIcon(root),
-                                name = label,
-                                detail = null,
-                                onClick = { currentDir = root }
-                            )
-                            HorizontalDivider(color = LocalDialogTextColor.current.copy(alpha = 0.06f))
-                        }
+        footer = {
+            if (allowFolderSelection) {
+                AppDialogButtonRow(
+                    primaryText = stringResource(R.string.select_folder),
+                    onPrimaryClick = { currentDir?.let { onPicked(listOf(it)) } },
+                    primaryEnabled = currentDir != null,
+                    secondaryText = stringResource(R.string.close),
+                    onSecondaryClick = onDismiss
+                )
+            } else if (multiple) {
+                AppDialogButtonRow(
+                    primaryText = if (checkedFiles.isEmpty()) {
+                        stringResource(R.string.select_files)
                     } else {
-                        item(key = "__back__") {
-                            FilePickerRow(
-                                icon = Icons.AutoMirrored.Outlined.ArrowBack,
-                                name = stringResource(R.string.file_picker_previous_directory),
-                                detail = null,
-                                onClick = navigateBack
-                            )
-                            HorizontalDivider(color = LocalDialogTextColor.current.copy(alpha = 0.06f))
-                        }
-
-                        val contentsLoaded = dirContents
-                        if (contentsLoaded != null && contentsLoaded.isFailure) {
-                            item(key = "__error__") {
-                                EmptyState(
-                                    message = stringResource(R.string.file_picker_read_error),
-                                    icon = Icons.Outlined.Lock,
-                                    actionLabel = stringResource(R.string.retry),
-                                    onAction = { refreshKey++ }
-                                )
-                            }
-                        } else if (contentsLoaded != null && contentsLoaded.getOrNull()!!.isEmpty()) {
-                            item(key = "__empty__") {
-                                EmptyState(
-                                    message = stringResource(R.string.file_picker_no_files),
-                                    icon = Icons.Outlined.FolderOff
-                                )
-                            }
-                        } else if (contentsLoaded != null && displayedContents.isEmpty()) {
-                            item(key = "__no_results__") {
-                                EmptyState(
-                                    message = stringResource(R.string.search_no_results),
-                                    icon = Icons.Outlined.SearchOff
-                                )
-                            }
-                        } else {
-                            items(displayedContents, key = { it.absolutePath }) { file ->
-                                val isDir = file.isDirectory
-                                val ext = if (isDir) "" else file.extension.lowercase()
-                                val isApk = ext in APK_EXTENSIONS
-                                // Only standard .apk supports getPackageArchiveInfo; bundles (.apkm/.apks/.xapk) are ZIPs
-                                val canLoadIcon = ext == "apk"
-                                val isImage = ext in IMAGE_EXTENSIONS
-                                val isSplitBundle = ext in SPLIT_ICON_EXTENSIONS
-
-                                val packageInfo by produceState<PackageInfo?>(null, file) {
-                                    if (canLoadIcon) {
-                                        val cached = apkPackageInfoCache.get(file.absolutePath)
-                                        if (cached != null) {
-                                            value = cached
-                                        } else {
-                                            val info = withContext(iconLoadDispatcher) { pm.getPackageInfo(file) }
-                                            if (info != null) apkPackageInfoCache.put(file.absolutePath, info)
-                                            value = info
-                                        }
-                                    }
-                                }
-
-                                val thumbnail by produceState<ImageBitmap?>(null, file) {
-                                    if (isImage) {
-                                        val cached = imageThumbnailCache.get(file.absolutePath)
-                                        if (cached != null) {
-                                            value = cached
-                                        } else {
-                                            val bmp = withContext(iconLoadDispatcher) { decodeThumbnail(file) }
-                                            if (bmp != null) imageThumbnailCache.put(file.absolutePath, bmp)
-                                            value = bmp
-                                        }
-                                    }
-                                }
-
-                                val splitIcon by produceState<ImageBitmap?>(null, file) {
-                                    if (isSplitBundle) {
-                                        val cached = splitIconCache.get(file.absolutePath)
-                                        if (cached != null) {
-                                            value = cached
-                                        } else {
-                                            val bmp = withContext(iconLoadDispatcher) { decodeSplitIcon(file) }
-                                            if (bmp != null) splitIconCache.put(file.absolutePath, bmp)
-                                            value = bmp
-                                        }
-                                    }
-                                }
-
-                                val isMpp = ext == "mpp"
-                                val isKeystore = ext in KEYSTORE_EXTENSIONS
-                                val isJson = ext == "json"
-                                val isAudio = ext in AUDIO_EXTENSIONS
-                                val icon = when {
-                                    isDir -> Icons.Outlined.Folder
-                                    canLoadIcon && packageInfo == null -> Icons.Outlined.Android
-                                    canLoadIcon -> null
-                                    isApk -> Icons.Outlined.Android
-                                    isSplitBundle && splitIcon == null -> Icons.Outlined.Android
-                                    isSplitBundle -> null
-                                    isMpp -> null
-                                    isKeystore -> Icons.Outlined.Key
-                                    isJson -> Icons.Outlined.DataObject
-                                    isImage && thumbnail == null -> Icons.Outlined.Image
-                                    isImage -> null
-                                    isAudio -> Icons.Outlined.MusicNote
-                                    else -> Icons.AutoMirrored.Outlined.InsertDriveFile
-                                }
-                                val detail = if (!isDir) {
-                                    "${context.formatBytes(file.length())} · ${formatModDate(file.lastModified())}"
-                                } else null
-
-                                FilePickerRow(
-                                    icon = icon,
-                                    iconBitmap = if (isMpp) mppIcon else null,
-                                    thumbnail = if (isSplitBundle) splitIcon else thumbnail,
-                                    packageInfo = packageInfo,
-                                    name = file.name,
-                                    detail = detail,
-                                    onClick = {
-                                        if (isDir) currentDir = file
-                                        else if (!allowFolderSelection) onFilePicked(file)
-                                    }
-                                )
-                                HorizontalDivider(color = LocalDialogTextColor.current.copy(alpha = 0.06f))
-                            }
-                        }
-                    }
-                }
-
-                ListScrollbar(
-                    listState = listState,
-                    modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
+                        pluralStringResource(R.plurals.file_picker_select_count, checkedFiles.size, checkedFiles.size.toString())
+                    },
+                    onPrimaryClick = { onPicked(checkedFiles.toList()) },
+                    primaryEnabled = checkedFiles.isNotEmpty(),
+                    secondaryText = stringResource(R.string.close),
+                    onSecondaryClick = onDismiss
                 )
-
-                ScrollToTopButton(
-                    listState = listState,
-                    modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
-                )
-            }
-
-            HorizontalDivider(color = LocalDialogTextColor.current.copy(alpha = 0.08f))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            } else {
                 AppDialogOutlinedButton(
                     text = stringResource(R.string.close),
                     onClick = onDismiss,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxWidth()
                 )
-                if (allowFolderSelection) {
-                    AppDialogButton(
-                        text = stringResource(R.string.select_folder),
-                        onClick = { currentDir?.let { onFilePicked(it) } },
-                        enabled = currentDir != null,
-                        modifier = Modifier.weight(1f)
+            }
+        },
+        padding = DialogPadding.Compact,
+        scrollable = false,
+        contentArrangement = Arrangement.Top,
+        fillContentHeight = true,
+        hideFooterWhileTyping = true
+    ) {
+        val accent = MaterialTheme.colorScheme.primary
+        ListDialogHeader(
+            icon = { modifier ->
+                ListDialogHeaderIcon(
+                    icon = if (allowFolderSelection) Icons.Outlined.Folder else Icons.AutoMirrored.Outlined.InsertDriveFile,
+                    color = accent,
+                    modifier = modifier
+                )
+            },
+            title = stringResource(
+                when {
+                    allowFolderSelection -> R.string.select_folder
+                    multiple -> R.string.select_files
+                    else -> R.string.select_file
+                }
+            ),
+            // What the picker takes where it narrows the files down, else where it is
+            subtitle = allowedExtensions?.sorted()?.joinToString(" · ") { ".$it" }
+                ?: breadcrumbs.lastOrNull()?.first.orEmpty(),
+            search = search,
+            searchLabel = stringResource(R.string.search),
+            searchEnabled = currentDir != null,
+            accentColor = accent
+        ) {
+            Box {
+                TitleAction(
+                    icon = Icons.AutoMirrored.Outlined.Sort,
+                    contentDescription = stringResource(R.string.sort),
+                    onClick = { showViewMenu = true },
+                    style = TitleActionStyle.Toggle,
+                    active = showViewMenu
+                )
+                AppDropdownMenu(
+                    expanded = showViewMenu,
+                    onDismissRequest = { showViewMenu = false }
+                ) {
+                    SortMode.entries.forEach { mode ->
+                        AppDropdownMenuItem(
+                            text = stringResource(mode.labelRes()),
+                            selected = sortMode == mode,
+                            onClick = {
+                                sortMode = mode
+                                showViewMenu = false
+                                coroutineScope.launch { prefs.filePickerSortMode.update(mode.name) }
+                            }
+                        )
+                    }
+                    SettingsDivider(fullWidth = true)
+                    AppDropdownMenuItem(
+                        text = stringResource(R.string.file_picker_show_hidden_files),
+                        trailing = {
+                            SelectionCheckIndicator(
+                                if (showHiddenFiles) ToggleableState.On else ToggleableState.Off
+                            )
+                        },
+                        modifier = Modifier.semantics { role = Role.Checkbox },
+                        onClick = {
+                            val next = !showHiddenFiles
+                            showHiddenFiles = next
+                            coroutineScope.launch { prefs.filePickerShowHiddenFiles.update(next) }
+                        }
+                    )
+                    // Picks up what changed on disk while the picker was open, such as a file
+                    // just downloaded or access just granted
+                    AppDropdownMenuItem(
+                        text = stringResource(R.string.refresh),
+                        onClick = {
+                            // Counts are read once per folder, so they go too to be read afresh
+                            folderItemCountCache.evictAll()
+                            refreshKey++
+                            showViewMenu = false
+                        }
                     )
                 }
+            }
+        }
+
+        if (breadcrumbs.isNotEmpty()) {
+            FolderTrail(
+                breadcrumbs = breadcrumbs,
+                onOpen = { currentDir = it },
+                modifier = Modifier.padding(top = Defaults.ItemSpacing)
+            )
+        }
+
+        AppDialogSearchHeader(
+            visible = search.visible,
+            value = search.query,
+            onValueChange = { search.query = it },
+            label = stringResource(R.string.search),
+            modifier = Modifier.padding(top = Defaults.ItemSpacing)
+        )
+
+        // A folder slides in from the side it lies on, deeper ones from the end and the ones
+        // above from the start, so moving about the tree reads as moving along it
+        AnimatedContent(
+            targetState = currentDir,
+            transitionSpec = {
+                val from = initialState
+                val deeper = from == null ||
+                    targetState?.absolutePath?.startsWith(from.absolutePath + File.separator) == true
+                val direction = if (deeper) 1 else -1
+                (slideInHorizontally(tween(Defaults.ANIMATION_DURATION)) { it / 4 * direction } +
+                    fadeIn(tween(Defaults.ANIMATION_DURATION))) togetherWith
+                    (slideOutHorizontally(tween(Defaults.ANIMATION_DURATION)) { -it / 4 * direction } +
+                        fadeOut(tween(Defaults.ANIMATION_DURATION_SHORT)))
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            label = "filePickerFolder"
+        ) { dir ->
+            FolderListing(
+                dir = dir,
+                roots = roots,
+                allowedExtensions = allowedExtensions,
+                sortMode = sortMode,
+                showHiddenFiles = showHiddenFiles,
+                // Only the folder on screen answers the search and the refresh
+                query = if (dir == currentDir) search.query else "",
+                refreshKey = refreshKey,
+                pm = pm,
+                mppIcon = mppIcon,
+                modDateFormat = modDateFormat,
+                checkedFiles = if (multiple) checkedFiles else null,
+                onOpen = { currentDir = it },
+                onFilePicked = { file ->
+                    when {
+                        allowFolderSelection -> Unit
+                        multiple -> if (!checkedFiles.remove(file)) checkedFiles += file
+                        else -> onPicked(listOf(file))
+                    }
+                },
+                onRetry = { refreshKey++ }
+            )
+        }
+    }
+}
+
+/**
+ * The folders from the storage root down to the open one, as chips to jump back up to any of
+ * them. Scrolls to the open folder, the end a long trail runs off at.
+ */
+@Composable
+private fun FolderTrail(
+    breadcrumbs: List<Pair<String, File>>,
+    onOpen: (File) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scrollState = rememberScrollState()
+    LaunchedEffect(breadcrumbs) { scrollState.animateScrollTo(scrollState.maxValue) }
+    val chipTouchMargin = (LocalMinimumInteractiveComponentSize.current - FilterChipDefaults.Height) / 2
+
+    Row(
+        modifier = modifier
+            .trimVertically(chipTouchMargin)
+            .fillMaxWidth()
+            .horizontalScrollFade(scrollState)
+            .horizontalScroll(scrollState),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        breadcrumbs.forEachIndexed { index, (label, dir) ->
+            if (index > 0) {
+                ForwardChevronIcon(size = 16.dp, tint = LocalDialogSecondaryTextColor.current)
+            }
+            val isOpen = index == breadcrumbs.lastIndex
+            AppFilterChip(
+                selected = isOpen,
+                onClick = { if (!isOpen) onOpen(dir) },
+                label = label,
+                selectedIcon = if (index == 0) storageRootIcon(dir) else Icons.Outlined.FolderOpen
+            )
+        }
+    }
+}
+
+/**
+ * Lays this out [margin] shorter at the top and at the bottom, drawn over both. For a row of chips,
+ * which keep a touch target taller than the pill they draw: the row then spaces like the pills
+ * alone, and the touch target still reaches out into the surrounding gaps.
+ */
+private fun Modifier.trimVertically(margin: Dp): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints)
+    val trim = margin.roundToPx().coerceIn(0, placeable.height / 2)
+    layout(placeable.width, placeable.height - trim * 2) {
+        placeable.place(0, -trim)
+    }
+}
+
+/**
+ * The contents of [dir], or the storage roots where there is none, as cards. Each folder reads its
+ * own contents, so one sliding out keeps showing what it held rather than what the next one holds.
+ */
+@Composable
+private fun FolderListing(
+    dir: File?,
+    roots: List<Pair<String, File>>,
+    allowedExtensions: Set<String>?,
+    sortMode: SortMode,
+    showHiddenFiles: Boolean,
+    query: String,
+    refreshKey: Int,
+    pm: PM,
+    mppIcon: ImageBitmap?,
+    modDateFormat: SimpleDateFormat,
+    /** Files checked so far where several can be picked, else null. */
+    checkedFiles: List<File>?,
+    onOpen: (File) -> Unit,
+    onFilePicked: (File) -> Unit,
+    onRetry: () -> Unit
+) {
+    val prefs: PreferencesManager = koinInject()
+
+    // Result.success = read OK; Result.failure = listFiles() returned null (permission denied / I/O error)
+    val dirContents by produceState<Result<List<File>>?>(initialValue = null, dir, refreshKey) {
+        // Loading again, so a refresh shows the placeholders rather than the stale listing
+        value = null
+        if (dir == null) {
+            value = Result.success(emptyList())
+            return@produceState
+        }
+        var files = withContext(Dispatchers.IO) { listDir(dir, allowedExtensions) }
+        if (files == null) {
+            // On Android 11+, MANAGE_EXTERNAL_STORAGE is granted via a separate Settings
+            // screen. The system flag updates immediately, but the kernel GID propagation
+            // can lag by a few hundred ms, causing listFiles() to return null right after
+            // the user returns to the app. One retry covers the vast majority of devices
+            delay(300.milliseconds)
+            files = withContext(Dispatchers.IO) { listDir(dir, allowedExtensions) }
+        }
+        value = if (files != null) Result.success(files) else Result.failure(SecurityException())
+        if (files != null) prefs.lastFilePickerPath.update(dir.absolutePath)
+    }
+
+    val sortedContents = remember(dirContents, sortMode, showHiddenFiles) {
+        dirContents?.getOrNull()
+            ?.let { if (showHiddenFiles) it else it.filterNot { file -> file.name.startsWith(".") } }
+            ?.let { applySort(it, sortMode) }
+            ?: emptyList()
+    }
+    val displayedContents = remember(sortedContents, query) {
+        if (query.isBlank()) sortedContents
+        else sortedContents.filter { it.name.contains(query, ignoreCase = true) }
+    }
+
+    DialogLazyList(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(vertical = Defaults.ItemSpacing),
+        verticalArrangement = Arrangement.spacedBy(CompactCardSpacing)
+    ) {
+        val contents = dirContents
+        when {
+            dir == null -> items(roots, key = { it.second.absolutePath }) { (label, root) ->
+                FilePickerRow(
+                    icon = storageRootIcon(root),
+                    name = label,
+                    detail = null,
+                    onClick = { onOpen(root) },
+                    modifier = Modifier.animatedListItem(this)
+                )
+            }
+
+            contents == null -> items(FOLDER_PLACEHOLDER_ROWS) { ShimmerCompactListCard() }
+
+            contents.isFailure -> item(key = "__error__") {
+                EmptyState(
+                    message = stringResource(R.string.file_picker_read_error),
+                    icon = Icons.Outlined.Lock,
+                    action = CardAction(
+                        icon = Icons.Outlined.Refresh,
+                        label = stringResource(R.string.retry),
+                        onClick = onRetry
+                    )
+                )
+            }
+
+            sortedContents.isEmpty() -> item(key = "__empty__") {
+                EmptyState(
+                    message = stringResource(R.string.file_picker_no_files),
+                    icon = Icons.Outlined.FolderOff
+                )
+            }
+
+            displayedContents.isEmpty() -> item(key = "__no_results__") {
+                EmptyState(
+                    message = stringResource(R.string.search_no_results),
+                    icon = Icons.Outlined.SearchOff
+                )
+            }
+
+            else -> items(displayedContents, key = { it.absolutePath }) { file ->
+                FileEntryRow(
+                    file = file,
+                    pm = pm,
+                    mppIcon = mppIcon,
+                    modDateFormat = modDateFormat,
+                    checked = checkedFiles?.takeUnless { file.isDirectory }?.let { file in it },
+                    onClick = { if (file.isDirectory) onOpen(file) else onFilePicked(file) },
+                    modifier = Modifier.animatedListItem(this)
+                )
             }
         }
     }
 }
 
+/** Placeholders a folder shows while it is read, enough to fill the list without scrolling. */
+private const val FOLDER_PLACEHOLDER_ROWS = 8
+
+/**
+ * Card of one file or folder: the icon, picture or app it stands for, loaded off the main thread
+ * and cached, with its size and date, or for a folder how much it holds.
+ */
+@Composable
+private fun FileEntryRow(
+    file: File,
+    pm: PM,
+    mppIcon: ImageBitmap?,
+    modDateFormat: SimpleDateFormat,
+    /** Whether the file is checked, or null where files are picked outright rather than checked. */
+    checked: Boolean?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+
+    val isDir = file.isDirectory
+    val ext = if (isDir) "" else file.extension.lowercase()
+    val isApk = ext in APK_EXTENSIONS
+    // Only standard .apk supports getPackageArchiveInfo; bundles (.apkm/.apks/.xapk) are ZIPs
+    val canLoadIcon = ext == "apk"
+    val isImage = ext in IMAGE_EXTENSIONS
+    val isSplitBundle = ext in SPLIT_ICON_EXTENSIONS
+
+    val packageInfo by produceState<PackageInfo?>(null, file) {
+        if (canLoadIcon) {
+            value = apkPackageInfoCache.get(file.absolutePath)
+                ?: withContext(iconLoadDispatcher) { pm.getPackageInfo(file) }
+                    ?.also { apkPackageInfoCache.put(file.absolutePath, it) }
+        }
+    }
+
+    val thumbnail by produceState<ImageBitmap?>(null, file) {
+        if (isImage) {
+            value = imageThumbnailCache.get(file.absolutePath)
+                ?: withContext(iconLoadDispatcher) { decodeThumbnail(file) }
+                    ?.also { imageThumbnailCache.put(file.absolutePath, it) }
+        } else if (isSplitBundle) {
+            value = splitIconCache.get(file.absolutePath)
+                ?: withContext(iconLoadDispatcher) { decodeSplitIcon(file) }
+                    ?.also { splitIconCache.put(file.absolutePath, it) }
+        }
+    }
+
+    // A folder says how much it holds, which takes a read of its own
+    val itemCount by produceState<Int?>(null, file) {
+        if (isDir) {
+            value = folderItemCountCache.get(file.absolutePath)
+                ?: withContext(iconLoadDispatcher) { file.list()?.size }
+                    ?.also { folderItemCountCache.put(file.absolutePath, it) }
+        }
+    }
+
+    val isMpp = ext == "mpp"
+    // What the entry shows until its app icon or picture loads, or where it has none
+    val icon = when {
+        isDir -> Icons.Outlined.Folder
+        isApk -> Icons.Outlined.Android
+        ext in KEYSTORE_EXTENSIONS -> Icons.Outlined.Key
+        ext == "json" -> Icons.Outlined.DataObject
+        isImage -> Icons.Outlined.Image
+        ext in AUDIO_EXTENSIONS -> Icons.Outlined.MusicNote
+        else -> Icons.AutoMirrored.Outlined.InsertDriveFile
+    }
+    val detail = if (isDir) {
+        itemCount?.let { pluralStringResource(R.plurals.file_picker_item_count, it, it.toString()) }
+    } else {
+        "${context.formatBytes(file.length())} · ${modDateFormat.format(Date(file.lastModified()))}"
+    }
+
+    FilePickerRow(
+        icon = icon,
+        iconBitmap = if (isMpp) mppIcon else null,
+        thumbnail = thumbnail,
+        packageInfo = packageInfo,
+        name = file.name,
+        detail = detail,
+        onClick = onClick,
+        modifier = modifier,
+        trailing = checked?.let { isChecked ->
+            {
+                SelectionCheckIndicator(if (isChecked) ToggleableState.On else ToggleableState.Off)
+            }
+        }
+    )
+}
+
+/**
+ * One card of the picker, set like the patch cards: the entry's picture on a tinted tile where it
+ * has no picture of its own, and its name over what it holds or how big it is.
+ */
 @Composable
 private fun FilePickerRow(
     icon: ImageVector?,
     name: String,
     detail: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     packageInfo: PackageInfo? = null,
     iconBitmap: ImageBitmap? = null,
     thumbnail: ImageBitmap? = null,
-    onClick: () -> Unit
+    trailing: (@Composable () -> Unit)? = null
 ) {
-    val iconTint = LocalDialogTextColor.current.copy(alpha = 0.75f)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
-            if (packageInfo != null) {
-                AppIcon(
-                    packageInfo = packageInfo,
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp)
-                )
-            } else if (thumbnail != null) {
-                Image(
-                    bitmap = thumbnail,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(22.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                )
-            } else if (iconBitmap != null) {
-                Icon(
-                    bitmap = iconBitmap,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(22.dp)
-                )
-            } else if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.bodyLarge,
-                color = LocalDialogTextColor.current
+    CompactListCard(onClick = onClick, modifier = modifier) {
+        when {
+            packageInfo != null -> AppIcon(
+                packageInfo = packageInfo,
+                contentDescription = null,
+                modifier = Modifier.size(CompactCardIconSize)
             )
-            if (detail != null) {
-                Text(
-                    text = detail,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = LocalDialogSecondaryTextColor.current
-                )
+
+            thumbnail != null -> Image(
+                bitmap = thumbnail,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(CompactCardIconSize)
+                    .clip(RoundedCornerShape(Defaults.CompactCornerRadius))
+            )
+
+            else -> CompactCardIconTile {
+                if (iconBitmap != null) {
+                    Icon(bitmap = iconBitmap, contentDescription = null, modifier = Modifier.size(CompactCardGlyphSize))
+                } else if (icon != null) {
+                    Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(CompactCardGlyphSize))
+                }
             }
         }
+
+        CardHeadingText(name = name, description = detail, modifier = Modifier.weight(1f))
+        trailing?.invoke()
     }
 }

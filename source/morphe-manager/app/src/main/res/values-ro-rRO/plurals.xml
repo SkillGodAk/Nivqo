@@ -10,6 +10,24 @@
         <item quantity="few">%s opțiuni de patch</item>
         <item quantity="other">%s de opțiuni de patch</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s element</item>
+        <item quantity="few">%s elemente</item>
+        <item quantity="other">%s de elemente</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Selectează %s fișier</item>
+        <item quantity="few">Selectează %s fișiere</item>
+        <item quantity="other">Selectează %s de fișiere</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Adaugă %s sursă</item>
+        <item quantity="few">Adaugă %s surse</item>
+        <item quantity="other">Adaugă %s de surse</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Surse de patch pentru %s aplicație</item>
         <item quantity="few">Surse de patch pentru %s aplicații</item>
@@ -114,5 +132,25 @@
         <item quantity="one">%s nucleu</item>
         <item quantity="few">%s nuclee</item>
         <item quantity="other">%s de nuclee</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="one">%s noutate</item>
+        <item quantity="few">%s noutăți</item>
+        <item quantity="other">%s de noutăți</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s remediere</item>
+        <item quantity="few">%s remedieri</item>
+        <item quantity="other">%s de remedieri</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s modificare</item>
+        <item quantity="few">%s modificări</item>
+        <item quantity="other">%s de modificări</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s versiune nouă</item>
+        <item quantity="few">%s versiuni noi</item>
+        <item quantity="other">%s de versiuni noi</item>
     </plurals>
 </resources>

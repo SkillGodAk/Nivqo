@@ -110,7 +110,7 @@ internal fun MoveToCategoryDialog(
                 .padding(vertical = Defaults.ContentPadding),
             verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
         ) {
-            SettingsItemCard(onClick = { showCreateDialog = true }, borderWidth = 1.dp) {
+            SettingsItemCard(onClick = { showCreateDialog = true }, showBorder = true) {
                 IconTextRow(
                     modifier = Modifier.padding(Defaults.ContentPadding),
                     leadingContent = { ThemedIcon(icon = Icons.Outlined.Add) },
@@ -119,7 +119,7 @@ internal fun MoveToCategoryDialog(
                 )
             }
 
-            SettingsItemCard(onClick = { onSelect(null) }, borderWidth = 1.dp) {
+            SettingsItemCard(onClick = { onSelect(null) }, showBorder = true) {
                 IconTextRow(
                     modifier = Modifier.padding(Defaults.ContentPadding),
                     leadingContent = { ThemedIcon(icon = Icons.Outlined.FolderOff) },
@@ -129,7 +129,7 @@ internal fun MoveToCategoryDialog(
             }
 
             categories.forEach { category ->
-                SettingsItemCard(onClick = { onSelect(category.id) }, borderWidth = 1.dp) {
+                SettingsItemCard(onClick = { onSelect(category.id) }, showBorder = true) {
                     IconTextRow(
                         modifier = Modifier.padding(Defaults.ContentPadding),
                         leadingContent = { ThemedIcon(icon = Icons.Outlined.Folder) },

@@ -41,9 +41,6 @@
     <string name="home_update_skipped_metered">更新已跳过</string>
     <string name="home_update_skipped_metered_subtitle">移动数据已激活</string>
     <string name="home_updating_sources">正在更新源…</string>
-    <!-- Download progress across several bundles. "%1$d" and "%2$d" count the bundles, "%3$s" and
-         "%4$s" are the megabytes read and expected, "%5$d" is the percentage. -->
-    <string name="home_update_bundle_count_with_bytes">%1$d / %2$d · %3$s / %4$s MB (%5$d%%)</string>
     <string name="home_update_success">源更新完成</string>
     <string name="home_update_success_subtitle">您的源已是最新的</string>
     <string name="home_sources_are_loading">源正在加载，请稍等…</string>
@@ -141,7 +138,6 @@
     <string name="sources_management_report_issue">报告问题</string>
     <string name="sources_management_failed_to_open_url">无法打开URL</string>
     <string name="sources_apps">应用</string>
-    <string name="sources_apps_title">来自 %1$s 的应用</string>
     <string name="sources_apps_description">点按应用可将其从该来源中排除或恢复，长按可选择多个应用。当没有来源提供某个应用时，该应用将从主屏幕移除。</string>
     <string name="sources_apps_brought">由该来源提供</string>
     <string name="sources_apps_left_out">已从该来源中排除</string>
@@ -174,21 +170,22 @@
     <string name="sources_dialog_rename">重命名补丁配置文件</string>
     <string name="sources_dialog_duplicate_name_error">已存在同名的补丁包</string>
     <string name="sources_dialog_missing_error">无法更新此补丁源。</string>
-    <string name="sources_dialog_view_any_version">任意版本</string>
-    <string name="sources_dialog_view_any_package">任意包</string>
     <string name="sources_dialog_add_source">添加补丁源</string>
-    <string name="sources_dialog_delete_confirm_message">删除源“%s”吗？此操作无法撤销</string>
+    <string name="sources_dialog_delete_confirm_body">此操作无法撤销</string>
     <string name="sources_dialog_remote">远程</string>
     <string name="sources_dialog_remote_url">源 URL</string>
-    <string name="sources_dialog_remote_url_formats_title">示例：</string>
+    <string name="sources_dialog_remote_url_hint">仓库或补丁包 .json 的链接。一次粘贴多个即可全部添加</string>
+    <string name="sources_dialog_paste_no_links">剪贴板中未找到链接</string>
     <string name="sources_dialog_local">本地</string>
-    <string name="sources_dialog_local_file">选择补丁源文件</string>
+    <string name="sources_dialog_local_files">选择补丁源文件</string>
+    <!-- Button under the files already picked, which opens the picker again -->
+    <string name="sources_dialog_local_add_more">添加更多文件</string>
     <string name="sources_dialog_local_file_tap_hint">点击浏览存储空间</string>
-    <string name="sources_dialog_local_file_description">从存储中选择 .mpp 补丁源文件</string>
     <string name="sources_dialog_local_invalid_extension">文件必须为.mpp扩展名</string>
+    <!-- %s is the name of the local source that another version of the same bundle replaces -->
+    <string name="sources_dialog_local_updates">更新 %s</string>
     <string name="sources_dialog_url_valid">有效的仓库或JSON网址</string>
     <string name="sources_dialog_url_invalid">URL 必须指向 GitHub/GitLab 仓库或 .json 文件</string>
-    <string name="sources_dialog_local_change_file">更改文件</string>
     <string name="sources_dialog_preinstalled">预安装</string>
     <string name="sources_dialog_community">社区补丁</string>
     <string name="sources_dialog_choose_apps">选择应用</string>
@@ -218,7 +215,8 @@
     <string name="home_apk_helper_download">使用辅助应用程序</string>
     <string name="home_apk_helper_title">使用辅助应用程序下载</string>
     <string name="home_apk_helper_description">Morphe 将要求下面的辅助应用程序下载原始 APK 并交回该文件</string>
-    <string name="home_apk_helper_continue">打开辅助应用程序</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="home_apk_helper_continue">打开助手</string>
     <string name="home_apk_helper_warning">只有在您信任此辅助应用程序时才继续。Morphe 会检查它收到的软件包、版本和签名，然后再进行修补</string>
     <string name="home_apk_helper_warning_unverified">只有在您信任此辅助应用程序时才继续。Morphe 无法验证此 APK 的签名，因此修改后的文件将无法检测到</string>
     <string name="home_apk_helper_no_result">辅助应用程序未返回 APK</string>
@@ -240,7 +238,6 @@
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; 没有支持 Android %2$s (API %3$s) 的版本。所有声明的版本都需要更高的 Android 版本</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">下载原始 APK</string>
-    <string name="home_download_instructions_steps_title">说明：</string>
     <string name="home_download_instructions_finding">正在查找下载页面…</string>
     <string name="home_download_instructions_step1">请按下下面的“%s”按钮。</string>
     <string name="home_download_instructions_step2_part1">向下滚动网页并按</string>
@@ -283,7 +280,6 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_title">高级模式</string>
     <string name="expert_mode_search">搜索补丁</string>
-    <string name="expert_mode_proceed">开始打补丁</string>
     <string name="expert_mode_disable_all">禁用所有</string>
     <string name="expert_mode_disable_all_done">所有补丁已禁用</string>
     <string name="expert_mode_enable_all">启用所有</string>
@@ -325,6 +321,7 @@
     <string name="morphe_experimental_app_version_dialog_message">这个版本的 &lt;b&gt;%s&lt;/b&gt; 补丁目前处于实验性支持中&lt;br/&gt;&lt;br/&gt; 在补丁完善期间, 应用可能会出现非预期行为或出现未识别的错误. </string>
     <string name="home_dialog_unsupported_version_dialog_title">其他支持的版本</string>
     <string name="home_dialog_unsupported_version_dialog_description">此 APK 不是推荐的应用版本。继续可能会导致应用无法使用</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_dialog_unsupported_version_dialog_proceed">仍然继续</string>
     <string name="home_dialog_unsupported_version_compatible_versions">兼容版本：</string>
     <string name="home_dialog_unsupported_version_unsupported_label">不支持</string>
@@ -360,12 +357,21 @@
     <string name="patch_option_slider_range_end">至</string>
     <string name="patch_option_list_duplicate">此值已存在</string>
     <string name="patch_option_list_empty">值不能为空</string>
-    <string name="patch_option_list_empty_state">尚未添加任何值</string>
     <string name="patch_option_required_missing">%s: 填写所有必填选项</string>
+    <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <string name="patch_option_changed">已更改</string>
+    <!-- Badge on a patch option that has to be filled in before patching -->
+    <string name="patch_option_required">必填</string>
+    <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
+    <string name="patch_option_recommended_size">推荐：%1$s×%2$s</string>
     <!-- Adaptive Icon Creator -->
     <string name="adaptive_icon_create">创建自适应图标</string>
     <string name="adaptive_icon_select_image">选择图像</string>
     <string name="adaptive_icon_change_image">更改图像</string>
+    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
+    <string name="adaptive_icon_foreground">前景图像</string>
+    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
+    <string name="adaptive_icon_launcher">启动器图标</string>
     <string name="adaptive_icon_background_color">背景颜色</string>
     <string name="adaptive_icon_reset_transform">重置位置和缩放</string>
     <string name="adaptive_icon_safe_zone_inner">安全区域（始终可见）</string>
@@ -417,16 +423,18 @@
     <string name="batch_patch_source_file">附加文件</string>
     <string name="batch_patch_source_unavailable">无法准备 APK</string>
     <string name="batch_patch_force_version">无论如何应用补丁</string>
-    <string name="batch_patch_force_version_done">仍然排队，为其他版本制作的补丁可能会破坏应用程序</string>
-    <string name="batch_patch_accept_signature_done">已排队，但此APK可能不是原始版本。</string>
+    <string name="batch_patch_force_version_done">仍然已加入队列，应用可能会崩溃</string>
+    <string name="batch_patch_accept_signature_done">仍然已加入队列，APK 未验证</string>
     <string name="batch_patch_edit_patches">选择补丁</string>
     <string name="batch_patch_state_no_apk">没有 APK</string>
     <string name="batch_patch_state_no_patches">没有补丁</string>
     <string name="batch_patch_policy_install">完成时安装</string>
     <string name="batch_patch_policy_install_description">队列完成后立即安装每个已修补的应用程序。关闭后，APK 将保留以供以后使用</string>
-    <string name="batch_patch_start">开始修补</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_patch_start">开始</string>
     <string name="batch_patch_stop_title">停止批量修补？</string>
     <string name="batch_patch_stop_description">当前正在修补的应用程序以及所有排队的应用程序将被取消</string>
+    <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_install_all">全部安装</string>
     <string name="batch_patch_install_failed">安装失败</string>
     <string name="batch_patch_in_progress">批量修补已经在运行</string>
@@ -529,8 +537,8 @@
     <string name="patcher_success_subtitle">您的应用已修补并安装！</string>
     <string name="patcher_complete_title">补丁完成！✨</string>
     <string name="patcher_failed_title">哎呀！出现错误</string>
-    <string name="patcher_failed_hint">点击%s查看错误详情</string>
     <string name="patcher_failed_dialog_title">补丁失败</string>
+    <string name="patcher_error_details">错误详情</string>
     <string name="patcher_unknown_error">发生未知错误</string>
     <string name="patcher_split_step_extracting">提取拆分 APK</string>
     <string name="patcher_split_step_merging">合并 %s</string>
@@ -545,7 +553,6 @@
 卸载将永久删除所有应用数据"</string>
     <string name="patcher_install_error_title">安装错误</string>
     <string name="patcher_install_error_subtitle">尝试重新卸载并安装</string>
-    <string name="patcher_ready_to_install_subtitle">按下方按钮安装</string>
     <string name="patcher_ready_to_mount_subtitle">按下方按钮挂载</string>
     <string name="patcher_patches_excluded_for_installer">不适用于此安装方法并已排除：%s</string>
     <string name="patcher_back_to_game_hint">点击%1$s返回游戏</string>
@@ -654,6 +661,8 @@
     <string name="mini_game_try_again">重试</string>
     <string name="mini_game_paused">暂停</string>
     <string name="mini_game_resume">继续</string>
+    <string name="mini_game_restart">重新开始</string>
+    <string name="mini_game_change">选择其他游戏</string>
     <string name="mini_game_2048_picker_subtitle">滑动方块进行合并</string>
     <string name="mini_game_flappy_picker_subtitle">点击穿过管道</string>
     <string name="mini_game_flappy_tap_to_start">点击飞行</string>
@@ -673,6 +682,7 @@
     <string name="system">系统</string>
     <!-- Settings - Appearance Tab - Background animation -->
     <string name="settings_appearance_background">背景动画</string>
+    <string name="settings_appearance_background_description">应用屏幕后面播放的动画</string>
     <string name="settings_appearance_background_circles">圆圈</string>
     <string name="settings_appearance_background_rings">环形</string>
     <string name="settings_appearance_background_mesh">网格</string>
@@ -701,6 +711,10 @@
     <string name="settings_appearance_accent_color">强调色</string>
     <string name="settings_appearance_pure_black">纯黑</string>
     <string name="settings_appearance_pure_black_description">使用真正的黑色背景</string>
+    <string name="settings_appearance_color_accents">应用和来源颜色</string>
+    <string name="settings_appearance_color_accents_description">使用每个应用和来源自己的颜色，而不是强调色</string>
+    <string name="settings_appearance_outlines">轮廓</string>
+    <string name="settings_appearance_outlines_description">在卡片、面板和按钮周围绘制细边</string>
     <!-- Settings - Appearance Tab - Language Selector -->
     <string name="settings_appearance_language_and_display">语言 &amp; 显示</string>
     <string name="settings_appearance_app_language">应用语言</string>
@@ -741,6 +755,7 @@
     <string name="settings_appearance_app_card_colors_bundle_description">在此处使用每个应用自己的颜色，并自动调整阴影以适应</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">应用图标</string>
+    <string name="settings_appearance_app_icon_selector_description">Morphe 在主屏幕和应用抽屉中的外观</string>
     <string name="settings_appearance_app_icon_default">默认</string>
     <string name="settings_appearance_app_icon_light_2">天空</string>
     <string name="settings_appearance_app_icon_light_3">日落</string>
@@ -749,6 +764,7 @@
     <string name="settings_appearance_app_icon_dark_3">靛青</string>
     <string name="settings_appearance_app_icon_change_dialog_title">更改应用图标？</string>
     <string name="settings_appearance_app_icon_change_dialog_message">更改为&lt;b&gt;%s&lt;/b&gt;并重启？</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">更改图标</string>
     <!-- Settings - Advanced Tab - Updates Section -->
     <string name="settings_advanced_updates">更新</string>
@@ -1081,7 +1097,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_patched_apks_description">管理保存的已修补应用文件</string>
     <string name="settings_system_patched_apks_empty">尚未保存任何已修补 APK</string>
     <string name="settings_system_patched_apks_delete_title">是否要删除已保存的修补 APK？</string>
-    <string name="settings_system_patched_apks_delete_confirm">您确定要删除已保存的已修补APK，用于&lt;b&gt;%s&lt;/b&gt;吗？</string>
     <string name="settings_system_patched_apks_deleted">已成功删除修补 APK</string>
     <string name="settings_system_patched_apks_delete_all_title">删除所有已修补的 APK？</string>
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
@@ -1090,7 +1105,7 @@ morphe_header_custom_dark.png
     <string name="settings_system_original_apks_empty">尚未存储任何原始 APK</string>
     <string name="settings_system_original_apks_deleted">已成功删除原始 APK</string>
     <string name="settings_system_original_apks_delete_title">是否要删除原始 APK？</string>
-    <string name="settings_system_original_apks_delete_confirm">删除&lt;b&gt;%s&lt;/b&gt;的原始APK？ 如果没有提供新的APK，您将无法重新修补。</string>
+    <string name="settings_system_original_apks_delete_notice">不提供新的 APK，您将无法重新修补</string>
     <string name="settings_system_original_apks_delete_all_title">删除所有原始 APK？</string>
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
     <string name="settings_system_patch_selections_title">补丁选择项</string>
@@ -1111,7 +1126,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_import_source_data_fail">导入源数据失败</string>
     <string name="settings_system_import_source_data_success">源数据导入成功</string>
     <string name="settings_system_selected_patches_section">所选补丁</string>
-    <string name="settings_system_patch_options_section">补丁选项</string>
     <string name="settings_system_no_patches_or_options">没有保存的补丁或选项</string>
     <!-- Copy selection from another bundle -->
     <string name="copy_selection_title">从…复制选定的内容</string>
@@ -1130,7 +1144,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_apk_download_helper_installed_by">由 %s 安装</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">安装来源未知</string>
     <!-- File Picker -->
-    <string name="file_picker_previous_directory">上一级目录</string>
     <string name="file_picker_no_files">这里没有文件</string>
     <string name="file_picker_read_error">无法读取此目录</string>
     <string name="file_picker_internal_storage">内部存储空间</string>
@@ -1161,11 +1174,9 @@ morphe_header_custom_dark.png
     <string name="easter_egg_pill_red_toast_again">回到雨中</string>
     <string name="easter_egg_pill_blue_toast_again">已断开。回去的路始终在那里。</string>
     <!-- Shared strings -->
-    <!-- Download progress of a bundle or of the manager itself. "%1$s" and "%2$s" are the
-         megabytes read and expected, "%3$s" is the percentage; the doubled "%%" after it is
-         how a literal percent sign is written here. -->
-    <string name="download_progress">%1$s MB / %2$s MB (%3$s%%)</string>
     <string name="select_file">选择文件</string>
+    <string name="select_files">选择文件</string>
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="select_folder">选择文件夹</string>
     <string name="patches">补丁</string>
     <string name="home">主页</string>
@@ -1192,6 +1203,7 @@ morphe_header_custom_dark.png
     <string name="done">完成</string>
     <string name="skip">跳过</string>
     <string name="clear">清除</string>
+    <string name="paste">粘贴</string>
     <string name="delete">删除</string>
     <string name="delete_all">全部删除</string>
     <string name="remove">移除</string>
@@ -1201,7 +1213,6 @@ morphe_header_custom_dark.png
     <string name="disable">禁用</string>
     <string name="enable">启用</string>
     <string name="loading">正在加载…</string>
-    <string name="loading_older_releases">正在加载旧版本…</string>
     <string name="creating">创建中…</string>
     <string name="processing_apk">正在处理 APK…</string>
     <string name="exporting_apks">正在导出 APK…</string>
@@ -1244,6 +1255,7 @@ morphe_header_custom_dark.png
     <string name="continue_">继续</string>
     <string name="version">版本</string>
     <string name="clone">克隆</string>
+    <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patch">修补</string>
     <string name="patching">正在修补</string>
     <string name="patched">已修补</string>
@@ -1283,17 +1295,40 @@ morphe_header_custom_dark.png
     <string name="changelog_description">此版本的新内容</string>
     <string name="changelog_download_fail">下载更新日志失败：%s</string>
     <string name="changelog_empty">无可用更新日志</string>
-    <string name="changelog_show_older">显示旧版本</string>
+    <string name="changelog_earlier_releases">更早的版本</string>
     <string name="changelog_older_empty">没有更多旧版本显示</string>
+    <string name="changelog_older_failed">无法加载更早的版本</string>
+    <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="changelog_release_page">版本页面</string>
+    <string name="content_translate">翻译</string>
+    <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <string name="content_show_original">原始</string>
+    <string name="content_translation_failed">翻译失败：%s</string>
+    <string name="changelog_section_new">新增</string>
+    <string name="changelog_section_fixes">修复</string>
+    <string name="changelog_section_performance">性能</string>
+    <string name="changelog_section_improvements">优化</string>
+    <string name="changelog_section_app_support">应用支持</string>
+    <string name="changelog_section_other">变更</string>
+    <string name="changelog_badge_latest">最新</string>
+    <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <string name="changelog_badge_downloaded">已下载</string>
+    <string name="changelog_badge_prerelease">预发布</string>
+    <!-- "%s" is the number of changes in the section -->
+    <string name="changelog_show_all">显示全部（%s）</string>
+    <string name="changelog_show_less">显示更少</string>
     <string name="no_network_toast">无可用网络连接</string>
     <string name="update_available">有可用更新</string>
     <string name="ready_to_install_update">准备安装更新</string>
     <string name="update_completed">更新已安装</string>
     <string name="install_update_manager_failed">安装更新失败</string>
     <string name="installing_manager_update">正在安装更新…</string>
+    <string name="installing_manager_update_hint">Morphe 将关闭以完成更新</string>
     <string name="downloading_manager_update">正在下载更新…</string>
-    <!-- Shown while downloading, before the total size is known. "%1$s" is the megabytes so far. -->
+    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">已下载 %1$s MB</string>
+    <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
+    <string name="manager_update_progress_size">%1$s / %2$s MB</string>
     <string name="manager_update_not_ready">此版本仍在发布中。几分钟后重试</string>
     <string name="update_download_missing">下载的更新不再可用。请重新下载。</string>
     <string name="download_manager_failed">下载更新失败：%s</string>
@@ -1323,6 +1358,7 @@ morphe_header_custom_dark.png
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">快速功能导览</string>
     <string name="tour_prompt_desc">您想快速了解 Morphe 的主要功能吗？</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">带我参观</string>
     <string name="onboarding_restart_title">功能导览</string>
     <string name="onboarding_restart_desc">主要功能导览</string>

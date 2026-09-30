@@ -6,6 +6,18 @@
     <plurals name="option_count">
         <item quantity="other">%s tùy chỉnh bản vá</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="other">%s mục</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="other">Chọn %s tệp</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="other">Thêm %s nguồn</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="other">Nguồn vá cho %s ứng dụng</item>
     </plurals>
@@ -68,5 +80,17 @@
     </plurals>
     <plurals name="core_count">
         <item quantity="other">%s lõi</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="other">%s mới</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="other">%s bản sửa lỗi</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="other">%s thay đổi</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="other">%s bản phát hành mới</item>
     </plurals>
 </resources>

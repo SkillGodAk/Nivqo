@@ -2,6 +2,7 @@ package app.morphe.manager
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -55,6 +56,7 @@ import app.morphe.manager.ui.viewmodel.ThemeSettingsViewModel
 import app.morphe.manager.ui.viewmodel.UpdateViewModel
 import app.morphe.manager.util.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.androidx.compose.koinViewModel
@@ -69,34 +71,33 @@ private enum class OnboardingPhase { HOME, SHEET, SETTINGS, DONE }
 
 class MainActivity : AppCompatActivity() {
 
+    /** Language the activity was attached in, to tell when it has to be recreated. */
+    private var attachedLanguage = AppLocale.SYSTEM
+
     /**
      * Applies the interface scale to the activity context, so every window it opens is drawn at
      * that scale rather than only the composition inside [setContent].
      *
-     * On Android < 13, AppCompatDelegate.setApplicationLocales() is unreliable on some
-     * devices and OEMs - the locale is saved correctly but never applied on cold start.
-     * Wrap the base context manually to guarantee the correct locale is always applied.
+     * On Android 12 and lower the app language is applied here too, since Android has no per-app
+     * language there. Both go into one configuration delta, because a context created from
+     * another does not keep the overrides the first one was created with.
      */
     override fun attachBaseContext(newBase: Context) {
-        var context = newBase
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            val storedLang = readLanguageFromPrefs(context)
-            val locale = parseLocaleCode(storedLang)
-            if (locale != null) {
-                val config = context.resources.configuration
-                config.setLocale(locale)
-                context = context.createConfigurationContext(config)
-            }
-        }
-
         // Koin is started in Application.onCreate, which has already run by the time an activity
         // attaches. A scale that cannot be read must not take the launch down with it
         val scale = runCatching {
             GlobalContext.get().get<PreferencesManager>().uiScale.getBlocking()
         }.getOrDefault(UI_SCALE_DEFAULT)
 
-        super.attachBaseContext(context.withUiScale(scale))
+        attachedLanguage = AppLocale.selected.value
+        val overrides = Configuration().apply {
+            AppLocale.applyTo(this)
+            applyUiScale(newBase.resources.configuration.densityDpi, scale)
+        }
+
+        super.attachBaseContext(
+            if (overrides == Configuration()) newBase else newBase.createConfigurationContext(overrides)
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -105,6 +106,14 @@ class MainActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         enableEdgeToEdge()
         installSplashScreen()
+
+        // Android 13+ recreates the activity by itself when the app language changes
+        if (!AppLocale.appliedBySystem) {
+            lifecycleScope.launch {
+                AppLocale.selected.first { it != attachedLanguage }
+                recreate()
+            }
+        }
 
         val vm: MainViewModel = getActivityViewModel()
 
@@ -118,6 +127,8 @@ class MainActivity : AppCompatActivity() {
             val theme by vm.prefs.theme.getAsState()
             val themeStyle by vm.prefs.themeStyle.getAsState()
             val pureBlackTheme by vm.prefs.pureBlackTheme.getAsState()
+            val colorAccents by vm.prefs.colorAccents.getAsState()
+            val outlines by vm.prefs.outlines.getAsState()
             val customAccentColor by vm.prefs.customAccentColor.getAsState()
             val customThemeColor by vm.prefs.customThemeColor.getAsState()
             val appCardColorMode by vm.prefs.appCardColorMode.getAsState()
@@ -137,7 +148,11 @@ class MainActivity : AppCompatActivity() {
                 darkTheme = darkTheme,
                 dynamicColor = effectiveThemeStyle == ThemeStyle.MATERIAL_YOU,
                 pureBlackTheme = pureBlackTheme,
-                monochromeTheme = effectiveThemeStyle == ThemeStyle.MONOCHROME,
+                traits = ThemeTraits(
+                    monochrome = effectiveThemeStyle == ThemeStyle.MONOCHROME,
+                    colorAccents = colorAccents,
+                    outlines = outlines
+                ),
                 accentColorHex = customAccentColor.takeUnless { it.isBlank() },
                 themeColorHex = customThemeColor.takeUnless { it.isBlank() },
                 appCardColorMode = appCardColorMode,
@@ -267,7 +282,7 @@ class MainActivity : AppCompatActivity() {
 
         val isAddSource = data.scheme == "https" &&
                 data.host == "morphe.software" &&
-                data.path?.startsWith("/add-source") == true
+                data.path?.startsWith(ADD_SOURCE_PATH) == true
         if (!isAddSource) return
 
         val name = data.getQueryParameter("name")?.takeIf { it.isNotBlank() }
@@ -394,9 +409,10 @@ private fun MorpheManager(vm: MainViewModel) {
         val updateViewModel: UpdateViewModel = koinViewModel(
             viewModelStoreOwner = LocalActivity.current as ComponentActivity
         )
-        ManagerUpdateDetailsDialog(
+        ManagerChangelogDialog(
             onDismiss = { vm.pendingManagerChangelog = false },
-            updateViewModel = updateViewModel
+            updateViewModel = updateViewModel,
+            expectsUpdate = true
         )
     }
 
@@ -471,7 +487,7 @@ private fun MorpheManager(vm: MainViewModel) {
                 getBounds = { homeOnboardingState.firstAppCardBounds },
                 onShow = {
                     homeOnboardingState.swipeActive = true
-                    homeViewModel.triggerSwipeGestureHint()
+                    homeViewModel.apps.triggerSwipeGestureHint()
                 }
             ),
             StepDef(
@@ -479,7 +495,7 @@ private fun MorpheManager(vm: MainViewModel) {
                 getBounds = { homeOnboardingState.sourcesButtonBounds },
                 onShow = {
                     homeOnboardingState.swipeActive = false
-                    homeViewModel.markSwipeGestureHintShown()
+                    homeViewModel.apps.markSwipeGestureHintShown()
                 }
             )
         )
@@ -663,10 +679,15 @@ private fun MorpheManager(vm: MainViewModel) {
                 BatchPatcherScreen(
                     targets = params.targets,
                     useMount = params.useMount,
-                    onBackClick = { navController.popBackStack() },
+                    onBackClick = {
+                        patchingCompleted.value = false
+                        navController.popBackStack()
+                    },
                     onStartTour = startOnboardingTour,
                     onDeclineTour = declineOnboardingTour,
-                    onAppStateChanged = homeViewModel::notifyAppStateChanged
+                    onAppStateChanged = homeViewModel.apps::notifyAppStateChanged,
+                    onBackgroundSpeedChange = { patcherBackgroundSpeed.floatValue = it },
+                    onPatchingCompleted = { patchingCompleted.value = true }
                 )
             }
 
@@ -725,7 +746,7 @@ private fun MorpheManager(vm: MainViewModel) {
                         OnboardingPhase.HOME -> {
                             phaseInitialStep = 0
                             homeOnboardingState.swipeActive = false
-                            homeViewModel.markSwipeGestureHintShown()
+                            homeViewModel.apps.markSwipeGestureHintShown()
                             homeViewModel.showBundleManagementSheet = true
                             globalOnboardingState.sheetOnboardingActive = true
                             scope.launch {
@@ -791,7 +812,7 @@ private fun MorpheManager(vm: MainViewModel) {
                 }
                 val onSkip: () -> Unit = {
                     homeOnboardingState.swipeActive = false
-                    homeViewModel.markSwipeGestureHintShown()
+                    homeViewModel.apps.markSwipeGestureHintShown()
                     globalOnboardingState.sheetOnboardingActive = false
                     homeViewModel.showBundleManagementSheet = false
                     onboardingPhase = OnboardingPhase.DONE

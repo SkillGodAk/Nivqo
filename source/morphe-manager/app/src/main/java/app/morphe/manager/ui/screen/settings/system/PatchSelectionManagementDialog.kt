@@ -10,10 +10,9 @@ import android.view.HapticFeedbackConstants
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -22,13 +21,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -313,24 +309,6 @@ private fun PatchSelectionManagementDialogContent(
 
     AppDialog(
         onDismissRequest = onDismiss,
-        title = stringResource(R.string.settings_system_patch_selections_title),
-        titleTrailingContent = {
-            TitleAction(
-                icon = if (search.visible) Icons.Outlined.SearchOff else Icons.Outlined.Search,
-                contentDescription = stringResource(R.string.search),
-                onClick = { search.toggle() },
-                style = TitleActionStyle.Toggle,
-                active = search.visible,
-                enabled = isSearchable
-            )
-            TitleAction(
-                icon = Icons.Outlined.Restore,
-                contentDescription = stringResource(R.string.reset),
-                onClick = onShowResetAllConfirmation,
-                style = TitleActionStyle.Destructive,
-                enabled = canResetAll
-            )
-        },
         footer = {
             ImportExportFooter(
                 onImport = { openImportAllSelectionsPicker() },
@@ -368,9 +346,34 @@ private fun PatchSelectionManagementDialogContent(
         scrollable = false,
         padding = DialogPadding.Compact,
         contentArrangement = Arrangement.Top,
-        fillContentHeight = true
+        fillContentHeight = true,
+        hideFooterWhileTyping = true
     ) {
         SearchFieldBackHandler(search)
+
+        val accent = MaterialTheme.colorScheme.primary
+        ListDialogHeader(
+            icon = { modifier ->
+                ListDialogHeaderIcon(icon = Icons.Outlined.Tune, color = accent, modifier = modifier)
+            },
+            title = stringResource(R.string.settings_system_patch_selections_title),
+            subtitle = listOf(
+                pluralStringResource(R.plurals.package_count, selections.size, selections.size.toString()),
+                pluralStringResource(R.plurals.patch_count, data.totalSelections, data.totalSelections.toString())
+            ).joinToString(" · "),
+            search = search,
+            searchLabel = stringResource(R.string.search),
+            searchEnabled = isSearchable,
+            accentColor = accent
+        ) {
+            TitleAction(
+                icon = Icons.Outlined.Restore,
+                contentDescription = stringResource(R.string.reset),
+                onClick = onShowResetAllConfirmation,
+                style = TitleActionStyle.Destructive,
+                enabled = canResetAll
+            )
+        }
 
         if (selections.isEmpty()) {
             EmptyState(message = stringResource(R.string.settings_system_no_patches_or_options))
@@ -438,102 +441,74 @@ private fun SelectionList(
         }
     }
 
-    Box(modifier = Modifier.fillMaxWidth()) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
-        ) {
-            stickyHeader(key = "search") {
-                AppDialogSearchHeader(
-                    visible = search.visible,
-                    value = search.query,
-                    onValueChange = { search.query = it },
-                    label = stringResource(R.string.home_search_apps)
+    DialogLazyList(
+        modifier = Modifier.fillMaxWidth(),
+        state = listState,
+        verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
+        pinnedFirstRow = true
+    ) {
+        // Kept while the field is closed, so its share of the spacing makes the gap under the
+        // header
+        stickyHeader(key = "search") {
+            AppDialogSearchHeader(
+                visible = search.visible,
+                value = search.query,
+                onValueChange = { search.query = it },
+                label = stringResource(R.string.home_search_apps),
+                // Opaque, so rows scrolled under the gap stay hidden
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(top = Defaults.ItemSpacing)
+            )
+        }
+
+        if (displayEntries.isEmpty()) {
+            // No matches for the current search query
+            item(key = "search_empty") {
+                EmptyState(
+                    message = stringResource(R.string.search_no_results),
+                    icon = Icons.Outlined.SearchOff
                 )
             }
-
-            // Summary box
-            item(key = "summary") {
-                HeroInfoCard(
-                    icon = Icons.Outlined.Tune,
-                    title = pluralStringResource(
-                        R.plurals.package_count,
-                        selections.size,
-                        selections.size.toString()
-                    ),
-                    subtitle = {
-                        Text(
-                            text = pluralStringResource(
-                                R.plurals.patch_count,
-                                data.totalSelections,
-                                data.totalSelections.toString()
-                            ),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = LocalDialogSecondaryTextColor.current
-                        )
+        } else {
+            // List of packages with selections
+            items(
+                items = displayEntries,
+                key = { it.key }
+            ) { (packageName, bundleMap) ->
+                val (displayName, appDataSource) = resolvedApps[packageName]
+                    ?: (packageName to AppDataSource.INSTALLED)
+                PackageSelectionItem(
+                    packageName = packageName,
+                    displayName = displayName,
+                    appDataSource = appDataSource,
+                    bundleMap = bundleMap,
+                    bundleNames = data.bundleNames,
+                    importExportViewModel = importExportViewModel,
+                    onResetPackage = {
+                        onSetResetTarget(ResetTarget.Package(packageName))
+                    },
+                    onResetPackageBundle = { bundleUid ->
+                        onSetResetTarget(ResetTarget.PackageBundle(packageName, bundleUid))
+                    },
+                    onShowPatchDetails = onShowPatchDetails,
+                    onOpenCopyFromBundle = onOpenCopyFromBundle,
+                    onImport = onImport,
+                    isSelected = multiSelect.selectedPackages.contains(packageName),
+                    isSelectionMode = multiSelect.isSelectionMode,
+                    onEnterSelection = { multiSelect.onEnterSelection(packageName) },
+                    onToggleSelection = { multiSelect.onToggleSelection(packageName) },
+                    expanded = packageName in expandedPackages.value,
+                    onToggleExpanded = {
+                        expandedPackages.value = if (packageName in expandedPackages.value) {
+                            expandedPackages.value - packageName
+                        } else {
+                            expandedPackages.value + packageName
+                        }
                     }
                 )
             }
-
-            if (displayEntries.isEmpty()) {
-                // No matches for the current search query
-                item(key = "search_empty") {
-                    EmptyState(
-                        message = stringResource(R.string.search_no_results),
-                        icon = Icons.Outlined.SearchOff
-                    )
-                }
-            } else {
-                // List of packages with selections
-                items(
-                    items = displayEntries,
-                    key = { it.key }
-                ) { (packageName, bundleMap) ->
-                    val (displayName, appDataSource) = resolvedApps[packageName]
-                        ?: (packageName to AppDataSource.INSTALLED)
-                    PackageSelectionItem(
-                        packageName = packageName,
-                        displayName = displayName,
-                        appDataSource = appDataSource,
-                        bundleMap = bundleMap,
-                        bundleNames = data.bundleNames,
-                        importExportViewModel = importExportViewModel,
-                        onResetPackage = {
-                            onSetResetTarget(ResetTarget.Package(packageName))
-                        },
-                        onResetPackageBundle = { bundleUid ->
-                            onSetResetTarget(ResetTarget.PackageBundle(packageName, bundleUid))
-                        },
-                        onShowPatchDetails = onShowPatchDetails,
-                        onOpenCopyFromBundle = onOpenCopyFromBundle,
-                        onImport = onImport,
-                        isSelected = multiSelect.selectedPackages.contains(packageName),
-                        isSelectionMode = multiSelect.isSelectionMode,
-                        onEnterSelection = { multiSelect.onEnterSelection(packageName) },
-                        onToggleSelection = { multiSelect.onToggleSelection(packageName) },
-                        expanded = packageName in expandedPackages.value,
-                        onToggleExpanded = {
-                            expandedPackages.value = if (packageName in expandedPackages.value) {
-                                expandedPackages.value - packageName
-                            } else {
-                                expandedPackages.value + packageName
-                            }
-                        }
-                    )
-                }
-            }
         }
-
-        ListScrollbar(
-            listState = listState,
-            modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
-        )
-
-        ScrollToTopButton(
-            listState = listState,
-            modifier = Modifier.offset(x = LocalDialogHorizontalInset.current)
-        )
     }
 }
 
@@ -565,17 +540,14 @@ private fun PackageSelectionItem(
     val totalPatches = remember(bundleMap) { bundleMap.values.sum() }
     // In selection mode force cards closed so nested bundle taps do not race with tap-to-toggle
     val effectiveExpanded = expanded && !isSelectionMode
-    val expandRotation by animateFloatAsState(
-        targetValue = if (effectiveExpanded) 180f else 0f,
-        label = "expand_rotation"
-    )
 
     SelectableCard(
         modifier = Modifier.fillMaxWidth(),
         isSelected = isSelected,
         isSelectionMode = isSelectionMode
     ) {
-        SectionCard {
+        // Worn the way the home screen wears it, so the app reads as itself here too
+        SectionCard(accentColor = rememberAppColor(packageName)) {
             Column {
                 // Header with app icon
                 Row(
@@ -656,14 +628,10 @@ private fun PackageSelectionItem(
                         enter = Animations.expandFadeEnter,
                         exit = Animations.shrinkFadeExit
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ExpandMore,
-                            contentDescription = if (effectiveExpanded)
-                                stringResource(R.string.collapse)
-                            else
-                                stringResource(R.string.expand),
+                        ExpandChevron(
+                            expanded = effectiveExpanded,
                             tint = LocalDialogSecondaryTextColor.current,
-                            modifier = Modifier.rotate(expandRotation)
+                            announced = true
                         )
                     }
                 }
@@ -756,14 +724,14 @@ private fun BundleSelectionItem(
     ) {
         SettingsDivider(fullWidth = true)
 
-        // Bundle info card
-        BundleInfoCard(
-            modifier = Modifier.fillMaxWidth(),
-            icon = Icons.Outlined.Extension,
-            title = displayName,
-            value = patchCountText,
-            onClick = onShowDetails
-        )
+        InfoPanel {
+            InfoRow(
+                icon = Icons.Outlined.Extension,
+                label = displayName,
+                value = patchCountText,
+                onClick = onShowDetails
+            )
+        }
 
         ActionPillRow {
             val copyLabel = stringResource(R.string.copy)
@@ -801,43 +769,8 @@ private fun BundleSelectionItem(
                 icon = Icons.Outlined.Restore,
                 contentDescription = resetLabel,
                 tooltip = resetLabel,
-                colors = ActionPillColors.destructive()
+                destructive = true
             )
-        }
-    }
-}
-
-@Composable
-private fun ConfirmResetDialog(
-    title: String,
-    message: AnnotatedString,
-    primaryText: String,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-    summaryItems: @Composable () -> Unit
-) {
-    AppDialog(
-        onDismissRequest = onDismiss,
-        title = title,
-        footer = {
-            AppDialogButtonRow(
-                primaryText = primaryText,
-                onPrimaryClick = onConfirm,
-                secondaryText = stringResource(android.R.string.cancel),
-                onSecondaryClick = onDismiss,
-                isPrimaryDestructive = true
-            )
-        }
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)) {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyLarge,
-                color = LocalDialogSecondaryTextColor.current,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-            LabeledSection { summaryItems() }
         }
     }
 }
@@ -854,18 +787,16 @@ private fun ConfirmResetSelectedDialog(
 ) {
     val patchesText = pluralStringResource(R.plurals.patch_count, totalPatches, totalPatches.toString())
     val packagesText = pluralStringResource(R.plurals.package_count, packageCount, packageCount.toString())
-    ConfirmResetDialog(
+    ConfirmDialog(
         title = stringResource(R.string.settings_system_patch_selection_reset_selected_confirm_title),
-        message = AnnotatedString(stringResource(R.string.settings_system_patch_selection_reset_selected_warning)),
+        message = stringResource(R.string.settings_system_patch_selection_reset_selected_warning),
         primaryText = stringResource(R.string.reset),
         onConfirm = onConfirm,
-        onDismiss = onDismiss
-    ) {
-        DeleteListItem(
-            icon = Icons.Outlined.Delete,
-            text = stringResource(R.string.settings_system_patch_selection_total_summary_format, patchesText, packagesText)
+        onDismiss = onDismiss,
+        items = listOfNotNull(
+            ConfirmItem(Icons.Outlined.Delete, stringResource(R.string.settings_system_patch_selection_total_summary_format, patchesText, packagesText))
         )
-    }
+    )
 }
 
 /**
@@ -888,24 +819,17 @@ private fun ConfirmResetAllDialog(
 
     val patchesText = pluralStringResource(R.plurals.patch_count, totalSelections, totalSelections.toString())
     val packagesText = pluralStringResource(R.plurals.package_count, packageCount, packageCount.toString())
-    ConfirmResetDialog(
+    ConfirmDialog(
         title = stringResource(R.string.settings_system_patch_selection_reset_all_confirm_title),
-        message = AnnotatedString(stringResource(R.string.settings_system_patch_selection_reset_all_warning)),
+        message = stringResource(R.string.settings_system_patch_selection_reset_all_warning),
         primaryText = stringResource(R.string.reset_all),
         onConfirm = onConfirm,
-        onDismiss = onDismiss
-    ) {
-        DeleteListItem(
-            icon = Icons.Outlined.Delete,
-            text = stringResource(R.string.settings_system_patch_selection_total_summary_format, patchesText, packagesText)
+        onDismiss = onDismiss,
+        items = listOfNotNull(
+            ConfirmItem(Icons.Outlined.Delete, stringResource(R.string.settings_system_patch_selection_total_summary_format, patchesText, packagesText)),
+            ConfirmItem(Icons.Outlined.Tune, pluralStringResource(R.plurals.option_count, totalOptions, totalOptions.toString())).takeIf { totalOptions > 0 }
         )
-        if (totalOptions > 0) {
-            DeleteListItem(
-                icon = Icons.Outlined.Tune,
-                text = pluralStringResource(R.plurals.option_count, totalOptions, totalOptions.toString())
-            )
-        }
-    }
+    )
 }
 
 /**
@@ -931,24 +855,17 @@ private fun ConfirmResetPackageDialog(
 
     val patchesText = pluralStringResource(R.plurals.patch_count, patchCount, patchCount.toString())
     val sourcesText = pluralStringResource(R.plurals.source_count, bundleCount, bundleCount.toString())
-    ConfirmResetDialog(
+    ConfirmDialog(
         title = stringResource(R.string.settings_system_patch_selection_reset_package_confirm_title),
         message = htmlAnnotatedString(stringResource(R.string.settings_system_patch_selection_reset_package_warning, displayName)),
         primaryText = stringResource(R.string.reset),
         onConfirm = onConfirm,
-        onDismiss = onDismiss
-    ) {
-        DeleteListItem(
-            icon = Icons.Outlined.Delete,
-            text = stringResource(R.string.settings_system_patch_selection_patches_in_sources_format, patchesText, sourcesText)
+        onDismiss = onDismiss,
+        items = listOfNotNull(
+            ConfirmItem(Icons.Outlined.Delete, stringResource(R.string.settings_system_patch_selection_patches_in_sources_format, patchesText, sourcesText)),
+            ConfirmItem(Icons.Outlined.Tune, pluralStringResource(R.plurals.option_count, optionsCount, optionsCount.toString())).takeIf { optionsCount > 0 }
         )
-        if (optionsCount > 0) {
-            DeleteListItem(
-                icon = Icons.Outlined.Tune,
-                text = pluralStringResource(R.plurals.option_count, optionsCount, optionsCount.toString())
-            )
-        }
-    }
+    )
 }
 
 /**
@@ -975,24 +892,17 @@ private fun ConfirmResetPackageBundleDialog(
 
     val bundleDisplayName = bundleName
         ?: stringResource(R.string.settings_system_patch_selection_source_format, bundleUid)
-    ConfirmResetDialog(
+    ConfirmDialog(
         title = stringResource(R.string.settings_system_patch_selection_reset_source_confirm_title),
         message = htmlAnnotatedString(stringResource(R.string.settings_system_patch_selection_reset_source_warning, displayName, bundleDisplayName)),
         primaryText = stringResource(R.string.reset),
         onConfirm = onConfirm,
-        onDismiss = onDismiss
-    ) {
-        DeleteListItem(
-            icon = Icons.Outlined.Delete,
-            text = pluralStringResource(R.plurals.patch_count, patchCount, patchCount.toString())
+        onDismiss = onDismiss,
+        items = listOfNotNull(
+            ConfirmItem(Icons.Outlined.Delete, pluralStringResource(R.plurals.patch_count, patchCount, patchCount.toString())),
+            ConfirmItem(Icons.Outlined.Tune, pluralStringResource(R.plurals.option_count, optionsCount, optionsCount.toString())).takeIf { optionsCount > 0 }
         )
-        if (optionsCount > 0) {
-            DeleteListItem(
-                icon = Icons.Outlined.Tune,
-                text = pluralStringResource(R.plurals.option_count, optionsCount, optionsCount.toString())
-            )
-        }
-    }
+    )
 }
 
 /**
@@ -1017,82 +927,66 @@ private fun PatchDetailsDialog(
         isLoading = false
     }
 
-    AppDialog(
+    val patchList = details?.patchList.orEmpty()
+    // Options outlive their patch being deselected, so those are listed too, dimmed as not in effect
+    val entries = remember(details) {
+        details?.let { loaded ->
+            val selected = loaded.patchList.toSet()
+            patchEntries(
+                keys = (loaded.patchList + loaded.optionsMap.keys).distinct(),
+                options = loaded.optionsMap,
+                displayName = loaded.displayNames::get,
+                dimmed = { it !in selected }
+            )
+        }.orEmpty()
+    }
+    val subtitle = bundleName ?: stringResource(R.string.settings_system_patch_selection_source_format, bundleUid)
+    val copyToClipboard = rememberCopyToClipboard()
+
+    DetailsDialog(
         onDismissRequest = onDismiss,
-        footer = {
-            AppDialogOutlinedButton(
-                text = stringResource(R.string.close),
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth()
+        icon = { modifier -> AppIcon(packageName = packageName, contentDescription = null, modifier = modifier) },
+        title = appDisplayName,
+        subtitle = subtitle,
+        accentColor = rememberAppColor(packageName),
+        actions = listOf(
+            DialogAction(
+                text = stringResource(R.string.copy),
+                icon = Icons.Outlined.ContentCopy,
+                enabled = entries.isNotEmpty(),
+                onClick = {
+                    copyToClipboard(patchListText(title = appDisplayName, lists = listOf(subtitle to entries)))
+                }
             )
-        }
+        )
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
-        ) {
-            HeroInfoCard(
-                icon = Icons.Outlined.Extension,
-                title = appDisplayName,
-                subtitle = {
-                    Text(
-                        text = bundleName ?: stringResource(R.string.settings_system_patch_selection_source_format, bundleUid),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = LocalDialogSecondaryTextColor.current
-                    )
-                }
-            )
-
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Defaults.ContentPaddingExpanded),
-                    contentAlignment = Alignment.Center
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Defaults.ContentPaddingExpanded),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            if (entries.isNotEmpty()) {
+                LabeledSection(
+                    title = stringResource(R.string.settings_system_selected_patches_section),
+                    count = patchList.size,
+                    icon = Icons.Outlined.Checklist
                 ) {
-                    CircularProgressIndicator()
+                    PatchEntryList(entries)
                 }
-            } else {
-                val patchList = details?.patchList ?: emptyList()
-                val optionsMap = details?.optionsMap ?: emptyMap()
-                // Stored keys carry a suffix when the bundle ships duplicate patch names
-                val displayNames = details?.displayNames ?: emptyMap()
+            }
 
-                // Patches section
-                if (patchList.isNotEmpty()) {
-                    LabeledSection(
-                        title = stringResource(R.string.settings_system_selected_patches_section),
-                        count = patchList.size
-                    ) {
-                        patchList.forEach { patchName ->
-                            PatchNameRow(name = displayNames[patchName] ?: patchName)
-                        }
-                    }
-                }
-
-                // Options section
-                if (optionsMap.isNotEmpty()) {
-                    LabeledSection(
-                        title = stringResource(R.string.settings_system_patch_options_section),
-                        count = optionsMap.size
-                    ) {
-                        optionsMap.entries.forEach { (patchName, options) ->
-                            PatchOptionsGroup(
-                                patchName = displayNames[patchName] ?: patchName,
-                                options = options
-                            )
-                        }
-                    }
-                }
-
-                // Empty state
-                if (patchList.isEmpty() && optionsMap.isEmpty()) {
-                    Notice(
-                        text = stringResource(R.string.settings_system_no_patches_or_options),
-                        tone = SemanticTone.Neutral,
-                        isCentered = true
-                    )
-                }
+            // Empty state
+            if (entries.isEmpty()) {
+                Notice(
+                    text = stringResource(R.string.settings_system_no_patches_or_options),
+                    tone = SemanticTone.Neutral,
+                    isCentered = true
+                )
             }
         }
     }

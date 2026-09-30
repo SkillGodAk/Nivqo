@@ -8,6 +8,9 @@
         <item quantity="one">%s هەڵبژاردەی پینە</item>
         <item quantity="other">%s هەڵبژاردەکانی پینە</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <!-- Button that confirms the files checked in the file picker -->
+    <!-- Button that adds every source waiting in the add source dialog -->
     <plurals name="source_count">
         <item quantity="one">%s سەرچاوە</item>
         <item quantity="other">%s سەرچاوەکان</item>

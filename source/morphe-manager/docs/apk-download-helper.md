@@ -14,6 +14,10 @@ an app implementing the contract is installed. It opens a list of every installe
 its version, package name and the app that installed it, and each helper has its own switch.
 No helper is trusted by default.
 
+<p align="center">
+  <img src="images/apk-download-helper/01-trusted-helpers.jpg" width="320" alt="APK download helper list with one trusted helper" />
+</p>
+
 Once at least one helper is trusted, the download instructions dialog gains a
 **Use a helper app** button next to the usual **Continue** button. Only trusted helpers are
 offered there.

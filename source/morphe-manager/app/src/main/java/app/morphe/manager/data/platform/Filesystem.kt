@@ -17,6 +17,9 @@ import java.io.File
 
 private const val TAG = "Morphe Filesystem"
 
+// Name prefix of the directory the patcher extracts a bundle's DEX into under java.io.tmpdir
+private const val LEAKED_BUNDLE_DEX_PREFIX = "morphe-extracted-patches"
+
 class Filesystem(private val app: Application) {
     /**
      * Kept in `noBackupFilesDir` so neither an OS cache wipe, nor the user-initiated
@@ -37,6 +40,7 @@ class Filesystem(private val app: Application) {
 
     init {
         invalidatePatcherWorkspaceOnUpgrade()
+        deleteLeakedBundleDex()
     }
 
     /**
@@ -54,6 +58,9 @@ class Filesystem(private val app: Application) {
      * Paths to this directory can be safely stored in parcels.
      */
     val uiTempDir: File = app.getDir("ui_ephemeral", Context.MODE_PRIVATE)
+
+    /** Home card cache, kept apart so storage management does not take it for patcher scratch. */
+    val homeCardCacheDir: File = app.cacheDir.resolve("home")
     private val patchedAppsDir: File = app.getDir("patched-apps", Context.MODE_PRIVATE).apply { mkdirs() }
 
     /**
@@ -99,6 +106,22 @@ class Filesystem(private val app: Application) {
             Log.i(TAG, "Manager version changed ($markedVersion -> $current), wiped patcher workspace")
         }
         runCatching { versionMarker.writeText(current.toString()) }
+    }
+
+    /**
+     * Deletes the `morphe-extracted-patches*` directories patchers from 1.4.0 left in `cacheDir`
+     * on every bundle load, which piled up to hundreds of megabytes. Runs before anything can
+     * load a bundle, so none of them is still being read.
+     */
+    // TODO: Remove a few releases after the manager ships a patcher that deletes them itself
+    private fun deleteLeakedBundleDex() {
+        val leaked = app.cacheDir.listFiles { file ->
+            file.isDirectory && file.name.startsWith(LEAKED_BUNDLE_DEX_PREFIX)
+        }.orEmpty()
+        if (leaked.isEmpty()) return
+
+        leaked.forEach { runCatching { it.deleteRecursively() } }
+        Log.i(TAG, "Deleted ${leaked.size} leaked bundle DEX directories")
     }
 
     /**

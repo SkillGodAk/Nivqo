@@ -13,6 +13,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,14 +34,21 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
+import app.morphe.manager.ui.screen.shared.ActionPillButton
+import app.morphe.manager.ui.screen.shared.ActionPillColors
 import app.morphe.manager.ui.screen.shared.Animations
 import app.morphe.manager.ui.screen.shared.CardBorder
+import app.morphe.manager.ui.screen.shared.Defaults
+import app.morphe.manager.ui.screen.shared.PanelHeader
+import app.morphe.manager.ui.screen.shared.PanelSubtitle
+import app.morphe.manager.ui.screen.shared.PanelTitle
+import app.morphe.manager.ui.screen.shared.TitleAction
+import app.morphe.manager.ui.screen.shared.TitleActionStyle
+import app.morphe.manager.ui.theme.ThemeTraitsDefaults
 import kotlin.math.roundToInt
 
 /** One coach-mark step: resource IDs for text, a lambda that returns the current target bounds,
@@ -245,61 +257,65 @@ private fun OnboardingCard(
     onSkip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Drawn and headed like a selection panel, the other surface that floats over the home screen
     Surface(
         modifier = modifier.widthIn(max = 380.dp),
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        tonalElevation = 8.dp,
-        shadowElevation = 12.dp,
+        color = ThemeTraitsDefaults.surfaceColor(MaterialTheme.colorScheme.background),
+        shadowElevation = 8.dp,
         border = CardBorder.neutral
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = stringResource(R.string.onboarding_step_of, step, totalSteps),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.align(Alignment.End)
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.height(8.dp))
+        Column(modifier = Modifier.padding(bottom = Defaults.ContentPadding)) {
+            PanelHeader(
+                title = {
+                    Column {
+                        PanelTitle(text = title)
+                        PanelSubtitle(text = stringResource(R.string.onboarding_step_of, step, totalSteps))
+                    }
+                }
+            ) {
+                TitleAction(
+                    icon = Icons.Outlined.Close,
+                    contentDescription = stringResource(R.string.skip),
+                    onClick = onSkip,
+                    style = TitleActionStyle.Neutral
+                )
+            }
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                modifier = Modifier.padding(horizontal = Defaults.ContentPadding)
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(Defaults.ContentPadding))
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Defaults.ContentPadding),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TextButton(onClick = onSkip) {
-                    Text(stringResource(R.string.skip), maxLines = 1)
+                if (onPrevious != null) {
+                    val back = stringResource(R.string.back)
+                    ActionPillButton(
+                        onClick = onPrevious,
+                        icon = Icons.AutoMirrored.Outlined.ArrowBack,
+                        contentDescription = back,
+                        label = back,
+                        large = true,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (onPrevious != null) {
-                        OutlinedButton(onClick = onPrevious) {
-                            Text(stringResource(R.string.back), maxLines = 1)
-                        }
-                    }
-                    Button(onClick = onNext) {
-                        Text(
-                            if (step == totalSteps) stringResource(R.string.done)
-                            else stringResource(R.string.next),
-                            maxLines = 1
-                        )
-                    }
-                }
+                val isLast = step == totalSteps
+                val next = stringResource(if (isLast) R.string.done else R.string.next)
+                ActionPillButton(
+                    onClick = onNext,
+                    icon = if (isLast) Icons.Outlined.Check else Icons.AutoMirrored.Outlined.ArrowForward,
+                    contentDescription = next,
+                    label = next,
+                    large = true,
+                    colors = ActionPillColors.primary(),
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }

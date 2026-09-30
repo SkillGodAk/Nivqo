@@ -28,6 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.ui.screen.shared.Defaults
+import app.morphe.manager.ui.theme.MorpheBrandBlue
+import app.morphe.manager.ui.theme.MorpheBrandTeal
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlin.math.abs
@@ -196,6 +198,6 @@ private fun SnakeCanvas(state: SnakeGameState, modifier: Modifier) {
 
 private val SnakeBg   = Color(0xFF0B1A2E)
 private val SnakeGrid = Color(0x0EFFFFFF)
-private val SnakeHead = Color(0xFF00AFAE)
-private val SnakeBody = Color(0xFF1E5AA8)
+private val SnakeHead = MorpheBrandTeal
+private val SnakeBody = MorpheBrandBlue
 private val SnakeFood = Color(0xFF5CE8E7)

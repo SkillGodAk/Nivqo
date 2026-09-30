@@ -19,7 +19,7 @@ import kotlin.test.assertTrue
  * plain list it was before categories existed, since that is what every already published bundle is.
  */
 class PatchGroupingTest {
-    private val options = PatchGroupingOptions(universalTitle = "Universal", groupByCategory = true)
+    private val options = PatchGroupingOptions(universalTitle = "Universal")
 
     private fun patch(name: String, category: String? = null, universal: Boolean = false) = PatchInfo(
         name = name,
@@ -72,20 +72,6 @@ class PatchGroupingTest {
     }
 
     @Test
-    fun `grouping switched off leaves the same blocks as a bundle without categories`() {
-        val patches = listOf(
-            patch("A", category = "Ads"),
-            patch("B", category = "Video"),
-            patch("U", universal = true)
-        )
-
-        val groups = group(patches, options.copy(groupByCategory = false))
-
-        assertEquals(listOf(null, "Universal"), groups.map { it.title })
-        assertEquals(listOf("A", "B"), groups[0].items.map { it.name })
-    }
-
-    @Test
     fun `the selected count is per block, since a folded block hides what it holds`() {
         val enabled = patch("On", category = "Ads").copy(include = true)
         val groups = group(listOf(enabled, patch("Off", category = "Ads"), patch("Other", category = "Video")))
@@ -119,16 +105,6 @@ class PatchGroupingTest {
         )
 
         assertEquals(listOf("Ads", "Spoofs"), groups.map { it.title })
-    }
-
-    @Test
-    fun `grouping switched off puts categorized universal patches back in the tail`() {
-        val groups = group(
-            listOf(patch("Block ads", category = "Ads", universal = true)),
-            options.copy(groupByCategory = false)
-        )
-
-        assertEquals(listOf("Universal"), groups.map { it.title })
     }
 
     @Test

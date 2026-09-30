@@ -8,6 +8,21 @@
         <item quantity="one">%s lisäosa-asetus</item>
         <item quantity="other">%s lisäosa-asetusta</item>
     </plurals>
+    <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s kohde</item>
+        <item quantity="other">%s kohdetta</item>
+    </plurals>
+    <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Valitse %s tiedosto</item>
+        <item quantity="other">Valitse %s tiedostoa</item>
+    </plurals>
+    <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Lisää %s lähde</item>
+        <item quantity="other">Lisää %s lähdettä</item>
+    </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Paikkauslähteet %s sovellukselle</item>
         <item quantity="other">Paikkauslähteet %s sovellukselle</item>
@@ -91,5 +106,21 @@
     <plurals name="core_count">
         <item quantity="one">%s ydin</item>
         <item quantity="other">%s ydintä</item>
+    </plurals>
+    <plurals name="changelog_new_count">
+        <item quantity="one">%s uusi</item>
+        <item quantity="other">%s uutta</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s korjaus</item>
+        <item quantity="other">%s korjausta</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s muutos</item>
+        <item quantity="other">%s muutosta</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s uusi julkaisu</item>
+        <item quantity="other">%s uutta julkaisua</item>
     </plurals>
 </resources>

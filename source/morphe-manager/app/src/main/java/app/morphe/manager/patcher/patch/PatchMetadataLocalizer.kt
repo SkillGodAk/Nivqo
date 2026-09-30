@@ -1,5 +1,6 @@
 package app.morphe.manager.patcher.patch
 
+import app.morphe.manager.util.AppLocale
 import java.util.Locale
 
 /**
@@ -227,6 +228,52 @@ object PatchMetadataLocalizer {
             "使用手機系統字型取代 Meta 的 Optimistic 字型，或使用 Hushfacebook 設定中選擇的 TrueType／OpenType 字型。圖示、Emoji 與限時動態文字不受影響。"
         ),
 
+
+        "Default playback quality" to Zh(
+            "預設播放畫質",
+            "依 Hushfacebook 設定中選擇的畫質播放影片、Reels 與影片限時動態，例如節省數據或最高 720p，而不是每次交給 Facebook 自動決定。若在單一影片自己的選單另外選擇畫質，該影片仍以你的選擇為準。"
+        ),
+        "Hide affiliate product links" to Zh(
+            "隱藏聯盟商品連結",
+            "移除 Reels、動態貼文與留言面板中的聯盟商店商品卡片；「可獲得佣金」標示仍會保留。"
+        ),
+        "Hide post prompts" to Zh(
+            "隱藏貼文提示",
+            "移除 Facebook 加在部分貼文上的提示列，例如「你對這則貼文有興趣嗎？」、「少顯示這類內容」、最近留言者，以及追蹤或聊天建議；不留下空白，貼文本身仍會保留。"
+        ),
+        "Hide reel interest prompts" to Zh(
+            "隱藏 Reel 興趣提示",
+            "移除 Reels 上的「你對這則 Reel 有興趣嗎？」提示；Reel 仍照常播放。"
+        ),
+        "Hide the Reels tab" to Zh(
+            "隱藏 Reels 分頁",
+            "從分頁列移除 Reels（部分帳號顯示為影片）分頁，也移除 Facebook 圖示長按選單中的 Reels 捷徑。Reel 連結與動態消息中的 Reels 仍可開啟；Facebook 自己的分頁隱藏設定仍有效，變更此開關後需重新啟動 Facebook。"
+        ),
+        "Hide the Reels tab dot" to Zh(
+            "隱藏 Reels 分頁提示點",
+            "移除 Reels（部分帳號顯示為影片）分頁上的新項目提示點與數量；其他分頁的提示不受影響。"
+        ),
+        "Hold a reel for 2x" to Zh(
+            "長按 Reel 以 2 倍速播放",
+            "長按 Reel 時以 2 倍速播放，放開後恢復。長按操作會取代 Facebook 原本的長按選單，但 Reel 的「更多」按鈕仍可開啟該選單。"
+        ),
+        "Keep the reel speed" to Zh(
+            "保留 Reel 播放速度",
+            "你在 Reel 選單中選擇的播放速度會沿用到後續 Reels，直到選擇其他速度或重新啟動 Facebook。"
+        ),
+        "Open Messenger from the top bar" to Zh(
+            "從頂部列開啟 Messenger",
+            "讓 Facebook 頂部的 Messenger 圖示直接開啟 Messenger App，而不是 Facebook 內建聊天。未安裝 Messenger 時仍照原本方式開啟聊天；長按圖示仍保留 Facebook 原本行為。此開關預設關閉，需到 Hushfacebook 的聊天設定中開啟。"
+        ),
+        "Turn off double tap to like" to Zh(
+            "關閉雙擊按讚",
+            "雙擊 Reel 或影片時不再按讚，也不會顯示愛心。單擊仍可播放或暫停，「讚」按鈕仍可正常使用。"
+        ),
+        "View stories anonymously" to Zh(
+            "匿名觀看限時動態",
+            "不把你看過哪些限時動態回報給 Facebook，因此不會出現在觀看者名單中。若回覆或傳送表情回應仍會顯示你的身分，而且看過的限時動態仍會保留未觀看外框。"
+        ),
+
         // HushMessenger
         "Allow chat bubbles" to Zh(
             "允許聊天泡泡",
@@ -242,7 +289,7 @@ object PatchMetadataLocalizer {
         ),
         "Hide Facebook shortcuts" to Zh(
             "隱藏 Facebook 捷徑",
-            "隱藏 Facebook 工具列、個人檔案與分享捷徑。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏 Facebook 工具列、個人檔案與分享捷徑，以及「選單」分頁中的「Also from Meta」區段。長按 Messenger → Patch controls 可設定。預設關閉。"
         ),
         "Hide Meta AI buttons" to Zh(
             "隱藏 Meta AI 按鈕",
@@ -302,7 +349,7 @@ object PatchMetadataLocalizer {
         ),
         "Hide typing indicator" to Zh(
             "隱藏輸入中狀態",
-            "阻止傳送你的「正在輸入」狀態。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "停止傳送你的「正在輸入」狀態，包括端對端加密聊天。長按 Messenger → Patch controls 可設定。預設關閉。"
         ),
         "Install beside Meta apps" to Zh(
             "與 Meta App 共存",
@@ -311,6 +358,35 @@ object PatchMetadataLocalizer {
         "Open web links externally" to Zh(
             "使用外部瀏覽器開啟網頁連結",
             "HTTP 與 HTTPS 連結使用 Messenger 原生的外部瀏覽器分支。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+
+        "Allow screenshots" to Zh(
+            "允許截圖",
+            "允許截取 Messenger 在聊天中保護的照片、媒體與影片，並停止截圖通知。僅限查看一次的媒體仍受保護。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide Meta AI" to Zh(
+            "隱藏 Meta AI",
+            "隱藏 Meta AI 浮動按鈕、工具列按鈕、Meta AI 分頁、選單項目與搜尋 AI。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Hide read receipts" to Zh(
+            "隱藏已讀回條",
+            "停止傳送你的已讀回條。在端對端加密聊天中，你開啟的聊天會維持未讀，直到你回覆。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Keep unsent messages" to Zh(
+            "保留已收回訊息",
+            "保留其他人對所有人收回的訊息，但端對端加密聊天除外。啟用時，你自己的收回功能可能受到限制。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Open settings from menu" to Zh(
+            "從選單開啟設定",
+            "在 Messenger 的「選單」分頁加入 HushMessenger 設定入口。此補丁固定啟用。"
+        ),
+        "Send photos at original quality" to Zh(
+            "以原始畫質傳送照片",
+            "開啟 HD 時，直接傳送 JPEG 照片本身的影像資料，不使用重新編碼的副本；位置、相機資訊等中繼資料會移除，只保留旋轉標記。影片與超過 20 MB 的照片仍會壓縮。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
+        "Use system emoji" to Zh(
+            "使用系統 Emoji",
+            "使用手機自己的 Emoji 字型，而不是 Messenger 內建字型。長按 Messenger → Patch controls 可設定。預設關閉。"
         ),
     )
 
@@ -323,8 +399,13 @@ object PatchMetadataLocalizer {
     fun category(original: String?): String? =
         if (isTraditionalChinese() && original != null) categories[original] ?: original else original
 
+    /** True when [text] is one of Nivqo's already-localized Traditional Chinese descriptions. */
+    fun isPrelocalized(text: String): Boolean =
+        isTraditionalChinese() && zh.values.any { it.description == text }
+
     private fun isTraditionalChinese(): Boolean {
-        val locale = Locale.getDefault()
+        val selected = AppLocale.selected.value
+        val locale = AppLocale.toLocale(selected) ?: Locale.getDefault()
         if (!locale.language.equals("zh", ignoreCase = true)) return false
         val script = locale.script
         val country = locale.country

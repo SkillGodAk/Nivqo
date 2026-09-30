@@ -21,7 +21,6 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.domain.installer.InstallerManager
@@ -30,7 +29,6 @@ import app.morphe.manager.domain.installer.ShizukuEnvironment
 import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.ui.viewmodel.InstallViewModel
 import app.morphe.manager.ui.viewmodel.SettingsViewModel
-import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -109,7 +107,6 @@ fun InstallerSelectionDialogContainer(
     val promptEnabled by settingsViewModel.prefs.promptInstallerOnInstall.getAsState()
 
     InstallerSelectionDialog(
-        title = stringResource(R.string.installer_title),
         options = options,
         selected = primaryToken,
         onDismiss = onDismiss,
@@ -178,7 +175,6 @@ private fun InstallerSettingsItem(
  */
 @Composable
 fun InstallerSelectionDialog(
-    title: String,
     options: List<InstallerManager.Entry>,
     selected: InstallerManager.Token,
     onDismiss: () -> Unit,
@@ -251,7 +247,7 @@ fun InstallerSelectionDialog(
 
     AppDialog(
         onDismissRequest = onDismiss,
-        title = title,
+        title = stringResource(R.string.installer_title),
         footer = {
             AppDialogButtonRow(
                 primaryText = stringResource(R.string.confirm),
@@ -295,35 +291,43 @@ fun InstallerSelectionDialog(
                         ?: stringResource(R.string.installer_shizuku_status_issue)
                 } else null
 
+                val showStatusAction =
+                    isSelected && isShizukuOption && shizukuStatusProvider != null
+                val openLabel = stringResource(R.string.installer_action_open_shizuku)
+                val statusLabel = stringResource(R.string.installer_shizuku_status_action)
+
                 InstallerOptionItem(
                     option = option,
                     selected = isSelected,
                     enabled = enabled,
                     onSelect = { if (enabled) currentSelection.value = option.token },
                     stateDescription = stateDesc,
-                    footerText = shizukuFooterText
+                    footerText = shizukuFooterText,
+                    // Shizuku's fixes sit in its own card, under what is wrong with it
+                    footerActions = if (showShizukuAction || showStatusAction) {
+                        {
+                            if (showShizukuAction) {
+                                ActionPillButton(
+                                    onClick = { runCatching { onOpenShizuku.invoke() } },
+                                    icon = Icons.AutoMirrored.Outlined.OpenInNew,
+                                    contentDescription = openLabel,
+                                    label = openLabel,
+                                    colors = ActionPillColors.primary(),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (showStatusAction) {
+                                ActionPillButton(
+                                    onClick = { showShizukuStatus = true },
+                                    icon = Icons.Outlined.Info,
+                                    contentDescription = statusLabel,
+                                    label = statusLabel,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    } else null
                 )
-
-                if (showShizukuAction) {
-                    TextButton(
-                        onClick = { runCatching { onOpenShizuku.invoke() } },
-                        modifier = Modifier.padding(start = 56.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.installer_action_open_shizuku),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                if (isSelected && isShizukuOption && shizukuStatusProvider != null) {
-                    AppDialogOutlinedButton(
-                        text = stringResource(R.string.installer_shizuku_status_action),
-                        onClick = { showShizukuStatus = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        icon = Icons.Outlined.Info
-                    )
-                }
             }
 
             val showPlayStoreToggle = selectedToken.supportsPlayStoreMode() &&
@@ -519,6 +523,7 @@ private fun AutoUninstallWarningDialog(
     AppDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.settings_auto_uninstall_warning_title),
+        description = stringResource(R.string.settings_auto_uninstall_warning_message),
         footer = {
             AppDialogActions(
                 actions = listOf(
@@ -530,8 +535,7 @@ private fun AutoUninstallWarningDialog(
                         text = stringResource(android.R.string.cancel),
                         onClick = onDismiss
                     )
-                ),
-                layout = DialogButtonLayout.Vertical
+                )
             )
         }
     ) {
@@ -539,14 +543,6 @@ private fun AutoUninstallWarningDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
         ) {
-            Text(
-                text = stringResource(R.string.settings_auto_uninstall_warning_message),
-                style = MaterialTheme.typography.bodyLarge,
-                color = LocalDialogSecondaryTextColor.current,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
             Notice(
                 text = stringResource(R.string.settings_auto_uninstall_warning_risk),
                 tone = SemanticTone.Error,
@@ -745,7 +741,8 @@ fun InstallerOptionItem(
     enabled: Boolean,
     onSelect: () -> Unit,
     stateDescription: String,
-    footerText: String? = null
+    footerText: String? = null,
+    footerActions: (@Composable RowScope.() -> Unit)? = null
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -782,31 +779,46 @@ fun InstallerOptionItem(
                 }
             }
         } else null,
-        footerContent = (reasonText ?: footerText)?.let { text ->
+        footerContent = if (reasonText != null || footerText != null || footerActions != null) {
             {
-                val tint = if (footerText != null) {
-                    MaterialTheme.colorScheme.onSecondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Warning,
-                        contentDescription = null,
-                        tint = tint,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = tint
-                    )
+                    (reasonText ?: footerText)?.let { text ->
+                        val tint = if (footerText != null) {
+                            SemanticTone.Warning.content
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Warning,
+                                contentDescription = null,
+                                tint = tint,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = text,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = tint
+                            )
+                        }
+                    }
+                    footerActions?.let { actions ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
+                            content = actions
+                        )
+                    }
                 }
             }
-        }
+        } else null
     ) {
         IconTextRow(
             modifier = Modifier.weight(1f),
@@ -844,6 +856,7 @@ fun InstallerUnavailableDialog(
     AppDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.installer_unavailable_title, installerName),
+        description = stringResource(R.string.installer_unavailable_message, installerName),
         footer = {
             AppDialogActions(
                 actions = buildList {
@@ -894,15 +907,6 @@ fun InstallerUnavailableDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
         ) {
-            // Main message
-            Text(
-                text = stringResource(R.string.installer_unavailable_message, installerName),
-                style = MaterialTheme.typography.bodyLarge,
-                color = LocalDialogSecondaryTextColor.current,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
             // Error reason badge
             if (reasonText != null) {
                 Notice(
@@ -940,6 +944,7 @@ fun PlayStoreInstallerWarningDialog(
     AppDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.installer_play_store_warning_title),
+        description = stringResource(R.string.installer_play_store_warning_message),
         footer = {
             AppDialogActions(
                 actions = listOf(
@@ -951,8 +956,7 @@ fun PlayStoreInstallerWarningDialog(
                         text = stringResource(android.R.string.cancel),
                         onClick = onDismiss
                     )
-                ),
-                layout = DialogButtonLayout.Vertical
+                )
             )
         }
     ) {
@@ -960,14 +964,6 @@ fun PlayStoreInstallerWarningDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
         ) {
-            Text(
-                text = stringResource(R.string.installer_play_store_warning_message),
-                style = MaterialTheme.typography.bodyLarge,
-                color = LocalDialogSecondaryTextColor.current,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
             // A risk the user can avoid by turning off updates, not a failure
             Notice(
                 text = stringResource(R.string.installer_play_store_warning_risk),
@@ -993,13 +989,16 @@ fun PlayStoreInstallerWarningDialog(
  */
 @Composable
 fun PrePatchInstallerDialog(
+    packageName: String?,
     onSelectMount: () -> Unit,
     onSelectStandard: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AppDialog(
         onDismissRequest = onDismiss,
+        accentColor = rememberAppColor(packageName),
         title = stringResource(R.string.root_pre_patch_installer_title),
+        description = stringResource(R.string.root_pre_patch_installer_description),
         footer = {
             AppDialogButtonRow(
                 primaryText = stringResource(android.R.string.cancel),
@@ -1011,15 +1010,6 @@ fun PrePatchInstallerDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
         ) {
-            // Description
-            Text(
-                text = stringResource(R.string.root_pre_patch_installer_description),
-                style = MaterialTheme.typography.bodyLarge,
-                color = LocalDialogSecondaryTextColor.current,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
             // Root Mount option
             SettingsItem(
                 onClick = onSelectMount,

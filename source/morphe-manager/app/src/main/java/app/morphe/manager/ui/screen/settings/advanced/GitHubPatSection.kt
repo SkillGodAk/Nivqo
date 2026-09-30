@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,7 +19,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import app.morphe.manager.R
 import app.morphe.manager.ui.screen.shared.*
 import kotlinx.coroutines.launch
@@ -96,6 +96,14 @@ private fun GitHubPatDialog(
     AppDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.settings_advanced_github_pat_dialog_title, GITHUB_PAT_NAME),
+        description = stringResource(R.string.settings_advanced_github_pat_description),
+        titleTrailingContent = {
+            TitleAction(
+                icon = Icons.Outlined.Info,
+                contentDescription = stringResource(R.string.settings_advanced_github_pat_how_to_get),
+                onClick = { showInfoDialog.value = true }
+            )
+        },
         footer = {
             AppDialogButtonRow(
                 primaryText = stringResource(R.string.save),
@@ -114,60 +122,42 @@ private fun GitHubPatDialog(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
         ) {
-            // Info button
-            AppDialogOutlinedButton(
-                text = stringResource(R.string.settings_advanced_github_pat_how_to_get),
-                onClick = { showInfoDialog.value = true },
-                icon = Icons.Outlined.Info,
-                modifier = Modifier.fillMaxWidth()
-            )
-
             // PAT input
             AppDialogTextField(
                 value = pat.value,
                 onValueChange = { pat.value = it },
                 label = { Text(stringResource(R.string.settings_advanced_github_pat)) },
                 placeholder = { Text("ghp_xxxxxxxxxxxxxxx") },
-                leadingIcon = {
-                    ThemedIcon(
-                        icon = Icons.Outlined.Key,
-                        tint = LocalDialogTextColor.current.copy(alpha = 0.7f)
-                    )
-                },
+                leadingIcon = { Icon(imageVector = Icons.Outlined.Key, contentDescription = null) },
                 isPassword = true,
                 showClearButton = true
             )
 
             // Export include toggle + warning
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
-            ) {
-                SettingsSwitchItem(
-                    checked = includePatInExport.value,
-                    onToggle = {
-                        if (!includePatInExport.value) showIncludeWarning.value = true
-                        else includePatInExport.value = false
-                    },
-                    showBorder = true,
-                    leadingContent = {
-                        ThemedIcon(
-                            icon = Icons.Outlined.Upload,
-                            tint = LocalDialogTextColor.current
-                        )
-                    },
-                    title = stringResource(R.string.settings_advanced_github_pat_export_include_label),
-                    subtitle = stringResource(R.string.settings_advanced_github_pat_export_include_supporting)
-                )
-
-                // Warning badge if PAT will be included
-                if (includePatInExport.value) {
-                    Notice(
-                        text = stringResource(R.string.settings_advanced_github_pat_export_warning),
-                        tone = SemanticTone.Warning,
-                        icon = Icons.Outlined.Warning
+            SettingsSwitchItem(
+                checked = includePatInExport.value,
+                onToggle = {
+                    if (!includePatInExport.value) showIncludeWarning.value = true
+                    else includePatInExport.value = false
+                },
+                showBorder = true,
+                leadingContent = {
+                    ThemedIcon(
+                        icon = Icons.Outlined.Upload,
+                        tint = LocalDialogTextColor.current
                     )
-                }
+                },
+                title = stringResource(R.string.settings_advanced_github_pat_export_include_label),
+                subtitle = stringResource(R.string.settings_advanced_github_pat_export_include_supporting)
+            )
+
+            // Warning badge if PAT will be included
+            if (includePatInExport.value) {
+                Notice(
+                    text = stringResource(R.string.settings_advanced_github_pat_export_warning),
+                    tone = SemanticTone.Warning,
+                    icon = Icons.Outlined.Warning
+                )
             }
         }
     }
@@ -187,6 +177,7 @@ private fun GitHubPatDialog(
         AppDialog(
             onDismissRequest = { showIncludeWarning.value = false },
             title = stringResource(R.string.warning),
+            description = stringResource(R.string.settings_advanced_github_pat_export_warning),
             footer = {
                 AppDialogButtonRow(
                     primaryText = stringResource(R.string.confirm),
@@ -200,14 +191,6 @@ private fun GitHubPatDialog(
                     onSecondaryClick = { showIncludeWarning.value = false }
                 )
             }
-        ) {
-            Text(
-                text = stringResource(R.string.settings_advanced_github_pat_export_warning),
-                style = MaterialTheme.typography.bodyLarge,
-                color = LocalDialogSecondaryTextColor.current,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        )
     }
 }

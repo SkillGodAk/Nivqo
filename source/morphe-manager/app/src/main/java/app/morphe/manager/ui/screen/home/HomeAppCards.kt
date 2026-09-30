@@ -46,8 +46,8 @@ import app.morphe.manager.ui.model.HomeAppItem
 import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.ui.screen.shared.Animations
 import app.morphe.manager.ui.theme.LocalAppCardColorResolver
-import app.morphe.manager.ui.theme.LocalMonochromeTheme
-import app.morphe.manager.ui.theme.MonochromeThemeDefaults
+import app.morphe.manager.ui.theme.LocalThemeTraits
+import app.morphe.manager.ui.theme.ThemeTraitsDefaults
 import app.morphe.manager.util.*
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -61,6 +61,7 @@ private const val MAX_BADGE_VERSION_LENGTH = 10
 
 private data class HomeAppCardStyle(
     val monochrome: Boolean,
+    val outlines: Boolean,
     val colorResolver: AppCardColorResolver?,
     val iconSize: Dp,
     val titleColor: Color,
@@ -105,15 +106,17 @@ private data class HomeAppCardStyle(
 
 @Composable
 private fun homeAppCardStyle(subtitleAlpha: Float = 0.75f): HomeAppCardStyle {
-    val monochrome = LocalMonochromeTheme.current
-    val titleShadow = MonochromeThemeDefaults.textShadow(
+    // The cards draw a palette of their own rather than shared tokens, so they read the traits directly
+    val traits = LocalThemeTraits.current
+    val monochrome = traits.monochrome
+    val titleShadow = ThemeTraitsDefaults.textShadow(
         Shadow(
             color = Color.Black.copy(alpha = 0.4f),
             offset = Offset(0f, 2f),
             blurRadius = 4f
         )
     )
-    val subtitleShadow = MonochromeThemeDefaults.textShadow(
+    val subtitleShadow = ThemeTraitsDefaults.textShadow(
         Shadow(
             color = Color.Black.copy(alpha = 0.4f),
             offset = Offset(0f, 1f),
@@ -123,6 +126,7 @@ private fun homeAppCardStyle(subtitleAlpha: Float = 0.75f): HomeAppCardStyle {
 
     return HomeAppCardStyle(
         monochrome = monochrome,
+        outlines = traits.outlines,
         colorResolver = LocalAppCardColorResolver.current,
         iconSize = 60.dp,
         titleColor = if (monochrome) MaterialTheme.colorScheme.onSurface else Color.White,
@@ -177,8 +181,7 @@ internal fun RowScope.AppCardContent(
         contentDescription = null,
         modifier = Modifier.size(cardStyle.iconSize),
         preferredSource = AppDataSource.PATCHED_APK,
-        placeholderGradientColors = cardStyle.cardColors(gradientColors),
-        placeholderInnerPadding = 6.dp
+        placeholderGradientColors = cardStyle.cardColors(gradientColors)
     )
 
     Column(
@@ -285,6 +288,10 @@ private fun InstalledAppCard(
     }
 
     val version = remember(item) { item.version.withVersionPrefix() }
+    // What tells the app from a namesake leads the row, ahead of the version
+    val subtitle = remember(item) {
+        listOfNotNull(item.nameSuffix, version.ifEmpty { null }).joinToString(" • ")
+    }
 
     // The version worth badging, out of the one the sources support: only when it is short enough
     // to leave the row its width, with the long build-stamped kind left to the app's dialog, which
@@ -314,6 +321,7 @@ private fun InstalledAppCard(
     ) {
         buildString {
             append(item.displayName)
+            item.nameSuffix?.let { append(", $it") }
             if (item.isClone) append(", $cloneLabel")
             if (version.isNotEmpty()) {
                 append(", $versionLabel $version")
@@ -356,8 +364,7 @@ private fun InstalledAppCard(
             preferredSource = AppDataSource.INSTALLED,
             // A record can outlive every artifact carrying its icon, and the glass placeholder is
             // what the rest of the list shows in that case
-            placeholderGradientColors = cardStyle.cardColors(item.gradientColors),
-            placeholderInnerPadding = 6.dp
+            placeholderGradientColors = cardStyle.cardColors(item.gradientColors)
         )
 
         // App info
@@ -398,7 +405,7 @@ private fun InstalledAppCard(
                 // a version string of whatever length
                 Text(
                     modifier = Modifier.weight(1f),
-                    text = version,
+                    text = subtitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = cardStyle.subtitleStyle,
@@ -483,7 +490,7 @@ private fun NotPatchedAppCard(
     // rather than by an install, and that version answers a different question
     val subtitle = remember(item, notPatchedText) {
         val version = item.version.takeIf { item.isInstalledOnDevice && it.isNotEmpty() }
-        version?.let { "${it.withVersionPrefix()} • $notPatchedText" } ?: notPatchedText
+        listOfNotNull(item.nameSuffix, version?.withVersionPrefix(), notPatchedText).joinToString(" • ")
     }
 
     val contentDesc = remember(item.displayName, subtitle) {
@@ -600,11 +607,13 @@ internal fun AppCardLayout(
 
                     drawContent()
 
-                    drawRoundRect(
-                        brush = border,
-                        cornerRadius = cr,
-                        style = borderStroke
-                    )
+                    if (cardStyle.outlines) {
+                        drawRoundRect(
+                            brush = border,
+                            cornerRadius = cr,
+                            style = borderStroke
+                        )
+                    }
                 }
             }
             .combinedClickable(
@@ -724,12 +733,13 @@ fun AppLoadingCard(
             horizontalArrangement = Arrangement.spacedBy(cardStyle.contentSpacing),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon skeleton, inset and rounded like the glass placeholder it stands in for
+            // Icon skeleton, sized and shaped like the glass placeholder
             ShimmerBox(
                 modifier = Modifier
                     .size(cardStyle.iconSize)
-                    .padding(6.dp),
-                shape = RoundedCornerShape(percent = 20),
+                    .wrapContentSize()
+                    .fillMaxSize(AppIconContentFraction),
+                shape = AppIconShape,
                 baseColor = skeletonColor.copy(alpha = 0.2f)
             )
 
@@ -738,30 +748,16 @@ fun AppLoadingCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Box(
-                    modifier = Modifier.height(titleRowHeight),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    ShimmerBox(
-                        modifier = Modifier
-                            .fillMaxWidth(0.6f)
-                            .height(20.dp),
-                        shape = RoundedCornerShape(4.dp),
-                        baseColor = skeletonColor.copy(alpha = 0.25f)
-                    )
-                }
-                Box(
-                    modifier = Modifier.height(statusBadgeHeight),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    ShimmerBox(
-                        modifier = Modifier
-                            .fillMaxWidth(0.4f)
-                            .height(14.dp),
-                        shape = RoundedCornerShape(4.dp),
-                        baseColor = skeletonColor.copy(alpha = 0.15f)
-                    )
-                }
+                ShimmerLine(
+                    height = titleRowHeight,
+                    widthFraction = 0.6f,
+                    baseColor = skeletonColor.copy(alpha = 0.25f)
+                )
+                ShimmerLine(
+                    height = statusBadgeHeight,
+                    widthFraction = 0.4f,
+                    baseColor = skeletonColor.copy(alpha = 0.15f)
+                )
             }
         }
     }
