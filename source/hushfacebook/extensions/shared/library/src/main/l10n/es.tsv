@@ -314,7 +314,7 @@ The card at the top of Chats that asks you to get the Messenger app goes while M
 # context: switch title under Chats; on, Facebook's Messenger icon opens the Messenger app
 Open the Messenger app	Abrir la app de Messenger
 # context: summary of that switch; Messenger is the app's name, Chats is Facebook's own chat screen as named above
-A tap on the Messenger icon at the top of Facebook opens the Messenger app instead of Chats. Without Messenger installed, Chats opens as before.	Al tocar el icono de Messenger de la parte superior de Facebook se abre la app de Messenger en lugar de Chats. Si Messenger no está instalado, Chats se abre como antes.
+Turn this on to open the Messenger app from Facebook's top Messenger icon. Turn it off to open Facebook's built-in Chats directly instead of Meta's Messenger redirect prompt. A long press keeps Facebook's own behavior.	Actívalo para abrir la app de Messenger desde el icono de Messenger de la parte superior de Facebook. Desactívalo para abrir directamente los Chats integrados de Facebook en lugar del aviso de redirección de Meta a Messenger. Una pulsación larga mantiene el comportamiento original de Facebook.
 # context: settings section heading for the Tap to play switch
 Playback	Reproducción
 # context: switch title; on, videos and music wait for a tap before they play

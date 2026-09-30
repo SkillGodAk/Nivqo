@@ -42,3 +42,7 @@ Thumbs.db
 # Google/Firebase local config (never commit real credentials/config)
 **/google-services.json
 
+
+# Local project history / private handoff
+CORE_ARCHIVE/
+MD_HANDOFF/

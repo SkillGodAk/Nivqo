@@ -83,7 +83,7 @@ Meta 可能在同一個版本名稱下發布多個不同 build。它們的 DEX /
 目前核心更新通道：
 
 - Nivqo Manager `1.33.0`（同步 Morphe Manager `1.33.0` / Morphe Patcher `1.15.0`）
-- HushFacebook `0.5.0-nivqo.1`（上游 `6d312196bc9ae8a7c9bd77f936c60b6e6de579d2`）
+- HushFacebook `0.5.0-nivqo.2`（上游 `6d312196bc9ae8a7c9bd77f936c60b6e6de579d2`；Nivqo 恢復「關閉外部 Messenger 時直接開啟 Facebook 內建聊天」）
 - HushMessenger `0.6.0-nivqo.1`（上游 `4b259a712e1b3c90edb7d0262d2b7d23bf45b093`）
 - Manager 內 HushFacebook patch metadata：`54 / 54` 繁中
 - Manager 內 HushMessenger patch metadata：`28 / 28` 繁中

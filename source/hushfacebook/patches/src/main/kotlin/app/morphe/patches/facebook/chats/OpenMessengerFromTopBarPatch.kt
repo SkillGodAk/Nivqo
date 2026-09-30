@@ -43,9 +43,9 @@ private const val TOUCH = "$EXTENSION_PACKAGE/chats/MessengerIcon;->touch($MOTIO
 val openMessengerFromTopBarPatch = bytecodePatch(
     // The README table check reads this literal; ICON_PATCH carries the same text for the messages.
     name = "Open Messenger from the top bar",
-    description = "Lets the Messenger icon at the top of Facebook open the Messenger app instead of Facebook's own " +
-        "Chats. Without Messenger installed, Chats opens as before, and a long press on the icon still does what " +
-        "Facebook does with it. Its switch starts off, so turn it on under Chats in Hushfacebook's settings.",
+    description = "Lets the Messenger icon at the top of Facebook choose between Messenger and Facebook's own Chats. " +
+        "With its switch on, Messenger opens. With it off, Nivqo opens Facebook's built-in Chats directly instead of " +
+        "Meta's Messenger redirect prompt. A long press still does what Facebook does with it.",
     default = true,
 ) {
     category("Interface")
