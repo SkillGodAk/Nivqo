@@ -1,5 +1,6 @@
 package app.hushmessenger.extension;
 
+import android.app.LocaleManager;
 import android.content.Context;
 import android.os.Build;
 import android.os.LocaleList;
@@ -30,11 +31,13 @@ final class SettingsText {
     }
 
     private static Locale requestedLocale(Context context) {
-        // Follow system means Android's system language, not Messenger's app-specific locale.
-        try {
-            LocaleList requested = LocaleList.getDefault();
+        // Follow system follows Android's resolved locale for Messenger, including Android 13+
+        // per-app language settings. Nivqo's explicit 繁體中文 / English modes still override it.
+        if (Build.VERSION.SDK_INT >= 33) {
+            LocaleManager manager = context.getSystemService(LocaleManager.class);
+            LocaleList requested = manager == null ? LocaleList.getEmptyLocaleList() : manager.getApplicationLocales();
             if (!requested.isEmpty()) return requested.get(0);
-        } catch (Throwable ignored) { }
+        }
         return context.getResources().getConfiguration().getLocales().get(0);
     }
 
@@ -106,6 +109,7 @@ final class SettingsText {
         ENGLISH.put("conversations", "Conversations");
         ENGLISH.put("links_bubbles", "Links and bubbles");
         ENGLISH.put("privacy", "Privacy");
+        ENGLISH.put("theme", "Theme");
         ENGLISH.put("settings", "HushMessenger settings");
         ENGLISH.put("preview_title", "HushMessenger UI preview");
         ENGLISH.put("preview_notice", "UI preview. These switches don't change Messenger.");

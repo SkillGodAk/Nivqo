@@ -297,7 +297,7 @@ object PatchMetadataLocalizer {
         ),
         "Hide People You May Know" to Zh(
             "隱藏「你可能認識的人」",
-            "隱藏聊天列表與通知分頁中的好友建議。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏聊天、搜尋、限時動態，以及「聯絡人」與通知分頁中的好友建議。長按 Messenger → Patch controls 可設定。預設關閉。"
         ),
         "Hide Reels badge" to Zh(
             "隱藏 Reels 徽章",
@@ -329,7 +329,7 @@ object PatchMetadataLocalizer {
         ),
         "Hide growth prompts" to Zh(
             "隱藏成長推廣提示",
-            "隱藏收件匣中鼓勵加入更多聯絡人的推廣單元。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏收件匣中鼓勵加入更多聯絡人的推廣單元，也隱藏便利貼中的提示面板（例如「公開我的便利貼」）與看完他人限時動態後的「分享你自己的限時動態」卡片。長按 Messenger → Patch controls 可設定。預設關閉。"
         ),
         "Hide inbox ads" to Zh(
             "隱藏收件匣廣告",
@@ -380,6 +380,10 @@ object PatchMetadataLocalizer {
             "從選單開啟設定",
             "在 Messenger 的「選單」分頁加入 HushMessenger 設定入口。此補丁固定啟用。"
         ),
+        "Save any story" to Zh(
+            "儲存任何限時動態",
+            "在其他人的限時動態「更多」選單加入「儲存」。相片或影片會使用 Messenger 原本儲存自己限時動態的方式存到手機。長按 Messenger → Patch controls 可設定。預設關閉。"
+        ),
         "Send photos at original quality" to Zh(
             "以原始畫質傳送照片",
             "開啟 HD 時，直接傳送 JPEG 照片本身的影像資料，不使用重新編碼的副本；位置、相機資訊等中繼資料會移除，只保留旋轉標記。影片與超過 20 MB 的照片仍會壓縮。長按 Messenger → Patch controls 可設定。預設關閉。"
@@ -390,11 +394,30 @@ object PatchMetadataLocalizer {
         ),
     )
 
+    private val messengerZhDescriptions = mapOf(
+        "Material You theme" to
+            "Android 12 以上讓 Messenger 深色模式使用桌布配色；Android 11 使用固定藍色調。淺色模式不變。請先在 Messenger 開啟深色模式。",
+        "View stories anonymously" to
+            "開啟其他人的限時動態時，不會把你加入對方的觀看名單；在你這一端仍會標記為已看。長按 Messenger → Patch controls 可設定。預設關閉。",
+    )
+
     fun name(original: String): String =
         if (isTraditionalChinese()) zh[original]?.name ?: original else original
 
-    fun description(name: String, original: String?): String? =
-        if (isTraditionalChinese()) zh[name]?.description ?: original else original
+    fun description(name: String, original: String?): String? {
+        if (!isTraditionalChinese()) return original
+        if (isMessengerVariant(name, original)) {
+            return messengerZhDescriptions[name] ?: zh[name]?.description ?: original
+        }
+        return zh[name]?.description ?: original
+    }
+
+    private fun isMessengerVariant(name: String, original: String?): Boolean = when (name) {
+        "Material You theme" -> original?.contains("Messenger", ignoreCase = true) == true
+        "View stories anonymously" ->
+            original?.contains("marked as seen on your side", ignoreCase = true) == true
+        else -> false
+    }
 
     fun category(original: String?): String? =
         if (isTraditionalChinese() && original != null) categories[original] ?: original else original

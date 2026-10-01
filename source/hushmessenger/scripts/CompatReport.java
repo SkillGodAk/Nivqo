@@ -71,7 +71,11 @@ public class CompatReport {
     static final String AD_ITEM = "Lcom/facebook/messaging/business/inboxads/common/InboxAdsItem;";
     static final String IMMUTABLE_LIST = "Lcom/google/common/collect/ImmutableList;";
     static final String PREFERENCES = "Lcom/facebook/prefs/shared/FbSharedPreferences;";
+    static final String MONTAGE_CARD = "Lcom/facebook/messaging/montage/model/MontageCard;";
+    static final String PEOPLE_TAB_FETCH = "Lcom/facebook/messaging/peopletab/segments/friendrequests/usecase/"
+        + "PeopleTabPYMKHandler$fetchPymkSuggestions$$inlined$CoroutineExceptionHandler$1;";
     static final String PEOPLE_JEWEL_KEY = "pymk_jewel_section_hidden";
+    static final String STORY_CARD_DATE_KEY = "last_date_creation_card_shown";
     static final long PEOPLE_SERVER_FLAG = 72344235860374863L;
 
     static final Set<String> FACEBOOK_PLUGINS = Set.of(
@@ -129,9 +133,9 @@ public class CompatReport {
     static final Map<String, List<String>> PATCHES = new LinkedHashMap<>();
     static {
         PATCHES.put("Hide inbox ads", List.of("ads"));
-        PATCHES.put("Hide People You May Know", List.of("people", "people_list_end", "people_jewel"));
+        PATCHES.put("Hide People You May Know", List.of("people", "people_list_end", "people_jewel", "people_tab", "people_search", "people_story"));
         PATCHES.put("Hide friend request cards", List.of("friend_requests"));
-        PATCHES.put("Hide growth prompts", List.of("growth"));
+        PATCHES.put("Hide growth prompts", List.of("growth", "growth_notes", "growth_story_card"));
         PATCHES.put("Hide inbox promotions", List.of("inbox_promotions"));
         PATCHES.put("Hide stories and notes", List.of("stories"));
         PATCHES.put("Hide inbox tabs", List.of("subtabs"));
@@ -153,6 +157,8 @@ public class CompatReport {
         PATCHES.put("Allow screenshots", List.of("allow_screenshot"));
         PATCHES.put("Hide read receipts", List.of("hide_read_receipts", "read_mailbox"));
         PATCHES.put("Keep unsent messages", List.of("keep_unsent", "unsent_indicator", "delta_unsent"));
+        PATCHES.put("View stories anonymously", List.of("anonymous_stories"));
+        PATCHES.put("Save any story", List.of("save_stories"));
         PATCHES.put("Open settings from menu", List.of("menu_settings"));
     }
 
@@ -539,6 +545,15 @@ public class CompatReport {
         return m.getDefiningClass() + "->" + m.getName() + "(" + params + ")" + m.getReturnType();
     }
 
+    static boolean classReferencesType(ClassDef cls, String type) {
+        for (var m : cls.getMethods()) {
+            if (m.getImplementation() == null) continue;
+            for (var i : m.getImplementation().getInstructions())
+                if (i instanceof ReferenceInstruction ri && ri.getReference() instanceof TypeReference tr && type.equals(tr.getType())) return true;
+        }
+        return false;
+    }
+
     static List<ClassDef> loadDex(File apk) throws Exception {
         // The container API reads the same in upstream dexlib2 and in the patcher's fork the tests use.
         var classes = new ArrayList<ClassDef>();
@@ -616,6 +631,23 @@ public class CompatReport {
                 for (var i : code) {
                     if (i.getOpcode() == Opcode.SPUT_OBJECT && i instanceof ReferenceInstruction ri) {
                         peopleJewelKeys.add(ri.getReference().toString());
+                    }
+                }
+            }
+        }
+
+        // The static field a class initializer stores the story card's last-shown date key in
+        var storyCardKeys = new HashSet<String>();
+        for (var cls : classes) {
+            for (var m : cls.getMethods()) {
+                if (!"<clinit>".equals(m.getName()) || m.getImplementation() == null) continue;
+                boolean pending = false;
+                for (var i : m.getImplementation().getInstructions()) {
+                    if (i instanceof ReferenceInstruction ri && ri.getReference() instanceof StringReference sr &&
+                        STORY_CARD_DATE_KEY.equals(sr.getString())) pending = true;
+                    else if (pending && i.getOpcode() == Opcode.SPUT_OBJECT) {
+                        storyCardKeys.add(((ReferenceInstruction) i).getReference().toString());
+                        pending = false;
                     }
                 }
             }
@@ -910,6 +942,50 @@ public class CompatReport {
                 // read_mailbox: the msys call that marks a thread read (and sends the receipt) in encrypted chats
                 if ("V".equals(method.getReturnType()) && strings.contains("markAsReadThreadWithThreadIdentifier")) {
                     found.get("read_mailbox").add(method);
+                }
+
+                // anonymous_stories: the story mark-read handler that reports a viewed card
+                if ("V".equals(method.getReturnType()) && paramTypes.equals(List.of(MONTAGE_CARD, "Z")) &&
+                    !isStatic && strings.contains("MontageMsysMarkReadHandler")) {
+                    found.get("anonymous_stories").add(method);
+                }
+
+                // save_stories: the story viewer's More options menu, which adds Save to your own story's menu
+                if ("onClick".equals(method.getName()) && "V".equals(method.getReturnType()) &&
+                    paramTypes.equals(List.of("Landroid/view/View;")) && strings.contains("toolbar_click_menu_button")) {
+                    found.get("save_stories").add(method);
+                }
+
+                // growth_notes: the launcher every notes tip sheet (Make my notes public, Add lyrics) goes through
+                if (!isStatic && "Ljava/lang/Object;".equals(method.getReturnType()) &&
+                    strings.contains("NotesMigNuxBottomSheet") && strings.contains("arg_nux_type")) {
+                    found.get("growth_notes").add(method);
+                }
+
+                // growth_story_card: the daily cap check the story viewer's Share your own story card waits on
+                if (isStatic && "Z".equals(method.getReturnType()) && paramTypes.equals(List.of(cls.getType())) &&
+                    refs.stream().anyMatch(r -> storyCardKeys.contains(r.toString()))) {
+                    found.get("growth_story_card").add(method);
+                }
+
+                // people_tab: the People tab suggestion handler handing its list and filter map to the tab
+                if ("V".equals(method.getReturnType()) && isStatic && paramTypes.equals(List.of(cls.getType())) &&
+                    refs.stream().anyMatch(r -> r instanceof MethodReference mr && "V".equals(mr.getReturnType()) &&
+                        mr.getParameterTypes().stream().map(CharSequence::toString).toList().equals(List.of(IMMUTABLE_LIST, "Ljava/util/Map;"))) &&
+                    classReferencesType(cls, PEOPLE_TAB_FETCH)) {
+                    found.get("people_tab").add(method);
+                }
+
+                // people_search: the search screen's empty-state suggestions source
+                if (!isStatic && strings.contains("PeopleYouMayKnowSectionDataSource") &&
+                    strings.contains("Failed to load people you may know")) {
+                    found.get("people_search").add(method);
+                }
+
+                // people_story: the story viewer's once-per-viewer request for a page of suggested people
+                if ("V".equals(method.getReturnType()) && isStatic && paramTypes.equals(List.of(cls.getType())) &&
+                    strings.contains("MsgrPeopleYouMayKnowQuery")) {
+                    found.get("people_story").add(method);
                 }
 
                 // avatar_tabs: the Litho sticker keyboard's tab list builder

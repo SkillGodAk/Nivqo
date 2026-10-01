@@ -16,13 +16,13 @@
 ### 繁體中文修正
 
 - HushFacebook 現行 54 個 patch：名稱／說明繁中覆蓋 `54 / 54`。
-- HushMessenger 現行 28 個 patch entry：名稱／說明繁中覆蓋 `28 / 28`。
+- HushMessenger 現行 31 個 patch entry：名稱／說明繁中覆蓋 `31 / 31`；核心設定文字繁中覆蓋也已補齊。
 - 修正先前更新 core 後，Manager 新增 patch 項目仍顯示英文的問題。
 
 ### 核心
 
 - HushFacebook 現行核心為 `0.5.0-nivqo.2`，恢復「關閉外部 Messenger」時直接開啟 Facebook 內建 Chats / InboxActivity，略過 Meta 的 Messenger 跳轉詢問。
-- HushMessenger 維持 `0.6.0-nivqo.1`。
+- HushMessenger 更新為 `0.7.0-nivqo.1`，只同步上游正式 Release `v0.7.0` / commit `1756352d6884c88122f73d5e212180abdd75f517`；未納入 v0.7.0 發布後的 `main` commit。新增 Material You 主題、匿名觀看限時動態、儲存任何限時動態，並擴充好友建議／成長提示隱藏範圍。
 - 兩個核心的內建離線 seed 與公開更新 bundle SHA-256 已一致驗證。
 
 ## 2026-09-30 — Core channel update

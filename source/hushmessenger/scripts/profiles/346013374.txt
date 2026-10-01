@@ -19,6 +19,7 @@ hook allow_screenshot LX/4pO;->A00(Landroid/view/Window;)V
 hook allow_screenshot LX/8yJ;->onScreenCaptured()V
 hook allow_screenshot LX/YOO;->run()V
 hook allow_screenshot Lcom/facebook/screenshot/ScreenshotContentObserver;->onChange(ZLandroid/net/Uri;)V
+hook anonymous_stories LX/NFK;->C1U(Lcom/facebook/messaging/montage/model/MontageCard;Z)V
 hook avatar_stickers LX/MEX;->A01(LX/MEX;)Z
 hook avatar_tabs Lcom/facebook/messaging/msys/thread/composer/configuration/xapp/BaseXappComposerConfigurationFactory;->A6U(LX/5os;)V
 hook browser Lcom/facebook/messaging/browser/util/MessengerBrowserLauncher;->A0M(Landroid/net/Uri;Lcom/facebook/auth/usersession/FbUserSession;)Z
@@ -57,6 +58,8 @@ hook friend_requests LX/1pl;->A09()Z
 hook friend_requests LX/2Wk;->A02()Z
 hook growth LX/1pl;->A0A()Z
 hook growth LX/2GD;->A0A(LX/2GD;)Z
+hook growth_notes Lcom/facebook/presence/note/ui/nux/controller/NotesNuxController;->A01(Landroidx/fragment/app/Fragment;LX/Fw0;Ljava/util/List;LX/5OJ;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+hook growth_story_card Lcom/facebook/messaging/montage/viewer/MontageViewerFragment;->A0z(Lcom/facebook/messaging/montage/viewer/MontageViewerFragment;)Z
 hook hide_read_receipts LX/AXl;->run()V
 hook inbox_promotions LX/2Ee;->A0J()Z
 hook inbox_promotions LX/2Ee;->A0K()Z
@@ -74,8 +77,12 @@ hook people LX/2Wk;->A04()Z
 hook people_jewel LX/TCu;->A01(LX/TCu;)Z
 hook people_list_end LX/1pl;->A0B()Z
 hook people_list_end LX/2Wk;->A03()Z
+hook people_search LX/CUs;->DLH(LX/E5P;Ljava/lang/Object;)LX/E7G;
+hook people_story Lcom/facebook/messaging/montage/viewer/MontageViewerFragment;->A0Z(Lcom/facebook/messaging/montage/viewer/MontageViewerFragment;)V
+hook people_tab LX/E7d;->A01(LX/E7d;)V
 hook read_mailbox LX/9tV;->A01(Ljava/lang/Long;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;)V
 hook reels_badge LX/7xl;->A09(LX/7xl;)Z
+hook save_stories LX/PLV;->onClick(Landroid/view/View;)V
 hook stories LX/1mh;->A00()Z
 hook subtabs LX/2UK;->run()V
 hook suggested_replies LX/7T9;->A06(LX/7T9;)Z
