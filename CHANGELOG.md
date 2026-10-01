@@ -16,7 +16,7 @@
 ### 繁體中文修正
 
 - HushFacebook 現行 54 個 patch：名稱／說明繁中覆蓋 `54 / 54`。
-- HushMessenger 現行 31 個 patch entry：名稱／說明繁中覆蓋 `31 / 31`；核心設定文字繁中覆蓋也已補齊。
+- HushMessenger 現行 31 個 patch entry；核心設定文字繁中覆蓋已補齊。Manager source 的名稱／說明繁中也已補到 `31 / 31`，但本次只更新核心，不重新發布 APK。
 - 修正先前更新 core 後，Manager 新增 patch 項目仍顯示英文的問題。
 
 ### 核心
