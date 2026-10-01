@@ -86,7 +86,7 @@ Meta 可能在同一個版本名稱下發布多個不同 build。它們的 DEX /
 - HushFacebook `0.5.0-nivqo.2`（上游 `6d312196bc9ae8a7c9bd77f936c60b6e6de579d2`；Nivqo 恢復「關閉外部 Messenger 時直接開啟 Facebook 內建聊天」）
 - HushMessenger `0.7.0-nivqo.1`（上游正式 Release `v0.7.0` / commit `1756352d6884c88122f73d5e212180abdd75f517`）
 - Manager 內 HushFacebook patch metadata：`54 / 54` 繁中
-- Manager 內 HushMessenger patch metadata：`31 / 31` 繁中
+- HushMessenger 核心設定文字：繁中完整覆蓋；Manager source 已補到 `31 / 31` patch metadata，但本次只更新核心、不重發 APK，新增的 Manager 專用翻譯會於下次 APK 更新帶入
 
 - **HushFacebook / HushMessenger 插件核心**：由 Nivqo 自己的 GitHub 更新通道提供。預設只同步上游已正式發布的 Release／Tag；`main`、未發版 commit 或 prerelease 不會自動納入，除非另有明確決定。正式版同步時會先合併繁體中文與本專案修改並測試，再更新 GitHub 上的 patch bundle。已安裝的 Nivqo 可自動取得新版插件核心。
 - **Nivqo Manager 本體**：只有 Manager 本身有修改時才發布新的 APK，更新來源為 `SkillGodAk/Nivqo` 的 GitHub Releases。
