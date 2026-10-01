@@ -67,7 +67,7 @@ public class SetupSummaryTest {
             assertTrue(text.contains("people: installed=true, selected=true, active=true,"));
             assertTrue(text.contains("stories: installed=false, selected=true, active=false,"));
             assertTrue(text.matches("(?s).*\nFacebook caller checks: trusted=\\d+, signer_differs=\\d+, meta_signed_build=\\d+, not_family=\\d+, error=\\d+\n"));
-            assertEquals(34, text.split("\n").length);
+            assertEquals(37, text.split("\n").length);
             assertFalse(text.contains("private-"));
             assertFalse(text.contains("account-secret"));
             assertFalse(text.contains("account_id"));
@@ -154,7 +154,7 @@ public class SetupSummaryTest {
             assertTrue(text, text.matches("(?s).*\nFacebook caller checks: [^\n]*\nHook errors:\n"
                 + "avatar_stickers: java\\.lang\\.UnsupportedOperationException at Settings\\.removeAvatarTabs:\\d+" + time
                 + "menu_row: java\\.lang\\.IllegalStateException at SetupSummaryTest\\.aFailedHookShowsInCopySetupAndOnItsSwitchWithoutTheExceptionMessage:\\d+" + time));
-            assertEquals(37, text.split("\n").length);
+            assertEquals(40, text.split("\n").length);
             assertFalse(text.contains("private-"));
             assertFalse(Settings.preferences.getAll().toString().contains("private-"));
         }

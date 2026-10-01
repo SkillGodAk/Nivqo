@@ -195,7 +195,7 @@ public class SettingsTranslationTest {
             View root = screen.get().getWindow().getDecorView();
             assertEquals("ES Controls", ((TextView) root.findViewWithTag("tab_controls")).getText().toString());
             assertTrue(showsText(root, "ES Hide People You May Know"));
-            assertTrue(showsText(root, "ES Removes suggested people from chats and Notifications."));
+            assertTrue(showsText(root, "ES Removes suggested people from chats, search and stories, and from the People and Notifications tabs."));
             assertFalse(showsText(root, "Hide People You May Know"));
             root.findViewWithTag("people").performClick();
             assertEquals(Map.of("people", true), Settings.preferences.getAll());

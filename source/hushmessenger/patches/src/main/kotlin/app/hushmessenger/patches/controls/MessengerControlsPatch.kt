@@ -46,7 +46,7 @@ internal fun Document.addSettingsEntry() {
         "theme" to "@android:style/Theme.Material.NoActionBar")
 }
 
-private val settingsResources = resourcePatch(description = "Install HushMessenger settings") {
+internal val settingsResources = resourcePatch(description = "Install HushMessenger settings") {
     execute {
         validateVersionCode(packageMetadata.versionCode)
         val shortcutsPath = resolveShortcutsPath(listApkEntries("res/")) { path ->
@@ -83,7 +83,7 @@ internal val settingsExtension = bytecodePatch(description = "Load HushMessenger
     }
 }
 
-private fun Document.requireFeatureAbsent(key: String): Element {
+internal fun Document.requireFeatureAbsent(key: String): Element {
     val application = getElementsByTagName("application").item(0) as Element
     val name = "hush.feature.$key"
     val metadata = application.getElementsByTagName("meta-data")
@@ -110,6 +110,9 @@ internal fun injectControl(key: String, methods: Map<String, List<MutableMethod>
             "browser" -> method.validateBrowserPreference()
             "ads" -> method.validateAdFilter()
             "people_jewel" -> method.validatePeopleSection()
+            "people_tab" -> method.validatePeopleTab()
+            "people_search" -> method.validatePeopleSearch()
+            "people_story" -> method.validatePeopleStory()
             "keep_unsent" -> method.validateKeepUnsent()
             "unsent_indicator" -> method.validateUnsentIndicator()
             "delta_unsent" -> method.validateDeltaUnsent()
@@ -117,6 +120,8 @@ internal fun injectControl(key: String, methods: Map<String, List<MutableMethod>
             "original_photo" -> method.validateOriginalPhoto()
             "avatar_tabs" -> if (method.returnType == "V") method.validateKeyboardTabsInline() else method.validateKeyboardTabs()
             "typing_mailbox" -> method.validateOutgoingTyping()
+            "anonymous_stories" -> method.validateStorySeen()
+            "growth_notes" -> method.validateNotesTips()
             else -> method.validateSwitch()
         }
     }
@@ -126,6 +131,9 @@ internal fun injectControl(key: String, methods: Map<String, List<MutableMethod>
             "browser" -> method.injectBrowserPreference()
             "ads" -> method.injectAdFilter()
             "people_jewel" -> method.injectPeopleSection()
+            "people_tab" -> method.injectPeopleTab()
+            "people_search" -> method.injectPeopleSearch()
+            "people_story" -> method.injectPeopleStory()
             "stories" -> method.injectSwitch("hideStories", "0x0")
             "facebook" -> method.injectSwitch("hideFacebook", "0x0")
             "ai_menu", "ai_fab", "ai_toolbar", "ai_search", "ai_search_chip" -> method.injectSwitch("hideMetaAi", "0x0")
@@ -141,6 +149,8 @@ internal fun injectControl(key: String, methods: Map<String, List<MutableMethod>
             "original_photo" -> method.injectOriginalPhoto()
             "avatar_tabs" -> if (method.returnType == "V") method.injectKeyboardTabsInline() else method.injectKeyboardTabs()
             "typing_mailbox" -> method.injectOutgoingTyping()
+            "anonymous_stories" -> method.injectStorySeen()
+            "growth_notes" -> method.injectNotesTips()
             else -> method.injectFeatureSwitch(key)
         }
     }
@@ -184,11 +194,13 @@ private fun controlPatch(key: String, title: String, summary: String, group: Str
 @Suppress("unused")
 val hideInboxAdsPatch = controlPatch("ads", "Hide inbox ads", "Filters typed inbox ad items, in case Meta brings back the inbox ads it stopped selling in November 2025.", "Inbox")
 @Suppress("unused")
-val hidePeoplePatch = controlPatch("people", "Hide People You May Know", "Hides suggested people in chats and on the Notifications tab.", "Inbox", "people", "people_list_end", "people_jewel")
+val hidePeoplePatch = controlPatch("people", "Hide People You May Know", "Hides suggested people in chats, search and stories, and on the People and Notifications tabs.", "Inbox", "people", "people_list_end", "people_jewel", "people_tab", "people_search", "people_story")
 @Suppress("unused")
 val hideFriendRequestsPatch = controlPatch("friend_requests", "Hide friend request cards", "Hides friend request cards inside the inbox.", "Inbox")
 @Suppress("unused")
-val hideGrowthPatch = controlPatch("growth", "Hide growth prompts", "Hides the inbox's add-more-people promotion unit.", "Inbox")
+val hideGrowthPatch = controlPatch("growth", "Hide growth prompts", "Hides the inbox's add-more-people promotion unit. " +
+    "Also hides the tip sheets in notes, like Make my notes public, and the Share your own story card after someone else's stories.",
+    "Inbox", "growth", "growth_notes", "growth_story_card")
 @Suppress("unused")
 val hideInboxPromotionsPatch = controlPatch("inbox_promotions", "Hide inbox promotions", "Hides Messenger quick-promotion banners in the chat list.", "Inbox")
 @Suppress("unused")
@@ -231,6 +243,83 @@ val allowScreenshotPatch = controlPatch("allow_screenshot", "Allow screenshots",
 val hideReadReceiptsPatch = controlPatch("hide_read_receipts", "Hide read receipts", "Suppresses your outgoing read receipt. In end-to-end encrypted chats, chats you open stay unread until you reply.", "Privacy", "hide_read_receipts", "read_mailbox")
 @Suppress("unused")
 val keepUnsentPatch = controlPatch("keep_unsent", "Keep unsent messages", "Preserves messages other people remove for everyone, except in end-to-end encrypted chats. Your own unsend ability may be limited while active.", "Privacy", "keep_unsent", "unsent_indicator", "delta_unsent")
+private var anonymousStoriesApplied = false
+
+private val anonymousStoriesResources = resourcePatch(description = "Record HushMessenger capability: anonymous_stories") {
+    dependsOn(settingsResources)
+    execute {
+        anonymousStoriesApplied = false
+        document("AndroidManifest.xml").use { it.requireFeatureAbsent("anonymous_stories") }
+    }
+    finalize {
+        if (anonymousStoriesApplied) document("AndroidManifest.xml").use { it.addFeature("anonymous_stories") }
+    }
+}
+
+@Suppress("unused")
+val anonymousStoriesPatch = bytecodePatch(
+    name = "View stories anonymously",
+    description = "Opens other people's stories without adding you to their viewer list. Stories you open this way are marked as seen on your side. Long-press Messenger > Patch controls. Starts off.",
+    default = true,
+) {
+    category("Privacy")
+    compatibleWith(MessengerTarget.COMPATIBILITY)
+    dependsOn(settingsExtension, anonymousStoriesResources)
+    execute {
+        validateControls(discoveredControls, setOf("anonymous_stories"))
+        val handler = discoveredControls.getValue("anonymous_stories").single().let { original ->
+            mutableClassDefBy(original.definingClass).methods.single { it.hookId() == original.hookId() }
+        }
+        // The read set is checked before the first edit, so a build that moved it fails with the APK untouched.
+        val readSetClass = mutableClassDefBy(handler.storyReadSetAdd().definingClass)
+        val readSet = readSetClass.validateStoryReadSet(handler.storyReadSetAdd())
+        injectControl("anonymous_stories", mapOf("anonymous_stories" to listOf(handler)))
+        readSetClass.methods.single { it.hookId() == readSet.add }.injectStoryReadSetAdd(readSet)
+        readSetClass.methods.single { it.name == "<init>" }.injectStoryReadSetSeed(readSet)
+        recordControl("anonymous_stories")
+        anonymousStoriesApplied = true
+    }
+}
+
+private var saveStoriesApplied = false
+
+private val saveStoriesResources = resourcePatch(description = "Record HushMessenger capability: save_stories") {
+    dependsOn(settingsResources)
+    execute {
+        saveStoriesApplied = false
+        document("AndroidManifest.xml").use { it.requireFeatureAbsent("save_stories") }
+    }
+    finalize {
+        if (saveStoriesApplied) document("AndroidManifest.xml").use { it.addFeature("save_stories") }
+    }
+}
+
+@Suppress("unused")
+val saveStoriesPatch = bytecodePatch(
+    name = "Save any story",
+    description = "Adds Save to the More options menu on other people's stories. The photo or video goes to your phone the same way Messenger saves your own. Long-press Messenger > Patch controls. Starts off.",
+    default = true,
+) {
+    category("Privacy")
+    compatibleWith(MessengerTarget.COMPATIBILITY)
+    dependsOn(settingsExtension, saveStoriesResources)
+    execute {
+        validateControls(discoveredControls, setOf("save_stories"))
+        val original = discoveredControls.getValue("save_stories").single()
+        val builderClass = mutableClassDefBy(original.definingClass)
+        val builder = builderClass.methods.single { it.hookId() == original.hookId() }
+        // The menu, its Save item and the handler are all checked before the first edit.
+        val save = builder.validateStorySave()
+        classDefBy(save.handler).validateStoryMenuHandler(save)
+        if (builderClass.methods.any { it.name == STORY_SAVE_HELPER }) {
+            throw PatchException("Messenger controls: the story menu already has $STORY_SAVE_HELPER")
+        }
+        builderClass.methods.add(storySaveHelper(original.definingClass, save))
+        builder.injectStorySave(save)
+        recordControl("save_stories")
+        saveStoriesApplied = true
+    }
+}
 
 private var menuRowApplied = false
 

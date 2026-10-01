@@ -61,6 +61,27 @@ class PatchMetadataLocalizerTest {
     }
 
     @Test
+    fun `messenger duplicate patch names keep messenger wording`() {
+        Locale.setDefault(Locale.forLanguageTag("zh-TW"))
+
+        assertEquals(
+            "Android 12 以上讓 Messenger 深色模式使用桌布配色；Android 11 使用固定藍色調。淺色模式不變。請先在 Messenger 開啟深色模式。",
+            PatchMetadataLocalizer.description(
+                "Material You theme",
+                "Gives Messenger's dark mode the colors of your wallpaper on Android 12 and newer, and a fixed blue palette on Android 11. Light mode stays as it is. Turn on dark mode in Messenger first."
+            )
+        )
+        assertEquals(
+            "開啟其他人的限時動態時，不會把你加入對方的觀看名單；在你這一端仍會標記為已看。長按 Messenger → Patch controls 可設定。預設關閉。",
+            PatchMetadataLocalizer.description(
+                "View stories anonymously",
+                "Opens other people's stories without adding you to their viewer list. Stories you open this way are marked as seen on your side. Long-press Messenger > Patch controls. Starts off."
+            )
+        )
+        assertEquals("儲存任何限時動態", PatchMetadataLocalizer.name("Save any story"))
+    }
+
+    @Test
     fun `english keeps bundle metadata untouched`() {
         Locale.setDefault(Locale.US)
         assertEquals("Hide sponsored posts", PatchMetadataLocalizer.name("Hide sponsored posts"))

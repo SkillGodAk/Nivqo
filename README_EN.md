@@ -84,11 +84,11 @@ Current core channels:
 
 - Nivqo Manager `1.33.0` (synced with Morphe Manager `1.33.0` / Morphe Patcher `1.15.0`)
 - HushFacebook `0.5.0-nivqo.2` (upstream `6d312196bc9ae8a7c9bd77f936c60b6e6de579d2`; Nivqo restores direct built-in Facebook Chats when the external Messenger option is off)
-- HushMessenger `0.6.0-nivqo.1` (upstream `4b259a712e1b3c90edb7d0262d2b7d23bf45b093`)
+- HushMessenger `0.7.0-nivqo.1` (upstream formal Release `v0.7.0` / commit `1756352d6884c88122f73d5e212180abdd75f517`)
 - HushFacebook patch metadata in Manager: `54 / 54` Traditional Chinese
-- HushMessenger patch metadata in Manager: `28 / 28` Traditional Chinese
+- HushMessenger patch metadata in Manager: `31 / 31` Traditional Chinese
 
-- **HushFacebook / HushMessenger patch cores** are served by Nivqo's own GitHub update channel. When upstream changes are adopted, they are merged with Nivqo's Traditional Chinese/custom changes and tested before the patch bundle is updated on GitHub. Installed Nivqo clients can then receive the new patch core without reinstalling Manager just for a patch update.
+- **HushFacebook / HushMessenger patch cores** are served by Nivqo's own GitHub update channel. By default Nivqo syncs only formally published upstream Releases/Tags; `main`, unreleased commits and prereleases are not adopted unless explicitly chosen. Formal releases are merged with Nivqo's Traditional Chinese/custom changes and tested before publication.
 - **Nivqo Manager itself** is released only when Manager code changes, and future Manager updates are resolved from `SkillGodAk/Nivqo` GitHub Releases.
 
 The Manager APK still contains fallback HushFacebook / HushMessenger bundles for offline or first-run use. **Those bundled copies are used only when no local bundle exists and never overwrite a core that has already been updated from GitHub.**

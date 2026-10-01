@@ -19,6 +19,7 @@ hook allow_screenshot LX/4nW;->A00(Landroid/view/Window;)V
 hook allow_screenshot LX/8xp;->onScreenCaptured()V
 hook allow_screenshot LX/N2h;->run()V
 hook allow_screenshot Lcom/facebook/screenshot/ScreenshotContentObserver;->onChange(ZLandroid/net/Uri;)V
+hook anonymous_stories LX/HNV;->C1V(Lcom/facebook/messaging/montage/model/MontageCard;Z)V
 hook avatar_stickers LX/PKW;->A01(LX/PKW;)Z
 hook avatar_tabs Lcom/facebook/messaging/msys/thread/composer/configuration/xapp/BaseXappComposerConfigurationFactory;->A0P()Lcom/google/common/collect/ImmutableList;
 hook browser Lcom/facebook/messaging/browser/util/MessengerBrowserLauncher;->A0L(Landroid/net/Uri;Lcom/facebook/auth/usersession/FbUserSession;)Z
@@ -57,6 +58,8 @@ hook friend_requests LX/1pm;->A09()Z
 hook friend_requests LX/2Wl;->A02()Z
 hook growth LX/1pm;->A0A()Z
 hook growth LX/2GE;->A0A(LX/2GE;)Z
+hook growth_notes Lcom/facebook/presence/note/ui/nux/controller/NotesNuxController;->A01(Landroidx/fragment/app/Fragment;LX/Ocr;Ljava/util/List;LX/5MS;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+hook growth_story_card Lcom/facebook/messaging/montage/viewer/MontageViewerFragment;->A0x(Lcom/facebook/messaging/montage/viewer/MontageViewerFragment;)Z
 hook hide_read_receipts LX/AX0;->run()V
 hook inbox_promotions LX/2Ef;->A0J()Z
 hook inbox_promotions LX/2Ef;->A0K()Z
@@ -74,8 +77,12 @@ hook people LX/2Wl;->A04()Z
 hook people_jewel LX/HAR;->A01(LX/HAR;)Z
 hook people_list_end LX/1pm;->A0B()Z
 hook people_list_end LX/2Wl;->A03()Z
+hook people_search LX/CX5;->DLP(LX/EA8;Ljava/lang/Object;)LX/EBu;
+hook people_story Lcom/facebook/messaging/montage/viewer/MontageViewerFragment;->A0Y(Lcom/facebook/messaging/montage/viewer/MontageViewerFragment;)V
+hook people_tab LX/JZ6;->A01(LX/JZ6;)V
 hook read_mailbox LX/9sm;->A01(Ljava/lang/Long;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;)V
 hook reels_badge LX/7xF;->A09(LX/7xF;)Z
+hook save_stories LX/JgG;->onClick(Landroid/view/View;)V
 hook stories LX/1mi;->A00()Z
 hook subtabs LX/2UL;->run()V
 hook suggested_replies LX/7Sd;->A06(LX/7Sd;)Z
