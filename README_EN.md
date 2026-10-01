@@ -86,7 +86,7 @@ Current core channels:
 - HushFacebook `0.5.0-nivqo.2` (upstream `6d312196bc9ae8a7c9bd77f936c60b6e6de579d2`; Nivqo restores direct built-in Facebook Chats when the external Messenger option is off)
 - HushMessenger `0.7.0-nivqo.1` (upstream formal Release `v0.7.0` / commit `1756352d6884c88122f73d5e212180abdd75f517`)
 - HushFacebook patch metadata in Manager: `54 / 54` Traditional Chinese
-- HushMessenger core settings have complete Traditional Chinese coverage. Manager source has `31 / 31` patch metadata coverage, but this is a core-only update; the new Manager-side translations will ship with the next APK update.
+- HushMessenger core settings have complete Traditional Chinese coverage. The current v1.33.0 replacement APK also includes `31 / 31` Traditional Chinese Manager patch metadata and Messenger-specific wording for duplicate patch names.
 
 - **HushFacebook / HushMessenger patch cores** are served by Nivqo's own GitHub update channel. By default Nivqo syncs only formally published upstream Releases/Tags; `main`, unreleased commits and prereleases are not adopted unless explicitly chosen. Formal releases are merged with Nivqo's Traditional Chinese/custom changes and tested before publication.
 - **Nivqo Manager itself** is released only when Manager code changes, and future Manager updates are resolved from `SkillGodAk/Nivqo` GitHub Releases.

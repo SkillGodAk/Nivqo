@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-01T03:54:19",
-  "description": "Nivqo v1.33.0 最終覆蓋版：完成 Manager 全 APK 品牌巡檢，Launcher／About／通知改用 Nivqo N，保留原 v1.33 背景與藍綠配色；預設來源標示為 Morphe Patches（上游）並使用中性來源圖示；修正核心 metadata／changelog 解析與 versionCode 更新握手。已安裝 v1.32.0、舊 v1.33.0 與前一個 v1.33.0 replacement 都可更新；安裝後 App 顯示版本仍為 1.33.0。",
+  "created_at": "2026-10-01T17:25:15",
+  "description": "Nivqo v1.33.0 覆蓋更新：內建 HushMessenger 0.7.0-nivqo.1 正式核心（只同步上游正式 v0.7.0），並將 HushMessenger 31 / 31 patch metadata 與新增選項說明完整繁體中文化；HushFacebook 維持 0.5.0-nivqo.2。App 顯示版本仍為 1.33.0，現有 v1.32.0 與舊 v1.33.0 可直接覆蓋更新。",
   "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v1.33.0/Nivqo-Manager-1.33.0-20261001-release.apk",
   "signature_download_url": "",
-  "version": "1.33.1",
-  "version_code": 39856730
+  "version": "1.33.2",
+  "version_code": 39857539
 }
