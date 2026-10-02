@@ -1,9 +1,10 @@
-## [0.1.0-dev.1](https://github.com/SkillGodAk/Nivqo/commit/75e3555) (2026-10-02)
+## [0.1.0](https://github.com/SkillGodAk/Nivqo/commit/3ab029fac57ce070fcf1aea6fc76a92db6aa9025) (2026-10-02)
 
 ### ✨ New Features
 
-* **Facebook:** Combined Nivqo test source includes HushFacebook 0.6.0-nivqo.1 with 59 patches.
-* **Messenger:** Combined Nivqo test source includes HushMessenger 0.7.0-nivqo.1 with 31 patches.
+* **Facebook:** Nivqo Patches includes HushFacebook 0.6.0-nivqo.1 with 59 patches.
+* **Messenger:** Nivqo Patches includes HushMessenger 0.7.0-nivqo.1 with 31 patches.
+* **General:** Original Morphe Manager can add the combined Nivqo source with one repository URL: `https://github.com/SkillGodAk/Nivqo`.
 
 # Changelog
 

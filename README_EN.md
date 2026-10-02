@@ -10,6 +10,23 @@ Nivqo is not intended to replace the upstream projects. Its purpose is to fill t
 
 > Nivqo is not an official product of Meta, Facebook, Messenger, Morphe, or SysAdminDoc. Those names are used only to describe compatibility and upstream sources.
 
+## Add Nivqo to the original Morphe Manager
+
+If you use the **original Morphe Manager**, you do not need Nivqo Manager and you do not need to add separate Facebook and Messenger source URLs.
+
+1. Open **Patch sources** in Morphe Manager.
+2. Tap the **+** button to add a remote source.
+3. Paste this single repository URL:
+
+   `https://github.com/SkillGodAk/Nivqo`
+
+4. Add the source. Morphe reads the repository's root `patches-bundle.json` and installs **Nivqo Patches** (current stable source version: `0.1.0`).
+5. The single source contains all 59 HushFacebook patches and all 31 HushMessenger patches, for 90 patches total. Future combined MPP updates are delivered through the same source.
+
+The original Morphe Manager does not include Nivqo Manager's Traditional Chinese patch-metadata localization, so some patch names/descriptions inside Morphe may remain in English. The actual Nivqo HushFacebook / HushMessenger cores are still used, so their in-app plugin settings keep the Traditional Chinese interface and language options.
+
+> Do not enable both **Nivqo Patches** and the separate HushFacebook / HushMessenger sources at the same time, or the same patches will appear from multiple sources.
+
 ## Highlights
 
 ### Facebook
@@ -82,6 +99,7 @@ Starting with Nivqo v1.32.0, updates are split into two layers:
 
 Current core channels:
 
+- Nivqo Patches `0.1.0` (single combined source for the original Morphe Manager; Facebook 59 + Messenger 31)
 - Nivqo Manager `1.33.0` (synced with Morphe Manager `1.33.0` / Morphe Patcher `1.15.0`)
 - HushFacebook 0.6.0-nivqo.1 (formal upstream Release v0.6.0 / commit 22ae40c9c4ab574c0b36caed28b31ae608359446; post-release main commits excluded; Nivqo localization and two-way Facebook / Messenger routing preserved)
 - HushMessenger `0.7.0-nivqo.1` (upstream formal Release `v0.7.0` / commit `1756352d6884c88122f73d5e212180abdd75f517`)
