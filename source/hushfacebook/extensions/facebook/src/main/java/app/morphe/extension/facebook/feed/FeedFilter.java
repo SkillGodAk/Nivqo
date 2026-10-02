@@ -9,6 +9,8 @@
  */
 package app.morphe.extension.facebook.feed;
 
+import androidx.annotation.Nullable;
+
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.facebook.settings.SettingsStatus;
@@ -40,11 +42,24 @@ public final class FeedFilter {
     private static final String PROMOTION = "PROMOTION";
 
     /**
-     * The category of Facebook's own engagement cards, server-drawn CustomizedStory templates. The
-     * suggested groups row comes as one now ("Suggested for you", Join, "Discover more groups"),
-     * no longer as a GroupsYouShouldJoinFeedUnit, so the promos switch and the groups switch each hide it.
+     * The category of Facebook's own engagement cards, its quick promotions. The suggested groups
+     * row comes as one now ("Suggested for you", Join, "Discover more groups"), no longer as a
+     * GroupsYouShouldJoinFeedUnit. The promos switch hides every card; the groups switch hides the
+     * one {@link #GROUPS_PROMOTION_ID} names.
      */
     static final String ENGAGEMENT_PROMO = "ENGAGEMENT_QP";
+
+    /**
+     * The quick promotion Facebook serves the suggested groups row as: a CustomizedStory drawn by a
+     * Bloks hscroll template. The category's other cards are other promotions, People you may know
+     * and a Meta AI discover unit (emulator, 580, 2026-09-30), and every card's {@code tracking}
+     * JSON names its own. The id is Facebook's server data, not the app's: if the row moves to a new
+     * promotion, the groups switch alone keeps it until this names the new id, and the promos switch
+     * still hides it. The feed-edge log names each card's id.
+     */
+    static final String GROUPS_PROMOTION_ID = "625620278343662";
+    private static final int TRACKING_KEY = "tracking".hashCode();
+    private static final String PROMOTION_ID_FIELD = "\"quick_promotion_id\":\"";
 
     /**
      * The GraphQL type the "People you may know" row answers {@code getTypeName()} with. Its class
@@ -75,6 +90,25 @@ public final class FeedFilter {
     /** What a read of that flag found, as the report counts it. Only the first hides anything. */
     static final String UNCONNECTED = "unconnected";
     static final String CONNECTED = "connected";
+
+    /**
+     * The GraphQL type the same model answers for the Stories tray, which the feed adds as an
+     * adapter of its own. A unit answering it as an edge would be the tray between posts.
+     */
+    static final String STORIES_TRAY_UNIT_TYPE = "StoriesTrayFeedUnit";
+    /**
+     * The other two kinds of Stories between posts the same model answers in 577 and 580, through
+     * its table of type names rather than a literal: one large Stories tile, and one person's
+     * Stories in a viewer of their own.
+     */
+    static final String STORIES_LARGE_TILE_UNIT_TYPE = "StoriesOneColumnOneRowLargeTileFeedUnit";
+    static final String STORIES_INLINE_VIEWER_UNIT_TYPE = "StoriesSingleBucketInlineViewerFeedUnit";
+    /** What Hide the Stories tray's rule adds to the type of a row of Stories it took out of the feed. */
+    static final String STORIES_TRAY_REASON = "stories tray";
+
+    /** Whether Hide Stories tray is in this build, when a test says so instead of {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean storiesTrayInBuildForTests;
 
     /** The diagnostic counter routes. Each news feed edge counts as a list of one post. */
     static final String FEED_ROUTE = "News feed posts";
@@ -269,8 +303,10 @@ public final class FeedFilter {
             boolean reelsPatched, StoryFlag.Accessor showcaseAccessor, boolean wordsPatched,
             StoryFlag.Accessor messageAccessor, StoryFlag.Accessor attachedAccessor,
             StoryFlag.Accessor aiLabelAccessor) {
+        boolean trayPatched = storiesTrayInBuild();
         try {
             if (sponsoredPatched) HookStatus.invoked(FamilyNames.SPONSORED_POSTS);
+            if (trayPatched) HookStatus.invoked(FamilyNames.STORIES_TRAY);
             if (reelsPatched) HookStatus.invoked(FamilyNames.FEED_REELS);
             if (wordsPatched) HookStatus.invoked(FamilyNames.POST_WORDS);
             if (suggestedPatched) {
@@ -297,7 +333,8 @@ public final class FeedFilter {
                         + (suggestedPatched && DISCOVER_UNIT_TYPE.equals(type)
                                 ? " stories=" + unconnectedStories(feedUnit) : "")
                         + (aiPatched ? " genai=" + flagValue(GenAiLabel.FLAG, feedUnit, aiAccessor)
-                                + " ailabel=" + flagValue(GenAiLabel.SELF_LABEL, feedUnit, aiLabelAccessor) : "");
+                                + " ailabel=" + flagValue(GenAiLabel.SELF_LABEL, feedUnit, aiLabelAccessor) : "")
+                        + (ENGAGEMENT_PROMO.equals(categoryName) ? " qp=" + promotionId(feedUnit) : "");
             });
             // An edge a prefetch adds before the settings are ready stays: no switch can be read yet.
             if (!Utils.settingsReady()) return false;
@@ -311,9 +348,13 @@ public final class FeedFilter {
             }
             if (reason == null && suggestedPatched) {
                 if (Settings.HIDE_SUGGESTED_POSTS.get()) reason = suggestedUnitName(feedUnit);
-                if (reason == null && ENGAGEMENT_PROMO.equals(categoryName)
-                        && (Settings.HIDE_SUGGESTED_POSTS.get() || Settings.HIDE_SUGGESTED_GROUPS.get())) {
-                    reason = ENGAGEMENT_PROMO;
+                if (reason == null && ENGAGEMENT_PROMO.equals(categoryName)) {
+                    if (Settings.HIDE_SUGGESTED_POSTS.get()) {
+                        reason = ENGAGEMENT_PROMO;
+                    } else if (Settings.HIDE_SUGGESTED_GROUPS.get()
+                            && GROUPS_PROMOTION_ID.equals(promotionId(feedUnit))) {
+                        reason = ENGAGEMENT_PROMO + ":" + GROUPS_PROMOTION_ID;
+                    }
                 }
                 if (reason == null && Settings.HIDE_SUGGESTED_FOR_YOU.get()) {
                     reason = flagReason(RecommendationLabel.FLAG, RECOMMENDATION_ROUTE, feedUnit, recommendationAccessor);
@@ -327,6 +368,9 @@ public final class FeedFilter {
                         reason = unconnectedStoriesReason(feedUnit);
                     }
                 }
+            }
+            if (reason == null && trayPatched && Settings.HIDE_STORIES_TRAY.get()) {
+                reason = storiesRowReason(typeName(feedUnit));
             }
             boolean aiLabelled = aiPatched && Settings.HIDE_AI_LABELLED_POSTS.get();
             if (reason == null && aiPatched && (aiLabelled || Settings.HIDE_AI_DETECTED_POSTS.get())) {
@@ -346,6 +390,7 @@ public final class FeedFilter {
             return true;
         } catch (Throwable failure) {
             if (sponsoredPatched) HookStatus.threw(FamilyNames.SPONSORED_POSTS, "feed guard", failure);
+            if (trayPatched) HookStatus.threw(FamilyNames.STORIES_TRAY, "feed guard", failure);
             if (reelsPatched) HookStatus.threw(FamilyNames.FEED_REELS, "feed guard", failure);
             if (suggestedPatched) HookStatus.threw(FamilyNames.SUGGESTED_POSTS, "feed guard", failure);
             if (aiPatched) HookStatus.threw(FamilyNames.AI_DETECTED_POSTS, "feed guard", failure);
@@ -353,6 +398,32 @@ public final class FeedFilter {
             Logger.printException(() -> "Feed filter: could not judge an edge", failure);
             return false;
         }
+    }
+
+    /**
+     * Whether Hide Stories tray is in this build: its switch hides the rows of Stories between posts
+     * as well as the tray, through this guard.
+     */
+    static boolean storiesTrayInBuild() {
+        Boolean forTests = storiesTrayInBuildForTests;
+        return forTests != null ? forTests : SettingsStatus.storiesTray();
+    }
+
+    /**
+     * Hide the Stories tray's rule for the Stories that come as feed edges (issue #45): a row of
+     * several people's Stories between posts, {@link #DISCOVER_UNIT_TYPE}, your friends' as well as
+     * the ones "Stories you might like" takes, the tray itself should it come as an edge,
+     * {@link #STORIES_TRAY_UNIT_TYPE}, and the single tiles and viewers of Stories,
+     * {@link #STORIES_LARGE_TILE_UNIT_TYPE} and {@link #STORIES_INLINE_VIEWER_UNIT_TYPE}. The reason
+     * names the type; any other type, or none, is null.
+     */
+    @Nullable
+    static String storiesRowReason(@Nullable String type) {
+        if (DISCOVER_UNIT_TYPE.equals(type) || STORIES_TRAY_UNIT_TYPE.equals(type)
+                || STORIES_LARGE_TILE_UNIT_TYPE.equals(type) || STORIES_INLINE_VIEWER_UNIT_TYPE.equals(type)) {
+            return type + ":" + STORIES_TRAY_REASON;
+        }
+        return null;
     }
 
     /**
@@ -421,6 +492,34 @@ public final class FeedFilter {
         } catch (ReflectiveOperationException | RuntimeException failure) {
             HookStatus.threw(FamilyNames.SUGGESTED_POSTS, "Stories you might like flag reader", failure);
             return "read failed";
+        }
+    }
+
+    /**
+     * The quick promotion an engagement card's {@code tracking} JSON names, or null when it names
+     * none or can't be read. It goes through {@code BaseModelWithTree.getCachedString}, the reader
+     * Facebook's own code reads a model's tracking with in 577 and 580, which checks the native
+     * tree is still there first. Never throws.
+     */
+    static String promotionId(Object feedUnit) {
+        PostText.Members found = PostText.members();
+        if (found.treeModel == null || found.cachedString == null) return null;
+        if (!found.treeModel.isInstance(feedUnit)) return null;
+        try {
+            Object tracking = found.cachedString.invoke(feedUnit, TRACKING_KEY);
+            if (!(tracking instanceof String)) return null;
+            String json = (String) tracking;
+            int start = json.indexOf(PROMOTION_ID_FIELD);
+            if (start < 0) return null;
+            start += PROMOTION_ID_FIELD.length();
+            int end = json.indexOf('"', start);
+            return end > start ? json.substring(start, end) : null;
+        } catch (InvocationTargetException failure) {
+            HookStatus.threw(FamilyNames.SUGGESTED_POSTS, "promotion id reader", failure.getCause());
+            return null;
+        } catch (ReflectiveOperationException | RuntimeException failure) {
+            HookStatus.threw(FamilyNames.SUGGESTED_POSTS, "promotion id reader", failure);
+            return null;
         }
     }
 

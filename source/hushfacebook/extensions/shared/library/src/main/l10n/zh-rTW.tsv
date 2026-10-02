@@ -494,3 +494,32 @@ Follow system	跟隨系統
 Follow Facebook	跟隨 Facebook
 Traditional Chinese	繁體中文
 English	英文
+%1$s becomes the date and time of the save, %2$s the video's number on Facebook, %3$s who posted it, %4$s their profile's number on Facebook and %5$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %6$s.	%1$s 會替換為儲存日期與時間，%2$s 為影片在 Facebook 上的編號，%3$s 為發佈者名稱，%4$s 為其 Facebook 個人檔案或粉絲專頁編號，%5$s 為發佈日期。儲存時無法取得的資訊會略過；若檔名不含上述任何資訊，會附加日期。若資料夾中已有同名檔案，會在結尾附加儲存時間。無效字元會改成底線。留白則使用預設名稱 %6$s。
+Android will ask which app gets the links each time.	Android 每次都會詢問要用哪個應用程式開啟連結。
+A tap on the Messenger icon at the top of Facebook opens the Messenger app instead of Chats. Without Messenger installed, Chats opens as before.	點一下 Facebook 頂部的 Messenger 圖示會開啟 Messenger 應用程式，而不是 Facebook 內建聊天。若未安裝 Messenger，則仍會照原本方式開啟聊天。
+Choose a folder name under %1$s. Invalid characters become underscores. Leave it blank to use the default folder, %2$s.	在 %1$s 下選擇資料夾名稱。無效字元會改成底線。留白則使用預設資料夾 %2$s。
+Dark mode draws %1$s instead of dark grey. Turn on dark mode in Facebook to see it.	深色模式會以 %1$s 取代深灰色。請先在 Facebook 開啟深色模式以查看效果。
+Hide "Find friends from contacts"	隱藏「從聯絡人尋找朋友」
+Hide Meta AI questions under posts	隱藏貼文下方的 Meta AI 問題
+Hide the Feeds header	隱藏 Feeds 標題列
+Keep post dates	保留貼文日期
+Links will go to %1$s.	連結將使用 %1$s 開啟。
+Movies and Pictures	Movies 與 Pictures
+Open the Feeds tab on its posts, without the title row or the filters under it. Restart Facebook after changing it.	開啟 Feeds 分頁時直接顯示貼文，不顯示標題列及下方篩選器。變更後請重新啟動 Facebook。
+Put Facebook's tab bar at the bottom of the screen on accounts that have it at the top. Restart Facebook after changing it.	將 Facebook 分頁列移到畫面底部，適用於目前顯示在頂部的帳號。變更後請重新啟動 Facebook。
+Reels and videos will save to this phone when you tap Download.	點選「下載」時，Reels 和影片會儲存到此手機。
+Save to	儲存位置
+Tab bar at the bottom	分頁列置底
+Tapping Download on a reel or video will send its link to an app.	點選 Reel 或影片的「下載」時，會把其連結傳送到指定應用程式。
+The line under the poster's name keeps the post's date instead of Facebook's rotating details, which go blank on some phones.	發佈者名稱下方會保留貼文日期，不再被 Facebook 的輪替資訊取代；某些手機上該資訊甚至會變成空白。
+The row of friend suggestions between posts, the one on your own profile, and the cards with an Add button in the Stories tray.	貼文之間的好友推薦列、你個人檔案上的推薦列，以及限時動態列中帶有「新增」按鈕的卡片。
+The row of Meta AI questions under some posts. The post, its link card and its buttons stay.	隱藏部分貼文下方的 Meta AI 問題列；貼文、連結卡片與按鈕仍會保留。
+The row of stories at the top of the feed, Create story included, and the rows of stories between posts.	動態消息頂端的限時動態列（包含「建立限時動態」）以及貼文之間的限時動態列。
+the start-up fix for x86 devices	x86 裝置啟動修復
+The Stories tray card asking to upload your contacts. Applies when Facebook next loads the tray.	限時動態列中要求上傳聯絡人的卡片。會在 Facebook 下次載入限時動態列時生效。
+Videos and photos go to %1$s, next to the camera's. Saves you already have stay where they are.	影片與相片會儲存到 %1$s，與相機拍攝內容放在一起。已儲存的檔案不會移動。
+Videos and photos go to %1$s, with the phone's other downloads. Saves you already have stay where they are.	影片與相片會儲存到 %1$s，與手機其他下載內容放在一起。已儲存的檔案不會移動。
+Videos and photos go to %1$s.	影片與相片會儲存到 %1$s。
+Videos and photos will go to %1$s.	影片與相片將儲存到 %1$s。
+Videos go to %1$s and photos to %2$s, as Facebook's own saves do. Some galleries don't show %1$s.	影片會儲存到 %1$s，相片會儲存到 %2$s，與 Facebook 原生儲存方式相同。部分相簿應用程式不會顯示 %1$s。
+Videos will go to %1$s and photos to %2$s.	影片將儲存到 %1$s，相片將儲存到 %2$s。

@@ -59,6 +59,83 @@ import org.w3c.dom.Element
  * a dark grey it changes.
  */
 class MaterialYouTokenFixtureTest {
+    private companion object {
+        /**
+         * The FDS tokens 577 and 580 resolve and read as `TypedValue.data`: straight from a literal, off a
+         * token constant, or through a helper handed the attribute or a token constant as a parameter.
+         */
+        val DATA_READ_TOKENS = setOf("ACCENT", "DISABLED_TEXT", "DIVIDER", "NAV_BAR_BACKGROUND", "PLACEHOLDER_IMAGE",
+            "PRIMARY_TEXT", "PRIMARY_TEXT_ON_MEDIA", "SURFACE_BACKGROUND", "WASH")
+
+        /**
+         * The tokens 577 and 580 resolve in a method that reads `TypedValue.type` for only some of its
+         * calls, or reads neither field and hands the value on. Each was looked at: PRIMARY_TEXT and
+         * SURFACE_BACKGROUND are in [DATA_READ_TOKENS] anyway, and SHADOW_TEXT_AND_ICON_ON_MEDIA goes
+         * through a helper that returns the TypedValue to a caller reading its `resourceId`.
+         */
+        val UNCHECKED_TOKENS = setOf("PRIMARY_TEXT", "SHADOW_TEXT_AND_ICON_ON_MEDIA", "SURFACE_BACKGROUND")
+
+        /**
+         * The calls whose attribute the scan can't follow, by build. React Native's
+         * PlatformColor (`A02`, called from FabricUIManager.getColor) looks an attribute up by the name
+         * the JavaScript gives it, and Mapbox's ColorUtils looks up colorAccent, colorPrimary and
+         * colorPrimaryDark, which aren't FDS tokens. The JavaScript ships compressed, so PlatformColor's
+         * names were logged on 580 instead (2026-09-30): Marketplace home, a listing, search and its
+         * results asked it for none, since React Native's colours there arrive as ints.
+         *
+         * The rest are in methods that check `type` for only some calls or hand the TypedValue on, and
+         * none is an FDS token (looked at on 580, 2026-09-30): `A2O.A0Q` and `FVu.A00` read only
+         * `resourceId`; `fA7.Eu1` passes attributes it keeps in fields to `gi9.A00`, which reads a
+         * dimension; `g4w.A05`, `g7C`'s constructor and `g7C.A0Z` read `gAp.errorColorAttr`, a text
+         * input's border states, whose four attributes (0x7f040456, 0x7f040459, 0x7f040448, 0x7f040458)
+         * the token enum doesn't hold; and `fFB.D8G`'s text colours come from builder fields that
+         * `g60.A0V`, `g65.A01` and `hk8.invoke` only ever set to 0x7f040458, its third call an image
+         * resource through `giD.A01`. 577 has the same code under other names (8Qk, iv6, PHA, PJ4,
+         * QPv, QS3), and `kWD.A1B` is Mapbox's and MapLibre's ColorUtils lookup by name, kept in one
+         * helper there.
+         */
+        val UNRESOLVED = mapOf(
+            "577.0.0.50.72" to setOf(
+                "LX/8Qk;->A0Q(Ljava/lang/Integer;)V@16",
+                "LX/CHJ;->A02(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/Integer;@88",
+                "LX/PHA;->Eqj(LX/RDk;)V@135",
+                "LX/PHA;->Eqj(LX/RDk;)V@146",
+                "LX/PHA;->Eqj(LX/RDk;)V@47",
+                "LX/PHA;->Eqj(LX/RDk;)V@57",
+                "LX/PHA;->Eqj(LX/RDk;)V@67",
+                "LX/PHA;->Eqj(LX/RDk;)V@71",
+                "LX/PJ4;->D7V(LX/hQW;I)V@168",
+                "LX/PJ4;->D7V(LX/hQW;I)V@224",
+                "LX/PJ4;->D7V(LX/hQW;I)V@32",
+                "LX/QPv;->A04(LX/QPv;LX/QUd;)V@9",
+                "LX/QS3;-><init>(Landroid/content/Context;)V@114",
+                "LX/QS3;->A0f()V@35",
+                "LX/iv6;->A00(Landroid/content/Context;Lcom/facebook/react/bridge/ReadableMap;)Landroid/graphics/drawable/Drawable;@20",
+                "LX/kWD;->A1B(Landroid/content/Context;Landroid/content/res/Resources\$Theme;Landroid/content/res/Resources;Landroid/util/TypedValue;Ljava/lang/String;)V@6",
+            ),
+            "580.0.0.51.74" to setOf(
+                "LX/A2O;->A0Q(Ljava/lang/Integer;)V@16",
+                "LX/FVu;->A00(Landroid/content/Context;Lcom/facebook/react/bridge/ReadableMap;)Landroid/graphics/drawable/Drawable;@20",
+                "LX/fA7;->Eu1(LX/grb;)V@131",
+                "LX/fA7;->Eu1(LX/grb;)V@142",
+                "LX/fA7;->Eu1(LX/grb;)V@43",
+                "LX/fA7;->Eu1(LX/grb;)V@53",
+                "LX/fA7;->Eu1(LX/grb;)V@63",
+                "LX/fA7;->Eu1(LX/grb;)V@67",
+                "LX/fFB;->D8G(LX/ewK;I)V@170",
+                "LX/fFB;->D8G(LX/ewK;I)V@226",
+                "LX/fFB;->D8G(LX/ewK;I)V@33",
+                "LX/g4w;->A05(LX/g4w;LX/gAp;)V@11",
+                "LX/g7C;-><init>(Landroid/content/Context;)V@114",
+                "LX/g7C;->A0Z()V@36",
+                "LX/Cyv;->A02(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/Integer;@88",
+                "Lcom/mapbox/mapboxsdk/utils/ColorUtils;->getAccentColor(Landroid/content/Context;)I@13",
+                "Lcom/mapbox/mapboxsdk/utils/ColorUtils;->getPrimaryColor(Landroid/content/Context;)I@13",
+                "Lcom/mapbox/mapboxsdk/utils/ColorUtils;->getPrimaryDarkColor(Landroid/content/Context;)I@13",
+            ),
+        )
+    }
+
     private val theme = File(RepoFiles.root,
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/MaterialYouTheme.java").readText()
 
@@ -259,6 +336,12 @@ class MaterialYouTokenFixtureTest {
      * only the dark style's family, leave the default styles as they are, and point an item at the
      * palette only for a token and colour FDS_DARK or FDS_SHARED lists. PRIMARY_BUTTON_BACKGROUND in
      * the dark style has to be one of them.
+     *
+     * <p>Some of Facebook's code resolves a token's attribute and reads `TypedValue.data` as its colour,
+     * which a colour state list doesn't give. The patch finds those tokens in each build's dex, the
+     * same [DATA_READ_TOKENS] in both, and each item it changes for one of them has to be a plain
+     * colour, while every other item keeps its state list. What the scan can't settle is pinned as
+     * well ([UNCHECKED_TOKENS], [UNRESOLVED]), so a new build's changes there get looked at.
      */
     @Test
     fun `every night style item the patch changes is a listed token and colour in each declared build`() {
@@ -269,18 +352,23 @@ class MaterialYouTokenFixtureTest {
         for (target in AppCompatibilities.facebook().single().targets) {
             val version = checkNotNull(target.version)
             for (fixture in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
-                withBaseApk(fixture) { apk -> checkNightStyles(fixture.name, apk, listed) }
+                withBaseApk(fixture) { apk -> checkNightStyles(fixture.name, version, apk, listed) }
                 builds++
             }
         }
         assertEquals("one fixture for each declared build", AppCompatibilities.facebook().single().targets.size, builds)
     }
 
-    private fun checkNightStyles(build: String, apk: File, listed: Map<String, Set<Int>>) {
+    private fun checkNightStyles(build: String, version: String, apk: File, listed: Map<String, Set<Int>>) {
         val attributes = tokenAttributes(apk)
         val (initializer, tokenType) = tokenInitializer(apk)
         assertEquals("$build: the patch reads other token attributes", attributes, patchTokenAttributes(initializer, tokenType))
         val tokens = attributes.entries.associate { (token, attribute) -> "attr_0x%08x".format(attribute) to token }
+        val scan = scannedTokens(apk, initializer, tokenType)
+        val plain = scan.tokens
+        assertEquals("$build: the tokens read as TypedValue data", DATA_READ_TOKENS, plain)
+        assertEquals("$build: the tokens resolved where the read isn't checked", UNCHECKED_TOKENS, scan.unchecked.keys)
+        assertEquals("$build: the data reads the scan can't follow", UNRESOLVED[version], scan.unresolved)
 
         val styles = fdsStyles(apk, attributes.values.toSet())
         val light = styles.values.single { it.parent == 0 && it.sets > 300 }
@@ -289,6 +377,7 @@ class MaterialYouTokenFixtureTest {
 
         var restyled = 0
         val darkTokens = mutableSetOf<String>()
+        val plainTones = mutableSetOf<String>()
         for ((type, file) in decoded.styleFiles) {
             val family = darkFdsStyles(file, tokens)
             if (family.isEmpty()) continue
@@ -299,7 +388,9 @@ class MaterialYouTokenFixtureTest {
 
             val before = file.text()
             val night = emptyResources()
-            restyled += writeNightStyles(family, decoded.colours, decoded.nightColours, tokens, night, emptyResources(), emptyResources())
+            val stateLists = mutableMapOf<String, String>()
+            restyled += writeNightStyles(family, decoded.colours, decoded.nightColours, tokens, night, emptyResources(),
+                emptyResources(), stateLists, plain)
             assertEquals("$build: the default $type file changed", before, file.text())
 
             for (copy in night.documentElement.elements()) {
@@ -312,6 +403,9 @@ class MaterialYouTokenFixtureTest {
                     val colour = decoded.styleColours.getValue(name)[attribute]
                     assertTrue("$build: $name changes $token, ${colour?.let { hex(setOf(it)) }}, which no table lists",
                         colour != null && colour in listed[token].orEmpty())
+                    val stateList = item.textContent.removePrefix("@color/") in stateLists
+                    assertEquals("$build: $name gives $token ${item.textContent}, a state list is $stateList", token !in plain, stateList)
+                    if (token in plain) plainTones += "$token ${item.textContent}"
                     if (name == family.first().getAttribute("name")) darkTokens += token
                 }
             }
@@ -319,6 +413,19 @@ class MaterialYouTokenFixtureTest {
         assertTrue("$build: no night style item takes the palette", restyled > 0)
         assertTrue("$build: the dark style keeps its PRIMARY_BUTTON_BACKGROUND, found $darkTokens",
             "PRIMARY_BUTTON_BACKGROUND" in darkTokens)
+        assertTrue("$build: PRIMARY_TEXT takes no system tone, found $plainTones",
+            "PRIMARY_TEXT @color/hushfacebook_you_neutral_95" in plainTones)
+    }
+
+    /** What the patch's scan for tokens read through `TypedValue.data` finds over every class in [apk]. */
+    private fun scannedTokens(apk: File, initializer: Method, tokenType: String): DataReadScan {
+        val container = DexFileFactory.loadDexContainer(apk, Opcodes.getDefault())
+        val forEachClass: ((ClassDef) -> Unit) -> Unit = { visit ->
+            for (name in container.dexEntryNames) container.getEntry(name)!!.dexFile.classes.forEach(visit)
+        }
+        var tokenClass: ClassDef? = null
+        forEachClass { if (it.type == tokenType && tokenClass == null) tokenClass = it }
+        return dataReadTokens(forEachClass, tokenConstants(initializer, tokenType), tokenAttributeField(checkNotNull(tokenClass)))
     }
 
     /**

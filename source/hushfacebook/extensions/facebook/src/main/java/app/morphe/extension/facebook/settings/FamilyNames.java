@@ -29,6 +29,9 @@ public final class FamilyNames {
     public static final String AI_DETECTED_REELS = "Hide AI-detected posts (Reels and Watch)";
     public static final String POST_WORDS = "Hide posts by words";
     public static final String POST_PROMPTS = "Hide post prompts";
+    public static final String META_AI_QUESTIONS = "Hide Meta AI questions under posts";
+    public static final String POST_DATES = "Keep post dates";
+    public static final String FEEDS_HEADER = "Hide the Feeds header";
     public static final String STORIES_TRAY = "Hide Stories tray";
     public static final String FEED_REELS = "Hide Reels in the feed";
     public static final String RETURN_REFRESH = "Block background-return feed refresh";
@@ -64,6 +67,7 @@ public final class FamilyNames {
     public static final String MARKETPLACE_ONLY = "Marketplace only";
     public static final String REELS_TAB = "Hide the Reels tab";
     public static final String REELS_TAB_DOT = "Hide the Reels tab dot";
+    public static final String BOTTOM_TAB_BAR = "Tab bar at the bottom";
     public static final String MESSENGER_CARD = "Hide the Get Messenger card";
     public static final String MESSENGER_ICON = "Open Messenger from the top bar";
     public static final String MENU_PROMOTIONS = "Hide Menu promotions";
@@ -75,6 +79,7 @@ public final class FamilyNames {
     public static final String AMOLED_THEME = "AMOLED black theme";
     public static final String MATERIAL_YOU_THEME = "Material You theme";
     public static final String RESTORE_TRUST = "Restore screens on re-signed builds";
+    public static final String TRANSLATED_START = "Start on x86 devices";
     public static final String INSTALL_BESIDE_META_APPS = "Install beside Meta's apps";
     public static final String MENU_SETTINGS_ROW = "Hushfacebook in the Menu";
 

@@ -35,6 +35,13 @@ class PatchMetadataLocalizerTest {
 
         assertEquals("隱藏收件匣廣告", PatchMetadataLocalizer.name("Hide inbox ads"))
         assertEquals("收件匣", PatchMetadataLocalizer.category("Inbox"))
+
+        assertEquals("隱藏貼文下方的 Meta AI 問題",
+            PatchMetadataLocalizer.name("Hide Meta AI questions under posts"))
+        assertEquals("隱藏 Feeds 標題列", PatchMetadataLocalizer.name("Hide the Feeds header"))
+        assertEquals("保留貼文日期", PatchMetadataLocalizer.name("Keep post dates"))
+        assertEquals("支援 x86 裝置啟動", PatchMetadataLocalizer.name("Start on x86 devices"))
+        assertEquals("分頁列置底", PatchMetadataLocalizer.name("Tab bar at the bottom"))
     }
 
     @Test

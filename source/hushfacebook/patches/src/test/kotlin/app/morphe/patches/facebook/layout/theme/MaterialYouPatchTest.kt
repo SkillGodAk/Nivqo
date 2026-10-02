@@ -219,7 +219,8 @@ class MaterialYouPatchTest {
         val source = File(RepoFiles.root, "$dir/MaterialYouThemePatch.kt").readText()
         val paths = Regex(""""(res/[^"]+)"""").findAll(source).map { it.groupValues[1] }.toSet()
         assertEquals(setOf("res/values-night/colors.xml", "res/values-night-v31/colors.xml", "res/values-night",
-            "res/values/colors.xml", "res/values"), paths)
+            "res/color-night-v31", "res/values/colors.xml", "res/values"), paths)
+        assertTrue("the state lists are written as files", source.contains("get(\"\$NIGHT_V31_STATE_LISTS/\$name.xml\", false)"))
 
         val opened = Regex("""document\((\w+)\)""").findAll(source).map { it.groupValues[1] }.toSet()
         assertEquals(setOf("NIGHT_COLORS", "NIGHT_V31_COLORS", "nightStyles"), opened)
@@ -231,6 +232,30 @@ class MaterialYouPatchTest {
 
         val styles = File(RepoFiles.root, "$dir/MaterialYouStyles.kt").readText()
         assertTrue("MaterialYouStyles opens a resource file", "\"res/" !in styles && "document(" !in styles)
+    }
+
+    /**
+     * Route two leaves a colour to Facebook when it has a night value under any night qualifier,
+     * not values-night alone. Until 2026-09-30 only values-night/colors.xml was read, so a colour
+     * Facebook set for night in values-night-v31 alone would have taken a palette tone.
+     */
+    @Test
+    fun `a night value under any night qualifier counts`() {
+        val res = kotlin.io.path.createTempDirectory("night-res").toFile()
+        try {
+            fun colours(folder: String, vararg names: String) = File(res, folder).apply { mkdirs() }.resolve("colors.xml")
+                .writeText(names.joinToString("", "<resources>", "</resources>") { "<color name=\"$it\">#ff000000</color>" })
+            colours("values", "light_only")
+            colours("values-v31", "light_v31")
+            colours("values-night", "night_text")
+            colours("values-night-v31", "night_v31_only")
+            colours("values-land-night", "night_land_only")
+            File(res, "values-nightly").mkdirs()
+            File(res, "values-night-v29").mkdirs()
+            assertEquals(setOf("night_land_only", "night_text", "night_v31_only"), nightValuedColours(res))
+        } finally {
+            res.deleteRecursively()
+        }
     }
 
     /** The patch and the extension hold the same lists, each in its own module. */
