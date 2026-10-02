@@ -1,7 +1,0 @@
-{
-  "schema": 1,
-  "sources": [
-    "updates/hushfacebook.json",
-    "updates/hushmessenger.json"
-  ]
-}

@@ -7,6 +7,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_JSON = (
+    ROOT / "patches-bundle.json",
     ROOT / "app-release.json",
     ROOT / "source" / "morphe-manager" / "app-release.json",
     ROOT / "updates" / "hushfacebook.json",
