@@ -3,9 +3,14 @@ import json
 from pathlib import Path
 import re
 import sys
+import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
+COMBINED_BUNDLE = ROOT / "updates" / "bundles" / "nivqo-patches.mpp"
+COMBINED_DOWNLOAD_URL_RE = re.compile(
+    r"^https://raw\.githubusercontent\.com/SkillGodAk/Nivqo/[0-9a-f]{40}/updates/bundles/nivqo-patches\.mpp$"
+)
 PUBLIC_JSON = (
     ROOT / "patches-bundle.json",
     ROOT / "app-release.json",
@@ -45,7 +50,40 @@ def load_public_json(path: Path):
             )
         if not str(value["download_url"]).lower().endswith(".mpp"):
             raise ValueError("download_url must point to an .mpp bundle")
+        if not COMBINED_DOWNLOAD_URL_RE.fullmatch(str(value["download_url"])):
+            raise ValueError(
+                "download_url must point to a commit-pinned formal Nivqo combined bundle"
+            )
     return value
+
+
+def validate_combined_bundle(path: Path, expected_version: str):
+    if not path.is_file():
+        raise ValueError("formal combined bundle is missing")
+    with zipfile.ZipFile(path) as bundle:
+        names = set(bundle.namelist())
+        required = {
+            "classes.dex",
+            "extensions/facebook.mpe",
+            "extensions/messenger.mpe",
+            "extensions/shared.mpe",
+            "META-INF/MANIFEST.MF",
+        }
+        missing = required - names
+        if missing:
+            raise ValueError(f"combined bundle is missing payload(s): {sorted(missing)}")
+        manifest = bundle.read("META-INF/MANIFEST.MF").decode("utf-8")
+    fields = {}
+    for line in manifest.splitlines():
+        if ": " in line:
+            key, value = line.split(": ", 1)
+            fields[key] = value.strip()
+    if fields.get("Name") != "Nivqo Patches":
+        raise ValueError(f"unexpected bundle name: {fields.get('Name')!r}")
+    if fields.get("Version") != expected_version:
+        raise ValueError(
+            f"bundle version {fields.get('Version')!r} does not match patches-bundle.json {expected_version!r}"
+        )
 
 
 def validate_combined_changelog(path: Path, expected_version: str):
@@ -108,6 +146,11 @@ def main() -> int:
             print(f"OK  CHANGELOG.md [combined {combined_release['version']}]")
         except Exception as exc:
             errors.append(f"CHANGELOG.md: {exc}")
+        try:
+            validate_combined_bundle(COMBINED_BUNDLE, str(combined_release["version"]))
+            print(f"OK  {COMBINED_BUNDLE.relative_to(ROOT)} [combined {combined_release['version']}]")
+        except Exception as exc:
+            errors.append(f"{COMBINED_BUNDLE.relative_to(ROOT)}: {exc}")
 
     root_release = parsed.get(ROOT / "app-release.json")
     source_release = parsed.get(ROOT / "source" / "morphe-manager" / "app-release.json")
