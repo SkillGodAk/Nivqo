@@ -65,6 +65,12 @@ fun compareVersions(v1: String?, v2: String?): Int {
     val parts1 = extractParts(version1)
     val parts2 = extractParts(version2)
 
+    // Nivqo release revisions are post-release rebuilds of the same upstream base, not
+    // pre-releases. 0.6.0-nivqo.1 must therefore sort after 0.6.0, and .2 after .1.
+    val nivqoRevisionPattern = """^[\d.]+-nivqo\.(\d+)$""".toRegex(RegexOption.IGNORE_CASE)
+    fun nivqoRevision(version: String): Long? =
+        nivqoRevisionPattern.matchEntire(version)?.groupValues?.getOrNull(1)?.toLongOrNull()
+
     // Compare base versions first
     val base1 = parts1.base.split(".").map { it.toIntOrNull() ?: 0 }
     val base2 = parts2.base.split(".").map { it.toIntOrNull() ?: 0 }
@@ -79,6 +85,23 @@ fun compareVersions(v1: String?, v2: String?): Int {
             part1 < part2 -> return -1
             part1 > part2 -> return 1
         }
+    }
+
+    val nivqo1 = nivqoRevision(version1)
+    val nivqo2 = nivqoRevision(version2)
+    if (nivqo1 != null || nivqo2 != null) {
+        val rank1 = when {
+            nivqo1 != null -> 2
+            parts1.preRelease == null -> 1
+            else -> 0
+        }
+        val rank2 = when {
+            nivqo2 != null -> 2
+            parts2.preRelease == null -> 1
+            else -> 0
+        }
+        if (rank1 != rank2) return rank1.compareTo(rank2)
+        if (nivqo1 != null && nivqo2 != null) return nivqo1.compareTo(nivqo2)
     }
 
     // Base versions are equal, check pre-release status

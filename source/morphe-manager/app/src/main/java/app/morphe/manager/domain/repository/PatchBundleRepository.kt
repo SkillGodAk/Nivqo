@@ -377,7 +377,7 @@ class PatchBundleRepository(
                     patches = patches.toList(),
                     options = emptyMap(),
                     bundleName = source?.displayTitle,
-                    bundleVersion = source?.version
+                    bundleVersion = source?.trackingVersion
                 )
             }
         )

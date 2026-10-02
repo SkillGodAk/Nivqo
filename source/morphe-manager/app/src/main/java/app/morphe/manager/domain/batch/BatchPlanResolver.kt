@@ -267,8 +267,11 @@ class BatchPlanResolver(
     suspend fun findOutdatedTargets(): List<BatchTarget> = withContext(Dispatchers.IO) {
         // Scoped to the sources planning will actually use. A disabled or blocked source moving
         // on is not a reason to re-patch, and the plan would only report No patches anyway
-        val currentVersions = patchBundleRepository.enabledBundlesInfoFlow.first()
-            .mapValues { (_, info) -> info.version }
+        val enabled = patchBundleRepository.enabledBundlesInfoFlow.first()
+        val sourcesByUid = patchBundleRepository.sources.first().associateBy { it.uid }
+        val currentVersions = enabled.mapValues { (uid, info) ->
+            sourcesByUid[uid]?.trackingVersion ?: info.version
+        }
         if (currentVersions.isEmpty()) return@withContext emptyList()
 
         installedAppRepository.getAll().first()

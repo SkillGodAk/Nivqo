@@ -120,9 +120,10 @@ class InstalledAppRepository(
         selectionPayload: SelectionPayload? = null,
         patchedAt: Long? = System.currentTimeMillis() // Default to current time for new patches
     ) {
-        // Get current bundle versions at the time of patching
+        // Record the release identity actually used for patching. For remote sources this is the
+        // update-manifest signature, not only the embedded upstream bundle version.
         val bundleVersions = patchBundleRepository.sources.first()
-            .associate { it.uid to it.version }
+            .associate { it.uid to it.trackingVersion }
 
         // Skip applied patches whose bundle uid is no longer in patch_bundles:
         // the FK constraint would otherwise abort the entire upsert transaction.

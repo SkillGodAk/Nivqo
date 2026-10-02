@@ -49,6 +49,15 @@ sealed class PatchBundleSource(
     }
 
     val version get() = manifestAttributes?.version
+    /**
+     * Version token recorded on an app when this source patches it.
+     *
+     * Local/preinstalled bundles have only their embedded manifest version. Remote bundles also
+     * have the release signature from their update manifest (for example 0.6.0-nivqo.1), which
+     * can advance without changing the embedded upstream base version. Persisting that full token
+     * lets the home screen notice Nivqo-only bundle revisions and offer a re-patch.
+     */
+    open val trackingVersion: String? get() = version
     val isNameOutOfDate get() = manifestAttributes?.name?.let { it != name } == true
     val error get() = (state as? State.Failed)?.throwable
     val displayTitle get() = displayName?.takeUnless { it.isBlank() } ?: name
