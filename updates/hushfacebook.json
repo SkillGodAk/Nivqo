@@ -1,4 +1,4 @@
-﻿{
+{
     "created_at":  "2026-10-02T10:15:01",
     "description":  "HushFacebook 0.6.0 Nivqo 繁中核心；同步上游正式 Release v0.6.0（22ae40c9c4ab574c0b36caed28b31ae608359446），不納入發布後 main commit。核心共 59 個 patch，新增 Meta AI 貼文問題列、Feeds 標題列、貼文日期、x86 啟動與分頁列置底等 patch；保留 Nivqo 繁體中文／English 介面、語言選擇，以及 Facebook 頂部 Messenger 圖示雙向路由：開啟時啟動 Messenger，關閉時直接開啟 Facebook 內建 Chats / InboxActivity。",
     "changelog_url":  "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook-changelog.md",
