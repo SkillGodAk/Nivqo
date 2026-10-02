@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-10-02 — HushFacebook 0.6.0 + v1.33.0 replacement
+
+### HushFacebook
+
+- 同步上游正式 Release v0.6.0 / commit 22ae40c9c4ab574c0b36caed28b31ae608359446；不納入 v0.6.0 發布後的 main commit。
+- Nivqo 核心版本更新為 0.6.0-nivqo.1，bundle 共 59 個 patch。
+- 相較 Nivqo 前一版新增 5 個 patch metadata：隱藏貼文下方的 Meta AI 問題、隱藏 Feeds 標題列、保留貼文日期、支援 x86 裝置啟動、分頁列置底。
+- 保留 Nivqo 的繁體中文／English 介面、介面語言選擇，以及 Facebook 頂部 Messenger 圖示雙向路由。
+- HushFacebook Manager patch metadata 繁中覆蓋更新為 59 / 59。
+- 正式 bundle SHA-256：E6B35A3E1692C8A873ADD2BD67894FA051119D9E20B7B0EDAAF403F906B6E538。
+
+### Manager replacement
+
+- Manager 顯示版本維持 1.33.0，同版 replacement 內建 HushFacebook 0.6.0-nivqo.1 離線 seed。
+- 新 versionCode：39858567；可直接覆蓋既有 v1.32.0 與舊 v1.33.0。
+- APK 簽章憑證維持不變。
+
 ## 2026-10-01 — v1.33.0
 
 ### Manager 同步
