@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 from pathlib import Path
+import re
 import sys
 
 
@@ -11,6 +12,12 @@ PUBLIC_JSON = (
     ROOT / "updates" / "hushfacebook.json",
     ROOT / "updates" / "hushmessenger.json",
 )
+PUBLIC_CHANGELOGS = (
+    (ROOT / "updates" / "hushfacebook-changelog.md", "Facebook"),
+    (ROOT / "updates" / "hushmessenger-changelog.md", "Messenger"),
+)
+SCOPE_RE = re.compile(r"^\*\s+\*\*(.+?):\*\*", re.MULTILINE)
+HEADING_RE = re.compile(r"^#\s+", re.MULTILINE)
 
 
 def load_public_json(path: Path):
@@ -27,6 +34,23 @@ def load_public_json(path: Path):
     return value
 
 
+def validate_latest_changelog_scope(path: Path, expected_scope: str):
+    data = path.read_bytes()
+    if data.startswith(b"\xef\xbb\xbf"):
+        raise ValueError("UTF-8 BOM is not allowed")
+    text = data.decode("utf-8")
+    headings = list(HEADING_RE.finditer(text))
+    if not headings:
+        raise ValueError("missing release heading")
+    start = headings[0].end()
+    end = headings[1].start() if len(headings) > 1 else len(text)
+    scopes = {match.group(1).strip() for match in SCOPE_RE.finditer(text[start:end])}
+    if expected_scope not in scopes:
+        raise ValueError(
+            f"latest release must contain a scoped bullet for {expected_scope}; found {sorted(scopes)}"
+        )
+
+
 def main() -> int:
     parsed = {}
     errors = []
@@ -34,6 +58,13 @@ def main() -> int:
         try:
             parsed[path] = load_public_json(path)
             print(f"OK  {path.relative_to(ROOT)}")
+        except Exception as exc:
+            errors.append(f"{path.relative_to(ROOT)}: {exc}")
+
+    for path, expected_scope in PUBLIC_CHANGELOGS:
+        try:
+            validate_latest_changelog_scope(path, expected_scope)
+            print(f"OK  {path.relative_to(ROOT)} [{expected_scope}]")
         except Exception as exc:
             errors.append(f"{path.relative_to(ROOT)}: {exc}")
 

@@ -16,6 +16,30 @@ import kotlin.test.assertTrue
  */
 class ChangelogSectionsTest {
     @Test
+    fun `facebook nivqo release scope triggers home repatch detection`() {
+        val entries = ChangelogParser.parse(
+            """
+            # 0.6.0-nivqo.1 (2026-10-02)
+
+            * **Facebook:** 繁體中文：核心由 54 個 patch 更新為 59 個。
+            * **Facebook:** English: Bundle grows from 54 to 59 patches.
+
+            # [0.5.0-nivqo.2](https://example.com/old) (2026-10-01)
+
+            * **Facebook:** Previous release.
+            """.trimIndent()
+        )
+
+        assertTrue(
+            ChangelogParser.hasChangesFor(
+                entries = entries,
+                installedVersion = "0.6.0",
+                appNames = listOf("Facebook"),
+            )
+        )
+    }
+
+    @Test
     fun `headings split the changes into kinds, features first`() {
         val sections = ChangelogParser.sections(
             """
