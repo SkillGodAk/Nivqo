@@ -13,6 +13,7 @@ import app.morphe.extension.facebook.comments.CommentOrder;
 import app.morphe.extension.facebook.download.DownloadQuality;
 import app.morphe.extension.facebook.download.FileNameTemplate;
 import app.morphe.extension.facebook.download.SaveFolder;
+import app.morphe.extension.facebook.download.SaveTo;
 import app.morphe.extension.facebook.download.SendLink;
 import app.morphe.extension.facebook.media.PlaybackQuality;
 import app.morphe.extension.facebook.navigation.StartTab;
@@ -53,8 +54,10 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_hide_suggested_for_you", TRUE);
 
     /**
-     * The "People you may know" row in the feed, found by its GraphQL type name, and the carousel on
-     * your own profile, found by the name its section gives itself.
+     * The "People you may know" row in the feed, found by its GraphQL type name, the carousel on
+     * your own profile, found by the name its section gives itself, and, when Hide suggested
+     * stories is in too, the People you may know cards in the Stories tray, found by their bucket
+     * type (PYMK_STORY or PYMK_PROFILE_FORWARD_STORY).
      */
     public static final BooleanSetting HIDE_PEOPLE_YOU_MAY_KNOW =
             new BooleanSetting("hushfacebook_hide_people_you_may_know", TRUE);
@@ -153,6 +156,14 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting HIDE_SUGGESTED_STORIES =
             new BooleanSetting("hushfacebook_hide_suggested_stories", TRUE);
+
+    /**
+     * The "Find friends from contacts" card in the Stories tray, which asks to upload the phone's
+     * contacts: a bucket whose type is CONTACT_IMPORTER_STORY, the type the tray's card dispatcher
+     * draws that card for. Stories and the other cards stay.
+     */
+    public static final BooleanSetting HIDE_CONTACT_IMPORT_CARD =
+            new BooleanSetting("hushfacebook_hide_contact_import_card", TRUE);
 
     /** Keep a finished Story visible until the user navigates. */
     public static final BooleanSetting BLOCK_STORY_AUTO_ADVANCE =
@@ -473,6 +484,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_hide_reels_tab_dot", TRUE);
 
     /**
+     * The tab bar goes to the bottom of the screen on accounts Facebook gives it at the top
+     * ({@link app.morphe.extension.facebook.navigation.BottomTabBar}). Facebook places the bar as
+     * its main screen starts, so a change waits for a restart.
+     */
+    public static final BooleanSetting BOTTOM_TAB_BAR =
+            new BooleanSetting("hushfacebook_bottom_tab_bar", FALSE, true);
+
+    /**
      * The strip some posts carry ("Are you interested in this post?", "Show less", who recently
      * commented, follow and chat suggestions) goes, and so does the room kept for it
      * ({@link app.morphe.extension.facebook.feed.PostPrompts}). A change shows on the posts drawn
@@ -480,6 +499,30 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting HIDE_POST_PROMPTS =
             new BooleanSetting("hushfacebook_hide_post_prompts", TRUE);
+
+    /**
+     * Posts come without the row of Meta AI questions Facebook adds under some of them
+     * ({@link app.morphe.extension.facebook.feed.MetaAiQuestions}). A change shows on the posts
+     * drawn after it.
+     */
+    public static final BooleanSetting HIDE_META_AI_QUESTIONS =
+            new BooleanSetting("hushfacebook_hide_meta_ai_questions", TRUE);
+
+    /**
+     * Post headers keep the one line with the date instead of Facebook's rotating subtitle
+     * ({@link app.morphe.extension.facebook.feed.PostDates}). A change shows on the headers drawn
+     * after it.
+     */
+    public static final BooleanSetting KEEP_POST_DATES =
+            new BooleanSetting("hushfacebook_keep_post_dates", TRUE);
+
+    /**
+     * The Feeds tab opens on its posts, without the title row or the filters under it
+     * ({@link app.morphe.extension.facebook.feed.FeedsHeader}). Facebook settles both as the tab is
+     * built, so a change waits for a restart.
+     */
+    public static final BooleanSetting HIDE_FEEDS_HEADER =
+            new BooleanSetting("hushfacebook_hide_feeds_header", FALSE, true);
 
     /**
      * Reels come without the "Are you interested in this reel?" prompt
@@ -490,7 +533,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_hide_reel_prompts", TRUE);
 
     /**
-     * The folder every save goes to, under Movies for a video and Pictures for a photo. The
+     * The top folder saves go to: Movies for a video and Pictures for a photo, the default and
+     * where Facebook's own saves go, or DCIM or Download for both (#42). The {@link #SAVE_FOLDER}
+     * goes under it. Saves made before a change stay where they are. Like the folder, it isn't a
+     * switch.
+     */
+    public static final EnumSetting<SaveTo> SAVE_TO =
+            new EnumSetting<>("hushfacebook_save_to", SaveTo.MOVIES_AND_PICTURES);
+
+    /**
+     * The folder every save goes to, under the top folder {@link #SAVE_TO} names. The
      * settings row and an import keep it clean, and {@link SaveFolder#sanitize} cleans it again
      * wherever it's read, so whatever wrote the store, a save lands in one folder under each.
      * It isn't a switch, and a paused Facebook makes no Hushfacebook saves for it to steer.
@@ -519,11 +571,11 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_download_compatible", FALSE);
 
     /**
-     * The name a saved video gets: {date}, {video_id}, {owner} and {posted} fill in per save, the
-     * last three only when the save knows them, and the default is Facebook's own FB_VID_ name, so
-     * nothing changes for anyone who leaves it. Photos keep their FB_IMG_ names. Cleaned like the
-     * folder wherever it's read ({@link FileNameTemplate#sanitize}), and like the folder, it isn't
-     * a switch.
+     * The name a saved video gets: {date}, {video_id}, {owner}, {owner_id} and {posted} fill in per
+     * save, the last four only when the save knows them, and the default is Facebook's own FB_VID_
+     * name, so nothing changes for anyone who leaves it. Photos keep their FB_IMG_ names. Cleaned
+     * like the folder wherever it's read ({@link FileNameTemplate#sanitize}), and like the folder,
+     * it isn't a switch.
      */
     public static final StringSetting FILENAME_TEMPLATE =
             new StringSetting("hushfacebook_filename_template", FileNameTemplate.DEFAULT);

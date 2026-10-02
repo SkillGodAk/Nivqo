@@ -115,6 +115,18 @@ object PatchMetadataLocalizer {
             "在搜尋中隱藏 Meta AI",
             "移除搜尋結果中的 Meta AI 回答與提示，並阻止搜尋建議自行開啟 Meta AI。人物、社團、粉絲專頁、貼文與 Meta AI 按鈕仍保留。"
         ),
+        "Hide Meta AI questions under posts" to Zh(
+            "隱藏貼文下方的 Meta AI 問題",
+            "移除 Facebook 加在部分貼文下方的 Meta AI 問題列。貼文本身、連結卡片與按鈕仍會保留。"
+        ),
+        "Hide the Feeds header" to Zh(
+            "隱藏 Feeds 標題列",
+            "移除 Feeds 分頁頂端的標題列，以及「全部、最愛、朋友、社團、粉絲專頁」篩選器，讓分頁直接顯示貼文。此開關預設關閉，請在「動態消息」中開啟後重新啟動 Facebook。"
+        ),
+        "Keep post dates" to Zh(
+            "保留貼文日期",
+            "保留發佈者名稱下方的貼文日期。新版 Facebook 可能在貼文顯示後把該行換成輪替資訊，部分手機甚至會變成空白；開啟後日期會保持不變。"
+        ),
         "Hide Reels in the feed" to Zh(
             "隱藏動態消息中的 Reels",
             "移除動態消息貼文之間與末尾加入的 Reels。好友直接發布的 Reel 仍會保留。"
@@ -210,6 +222,14 @@ object PatchMetadataLocalizer {
         "Stop update prompts" to Zh(
             "停止更新提示",
             "停止重新簽章版本中的 Facebook 更新提示、Meta App Manager 更新推廣及要求檢查更新的推播，也移除針對舊版本的聊天升級推廣。"
+        ),
+        "Start on x86 devices" to Zh(
+            "支援 x86 裝置啟動",
+            "避免 Facebook 在透過轉譯執行 ARM 程式碼的 x86 裝置（例如模擬器或 x86 Chromebook）啟動時當機或卡住，方法是略過會出問題的啟動步驟。ARM 手機與平板維持原本啟動流程。"
+        ),
+        "Tab bar at the bottom" to Zh(
+            "分頁列置底",
+            "在目前把分頁列顯示於頂部的帳號上，將 Facebook 分頁列移到畫面底部。此開關預設關閉，請在「外觀」中開啟後重新啟動 Facebook。"
         ),
         "Tag suggestions only after @" to Zh(
             "只有輸入 @ 後才顯示標註建議",

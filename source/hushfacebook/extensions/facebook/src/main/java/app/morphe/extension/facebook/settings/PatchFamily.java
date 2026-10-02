@@ -53,10 +53,16 @@ public enum PatchFamily {
             Settings.HIDE_POSTS_WITH_WORDS),
     POST_PROMPTS(FamilyNames.POST_PROMPTS, "postPrompts", null,
             Settings.HIDE_POST_PROMPTS),
+    META_AI_QUESTIONS(FamilyNames.META_AI_QUESTIONS, "metaAiQuestions", null,
+            Settings.HIDE_META_AI_QUESTIONS),
+    POST_DATES(FamilyNames.POST_DATES, "postDates", null,
+            Settings.KEEP_POST_DATES),
+    FEEDS_HEADER(FamilyNames.FEEDS_HEADER, "feedsHeader", null,
+            Settings.HIDE_FEEDS_HEADER),
     SPONSORED_STORIES(FamilyNames.SPONSORED_STORIES, "sponsoredStories", null,
             Settings.HIDE_SPONSORED_STORIES),
     SUGGESTED_STORIES(FamilyNames.SUGGESTED_STORIES, "suggestedStories", null,
-            Settings.HIDE_SUGGESTED_STORIES),
+            Settings.HIDE_SUGGESTED_STORIES, Settings.HIDE_CONTACT_IMPORT_CARD),
     STORY_AUTO_ADVANCE(FamilyNames.STORY_AUTO_ADVANCE, "storyAutoAdvance", null,
             Settings.BLOCK_STORY_AUTO_ADVANCE),
     STORY_SEEN(FamilyNames.STORY_SEEN, "storySeen", null,
@@ -118,6 +124,8 @@ public enum PatchFamily {
             Settings.HIDE_REELS_TAB),
     REELS_TAB_DOT(FamilyNames.REELS_TAB_DOT, "reelsTabDot", null,
             Settings.HIDE_REELS_TAB_DOT),
+    BOTTOM_TAB_BAR(FamilyNames.BOTTOM_TAB_BAR, "bottomTabBar", null,
+            Settings.BOTTOM_TAB_BAR),
     MESSENGER_CARD(FamilyNames.MESSENGER_CARD, "messengerCard", null,
             Settings.HIDE_GET_MESSENGER_CARD),
     MESSENGER_ICON(FamilyNames.MESSENGER_ICON, "messengerIcon", null,
@@ -136,6 +144,8 @@ public enum PatchFamily {
     AMOLED_THEME(FamilyNames.AMOLED_THEME, "amoledTheme", "the black background in dark mode"),
     MATERIAL_YOU_THEME(FamilyNames.MATERIAL_YOU_THEME, "materialYouTheme", "the recoloured dark mode"),
     RESTORE_TRUST(FamilyNames.RESTORE_TRUST, "restoreTrust", "the re-signed build fix"),
+    // Runs while the application is built, before a switch can be read, and keeps Facebook starting.
+    TRANSLATED_START(FamilyNames.TRANSLATED_START, "translatedStart", "the start-up fix for x86 devices"),
     // A manifest can't be switched at run time: the permissions are renamed in the APK, and Facebook's
     // code has to keep using the names this install holds whether or not Hushfacebook is paused.
     INSTALL_BESIDE_META_APPS(FamilyNames.INSTALL_BESIDE_META_APPS, "installBesideMetaApps",
@@ -191,14 +201,14 @@ public enum PatchFamily {
      * a new default patch fails it until it's listed here.
      */
     static final Set<PatchFamily> DEFAULT_SELECTION = Collections.unmodifiableSet(EnumSet.of(
-            SPONSORED_POSTS, SUGGESTED_POSTS, AI_DETECTED_POSTS, POST_WORDS, POST_PROMPTS, SPONSORED_STORIES,
-            SUGGESTED_STORIES, REEL_PROMPTS,
+            SPONSORED_POSTS, SUGGESTED_POSTS, AI_DETECTED_POSTS, POST_WORDS, POST_PROMPTS, META_AI_QUESTIONS,
+            POST_DATES, FEEDS_HEADER, SPONSORED_STORIES, SUGGESTED_STORIES, REEL_PROMPTS,
             SPONSORED_REELS, SPONSORED_SEARCH, SPONSORED_PROFILE_POSTS, SPONSORED_MARKETPLACE, AFFILIATE_LINKS,
             KEEP_REEL_SPEED,
             RESUME_LONG_VIDEOS, EXTERNAL_BROWSER, SANITIZE_SHARING_LINKS, UPDATE_PROMPTS, STORY_DOWNLOAD,
-            REEL_DOWNLOAD, MARKETPLACE_ONLY, REELS_TAB_DOT, MESSENGER_CARD, MESSENGER_ICON, MENU_PROMOTIONS,
+            REEL_DOWNLOAD, MARKETPLACE_ONLY, REELS_TAB_DOT, BOTTOM_TAB_BAR, MESSENGER_CARD, MESSENGER_ICON, MENU_PROMOTIONS,
             META_AI_SEARCH, PROMO_NOTIFICATIONS, AD_PREFETCH, AD_TELEMETRY, AUDIENCE_NETWORK, RESTORE_TRUST,
-            INSTALL_BESIDE_META_APPS, MENU_SETTINGS_ROW));
+            TRANSLATED_START, INSTALL_BESIDE_META_APPS, MENU_SETTINGS_ROW));
 
     /** The families a test says this build carries, instead of asking {@link SettingsStatus}. */
     @Nullable

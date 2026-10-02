@@ -59,6 +59,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -68,7 +69,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 
 import app.morphe.extension.facebook.download.DownloadQuality;
+import app.morphe.extension.facebook.download.SaveTo;
+import app.morphe.extension.facebook.download.SendLink;
 import app.morphe.extension.facebook.comments.CommentOrder;
+import app.morphe.extension.facebook.feed.PostWords;
 import app.morphe.extension.facebook.media.PlaybackQuality;
 import app.morphe.extension.facebook.navigation.StartTab;
 import app.morphe.extension.shared.L10n;
@@ -122,11 +126,6 @@ public class SettingsBackupTest {
         out.put("hushfacebook_font_source",
                 "it names the font file Use the system font draws in, whose copy only this install holds. A settings "
                         + "file can't carry the font itself, and the name alone would point at nothing on another phone.");
-        String notYet = "the file format has no field for Send to an app's two rows yet (#41), and an import that "
-                + "dropped them without a word would be worse than one that says they stay out. The README says so "
-                + "until the format carries them.";
-        out.put("hushfacebook_download_action", notYet);
-        out.put("hushfacebook_send_to_app", notYet);
         return Collections.unmodifiableMap(out);
     }
 
@@ -169,6 +168,9 @@ public class SettingsBackupTest {
         Settings.START_TAB.resetToDefault();
         Settings.COMMENT_ORDER.resetToDefault();
         Settings.PLAYBACK_QUALITY.resetToDefault();
+        Settings.DOWNLOAD_ACTION.resetToDefault();
+        Settings.SEND_TO_APP.resetToDefault();
+        Settings.SAVE_TO.resetToDefault();
         Settings.HIDDEN_WORDS.resetToDefault();
         Settings.KEPT_WORDS.resetToDefault();
         BaseSettings.PAUSED.resetToDefault();
@@ -213,9 +215,11 @@ public class SettingsBackupTest {
         for (Setting<?> setting : SettingsBackup.VALUES) {
             assertFalse(setting.key + " is carried and kept out at once", VALUES_STAY_OUT.containsKey(setting.key));
         }
-        assertEquals(Arrays.<Setting<?>>asList(Settings.HIDDEN_WORDS, Settings.KEPT_WORDS, Settings.SAVE_FOLDER,
-                Settings.DOWNLOAD_QUALITY, Settings.FILENAME_TEMPLATE, Settings.START_TAB, Settings.COMMENT_ORDER,
-                Settings.PLAYBACK_QUALITY), SettingsBackup.VALUES);
+        assertEquals(Arrays.<Setting<?>>asList(Settings.HIDDEN_WORDS, Settings.KEPT_WORDS, Settings.SAVE_TO,
+                Settings.SAVE_FOLDER, Settings.DOWNLOAD_QUALITY, Settings.FILENAME_TEMPLATE, Settings.DOWNLOAD_ACTION,
+                Settings.SEND_TO_APP, Settings.START_TAB, Settings.COMMENT_ORDER, Settings.PLAYBACK_QUALITY),
+                SettingsBackup.VALUES);
+        assertEquals(Settings.SAVE_TO, SettingsBackup.TO);
         assertEquals(Settings.HIDDEN_WORDS, SettingsBackup.HIDDEN);
         assertEquals(Settings.KEPT_WORDS, SettingsBackup.KEPT);
         assertEquals(Settings.SAVE_FOLDER, SettingsBackup.FOLDER);
@@ -224,6 +228,8 @@ public class SettingsBackupTest {
         assertEquals(Settings.START_TAB, SettingsBackup.START);
         assertEquals(Settings.COMMENT_ORDER, SettingsBackup.ORDER);
         assertEquals(Settings.PLAYBACK_QUALITY, SettingsBackup.PLAYBACK);
+        assertEquals(Settings.DOWNLOAD_ACTION, SettingsBackup.ACTION);
+        assertEquals(Settings.SEND_TO_APP, SettingsBackup.APP);
     }
 
     @Test
@@ -765,6 +771,110 @@ public class SettingsBackupTest {
         assertNull(SettingsBackup.Snapshot.fromBundle(state).hidden);
     }
 
+    /**
+     * The longest lists the row keeps, 50 phrases of 60 characters that each take two chars, go
+     * out and come back whole, both at once, in a file inside the size limit.
+     */
+    @Test
+    public void theLongestWordListsRoundTripWhole() throws Exception {
+        String hidden = longestList(0x1F600);
+        String kept = longestList(0x20000);
+        assertEquals(PostWords.MAX_STORED_CHARS, hidden.length());
+        assertEquals(PostWords.MAX_STORED_CHARS, kept.length());
+        assertTrue(PostWords.isClean(hidden));
+        assertTrue(PostWords.isClean(kept));
+        assertEquals(PostWords.MAX_PHRASES, PostWords.count(hidden));
+        Settings.HIDDEN_WORDS.save(hidden);
+        Settings.KEPT_WORDS.save(kept);
+        String file = SettingsBackup.create();
+        assertTrue("a file of " + file.getBytes(StandardCharsets.UTF_8).length + " bytes",
+                file.getBytes(StandardCharsets.UTF_8).length <= SettingsBackup.MAX_BYTES);
+        Settings.HIDDEN_WORDS.resetToDefault();
+        Settings.KEPT_WORDS.resetToDefault();
+
+        SettingsBackup.Snapshot snapshot = SettingsBackup.parse(file);
+        assertEquals(hidden, snapshot.hiddenChange());
+        assertEquals(kept, snapshot.keptChange());
+        assertEquals(2, SettingsBackup.apply(snapshot));
+        assertEquals(hidden, Settings.HIDDEN_WORDS.savedValue());
+        assertEquals(kept, Settings.KEPT_WORDS.savedValue());
+        assertEquals("a file read back is the file", file, SettingsBackup.create());
+    }
+
+    /** Lists of 1,024 and 1,025 chars, the most a file's string could be before, both come back. */
+    @Test
+    public void listsEitherSideOfTheOldStringLimitComeBack() throws Exception {
+        for (int length : new int[]{1024, 1025}) {
+            String list = asciiList(length);
+            assertEquals(length, list.length());
+            assertTrue(PostWords.isClean(list));
+            Settings.HIDDEN_WORDS.save(list);
+            String file = SettingsBackup.create();
+            Settings.HIDDEN_WORDS.resetToDefault();
+            SettingsBackup.apply(SettingsBackup.parse(file));
+            assertEquals(length + " chars", list, Settings.HIDDEN_WORDS.savedValue());
+        }
+    }
+
+    /**
+     * A string past the longest list, as a list, an unknown value or a name, or one that never
+     * ends, is refused before anything is read into a setting, and every setting stays as it was.
+     */
+    @Test
+    public void aStringPastTheLongestListIsRefusedAndChangesNothing() throws Exception {
+        assertEquals(PostWords.MAX_STORED_CHARS, SettingsBackup.MAX_STRING_CHARS);
+        Settings.HIDDEN_WORDS.save("spoiler");
+        Settings.KEPT_WORDS.save("my team");
+        Settings.SAVE_FOLDER.save("Clips");
+        Settings.HIDE_SUGGESTED_POSTS.save(!Settings.HIDE_SUGGESTED_POSTS.defaultValue);
+        String file = SettingsBackup.create();
+        Map<String, ?> before = store();
+        String past = longestList(0x1F600) + "x";
+
+        JSONObject asList = new JSONObject(file);
+        asList.getJSONObject("settings").put(SettingsBackup.HIDDEN.key, past);
+        JSONObject asUnknown = new JSONObject(file);
+        asUnknown.getJSONObject("settings").put("later", past);
+        JSONObject asName = new JSONObject(file);
+        asName.getJSONObject("settings").put(past, true);
+        String endless = file.substring(0, file.lastIndexOf('}')) + ",\"later\":\"" + repeat('x', SettingsBackup.MAX_STRING_CHARS + 1);
+        for (String refused : new String[]{asList.toString(), asUnknown.toString(), asName.toString(), endless}) {
+            assertTrue(refused.getBytes(StandardCharsets.UTF_8).length <= SettingsBackup.MAX_BYTES);
+            assertEquals(SettingsBackup.Reason.DAMAGED, reasonFor(refused));
+        }
+        String oversized = file.substring(0, file.lastIndexOf('}')) + ",\"later\":\"" + repeat('x', SettingsBackup.MAX_BYTES);
+        assertEquals(SettingsBackup.Reason.SIZE, reasonFor(oversized));
+        assertEquals(SettingsBackup.Reason.SIZE, readReason(new ByteArrayInputStream(oversized.getBytes(StandardCharsets.UTF_8))));
+
+        // The longest list itself still comes in.
+        JSONObject longest = new JSONObject(file);
+        longest.getJSONObject("settings").put(SettingsBackup.HIDDEN.key, longestList(0x1F600));
+        assertEquals(longestList(0x1F600), SettingsBackup.parse(longest.toString()).hiddenChange());
+        assertEquals("a refused file wrote something", before, store());
+    }
+
+    /** {@link PostWords#MAX_PHRASES} phrases of {@link PostWords#MAX_LENGTH} copies of a code point from [first] on. */
+    private static String longestList(int first) {
+        StringBuilder list = new StringBuilder();
+        for (int phrase = 0; phrase < PostWords.MAX_PHRASES; phrase++) {
+            if (phrase > 0) list.append('\n');
+            for (int i = 0; i < PostWords.MAX_LENGTH; i++) list.appendCodePoint(first + phrase);
+        }
+        return list.toString();
+    }
+
+    /** A clean list of plain letters exactly [length] chars long. */
+    private static String asciiList(int length) {
+        StringBuilder list = new StringBuilder();
+        for (int phrase = 0; list.length() < length; phrase++) {
+            if (phrase > 0) list.append('\n');
+            String start = String.format(Locale.ROOT, "p%02d", phrase);
+            int room = Math.min(PostWords.MAX_LENGTH, length - list.length());
+            list.append(start).append(repeat('x', room - start.length()));
+        }
+        return list.toString();
+    }
+
     /** The preview and the toast say how many phrases each list will hold, never which. */
     @Test
     public void importOfTheWordListsSaysHowManyPhrasesEachHolds() {
@@ -1194,6 +1304,275 @@ public class SettingsBackupTest {
         }
         assertEquals("Settings imported. Facebook will pick the quality videos play at.",
                 SettingsBackupPreference.importedMessage(0, null, null, null, null, null, null, null, PlaybackQuality.AUTO));
+    }
+
+    /**
+     * A file exported with Send the link to an app and a package set puts both back on a clean
+     * install (#41).
+     */
+    @Test
+    public void theDownloadActionAndTheSendToAppComeBackOnACleanInstall() throws Exception {
+        Settings.DOWNLOAD_ACTION.save(SendLink.Action.SEND);
+        Settings.SEND_TO_APP.save(SendLink.YTDLNIS);
+        String file = SettingsBackup.create();
+        JSONObject written = new JSONObject(file).getJSONObject("settings");
+        assertEquals("send", written.get(SettingsBackup.ACTION.key));
+        assertEquals(SendLink.YTDLNIS, written.get(SettingsBackup.APP.key));
+
+        Settings.DOWNLOAD_ACTION.resetToDefault();
+        Settings.SEND_TO_APP.resetToDefault();
+        SettingsBackup.Snapshot snapshot = SettingsBackup.parse(file);
+        assertEquals(SendLink.Action.SEND, snapshot.actionChange());
+        assertEquals(SendLink.YTDLNIS, snapshot.appChange());
+        Map<Setting<?>, Object> expected = new LinkedHashMap<>();
+        expected.put(SettingsBackup.ACTION, SendLink.Action.SEND);
+        expected.put(SettingsBackup.APP, SendLink.YTDLNIS);
+        assertEquals(expected, snapshot.changes());
+        assertEquals(2, SettingsBackup.apply(snapshot));
+        assertEquals(SendLink.Action.SEND, Settings.DOWNLOAD_ACTION.savedValue());
+        assertEquals(SendLink.YTDLNIS, Settings.SEND_TO_APP.savedValue());
+        assertEquals("a file read back is the file", file, SettingsBackup.create());
+        assertEquals("the same file again changes nothing", 0, SettingsBackup.parse(file).changes().size());
+    }
+
+    /**
+     * The download action goes out as its file value and the app as the package links really go
+     * to, blank for Android's chooser, and each comes back only as one of those: any other action,
+     * or an app that isn't blank or one package name as it stands, refuses the whole file.
+     */
+    @Test
+    public void theDownloadActionAndTheAppComeBackOnlyAsOnesTheRowsTake() throws Exception {
+        for (SendLink.Action action : SendLink.Action.values()) {
+            Settings.DOWNLOAD_ACTION.save(action);
+            String file = SettingsBackup.create();
+            assertEquals(action.fileValue, new JSONObject(file).getJSONObject("settings").get(SettingsBackup.ACTION.key));
+            Settings.DOWNLOAD_ACTION.save(action == SendLink.Action.SEND ? SendLink.Action.SAVE : SendLink.Action.SEND);
+
+            SettingsBackup.Snapshot snapshot = SettingsBackup.parse(file);
+            assertEquals(action, snapshot.action);
+            assertEquals(Collections.singletonMap(SettingsBackup.ACTION, action), snapshot.changes());
+            assertEquals(1, SettingsBackup.apply(snapshot));
+            assertEquals(action, Settings.DOWNLOAD_ACTION.savedValue());
+            assertEquals("a file read back is the file", file, SettingsBackup.create());
+        }
+        for (String app : new String[]{"", SendLink.SEAL, "a.b"}) {
+            Settings.SEND_TO_APP.save(app);
+            String file = SettingsBackup.create();
+            assertEquals(app, new JSONObject(file).getJSONObject("settings").get(SettingsBackup.APP.key));
+            Settings.SEND_TO_APP.save(app.isEmpty() ? SendLink.YTDLNIS : "");
+
+            SettingsBackup.Snapshot snapshot = SettingsBackup.parse(file);
+            assertEquals(app, snapshot.app);
+            assertEquals(Collections.singletonMap(SettingsBackup.APP, app), snapshot.changes());
+            assertEquals(1, SettingsBackup.apply(snapshot));
+            assertEquals(app, Settings.SEND_TO_APP.savedValue());
+            assertEquals("a file read back is the file", file, SettingsBackup.create());
+        }
+
+        // A saved name with spaces round it, or one that isn't a package name, goes out as where
+        // links really go, and that's no change here.
+        Settings.SEND_TO_APP.save(" " + SendLink.SEAL + "  ");
+        String trimmed = SettingsBackup.create();
+        assertEquals(SendLink.SEAL, new JSONObject(trimmed).getJSONObject("settings").get(SettingsBackup.APP.key));
+        assertNull(SettingsBackup.parse(trimmed).appChange());
+        Settings.SEND_TO_APP.save("not a package");
+        String blank = SettingsBackup.create();
+        assertEquals("", new JSONObject(blank).getJSONObject("settings").get(SettingsBackup.APP.key));
+        assertNull(SettingsBackup.parse(blank).appChange());
+
+        Settings.DOWNLOAD_ACTION.save(SendLink.Action.SEND);
+        Settings.SEND_TO_APP.save(SendLink.YTDLNIS);
+        String file = SettingsBackup.create();
+        Map<String, ?> before = store();
+        for (Object refused : new Object[]{"SEND", "Send", "share", "", " send", 1, true, JSONObject.NULL,
+                new JSONObject(), new org.json.JSONArray()}) {
+            JSONObject hostile = new JSONObject(file);
+            hostile.getJSONObject("settings").put(SettingsBackup.ACTION.key, refused);
+            try {
+                SettingsBackup.parse(hostile.toString());
+                fail("a file with the download action " + printable(String.valueOf(refused)) + " was read");
+            } catch (SettingsBackup.Rejected rejected) {
+                assertEquals(printable(String.valueOf(refused)), SettingsBackup.Reason.VALUE, rejected.reason);
+            }
+        }
+        for (Object refused : new Object[]{"ytdl", " " + SendLink.YTDLNIS, SendLink.YTDLNIS + " ", "com..ytdl",
+                "com.ytdl.", "1com.ytdl", "com.1ytdl", "com.ytdl/Main", "com.ytdl;x", "com.yt\u00e9dl", " ", "\n", 7,
+                false, JSONObject.NULL, new JSONObject(), new org.json.JSONArray()}) {
+            JSONObject hostile = new JSONObject(file);
+            hostile.getJSONObject("settings").put(SettingsBackup.APP.key, refused);
+            try {
+                SettingsBackup.parse(hostile.toString());
+                fail("a file with the app " + printable(String.valueOf(refused)) + " was read");
+            } catch (SettingsBackup.Rejected rejected) {
+                assertEquals(printable(String.valueOf(refused)), SettingsBackup.Reason.VALUE, rejected.reason);
+                assertEquals("a refusal names the setting, never what the file holds",
+                        "Not one package name: " + SettingsBackup.APP.key, rejected.getMessage());
+            }
+        }
+        assertEquals("a refused file wrote something", before, store());
+
+        // A file from before these were carried leaves them alone.
+        SettingsBackup.Snapshot older = SettingsBackup.parse(fileWith(Settings.HIDE_SUGGESTED_POSTS, false));
+        assertNull(older.action);
+        assertNull(older.app);
+        assertNull(older.actionChange());
+        assertNull(older.appChange());
+        SettingsBackup.apply(older);
+        assertEquals(SendLink.Action.SEND, Settings.DOWNLOAD_ACTION.savedValue());
+        assertEquals(SendLink.YTDLNIS, Settings.SEND_TO_APP.savedValue());
+
+        // A preview kept across a rebuild keeps both, and only what a file could hold comes back.
+        Bundle state = SettingsBackup.parse(file).toBundle();
+        SettingsBackup.Snapshot kept = SettingsBackup.Snapshot.fromBundle(state);
+        assertEquals(SendLink.Action.SEND, kept.action);
+        assertEquals(SendLink.YTDLNIS, kept.app);
+        state.putString("download_action", "SEND");
+        state.putString("send_to_app", "not a package");
+        kept = SettingsBackup.Snapshot.fromBundle(state);
+        assertNull(kept.action);
+        assertNull(kept.app);
+        state.putInt("download_action", 1);
+        state.putInt("send_to_app", 1);
+        kept = SettingsBackup.Snapshot.fromBundle(state);
+        assertNull(kept.action);
+        assertNull(kept.app);
+    }
+
+    /** A file that changes the download action and the app says what Download will do, before and after. */
+    @Test
+    public void importOfTheDownloadActionAndAppSaysWhereLinksWillGo() throws Exception {
+        JSONObject file = new JSONObject(fileWith(Settings.DOWNLOAD_REELS, false));
+        file.getJSONObject("settings").put(SettingsBackup.ACTION.key, "send")
+                .put(SettingsBackup.APP.key, SendLink.YTDLNIS);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            HushfacebookPreferenceFragment page = SettingsL10nTest.pageOf(SettingsL10nTest.show(activity));
+            deliver(activity, tap(activity, page, IMPORT_ROW), file.toString());
+            AlertDialog preview = shownPreview();
+            String action = "Tapping Download on a reel or video will send its link to an app.";
+            String app = "Links will go to " + L10n.isolate(SendLink.YTDLNIS) + ".";
+            assertEquals("1 switch will change.\n\n" + action + "\n\n" + app,
+                    String.valueOf(shadowOf(preview).getMessage()));
+            preview.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+            settle();
+            assertEquals("Settings imported. 1 switch changed. " + action + " " + app,
+                    ShadowToast.getTextOfLatestToast());
+            assertEquals(SendLink.Action.SEND, Settings.DOWNLOAD_ACTION.savedValue());
+            assertEquals(SendLink.YTDLNIS, Settings.SEND_TO_APP.savedValue());
+            assertEquals("the download action row still shows the old action",
+                    HushfacebookPreferenceFragment.downloadActionSummary(SendLink.Action.SEND),
+                    String.valueOf(page.findPreference(Settings.DOWNLOAD_ACTION.key).getSummary()));
+            assertEquals("the send-to row still shows the old app",
+                    HushfacebookPreferenceFragment.sendAppSummary(SendLink.YTDLNIS),
+                    String.valueOf(page.findPreference(Settings.SEND_TO_APP.key).getSummary()));
+        }
+        assertEquals("Settings imported. Reels and videos will save to this phone when you tap Download. "
+                        + "Android will ask which app gets the links each time.",
+                SettingsBackupPreference.importedMessage(0, null, null, null, null, null, null, null, null,
+                        SendLink.Action.SAVE, ""));
+    }
+
+    /** A file exported with Save to set to Download puts it back on a clean install (#42). */
+    @Test
+    public void theTopFolderComesBackOnACleanInstall() throws Exception {
+        Settings.SAVE_TO.save(SaveTo.DOWNLOAD);
+        String file = SettingsBackup.create();
+        assertEquals("download", new JSONObject(file).getJSONObject("settings").get(SettingsBackup.TO.key));
+
+        Settings.SAVE_TO.resetToDefault();
+        SettingsBackup.Snapshot snapshot = SettingsBackup.parse(file);
+        assertEquals(SaveTo.DOWNLOAD, snapshot.toChange());
+        assertEquals(Collections.singletonMap(SettingsBackup.TO, SaveTo.DOWNLOAD), snapshot.changes());
+        assertEquals(1, SettingsBackup.apply(snapshot));
+        assertEquals(SaveTo.DOWNLOAD, Settings.SAVE_TO.savedValue());
+        assertEquals("a file read back is the file", file, SettingsBackup.create());
+        assertEquals("the same file again changes nothing", 0, SettingsBackup.parse(file).changes().size());
+    }
+
+    /**
+     * Each top folder goes out as its file value and comes back only as one of those. Anything else
+     * refuses the whole file, a file from before it was carried leaves it alone, and a preview kept
+     * across a rebuild keeps only a value a file could hold.
+     */
+    @Test
+    public void theTopFolderComesBackOnlyAsOneTheRowOffers() throws Exception {
+        for (SaveTo to : SaveTo.values()) {
+            Settings.SAVE_TO.save(to);
+            String file = SettingsBackup.create();
+            assertEquals(to.fileValue, new JSONObject(file).getJSONObject("settings").get(SettingsBackup.TO.key));
+            Settings.SAVE_TO.save(to == SaveTo.DCIM ? SaveTo.DOWNLOAD : SaveTo.DCIM);
+
+            SettingsBackup.Snapshot snapshot = SettingsBackup.parse(file);
+            assertEquals(to, snapshot.to);
+            assertEquals(Collections.singletonMap(SettingsBackup.TO, to), snapshot.changes());
+            assertEquals(1, SettingsBackup.apply(snapshot));
+            assertEquals(to, Settings.SAVE_TO.savedValue());
+            assertEquals("a file read back is the file", file, SettingsBackup.create());
+        }
+        assertEquals(Arrays.asList("movies_pictures", "dcim", "download"), Arrays.asList(
+                SaveTo.MOVIES_AND_PICTURES.fileValue, SaveTo.DCIM.fileValue, SaveTo.DOWNLOAD.fileValue));
+
+        Settings.SAVE_TO.save(SaveTo.DCIM);
+        String file = SettingsBackup.create();
+        Map<String, ?> before = store();
+        for (Object refused : new Object[]{"DCIM", "Download", "downloads", "movies", "pictures", "MOVIES_AND_PICTURES",
+                "", " dcim", "dcim ", "sdcard", 1, true, JSONObject.NULL, new JSONObject(), new org.json.JSONArray()}) {
+            JSONObject hostile = new JSONObject(file);
+            hostile.getJSONObject("settings").put(SettingsBackup.TO.key, refused);
+            try {
+                SettingsBackup.parse(hostile.toString());
+                fail("a file with the top folder " + printable(String.valueOf(refused)) + " was read");
+            } catch (SettingsBackup.Rejected rejected) {
+                assertEquals(printable(String.valueOf(refused)), SettingsBackup.Reason.VALUE, rejected.reason);
+                assertEquals("a refusal names the setting, never what the file holds",
+                        "Not a save location: " + SettingsBackup.TO.key, rejected.getMessage());
+            }
+        }
+        assertEquals("a refused file wrote something", before, store());
+
+        // A file from before the top folder was carried leaves it alone.
+        SettingsBackup.Snapshot older = SettingsBackup.parse(fileWith(Settings.HIDE_SUGGESTED_POSTS, false));
+        assertNull(older.to);
+        assertNull(older.toChange());
+        SettingsBackup.apply(older);
+        assertEquals(SaveTo.DCIM, Settings.SAVE_TO.savedValue());
+
+        Bundle state = SettingsBackup.parse(file).toBundle();
+        assertEquals(SaveTo.DCIM, SettingsBackup.Snapshot.fromBundle(state).to);
+        state.putString("save_to", "DCIM");
+        assertNull(SettingsBackup.Snapshot.fromBundle(state).to);
+        state.putInt("save_to", 1);
+        assertNull(SettingsBackup.Snapshot.fromBundle(state).to);
+    }
+
+    /** A file that changes the top folder says where saves will go, in the preview and the toast. */
+    @Test
+    public void importOfTheTopFolderSaysWhereSavesWillGo() throws Exception {
+        JSONObject file = new JSONObject(fileWith(Settings.DOWNLOAD_REELS, false));
+        file.getJSONObject("settings").put(SettingsBackup.TO.key, "download");
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            HushfacebookPreferenceFragment page = SettingsL10nTest.pageOf(SettingsL10nTest.show(activity));
+            deliver(activity, tap(activity, page, IMPORT_ROW), file.toString());
+            AlertDialog preview = shownPreview();
+            String to = "Videos and photos will go to " + L10n.isolate("Download") + ".";
+            assertEquals("1 switch will change.\n\n" + to, String.valueOf(shadowOf(preview).getMessage()));
+            preview.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+            settle();
+            assertEquals("Settings imported. 1 switch changed. " + to, ShadowToast.getTextOfLatestToast());
+            assertEquals(SaveTo.DOWNLOAD, Settings.SAVE_TO.savedValue());
+            assertEquals("the Save to row still shows the old top folder",
+                    HushfacebookPreferenceFragment.saveToSummary(SaveTo.DOWNLOAD),
+                    String.valueOf(page.findPreference(Settings.SAVE_TO.key).getSummary()));
+            assertEquals("the folder row still names the old top folder",
+                    HushfacebookPreferenceFragment.folderSummary(
+                            app.morphe.extension.facebook.download.SaveFolder.DEFAULT, SaveTo.DOWNLOAD),
+                    String.valueOf(page.findPreference(Settings.SAVE_FOLDER.key).getSummary()));
+        }
+        assertEquals("Settings imported. Videos will go to " + L10n.isolate("Movies") + " and photos to "
+                        + L10n.isolate("Pictures") + ".",
+                SettingsBackupPreference.importedMessage(0, null, null, null, null, null, null, null, null, null, null,
+                        SaveTo.MOVIES_AND_PICTURES));
     }
 
     /** A file that changes the start tab says where Facebook will open, before and after. */

@@ -371,6 +371,146 @@ public class MaterialYouThemeTest {
         assertFalse(MaterialYouTheme.isServerBlue(0xFF252728));
     }
 
+    /**
+     * Marketplace home, a React Native screen, in Facebook's dark mode (ReactColours): the selected
+     * chip's #331D85FC, the location pin's #75B6FF and the location name's #5AA7FF take the palette's
+     * accent at the same lightness, the chip staying as see-through, and the #252728 strip behind the
+     * chips takes its neutral. A colour no list has, AMOLED's black, light mode and the blues before
+     * Facebook answers keep Facebook's.
+     */
+    @Test
+    public void marketplacesReactColoursTakeThePaletteInDarkMode() {
+        DarkMode.answer(true);
+        for (int blue : new int[]{0x331D85FC, 0xFF75B6FF, 0xFF5AA7FF}) {
+            int drawn = MaterialYouTheme.react(blue);
+            assertEquals(Integer.toHexString(blue), palette.sameLightness(TonePalette.ACCENT, blue), drawn);
+            assertSameLightness(Integer.toHexString(blue), blue | 0xFF000000, drawn | 0xFF000000);
+            assertEquals(Integer.toHexString(blue) + " keeps its alpha", blue >>> 24, drawn >>> 24);
+        }
+        assertNotEquals("the chip kept Facebook's blue", 0x331D85FC, MaterialYouTheme.react(0x331D85FC));
+        assertEquals("the strip", palette.sameLightness(TonePalette.NEUTRAL, 0xFF252728), MaterialYouTheme.react(0xFF252728));
+        assertEquals("a colour no list has", 0xFF123456, MaterialYouTheme.react(0xFF123456));
+        assertEquals("a blue someone picked", 0xFF1877F2, MaterialYouTheme.react(0xFF1877F2));
+        assertEquals("AMOLED's black", 0xFF000000, MaterialYouTheme.react(0xFF000000));
+        assertEquals("white text", 0xFFFFFFFF, MaterialYouTheme.react(0xFFFFFFFF));
+
+        DarkMode.answer(false);
+        for (int colour : new int[]{0x261D85FC, 0xFF0064D1, 0xFF75B6FF, 0xFF5AA7FF, 0xFF252728}) {
+            assertEquals("light mode " + Integer.toHexString(colour), colour, MaterialYouTheme.react(colour));
+        }
+        DarkMode.forget();
+        for (int blue : new int[]{0x331D85FC, 0xFF75B6FF, 0xFF5AA7FF}) {
+            assertEquals("before Facebook answers " + Integer.toHexString(blue), blue, MaterialYouTheme.react(blue));
+        }
+    }
+
+    /**
+     * A Marketplace listing's page in dark mode: the Message seller card is #333334, a grey FDS_DARK
+     * lists (CARD_BACKGROUND), and as a React background it takes the palette's neutral at its
+     * lightness, as the token would. As text, in light mode, or a grey no table lists, it keeps
+     * Facebook's colour, and AMOLED's card and black stay AMOLED's.
+     */
+    @Test
+    public void aReactBackgroundTakesTheGreysTheDarkTableLists() {
+        DarkMode.answer(true);
+        int card = MaterialYouTheme.reactBackground(0xFF333334);
+        assertEquals("the card", palette.sameLightness(TonePalette.NEUTRAL, 0xFF333334), card);
+        assertNotEquals("the card kept Facebook's grey", 0xFF333334, card);
+        assertSameLightness("the card", 0xFF333334, card);
+        assertEquals("ReactColours paints a background with it", card, ReactColours.background(0xFF333334, false, true));
+        assertEquals("a surface", palette.sameLightness(TonePalette.NEUTRAL, 0xFF252728),
+                MaterialYouTheme.reactBackground(0xFF252728));
+        assertEquals("a server blue", palette.sameLightness(TonePalette.ACCENT, 0x331D85FC),
+                MaterialYouTheme.reactBackground(0x331D85FC));
+        assertEquals("text keeps the grey", 0xFF333334, MaterialYouTheme.react(0xFF333334));
+        assertEquals("text through ReactColours", 0xFF333334, ReactColours.text(0xFF333334, true));
+        assertEquals("a grey no table lists", 0xFF343435, MaterialYouTheme.reactBackground(0xFF343435));
+        assertEquals("AMOLED's card", 0xFF121213, MaterialYouTheme.reactBackground(0xFF121213));
+        assertEquals("AMOLED's black", 0xFF000000, MaterialYouTheme.reactBackground(0xFF000000));
+
+        DarkMode.answer(false);
+        assertEquals("light mode", 0xFF333334, MaterialYouTheme.reactBackground(0xFF333334));
+        assertEquals("light mode through ReactColours", 0xFF333334, ReactColours.background(0xFF333334, false, true));
+    }
+
+    /**
+     * The dark table's lighter greys, like #F2F4F7, are light mode's colours too, so a React
+     * background keeps them until Facebook says dark mode is on. And with both themes, what AMOLED
+     * turned a colour into is AMOLED's: under a #212121 Background colour its card is #333334, a
+     * listed grey that Material You leaves, while a listed grey AMOLED didn't touch still takes the
+     * palette.
+     */
+    @Test
+    public void aReactBackgroundWaitsForFacebookAndLeavesAmoledsColours() {
+        DarkMode.forget();
+        assertEquals("a light grey before Facebook answers", 0xFFF2F4F7, MaterialYouTheme.reactBackground(0xFFF2F4F7));
+        assertEquals("the card before Facebook answers", 0xFF333334, MaterialYouTheme.reactBackground(0xFF333334));
+
+        DarkMode.answer(true);
+        assertEquals("a light grey once dark mode is said on", palette.sameLightness(TonePalette.NEUTRAL, 0xFFF2F4F7),
+                MaterialYouTheme.reactBackground(0xFFF2F4F7));
+        assertEquals("AMOLED's card on black", 0xFF121213, ReactColours.background(0xFF333334, true, true));
+        assertEquals("a listed grey AMOLED leaves", palette.sameLightness(TonePalette.NEUTRAL, 0xFFB0B3B8),
+                ReactColours.background(0xFFB0B3B8, true, true));
+        try {
+            AmoledTheme.useBackground(0xFF212121);
+            assertEquals("AMOLED's card on #212121", 0xFF333334, ReactColours.background(0xFF333334, true, true));
+            assertEquals("AMOLED's page on #212121", 0xFF212121, ReactColours.background(0xFF252728, true, true));
+        } finally {
+            AmoledTheme.useBackground(AmoledTheme.backgroundColour());
+        }
+    }
+
+    /**
+     * With neither theme in the build (a test JVM's SettingsStatus says so), React's colours pass
+     * through as they came, a border or tint React didn't set stays null, and one it did set comes
+     * back as the same object.
+     */
+    @Test
+    public void reactColoursPassThroughWithoutATheme() {
+        DarkMode.answer(true);
+        assertEquals(0xFF252728, ReactColours.background(0xFF252728));
+        assertEquals(0xFF5AA7FF, ReactColours.text(0xFF5AA7FF));
+        assertEquals(null, ReactColours.colour(null));
+        Integer pin = 0xFF75B6FF;
+        assertTrue(pin == ReactColours.colour(pin));
+    }
+
+    /**
+     * The order ReactColours runs the themes in: AMOLED first for a background, so Material You
+     * gets AMOLED's colour, as route four does. With AMOLED's background set to #18191A, one of the
+     * dark surfaces, Marketplace's #252728 strip goes to AMOLED's colour and on to the palette's
+     * neutral at its lightness; the other way round it would end on AMOLED's plain #18191A. Text,
+     * borders and tints skip AMOLED, so a dark grey there keeps its colour with Material You out.
+     */
+    @Test
+    public void reactColoursRunAmoledFirstForABackgroundOnly() {
+        DarkMode.answer(true);
+        MaterialYouTheme.use(PalettesForTests.palette(PalettesForTests.RED), false);
+        AmoledTheme.useBackground(0xFF18191A);
+        try {
+            TonePalette red = PalettesForTests.palette(PalettesForTests.RED);
+            int neutral = red.sameLightness(TonePalette.NEUTRAL, 0xFF18191A);
+            assertNotEquals("the palette's neutral isn't AMOLED's colour", 0xFF18191A, neutral);
+            assertEquals("both themes", neutral, ReactColours.background(0xFF252728, true, true));
+            assertEquals("AMOLED alone", 0xFF18191A, ReactColours.background(0xFF252728, true, false));
+            assertEquals("Material You alone", red.sameLightness(TonePalette.NEUTRAL, 0xFF252728),
+                    ReactColours.background(0xFF252728, false, true));
+            assertEquals("neither", 0xFF252728, ReactColours.background(0xFF252728, false, false));
+
+            assertEquals("text skips AMOLED", 0xFF333334, ReactColours.text(0xFF333334, false));
+            assertEquals("text with Material You", red.sameLightness(TonePalette.ACCENT, 0xFF5AA7FF),
+                    ReactColours.text(0xFF5AA7FF, true));
+            assertEquals("a tint with Material You", Integer.valueOf(red.sameLightness(TonePalette.ACCENT, 0xFF75B6FF)),
+                    ReactColours.colour(0xFF75B6FF, true));
+            Integer unlisted = 0xFF123456;
+            assertTrue("an unlisted tint comes back as it was", unlisted == ReactColours.colour(unlisted, true));
+            assertEquals("no tint set", null, ReactColours.colour(null, true));
+        } finally {
+            AmoledTheme.useBackground(0xFF000000);
+        }
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void aServerStringThatIsNoColourThrowsAsBefore() {
         MaterialYouTheme.parseColor("not a colour");

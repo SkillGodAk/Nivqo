@@ -78,6 +78,9 @@ val requestedBouncyCastleVersions = sortedSetOf<String>()
 // Module names, kept apart from the versions above so a name can never end up in the reviewed
 // version set by someone pasting it in.
 val unversionedBouncyCastleRequests = sortedSetOf<String>()
+// GHSA-xxph-c9ww-hj94 covers every Guava before 33.7.2, and Robolectric's test graph asks for
+// 33.6.0. Rewritten to the catalog's release, as :patches does for the patcher's graph.
+val safeGuavaVersion = libs.versions.guava.get()
 
 configurations.configureEach {
     resolutionStrategy.eachDependency {
@@ -100,6 +103,10 @@ configurations.configureEach {
             }
             useVersion(safeBouncyCastleVersion)
             because("The Robolectric test graph must use the reviewed security release.")
+        }
+        if (requested.group == "com.google.guava" && requested.name == "guava") {
+            useVersion(safeGuavaVersion)
+            because("GHSA-xxph-c9ww-hj94 covers every Guava before 33.7.2.")
         }
     }
 }
@@ -162,6 +169,27 @@ val verifyBouncyCastleTestGraph = tasks.register("verifyBouncyCastleTestGraph") 
 // test JVM on a graph nothing had looked at.
 tasks.withType<Test>().configureEach {
     dependsOn(verifyBouncyCastleTestGraph)
+    // Codec checks read these in their JVM. A different configuration must not reuse a prior
+    // pass or skip just because its Java sources haven't changed.
+    for (name in listOf("HUSHFACEBOOK_TEST_FFMPEG", "HUSHFACEBOOK_TEST_FFPROBE", "PATH")) {
+        val value = providers.environmentVariable(name).orElse("")
+        inputs.property("codecTool.$name", value)
+        environment(name, value.get())
+    }
+    inputs.files(provider {
+        val windows = System.getProperty("os.name").startsWith("Windows")
+        val path = providers.environmentVariable("PATH").orElse("").get()
+        listOf("ffmpeg", "ffprobe").flatMap { name ->
+            val configured = providers.environmentVariable("HUSHFACEBOOK_TEST_${name.uppercase()}")
+                .orElse("").get()
+            if (configured.isNotBlank()) listOf(File(configured)) else {
+                path.split(File.pathSeparator).filter { it.isNotEmpty() }.map { directory ->
+                    File(directory.removeSurrounding("\""), name + if (windows) ".exe" else "")
+                }
+            }
+        }.filter { it.isFile }
+    }).withPropertyName("codecExecutables").withPathSensitivity(PathSensitivity.NONE)
+    testLogging.events("skipped")
     // Robolectric's AtomicFile at API 30 finishes a write by renaming the new file over the old
     // one. On Windows, JDKs before 25 won't rename over an existing file, so a second crash report
     // never lands and ClearLogBufferPreferenceTest fails although a phone replaces it. Say so up
