@@ -1,8 +1,8 @@
 {
-    "created_at":  "2026-10-02T10:31:57",
-    "description":  "繁體中文：Nivqo v1.33.0 同版覆蓋更新，內建 HushFacebook 0.6.0-nivqo.1 正式核心（只同步上游正式 v0.6.0），HushFacebook patch metadata 更新為 59 / 59 繁體中文，並保留 HushMessenger 0.7.0-nivqo.1 與 31 / 31 繁中 metadata。App 顯示版本仍為 1.33.0；v1.32.0 與舊 v1.33.0 可直接覆蓋更新。 English: Same-version Nivqo v1.33.0 replacement with the formal HushFacebook 0.6.0-nivqo.1 core (formal upstream v0.6.0 only), 59 / 59 HushFacebook patch metadata localized in Traditional Chinese, and the existing HushMessenger 0.7.0-nivqo.1 core with 31 / 31 localized metadata. The installed version name remains 1.33.0 and existing v1.32.0 / older v1.33.0 builds can update in place.",
-    "download_url":  "https://github.com/SkillGodAk/Nivqo/releases/download/v1.33.0/Nivqo-Manager-1.33.0-20261001-release.apk",
-    "signature_download_url":  "",
-    "version":  "1.33.3",
-    "version_code":  39858567
+  "created_at": "2026-10-02T10:59:04",
+  "description": "繁體中文：Nivqo v1.33.0 同版覆蓋更新，內建 HushFacebook 0.6.0-nivqo.1 正式核心（只同步上游正式 v0.6.0），HushFacebook patch metadata 更新為 59 / 59 繁體中文，並保留 HushMessenger 0.7.0-nivqo.1 與 31 / 31 繁中 metadata。App 顯示版本仍為 1.33.0；v1.32.0 與舊 v1.33.0 可直接覆蓋更新。 English: Same-version Nivqo v1.33.0 replacement with the formal HushFacebook 0.6.0-nivqo.1 core (formal upstream v0.6.0 only), 59 / 59 HushFacebook patch metadata localized in Traditional Chinese, and the existing HushMessenger 0.7.0-nivqo.1 core with 31 / 31 localized metadata. The installed version name remains 1.33.0 and existing v1.32.0 / older v1.33.0 builds can update in place.",
+  "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v1.33.0/Nivqo-Manager-1.33.0-20261001-release.apk",
+  "signature_download_url": "",
+  "version": "1.33.4",
+  "version_code": 39858595
 }
