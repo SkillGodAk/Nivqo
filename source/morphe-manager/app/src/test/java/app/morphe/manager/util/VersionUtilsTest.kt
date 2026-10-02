@@ -83,6 +83,13 @@ class VersionUtilsTest {
     }
 
     @Test
+    fun `nivqo revisions advance the same upstream base`() {
+        assertOlder("0.6.0", "0.6.0-nivqo.1")
+        assertOlder("0.6.0-nivqo.1", "0.6.0-nivqo.2")
+        assertTrue(isNewerVersion("0.6.0", "0.6.0-nivqo.1"))
+    }
+
+    @Test
     fun `a bundle built for a newer patcher is reported as outdated`() {
         assertTrue(isPatcherOutdated(required = "2.0.0", current = "1.8.0"))
         assertFalse(isPatcherOutdated(required = "1.8.0", current = "1.8.0"))

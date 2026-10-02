@@ -926,7 +926,7 @@ class HomeApps(
             }.getOrNull()
         }
 
-        val currentVersionByUid: Map<Int, String?> = sources.associate { it.uid to it.version }
+        val currentVersionByUid: Map<Int, String?> = sources.associate { it.uid to it.trackingVersion }
 
         val updates = mutableMapOf<String, AppPatchUpdate>()
 

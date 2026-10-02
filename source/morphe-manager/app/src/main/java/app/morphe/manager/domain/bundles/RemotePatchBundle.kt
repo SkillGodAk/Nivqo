@@ -295,6 +295,8 @@ sealed class RemotePatchBundle(
     }
 
     val installedVersionSignature: String? get() = installedVersionSignatureInternal
+    override val trackingVersion: String?
+        get() = installedVersionSignatureInternal?.takeUnless { it.isBlank() } ?: version
 }
 
 class JsonPatchBundle(
