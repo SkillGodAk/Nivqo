@@ -14,7 +14,11 @@
 ### Manager replacement
 
 - Manager 顯示版本維持 1.33.0，同版 replacement 內建 HushFacebook 0.6.0-nivqo.1 離線 seed。
-- 新 versionCode：39858567；可直接覆蓋既有 v1.32.0 與舊 v1.33.0。
+- 修正 HushFacebook 更新 manifest 若帶 UTF-8 BOM 時，Manager 解析失敗並在「無法下載變更紀錄」畫面顯示整段 raw JSON 的問題。
+- JSON 更新回應現在會在解析前移除 BOM；raw.githubusercontent.com 的 bundle manifest 與 changelog 請求也加入每分鐘 cache-buster，避免發版後仍讀到舊 CDN 快取。
+- Repo 加入公開更新 JSON pre-push 驗證：BOM、無效 JSON 或兩份 app-release.json 不一致時拒絕 push。
+- 新 versionCode：39858595；可直接覆蓋既有 v1.32.0 與舊 v1.33.0。
+- APK SHA-256：5D70AC22BDE16A3F016CE41D5E023E400DDB9D166D4FC6A3B8F7501FC6B8ABB7。
 - APK 簽章憑證維持不變。
 
 ## 2026-10-01 — v1.33.0
