@@ -1,8 +1,8 @@
-{
-  "created_at": "2026-10-01T01:47:39",
-  "description": "HushFacebook 0.5.0 Nivqo 繁中核心；Nivqo 修訂 2。恢復 Facebook 頂部 Messenger 圖示的雙向路由：開啟「開啟 Messenger 應用程式」時直接開啟 Messenger；關閉時明確開啟 Facebook 內建 Chats / InboxActivity，略過 Meta 的 Messenger 跳轉詢問。維持 54 個 patch 與既有相容版本。",
-  "changelog_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook-changelog.md",
-  "signature_download_url": "",
-  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/bundles/hushfacebook.mpp",
-  "version": "0.5.0-nivqo.2"
+﻿{
+    "created_at":  "2026-10-02T10:15:01",
+    "description":  "HushFacebook 0.6.0 Nivqo 繁中核心；同步上游正式 Release v0.6.0（22ae40c9c4ab574c0b36caed28b31ae608359446），不納入發布後 main commit。核心共 59 個 patch，新增 Meta AI 貼文問題列、Feeds 標題列、貼文日期、x86 啟動與分頁列置底等 patch；保留 Nivqo 繁體中文／English 介面、語言選擇，以及 Facebook 頂部 Messenger 圖示雙向路由：開啟時啟動 Messenger，關閉時直接開啟 Facebook 內建 Chats / InboxActivity。",
+    "changelog_url":  "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook-changelog.md",
+    "signature_download_url":  "",
+    "download_url":  "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/bundles/hushfacebook.mpp",
+    "version":  "0.6.0-nivqo.1"
 }
