@@ -3,6 +3,7 @@
 import app.morphe.manager.domain.bundles.RemotePatchBundle.Companion.CHANGELOG_CACHE_TTL
 import app.morphe.manager.domain.manager.PreferencesManager
 import app.morphe.manager.network.api.MorpheAPI
+import app.morphe.manager.network.api.rawGitHubCacheBusted
 import app.morphe.manager.network.dto.MorpheAsset
 import app.morphe.manager.network.service.AssetDownloader
 import app.morphe.manager.network.service.HttpService
@@ -408,13 +409,13 @@ class JsonPatchBundle(
             coroutineScope {
                 val devDeferred = async {
                     runCatching { http.request<MorpheAsset> {
-                        url(switchBranchInUrl(endpoint, BRANCH_DEV))
+                        url(rawGitHubCacheBusted(switchBranchInUrl(endpoint, BRANCH_DEV)))
                         header("Cache-Control", "no-cache")
                     }.getOrThrow() }.getOrNull()
                 }
                 val stableDeferred = async {
                     runCatching { http.request<MorpheAsset> {
-                        url(switchBranchInUrl(endpoint, BRANCH_STABLE))
+                        url(rawGitHubCacheBusted(switchBranchInUrl(endpoint, BRANCH_STABLE)))
                         header("Cache-Control", "no-cache")
                     }.getOrThrow() }.getOrNull()
                 }
@@ -430,7 +431,7 @@ class JsonPatchBundle(
             }
         } else {
             http.request<MorpheAsset> {
-                url(resolveBranchUrl(endpoint))
+                url(rawGitHubCacheBusted(resolveBranchUrl(endpoint)))
                 header("Cache-Control", "no-cache")
             }.getOrThrow()
         }
@@ -453,7 +454,7 @@ class JsonPatchBundle(
     private suspend fun resolveChangelogUrl(endpointUrl: String, api: MorpheAPI): String? {
         val explicit = runCatching {
             http.request<MorpheAsset> {
-                url(endpointUrl)
+                url(rawGitHubCacheBusted(endpointUrl))
                 header("Cache-Control", "no-cache")
             }.getOrThrow().changelogUrl
         }.getOrNull()?.takeIf { it.isNotBlank() }

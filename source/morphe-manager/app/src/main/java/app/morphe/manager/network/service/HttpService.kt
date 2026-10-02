@@ -35,6 +35,10 @@ import kotlin.math.abs
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 
+@PublishedApi
+internal fun normalizeJsonResponseBody(body: String): String =
+    body.removePrefix("\uFEFF")
+
 /**
  * Central HTTP service built on Ktor Client. Handles:
  *  - JSON deserialization via [request]
@@ -83,7 +87,7 @@ class HttpService(
                                 return@runWith429Retry APIResponse.Success(body as T)
                             }
 
-                            APIResponse.Success(json.decodeFromString(body!!))
+                            APIResponse.Success(json.decodeFromString(normalizeJsonResponseBody(body!!)))
                         } else {
                             body = runCatching { response.bodyAsText() }.getOrNull()
                             Log.e(tag, "HTTP error ${response.status}, body: $body")

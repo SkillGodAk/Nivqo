@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+repo_root="$(git rev-parse --show-toplevel)"
+python "$repo_root/scripts/validate-public-updates.py"
