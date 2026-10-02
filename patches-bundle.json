@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-10-02T15:41:41+08:00",
+  "created_at": "2026-10-02T15:41:41",
   "description": "Nivqo Combined Test: one standard Morphe patch bundle containing HushFacebook 0.6.0-nivqo.1 (59 patches) and HushMessenger 0.7.0-nivqo.1 (31 patches). Test-only source for validating one-repository-URL import in original Morphe Manager.",
   "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/08757cd6b119765c231ccb3c447cfd2f8f5bc5bc/test-assets/nivqo-combined-0.1.0-dev.1.mpp",
   "signature_download_url": "",
