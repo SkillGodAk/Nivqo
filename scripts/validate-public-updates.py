@@ -19,6 +19,11 @@ PUBLIC_CHANGELOGS = (
 )
 SCOPE_RE = re.compile(r"^\*\s+\*\*(.+?):\*\*", re.MULTILINE)
 HEADING_RE = re.compile(r"^#\s+", re.MULTILINE)
+MORPHE_CREATED_AT_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$")
+MORPHE_VERSION_HEADING_RE = re.compile(
+    r"^#{1,3}\s+(?:\S+\s+)?(?:\[([^]]+)]\([^)]*\)|([^\s\[(]+))\s+\((\d{4}-\d{2}-\d{2})\)",
+    re.MULTILINE | re.IGNORECASE,
+)
 
 
 def load_public_json(path: Path):
@@ -32,7 +37,34 @@ def load_public_json(path: Path):
     for key in ("created_at", "description", "download_url", "version"):
         if key not in value:
             raise ValueError(f"missing required key: {key}")
+    if path.name == "patches-bundle.json":
+        created_at = value["created_at"]
+        if not isinstance(created_at, str) or not MORPHE_CREATED_AT_RE.fullmatch(created_at):
+            raise ValueError(
+                "created_at must be Morphe LocalDateTime format YYYY-MM-DDTHH:MM:SS without Z or timezone offset"
+            )
+        if not str(value["download_url"]).lower().endswith(".mpp"):
+            raise ValueError("download_url must point to an .mpp bundle")
     return value
+
+
+def validate_combined_changelog(path: Path, expected_version: str):
+    data = path.read_bytes()
+    if data.startswith(b"\xef\xbb\xbf"):
+        raise ValueError("UTF-8 BOM is not allowed")
+    text = data.decode("utf-8")
+    matches = list(MORPHE_VERSION_HEADING_RE.finditer(text))
+    if not matches:
+        raise ValueError("missing Morphe-compatible version heading")
+    first = matches[0]
+    version = (first.group(1) or first.group(2)).strip()
+    if version != expected_version:
+        raise ValueError(f"latest version {version!r} does not match patches-bundle.json {expected_version!r}")
+    end = matches[1].start() if len(matches) > 1 else len(text)
+    scopes = {m.group(1).strip() for m in SCOPE_RE.finditer(text[first.end():end])}
+    missing = {"Facebook", "Messenger"} - scopes
+    if missing:
+        raise ValueError(f"latest combined entry is missing app scope(s): {sorted(missing)}")
 
 
 def validate_latest_changelog_scope(path: Path, expected_scope: str):
@@ -68,6 +100,14 @@ def main() -> int:
             print(f"OK  {path.relative_to(ROOT)} [{expected_scope}]")
         except Exception as exc:
             errors.append(f"{path.relative_to(ROOT)}: {exc}")
+
+    combined_release = parsed.get(ROOT / "patches-bundle.json")
+    if combined_release is not None:
+        try:
+            validate_combined_changelog(ROOT / "CHANGELOG.md", str(combined_release["version"]))
+            print(f"OK  CHANGELOG.md [combined {combined_release['version']}]")
+        except Exception as exc:
+            errors.append(f"CHANGELOG.md: {exc}")
 
     root_release = parsed.get(ROOT / "app-release.json")
     source_release = parsed.get(ROOT / "source" / "morphe-manager" / "app-release.json")

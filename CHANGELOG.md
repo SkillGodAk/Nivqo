@@ -1,3 +1,10 @@
+## [0.1.0-dev.1](https://github.com/SkillGodAk/Nivqo/commit/75e3555) (2026-10-02)
+
+### ✨ New Features
+
+* **Facebook:** Combined Nivqo test source includes HushFacebook 0.6.0-nivqo.1 with 59 patches.
+* **Messenger:** Combined Nivqo test source includes HushMessenger 0.7.0-nivqo.1 with 31 patches.
+
 # Changelog
 
 ## 2026-10-02 — HushFacebook 0.6.0 + v1.33.0 replacement
