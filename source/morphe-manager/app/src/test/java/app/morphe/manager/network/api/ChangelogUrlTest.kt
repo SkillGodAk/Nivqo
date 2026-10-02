@@ -51,4 +51,26 @@ class ChangelogUrlTest {
             changelogUrlFromBundleEndpointUrl("https://example.com/updates/hushfacebook.json")
         )
     }
+
+    @Test
+    fun rawGitHubUrlsGetPerMinuteCacheBuster() {
+        assertEquals(
+            "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook.json?t=123",
+            rawGitHubCacheBusted(
+                "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook.json",
+                minute = 123
+            )
+        )
+        assertEquals(
+            "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook.json?x=1&t=123",
+            rawGitHubCacheBusted(
+                "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook.json?x=1",
+                minute = 123
+            )
+        )
+        assertEquals(
+            "https://example.com/updates/hushfacebook.json",
+            rawGitHubCacheBusted("https://example.com/updates/hushfacebook.json", minute = 123)
+        )
+    }
 }

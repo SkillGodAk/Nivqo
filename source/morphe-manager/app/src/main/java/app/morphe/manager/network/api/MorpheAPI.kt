@@ -21,6 +21,14 @@ import kotlin.time.Instant
 
 private const val GITHUB_DOWNLOAD_PREFIX = "https://github.com/"
 
+internal fun rawGitHubCacheBusted(url: String, minute: Long = System.currentTimeMillis() / 60_000L): String {
+    val isRawGitHub = runCatching {
+        java.net.URI(url).host?.equals("raw.githubusercontent.com", ignoreCase = true) == true
+    }.getOrDefault(false)
+    if (!isRawGitHub) return url
+    return if ('?' in url) "$url&t=$minute" else "$url?t=$minute"
+}
+
 /** Coordinates of a single asset inside a GitHub release download link. */
 internal data class ReleaseAssetRef(
     val owner: String,
@@ -318,8 +326,7 @@ class MorpheAPI(
      * the newest version. A per-minute key bypasses that without defeating caching entirely.
      */
     private fun cacheBusted(url: String): String {
-        val minute = System.currentTimeMillis() / 60_000L
-        return if ('?' in url) "$url&t=$minute" else "$url?t=$minute"
+        return rawGitHubCacheBusted(url)
     }
 
     /**
@@ -611,9 +618,10 @@ class MorpheAPI(
      * Used for third-party bundles that follow the Morphe changelog format.
      */
     suspend fun fetchChangelogFromUrl(changelogUrl: String, stopAfterFirstStable: Boolean = false): List<ChangelogEntry> {
-        Log.d(tag, "fetchChangelogFromUrl: $changelogUrl")
+        val requestUrl = rawGitHubCacheBusted(changelogUrl)
+        Log.d(tag, "fetchChangelogFromUrl: $requestUrl")
         return parseChangelog(client.request<String> {
-            url(changelogUrl)
+            url(requestUrl)
             header("Cache-Control", "no-cache")
         }, stopAfterFirstStable, changelogUrl)
     }
