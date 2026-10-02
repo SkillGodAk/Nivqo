@@ -16,12 +16,13 @@ if (-not $OutputPath) {
 }
 
 if (-not $AndroidSdk) {
-    if ($env:ANDROID_HOME -and (Test-Path $env:ANDROID_HOME)) {
+    $localSdk = Join-Path $root "LOCAL_TOOLCHAIN\AndroidSdk"
+    if (Test-Path $localSdk) {
+        $AndroidSdk = $localSdk
+    } elseif ($env:ANDROID_HOME -and (Test-Path $env:ANDROID_HOME)) {
         $AndroidSdk = $env:ANDROID_HOME
-    } elseif (Test-Path "C:\AndroidSdkShared") {
-        $AndroidSdk = "C:\AndroidSdkShared"
     } else {
-        throw "Android SDK not found. Pass -AndroidSdk or set ANDROID_HOME."
+        throw "Android SDK not found. Expected $localSdk, or pass -AndroidSdk / set ANDROID_HOME."
     }
 }
 

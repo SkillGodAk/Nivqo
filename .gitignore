@@ -1,5 +1,6 @@
 # Local/private
 LOCAL_PRIVATE/
+LOCAL_TOOLCHAIN/
 private/
 secrets/
 .env
