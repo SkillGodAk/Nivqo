@@ -10,7 +10,8 @@ Nivqo 是第三方衍生與整合專案。以下列出主要上游來源。
 
 - Upstream: https://github.com/SysAdminDoc/HushFacebook
 - Nivqo 主要修改：完整繁體中文化與介面語言選擇；Facebook → Messenger 跳轉改採上游正式 `Open the Messenger app` 實作
-- 同步上游 main：`6d312196bc9ae8a7c9bd77f936c60b6e6de579d2`（HushFacebook 0.5.0 + 後續 main 修正）
+- 同步上游正式 Release：v0.6.0 / commit 22ae40c9c4ab574c0b36caed28b31ae608359446
+- 更新政策：預設只同步正式 Release／Tag；上游 main、未發版 commit 與 prerelease 不自動納入。
 - 原始授權與 NOTICE 保留於 `source/hushfacebook`
 
 ### HushMessenger
