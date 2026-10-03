@@ -1,3 +1,11 @@
+## [0.2.0](https://github.com/SkillGodAk/Nivqo/commit/e0e3d7c1b136dbfb792e24430d9885b6a60152f0) (2026-10-03)
+
+### ✨ New Features
+
+* **Facebook:** Nivqo Patches keeps HushFacebook 0.6.0-nivqo.1 with 59 patches.
+* **Messenger:** Nivqo Patches updates HushMessenger to 0.14.0-nivqo.1 with 32 patches, including Native Bubbles, the optional chat slide animation, side-menu settings access, phone-native emoji rendering, and Nivqo Traditional Chinese settings/localization.
+* **General:** The original Morphe Manager combined source is now Nivqo Patches 0.2.0 with 91 total patch entries (Facebook 59 + Messenger 32).
+
 ## [0.1.0](https://github.com/SkillGodAk/Nivqo/commit/3ab029fac57ce070fcf1aea6fc76a92db6aa9025) (2026-10-02)
 
 ### ✨ New Features

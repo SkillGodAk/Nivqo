@@ -20,8 +20,8 @@ If you use the **original Morphe Manager**, you do not need Nivqo Manager and yo
 
    `https://github.com/SkillGodAk/Nivqo`
 
-4. Add the source. Morphe reads the repository's root `patches-bundle.json` and installs **Nivqo Patches** (current stable source version: `0.1.0`).
-5. The single source contains all 59 HushFacebook patches and all 31 HushMessenger patches, for 90 patches total. Future combined MPP updates are delivered through the same source.
+4. Add the source. Morphe reads the repository's root `patches-bundle.json` and installs **Nivqo Patches** (current stable source version: `0.2.0`).
+5. The single source contains all 59 HushFacebook patches and all 32 HushMessenger patches, for 91 patches total. Future combined MPP updates are delivered through the same source.
 
 The original Morphe Manager does not include Nivqo Manager's Traditional Chinese patch-metadata localization, so some patch names/descriptions inside Morphe may remain in English. The actual Nivqo HushFacebook / HushMessenger cores are still used, so their in-app plugin settings keep the Traditional Chinese interface and language options.
 
@@ -99,12 +99,12 @@ Starting with Nivqo v1.32.0, updates are split into two layers:
 
 Current core channels:
 
-- Nivqo Patches `0.1.0` (single combined source for the original Morphe Manager; Facebook 59 + Messenger 31)
+- Nivqo Patches `0.2.0` (single combined source for the original Morphe Manager; Facebook 59 + Messenger 32)
 - Nivqo Manager `1.33.0` (synced with Morphe Manager `1.33.0` / Morphe Patcher `1.15.0`)
 - HushFacebook 0.6.0-nivqo.1 (formal upstream Release v0.6.0 / commit 22ae40c9c4ab574c0b36caed28b31ae608359446; post-release main commits excluded; Nivqo localization and two-way Facebook / Messenger routing preserved)
-- HushMessenger `0.7.0-nivqo.1` (upstream formal Release `v0.7.0` / commit `1756352d6884c88122f73d5e212180abdd75f517`)
+- HushMessenger `0.14.0-nivqo.1` (formal upstream Release `v0.14.0` / commit `c3d91c8200337cd826c2c92ef06e1f9c261f8e62`; 32 patches)
 - HushFacebook patch metadata in Manager: 59 / 59 Traditional Chinese
-- HushMessenger core settings have complete Traditional Chinese coverage. The current v1.33.0 replacement APK also includes `31 / 31` Traditional Chinese Manager patch metadata and Messenger-specific wording for duplicate patch names.
+- HushMessenger core settings have `203 / 203` Traditional Chinese coverage. Manager patch metadata is `32 / 32` in Traditional Chinese, with Messenger-specific wording retained for duplicate patch names.
 
 - **HushFacebook / HushMessenger patch cores** are served by Nivqo's own GitHub update channel. By default Nivqo syncs only formally published upstream Releases/Tags; `main`, unreleased commits and prereleases are not adopted unless explicitly chosen. Formal releases are merged with Nivqo's Traditional Chinese/custom changes and tested before publication.
 - **Nivqo Manager itself** is released only when Manager code changes, and future Manager updates are resolved from `SkillGodAk/Nivqo` GitHub Releases.
