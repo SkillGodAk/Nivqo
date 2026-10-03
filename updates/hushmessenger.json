@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-01T17:00:29",
-  "description": "HushMessenger 0.7.0 Nivqo 繁中核心；只同步上游正式 Release v0.7.0 / commit 1756352d6884c88122f73d5e212180abdd75f517，共 31 個 patch。新增 Material You 主題、匿名觀看限時動態、儲存任何限時動態，並擴充好友建議與成長提示隱藏範圍；支援 Messenger 580.0.0.49.91 的 21 個 arm64 versionCode。核心設定文字已完成繁體中文化；目前 Nivqo v1.33.0 replacement APK 也已包含 31 / 31 Manager patch metadata 繁中與 Messenger 專用同名 patch 說明。未納入 v0.7.0 發布後的 main commit。",
+  "created_at": "2026-10-03T12:15:34",
+  "description": "HushMessenger 0.14.0 Nivqo 繁中核心；只同步上游正式 Release v0.14.0 / commit c3d91c8200337cd826c2c92ef06e1f9c261f8e62，共 32 個 patch。新增聊天滑入滑出動畫，聊天泡泡支援原始模式 / Chat Heads / Native Bubbles，設定入口擴充到側邊選單，Use system emoji 改用手機自身 Emoji，並納入 v0.8.0～v0.14.0 的備份、Root Mount、更新檢查與穩定性修正。保留 Nivqo 的跟隨系統 / 繁體中文 / English 語言選擇；核心設定翻譯 203 / 203，Manager patch metadata 32 / 32 繁中。",
   "changelog_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushmessenger-changelog.md",
   "signature_download_url": "",
   "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/bundles/hushmessenger.mpp",
-  "version": "0.7.0-nivqo.1"
+  "version": "0.14.0-nivqo.1"
 }
