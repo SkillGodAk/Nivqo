@@ -18,7 +18,7 @@ Nivqo 是第三方衍生與整合專案。以下列出主要上游來源。
 
 - Upstream: https://github.com/SysAdminDoc/HushMessenger
 - Nivqo 主要修改：完整繁體中文化與介面語言選擇；設定入口改採上游正式 Menu 列 / Patch 控制 / 可隱藏 app drawer icon，不再保留舊 Nivqo 自製 SettingsEntry
-- 同步上游正式 Release：`v0.7.0` / commit `1756352d6884c88122f73d5e212180abdd75f517`
+- 同步上游正式 Release：`v0.14.0` / commit `c3d91c8200337cd826c2c92ef06e1f9c261f8e62`
 - 更新政策：預設只同步正式 Release／Tag；上游 `main`、未發版 commit 與 prerelease 不自動納入。
 - 原始授權與 NOTICE 保留於 `source/hushmessenger`
 

@@ -20,8 +20,8 @@ Nivqo 的目的不是取代原專案，而是補足目前中文使用者需要�
 
    `https://github.com/SkillGodAk/Nivqo`
 
-4. 按「新增」。Morphe 會自動讀取本專案根目錄的 `patches-bundle.json`，加入 **Nivqo Patches**（目前正式來源版本 `0.1.0`）。
-5. 這一個來源同時包含 HushFacebook 59 個 patch 與 HushMessenger 31 個 patch，共 90 個 patch；不需要另外加入兩個 JSON URL，之後也會沿用同一個來源取得新版 combined MPP。
+4. 按「新增」。Morphe 會自動讀取本專案根目錄的 `patches-bundle.json`，加入 **Nivqo Patches**（目前正式來源版本 `0.2.0`）。
+5. 這一個來源同時包含 HushFacebook 59 個 patch 與 HushMessenger 32 個 patch，共 91 個 patch；不需要另外加入兩個 JSON URL，之後也會沿用同一個來源取得新版 combined MPP。
 
 原版 Morphe Manager 本身沒有 Nivqo Manager 的繁中 patch metadata，所以 Morphe 裡的部分補丁名稱／說明仍可能顯示英文；但實際套用的是 Nivqo 的 HushFacebook / HushMessenger 核心，修補後 Facebook / Messenger 內的插件設定仍保留繁體中文介面與語言選項。
 
@@ -99,12 +99,12 @@ Meta 可能在同一個版本名稱下發布多個不同 build。它們的 DEX /
 
 目前核心更新通道：
 
-- Nivqo Patches `0.1.0`（原版 Morphe Manager 的單一整合來源；Facebook 59 + Messenger 31）
+- Nivqo Patches `0.2.0`（原版 Morphe Manager 的單一整合來源；Facebook 59 + Messenger 32）
 - Nivqo Manager `1.33.0`（同步 Morphe Manager `1.33.0` / Morphe Patcher `1.15.0`）
 - HushFacebook 0.6.0-nivqo.1（上游正式 Release v0.6.0 / commit 22ae40c9c4ab574c0b36caed28b31ae608359446；不納入發布後 main commit；保留 Nivqo 繁中介面與 Facebook / Messenger 雙向路由）
-- HushMessenger `0.7.0-nivqo.1`（上游正式 Release `v0.7.0` / commit `1756352d6884c88122f73d5e212180abdd75f517`）
+- HushMessenger `0.14.0-nivqo.1`（上游正式 Release `v0.14.0` / commit `c3d91c8200337cd826c2c92ef06e1f9c261f8e62`；32 個 patch）
 - Manager 內 HushFacebook patch metadata：59 / 59 繁中
-- HushMessenger 核心設定文字：繁中完整覆蓋；目前 v1.33.0 replacement APK 也已包含 `31 / 31` patch metadata 繁中與 Messenger 專用同名 patch 說明
+- HushMessenger 核心設定文字：`203 / 203` 繁中覆蓋；Manager patch metadata：`32 / 32` 繁中，並保留 Messenger 專用同名 patch 說明
 
 - **HushFacebook / HushMessenger 插件核心**：由 Nivqo 自己的 GitHub 更新通道提供。預設只同步上游已正式發布的 Release／Tag；`main`、未發版 commit 或 prerelease 不會自動納入，除非另有明確決定。正式版同步時會先合併繁體中文與本專案修改並測試，再更新 GitHub 上的 patch bundle。已安裝的 Nivqo 可自動取得新版插件核心。
 - **Nivqo Manager 本體**：只有 Manager 本身有修改時才發布新的 APK，更新來源為 `SkillGodAk/Nivqo` 的 GitHub Releases。
