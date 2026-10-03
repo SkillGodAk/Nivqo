@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "0.1.0",
+    [string]$Version = "0.2.0",
     [string]$OutputPath,
     [string]$AndroidSdk = ""
 )
@@ -136,7 +136,7 @@ try {
     }
 
     $duplicates = @($patches | Group-Object name | Where-Object { $_.Count -gt 1 })
-    if ($patches.Count -ne 90 -or $facebookCount -ne 59 -or $messengerCount -ne 31 -or $otherCount -ne 0) {
+    if ($patches.Count -ne 91 -or $facebookCount -ne 59 -or $messengerCount -ne 32 -or $otherCount -ne 0) {
         throw "Unexpected catalog split: total=$($patches.Count), Facebook=$facebookCount, Messenger=$messengerCount, other=$otherCount"
     }
     if ($duplicates.Count -ne 0) {

@@ -79,13 +79,14 @@ class PatchMetadataLocalizerTest {
             )
         )
         assertEquals(
-            "開啟其他人的限時動態時，不會把你加入對方的觀看名單；在你這一端仍會標記為已看。長按 Messenger → Patch controls 可設定。預設關閉。",
+            "開啟其他人的限時動態時，不會把你加入對方的觀看名單；在你這一端仍會標記為已看。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。",
             PatchMetadataLocalizer.description(
                 "View stories anonymously",
                 "Opens other people's stories without adding you to their viewer list. Stories you open this way are marked as seen on your side. Long-press Messenger > Patch controls. Starts off."
             )
         )
         assertEquals("儲存任何限時動態", PatchMetadataLocalizer.name("Save any story"))
+        assertEquals("聊天滑入滑出動畫", PatchMetadataLocalizer.name("Slide chats in and out"))
     }
 
     @Test

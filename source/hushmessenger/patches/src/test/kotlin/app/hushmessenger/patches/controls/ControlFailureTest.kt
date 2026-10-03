@@ -15,6 +15,8 @@ import org.w3c.dom.Element
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotSame
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class ControlFailureTest {
@@ -100,6 +102,69 @@ class ControlFailureTest {
     }
 
     private fun ResourcePatchContext.hasPeopleFeature(): Boolean = hasFeature("people")
+
+    @Test fun menuTargetsAreAtomicAcrossAllMappingGroups(@TempDir temporary: Path) {
+        val originalProfile = activeProfile
+        val record = menuSettingsPatch.dependencies.filterIsInstance<ResourcePatch>().single()
+        val discovery = menuSettingsPatch.dependencies.filterIsInstance<BytecodePatch>().single()
+        try {
+            assertEquals(5, controlProfiles.values.distinct().size)
+            for ((group, profile) in controlProfiles.values.distinct().withIndex()) {
+                activeProfile = profile
+                val ids = profile.hooks.getValue("menu_settings")
+                for (broken in listOf("none", "add", "bind", "drawer", "click", "bind-registers", "drawer-registers",
+                    "refresh-result", "row-store", "factory", "click-branch", "click-late-branch")) {
+                    // The fifth mandatory target now needs complete native model contracts, not a MenuRow placeholder.
+                    val classes = legacyDrawerFixture(profile, broken).classes.toSet()
+                    withResourceContext(temporary.resolve("$group-$broken")) { resources, config ->
+                        val context = BytecodePatchContext::class.java.declaredConstructors.single()
+                            .newInstance(config, resources.packageMetadata) as BytecodePatchContext
+                        val patchClasses = Class.forName("app.morphe.patcher.util.PatchClasses")
+                        BytecodePatchContext::class.java.getMethod("setPatchClasses\$morphe_patcher", patchClasses)
+                            .invoke(context, patchClasses.getConstructor(Set::class.java).newInstance(classes))
+                        context.use {
+                            record.execute(resources)
+                            discoveredControls = findControls(classes)
+                            validateControls(discoveredControls, setOf("menu_settings"))
+                            bundledControls.clear()
+                            val targets = classes.flatMap { it.methods }.filter { it.hookId() in ids }
+                            val allMethods = classes.flatMap { it.methods }.filter { it.implementation != null }
+                            val originalFactory = classes.single { it.type == SETTINGS }.methods.single { it.hookId() == LEGACY_SECTION }
+                            val before = allMethods.map { it.implementation!!.instructions.toList() }
+                            if (broken == "none") {
+                                menuSettingsPatch.execute(context)
+                                assertTrue(targets.all { method -> method.implementation!!.instructions.any {
+                                    (it as? com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction)
+                                        ?.reference.toString().startsWith("$SETTINGS->")
+                                } })
+                                // The stub is swapped for the generated factory in both method views the dex writer reads.
+                                val settings = classes.single { it.type == SETTINGS }
+                                val factory = settings.methods.single { it.hookId() == LEGACY_SECTION }
+                                assertNotSame(originalFactory, factory, "$group stub")
+                                assertEquals(11, factory.implementation!!.registerCount, "$group factory registers")
+                                assertSame(factory, settings.directMethods.single { it.hookId() == LEGACY_SECTION })
+                            } else {
+                                assertFailsWith<PatchException>("$group $broken") { menuSettingsPatch.execute(context) }
+                                assertEquals(before, allMethods.map { it.implementation!!.instructions.toList() }, "$group $broken")
+                                assertSame(originalFactory, classes.single { it.type == SETTINGS }.methods.single { it.hookId() == LEGACY_SECTION })
+                            }
+                            record.finalize(resources)
+                            assertEquals(broken == "none", resources.hasFeature("menu_row"))
+                            assertEquals(if (broken == "none") setOf("menu_row") else emptySet(), bundledControls.toSet())
+                        }
+                    }
+                }
+            }
+        } finally {
+            activeProfile = originalProfile
+            // Reset the shared run state as the real discovery dependency does.
+            withResourceContext(temporary.resolve("reset")) { resources, config ->
+                val context = BytecodePatchContext::class.java.declaredConstructors.single()
+                    .newInstance(config, resources.packageMetadata) as BytecodePatchContext
+                context.use { discovery.finalize(context) }
+            }
+        }
+    }
 
     private fun ResourcePatchContext.hasFeature(key: String): Boolean = document("AndroidManifest.xml").use { document ->
         val metadata = document.getElementsByTagName("meta-data")
