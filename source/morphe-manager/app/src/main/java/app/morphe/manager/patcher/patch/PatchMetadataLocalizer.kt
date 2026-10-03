@@ -297,79 +297,79 @@ object PatchMetadataLocalizer {
         // HushMessenger
         "Allow chat bubbles" to Zh(
             "允許聊天泡泡",
-            "移除 Android 11 以上的低記憶體資格限制。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "提供原始模式、Chat Heads 與原生泡泡三種模式。原生泡泡需要 Android 11 以上、帳號支援與通知權限。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide AI sticker tools" to Zh(
             "隱藏 AI 貼圖工具",
-            "隱藏 AI 產生貼圖分頁與 AI 貼圖建議。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏 AI 產生貼圖分頁與 AI 貼圖建議。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide Chat Moments" to Zh(
             "隱藏 Chat Moments",
-            "隱藏功能表中的 Chat Moments 項目。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏功能表中的 Chat Moments 項目。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide Facebook shortcuts" to Zh(
             "隱藏 Facebook 捷徑",
-            "隱藏 Facebook 工具列、個人檔案與分享捷徑，以及「選單」分頁中的「Also from Meta」區段。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏 Facebook 工具列、個人檔案與分享捷徑，以及「選單」分頁中的「Also from Meta」區段。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide Meta AI buttons" to Zh(
             "隱藏 Meta AI 按鈕",
-            "隱藏浮動按鈕、工具列按鈕與 AI 功能表項目；搜尋仍可使用。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏浮動按鈕、工具列按鈕與 AI 功能表項目；搜尋仍可使用。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide People You May Know" to Zh(
             "隱藏「你可能認識的人」",
-            "隱藏聊天、搜尋、限時動態，以及「聯絡人」與通知分頁中的好友建議。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏聊天、搜尋、限時動態，以及「聯絡人」與通知分頁中的好友建議。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide Reels badge" to Zh(
             "隱藏 Reels 徽章",
-            "隱藏 Reels 通知徽章。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏 Reels 通知徽章。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide avatar stickers" to Zh(
             "隱藏虛擬替身貼圖",
-            "隱藏貼圖鍵盤中的虛擬替身分頁。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏貼圖鍵盤中的虛擬替身分頁。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide business reply suggestions" to Zh(
             "隱藏商家回覆建議",
-            "隱藏商家對話中的建議回覆。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏商家對話中的建議回覆。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide business typing suggestions" to Zh(
             "隱藏商家輸入建議",
-            "輸入文字時隱藏商家相關建議。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "輸入文字時隱藏商家相關建議。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide chat promotions" to Zh(
             "隱藏聊天推廣",
-            "隱藏對話中的 Messenger 快速推廣橫幅。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏對話中的 Messenger 快速推廣橫幅。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide event prompts" to Zh(
             "隱藏活動提示",
-            "隱藏聊天中的活動快速推廣提示。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏聊天中的活動快速推廣提示。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide friend request cards" to Zh(
             "隱藏交友邀請卡片",
-            "隱藏收件匣中的交友邀請卡片。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏收件匣中的交友邀請卡片。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide growth prompts" to Zh(
             "隱藏成長推廣提示",
-            "隱藏收件匣中鼓勵加入更多聯絡人的推廣單元，也隱藏便利貼中的提示面板（例如「公開我的便利貼」）與看完他人限時動態後的「分享你自己的限時動態」卡片。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏收件匣中鼓勵加入更多聯絡人的推廣單元，也隱藏便利貼中的提示面板（例如「公開我的便利貼」）與看完他人限時動態後的「分享你自己的限時動態」卡片。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide inbox ads" to Zh(
             "隱藏收件匣廣告",
-            "過濾收件匣中的廣告項目。仍需要有實際廣告帳號進一步驗證即時移除效果。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "過濾收件匣中的廣告項目。仍需要有實際廣告帳號進一步驗證即時移除效果。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide inbox promotions" to Zh(
             "隱藏收件匣推廣",
-            "隱藏聊天列表中的 Messenger 快速推廣橫幅。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏聊天列表中的 Messenger 快速推廣橫幅。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide inbox tabs" to Zh(
             "隱藏收件匣分頁",
-            "隱藏首頁與頻道子分頁。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏首頁與頻道子分頁。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide stories and notes" to Zh(
             "隱藏限時動態與便利貼",
-            "隱藏聊天上方的橫向限時動態／便利貼列。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏聊天上方的橫向限時動態／便利貼列。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide typing indicator" to Zh(
             "隱藏輸入中狀態",
-            "停止傳送你的「正在輸入」狀態，包括端對端加密聊天。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "停止傳送你的「正在輸入」狀態，包括端對端加密聊天。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Install beside Meta apps" to Zh(
             "與 Meta App 共存",
@@ -377,40 +377,44 @@ object PatchMetadataLocalizer {
         ),
         "Open web links externally" to Zh(
             "使用外部瀏覽器開啟網頁連結",
-            "HTTP 與 HTTPS 連結使用 Messenger 原生的外部瀏覽器分支。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "HTTP 與 HTTPS 連結使用 Messenger 原生的外部瀏覽器分支。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
 
         "Allow screenshots" to Zh(
             "允許截圖",
-            "允許截取 Messenger 在聊天中保護的照片、媒體與影片，並停止截圖通知。僅限查看一次的媒體仍受保護。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "允許截取 Messenger 在聊天中保護的照片、媒體與影片，並停止截圖通知。僅限查看一次的媒體仍受保護。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide Meta AI" to Zh(
             "隱藏 Meta AI",
-            "隱藏 Meta AI 浮動按鈕、工具列按鈕、Meta AI 分頁、選單項目與搜尋 AI。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "隱藏 Meta AI 浮動按鈕、工具列按鈕、Meta AI 分頁、選單項目與搜尋 AI。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide read receipts" to Zh(
             "隱藏已讀回條",
-            "停止傳送你的已讀回條。在端對端加密聊天中，你開啟的聊天會維持未讀，直到你回覆。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "停止傳送你的已讀回條。已開啟的端對端加密聊天在此手機上可能維持未讀；回覆訊息或關閉此功能可能會通知對方。群組聊天支援尚未驗證。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Keep unsent messages" to Zh(
             "保留已收回訊息",
-            "保留其他人對所有人收回的訊息，但端對端加密聊天除外。啟用時，你自己的收回功能可能受到限制。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "在已驗證的舊式收回訊息路徑保留被收回的訊息。不支援端對端加密聊天，群組聊天支援尚未驗證；活動紀錄代表攔截到舊式收回事件，不代表該聊天一定受支援。啟用時你自己的收回功能可能受限。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Open settings from menu" to Zh(
             "從選單開啟設定",
-            "在 Messenger 的「選單」分頁加入 HushMessenger 設定入口。此補丁固定啟用。"
+            "在 Messenger 的「選單」分頁與側邊選單加入 HushMessenger 設定入口。此補丁固定啟用。"
         ),
         "Save any story" to Zh(
             "儲存任何限時動態",
-            "在其他人的限時動態「更多」選單加入「儲存」。相片或影片會使用 Messenger 原本儲存自己限時動態的方式存到手機。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "在其他人的限時動態「更多」選單加入「儲存」。相片或影片會使用 Messenger 原本儲存自己限時動態的方式存到手機。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Send photos at original quality" to Zh(
             "以原始畫質傳送照片",
-            "開啟 HD 時，直接傳送 JPEG 照片本身的影像資料，不使用重新編碼的副本；位置、相機資訊等中繼資料會移除，只保留旋轉標記。影片與超過 20 MB 的照片仍會壓縮。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "開啟 HD 時，直接傳送 JPEG 照片本身的影像資料，不使用重新編碼的副本；位置、相機資訊等中繼資料會移除，只保留旋轉標記。影片與超過 20 MB 的照片仍會壓縮。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
+        ),
+        "Slide chats in and out" to Zh(
+            "聊天滑入滑出動畫",
+            "從聊天列表或搜尋開啟聊天時，讓聊天畫面從側邊滑入；返回時滑出，底下畫面保持不動。Chat Heads 與泡泡保留自己的動畫。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Use system emoji" to Zh(
             "使用系統 Emoji",
-            "使用手機自己的 Emoji 字型，而不是 Messenger 內建字型。長按 Messenger → Patch controls 可設定。預設關閉。"
+            "使用手機自己的 Emoji 字型，而不是 Messenger 內建字型。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
     )
 
@@ -418,7 +422,7 @@ object PatchMetadataLocalizer {
         "Material You theme" to
             "Android 12 以上讓 Messenger 深色模式使用桌布配色；Android 11 使用固定藍色調。淺色模式不變。請先在 Messenger 開啟深色模式。",
         "View stories anonymously" to
-            "開啟其他人的限時動態時，不會把你加入對方的觀看名單；在你這一端仍會標記為已看。長按 Messenger → Patch controls 可設定。預設關閉。",
+            "開啟其他人的限時動態時，不會把你加入對方的觀看名單；在你這一端仍會標記為已看。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。",
     )
 
     fun name(original: String): String =

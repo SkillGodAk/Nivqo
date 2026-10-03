@@ -31,8 +31,7 @@ final class SettingsText {
     }
 
     private static Locale requestedLocale(Context context) {
-        // Follow system follows Android's resolved locale for Messenger, including Android 13+
-        // per-app language settings. Nivqo's explicit 繁體中文 / English modes still override it.
+        // Resource resolution can move English ahead of a requested Java-only locale.
         if (Build.VERSION.SDK_INT >= 33) {
             LocaleManager manager = context.getSystemService(LocaleManager.class);
             LocaleList requested = manager == null ? LocaleList.getEmptyLocaleList() : manager.getApplicationLocales();
@@ -118,15 +117,23 @@ final class SettingsText {
         ENGLISH.put("open_messenger", "Open Messenger");
         ENGLISH.put("reopen", "Apply inbox changes with App > Restart Messenger.");
         ENGLISH.put("quick_access", "QUICK ACCESS");
-        ENGLISH.put("access_help", "Long-press Messenger's icon for Patch controls or Restart Messenger. You can also open HushMessenger settings from your app drawer.");
+        ENGLISH.put("access_help", "Long-press Messenger's home screen icon for Patch controls or Restart Messenger. You can also open HushMessenger settings from your app drawer.");
         ENGLISH.put("hide_drawer_icon", "Hide app drawer icon");
-        ENGLISH.put("hide_drawer_icon_help", "Removes HushMessenger settings from your app list. Open it from Messenger's Menu tab, or long-press Messenger's icon and tap Patch controls.");
-        ENGLISH.put("access_help_hosted", "Long-press Messenger's icon for Patch controls or Restart Messenger. A Root Mount install has no separate settings icon in your app drawer.");
-        ENGLISH.put("access_help_hosted_menu", "Long-press Messenger's icon for Patch controls or Restart Messenger, or open HushMessenger settings from its row in Messenger's Menu tab. A Root Mount install has no separate settings icon in your app drawer.");
-        ENGLISH.put("access_help_menu", "Long-press Messenger's icon for Patch controls or Restart Messenger. You can also open HushMessenger settings from its row in Messenger's Menu tab or from your app drawer.");
+        ENGLISH.put("hide_drawer_icon_help", "Removes HushMessenger settings from your app list. Open it from Messenger's Menu tab or side menu, or long-press Messenger's home screen icon and tap Patch controls.");
+        ENGLISH.put("shared_install_help", "The settings icon belongs to Messenger. Uninstalling either icon removes Messenger and its local data. Use Hide app drawer icon to hide only this entry.");
+        ENGLISH.put("access_help_hosted", "Long-press Messenger's home screen icon for Patch controls or Restart Messenger. A Root Mount install has no separate settings icon in your app drawer.");
+        ENGLISH.put("access_help_hosted_menu", "Long-press Messenger's home screen icon for Patch controls or Restart Messenger, or open HushMessenger settings from its row in Messenger's Menu tab or side menu. A Root Mount install has no separate settings icon in your app drawer.");
+        ENGLISH.put("access_help_menu", "Long-press Messenger's home screen icon for Patch controls or Restart Messenger. You can also open HushMessenger settings from its row in Messenger's Menu tab or side menu, or from your app drawer.");
+        ENGLISH.put("access_help_missing", "Long-press Messenger's home screen icon for Patch controls or Restart Messenger. This bundle has no settings icon in the app drawer.");
+        ENGLISH.put("access_help_missing_menu", "Open HushMessenger from Messenger's Menu tab or side menu, or long-press Messenger's home screen icon for Patch controls or Restart Messenger. This bundle has no settings icon in the app drawer.");
+        ENGLISH.put("drawer_search", "App drawer icon settings");
+        ENGLISH.put("drawer_root", "Hide app drawer icon isn't needed on Root Mount. There is no separate settings icon to hide.");
+        ENGLISH.put("drawer_missing", "Hide app drawer icon is unavailable because this bundle has no settings launcher alias.");
+        ENGLISH.put("drawer_requires_menu", "Hide app drawer icon requires the HushMessenger row in Messenger's Menu tab or side menu. The icon stays available when shortcuts are the only other entry route.");
         ENGLISH.put("restart", "Restart Messenger");
         ENGLISH.put("restarting", "Restarting Messenger...");
         ENGLISH.put("restart_unavailable", "Couldn't restart. Close Messenger, then open it from your app drawer.");
+        ENGLISH.put("settings_open_failed", "Couldn't open HushMessenger settings. Long-press Messenger's home screen icon and try Patch controls.");
         ENGLISH.put("restart_save_failed", "Couldn't save your choices. Messenger wasn't restarted. Try again.");
         ENGLISH.put("setup", "YOUR SETUP");
         ENGLISH.put("paused", "Pause all changes");
@@ -135,6 +142,16 @@ final class SettingsText {
         ENGLISH.put("empty_help", "Try a different search or category. Only patches included in this installation appear here.");
         ENGLISH.put("clear", "Clear filters");
         ENGLISH.put("unavailable", "Unavailable on this Android version. Your choice is kept.");
+        ENGLISH.put("bubble_stock", "Stock");
+        ENGLISH.put("bubble_chat_heads", "Chat Heads");
+        ENGLISH.put("bubble_native", "Native Bubbles");
+        ENGLISH.put("bubble_changed", "%s selected. Restart Messenger to apply.");
+        ENGLISH.put("bubble_help", "Stock leaves Messenger's choice in charge. Chat Heads also needs Messenger's Chat heads switch and overlay permission. For Native Bubbles, use Android bubble settings below to allow Messenger's bubbles. Notification and account support still apply. Unsupported accounts keep Messenger's original route. Pause all changes restores the stock route.");
+        ENGLISH.put("bubble_unsupported", "This bundle has no verified native bubble route. Messenger keeps stock behavior. Your saved choice is kept.");
+        ENGLISH.put("bubble_permissions", "Android bubble settings");
+        ENGLISH.put("bubble_notifications", "Messenger notification settings");
+        ENGLISH.put("bubble_conversations", "Android conversation settings");
+        ENGLISH.put("bubble_settings_missing", "This phone has no matching settings screen. Open Messenger's app info, then Notifications.");
         ENGLISH.put("experimental", "Experimental");
         ENGLISH.put("choice_on", "%s on");
         ENGLISH.put("choice_off", "%s off");
@@ -169,9 +186,23 @@ final class SettingsText {
         ENGLISH.put("imported_one", "Restored %d choice");
         ENGLISH.put("imported_many", "Restored %d choices");
         ENGLISH.put("import_empty", "Nothing to import. Export choices first, then paste them here.");
-        ENGLISH.put("import_invalid", "Not a valid HushMessenger export. Copy your export to the clipboard and try again.");
+        ENGLISH.put("import_invalid", "Not a valid HushMessenger backup. Use an unchanged choices export of 16 KiB or less.");
+        ENGLISH.put("import_unknown_one", "Skipped %d unknown choice.");
+        ENGLISH.put("import_unknown_many", "Skipped %d unknown choices.");
+        ENGLISH.put("import_unavailable_one", "Skipped %d choice absent from this bundle.");
+        ENGLISH.put("import_unavailable_many", "Skipped %d choices absent from this bundle.");
+        ENGLISH.put("import_no_choices", "No installed control choices to restore.");
+        ENGLISH.put("save_choices_file", "Save choices to a file");
+        ENGLISH.put("read_choices_file", "Restore choices from a file");
+        ENGLISH.put("choices_file_help", "Settings only, up to 16 KiB. Chats, accounts and recovery material stay out. Omitted or unavailable choices keep their saved values. Choose the file again if settings reopen.");
+        ENGLISH.put("choices_file_saved", "Choices file saved");
+        ENGLISH.put("choices_file_saving", "Saving choices file...");
+        ENGLISH.put("choices_file_reading", "Reading choices file...");
+        ENGLISH.put("choices_file_changed", "Choices changed while the file was loading. Restore the file again to replace them.");
         ENGLISH.put("check_updates", "Check for updates");
-        ENGLISH.put("check_updates_help", "Compares your version with the latest release when you open settings. Off by default. No data is sent.");
+        ENGLISH.put("check_updates_help", "Checks GitHub when enabled or when settings opens. Off by default. GitHub receives your IP address and connection metadata. No account or chat content is uploaded.");
+        ENGLISH.put("check_now", "Check now");
+        ENGLISH.put("update_loading", "Checking for updates...");
         ENGLISH.put("update_available", "Version %s is available");
         ENGLISH.put("update_action", "View release");
         ENGLISH.put("up_to_date", "You have the latest version.");
@@ -182,12 +213,17 @@ final class SettingsText {
         ENGLISH.put("minutes_short", "%dm");
         ENGLISH.put("hours_short", "%dh");
         ENGLISH.put("not_active", "Nothing to change yet since restart");
+        ENGLISH.put("unsent_not_active", "No unsend activity observed since restart");
         ENGLISH.put("error_now", "Stopped with an error just now");
         ENGLISH.put("error_ago", "Stopped with an error %s ago");
         ENGLISH.put("changes_paused", "Changes paused");
         ENGLISH.put("changes_resumed", "Changes resumed");
         ENGLISH.put("safe_mode", "Safe mode");
         ENGLISH.put("safe_mode_help", "Messenger crashed several times in a row, so all controls were turned off. Your choices are still saved. Tap Resume to turn them back on.");
+        ENGLISH.put("safe_mode_help_paused", "Messenger crashed several times in a row. Your choices are still saved. Clear safe mode first. Pause all changes will stay on until you turn it off.");
+        ENGLISH.put("resume", "Resume");
+        ENGLISH.put("clear_safe_mode", "Clear safe mode");
+        ENGLISH.put("safe_mode_cleared", "Safe mode cleared. Changes remain paused.");
         ENGLISH.put("enabled_one", "%d control enabled");
         ENGLISH.put("enabled_many", "%d controls enabled");
         ENGLISH.put("saved_one", "%d saved choice. Turn pause off to resume.");
@@ -205,7 +241,7 @@ final class SettingsText {
         ENGLISH.put("language_system", "Follow system");
         ENGLISH.put("language_zh_tw", "繁體中文");
         ENGLISH.put("language_en", "English");
-        ENGLISH.put("language_help", "Choose the language used by HushMessenger. Tap the button to cycle Follow system, 繁體中文 and English.");
+        ENGLISH.put("language_help", "Choose the language used by HushMessenger. Tap the button to choose Follow system, 繁體中文 or English.");
     }
 
     static String english(String id) {

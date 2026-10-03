@@ -37,6 +37,8 @@ public class SetupSummaryTest {
         info.setLongVersionCode((7L << 32) | 346013387L);
         info.applicationInfo.metaData = new Bundle();
         for (String key : keys) info.applicationInfo.metaData.putBoolean("hush.feature." + key, true);
+        // An installed bubbles fixture must also declare the host routes validated by the patch.
+        for (String key : keys) if ("bubbles".equals(key)) info.applicationInfo.metaData.putBoolean("hush.native_bubble_routes", true);
         Shadows.shadowOf(app.getPackageManager()).installPackage(info);
     }
 
@@ -67,7 +69,7 @@ public class SetupSummaryTest {
             assertTrue(text.contains("people: installed=true, selected=true, active=true,"));
             assertTrue(text.contains("stories: installed=false, selected=true, active=false,"));
             assertTrue(text.matches("(?s).*\nFacebook caller checks: trusted=\\d+, signer_differs=\\d+, meta_signed_build=\\d+, not_family=\\d+, error=\\d+\n"));
-            assertEquals(37, text.split("\n").length);
+            assertEquals(38, text.split("\n").length);
             assertFalse(text.contains("private-"));
             assertFalse(text.contains("account-secret"));
             assertFalse(text.contains("account_id"));
@@ -154,7 +156,7 @@ public class SetupSummaryTest {
             assertTrue(text, text.matches("(?s).*\nFacebook caller checks: [^\n]*\nHook errors:\n"
                 + "avatar_stickers: java\\.lang\\.UnsupportedOperationException at Settings\\.removeAvatarTabs:\\d+" + time
                 + "menu_row: java\\.lang\\.IllegalStateException at SetupSummaryTest\\.aFailedHookShowsInCopySetupAndOnItsSwitchWithoutTheExceptionMessage:\\d+" + time));
-            assertEquals(40, text.split("\n").length);
+            assertEquals(41, text.split("\n").length);
             assertFalse(text.contains("private-"));
             assertFalse(Settings.preferences.getAll().toString().contains("private-"));
         }
@@ -188,6 +190,21 @@ public class SetupSummaryTest {
         }
     }
 
+    @Test public void continuousFailuresRefreshTheSavedTimestampAfterAMinute() {
+        IllegalStateException failure = new IllegalStateException("private details");
+        Settings.hookFailedPrivately("menu_row", "Failed", failure);
+        String first = Settings.preferences.getString("hook_error_menu_row", "");
+        // A minute has passed since the saved failure, but another draw just updated the in-memory copy.
+        Settings.preferences.edit().putString("hook_error_menu_row", first.substring(0, first.lastIndexOf('|') + 1)
+            + (Settings.hookErrorTime(first) - 60_001)).commit();
+        Settings.hookFailedPrivately("menu_row", "Failed", failure);
+        String refreshed = Settings.preferences.getString("hook_error_menu_row", "");
+        assertEquals(Settings.hookErrors.get("menu_row"), refreshed);
+        assertTrue(Settings.hookErrorTime(refreshed) >= Settings.hookErrorTime(first));
+        Settings.hookErrors.clear();
+        assertEquals(Settings.hookErrorTime(refreshed), Settings.hookErrorAt("menu_row"));
+    }
+
     @Test public void hidingTheDrawerIconDisablesOnlyTheLauncherAlias() throws Exception {
         installedFeatures("people", "menu_row");
         var app = RuntimeEnvironment.getApplication();
@@ -218,6 +235,43 @@ public class SetupSummaryTest {
         assertNotEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED, packages.getComponentEnabledSetting(alias));
     }
 
+    @Test public void drawerAliasExplainsThatUninstallingItRemovesMessenger() throws Exception {
+        installedFeatures("people", "menu_row");
+        var app = RuntimeEnvironment.getApplication();
+        Shadows.shadowOf(app.getPackageManager()).addActivityIfNotPresent(
+            new android.content.ComponentName(app.getPackageName(), SettingsActivity.DRAWER_ALIAS));
+        for (boolean light : new boolean[] {false, true}) {
+            Settings.preferences.edit().putBoolean("light", light).commit();
+            try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+                android.widget.TextView help = screen.get().getWindow().getDecorView().findViewWithTag("shared_install_help");
+                assertNotNull(help);
+                assertTrue(help.getText().toString().contains("removes Messenger and its local data"));
+                assertTrue(help.getText().toString().contains("Hide app drawer icon"));
+                assertNotEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO, help.getImportantForAccessibility());
+            }
+        }
+    }
+
+    @Test public void aMissingAliasExplainsItsAbsenceAndSearchOpensTheAppPage() throws Exception {
+        installedFeatures("people", "menu_row");
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View root = screen.get().getWindow().getDecorView();
+            assertNull(root.findViewWithTag("hide_drawer_icon"));
+            assertTrue(((android.widget.TextView) root.findViewWithTag("drawer_help")).getText().toString().contains("no settings launcher alias"));
+            assertFalse(((android.widget.TextView) root.findViewWithTag("access_help")).getText().toString().contains("or from your app drawer"));
+            android.widget.EditText search = root.findViewWithTag("find_control");
+            search.setText("drawer icon");
+            View link = root.findViewWithTag("find_drawer_icon");
+            assertEquals(View.VISIBLE, link.getVisibility());
+            link.performClick();
+            assertEquals(View.VISIBLE, root.findViewWithTag("app_page").getVisibility());
+            assertTrue(root.findViewWithTag("drawer_help").isShown());
+            root.findViewWithTag("tab_controls").performClick();
+            search.setText("stickers");
+            assertEquals(View.GONE, link.getVisibility());
+        }
+    }
+
     @Test public void withoutTheMenuRowTheDrawerIconCantBeHiddenAndComesBack() throws Exception {
         installedFeatures("people");
         var app = RuntimeEnvironment.getApplication();
@@ -234,6 +288,7 @@ public class SetupSummaryTest {
                 View root = screen.get().getWindow().getDecorView();
                 root.findViewWithTag("tab_app").performClick();
                 assertNull(root.findViewWithTag("hide_drawer_icon"));
+                assertTrue(((android.widget.TextView) root.findViewWithTag("drawer_help")).getText().toString().contains("requires the HushMessenger row"));
             }
         } finally {
             Settings.preferences.edit().putBoolean("hide_drawer_icon", false).commit();

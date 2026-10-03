@@ -139,9 +139,9 @@ public class SettingsLocaleTest {
                 root.findViewWithTag("category_chats").performClick();
                 assertEquals(0, visibleControls(root));
                 root.findViewWithTag("clear_filters").performClick();
-                assertEquals(28, visibleControls(root));
+                assertEquals(29, visibleControls(root));
                 assertTrue(root.findViewWithTag("category_all").isSelected());
-                assertNotEquals("28 of 28 installed controls", ((TextView) root.findViewWithTag("search_status")).getText().toString());
+                assertNotEquals("29 of 29 installed controls", ((TextView) root.findViewWithTag("search_status")).getText().toString());
             }
         }
     }
@@ -180,7 +180,8 @@ public class SettingsLocaleTest {
     private static int visibleControls(View root) {
         int count = 0;
         for (String[] spec : SettingsActivity.CONTROLS)
-            if (((View) root.findViewWithTag(spec[0]).getParent()).getVisibility() == View.VISIBLE) count++;
+            // A hidden section can contain a visible inner row, as the bubble mode controls do.
+            if (root.findViewWithTag(spec[0]).isShown()) count++;
         return count;
     }
 

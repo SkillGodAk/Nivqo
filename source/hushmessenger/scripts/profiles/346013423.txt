@@ -23,10 +23,15 @@ hook anonymous_stories LX/NUZ;->C1g(Lcom/facebook/messaging/montage/model/Montag
 hook avatar_stickers LX/YAk;->A01(LX/YAk;)Z
 hook avatar_tabs Lcom/facebook/messaging/msys/thread/composer/configuration/xapp/BaseXappComposerConfigurationFactory;->A6U(LX/5qN;)V
 hook browser Lcom/facebook/messaging/browser/util/MessengerBrowserLauncher;->A0M(Landroid/net/Uri;Lcom/facebook/auth/usersession/FbUserSession;)Z
+hook bubble_mode LX/2ak;->A01(Lcom/facebook/auth/usersession/FbUserSession;)Z
 hook bubbles LX/2ak;->A00()Z
 hook business_suggestions LX/7Tb;->A05(LX/7Tb;)Z
 hook business_suggestions LX/7UZ;->A04(LX/7UZ;)Z
 hook business_suggestions LX/KHp;->A04()Z
+hook chat_animation Landroidx/fragment/app/Fragment;->onCreateAnimation(IZI)Landroid/view/animation/Animation;
+hook chat_fragment LX/1ig;-><init>()V
+hook chat_inbox LX/1gn;-><init>()V
+hook chat_legacy LX/1iY;->onCreateAnimation(IZI)Landroid/view/animation/Animation;
 hook chat_promotions LX/KHo;->A0D()Z
 hook chat_promotions LX/KHo;->A0E()Z
 hook delta_unsent LX/YOo;->Bto(I)Z
@@ -64,6 +69,7 @@ hook hide_read_receipts LX/AZP;->run()V
 hook inbox_promotions LX/2Fj;->A0J()Z
 hook inbox_promotions LX/2Fj;->A0K()Z
 hook keep_unsent LX/M4U;->A01(Landroid/content/Intent;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;)V
+hook menu_settings LX/9uD;->A1i()V
 hook menu_settings LX/HB5;->AxC(LX/0MJ;)Ljava/util/ArrayList;
 hook menu_settings LX/Jq9;->onClick(Landroid/view/View;)V
 hook menu_settings LX/Wh6;->CB5(LX/4nF;I)V
@@ -100,6 +106,9 @@ browserPreferenceKey LX/1DK;->A1U:LX/1BV;
 browserPreferenceIndex 54
 adFilterSize 935
 adFilterExits 916 931
+bubbleCapabilityGetter LX/1it;->A03(Lcom/facebook/auth/usersession/FbUserSession;I)Z
+bubbleRolloutGetter Lcom/facebook/mobileconfig/factory/MobileConfigUnsafeContext;->AhI(J)Z
+nativeBubbleRoutes LX/8sV;->A02(Landroid/graphics/Bitmap;LX/0Ma;Lcom/facebook/auth/usersession/FbUserSession;LX/8sZ;Lcom/facebook/messaging/model/threads/ThreadSummary;LX/6ey;Lcom/facebook/push/constants/PushProperty;Z)V|LX/8sX;->A04(Landroid/content/Context;Landroid/graphics/Bitmap;Lcom/facebook/messaging/model/threadkey/ThreadKey;Ljava/lang/String;)LX/8sZ;|LX/MAc;->A04(Landroid/content/Context;Landroid/graphics/Bitmap;Lcom/facebook/auth/usersession/FbUserSession;LX/MAc;Lcom/facebook/messaging/model/threads/ThreadSummary;)Z
 dexSite LX/0Vx;->A03()V@25 com.facebook.permission.prod.FB_APP_COMMUNICATION
 dexSite LX/0iV;->A04(Landroid/app/Application;)V@18 com.facebook.permission.%s.FB_APP_COMMUNICATION
 dexSite LX/1fv;->A05(Lcom/facebook/auth/usersession/FbUserSession;LX/1fv;Ljava/lang/String;Ljava/lang/String;)V@36 com.facebook.permission.prod.FB_APP_COMMUNICATION
