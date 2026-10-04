@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import app.morphe.extension.shared.SettingsContextRule;
+import app.morphe.extension.shared.settings.BaseSettings;
 
 import org.junit.After;
 import org.junit.Before;
@@ -41,10 +42,12 @@ public class SettingsEntryTest {
     private final SettingsEntry.OpenWhenResumed watcher = new SettingsEntry.OpenWhenResumed();
 
     @Before public void watch() {
+        BaseSettings.HUSHFACEBOOK_LANGUAGE.save("facebook");
         RuntimeEnvironment.getApplication().registerActivityLifecycleCallbacks(watcher);
     }
 
     @After public void stopWatching() {
+        BaseSettings.HUSHFACEBOOK_LANGUAGE.resetToDefault();
         RuntimeEnvironment.getApplication().unregisterActivityLifecycleCallbacks(watcher);
         HushfacebookPreferenceFragment.failNextInitialization = null;
         PatchFamily.inBuildForTests = null;

@@ -16,6 +16,7 @@ import android.content.ContextWrapper;
 import android.content.res.Configuration;
 import android.os.LocaleList;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,6 +47,11 @@ public class L10nTest {
     @Before
     public void catalogTestsFollowFacebooksConfiguration() {
         BaseSettings.HUSHFACEBOOK_LANGUAGE.save("facebook");
+    }
+
+    @After
+    public void restoreNivqoLanguageChoice() {
+        BaseSettings.HUSHFACEBOOK_LANGUAGE.resetToDefault();
     }
 
     @Test

@@ -103,6 +103,10 @@ object PatchMetadataLocalizer {
             "下載任何影片",
             "在動態消息與 Watch 的影片選單加入「下載到手機」。影片會依你設定的下載畫質儲存。"
         ),
+        "Force dark mode" to Zh(
+            "強制深色模式",
+            "讓 Facebook 強制保持深色模式，不受 Facebook 自身設定影響，適用於設定中沒有深色模式選項的平板。此功能預設關閉，可在 Hushfacebook「外觀」中開啟，變更後請重新啟動 Facebook。"
+        ),
         "Hide AI-detected posts" to Zh(
             "隱藏 AI 偵測內容",
             "移除 Facebook 自行偵測為 AI 產生的貼文、Reels 與 Watch 影片；另有開關可移除作者自行標註為 AI 的貼文。所有開關預設關閉。"

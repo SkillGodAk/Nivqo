@@ -460,14 +460,21 @@ try {
     # ReadmePatchNamesTest never run on it.
     $runtimeTestInputs = @('README.md', 'NOTICE', 'provenance.json', 'patches-list.json',
         'scripts/injected-mutation-contracts.txt')
+    $toolingClasspathInputs = @(
+        'build.gradle.kts', 'settings.gradle.kts', 'patches/build.gradle.kts',
+        'gradle/libs.versions.toml', 'gradle/verification-metadata.xml', 'gradle/tooling-scopes.txt',
+        'scripts/ToolingClasspathSmoke.java', 'scripts/ToolingHttpSmoke.java', 'scripts/test-tooling-classpaths.ps1'
+    )
+    $touchesToolingClasspaths = @($paths | Where-Object { $_ -in $toolingClasspathInputs }).Count -gt 0
     $touchesCode = @($paths | Where-Object {
         $_ -like 'extensions/*' -or $_ -like 'patches/*' -or
         # The pins and the reviewed checksums. Two Gradle tasks hold the Bouncy Castle graphs to
         # the reviewed release, and they only run on the way to a test task; a push that moved
         # the pin alone ran the release facts check, which knows nothing about them.
         $_ -eq 'gradle/libs.versions.toml' -or $_ -eq 'gradle/verification-metadata.xml' -or
+        $_ -eq 'gradle/tooling-scopes.txt' -or
         $_ -eq 'settings.gradle.kts' -or $_ -eq 'build.gradle.kts' -or
-        $_ -in $runtimeTestInputs
+        $_ -in $runtimeTestInputs -or $_ -in $toolingClasspathInputs
     }).Count -gt 0
     $touchesScripts = @($paths | Where-Object { $_ -like 'scripts/*' }).Count -gt 0
     # The contract tests read two files outside scripts/ that nothing else checks: the catalog,
@@ -478,6 +485,7 @@ try {
     # the README's hero and links. A push of only artwork or only the README ran no check of them.
     $touchesContracts = $touchesScripts -or @($paths | Where-Object {
         $_ -eq 'patches-list.json' -or $_ -eq 'patches/build.gradle.kts' -or
+        $_ -eq 'gradle/tooling-scopes.txt' -or
         $_ -like 'assets/*' -or $_ -eq 'README.md'
     }).Count -gt 0
     $injectedRegisterVerifierPaths = @(
@@ -546,6 +554,7 @@ try {
         # only one of these ran no gate at all.
         $_ -eq 'gradle/libs.versions.toml' -or $_ -eq 'settings.gradle.kts' -or
         $_ -eq 'gradle/verification-metadata.xml' -or
+        $_ -eq 'gradle/tooling-scopes.txt' -or
         $_ -eq 'gradle/wrapper/gradle-wrapper.properties' -or
         # The receipt is the file the release check holds a release to, and the allowlist is
         # what decides which manifest changes it accepts. A push that moved only one of those
@@ -711,6 +720,9 @@ try {
             ':extensions:shared:library:lint',
             ':extensions:facebook:lint'
         )
+        # Dependency overrides need the actual settings and UTP classpaths before the smoke
+        # check. Ordinary payload edits retain the smaller test/lint gate.
+        if ($touchesToolingClasspaths) { $tasks += ':patches:releaseTooling' }
         # HUSHFACEBOOK_BUILD_WRAPPER names a PowerShell script that runs Gradle on this machine,
         # called as <wrapper> -ProjectDir <repository> -Tasks <task>...: a machine that shares its
         # CPU and memory between several builds points it at a governor. Unset, the Gradle
@@ -743,6 +755,20 @@ try {
                     throw ('The runtime test build did not pass. Read the output above: it says whether a ' +
                         'test failed, an API level above the payload floor was reached, or the build could ' +
                         'not start. Push anyway with HUSHFACEBOOK_SKIP_PRE_PUSH=1.')
+                }
+                if ($touchesToolingClasspaths) {
+                    $compatibility = Join-Path $gateRoot 'scripts/test-tooling-classpaths.ps1'
+                    if (-not (Test-Path -LiteralPath $compatibility -PathType Leaf)) {
+                        throw 'scripts/test-tooling-classpaths.ps1 is missing from the dependency change being pushed.'
+                    }
+                    Write-Step 'checking the resolved gRPC/Netty transports, JDOM API and HttpClient/HttpMime'
+                    $global:LASTEXITCODE = 0
+                    if ($gateRoot -eq $Root) {
+                        Invoke-WithoutGitEnvironment { & $compatibility -Root $gateRoot }
+                    } else {
+                        Invoke-CommitScript -Script $compatibility -Arguments @{ Root = $gateRoot }
+                    }
+                    if ($LASTEXITCODE -ne 0) { throw 'The tooling classpath compatibility check did not pass.' }
                 }
                 } finally {
                     if ($gateRoot -eq $Root) { Assert-TreeUnchanged 'the runtime test build' }

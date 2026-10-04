@@ -1,16 +1,22 @@
 import app.morphe.patches.gradle.ExtensionExtension
 import app.morphe.patches.gradle.ExtensionPlugin
 import app.morphe.patches.gradle.PatchesExtension
+import org.apache.tools.ant.DirectoryScanner
+import org.apache.tools.ant.types.selectors.SelectorUtils
 import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier
+import org.gradle.api.artifacts.component.RootComponentIdentifier
 import org.gradle.api.artifacts.result.ResolvedComponentResult
 import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.nio.ByteBuffer
+import java.nio.file.Files
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.UUID
+import java.util.jar.Manifest
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
@@ -68,6 +74,103 @@ val sourceDateEpoch: Long = run {
     }
 }
 
+/** Actual producer inputs, including new untracked source files, rather than HEAD alone. */
+val identityInputTrees = listOf(
+    Triple("patches/src/main", emptyList<String>(), emptyList<String>()),
+    Triple("patches/stub/src/main", emptyList<String>(), emptyList<String>()),
+    Triple("extensions", listOf("**/src/main/**", "**/build.gradle.kts", "**/*.pro"), listOf("**/build/**")),
+    Triple("patches", listOf("**/build.gradle.kts"), listOf("**/build/**")),
+    Triple("gradle", emptyList<String>(), emptyList<String>()),
+)
+val identityInputFiles = listOf("build.gradle.kts", "settings.gradle.kts", "gradle.properties", "gradlew", "gradlew.bat", "NOTICE")
+val buildIdentityInputs = files(
+    identityInputTrees.map { (directory, includes, excludes) ->
+        rootProject.fileTree(directory) {
+            include(includes)
+            exclude(excludes)
+        }
+    },
+    rootProject.files(identityInputFiles),
+)
+
+// Match absent HEAD paths with the same patterns and Ant default exclusions as the file trees.
+// Ant's path matcher needs native separators to handle a leading ** consistently on Windows.
+fun isBuildIdentityInput(path: String): Boolean = path in identityInputFiles || identityInputTrees.any { (directory, includes, excludes) ->
+    if (!path.startsWith("$directory/")) return@any false
+    val relative = path.removePrefix("$directory/").replace('/', File.separatorChar)
+    fun matches(pattern: String) = SelectorUtils.matchPath(pattern.replace('/', File.separatorChar), relative, true)
+    (includes.isEmpty() || includes.any(::matches)) && excludes.none(::matches) &&
+        DirectoryScanner.getDefaultExcludes().none(::matches)
+}
+
+data class BuildSourceSnapshot(val commit: String, val tree: String, val state: String, val inputs: String)
+
+fun snapshotBuildIdentity(): BuildSourceSnapshot {
+    val inputFiles = buildIdentityInputs.files.filter { it.isFile }.sortedBy { it.relativeTo(rootDir).invariantSeparatorsPath }
+    val digest = MessageDigest.getInstance("SHA-256")
+    digest.update("hushfacebook-source-inputs-1\n".toByteArray(Charsets.US_ASCII))
+    for (file in inputFiles) {
+        val name = file.relativeTo(rootDir).invariantSeparatorsPath.toByteArray(Charsets.UTF_8)
+        val bytes = file.readBytes()
+        digest.update(ByteBuffer.allocate(4).putInt(name.size).array())
+        digest.update(name)
+        digest.update(ByteBuffer.allocate(8).putLong(bytes.size.toLong()).array())
+        digest.update(bytes)
+    }
+    val inputs = digest.digest().joinToString("") { "%02x".format(it) }
+    try {
+        val gitRoot = providers.exec {
+            commandLine("git", "--no-optional-locks", "rev-parse", "--show-toplevel")
+            workingDir = rootDir
+        }.standardOutput.asText.get().trim()
+        if (File(gitRoot).canonicalFile != rootDir.canonicalFile) {
+            return BuildSourceSnapshot("unknown", "unknown", "unknown", inputs)
+        }
+        val source = providers.exec {
+            commandLine("git", "--no-optional-locks", "rev-parse", "HEAD", "HEAD^{tree}")
+            workingDir = rootDir
+        }.standardOutput.asText.get().trim().lines()
+        val changes = providers.exec {
+            commandLine("git", "--no-optional-locks", "status", "--porcelain")
+            workingDir = rootDir
+        }.standardOutput.asText.get().trim()
+        val blobs = providers.exec {
+            commandLine("git", "--no-optional-locks", "ls-tree", "-rz", "HEAD")
+            workingDir = rootDir
+        }.standardOutput.asText.get().split('\u0000').filter { it.isNotEmpty() }.associate {
+            it.substringAfter('\t') to it.substringBefore('\t').substringAfterLast(' ')
+        }
+        // Index flags can hide modified or deleted files from status. Require the same eligible
+        // paths in both directions, then compare the bytes Git would store with immutable HEAD blobs.
+        val headPaths = blobs.keys.filter(::isBuildIdentityInput).toSet()
+        val paths = inputFiles.map { it.relativeTo(rootDir).invariantSeparatorsPath }
+        // Chunk the arguments for Windows' command-line bound. Provider exec deliberately does
+        // not accept a custom stdin stream, so --stdin-paths cannot be used here.
+        val actualBlobs = paths.chunked(100).flatMap { chunk ->
+            providers.exec {
+                commandLine(listOf("git", "--no-optional-locks", "hash-object", "--") + chunk)
+                workingDir = rootDir
+            }.standardOutput.asText.get().trim().lines()
+        }
+        if (source.size == 2 && source.all { it.matches(Regex("[0-9a-f]{40}")) }) {
+            val matchesHead = headPaths == paths.toSet() && actualBlobs.size == paths.size &&
+                paths.zip(actualBlobs).all { (path, hash) -> blobs[path] == hash }
+            return BuildSourceSnapshot(source[0], source[1], if (changes.isEmpty() && matchesHead) "clean" else "dirty", inputs)
+        }
+    } catch (_: Exception) {
+        // Archives and unavailable Git still identify input bytes, without inventing a commit.
+    }
+    return BuildSourceSnapshot("unknown", "unknown", "unknown", inputs)
+}
+
+// Captured before compilation and checked again at the producer boundary. A changed input cannot
+// stamp the outputs of an earlier compile as a clean build of its new bytes.
+val buildSourceSnapshot = snapshotBuildIdentity()
+fun snapshotInputTimes() = buildIdentityInputs.files.filter { it.isFile }.associate {
+    it.relativeTo(rootDir).invariantSeparatorsPath to Files.getLastModifiedTime(it.toPath())
+}
+val buildIdentityInputTimes = snapshotInputTimes()
+
 /**
  * Rewrites the bundle with the timestamp pinned, leaving everything else as it was.
  *
@@ -76,7 +179,7 @@ val sourceDateEpoch: Long = run {
  * what the plugin first wrote, which does not matter: what matters is that two runs of this
  * produce the same bytes, and they do, because nothing here reads a clock.
  */
-fun pinBundleTimestamp(bundle: File, epochSeconds: Long) {
+fun pinBundleTimestamp(bundle: File, epochSeconds: Long, source: BuildSourceSnapshot) {
     val stampMillis = epochSeconds * 1000L
     val names = mutableListOf<String>()
     val contents = mutableMapOf<String, ByteArray>()
@@ -85,6 +188,7 @@ fun pinBundleTimestamp(bundle: File, epochSeconds: Long) {
 
     ZipFile(bundle).use { zip ->
         for (entry in zip.entries()) {
+            if (entry.name in contents) throw GradleException("The bundle contains a duplicate entry.")
             val bytes = zip.getInputStream(entry).use { it.readBytes() }
             names += entry.name
             contents[entry.name] = bytes
@@ -101,7 +205,32 @@ fun pinBundleTimestamp(bundle: File, epochSeconds: Long) {
     if (!pinned.contains("Timestamp: $stampMillis")) {
         throw GradleException("The bundle manifest has no Timestamp line to pin: $bundle")
     }
-    contents[manifestName] = pinned.toByteArray(Charsets.UTF_8)
+    val metadata = Manifest(pinned.byteInputStream(Charsets.UTF_8))
+    metadata.mainAttributes.putValue("Hushfacebook-Source-State", source.state)
+    metadata.mainAttributes.putValue("Hushfacebook-Source-Commit", source.commit)
+    metadata.mainAttributes.putValue("Hushfacebook-Source-Tree", source.tree)
+    metadata.mainAttributes.putValue("Hushfacebook-Input-SHA256", source.inputs)
+    contents[manifestName] = ByteArrayOutputStream().also { metadata.write(it) }.toByteArray()
+
+    // Keep this framing in agreement with BundleIdentity.payloadSha256, which verifies the
+    // actual loaded bundle at patch time. Source fields are covered, only the digest is excluded.
+    val identityName = "META-INF/hushfacebook-build.identity"
+    val schema = "hushfacebook-bundle-1"
+    val payload = MessageDigest.getInstance("SHA-256")
+    payload.update((schema + "\n").toByteArray(Charsets.US_ASCII))
+    for (name in names.filterNot { it.endsWith('/') || it == identityName }.sorted()) {
+        val bytes = contents.getValue(name)
+        val path = name.toByteArray(Charsets.UTF_8)
+        payload.update(ByteBuffer.allocate(4).putInt(path.size).array())
+        payload.update(path)
+        payload.update(ByteBuffer.allocate(8).putLong(bytes.size.toLong()).array())
+        payload.update(bytes)
+    }
+    val payloadHash = payload.digest().joinToString("") { "%02x".format(it) }
+    if (identityName !in names) names += identityName
+    contents[identityName] = "$schema\n$payloadHash\n".toByteArray(Charsets.US_ASCII)
+    times[identityName] = 0L
+    methods[identityName] = ZipEntry.DEFLATED
 
     val rebuilt = ByteArrayOutputStream()
     ZipOutputStream(rebuilt).use { out ->
@@ -144,6 +273,7 @@ object Sbom {
     fun key(id: ComponentIdentifier): String = when (id) {
         is ModuleComponentIdentifier -> "${id.group}:${id.module}:${id.version}"
         is ProjectComponentIdentifier -> "project ${id.projectPath}"
+        is RootComponentIdentifier -> "root"
         else -> throw GradleException("The SBOM can't name ${id.displayName}, a ${id::class.java.simpleName}.")
     }
 
@@ -162,6 +292,7 @@ object Sbom {
             val node = when (val id = component.id) {
                 is ModuleComponentIdentifier -> Node(key, "module", id.group, id.module, id.version)
                 is ProjectComponentIdentifier -> Node(key, "project", "", id.projectPath, "")
+                is RootComponentIdentifier -> Node(key, "root", "", "root", "")
                 else -> throw GradleException("The SBOM can't name ${id.displayName}, a ${id::class.java.simpleName}.")
             }
             nodes[key] = node
@@ -329,6 +460,116 @@ abstract class PayloadGraph : DefaultTask() {
     }
 }
 
+/** Build/test provenance is separate from the libraries the bundle actually ships. */
+abstract class WriteToolingReport : DefaultTask() {
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NAME_ONLY)
+    abstract val bundle: RegularFileProperty
+
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val scopeManifest: RegularFileProperty
+
+    @get:Input
+    abstract val sourceCommit: Property<String>
+
+    @get:Input
+    abstract val sourceTree: Property<String>
+
+    @get:Input
+    abstract val bundleVersion: Property<String>
+
+    @get:Input
+    abstract val configuredScopes: ListProperty<String>
+
+    /** Absent conditional scopes and their registered-task check, captured during configuration. */
+    @get:Input
+    abstract val absentScopes: ListProperty<String>
+
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val graphs: ConfigurableFileCollection
+
+    @get:OutputFile
+    abstract val output: RegularFileProperty
+
+    @TaskAction
+    fun write() {
+        val resolved = graphs.files.map { Sbom.readGraph(it) }.sortedBy { it.payload }
+        val expected = configuredScopes.get().toSortedSet()
+        val actual = resolved.map { it.payload }
+        if (actual.size != actual.toSet().size || actual.toSet() != expected) {
+            throw GradleException("Tooling graphs do not cover the configured scopes. Missing: " +
+                (expected - actual.toSet()).joinToString(", ") + "; unexpected: " +
+                (actual.toSet() - expected).joinToString(", "))
+        }
+        val absent = absentScopes.get().associate { it.substringBefore('\t') to it.substringAfter('\t') }
+        val manifestText = scopeManifest.get().asFile.readText(Charsets.UTF_8)
+            .replace("\r\n", "\n").trimEnd('\n') + "\n"
+        val manifestEntries = manifestText.lines()
+            .map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }.map { line ->
+                val parts = line.split(Regex("\\s+"))
+                if (parts.size !in 2..3 || parts[0] !in setOf("required", "conditional") ||
+                    (parts[0] == "conditional") != (parts.size == 3)) {
+                    throw GradleException("Invalid tooling scope declaration: $line")
+                }
+                if (parts[1] !in expected && (parts[0] == "required" || parts[1] !in absent)) {
+                    throw GradleException("The tooling report is missing ${parts[1]}.")
+                }
+                linkedMapOf("id" to parts[1], "requirement" to parts[0],
+                    "status" to if (parts[1] in expected) "resolved" else "notConfigured")
+            }
+        if (manifestEntries.map { it.getValue("id") }.toSet().size != manifestEntries.size) {
+            throw GradleException("The tooling scope manifest contains a duplicate.")
+        }
+        val libraries = sortedMapOf<String, Sbom.Node>()
+        val artifactHashes = sortedMapOf<String, MutableSet<Pair<String, String>>>()
+        val carriers = sortedMapOf<String, MutableSet<String>>()
+        val scopes = resolved.map { graph ->
+            if (graph.root !in graph.nodes) throw GradleException("${graph.payload} has no graph root.")
+            for (node in graph.nodes.values) {
+                if (node.dependsOn.any { it !in graph.nodes }) {
+                    throw GradleException("${graph.payload} contains an unresolved graph edge.")
+                }
+                if (node.kind == "module") {
+                    libraries[node.key] = node
+                    carriers.getOrPut(node.key) { sortedSetOf() } += graph.payload
+                }
+            }
+            for ((owner, artifacts) in graph.artifacts) {
+                if (owner !in graph.nodes) throw GradleException("${graph.payload} has an artifact with no component.")
+                artifactHashes.getOrPut(owner) { mutableSetOf() }.addAll(artifacts)
+            }
+            linkedMapOf<String, Any>("id" to graph.payload, "status" to "resolved", "root" to graph.root,
+                "nodes" to graph.nodes.keys.sorted(), "edges" to graph.nodes.values.map { node ->
+                    linkedMapOf("from" to node.key, "to" to node.dependsOn.toList())
+                })
+        } + absent.entries.sortedBy { it.key }.map { (scope, reason) ->
+            linkedMapOf("id" to scope, "status" to "notConfigured", "reason" to reason)
+        }
+        val components = libraries.values.map { node ->
+            linkedMapOf("coordinate" to node.key, "group" to node.group, "name" to node.name,
+                "version" to node.version, "purl" to Sbom.purl(node.group, node.name, node.version),
+                "scopes" to carriers.getValue(node.key).toList(),
+                "artifacts" to (artifactHashes[node.key] ?: emptySet()).sortedWith(compareBy({ it.first }, { it.second }))
+                    .map { linkedMapOf("name" to it.first, "sha256" to it.second) })
+        }
+        val bundleFile = bundle.get().asFile
+        val document = linkedMapOf("schemaVersion" to 1,
+            "source" to linkedMapOf("commit" to sourceCommit.get(), "tree" to sourceTree.get()),
+            "bundle" to linkedMapOf("file" to bundleFile.name, "version" to bundleVersion.get(),
+                "sha256" to Sbom.sha256(bundleFile)),
+            "scopeManifest" to linkedMapOf("file" to "gradle/tooling-scopes.txt",
+                "sha256" to Sbom.sha256(manifestText.toByteArray(Charsets.UTF_8)), "entries" to manifestEntries),
+            "scopes" to scopes.sortedBy { it["id"].toString() }, "components" to components)
+        output.get().asFile.apply {
+            parentFile.mkdirs()
+            writeText(Sbom.json(document) + "\n", Charsets.UTF_8)
+        }
+        logger.lifecycle("Tooling report: ${resolved.size} resolved scopes, ${absent.size} not configured, ${components.size} module coordinates")
+    }
+}
+
 /**
  * The CycloneDX SBOM of the release bundle, written beside it in build/release: every resolved
  * component the bundle carries and the version it resolved to, with the graph between them.
@@ -436,7 +677,7 @@ abstract class WriteReleaseSbom : DefaultTask() {
         // Written by the plugin itself: the manifest by the jar task, which leaves every library's
         // own out, and classes.dex by buildAndroid. Every library jar has a manifest too, so a
         // library would otherwise count as carried on the strength of a file that isn't its.
-        val generated = setOf("META-INF/MANIFEST.MF", "classes.dex")
+        val generated = setOf("META-INF/MANIFEST.MF", "META-INF/hushfacebook-build.identity", "classes.dex")
         val own = ownOutput.files.filter { it.isDirectory }.flatMap { root ->
             root.walkTopDown().filter { it.isFile }.map { it.relativeTo(root).invariantSeparatorsPath }.toList()
         }.toSet()
@@ -569,6 +810,80 @@ abstract class WriteReleaseSbom : DefaultTask() {
         target.parentFile.mkdirs()
         target.writeText(Sbom.json(document) + "\n", Charsets.UTF_8)
     }
+}
+
+// All configurations are now known. Each graph is resolved by a task on its owning project;
+// only files reach the aggregate, so it cannot read another project's configuration at execution.
+gradle.projectsEvaluated {
+    val scopeFile = rootProject.file("gradle/tooling-scopes.txt")
+    val required = scopeFile.readLines(Charsets.UTF_8).map { it.trim() }
+        .filter { it.isNotEmpty() && !it.startsWith("#") }.map { it.split(Regex("\\s+")) }
+    val configured = mutableListOf<String>()
+    val absent = mutableListOf<String>()
+    val producers = mutableListOf<TaskProvider<PayloadGraph>>()
+
+    fun record(owner: Project, scope: String, configuration: org.gradle.api.artifacts.Configuration) {
+        if (!configuration.isCanBeResolved) throw GradleException("Tooling scope $scope cannot be resolved.")
+        val index = producers.size
+        configured += scope
+        producers += owner.tasks.register<PayloadGraph>("toolingGraph$index") {
+            payload.set(scope)
+            graph.set(configuration.incoming.resolutionResult.rootComponent)
+            val libraries = configuration.incoming.artifactView { componentFilter { it is ModuleComponentIdentifier } }.artifacts
+            artifacts.set(libraries.resolvedArtifacts.map { resolved ->
+                resolved.map { Sbom.key(it.id.componentIdentifier) + "\t" + it.file.absolutePath }.sorted()
+            })
+            artifactFiles.from(libraries.artifactFiles)
+            output.set(owner.layout.buildDirectory.file("tooling/graph-$index.tsv"))
+        }
+    }
+    @Suppress("UNCHECKED_CAST")
+    val settings = rootProject.extensions.extraProperties["hushSettingsTooling"] as Map<String, Any>
+    configured += "settings/buildscript/classpath"
+    producers += rootProject.tasks.register<PayloadGraph>("toolingSettingsGraph") {
+        payload.set("settings/buildscript/classpath")
+        @Suppress("UNCHECKED_CAST")
+        graph.set(settings.getValue("graph") as org.gradle.api.provider.Provider<ResolvedComponentResult>)
+        @Suppress("UNCHECKED_CAST")
+        artifacts.set(settings.getValue("artifacts") as org.gradle.api.provider.Provider<List<String>>)
+        artifactFiles.from(settings.getValue("files"))
+        output.set(rootProject.layout.buildDirectory.file("tooling/settings-graph.tsv"))
+    }
+    for (owner in rootProject.allprojects.sortedBy { it.path }) {
+        record(owner, "${owner.path}/buildscript/classpath", owner.buildscript.configurations.getByName("classpath"))
+        for (configuration in owner.configurations.filter { it.isCanBeResolved }.sortedBy { it.name }) {
+            record(owner, "${owner.path}/configuration/${configuration.name}", configuration)
+        }
+    }
+    for (parts in required) {
+        if (parts.size !in 2..3 || parts[0] !in setOf("required", "conditional") ||
+            (parts[0] == "conditional") != (parts.size == 3)) {
+            throw GradleException("Invalid tooling scope declaration: ${parts.joinToString(" ")}")
+        }
+        if (parts[1] in configured) continue
+        if (parts[0] == "required") throw GradleException("Required tooling scope ${parts[1]} is missing.")
+        val owner = rootProject.project(parts[1].substringBefore("/configuration/"))
+        if (parts[2] in owner.tasks.names) {
+            throw GradleException("${parts[1]} is absent, but its ${parts[2]} task is registered.")
+        }
+        absent += parts[1] + "\tNo registered " + parts[2] + " task or resolvable configuration"
+    }
+    val commit = providers.provider { buildSourceSnapshot.commit }
+    val report = tasks.register<WriteToolingReport>("releaseTooling") {
+        group = "build"
+        description = "Records resolved settings, project build and test graphs separately from payload provenance"
+        dependsOn("buildAndroid")
+        bundle.set(layout.buildDirectory.file("release/patches-${project.version}.mpp"))
+        bundleVersion.set(project.version.toString())
+        scopeManifest.set(scopeFile)
+        sourceCommit.set(commit)
+        sourceTree.set(buildSourceSnapshot.state)
+        configuredScopes.set(configured.sorted())
+        absentScopes.set(absent.sorted())
+        graphs.from(producers.map { it.flatMap { task -> task.output } })
+        output.set(layout.buildDirectory.file("release/patches-${project.version}.tooling.json"))
+    }
+    tasks.named("buildAndroid") { finalizedBy(report) }
 }
 
 group = "app.morphe"
@@ -774,7 +1089,16 @@ tasks {
         // read only the folder's top level, and name only would call that move no change.
         // Blank counts as unset, as Fixtures.kt reads it; File("") would be the whole project.
         val fixtureDirectory = providers.environmentVariable("HUSHFACEBOOK_FIXTURE_DIR")
-        inputs.files(fixtureDirectory.map { if (it.isBlank()) emptyList() else listOf(File(it)) }.orElse(emptyList()))
+        // A configured empty folder must run and fail, never reuse an unset folder's skip.
+        inputs.property("fixturesConfigured", fixtureDirectory.map { it.isNotBlank() }.orElse(false))
+        inputs.files(fixtureDirectory.map { configured ->
+            if (configured.isBlank()) emptyList() else {
+                val directory = File(configured)
+                check(directory.isDirectory) { "HUSHFACEBOOK_FIXTURE_DIR names $directory, which is not a folder." }
+                checkNotNull(directory.listFiles()) { "HUSHFACEBOOK_FIXTURE_DIR names $directory, which cannot be read." }
+                    .filter { it.isFile }
+            }
+        }.orElse(emptyList()))
             .withPropertyName("fixtures")
             .withPathSensitivity(PathSensitivity.RELATIVE)
     }
@@ -857,6 +1181,9 @@ tasks {
         output.set(layout.buildDirectory.file("release/$releaseSbomName"))
     }
     named("buildAndroid") {
+        inputs.files(buildIdentityInputs).withPropertyName("identityInputs").withPathSensitivity(PathSensitivity.RELATIVE)
+        inputs.property("identitySource", listOf(buildSourceSnapshot.commit, buildSourceSnapshot.tree,
+            buildSourceSnapshot.state, buildSourceSnapshot.inputs))
         // Resolved at configuration time. Reaching for project inside doLast is what the
         // configuration cache refuses, and Gradle 10 turns that refusal into an error.
         val bundleFile = layout.buildDirectory.file("libs/$releaseBundleName")
@@ -866,6 +1193,9 @@ tasks {
         // release receipt refuses such a bundle, and only this build saw the tree it came from.
         val unheldChanges = if (sourceDateEpochFromEnvironment == null) uncommittedChanges else emptyList()
         doLast {
+            if (snapshotBuildIdentity() != buildSourceSnapshot || snapshotInputTimes() != buildIdentityInputTimes) {
+                throw GradleException("Build source inputs changed during compilation. Rebuild before using this bundle.")
+            }
             // Emptied first, so the directory never holds a bundle of another version or a
             // checksum of another build: the release scripts take the one file they find.
             val directory = releaseDirectory.get().asFile
@@ -876,7 +1206,7 @@ tasks {
             val releaseBundle = directory.resolve(releaseBundleName)
             bundleFile.get().asFile.copyTo(releaseBundle)
             // Before the checksum, so what is recorded is what a rebuild will produce.
-            pinBundleTimestamp(releaseBundle, pinnedEpoch)
+            pinBundleTimestamp(releaseBundle, pinnedEpoch, buildSourceSnapshot)
             if (unheldChanges == null) {
                 logger.warn("git couldn't say whether the working tree matches HEAD, so $releaseBundleName is " +
                     "stamped 0 rather than a commit's time, and no release receipt will take it.")
@@ -916,5 +1246,20 @@ tasks {
     // The patch list has to be regenerated before anything publishes the bundle.
     publish {
         dependsOn("generatePatchesList")
+    }
+}
+
+// Gradle's file snapshots can reuse a hash when size and mtime are unchanged. Bind the raw-byte
+// digest before producer tasks execute, so a changed clean checkout cannot reuse stale classes.
+gradle.taskGraph.whenReady {
+    val producer = tasks.named("buildAndroid").get()
+    if (hasTask(producer)) {
+        val visited = mutableSetOf<Task>()
+        fun bind(task: Task) {
+            if (!visited.add(task)) return
+            task.inputs.property("hushfacebookProducerInputsSha256", buildSourceSnapshot.inputs)
+            getDependencies(task).forEach(::bind)
+        }
+        bind(producer)
     }
 }

@@ -36,8 +36,9 @@ function Get-ReleaseReceiptSchemaVersion {
         older commit, so it stays a bare return.
 
         2 added sbom: the file name, SHA-256 and component count of the release SBOM.
+        3 added a separate tooling graph and its advisory-check status.
     #>
-    return 2
+    return 3
 }
 
 function Resolve-ReceiptSchema {
@@ -74,8 +75,11 @@ function Resolve-ReceiptSchema {
     if ($version -eq $current) { return [pscustomobject]@{ Version = $version; Note = $null } }
     return [pscustomobject]@{
         Version = $version
-        Note = ("the receipt is held to schema $version, which its own commit $short wrote, so it names no " +
-            'SBOM and none is checked for its release')
+        Note = if ($version -lt 2) {
+            "the receipt is held to schema $version, which its own commit $short wrote, so it names no SBOM and none is checked for its release"
+        } else {
+            "the receipt is held to schema $version, which its own commit $short wrote; its payload SBOM is checked, but it predates tooling reports"
+        }
     }
 }
 
@@ -205,12 +209,14 @@ function Test-ReleaseSbom {
         bundle's manifest, and every extension payload the bundle carries with the SHA-256 of its
         bytes. An SBOM left beside a newer build fails on the hash, and one dated from the clock
         rather than from the pinned stamp fails on the timestamp. -BundleName is the name the
-        bundle is published under, since a downloaded copy has a temporary one.
+        bundle is published under, since a downloaded copy has a temporary one. -ExpectedCommit is
+        the clean commit a bundle carrying a build identity must name; a legacy bundle has none.
     #>
     param(
         [Parameter(Mandatory = $true)]$Sbom,
         [Parameter(Mandatory = $true)][string]$BundlePath,
-        [Parameter(Mandatory = $true)][string]$BundleName
+        [Parameter(Mandatory = $true)][string]$BundleName,
+        [string]$ExpectedCommit
     )
 
     function Fail { param([string]$Reason) return [pscustomobject]@{ Valid = $false; Reason = $Reason } }
@@ -224,6 +230,12 @@ function Test-ReleaseSbom {
             "hashes to $bundleHash. It was written for another build.")
     }
     $manifest = Get-BundleManifestFacts -BundlePath $BundlePath
+    $identity = Get-BundleIdentityFacts -BundlePath $BundlePath
+    if ($identity.Present -and -not $ExpectedCommit) {
+        return Fail "$BundleName carries a build identity, and no source commit was given to hold it to."
+    }
+    if ($identity.Present -and (-not $identity.Valid -or $identity.SourceState -cne 'clean' -or
+            $identity.SourceCommit -cne $ExpectedCommit)) { return Fail 'The bundle build identity does not bind to this clean source commit.' }
     if ($Sbom.BundleVersion -ne $manifest.version) {
         return Fail "$sbomName says $BundleName is version $($Sbom.BundleVersion); its manifest says $($manifest.version)."
     }
@@ -278,6 +290,158 @@ function Get-Sha256Hex {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToUpperInvariant()
 }
 
+function Read-ToolingScopeManifest {
+    param([Parameter(Mandatory = $true)][string]$Text)
+    $canonical = $Text.Replace("`r`n", "`n").TrimEnd([char[]]"`n") + "`n"
+    $entries = New-Object System.Collections.Generic.List[object]
+    $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($line in $canonical -split "`n") {
+        $line = $line.Trim()
+        if (-not $line -or $line.StartsWith('#')) { continue }
+        $match = [regex]::Match($line, '^(required|conditional)\s+(\S+)(?:\s+(\S+))?$')
+        if (-not $match.Success -or ($match.Groups[1].Value -ceq 'conditional') -ne $match.Groups[3].Success) {
+            throw "Invalid tooling scope declaration: $line"
+        }
+        $id = $match.Groups[2].Value
+        if ($id -cnotmatch '^(settings/buildscript/classpath|:[A-Za-z0-9_:-]*/(buildscript/classpath|configuration/[A-Za-z0-9_.-]+))$' -or
+                -not $seen.Add($id)) { throw "Invalid or duplicate tooling scope: $id" }
+        $entries.Add([pscustomobject]@{ Id = $id; Requirement = $match.Groups[1].Value; TestTask = $match.Groups[3].Value })
+    }
+    if (-not $seen.Contains('settings/buildscript/classpath')) { throw 'The tooling scope manifest omits the settings-plugin classpath.' }
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { $hash = [BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($canonical))).Replace('-', '').ToLowerInvariant() }
+    finally { $sha.Dispose() }
+    return [pscustomobject]@{ Text = $canonical; Sha256 = $hash; Entries = $entries.ToArray() }
+}
+
+function Read-ReleaseTooling {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    $Path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "There is no tooling report at $Path." }
+    $document = [IO.File]::ReadAllText($Path) | ConvertFrom-Json
+    if ([string]$document.schemaVersion -cne '1' -or $document.source.commit -cnotmatch '^[0-9a-f]{40}$' -or
+            [string]$document.source.tree -cnotin @('clean', 'dirty')) { throw 'The tooling report has an invalid schema or source binding.' }
+    if (-not $document.bundle.file -or -not $document.bundle.version -or $document.bundle.sha256 -notmatch '^[0-9a-f]{64}$' -or
+            [string]$document.scopeManifest.file -cne 'gradle/tooling-scopes.txt' -or
+            $document.scopeManifest.sha256 -notmatch '^[0-9a-f]{64}$') { throw 'The tooling report has no valid bundle or scope-manifest binding.' }
+    $scopes = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+    $carriers = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+    foreach ($scope in @($document.scopes)) {
+        $id = [string]$scope.id
+        if ($id -cnotmatch '^(settings/buildscript/classpath|:[A-Za-z0-9_:-]*/(buildscript/classpath|configuration/[A-Za-z0-9_.-]+))$' -or
+                $scopes.ContainsKey($id)) { throw "Invalid or duplicate tooling scope: $id" }
+        $scopes.Add($id, $scope)
+        if ([string]$scope.status -ceq 'notConfigured') {
+            if (-not ([string]$scope.reason).Trim()) { throw "$id is not configured, but gives no reason." }
+            continue
+        }
+        if ([string]$scope.status -cne 'resolved') { throw "$id has an unknown tooling scope status." }
+        $nodes = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        foreach ($node in @($scope.nodes)) {
+            $node = [string]$node
+            if ($node -cne 'root' -and $node -cnotmatch '^project :[A-Za-z0-9_:-]*$' -and
+                    $node -cnotmatch '^[A-Za-z0-9_.-]+:[A-Za-z0-9_.-]+:[A-Za-z0-9_.+~-]+$') { throw "$id contains an invalid component identifier." }
+            if (-not $nodes.Add($node)) { throw "$id contains a duplicate component." }
+            if ($node -cne 'root' -and -not $node.StartsWith('project ')) {
+                if (-not $carriers.ContainsKey($node)) { $carriers.Add($node, [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)) }
+                [void]$carriers[$node].Add($id)
+            }
+        }
+        if (-not $nodes.Contains([string]$scope.root)) { throw "$id contains no graph root." }
+        $edges = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+        foreach ($edge in @($scope.edges)) {
+            if (-not $nodes.Contains([string]$edge.from) -or $edges.ContainsKey([string]$edge.from)) { throw "$id contains an invalid or duplicate graph edge." }
+            $targets = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            foreach ($target in @($edge.to)) {
+                if (-not $nodes.Contains([string]$target) -or -not $targets.Add([string]$target)) { throw "$id contains an unresolved or duplicate graph edge." }
+            }
+            $edges.Add([string]$edge.from, @($edge.to))
+        }
+        if ($edges.Count -ne $nodes.Count) { throw "$id does not record every component's graph edges." }
+        $reachable = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        $queue = [Collections.Generic.Queue[string]]::new()
+        $queue.Enqueue([string]$scope.root)
+        while ($queue.Count -gt 0) {
+            $next = $queue.Dequeue()
+            if (-not $reachable.Add($next)) { continue }
+            foreach ($target in $edges[$next]) { $queue.Enqueue([string]$target) }
+        }
+        if ($reachable.Count -ne $nodes.Count) { throw "$id contains components unreachable from its root." }
+    }
+    if ($scopes.Count -eq 0) { throw 'The tooling report records no scopes.' }
+    $libraries = New-Object System.Collections.Generic.List[object]
+    $coordinates = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($component in @($document.components)) {
+        $coordinate = "$($component.group):$($component.name):$($component.version)"
+        $purl = [regex]::Match([string]$component.purl, '^pkg:maven/([^/@?#]+)/([^/@?#]+)@([^/@?#]+)$')
+        if ([string]$component.coordinate -cne $coordinate -or -not $coordinates.Add($coordinate) -or
+                -not $purl.Success -or [Uri]::UnescapeDataString($purl.Groups[1].Value) -cne [string]$component.group -or
+                [Uri]::UnescapeDataString($purl.Groups[2].Value) -cne [string]$component.name -or
+                [Uri]::UnescapeDataString($purl.Groups[3].Value) -cne [string]$component.version) { throw 'A tooling coordinate is duplicated or does not match its Maven package URL.' }
+        $listed = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        foreach ($id in @($component.scopes)) {
+            if (-not $listed.Add([string]$id) -or -not $carriers.ContainsKey($coordinate) -or -not $carriers[$coordinate].Contains([string]$id)) {
+                throw "$coordinate names a scope that does not contain it."
+            }
+        }
+        if ($listed.Count -eq 0 -or $listed.Count -ne $carriers[$coordinate].Count) { throw "$coordinate omits one of its resolved scopes." }
+        foreach ($artifact in @($component.artifacts)) {
+            if ([string]$artifact.name -cmatch '[/\\:\x00-\x1f]' -or -not $artifact.name -or $artifact.sha256 -notmatch '^[0-9a-f]{64}$') {
+                throw "$coordinate records an invalid artifact name or hash."
+            }
+        }
+        $libraries.Add([pscustomobject]@{ Group = [string]$component.group; Name = [string]$component.name
+            Version = [string]$component.version; Purl = [string]$component.purl; Scopes = @($component.scopes) })
+    }
+    if ($coordinates.Count -eq 0 -or $coordinates.Count -ne $carriers.Count) { throw 'The tooling report omits resolved module coordinates.' }
+    $declared = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($entry in @($document.scopeManifest.entries)) {
+        if (-not $declared.Add([string]$entry.id) -or -not $scopes.ContainsKey([string]$entry.id) -or
+                [string]$entry.requirement -cnotin @('required', 'conditional') -or
+                [string]$entry.status -cne [string]$scopes[[string]$entry.id].status -or
+                ([string]$entry.requirement -ceq 'required' -and [string]$entry.status -cne 'resolved')) {
+            throw 'The tooling report has an invalid, missing or unresolved declared scope.'
+        }
+    }
+    return [pscustomobject]@{ Path = $Path; Sha256 = Get-Sha256Hex -Path $Path; Document = $document
+        Libraries = $libraries.ToArray(); Components = @($document.components); Scopes = @($document.scopes) }
+}
+
+function Test-ReleaseTooling {
+    param([Parameter(Mandatory = $true)]$Tooling, [Parameter(Mandatory = $true)][string]$BundlePath,
+        [Parameter(Mandatory = $true)][string]$ExpectedCommit, [Parameter(Mandatory = $true)][string]$ScopeManifestText,
+        [string]$BundleName)
+    function Fail { param([string]$Reason) return [pscustomobject]@{ Valid = $false; Reason = $Reason } }
+    $document = $Tooling.Document
+    if ([string]$document.source.tree -cne 'clean' -or [string]$document.source.commit -cne $ExpectedCommit) {
+        return Fail 'The tooling report does not describe the clean source commit being released.'
+    }
+    if (-not $BundleName) { $BundleName = Split-Path -Leaf $BundlePath }
+    $manifest = Get-BundleManifestFacts -BundlePath $BundlePath
+    if ([string]$document.bundle.file -cne $BundleName -or [string]$document.bundle.version -cne [string]$manifest.version -or
+            [string]$document.bundle.sha256 -ne (Get-Sha256Hex -Path $BundlePath)) { return Fail 'The tooling report does not describe this bundle.' }
+    if ((Split-Path -Leaf $Tooling.Path) -cne "patches-$($manifest.version).tooling.json") { return Fail 'The tooling report has the wrong release filename.' }
+    try { $expected = Read-ToolingScopeManifest -Text $ScopeManifestText } catch { return Fail $_.Exception.Message }
+    if ($expected.Sha256 -ne [string]$document.scopeManifest.sha256) { return Fail 'The tooling scope manifest differs from the release commit.' }
+    $scopes = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+    foreach ($scope in $Tooling.Scopes) { $scopes[[string]$scope.id] = $scope }
+    $entries = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+    foreach ($entry in @($document.scopeManifest.entries)) { $entries[[string]$entry.id] = $entry }
+    if ($entries.Count -ne $expected.Entries.Count) { return Fail 'The tooling report omits or adds scope declarations.' }
+    foreach ($entry in $expected.Entries) {
+        if (-not $scopes.ContainsKey($entry.Id) -or -not $entries.ContainsKey($entry.Id) -or
+                [string]$entries[$entry.Id].requirement -cne $entry.Requirement -or
+                ($entry.Requirement -ceq 'required' -and [string]$scopes[$entry.Id].status -cne 'resolved')) {
+            return Fail "The tooling report omits required scope $($entry.Id)."
+        }
+        if ([string]$scopes[$entry.Id].status -ceq 'notConfigured' -and
+                [string]$scopes[$entry.Id].reason -notlike "*$($entry.TestTask)*") {
+            return Fail "The tooling report does not identify the absent test component for $($entry.Id)."
+        }
+    }
+    return [pscustomobject]@{ Valid = $true; Reason = $null }
+}
+
 function Get-BundleManifestFacts {
     <#
     .SYNOPSIS
@@ -316,6 +480,91 @@ function Get-BundleManifestFacts {
         timestamp      = [long]$timestamp.Groups[1].Value
         patcherVersion = $patcher.Groups[1].Value
     }
+}
+
+function Get-BundlePayloadSha256 {
+    # Same framing as BundleIdentity.payloadSha256. Only the identity container is excluded.
+    param([Parameter(Mandatory = $true)][IO.Compression.ZipArchive]$Archive)
+    $entries = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+    $names = [Collections.Generic.List[string]]::new()
+    foreach ($entry in $Archive.Entries) {
+        if ($entries.ContainsKey($entry.FullName)) { throw 'Duplicate bundle entry.' }
+        $entries.Add($entry.FullName, $entry)
+        if (-not $entry.FullName.EndsWith('/') -and $entry.FullName -cne 'META-INF/hushfacebook-build.identity') {
+            $names.Add($entry.FullName)
+        }
+    }
+    $names.Sort([StringComparer]::Ordinal)
+    $hash = [Security.Cryptography.SHA256]::Create()
+    try {
+        $prefix = [Text.Encoding]::ASCII.GetBytes("hushfacebook-bundle-1`n")
+        [void]$hash.TransformBlock($prefix, 0, $prefix.Length, $null, 0)
+        $buffer = [byte[]]::new(65536)
+        foreach ($name in $names) {
+            $entry = $entries[$name]
+            $path = [Text.Encoding]::UTF8.GetBytes($name)
+            $pathLength = [BitConverter]::GetBytes([int]$path.Length)
+            $contentLength = [BitConverter]::GetBytes([long]$entry.Length)
+            if ([BitConverter]::IsLittleEndian) { [Array]::Reverse($pathLength); [Array]::Reverse($contentLength) }
+            foreach ($bytes in @($pathLength, $path, $contentLength)) {
+                [void]$hash.TransformBlock($bytes, 0, $bytes.Length, $null, 0)
+            }
+            $input = $entry.Open()
+            try {
+                $count = 0L
+                while (($read = $input.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                    $count += $read
+                    if ($count -gt $entry.Length) { throw 'Bundle entry grew while reading.' }
+                    [void]$hash.TransformBlock($buffer, 0, $read, $null, 0)
+                }
+                if ($count -ne $entry.Length) { throw 'Bundle entry is truncated.' }
+            } finally { $input.Dispose() }
+        }
+        [void]$hash.TransformFinalBlock([byte[]]::new(0), 0, 0)
+        return ([BitConverter]::ToString($hash.Hash) -replace '-', '').ToLowerInvariant()
+    } finally { $hash.Dispose() }
+}
+
+function Get-BundleIdentityFacts {
+    param([Parameter(Mandatory = $true)][string]$BundlePath)
+    $facts = [pscustomobject]@{ Present = $false; Valid = $false; SourceState = 'unknown'
+        SourceCommit = 'unknown'; SourceTree = 'unknown'; InputSha256 = $null; PayloadSha256 = $null }
+    $BundlePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($BundlePath)
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $zip = [IO.Compression.ZipFile]::OpenRead($BundlePath)
+    try {
+        $manifest = $zip.GetEntry('META-INF/MANIFEST.MF')
+        $reader = [IO.StreamReader]::new($manifest.Open())
+        try { $text = $reader.ReadToEnd() -replace "\r?\n ", '' } finally { $reader.Dispose() }
+        $entry = $zip.GetEntry('META-INF/hushfacebook-build.identity')
+        $facts.Present = $null -ne $entry -or $null -ne $zip.GetEntry('app/morphe/util/BundleIdentity.class') -or
+            $text -cmatch '(?m)^Hushfacebook-(Source-|Input-)'
+        if (-not $facts.Present -or $null -eq $entry -or $entry.Length -notin 1..128) { return $facts }
+        $reader = [IO.StreamReader]::new($entry.Open(), [Text.Encoding]::ASCII)
+        try { $record = $reader.ReadToEnd() } finally { $reader.Dispose() }
+        if ($record -cnotmatch '\Ahushfacebook-bundle-1\n([0-9a-f]{64})\n\z') { return $facts }
+        $expected = $Matches[1]
+        if ((Get-BundlePayloadSha256 -Archive $zip) -cne $expected) { return $facts }
+        $fields = @{}
+        foreach ($field in @('Source-State', 'Source-Commit', 'Source-Tree', 'Input-SHA256')) {
+            $values = [regex]::Matches($text, "(?m)^Hushfacebook-${field}: ([^\r\n]+)\r?$")
+            if ($values.Count -ne 1) { return $facts }
+            $fields[$field] = $values[0].Groups[1].Value
+        }
+        if ($fields['Input-SHA256'] -cnotmatch '\A[0-9a-f]{64}\z') { return $facts }
+        if ($fields['Source-State'] -cin @('clean', 'dirty')) {
+            if ($fields['Source-Commit'] -cnotmatch '\A[0-9a-f]{40}\z' -or
+                $fields['Source-Tree'] -cnotmatch '\A[0-9a-f]{40}\z') { return $facts }
+        } elseif ($fields['Source-State'] -ceq 'unknown') {
+            if ($fields['Source-Commit'] -cne 'unknown' -or $fields['Source-Tree'] -cne 'unknown') { return $facts }
+        } else { return $facts }
+        $facts.SourceState = $fields['Source-State']; $facts.SourceCommit = $fields['Source-Commit']
+        $facts.SourceTree = $fields['Source-Tree']; $facts.InputSha256 = $fields['Input-SHA256']
+        $facts.PayloadSha256 = $expected; $facts.Valid = $true
+    } catch {
+        $facts.Present = $true
+    } finally { $zip.Dispose() }
+    return $facts
 }
 
 function Resolve-Aapt2 {
@@ -1063,7 +1312,10 @@ function Test-ReleaseReceipt {
         [int]$ExpectedSchemaVersion = (Get-ReleaseReceiptSchemaVersion),
         # The SBOM itself, when the caller has it: its hash and component count have to be what
         # the receipt records, and with -BundlePath it has to describe that bundle.
-        [string]$SbomPath
+        [string]$SbomPath,
+        [string]$ToolingPath,
+        [string]$ToolingScopeManifestText,
+        [switch]$RequireToolingAudit
     )
 
     function Fail { param([string]$Reason) return [pscustomobject]@{ Valid = $false; Reason = $Reason } }
@@ -1125,6 +1377,18 @@ function Test-ReleaseReceipt {
         }
     }
 
+    if ($ExpectedSchemaVersion -ge 3) {
+        $tooling = $Receipt.tooling
+        if ($null -eq $tooling -or [string]$tooling.file -cne "patches-$ExpectedVersion.tooling.json" -or
+                [string]$tooling.sha256 -notmatch '^[0-9a-f]{64}$') { return Fail 'The receipt names no valid release tooling report.' }
+        foreach ($field in @('components', 'scopes')) {
+            $count = 0L
+            if (-not [long]::TryParse("$($tooling.$field)", [ref]$count) -or $count -le 0) { return Fail "The receipt counts no tooling $field." }
+        }
+        if ([string]$tooling.audit.status -cnotin @('checked', 'skipped')) { return Fail 'The receipt has no known tooling advisory status.' }
+        if ($RequireToolingAudit -and [string]$tooling.audit.status -cne 'checked') { return Fail 'A skipped tooling advisory audit cannot authorize publication.' }
+    }
+
     if ($BundlePath) {
         if (-not (Test-Path -LiteralPath $BundlePath -PathType Leaf)) {
             return Fail "The receipt cannot be checked against a bundle that is not there: $BundlePath"
@@ -1141,6 +1405,11 @@ function Test-ReleaseReceipt {
         }
 
         $manifest = Get-BundleManifestFacts -BundlePath $BundlePath
+        $identity = Get-BundleIdentityFacts -BundlePath $BundlePath
+        if ($identity.Present -and (-not $identity.Valid -or $identity.SourceState -cne 'clean' -or
+                $identity.SourceCommit -cne [string]$Receipt.release.commit)) {
+            return Fail 'The bundle build identity does not bind to the clean source commit in the receipt.'
+        }
         if ($manifest.version -ne $ExpectedVersion) {
             return Fail "The bundle's manifest says version $($manifest.version), not $ExpectedVersion."
         }
@@ -1188,9 +1457,23 @@ function Test-ReleaseReceipt {
                 "it lists $($document.Components.Count).")
         }
         if ($BundlePath) {
-            $bound = Test-ReleaseSbom -Sbom $document -BundlePath $BundlePath -BundleName ([string]$Receipt.bundle.file)
+            $bound = Test-ReleaseSbom -Sbom $document -BundlePath $BundlePath -BundleName ([string]$Receipt.bundle.file) `
+                -ExpectedCommit ([string]$Receipt.release.commit)
             if (-not $bound.Valid) { return Fail $bound.Reason }
         }
+    }
+
+    if ($ToolingPath) {
+        if ($ExpectedSchemaVersion -lt 3) { return Fail "A schema $ExpectedSchemaVersion receipt names no tooling report." }
+        if (-not (Test-Path -LiteralPath $ToolingPath -PathType Leaf)) { return Fail "The tooling report is not there: $ToolingPath" }
+        if ([string]$Receipt.tooling.sha256 -ne (Get-Sha256Hex -Path $ToolingPath)) { return Fail 'The tooling report changed after its advisory audit.' }
+        try { $toolingDocument = Read-ReleaseTooling -Path $ToolingPath } catch { return Fail "The tooling report cannot be read: $($_.Exception.Message)" }
+        if ($toolingDocument.Components.Count -ne [long]$Receipt.tooling.components -or
+                $toolingDocument.Scopes.Count -ne [long]$Receipt.tooling.scopes) { return Fail 'The tooling report counts differ from the receipt.' }
+        if (-not $BundlePath -or -not $ToolingScopeManifestText) { return Fail 'Tooling validation needs the bundle and the source commit scope manifest.' }
+        $bound = Test-ReleaseTooling -Tooling $toolingDocument -BundlePath $BundlePath `
+            -ExpectedCommit ([string]$Receipt.release.commit) -ScopeManifestText $ToolingScopeManifestText -BundleName $Receipt.bundle.file
+        if (-not $bound.Valid) { return Fail $bound.Reason }
     }
 
     # Nulls dropped first. A receipt with the key missing altogether gives $null here, and

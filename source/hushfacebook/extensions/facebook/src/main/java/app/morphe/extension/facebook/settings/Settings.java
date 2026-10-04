@@ -16,6 +16,7 @@ import app.morphe.extension.facebook.download.SaveFolder;
 import app.morphe.extension.facebook.download.SaveTo;
 import app.morphe.extension.facebook.download.SendLink;
 import app.morphe.extension.facebook.media.PlaybackQuality;
+import app.morphe.extension.facebook.navigation.FeedsSubtab;
 import app.morphe.extension.facebook.navigation.StartTab;
 import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.BooleanSetting;
@@ -34,6 +35,10 @@ import app.morphe.extension.shared.settings.StringSetting;
  */
 @SuppressWarnings("unused")
 public class Settings extends BaseSettings {
+    static {
+        StoriesSetting.migrate();
+    }
+
     /** Feed edges Facebook files under the SPONSORED story category. */
     public static final BooleanSetting HIDE_SPONSORED_POSTS =
             new BooleanSetting("hushfacebook_hide_sponsored_posts", TRUE);
@@ -81,8 +86,12 @@ public class Settings extends BaseSettings {
      * The row of stories at the top of the feed. The feed's adapter list builds it as an adapter of
      * its own, and the patch has both tray adapters return nothing while this is on.
      */
-    public static final BooleanSetting HIDE_STORIES_TRAY =
-            new BooleanSetting("hushfacebook_hide_stories_tray", TRUE);
+    public static final BooleanSetting HIDE_TOP_STORIES_TRAY =
+            new StoriesSetting(StoriesSetting.TOP_KEY);
+
+    /** Rows, large tiles and inline viewers of Stories between feed posts. */
+    public static final BooleanSetting HIDE_STORIES_BETWEEN_POSTS =
+            new StoriesSetting(StoriesSetting.BETWEEN_KEY);
 
     /**
      * The feed's rows of reels: the "Reels" carousels between posts and the reels Facebook adds where
@@ -130,6 +139,10 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_POSTS_WITH_WORDS =
             new BooleanSetting("hushfacebook_hide_posts_with_words", FALSE);
 
+    /** Applies word-run boundaries to both lists. Existing installs keep substring matching. */
+    public static final BooleanSetting POST_WORDS_WHOLE_WORDS =
+            new BooleanSetting("hushfacebook_post_words_whole_words", FALSE);
+
     /**
      * The words and phrases that hide a post while {@link #HIDE_POSTS_WITH_WORDS} is on, one per
      * line, bounded wherever it's read. It isn't a switch, and a paused Facebook reads it as empty.
@@ -164,6 +177,14 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting HIDE_CONTACT_IMPORT_CARD =
             new BooleanSetting("hushfacebook_hide_contact_import_card", TRUE);
+
+    /**
+     * The cards beside Create story in the Stories tray that suggest a story to make, such as
+     * "Share music you love": the tray's fetch asks the server to leave out their list,
+     * skip_srtt_item_list, as Facebook does for the Video tab's tray. Off until you turn it on.
+     */
+    public static final BooleanSetting HIDE_STORY_PROMPTS =
+            new BooleanSetting("hushfacebook_hide_story_prompts", FALSE);
 
     /** Keep a finished Story visible until the user navigates. */
     public static final BooleanSetting BLOCK_STORY_AUTO_ADVANCE =
@@ -425,6 +446,10 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting CHECK_FOR_RELEASES =
             new BooleanSetting("hushfacebook_check_releases", FALSE);
 
+    /** A launcher shortcut to Saved, added only when it won't displace an existing entry. */
+    public static final BooleanSetting SAVED_SHORTCUT =
+            new BooleanSetting("hushfacebook_saved_shortcut", FALSE);
+
     /**
      * The story viewer's menu offers Save on anyone's story, and Save runs Hushfacebook's own
      * download. Off, only your own stories offer it, and it's Facebook's own save.
@@ -490,6 +515,15 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting BOTTOM_TAB_BAR =
             new BooleanSetting("hushfacebook_bottom_tab_bar", FALSE, true);
+
+    /**
+     * Facebook's dark mode controller answers dark whatever its own setting says
+     * ({@link app.morphe.extension.facebook.theme.ForceDarkMode}), for tablets whose Facebook
+     * settings have no Dark mode row. Facebook asks as each screen applies its theme, so a change
+     * shows fully after a restart.
+     */
+    public static final BooleanSetting FORCE_DARK_MODE =
+            new BooleanSetting("hushfacebook_force_dark_mode", FALSE, true);
 
     /**
      * The strip some posts carry ("Are you interested in this post?", "Show less", who recently
@@ -603,6 +637,16 @@ public class Settings extends BaseSettings {
      */
     public static final EnumSetting<StartTab> START_TAB =
             new EnumSetting<>("hushfacebook_start_tab", StartTab.MARKETPLACE);
+
+    /**
+     * The filter the Feeds tab opens on after a start from the launcher icon that
+     * {@link #START_TAB} sends to Feeds (#56): All, which is whatever Facebook opens it on, unless
+     * it's changed. Asked once per start, the first time the Feeds tab shows, so every filter tapped
+     * after that stays as tapped. A filter this account's Feeds tab hasn't got leaves it as it
+     * opened.
+     */
+    public static final EnumSetting<FeedsSubtab> FEEDS_SUBTAB =
+            new EnumSetting<>("hushfacebook_feeds_subtab", FeedsSubtab.ALL);
 
     /**
      * The order comment sheets ask for while {@link #DEFAULT_COMMENT_ORDER} is on: Facebook's own

@@ -17,22 +17,25 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import com.sun.jna.Native;
+
 import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -269,6 +272,155 @@ public class Mp4JoinTest {
         assertSamples(picture, movie.tracks.get(0), movie, 1e-9);
     }
 
+    @Test
+    public void sampleDataCannotReferToBoxHeaders() throws IOException {
+        byte[] moofHeader = smallPicture(20).build();
+        ByteBuffer.wrap(moofHeader).putInt(indexOf(moofHeader, "trun") + 16, 0);
+        assertPayloadRefused("media data", moofHeader);
+
+        byte[] mdatHeader = smallPicture(20).build();
+        ByteBuffer.wrap(mdatHeader).putInt(indexOf(mdatHeader, "trun") + 16,
+                indexOf(mdatHeader, "mdat") - indexOf(mdatHeader, "moof"));
+        assertPayloadRefused("media data", mdatHeader);
+    }
+
+    @Test
+    public void sampleDataCannotReferToAnUnrelatedBox() throws IOException {
+        byte[] bytes = smallPicture(4).build();
+        ByteBuffer.wrap(bytes).putInt(indexOf(bytes, "trun") + 16,
+                indexOf(bytes, "free") + 8 - indexOf(bytes, "moof"));
+        assertPayloadRefused("media data", bytes);
+    }
+
+    @Test
+    public void fragmentsMustHaveMediaDataBoxes() throws IOException {
+        byte[] bytes = smallPicture(20).build();
+        ByteBuffer.wrap(bytes).putInt(indexOf(bytes, "mdat") + 4, 0x66726565);
+        assertPayloadRefused("media data", bytes);
+    }
+
+    @Test
+    public void aSampleCannotCrossBetweenMediaDataPayloads() throws IOException {
+        FragmentedMp4ForTests picture = smallPicture(20, 20);
+        FragmentedMp4ForTests.Fragment fragment = picture.fragments.get(0);
+        fragment.runs = 2;
+        fragment.separateMdats = true;
+        byte[] bytes = picture.build();
+        ByteBuffer.wrap(bytes).putInt(indexOf(bytes, "trun") + 16,
+                indexOf(bytes, "mdat") + 8 + 18 - indexOf(bytes, "moof"));
+        assertPayloadRefused("media data", bytes);
+    }
+
+    @Test
+    public void aRunEndCannotWrapPastTheFile() throws IOException {
+        FragmentedMp4ForTests picture = smallPicture(20);
+        picture.fragments.get(0).explicitBase = true;
+        byte[] bytes = picture.build();
+        ByteBuffer.wrap(bytes).putLong(indexOf(bytes, "tfhd") + 16, Long.MAX_VALUE - 2);
+        assertPayloadRefused("past the end", bytes);
+    }
+
+    @Test
+    public void unsignedBaseOffsetsCannotWrapIntoTheFile() throws IOException {
+        FragmentedMp4ForTests picture = smallPicture(20);
+        FragmentedMp4ForTests.Fragment fragment = picture.fragments.get(0);
+        fragment.explicitBase = true;
+        fragment.firstDataOffset = 32;
+        byte[] bytes = picture.build();
+        ByteBuffer.wrap(bytes).putLong(indexOf(bytes, "tfhd") + 16, -32);
+        assertPayloadRefused("data offset", bytes);
+    }
+
+    @Test
+    public void addingARunOffsetCannotOverflow() throws IOException {
+        FragmentedMp4ForTests picture = smallPicture(20);
+        FragmentedMp4ForTests.Fragment fragment = picture.fragments.get(0);
+        fragment.explicitBase = true;
+        fragment.firstDataOffset = 32;
+        byte[] bytes = picture.build();
+        ByteBuffer.wrap(bytes).putLong(indexOf(bytes, "tfhd") + 16, Long.MAX_VALUE - 2);
+        assertPayloadRefused("data offset", bytes);
+    }
+
+    @Test
+    public void multipleExtendedMediaBoxesAndNegativeRunOffsetsKeepTheirSamples() throws IOException {
+        FragmentedMp4ForTests picture = smallPicture(20, 30, 40);
+        FragmentedMp4ForTests.Fragment fragment = picture.fragments.get(0);
+        fragment.runs = 3;
+        fragment.separateMdats = true;
+        fragment.extendedMdat = true;
+        fragment.mdatBeforeMoof = true;
+        FragmentedMp4ForTests.Fragment last = picture.fragment(null);
+        last.runs = 2;
+        last.separateMdats = true;
+        last.extendedMdat = true;
+        last.add(55, 512, SYNC, 0).add(40, 512, NON_SYNC, 0);
+        picture.lastBoxToTheEnd = true;
+
+        PlainMp4ForTests.Movie movie = join(picture, null);
+        assertSamples(picture, movie.tracks.get(0), movie, 1e-9);
+    }
+
+    @Test
+    public void aNegativeOffsetCanReadMediaBeforeAnAbsoluteBasePastTheFile() throws IOException {
+        FragmentedMp4ForTests picture = smallPicture(20);
+        FragmentedMp4ForTests.Fragment fragment = picture.fragments.get(0);
+        fragment.explicitBase = true;
+        fragment.firstDataOffset = -24;
+        byte[] bytes = picture.build();
+        ByteBuffer data = ByteBuffer.wrap(bytes);
+        int base = indexOf(bytes, "tfhd") + 16;
+        data.putLong(base, data.getLong(base) + 24);
+        File input = temp.newFile();
+        Files.write(input.toPath(), bytes);
+        PlainMp4ForTests.Movie movie = PlainMp4ForTests.read(Files.readAllBytes(
+                joined(input, null, Downloader.SILENT).toPath()));
+        assertSamples(picture, movie.tracks.get(0), movie, 1e-9);
+    }
+
+    @Test
+    public void overlappingRunsCanReadTheSamePayload() throws IOException {
+        FragmentedMp4ForTests picture = smallPicture(20, 20);
+        picture.fragments.get(0).runs = 2;
+        byte[] bytes = picture.build();
+        int first = indexOf(bytes, "trun");
+        int second = indexOf(bytes, "trun", first + 8);
+        ByteBuffer.wrap(bytes).putInt(second + 16, ByteBuffer.wrap(bytes).getInt(first + 16));
+        File input = temp.newFile();
+        Files.write(input.toPath(), bytes);
+        PlainMp4ForTests.Movie movie = PlainMp4ForTests.read(Files.readAllBytes(
+                joined(input, null, Downloader.SILENT).toPath()));
+        PlainMp4ForTests.Track video = movie.tracks.get(0);
+        assertEquals(2, video.count());
+        assertArrayEquals(picture.content(0), video.sample(movie.file, 0));
+        assertArrayEquals(picture.content(0), video.sample(movie.file, 1));
+    }
+
+    @Test
+    public void emptySamplesDoNotClaimMediaHeaderBytes() throws IOException {
+        FragmentedMp4ForTests picture = smallPicture(0, 20);
+        picture.fragments.get(0).runs = 2;
+        picture.fragments.get(0).separateMdats = true;
+        PlainMp4ForTests.Movie movie = join(picture, null);
+        assertSamples(picture, movie.tracks.get(0), movie, 1e-9);
+    }
+
+    private static FragmentedMp4ForTests smallPicture(int... sizes) {
+        FragmentedMp4ForTests picture = FragmentedMp4ForTests.picture("vp09", 160, 90, 15_360);
+        FragmentedMp4ForTests.Fragment fragment = picture.fragment(0L);
+        for (int i = 0; i < sizes.length; i++) fragment.add(sizes[i], 512, i == 0 ? SYNC : NON_SYNC, 0);
+        return picture;
+    }
+
+    private void assertPayloadRefused(String why, byte[] bytes) throws IOException {
+        File input = temp.newFile();
+        Files.write(input.toPath(), bytes);
+        File out = temp.newFile();
+        IOException refused = assertThrows(IOException.class, () -> Mp4Join.join(input, null, out, Downloader.SILENT));
+        assertEquals("the invalid input reached the output writer", 0L, out.length());
+        assertTrue(refused.getMessage(), refused.getMessage().contains(why));
+    }
+
     /**
      * The tracks alternate in the file by time, half a second of one and then the other, the way
      * MediaMuxer lays them out: a player starting the file finds the picture and the sound of the
@@ -400,9 +552,13 @@ public class Mp4JoinTest {
     }
 
     private static int indexOf(byte[] bytes, String type) {
+        return indexOf(bytes, type, 0);
+    }
+
+    private static int indexOf(byte[] bytes, String type, int from) {
         byte[] wanted = type.getBytes(StandardCharsets.US_ASCII);
         outer:
-        for (int i = 0; i + 4 <= bytes.length; i++) {
+        for (int i = from; i + 4 <= bytes.length; i++) {
             for (int k = 0; k < 4; k++) if (bytes[i + k] != wanted[k]) continue outer;
             return i - 4;
         }
@@ -583,15 +739,160 @@ public class Mp4JoinTest {
 
     /** What [command] prints, once it ends with 0. Java starts it with no console window. */
     private static String run(String... command) throws Exception {
-        Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
-        ByteArrayOutputStream printed = new ByteArrayOutputStream();
-        try (InputStream in = process.getInputStream()) {
-            byte[] buffer = new byte[8_192];
-            for (int read; (read = in.read(buffer)) >= 0; ) printed.write(buffer, 0, read);
+        return run(120_000, command);
+    }
+
+    private static String run(long timeoutMillis, String... command) throws Exception {
+        assertTrue("positive subprocess deadline required", timeoutMillis > 0);
+        Path output = Files.createTempFile("hushfacebook-codec-", ".log");
+        CodecProcess process = null;
+        Throwable failure = null;
+        try {
+            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+            // Ownership is established before execution; an exited parent cannot hide its children.
+            process = CodecProcess.open(output, deadline, command);
+            while (process.isRunning()) {
+                long remaining = deadline - System.nanoTime();
+                if (remaining <= 0) {
+                    throw new TimeoutException();
+                }
+                long wait = Math.min(remaining, TimeUnit.MILLISECONDS.toNanos(25));
+                TimeUnit.NANOSECONDS.sleep(wait);
+            }
+            String text = text(output);
+            assertEquals(text, 0, process.exitCode());
+            return text;
+        } catch (TimeoutException timeout) {
+            if (process != null) {
+                try { process.close(); }
+                catch (Throwable cleanup) { timeout.addSuppressed(cleanup); }
+                process = null;
+            }
+            AssertionError timedOut = new AssertionError("timed out: " + command[0] + "\n" + text(output), timeout);
+            failure = timedOut;
+            throw timedOut;
+        } catch (Throwable caught) {
+            failure = caught;
+            throw caught;
+        } finally {
+            try {
+                if (process != null) process.close();
+                Files.deleteIfExists(output);
+            } catch (Throwable cleanup) {
+                if (failure != null) failure.addSuppressed(cleanup);
+                else throw cleanup;
+            }
         }
-        assertTrue("timed out: " + command[0], process.waitFor(120, TimeUnit.SECONDS));
-        String text = new String(printed.toByteArray(), StandardCharsets.UTF_8);
-        assertEquals(text, 0, process.exitValue());
-        return text;
+    }
+
+    private static String text(Path output) throws IOException {
+        return new String(Files.readAllBytes(output), StandardCharsets.UTF_8);
+    }
+
+    // Unit tests run on JDK 25. Reflection keeps JDK-only ProcessHandle out of Android's boot API.
+    private static final Class<?> HANDLE = processHandle();
+
+    private static Class<?> processHandle() {
+        try { return Class.forName("java.lang.ProcessHandle"); }
+        catch (ClassNotFoundException missing) { throw new AssertionError("JDK ProcessHandle required", missing); }
+    }
+
+    private static String[] tool(String mode, File marker) throws Exception {
+        File java = new File(System.getProperty("java.home"), "bin/" + (File.separatorChar == '\\' ? "java.exe" : "java"));
+        File classes = new File(CodecPipeTool.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+        File jna = new File(Native.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+        return new String[]{java.getPath(), "--enable-native-access=ALL-UNNAMED", "-cp",
+                classes.getPath() + File.pathSeparator + jna.getPath(), CodecPipeTool.class.getName(), mode, marker.getPath()};
+    }
+
+    private static void dead(File marker) throws Exception {
+        for (String line : Files.readAllLines(marker.toPath(), StandardCharsets.UTF_8)) {
+            long pid = Long.parseLong(line);
+            java.util.Optional<?> handle = (java.util.Optional<?>) HANDLE.getMethod("of", long.class).invoke(null, pid);
+            assertFalse("owned tool still alive: " + pid, handle.isPresent() && (Boolean) HANDLE.getMethod("isAlive").invoke(handle.get()));
+        }
+    }
+
+    @Test(timeout = 12_000)
+    public void aToolHoldingStdoutOpenStopsAtItsDeadlineAndKeepsDiagnostics() throws Exception {
+        File marker = temp.newFile("hang-pids.txt");
+        long start = System.nanoTime();
+        AssertionError failure = assertThrows(AssertionError.class, () -> run(3_000, tool("hang", marker)));
+        assertTrue(failure.getMessage(), failure.getMessage().startsWith("timed out:"));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("parent-ready"));
+        assertTrue("deadline was ineffective", System.nanoTime() - start < TimeUnit.SECONDS.toNanos(5));
+        dead(marker);
+    }
+
+    @Test(timeout = 12_000)
+    public void aToolAndItsInheritedOutputChildStopAtTheDeadline() throws Exception {
+        File marker = temp.newFile("tree-pids.txt");
+        AssertionError failure = assertThrows(AssertionError.class, () -> run(3_000, tool("tree", marker)));
+        assertTrue(failure.getMessage(), failure.getMessage().startsWith("timed out:"));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("parent-ready"));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("child-ready"));
+        assertEquals(3, Files.readAllLines(marker.toPath(), StandardCharsets.UTF_8).size());
+        dead(marker);
+    }
+
+    @Test(timeout = 12_000)
+    public void anExitedToolCannotLeaveItsOutputChildRunning() throws Exception {
+        File marker = temp.newFile("orphan-pids.txt");
+        AssertionError failure = assertThrows(AssertionError.class, () -> run(3_000, tool("orphan", marker)));
+        assertTrue(failure.getMessage(), failure.getMessage().startsWith("timed out:"));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("child-ready"));
+        assertEquals(3, Files.readAllLines(marker.toPath(), StandardCharsets.UTF_8).size());
+        dead(marker);
+    }
+
+    @Test(timeout = 12_000)
+    public void nonzeroToolsFailWithTheirPrintedDiagnostic() throws Exception {
+        File marker = temp.newFile("fail-pids.txt");
+        AssertionError failure = assertThrows(AssertionError.class, () -> run(3_000, tool("fail", marker)));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("encoder-error"));
+        assertFalse("nonzero exit was misclassified as a timeout", failure.getMessage().startsWith("timed out:"));
+        dead(marker);
+    }
+
+    @Test(timeout = 12_000)
+    public void completedToolOutputLargerThanAPipeBufferIsKeptExactly() throws Exception {
+        File marker = temp.newFile("success-pids.txt");
+        String printed = run(3_000, tool("success", marker));
+        assertEquals(1024 * 1024, printed.length());
+        for (int i = 0; i < printed.length(); i++) assertEquals((char) ('a' + i % 26), printed.charAt(i));
+        dead(marker);
+    }
+
+    @Test(timeout = 12_000)
+    public void startupUsesTheSameDeadlineAndCannotReleaseALateTool() throws Exception {
+        File marker = temp.newFile("not-started.txt");
+        AssertionError failure = assertThrows(AssertionError.class, () -> run(1, tool("success", marker)));
+        assertTrue(failure.getMessage(), failure.getMessage().startsWith("timed out:"));
+        assertEquals("tool ran after its deadline", 0, marker.length());
+    }
+
+    @Test(timeout = 12_000)
+    public void ownedLauncherPreservesArgumentsWithoutShellQuoting() throws Exception {
+        File marker = temp.newFile("arguments with spaces.txt");
+        List<String> command = new ArrayList<>(Arrays.asList(tool("arguments", marker)));
+        command.addAll(Arrays.asList("left space", "quote\"slash\\", "münchen 😀"));
+        assertEquals("left space\nquote\"slash\\\nmünchen 😀", run(3_000, command.toArray(new String[0])));
+        dead(marker);
+    }
+
+    @Test(timeout = 12_000)
+    public void aDeadlineCannotKillAProcessOutsideItsOwnershipBoundary() throws Exception {
+        File otherMarker = temp.newFile("unrelated.txt");
+        Process other = new ProcessBuilder(tool("hang", otherMarker)).redirectErrorStream(true)
+                .redirectOutput(temp.newFile("unrelated.log")).start();
+        try {
+            File marker = temp.newFile("owned.txt");
+            assertThrows(AssertionError.class, () -> run(3_000, tool("hang", marker)));
+            dead(marker);
+            assertTrue("cleanup terminated an unrelated process", other.isAlive());
+        } finally {
+            other.destroyForcibly();
+            assertTrue("unrelated probe cleanup failed", other.waitFor(1, TimeUnit.SECONDS));
+        }
     }
 }
