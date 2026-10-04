@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "0.2.0",
+    [string]$Version = "0.3.0",
     [string]$OutputPath,
     [string]$AndroidSdk = ""
 )
@@ -88,6 +88,18 @@ try {
     Copy-Tree -Source (Join-Path $messenger "patches\src\main") -Destination (Join-Path $temp "patches\src\main")
     Copy-Tree -Source (Join-Path $messenger "extensions\messenger") -Destination (Join-Path $temp "extensions\messenger") -ExcludeDirectories @("build", ".gradle")
 
+    # HushFacebook v0.7.1 forces Guava 33.7.2-jre on all project configurations for its
+    # reviewed tooling graph. HushMessenger v0.14.0 still locks its unit-test configurations to
+    # 33.6.0-jre. The combined tree is temporary, so align only its copied Messenger lockfile;
+    # do not modify the standalone HushMessenger core.
+    $messengerLock = Join-Path $temp "extensions\messenger\gradle.lockfile"
+    $messengerLockText = [System.IO.File]::ReadAllText($messengerLock)
+    $messengerLockText = $messengerLockText.Replace(
+        "com.google.guava:guava:33.6.0-jre=",
+        "com.google.guava:guava:33.7.2-jre="
+    )
+    [System.IO.File]::WriteAllText($messengerLock, $messengerLockText, [System.Text.UTF8Encoding]::new($false))
+
     [System.IO.File]::WriteAllText((Join-Path $temp "local.properties"), ("sdk.dir=" + $AndroidSdk.Replace("\", "\\")), [System.Text.Encoding]::ASCII)
 
     $gradleProperties = Join-Path $temp "gradle.properties"
@@ -136,7 +148,7 @@ try {
     }
 
     $duplicates = @($patches | Group-Object name | Where-Object { $_.Count -gt 1 })
-    if ($patches.Count -ne 91 -or $facebookCount -ne 59 -or $messengerCount -ne 32 -or $otherCount -ne 0) {
+    if ($patches.Count -ne 92 -or $facebookCount -ne 60 -or $messengerCount -ne 32 -or $otherCount -ne 0) {
         throw "Unexpected catalog split: total=$($patches.Count), Facebook=$facebookCount, Messenger=$messengerCount, other=$otherCount"
     }
     if ($duplicates.Count -ne 0) {
