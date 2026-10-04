@@ -2,6 +2,12 @@
   "note": "Where every shipped source file under patches/ and extensions/ came from. A rule naming a single file wins over the directory rule around it; otherwise each file matches exactly one rule. A ported rule names the upstream repository, the commit it was copied from, the repositories it came through and its licence, and every file's header names a repository of its rule, by URL. Every upstream named here must also appear in NOTICE. ProvenanceTest checks all of it. A Facebook-family repository named here also has to be allowed by sources/facebook-sources.json: one files are ported from has to be adopted there, with this rule's commit, and one a rule credits has to be adopted or a candidate. scripts/test-facebook-sources.ps1 checks that side.",
   "rules": [
     {
+      "paths": ["patches/src/main/kotlin/app/morphe/util/BundleIdentity.kt"],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only"
+    },
+    {
       "paths": [
         "extensions/shared/**",
         "patches/src/main/kotlin/app/morphe/util/**",
@@ -55,7 +61,7 @@
         "https://github.com/SapitoSucio/FroggoMorphePatches"
       ],
       "license": "GPL-3.0",
-      "changes": "Rewritten from the source at that commit, not cherry-picked. Packages, extension descriptors, log tags, injected method names and the cache folder renamed; plain patch names with categories; the two feed guards merged into one shared hook; a settings switch in front of the story, reel, browser and download hooks, and the reel sidebar's Download button and the story menu's Save item asking theirs before they go in, so Pause takes both out; the player-source recorder shared with Download any video through a call and a switch of each patch's own; the save folder and its top folder read per file from the settings, the top folder with its MediaStore collection; the DASH track and the single file picked for the download quality read per save, by the track's own FBQualityLabel; a video named from the file name template, with the id the story's recorded player, the post or the reel's player params (their toString) gives; the list register of the story filter computed for static and wide parameters; the borrowed v0 in the reel collection hooks checked; the DASH join ends a track on an empty read and shifts both tracks by one lead-in; the reel handler answers null instead of Facebook's renamed kotlin.Unit, and sends the reel's link instead of saving it while links are sent, with a long press copying it; the debug println lines removed; the browser's link shim unwrapped only in the host and path forms Facebook 577 and 580 recognise as one themselves, plus /l.php on messenger.com, a shim inside a shim included. Saves fetch only what MediaUrlPolicy allows, every redirect included, into a cache file first, and reach MediaStore only once the declared type, the first bytes, the length and the 512 MB cap (the two DASH tracks together) all check out; save steps go to the diagnostic report without file names; a save reports its progress to a notification with a Cancel button and stops when cancelled, and lists its pending gallery row until it's settled. Andrew Liang credits FroggoMorphePatches for some ideas and implementations."
+      "changes": "Rewritten from the source at that commit, not cherry-picked. Packages, extension descriptors, log tags, injected method names and the cache folder renamed; plain patch names with categories; the two feed guards merged into one shared hook; a settings switch in front of the story, reel, browser and download hooks, and the reel sidebar's Download button and the story menu's Save item asking theirs before they go in, so Pause takes both out; the player-source recorder shared with Download any video through a call and a switch of each patch's own; the save folder and its top folder read per file from the settings, the top folder with its MediaStore collection; the DASH track and the single file picked for the download quality read per save, by the track's own FBQualityLabel; a video named from the file name template, with the id the story's recorded player, the post or the reel's player params (their toString) gives; the list register of the story filter computed for static and wide parameters; the borrowed v0 in the reel collection hooks checked; the DASH join ends a track on an empty read and shifts both tracks by one lead-in; the reel handler answers null instead of Facebook's renamed kotlin.Unit, and sends the reel's link instead of saving it while links are sent, with a long press copying it; the debug println lines removed; the browser's link shim unwrapped only in the host and path forms Facebook 577 and 580 recognise as one themselves, plus /l.php on messenger.com, a shim inside a shim included. Saves fetch only what MediaUrlPolicy allows, every redirect included, into a cache file first, and reach MediaStore only once the declared type, the first bytes, the length and the 512 MB cap (the two DASH tracks together) all check out; save steps go to the diagnostic report without file names; a save reports its progress to a notification with a Cancel button and stops when cancelled, and lists its pending gallery row until it's settled. The story menu's save action is found among the types the menu creates, by the event it reports as a literal or as a string table entry, where Facebook 581 moved it. Andrew Liang credits FroggoMorphePatches for some ideas and implementations."
     },
     {
       "paths": [
@@ -173,6 +179,16 @@
     },
     {
       "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/ForceDarkMode.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme/ForceDarkModePatch.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: Force dark mode, a switch that has Facebook's dark mode controller answer dark whatever its own setting says, for tablets whose Facebook settings have no Dark mode row (issue #64)."
+    },
+    {
+      "paths": [
         "extensions/shared/library/src/main/java/app/morphe/extension/shared/L10nTranslations.java"
       ],
       "origin": "original",
@@ -183,6 +199,7 @@
     {
       "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/SaveControl.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/SavedFileActions.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/SaveLeftovers.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/Mp4Join.java"
       ],
@@ -448,7 +465,9 @@
     {
       "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/ads/MarketplaceAdFilter.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/ads/MarketplaceResponseDiagnostics.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/ads/MarketplaceSearchAds.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/ads/MarketplacePathRemapper.java",
         "patches/src/main/kotlin/app/morphe/patches/facebook/ads/sponsoredmarketplace/HideSponsoredMarketplaceListingsPatch.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/ads/sponsoredmarketplace/MarketplaceRequestAnchors.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/ads/sponsoredmarketplace/MarketplaceResponseAnchors.kt"

@@ -14,6 +14,8 @@ import static org.robolectric.Shadows.shadowOf;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.ResolveInfo;
 import android.content.pm.verify.domain.DomainVerificationManager;
 import android.content.pm.verify.domain.DomainVerificationUserState;
@@ -42,6 +44,7 @@ import org.robolectric.util.ReflectionHelpers.ClassParameter;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -65,6 +68,11 @@ public class SupportedLinksTest {
     private static final int NONE = 0;
     private static final int SELECTED = 1;
     private static final int VERIFIED = 2;
+    /** The report's last lines on a phone without Meta App Manager, Messenger or Instagram, as Robolectric's is. */
+    private static final List<String> ABSENT = Arrays.asList("meta_app_manager: absent", "messenger: absent", "instagram: absent");
+    private static final String APP_MANAGER_KEY = "action_app_manager_links";
+    private static final String APP_MANAGER_SUMMARY = "Meta App Manager can keep Facebook's web addresses for itself, "
+            + "so their links skip this app. Tap and turn off Open supported links there, then check Supported links above.";
 
     private ActivityController<Activity> controller;
     /** What the fake service answers, or throws. */
@@ -136,6 +144,89 @@ public class SupportedLinksTest {
         Preference row = show(true).findPreference(KEY);
         assertNotNull("no Supported links row", row);
         return String.valueOf(row.getSummary());
+    }
+
+    /** Meta App Manager on the phone, enabled or not, as a system app it can't be uninstalled from. */
+    private static void installAppManager(boolean enabled) {
+        install(SupportedLinks.APP_MANAGER, enabled);
+    }
+
+    private static void install(String packageName, boolean enabled) {
+        PackageInfo info = new PackageInfo();
+        info.packageName = packageName;
+        info.applicationInfo = new ApplicationInfo();
+        info.applicationInfo.packageName = packageName;
+        info.applicationInfo.enabled = enabled;
+        shadowOf(RuntimeEnvironment.getApplication().getPackageManager()).installPackage(info);
+    }
+
+    /** [lines], then the lines for a phone without any of Meta's apps that can hold the addresses. */
+    private static List<String> report(String... lines) {
+        List<String> all = new ArrayList<>(Arrays.asList(lines));
+        all.addAll(ABSENT);
+        return all;
+    }
+
+    private List<String> reportFor(Object answer) throws ClassNotFoundException {
+        this.answer = answer;
+        controller = Robolectric.buildActivity(Activity.class).setup();
+        installService(controller.get().getBaseContext());
+        return SupportedLinks.reportLines(controller.get());
+    }
+
+    @Test public void reportsEveryDomainInStableOrderWithExplicitUnknownStates() throws Exception {
+        Map<String, Integer> hosts = new LinkedHashMap<>();
+        hosts.put("z.facebook.com", null);
+        hosts.put("www.facebook.com", SELECTED);
+        hosts.put("*.fbsbx.com", VERIFIED);
+        hosts.put("m.facebook.com", NONE);
+        hosts.put("future.facebook.com", 99);
+        hosts.put("münchen.facebook.com", SELECTED);
+        hosts.put("ki\u0301.facebook.com", SELECTED);
+        assertEquals(report("availability: reported", "link_handling_allowed: true",
+                "*.fbsbx.com -> verified", "future.facebook.com -> unknown", "ki\u0301.facebook.com -> selected", "m.facebook.com -> none",
+                "münchen.facebook.com -> selected", "www.facebook.com -> selected", "z.facebook.com -> unknown"),
+                reportFor(state(true, hosts)));
+        for (String name : askedFor) assertEquals(RuntimeEnvironment.getApplication().getPackageName(), name);
+    }
+
+    @Test public void disabledLinkHandlingDoesNotEraseDomainSelectionsOrChangeOwnership() throws Exception {
+        Map<String, Integer> hosts = hosts(SELECTED, NONE);
+        Map<String, Integer> before = new LinkedHashMap<>(hosts);
+        assertEquals(report("availability: reported", "link_handling_allowed: false",
+                "m.facebook.com -> none", "www.facebook.com -> selected"), reportFor(state(false, hosts)));
+        assertEquals(before, hosts);
+    }
+
+    @Test public void anEmptyDomainMapIsDistinctFromAnUnreadableService() throws Exception {
+        assertEquals(report("availability: reported", "link_handling_allowed: true", "domains: none_declared"),
+                reportFor(state(true, new LinkedHashMap<>())));
+    }
+
+    @Test public void aNullServiceAnswerIsExplicitlyUnknown() throws Exception {
+        assertEquals(report("availability: unknown", "link_handling_allowed: unknown", "domains: unknown"), reportFor(null));
+    }
+
+    @Test public void serviceFailuresDoNotPutTheirSensitiveMessageInReports() throws Exception {
+        List<String> report = reportFor(new IllegalStateException("https://www.facebook.com/private?account_id=999000111 certificate:AA:BB"));
+        assertEquals(report("availability: unknown", "link_handling_allowed: unknown", "domains: unknown"), report);
+    }
+
+    @Test public void invalidHostDataCannotInjectUrlsAccountFieldsOrCertificateFields() throws Exception {
+        Map<String, Integer> hosts = hosts(SELECTED, NONE);
+        hosts.put("https://www.facebook.com/private?account_id=999000111", VERIFIED);
+        hosts.put("certificate:AA:BB", VERIFIED);
+        hosts.put("account_id=999000111", VERIFIED);
+        hosts.put("host\nvisited-url", VERIFIED);
+        assertEquals(report("availability: reported", "link_handling_allowed: true",
+                "domains: unknown (invalid host data)", "m.facebook.com -> none", "www.facebook.com -> selected"),
+                reportFor(state(true, hosts)));
+    }
+
+    @Test @Config(sdk = 30) public void android11ReportsThatTheStateCannotBeRead() {
+        assertEquals(report("availability: not_reported (API below 31)", "link_handling_allowed: not_reported",
+                "domains: not_reported"), SupportedLinks.reportLines(RuntimeEnvironment.getApplication()));
+        assertTrue(askedFor.isEmpty());
     }
 
     @Test
@@ -294,5 +385,222 @@ public class SupportedLinksTest {
         assertFalse(explanation.isSelectable());
         assertTrue(String.valueOf(explanation.getSummary()), String.valueOf(explanation.getSummary())
                 .contains("doesn't restore"));
+    }
+
+    /**
+     * Meta App Manager keeps Facebook's addresses on many phones, and Android then won't let them be
+     * selected here (#30). Its row opens its own link page, and says so once the addresses open here.
+     */
+    @Test
+    public void appManagerOnThePhoneGetsARowToItsLinkPage() throws Exception {
+        installAppManager(true);
+        answer = state(true, hosts(NONE, NONE));
+        HushfacebookPreferenceFragment page = show(true);
+        Preference row = page.findPreference(APP_MANAGER_KEY);
+        assertNotNull("no Meta App Manager row", row);
+        assertEquals("Meta App Manager", String.valueOf(row.getTitle()));
+        assertEquals(APP_MANAGER_SUMMARY, String.valueOf(row.getSummary()));
+        PreferenceGroup links = row.getParent();
+        int at = -1;
+        for (int i = 0; i < links.getPreferenceCount(); i++) if (links.getPreference(i) == row) at = i;
+        assertTrue("not under Supported links", at > 0);
+        assertEquals("not right under Supported links", page.findPreference(KEY), links.getPreference(at - 1));
+        assertTrue(row.getOnPreferenceClickListener().onPreferenceClick(row));
+        Intent started = shadowOf(controller.get()).getNextStartedActivity();
+        assertNotNull(started);
+        assertEquals(android.provider.Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS, started.getAction());
+        assertEquals("package:" + SupportedLinks.APP_MANAGER, started.getDataString());
+
+        answer = state(true, hosts(SELECTED, SELECTED));
+        controller.pause().resume();
+        assertEquals("Facebook's web addresses open here now.",
+                String.valueOf(page.findPreference(APP_MANAGER_KEY).getSummary()));
+    }
+
+    /** Only while an address doesn't open here: this app's own Open supported links switch is its own row's job. */
+    @Test
+    public void theAppManagerRowShowsOnlyWhileAnAddressOpensElsewhere() throws Exception {
+        installAppManager(true);
+        answer = state(true, hosts(SELECTED, NONE));
+        assertNotNull("some selected", show(true).findPreference(APP_MANAGER_KEY));
+        controller.close();
+        answer = state(true, hosts(SELECTED, SELECTED));
+        assertNull("all selected", show(true).findPreference(APP_MANAGER_KEY));
+        controller.close();
+        answer = state(true, hosts(VERIFIED, VERIFIED));
+        assertNull("verified", show(true).findPreference(APP_MANAGER_KEY));
+        controller.close();
+        answer = state(false, hosts(NONE, NONE));
+        assertNull("link handling off", show(true).findPreference(APP_MANAGER_KEY));
+    }
+
+    @Test
+    public void noAppManagerRowWithoutAppManagerOrWithItDisabled() throws Exception {
+        answer = state(true, hosts(NONE, NONE));
+        assertNull("not installed", show(true).findPreference(APP_MANAGER_KEY));
+        controller.close();
+        installAppManager(false);
+        assertNull("disabled", show(true).findPreference(APP_MANAGER_KEY));
+    }
+
+    @Test
+    public void theReportSaysWhetherAppManagerIsThere() throws Exception {
+        installAppManager(true);
+        List<String> on = reportFor(state(true, hosts(NONE, NONE)));
+        assertEquals("meta_app_manager: enabled", on.get(on.size() - 3));
+        controller.close();
+        installAppManager(false);
+        List<String> off = reportFor(state(true, hosts(NONE, NONE)));
+        assertEquals("meta_app_manager: disabled", off.get(off.size() - 3));
+    }
+
+    @Test
+    public void theReportSaysWhetherMessengerAndInstagramAreThere() throws Exception {
+        install(SupportedLinks.MESSENGER, true);
+        install(SupportedLinks.INSTAGRAM, false);
+        List<String> lines = reportFor(state(true, hosts(NONE, NONE)));
+        assertEquals(Arrays.asList("meta_app_manager: absent", "messenger: enabled", "instagram: disabled"),
+                lines.subList(lines.size() - 3, lines.size()));
+    }
+
+    private static Map<String, Integer> facebookHosts(int facebook, int www, int mobile, int mMe, int wwwMMe, int fbWatch) {
+        Map<String, Integer> hosts = new LinkedHashMap<>();
+        hosts.put("facebook.com", facebook);
+        hosts.put("www.facebook.com", www);
+        hosts.put("m.facebook.com", mobile);
+        hosts.put("m.me", mMe);
+        hosts.put("www.m.me", wwwMMe);
+        hosts.put("fb.watch", fbWatch);
+        return hosts;
+    }
+
+    /**
+     * Messenger and Instagram are verified for some of Facebook's addresses with Meta's key, and on a
+     * phone with both those were every switch that turned itself back off (#78). Each gets a row to
+     * its own link page while one of its addresses doesn't open here.
+     */
+    @Test
+    public void messengerAndInstagramGetRowsToTheirLinkPages() throws Exception {
+        install(SupportedLinks.MESSENGER, true);
+        install(SupportedLinks.INSTAGRAM, true);
+        answer = state(true, facebookHosts(NONE, NONE, NONE, NONE, NONE, SELECTED));
+        HushfacebookPreferenceFragment page = show(true);
+        assertNull("App Manager isn't on this phone", page.findPreference(APP_MANAGER_KEY));
+        Preference messenger = page.findPreference("action_messenger_links");
+        Preference instagram = page.findPreference("action_instagram_links");
+        assertNotNull("no Messenger row", messenger);
+        assertNotNull("no Instagram row", instagram);
+        assertEquals("Messenger", String.valueOf(messenger.getTitle()));
+        assertEquals("Instagram", String.valueOf(instagram.getTitle()));
+        assertTrue(String.valueOf(messenger.getSummary()), String.valueOf(messenger.getSummary())
+                .contains("turn off Open supported links there"));
+        PreferenceGroup links = messenger.getParent();
+        int at = -1;
+        for (int i = 0; i < links.getPreferenceCount(); i++) if (links.getPreference(i) == messenger) at = i;
+        assertEquals("not right under Supported links", page.findPreference(KEY), links.getPreference(at - 1));
+        assertEquals("Instagram not right under Messenger", instagram, links.getPreference(at + 1));
+
+        assertTrue(messenger.getOnPreferenceClickListener().onPreferenceClick(messenger));
+        Intent started = shadowOf(controller.get()).getNextStartedActivity();
+        assertEquals(android.provider.Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS, started.getAction());
+        assertEquals("package:" + SupportedLinks.MESSENGER, started.getDataString());
+        assertTrue(instagram.getOnPreferenceClickListener().onPreferenceClick(instagram));
+        started = shadowOf(controller.get()).getNextStartedActivity();
+        assertEquals("package:" + SupportedLinks.INSTAGRAM, started.getDataString());
+
+        answer = state(true, facebookHosts(SELECTED, SELECTED, SELECTED, SELECTED, SELECTED, SELECTED));
+        controller.pause().resume();
+        assertEquals("Facebook's web addresses open here now.",
+                String.valueOf(page.findPreference("action_messenger_links").getSummary()));
+    }
+
+    /** A row only for an app that holds one of the addresses still left: Instagram never held m.me. */
+    @Test
+    public void eachRowShowsOnlyWhileOneOfItsOwnAddressesOpensElsewhere() throws Exception {
+        install(SupportedLinks.MESSENGER, true);
+        install(SupportedLinks.INSTAGRAM, true);
+        answer = state(true, facebookHosts(SELECTED, SELECTED, SELECTED, NONE, SELECTED, SELECTED));
+        HushfacebookPreferenceFragment page = show(true);
+        assertNotNull("m.me left: Messenger", page.findPreference("action_messenger_links"));
+        assertNull("m.me left: not Instagram", page.findPreference("action_instagram_links"));
+        controller.close();
+        answer = state(true, facebookHosts(SELECTED, SELECTED, NONE, SELECTED, SELECTED, SELECTED));
+        page = show(true);
+        assertNull("m.facebook.com left: not Messenger", page.findPreference("action_messenger_links"));
+        assertNotNull("m.facebook.com left: Instagram", page.findPreference("action_instagram_links"));
+        controller.close();
+        answer = state(true, facebookHosts(SELECTED, SELECTED, SELECTED, SELECTED, SELECTED, NONE));
+        page = show(true);
+        assertNull("only fb.watch left", page.findPreference("action_messenger_links"));
+        assertNull("only fb.watch left", page.findPreference("action_instagram_links"));
+        controller.close();
+        answer = state(false, facebookHosts(NONE, NONE, NONE, NONE, NONE, NONE));
+        page = show(true);
+        assertNull("link handling off", page.findPreference("action_messenger_links"));
+        assertNull("link handling off", page.findPreference("action_instagram_links"));
+    }
+
+    /**
+     * The rows stay until the page is rebuilt, so on the way back from Android's pages each says
+     * whether its own app's addresses open here now. Seen on a phone: Instagram's row kept asking
+     * to turn its links off after its three addresses were selected.
+     */
+    @Test
+    public void onTheWayBackARowSaysItsOwnAddressesOpenHere() throws Exception {
+        install(SupportedLinks.MESSENGER, true);
+        install(SupportedLinks.INSTAGRAM, true);
+        answer = state(true, facebookHosts(NONE, NONE, NONE, NONE, NONE, NONE));
+        HushfacebookPreferenceFragment page = show(true);
+        answer = state(true, facebookHosts(SELECTED, SELECTED, SELECTED, NONE, NONE, SELECTED));
+        controller.pause().resume();
+        assertEquals("facebook.com links open here now.",
+                String.valueOf(page.findPreference("action_instagram_links").getSummary()));
+        assertTrue(String.valueOf(page.findPreference("action_messenger_links").getSummary())
+                .startsWith("Messenger can keep facebook.com and m.me links"));
+        answer = state(true, facebookHosts(SELECTED, SELECTED, SELECTED, SELECTED, SELECTED, NONE));
+        controller.pause().resume();
+        assertEquals("facebook.com and m.me links open here now.",
+                String.valueOf(page.findPreference("action_messenger_links").getSummary()));
+    }
+
+    @Test
+    public void noRowForMessengerOrInstagramDisabledOrAbsent() throws Exception {
+        answer = state(true, facebookHosts(NONE, NONE, NONE, NONE, NONE, NONE));
+        HushfacebookPreferenceFragment page = show(true);
+        assertNull("absent", page.findPreference("action_messenger_links"));
+        assertNull("absent", page.findPreference("action_instagram_links"));
+        controller.close();
+        install(SupportedLinks.MESSENGER, false);
+        install(SupportedLinks.INSTAGRAM, false);
+        page = show(true);
+        assertNull("disabled", page.findPreference("action_messenger_links"));
+        assertNull("disabled", page.findPreference("action_instagram_links"));
+    }
+
+    /** Android 11 doesn't say which addresses open here, so every one of the apps on the phone gets its row. */
+    @Test
+    @Config(sdk = 30)
+    public void android11ShowsMessengerWithoutKnowingTheAddresses() throws Exception {
+        install(SupportedLinks.MESSENGER, true);
+        Preference row = show(false).findPreference("action_messenger_links");
+        assertNotNull(row);
+        assertTrue(row.getOnPreferenceClickListener().onPreferenceClick(row));
+        Intent started = shadowOf(controller.get()).getNextStartedActivity();
+        assertEquals(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, started.getAction());
+        assertEquals("package:" + SupportedLinks.MESSENGER, started.getDataString());
+    }
+
+    /** Android 11 doesn't say where the links go, so with App Manager there the row shows and opens its page. */
+    @Test
+    @Config(sdk = 30)
+    public void android11WithAppManagerShowsTheRow() throws Exception {
+        installAppManager(true);
+        Preference row = show(false).findPreference(APP_MANAGER_KEY);
+        assertNotNull(row);
+        assertTrue(row.getOnPreferenceClickListener().onPreferenceClick(row));
+        Intent started = shadowOf(controller.get()).getNextStartedActivity();
+        assertNotNull(started);
+        assertEquals(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, started.getAction());
+        assertEquals("package:" + SupportedLinks.APP_MANAGER, started.getDataString());
     }
 }

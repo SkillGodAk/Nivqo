@@ -38,13 +38,14 @@ import app.morphe.extension.shared.settings.preference.ImmediateAction;
 
 /**
  * The kinds of row the settings page is built from: section titles, rows of text, switches, the
- * running saves and the rows that act on a tap. The page implements this, so a kind is also known
- * by the page's name, {@code HushfacebookPreferenceFragment.Row}, as it was when the kinds were
- * the page's own classes. The builders that put the text on a row are the page's:
+ * running saves and the rows that act on a tap, each known by this class's name, as
+ * {@code SettingsRows.Row}. The builders that put the text on a row are the page's:
  * {@link HushfacebookPreferenceFragment#toggle} and the ones beside it.
  */
 @SuppressWarnings("deprecation")
-interface SettingsRows {
+final class SettingsRows {
+    private SettingsRows() { }
+
     /** A section title, which a screen reader announces as a heading so a reader can jump between sections. */
     static final class Heading extends PreferenceCategory {
         Heading(Context context) {
@@ -94,6 +95,8 @@ interface SettingsRows {
         final int id;
         private final boolean video;
         private String status;
+        private boolean canCancel;
+        private Button cancelButton;
         @Nullable
         private View bound;
 
@@ -102,6 +105,7 @@ interface SettingsRows {
             id = save.id;
             video = save.video;
             status = SaveControl.status(save);
+            canCancel = save.canCancel;
             setKey("running_save_" + save.id);
             setPersistent(false);
             setSelectable(false);
@@ -116,10 +120,16 @@ interface SettingsRows {
 
         void show(SaveControl.Running save) {
             String next = SaveControl.status(save);
-            if (next.equals(status)) return;
-            status = next;
-            TextView summary = bound == null ? null : bound.findViewById(android.R.id.summary);
-            if (summary != null) summary.setText(next);
+            canCancel = save.canCancel;
+            if (cancelButton != null) {
+                cancelButton.setEnabled(canCancel);
+                cancelButton.setAlpha(canCancel ? 1f : .38f);
+            }
+            if (!next.equals(status)) {
+                status = next;
+                TextView summary = bound == null ? null : bound.findViewById(android.R.id.summary);
+                if (summary != null) summary.setText(next);
+            }
         }
 
         @Override
@@ -132,6 +142,9 @@ interface SettingsRows {
             if (frame == null) return;
             frame.removeAllViews();
             Button cancel = new Button(getContext());
+            cancelButton = cancel;
+            cancel.setEnabled(canCancel);
+            cancel.setAlpha(canCancel ? 1f : .38f);
             cancel.setText(L10n.t("Cancel"));
             // Two saves can be listed at once, so the button says whose it is.
             cancel.setContentDescription(video ? L10n.t("Cancel saving this video") : L10n.t("Cancel saving this photo"));

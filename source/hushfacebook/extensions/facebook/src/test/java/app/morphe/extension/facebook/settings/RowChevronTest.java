@@ -10,8 +10,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.graphics.Color;
 import android.preference.DialogPreference;
 import android.preference.Preference;
@@ -67,8 +70,8 @@ public class RowChevronTest {
     private static final Set<String> OPENS_SOMETHING = new LinkedHashSet<>(Arrays.asList(
             "Jump to a section", "Reels in the feed", "Reels that play by themselves", "The Reels tab",
             "Everything except Marketplace",
-            "Tab to open on", "Words to hide", "Words that keep a post", "Comment order", "Playback quality", "Font file", "Interface language", "Download quality", "Save to", "Save folder",
-            "Video file name", "When you tap Download", "App to send to", "Supported links",
+            "Tab to open on", "Feeds opens on", "Words to hide", "Words that keep a post", "Comment order", "Playback quality", "Font file", "Interface language", "Download quality", "Save to", "Save folder",
+            "Video file name", "When you tap Download", "App to send to", "Supported links", "Meta App Manager", "Messenger", "Instagram",
             "Export settings", "Import settings",
             "Export diagnostic report", "Source code and issues", "Licenses"));
 
@@ -78,6 +81,16 @@ public class RowChevronTest {
     @Before
     public void everyPatchIn() {
         PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
+        // Meta App Manager, Messenger and Instagram on the phone put their rows under Supported links,
+        // each opening its own page.
+        for (String name : Arrays.asList(SupportedLinks.APP_MANAGER, SupportedLinks.MESSENGER, SupportedLinks.INSTAGRAM)) {
+            PackageInfo holder = new PackageInfo();
+            holder.packageName = name;
+            holder.applicationInfo = new ApplicationInfo();
+            holder.applicationInfo.packageName = name;
+            holder.applicationInfo.enabled = true;
+            shadowOf(RuntimeEnvironment.getApplication().getPackageManager()).installPackage(holder);
+        }
     }
 
     @After

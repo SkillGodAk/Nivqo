@@ -39,6 +39,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import app.morphe.extension.facebook.coexist.FamilySignatureTrust;
 import app.morphe.extension.facebook.comments.CommentOrder;
 import app.morphe.extension.facebook.download.DownloadQuality;
 import app.morphe.extension.facebook.download.FileNameTemplate;
@@ -48,8 +49,25 @@ import app.morphe.extension.facebook.download.SaveTo;
 import app.morphe.extension.facebook.download.SendLink;
 import app.morphe.extension.facebook.feed.PostWords;
 import app.morphe.extension.facebook.media.PlaybackQuality;
+import app.morphe.extension.facebook.navigation.FeedsSubtab;
 import app.morphe.extension.facebook.navigation.StartTab;
 import app.morphe.extension.facebook.navigation.MarketplaceOnly;
+import app.morphe.extension.facebook.settings.SettingsRows.Heading;
+import app.morphe.extension.facebook.settings.SettingsRows.Row;
+import app.morphe.extension.facebook.settings.SettingsRows.SaveRow;
+import app.morphe.extension.facebook.settings.SettingsRows.Toggle;
+import app.morphe.extension.facebook.settings.ValueRows.CommentOrderRow;
+import app.morphe.extension.facebook.settings.ValueRows.DownloadActionRow;
+import app.morphe.extension.facebook.settings.ValueRows.FeedsSubtabRow;
+import app.morphe.extension.facebook.settings.ValueRows.FileNameRow;
+import app.morphe.extension.facebook.settings.ValueRows.FolderRow;
+import app.morphe.extension.facebook.settings.ValueRows.LanguageRow;
+import app.morphe.extension.facebook.settings.ValueRows.PlaybackQualityRow;
+import app.morphe.extension.facebook.settings.ValueRows.QualityRow;
+import app.morphe.extension.facebook.settings.ValueRows.SaveToRow;
+import app.morphe.extension.facebook.settings.ValueRows.SendAppRow;
+import app.morphe.extension.facebook.settings.ValueRows.StartTabRow;
+import app.morphe.extension.facebook.settings.ValueRows.WordsRow;
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
@@ -75,7 +93,7 @@ import app.morphe.extension.shared.settings.preference.LogBufferManager;
  */
 @SuppressWarnings("deprecation")
 public final class HushfacebookPreferenceFragment extends AbstractPreferenceFragment
-        implements ReleaseCheck.Listener, SettingsRows, ValueRows {
+        implements ReleaseCheck.Listener {
     /** The repository as a link, and as a person reads it. ExtensionHostsTest reads the link. */
     static final String SOURCE_URL = "https://github.com/SysAdminDoc/Hushfacebook";
     static final String SOURCE_ADDRESS = SOURCE_URL.substring(SOURCE_URL.indexOf("://") + 3);
@@ -85,6 +103,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     static final String CHECK_NOW = "action_check_for_release";
     /** The Supported links row's key. It stores nothing either. */
     static final String SUPPORTED_LINKS = "action_supported_links";
+    /** The key of the overview row explaining a missing re-signed build fix. */
+    static final String MISSING_RESTORE_TRUST = "action_missing_restore_trust";
     /** The key of the row naming the default patches this build lacks. It stores nothing either. */
     static final String MISSING_DEFAULTS = "action_missing_default_patches";
 
@@ -128,7 +148,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
 
     /** The Downloads section, where the running saves are listed, or null when no download patch is in. */
     @Nullable
-    PreferenceCategory downloads;
+    private PreferenceCategory downloads;
 
     /** The rows of the saves running now, by save number. */
     private final Map<Integer, SaveRow> saveRows = new HashMap<>();
@@ -271,7 +291,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         FeedPages.comments(this, screen, context, build);
         FeedPages.writing(this, screen, context, build);
         VideoPages.playback(this, screen, context, build);
-        VideoPages.downloads(this, screen, context, build);
+        downloads = VideoPages.downloads(screen, context, build);
         AppPages.chats(this, screen, context, build);
         AppPages.menu(this, screen, context, build);
         AppPages.search(this, screen, context, build);
@@ -284,7 +304,9 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         HushfacebookPages.pause(this, screen, context, build);
         HushfacebookPages.about(this, screen, context, build);
 
-        // The overview shows it under the card by its key. Last in the model, it moves no other row.
+        // The overview shows these under the card by key. Last in the model, they move no other row.
+        Preference restore = missingRestoreTrustRow(context, build);
+        if (restore != null) screen.addPreference(restore);
         Preference lacking = missingDefaultsRow(context, build);
         if (lacking != null) screen.addPreference(lacking);
     }
@@ -447,6 +469,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     @Nullable
     private static Preference missingDefaultsRow(Context context, Set<PatchFamily> build) {
         List<String> missing = PatchFamily.missingDefaults(build);
+        missing.remove(PatchFamily.RESTORE_TRUST.patchName);
         if (missing.isEmpty()) return null;
         List<String> names = new ArrayList<>();
         for (String name : missing) names.add(L10n.isolate(name));
@@ -472,6 +495,22 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         return row;
     }
 
+    /**
+     * A missing Restore screens patch breaks profiles on ordinary re-signed installs. Pull it out of
+     * the generic missing-defaults list so the overview says exactly what fails (#68). Root Mount
+     * installs still carry Meta's key and do not need this patch.
+     */
+    @Nullable
+    private static Preference missingRestoreTrustRow(Context context, Set<PatchFamily> build) {
+        if (build.contains(PatchFamily.RESTORE_TRUST)) return null;
+        if (FamilySignatureTrust.thisBuildCarriesMetaKey(context)) return null;
+        Preference row = info(context, L10n.t("Profiles and some Settings pages won't open"),
+                L10n.f("Patch again with %1$s selected. Re-signed builds need it for profiles and some Facebook "
+                        + "Settings pages.", L10n.isolate(FamilyNames.RESTORE_TRUST)));
+        row.setKey(MISSING_RESTORE_TRUST);
+        return row;
+    }
+
     void resumeFromOverview() {
         Context context = getContext();
         if (context == null || statusCard == null) return;
@@ -488,7 +527,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                     ? L10n.f("The file %1$s couldn't be removed. Delete it from %2$s, then tap Resume again.", file, folder)
                     : L10n.f("The file %1$s couldn't be removed. Delete it from %2$s to turn Hushfacebook back on.",
                     file, folder);
-            statusCard.setSummary(left);
+            statusCard.setSummary(left + "\n" + L10n.f("Build %1$s", L10n.isolate(Utils.getPatchesBuildIdentity())));
             // Resume can be tapped on a category page too, where the card isn't in view.
             Utils.showToastLong(left);
             return;
@@ -519,6 +558,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         } else {
             status = L10n.t("Hushfacebook turns back on when Facebook restarts.");
         }
+        status += "\n" + L10n.f("Build %1$s", L10n.isolate(Utils.getPatchesBuildIdentity()));
         String release = ReleaseCheck.statusLine();
         card.setSummary(release == null ? status : status + "\n" + release);
     }
@@ -562,14 +602,53 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         return row;
     }
 
+    /**
+     * The way to the link page of each of Meta's apps on the phone that may hold an address that
+     * doesn't open here, under Supported links: Meta App Manager (#30), Messenger and Instagram
+     * (#78). Android won't let a person select an address another app is verified for, so that app
+     * has to let go first.
+     */
+    List<Preference> linkHolderRows(Context context) {
+        SupportedLinks.State state = SupportedLinks.read(context);
+        Set<String> notOpen = SupportedLinks.hostsNotOpen(context);
+        List<Preference> rows = new ArrayList<>();
+        for (SupportedLinks.Holder holder : SupportedLinks.Holder.values()) {
+            if (!SupportedLinks.mayHoldLinks(holder, state, SupportedLinks.isOn(context, holder), notOpen)) continue;
+            Row row = new Row(context);
+            row.setKey(holder.rowKey);
+            row.setTitle(holder.title());
+            row.setPersistent(false);
+            row.setSummary(SupportedLinks.holderSummary(holder, state, notOpen));
+            row.setOnPreferenceClickListener(p -> {
+                openLinkPage(SupportedLinks.holderIntents(holder), holder.reportKey, holder.notOpened());
+                return true;
+            });
+            rows.add(row);
+        }
+        return rows;
+    }
+
     private void showSupportedLinks() {
         if (getPreferenceScreen() == null) return;
         Preference row = findPreference(SUPPORTED_LINKS);
-        if (row != null) row.setSummary(SupportedLinks.summary(SupportedLinks.read(row.getContext())));
+        if (row == null) return;
+        SupportedLinks.State state = SupportedLinks.read(row.getContext());
+        row.setSummary(SupportedLinks.summary(state));
+        Set<String> notOpen = SupportedLinks.hostsNotOpen(row.getContext());
+        for (SupportedLinks.Holder holder : SupportedLinks.Holder.values()) {
+            Preference holderRow = findPreference(holder.rowKey);
+            if (holderRow != null) holderRow.setSummary(SupportedLinks.holderSummary(holder, state, notOpen));
+        }
     }
 
     private void openLinkSettings(Context context) {
-        for (Intent page : SupportedLinks.settingsIntents(context)) {
+        openLinkPage(SupportedLinks.settingsIntents(context), "supported links",
+                L10n.t("Android's settings for this app didn't open. Open App info from Facebook's icon, "
+                        + "then Open by default."));
+    }
+
+    private void openLinkPage(List<Intent> pages, String what, String failure) {
+        for (Intent page : pages) {
             try {
                 startActivity(page);
                 return;
@@ -577,9 +656,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 // A phone without Open by default still has the app's own page, which leads there.
             }
         }
-        Logger.printInfo(() -> "No settings page opened for supported links");
-        Utils.showToastLong(L10n.t("Android's settings for this app didn't open. Open App info from Facebook's icon, "
-                + "then Open by default."));
+        Logger.printInfo(() -> "No settings page opened for " + what);
+        Utils.showToastLong(failure);
     }
 
     @Override
@@ -658,6 +736,12 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             tab.setEnabled(!selected);
             tab.setSummary(selected ? L10n.t("Marketplace mode chooses the opening tab. Your previous choice stays saved.")
                     : startTabSummary(Settings.START_TAB.savedValue()));
+        }
+        Preference subtab = findPreference(Settings.FEEDS_SUBTAB.key);
+        if (subtab != null) {
+            subtab.setEnabled(!selected);
+            subtab.setSummary(selected ? L10n.t("Marketplace mode chooses the opening tab. Your previous choice stays saved.")
+                    : feedsSubtabSummary(Settings.FEEDS_SUBTAB.savedValue()));
         }
     }
 
@@ -755,6 +839,10 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         category.setTitle(title);
         screen.addPreference(category);
         return category;
+    }
+
+    static SwitchPreference toggle(Context context, BooleanSetting setting, String summary) {
+        return toggle(context, setting, SwitchLabels.title(setting), summary);
     }
 
     static SwitchPreference toggle(Context context, BooleanSetting setting, String title, String summary) {
@@ -897,6 +985,58 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     }
 
     /**
+     * The filter the Feeds tab opens on after a start the start tab sends there (#56). Like the
+     * start tab row, its values are the setting's own names and its summary says what the choice
+     * does.
+     */
+    static FeedsSubtabRow feedsSubtabRow(Context context) {
+        FeedsSubtabRow row = new FeedsSubtabRow(context);
+        row.setKey(Settings.FEEDS_SUBTAB.key);
+        row.setTitle(L10n.t("Feeds opens on"));
+        row.setDialogTitle(L10n.t("Feeds opens on"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        FeedsSubtab[] subtabs = FeedsSubtab.values();
+        CharSequence[] entries = new CharSequence[subtabs.length];
+        CharSequence[] values = new CharSequence[subtabs.length];
+        for (int i = 0; i < subtabs.length; i++) {
+            entries[i] = feedsSubtabLabel(subtabs[i]);
+            values[i] = subtabs[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.FEEDS_SUBTAB.savedValue().name());
+        return row;
+    }
+
+    /** What the list, its summary and an import's preview call [subtab]: the filter's name in Facebook. */
+    static String feedsSubtabLabel(FeedsSubtab subtab) {
+        switch (subtab) {
+            case FAVORITES:
+                return L10n.t("Favorites");
+            case FRIENDS:
+                return L10n.t("Friends");
+            case GROUPS:
+                return L10n.t("Groups");
+            case PAGES:
+                return L10n.t("Pages");
+            default:
+                return L10n.t("All");
+        }
+    }
+
+    /**
+     * What a start on the Feeds tab does with [subtab], for the row's summary. A filter the Feeds
+     * tab hasn't got leaves it as it opened, so the summary says so rather than promise the filter.
+     */
+    static String feedsSubtabSummary(FeedsSubtab subtab) {
+        if (subtab == FeedsSubtab.ALL) {
+            return L10n.t("When Facebook opens on Feeds, the Feeds tab opens on the filter Facebook picks.");
+        }
+        return L10n.f("When Facebook opens on Feeds, the Feeds tab opens on %1$s. If your Feeds tab doesn't "
+                + "have it, it opens as usual.", feedsSubtabLabel(subtab));
+    }
+
+    /**
      * The order comment sheets ask for. Like the start tab row, its values are the setting's own
      * names and its summary says what the choice does.
      */
@@ -1006,8 +1146,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     }
 
     /**
-     * The quality, download action, start tab, comment order and playback quality rows' summaries
-     * are sentences of their own rather than the chosen entry.
+     * The quality, download action, start tab, Feeds filter, comment order and playback quality
+     * rows' summaries are sentences of their own rather than the chosen entry.
      */
     @Override
     protected void updateListPreferenceSummary(ListPreference listPreference, Setting<?> setting) {
@@ -1019,6 +1159,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             ((SaveToRow) listPreference).showSummary();
         } else if (listPreference instanceof StartTabRow) {
             ((StartTabRow) listPreference).showSummary();
+        } else if (listPreference instanceof FeedsSubtabRow) {
+            ((FeedsSubtabRow) listPreference).showSummary();
         } else if (listPreference instanceof CommentOrderRow) {
             ((CommentOrderRow) listPreference).showSummary();
         } else if (listPreference instanceof PlaybackQualityRow) {
@@ -1267,6 +1409,10 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         field.setMinLines(3);
         field.setHint(L10n.t("One word or phrase per line"));
         row.setText(setting.savedValue());
+        row.refused = why -> show(new AlertDialog.Builder(row.getContext())
+                .setTitle(title)
+                .setMessage(why)
+                .setPositiveButton(L10n.t("OK"), null));
         row.setOnPreferenceChangeListener((preference, typed) -> {
             String raw = typed == null ? "" : typed.toString();
             String clean = PostWords.clean(raw);
@@ -1277,14 +1423,14 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             if (leftOut > 0) {
                 // A dialog, not a toast: Android 12 and later cut a toast to two lines, and the
                 // reasons run past that, most of all at a large text size.
+                // Too many phrases never get here: Save refuses those with the dialog still open.
                 String why = L10n.quantity(leftOut,
                         "%1$d line was left out. A phrase needs %2$d to %3$d characters, or just one for an emoji, "
-                                + "a Chinese character, a kana or a Hangul syllable. One given twice counts once, "
-                                + "and a list holds %4$d.",
+                                + "a Chinese character, a kana or a Hangul syllable. One given twice counts once.",
                         "%1$d lines were left out. A phrase needs %2$d to %3$d characters, or just one for an "
                                 + "emoji, a Chinese character, a kana or a Hangul syllable. One given twice counts "
-                                + "once, and a list holds %4$d.",
-                        leftOut, PostWords.MIN_LENGTH, PostWords.MAX_LENGTH, PostWords.MAX_PHRASES);
+                                + "once.",
+                        leftOut, PostWords.MIN_LENGTH, PostWords.MAX_LENGTH);
                 show(new AlertDialog.Builder(preference.getContext())
                         .setTitle(title)
                         .setMessage(why)
@@ -1311,6 +1457,31 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                     "Hid %1$d posts since Facebook started.", hidden);
         }
         return summary;
+    }
+
+    /**
+     * What a word list's dialog says under its explanation as the list is typed: how many phrases
+     * it holds and how full the room the two lists share would be, or why it can't be saved.
+     */
+    static String wordsEditorLine(PostWords.Size size) {
+        if (size.tooMany()) return wordsRefusal(size);
+        String count = size.phrases == 0 ? L10n.t("No words yet.")
+                : L10n.quantity(size.phrases, "%1$d word or phrase.", "%1$d words or phrases.", size.phrases);
+        String why = wordsRefusal(size);
+        return count + " " + (why != null ? why
+                : L10n.f("Both lists together fill %1$d%% of the room they share.", size.percent()));
+    }
+
+    /** Why a typed list can't be saved, the same in its dialog and when Save is tapped, or null when it can be. */
+    @Nullable
+    static String wordsRefusal(PostWords.Size size) {
+        if (size.tooMany()) {
+            return L10n.f("A list holds up to %1$d phrases, and this one has more. Remove some, then save again.",
+                    PostWords.MAX_PHRASES);
+        }
+        if (size.fits()) return null;
+        return L10n.f("Both lists together would fill %1$d%% of the room they share. Remove or shorten some "
+                + "phrases, then save again.", size.percent());
     }
 
     static Preference mark(Preference row, String icon) {

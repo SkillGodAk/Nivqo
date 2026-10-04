@@ -16,12 +16,18 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.OperationCanceledException;
 import android.preference.Preference;
+import android.util.TypedValue;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
@@ -34,6 +40,7 @@ import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -43,10 +50,12 @@ import app.morphe.extension.facebook.download.SaveTo;
 import app.morphe.extension.facebook.download.SendLink;
 import app.morphe.extension.facebook.feed.PostWords;
 import app.morphe.extension.facebook.media.PlaybackQuality;
+import app.morphe.extension.facebook.navigation.FeedsSubtab;
 import app.morphe.extension.facebook.navigation.StartTab;
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
+import app.morphe.extension.shared.settings.BooleanSetting;
 import app.morphe.extension.shared.settings.preference.AbstractPreferenceFragment;
 import app.morphe.extension.shared.settings.preference.LogBufferManager;
 
@@ -306,6 +315,8 @@ public class SettingsBackupPreference extends Preference {
                 return L10n.t("That settings file was written by a newer Hushfacebook than this one. Nothing was changed.");
             case VALUE:
                 return L10n.t("That settings file holds a value Hushfacebook can't read. Nothing was changed.");
+            case WORDS:
+                return L10n.t("The word lists in that file are longer than the two lists have room for. Nothing was changed.");
             default:
                 return L10n.t("Couldn't open that file. Nothing was changed.");
         }
@@ -364,7 +375,8 @@ public class SettingsBackupPreference extends Preference {
             }
             parts.addAll(valueSentences(snapshot.folderChange(), snapshot.qualityChange(), snapshot.fileNameChange(),
                     snapshot.startChange(), snapshot.orderChange(), snapshot.hiddenChange(), snapshot.keptChange(),
-                    snapshot.playbackChange(), snapshot.actionChange(), snapshot.appChange(), snapshot.toChange()));
+                    snapshot.playbackChange(), snapshot.actionChange(), snapshot.appChange(), snapshot.toChange(),
+                    snapshot.subtabChange()));
             message = String.join("\n\n", parts);
         }
         if (snapshot.unknown > 0) {
@@ -388,7 +400,72 @@ public class SettingsBackupPreference extends Preference {
             builder.setNegativeButton(L10n.t("Cancel"), (dialog, which) -> answered(page));
         }
         page.importPreview = builder.show();
+        addSwitchDifferences(page.importPreview, snapshot);
         ScreenColors.dialog(page.importPreview);
+    }
+
+    /** Keep the framework's one scroll area and pinned actions, adding one spoken row per switch. */
+    private static void addSwitchDifferences(AlertDialog dialog, SettingsBackup.Snapshot snapshot) {
+        TextView message = dialog.findViewById(android.R.id.message);
+        if (message == null || !(message.getParent() instanceof ViewGroup)) return;
+        LinearLayout details = new LinearLayout(dialog.getContext());
+        details.setOrientation(LinearLayout.VERTICAL);
+        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        for (Map.Entry<BooleanSetting, Boolean> entry : snapshot.values.entrySet()) {
+            BooleanSetting setting = entry.getKey();
+            boolean current = setting.savedValue();
+            boolean incoming = entry.getValue();
+            if (current == incoming) continue;
+            String name = SwitchLabels.title(setting);
+            String before = current ? L10n.t("On") : L10n.t("Off");
+            String after = incoming ? L10n.t("On") : L10n.t("Off");
+            LinearLayout row = new LinearLayout(dialog.getContext());
+            row.setOrientation(LinearLayout.VERTICAL);
+            row.setPaddingRelative(message.getPaddingStart(), dp(row, 16), message.getPaddingEnd(), dp(row, 8));
+            row.setTag(setting);
+            row.setScreenReaderFocusable(true);
+            row.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+            row.setContentDescription(name + ". " + L10n.f("Saved now %1$s. After import %2$s.",
+                    L10n.isolate(before), L10n.isolate(after)));
+            row.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+                @Override
+                public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+                    super.onInitializeAccessibilityNodeInfo(host, info);
+                    info.setClassName(TextView.class.getName());
+                    info.setScreenReaderFocusable(true);
+                    info.setContentDescription(host.getContentDescription());
+                }
+            });
+            TextView title = new TextView(dialog.getContext());
+            title.setText(name);
+            title.setTextSize(16);
+            title.setTextColor(colors.title);
+            title.setTypeface(Typeface.create("sans-serif-medium", 0));
+            title.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            row.addView(title);
+            TextView states = new TextView(dialog.getContext());
+            states.setText(L10n.isolate(before) + " \u2192 " + L10n.isolate(after));
+            states.setTextDirection(View.TEXT_DIRECTION_LTR);
+            states.setTextSize(14);
+            states.setTextColor(colors.summary);
+            states.setPaddingRelative(0, dp(row, 4), 0, 0);
+            states.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            row.addView(states);
+            details.addView(row);
+        }
+        if (details.getChildCount() == 0) return;
+        ViewGroup parent = (ViewGroup) message.getParent();
+        int index = parent.indexOfChild(message);
+        ViewGroup.LayoutParams size = message.getLayoutParams();
+        parent.removeView(message);
+        details.addView(message, 0, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        parent.addView(details, index, size);
+    }
+
+    private static int dp(View view, int value) {
+        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value,
+                view.getResources().getDisplayMetrics()));
     }
 
     /** The sentence that says which top folder saves go to after an import. */
@@ -430,6 +507,12 @@ public class SettingsBackupPreference extends Preference {
     /** The sentence that says which tab Facebook opens on after an import. */
     static String startTabSentence(StartTab tab) {
         return L10n.f("Facebook will open on %1$s.", HushfacebookPreferenceFragment.tabLabel(tab));
+    }
+
+    /** The sentence that says which filter the Feeds tab opens on after an import. */
+    static String feedsSubtabSentence(FeedsSubtab subtab) {
+        if (subtab == FeedsSubtab.ALL) return L10n.t("The Feeds tab will open on the filter Facebook picks.");
+        return L10n.f("The Feeds tab will open on %1$s.", HushfacebookPreferenceFragment.feedsSubtabLabel(subtab));
     }
 
     /** The sentence that says in what order comments open after an import. */
@@ -506,19 +589,30 @@ public class SettingsBackupPreference extends Preference {
         return valueSentences(folder, quality, fileName, start, order, hidden, kept, playback, action, app, null);
     }
 
-    /**
-     * A sentence for each setting that isn't a switch an import changes, in the order the screen
-     * shows them: the tab Facebook opens on, the word filter's lists, the order comments open in,
-     * the quality videos play at, then the download settings.
-     */
+    /** A sentence for each setting that isn't a switch an import changes, the Feeds filter aside. */
     static List<String> valueSentences(@Nullable String folder, @Nullable DownloadQuality quality,
                                        @Nullable String fileName, @Nullable StartTab start,
                                        @Nullable CommentOrder order, @Nullable String hidden,
                                        @Nullable String kept, @Nullable PlaybackQuality playback,
                                        @Nullable SendLink.Action action, @Nullable String app,
                                        @Nullable SaveTo to) {
+        return valueSentences(folder, quality, fileName, start, order, hidden, kept, playback, action, app, to, null);
+    }
+
+    /**
+     * A sentence for each setting that isn't a switch an import changes, in the order the screen
+     * shows them: the tab Facebook opens on and the Feeds filter, the word filter's lists, the
+     * order comments open in, the quality videos play at, then the download settings.
+     */
+    static List<String> valueSentences(@Nullable String folder, @Nullable DownloadQuality quality,
+                                       @Nullable String fileName, @Nullable StartTab start,
+                                       @Nullable CommentOrder order, @Nullable String hidden,
+                                       @Nullable String kept, @Nullable PlaybackQuality playback,
+                                       @Nullable SendLink.Action action, @Nullable String app,
+                                       @Nullable SaveTo to, @Nullable FeedsSubtab subtab) {
         List<String> sentences = new ArrayList<>();
         if (start != null) sentences.add(startTabSentence(start));
+        if (subtab != null) sentences.add(feedsSubtabSentence(subtab));
         if (hidden != null) sentences.add(wordsSentence(hidden, true));
         if (kept != null) sentences.add(wordsSentence(kept, false));
         if (order != null) sentences.add(commentOrderSentence(order));
@@ -550,7 +644,7 @@ public class SettingsBackupPreference extends Preference {
             String done = importedMessage(snapshot.switchChanges(), snapshot.folderChange(), snapshot.qualityChange(),
                     snapshot.fileNameChange(), snapshot.startChange(), snapshot.orderChange(), snapshot.hiddenChange(),
                     snapshot.keptChange(), snapshot.playbackChange(), snapshot.actionChange(), snapshot.appChange(),
-                    snapshot.toChange());
+                    snapshot.toChange(), snapshot.subtabChange());
             accepted = Utils.runOnBackgroundThread(() -> {
                 try {
                     SettingsBackup.apply(snapshot);
@@ -623,6 +717,15 @@ public class SettingsBackupPreference extends Preference {
                 null);
     }
 
+    /** The toast after an import that changed no Feeds filter. */
+    static String importedMessage(int switches, @Nullable String folder, @Nullable DownloadQuality quality,
+                                  @Nullable String fileName, @Nullable StartTab start, @Nullable CommentOrder order,
+                                  @Nullable String hidden, @Nullable String kept, @Nullable PlaybackQuality playback,
+                                  @Nullable SendLink.Action action, @Nullable String app, @Nullable SaveTo to) {
+        return importedMessage(switches, folder, quality, fileName, start, order, hidden, kept, playback, action, app,
+                to, null);
+    }
+
     /**
      * What the toast after an import says: how many switches changed, then a sentence for each
      * other setting that did. A folder alone keeps the one sentence it always had.
@@ -630,15 +733,18 @@ public class SettingsBackupPreference extends Preference {
     static String importedMessage(int switches, @Nullable String folder, @Nullable DownloadQuality quality,
                                   @Nullable String fileName, @Nullable StartTab start, @Nullable CommentOrder order,
                                   @Nullable String hidden, @Nullable String kept, @Nullable PlaybackQuality playback,
-                                  @Nullable SendLink.Action action, @Nullable String app, @Nullable SaveTo to) {
+                                  @Nullable SendLink.Action action, @Nullable String app, @Nullable SaveTo to,
+                                  @Nullable FeedsSubtab subtab) {
         if (switches == 0 && folder != null && quality == null && fileName == null && start == null && order == null
-                && hidden == null && kept == null && playback == null && action == null && app == null && to == null) {
+                && hidden == null && kept == null && playback == null && action == null && app == null && to == null
+                && subtab == null) {
             return L10n.f("Settings imported. Saves will go to a folder named %1$s.", L10n.isolate(folder));
         }
         List<String> parts = new ArrayList<>();
         parts.add(switches == 0 ? L10n.t("Settings imported.") : L10n.quantity(switches,
                 "Settings imported. %1$d switch changed.", "Settings imported. %1$d switches changed.", switches));
-        parts.addAll(valueSentences(folder, quality, fileName, start, order, hidden, kept, playback, action, app, to));
+        parts.addAll(valueSentences(folder, quality, fileName, start, order, hidden, kept, playback, action, app, to,
+                subtab));
         return String.join(" ", parts);
     }
 

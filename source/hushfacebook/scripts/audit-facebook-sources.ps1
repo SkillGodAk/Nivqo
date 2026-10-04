@@ -16,8 +16,9 @@
       with the two archive mirrors mapped back to the repositories they copied, and GitLab code
       search when GITLAB_TOKEN is set and -SkipGitLabCodeSearch isn't passed;
     - every ledger source's repository, licence, branches and forks. A source with watchPaths is
-      read through the newest commit that touched those paths, so a busy multi-app repository only
-      counts as moved when its Facebook-family code did.
+      read through the newest commit that touched paths still present on the branch. A deletion
+      commit is not a current source. Retired sources keep reachable historical pins, while an
+      unavailable source records that those pins no longer resolve. Either returning is a finding.
 
     A repository the ledger doesn't know is an addition, unless every file code search found in it
     is byte for byte a file the ledger already holds (the same git blob id), which makes it a copy
@@ -25,18 +26,20 @@
     licence, a branch head that moved or a new branch with Facebook-family work, a fork the ledger
     hasn't seen, a recorded fork or out-of-scope repository an index lists as a bundle of its own, a
     repository that's gone, renamed or archived, and a listing that changed are the other findings.
-    Any finding, or a source that couldn't be read, writes the report and exits 1 with the ledger
-    untouched. A clean run stamps today's date on the census and on every record it checked, and
-    exits 0. Commit that change: a local release refuses a census more than 14 days old.
+    Any finding, or a source that couldn't be read or was skipped, writes the report and exits 1
+    with the ledger untouched. A complete clean run stamps today's date on the census and every
+    record it checked, and exits 0. Commit that change: a local release refuses a census more than
+    14 days old.
 
     The audit never imports code. It reads metadata through the forges' APIs; a licence is hashed
     in memory and a patch list is read for its names. Nothing is cloned, downloaded to disk or
     written anywhere but the report and the ledger's dates. The report can't go under patches/ or
     extensions/.
 
-    GitHub requests use GITHUB_TOKEN or the gh CLI's token (code search needs one). GitLab's code
-    search needs GITLAB_TOKEN; without one, pass -SkipGitLabCodeSearch and the census records the
-    skip. Tokens go in request headers only, never into the report or the ledger.
+    GitHub requests use GITHUB_TOKEN or the gh CLI's token (code search needs one). GitLab requests
+    use GITLAB_TOKEN, but GitLab.com does not enable global code search. A token alone does not
+    supply that coverage. A missing token or -SkipGitLabCodeSearch records an incomplete audit and
+    never refreshes the census. Tokens go in request headers only, never into the report or ledger.
 
 .EXAMPLE
     pwsh -File scripts/audit-facebook-sources.ps1 -SkipGitLabCodeSearch
@@ -146,10 +149,12 @@ if (-not $rules.Valid) {
 }
 $entries = @(Get-SourceProperty $ledgerDocument 'entries' | Where-Object { $null -ne $_ })
 $lineageNames = @($entries | ForEach-Object { [string]$_.lineage } | Sort-Object -Unique)
+$availabilityCounts = Get-SourceAvailabilityCounts $entries
 if ($ValidateOnly) {
     $census = Test-SourceCensus -Ledger $ledgerDocument -Today $todayText
     $censusLine = if ($census.Valid) { "the census is $($census.AgeDays) day(s) old" } else { $census.Reason }
-    Write-Step ("the ledger keeps its rules: $($entries.Count) sources in $($lineageNames.Count) lineages; " + $censusLine)
+    Write-Step ("the ledger keeps its rules: $($entries.Count) sources in $($lineageNames.Count) lineages " +
+        "($($availabilityCounts.activeSources) active, $($availabilityCounts.retiredSources) retired, $($availabilityCounts.unavailableSources) unavailable); " + $censusLine)
     exit 0
 }
 
@@ -165,12 +170,15 @@ if (-not $GitHubToken) {
     throw 'GitHub code search needs a token. Run gh auth login, or set GITHUB_TOKEN.'
 }
 if (-not $GitLabToken) { $GitLabToken = $env:GITLAB_TOKEN }
-if (-not $GitLabToken -and -not $SkipGitLabCodeSearch) {
-    throw ('GitLab code search needs a token. Set GITLAB_TOKEN, or pass -SkipGitLabCodeSearch and the ' +
-        'census records that GitLab code was not searched.')
-}
 # The switch wins over a token in the environment, which still authenticates the ledger's GitLab reads.
 $searchGitLab = [bool]$GitLabToken -and -not $SkipGitLabCodeSearch
+$gitlabCoverageEvidence = [ordered]@{
+    index = 'gitlab-code-search'
+    endpoint = 'https://gitlab.com/api/v4/search?scope=blobs'
+    documentation = @('https://docs.gitlab.com/user/search/advanced_search/',
+        'https://docs.gitlab.com/user/search/exact_code_search/')
+    limitation = 'GitLab.com does not enable global code search. A token or scoped search does not establish global coverage.'
+}
 
 # --- requests --------------------------------------------------------------------------------
 
@@ -344,14 +352,14 @@ $listed = @{}
 function Invoke-Source {
     # Runs one reader. A reader that throws is recorded as failed, which fails the audit, and the
     # others still run so the report shows everything that could be read.
-    param([string]$Name, [scriptblock]$Read)
+    param([string]$Name, [scriptblock]$Read, $FailureEvidence = $null)
     try {
         $said = & $Read
         $sourceStatus.Add([pscustomobject][ordered]@{ source = $Name; status = 'read'; detail = "$said" })
         Write-Step "$Name`: $said"
     } catch {
         $sourceStatus.Add([pscustomobject][ordered]@{ source = $Name; status = 'failed'; detail = $_.Exception.Message })
-        Add-Finding -Kind 'source-failed' -Repository $null -Detail "$Name could not be read: $($_.Exception.Message)" -Evidence $null
+        Add-Finding -Kind 'source-failed' -Repository $null -Detail "$Name could not be read: $($_.Exception.Message)" -Evidence $FailureEvidence
         Write-Step "$Name FAILED: $($_.Exception.Message)"
     }
 }
@@ -554,14 +562,20 @@ if ($searchGitLab) {
         $hits = 0
         foreach ($package in $packages) {
             $result = Get-PagedItems -Uri ("https://gitlab.com/api/v4/search?scope=blobs&search=" + [Uri]::EscapeDataString("`"$package`"")) -Auth gitlab
-            if ($result.Status -ne 200) { throw "the search for $package answered HTTP $($result.Status)" }
+            if ($result.Status -ne 200) {
+                throw "the search for $package answered HTTP $($result.Status). $($gitlabCoverageEvidence.limitation)"
+            }
             foreach ($item in $result.Items) {
                 $projectId = [string]$item.project_id
+                if ($projectId -notmatch '^\d+$' -or -not [string]$item.path) {
+                    throw "the search for $package returned a hit without a project ID or path"
+                }
                 if (-not $projects.ContainsKey($projectId)) {
                     $project = Invoke-SourceRequest -Uri "https://gitlab.com/api/v4/projects/$projectId" -Auth gitlab
-                    $projects[$projectId] = if ($project.Status -eq 200) {
-                        ConvertTo-SourceKey ('https://gitlab.com/' + (ConvertFrom-SourceJson -Text $project.Content -What "GitLab project $projectId").path_with_namespace)
-                    } else { $null }
+                    if ($project.Status -ne 200) { throw "GitLab project $projectId from the search for $package answered HTTP $($project.Status)" }
+                    $path = [string](ConvertFrom-SourceJson -Text $project.Content -What "GitLab project $projectId").path_with_namespace
+                    if (-not $path) { throw "GitLab project $projectId from the search for $package returned no repository path" }
+                    $projects[$projectId] = ConvertTo-SourceKey ('https://gitlab.com/' + $path)
                 }
                 if ($projects[$projectId]) {
                     Add-Candidate -Key $projects[$projectId] -Source 'GitLab code search' -Mentions @($package) -Path ([string]$item.path) -Blob $null
@@ -570,11 +584,14 @@ if ($searchGitLab) {
             }
         }
         "$hits hits in $(@($projects.Values | Where-Object { $_ } | Sort-Object -Unique).Count) projects"
-    }
+    } -FailureEvidence $gitlabCoverageEvidence
 } else {
-    $notes.Add('GitLab code search was skipped (-SkipGitLabCodeSearch); the census records it. GitLab sources in the ledger were still read.')
-    $sourceStatus.Add([pscustomobject][ordered]@{ source = 'GitLab code search'; status = 'skipped'; detail = '-SkipGitLabCodeSearch' })
-    Write-Step 'GitLab code search: skipped (-SkipGitLabCodeSearch)'
+    $reason = if ($SkipGitLabCodeSearch) { '-SkipGitLabCodeSearch' } else { 'no GITLAB_TOKEN was configured' }
+    $detail = "GitLab code search was skipped ($reason). $($gitlabCoverageEvidence.limitation) The census was not stamped."
+    $notes.Add('GitLab sources in the ledger were still read; those reads do not replace the global code index.')
+    $sourceStatus.Add([pscustomobject][ordered]@{ source = 'GitLab code search'; status = 'skipped'; detail = $detail })
+    Add-Finding -Kind 'source-skipped' -Repository $null -Detail $detail -Evidence $gitlabCoverageEvidence
+    Write-Step $detail
 }
 
 # --- what the discovery found that the ledger doesn't know --------------------------------------
@@ -679,11 +696,76 @@ foreach ($copy in $collapsed) {
 
 # --- every source the ledger holds ---------------------------------------------------------------
 
+$sourceTrees = [System.Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)
+function Test-GitHubSourcePath {
+    # Trees carry paths and blob ids, never file contents. Cache each immutable tree because
+    # branches often share a head and a source can watch several paths in the same repository.
+    param([string]$Path, [string]$Ref, [string]$Watch)
+    $key = "$Path@$Ref"
+    if (-not $sourceTrees.ContainsKey($key)) {
+        $answer = Invoke-SourceRequest -Uri "https://api.github.com/repos/$Path/git/trees/$($Ref)?recursive=1" -Auth github
+        if ($answer.Status -eq 404) { $sourceTrees[$key] = $null }
+        elseif ($answer.Status -ne 200) { throw "the tree of $Path at $Ref answered HTTP $($answer.Status)" }
+        else {
+            $tree = ConvertFrom-SourceJson -Text $answer.Content -What "$Path tree"
+            if ($null -eq $tree.PSObject.Properties['tree'] -or (Get-SourceProperty $tree 'truncated') -isnot [bool]) {
+                throw "the tree of $Path at $Ref has no paths or truncation flag"
+            }
+            $paths = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            foreach ($item in (Get-JsonItems $tree.tree)) { [void]$paths.Add([string]$item.path) }
+            $sourceTrees[$key] = [pscustomobject]@{ Paths = $paths; Truncated = $tree.truncated }
+        }
+    }
+    $tree = $sourceTrees[$key]
+    if ($null -eq $tree) { return $false }
+    if ($tree.Paths.Contains($Watch)) { return $true }
+    if ($tree.Truncated) { throw "the tree of $Path at $Ref is truncated, so the absence of $Watch could not be checked" }
+    return $false
+}
+
+function Test-GitLabSourcePath {
+    param([string]$Project, [string]$Ref, [string]$Watch)
+    $at = $Watch.LastIndexOf('/')
+    $parent = if ($at -ge 0) { $Watch.Substring(0, $at) } else { '' }
+    $key = "$Project@$Ref/$parent"
+    if (-not $sourceTrees.ContainsKey($key)) {
+        $uri = "https://gitlab.com/api/v4/projects/$Project/repository/tree?ref=$([Uri]::EscapeDataString($Ref))"
+        if ($parent) { $uri += '&path=' + [Uri]::EscapeDataString($parent) }
+        $tree = Get-PagedItems -Uri $uri -Auth gitlab
+        if ($tree.Status -eq 404) { $sourceTrees[$key] = @() }
+        elseif ($tree.Status -ne 200) { throw "the tree of $Project at $Ref answered HTTP $($tree.Status)" }
+        else { $sourceTrees[$key] = $tree.Items.ToArray() }
+    }
+    return @($sourceTrees[$key] | Where-Object { [string]$_.path -ceq $Watch }).Count -gt 0
+}
+
+function Test-SourcePin {
+    param($Where, $Entry, [string]$Commit)
+    $watch = @(Get-SourceProperty $Entry 'watchPaths' | Where-Object { $_ })
+    if ($watch.Count -gt 0) {
+        foreach ($path in $watch) {
+            $present = if ($Where.Host -eq 'github.com') {
+                Test-GitHubSourcePath -Path $Where.Path -Ref $Commit -Watch $path
+            } else {
+                Test-GitLabSourcePath -Project ([Uri]::EscapeDataString($Where.Path)) -Ref $Commit -Watch $path
+            }
+            if ($present) { return $true }
+        }
+        return $false
+    }
+    $uri = if ($Where.Host -eq 'github.com') { "https://api.github.com/repos/$($Where.Path)/git/commits/$Commit" } else {
+        "https://gitlab.com/api/v4/projects/$([Uri]::EscapeDataString($Where.Path))/repository/commits/$Commit" }
+    $answer = Invoke-SourceRequest -Uri $uri -Auth $(if ($Where.Host -eq 'github.com') { 'github' } else { 'gitlab' })
+    if ($answer.Status -notin @(200, 404)) { throw "the pin $Commit answered HTTP $($answer.Status)" }
+    return $answer.Status -eq 200
+}
+
 function Get-GitHubFacebookHead {
     param([string]$Path, [string]$Branch, [string[]]$WatchPaths, [string]$Head)
     if (@($WatchPaths).Count -eq 0) { return $Head }
     $newest = $null
     foreach ($watch in $WatchPaths) {
+        if (-not (Test-GitHubSourcePath -Path $Path -Ref $Head -Watch $watch)) { continue }
         $answer = Invoke-SourceRequest -Uri ("https://api.github.com/repos/$Path/commits?sha=" + [Uri]::EscapeDataString($Branch) +
             '&path=' + [Uri]::EscapeDataString($watch) + '&per_page=1') -Auth github
         if ($answer.Status -ne 200) { throw "the commits of $Branch under $watch answered HTTP $($answer.Status)" }
@@ -702,6 +784,7 @@ function Get-GitLabFacebookHead {
     if (@($WatchPaths).Count -eq 0) { return $Head }
     $newest = $null
     foreach ($watch in $WatchPaths) {
+        if (-not (Test-GitLabSourcePath -Project $Project -Ref $Head -Watch $watch)) { continue }
         $answer = Invoke-SourceRequest -Uri ("https://gitlab.com/api/v4/projects/$Project/repository/commits?ref_name=" +
             [Uri]::EscapeDataString($Branch) + '&path=' + [Uri]::EscapeDataString($watch) + '&per_page=1') -Auth gitlab
         if ($answer.Status -ne 200) { throw "the commits of $Branch under $watch answered HTTP $($answer.Status)" }
@@ -798,7 +881,23 @@ foreach ($entry in $entries) {
     $where = Split-SourceKey $key
     Invoke-Source $repository {
         $live = if ($where.Host -eq 'github.com') { Read-GitHubSource -Entry $entry -Path $where.Path } else { Read-GitLabSource -Entry $entry -Path $where.Path }
+        $availability = Get-SourceAvailability $entry
+        $pins = @(Get-SourceProperty $entry 'branches' | Where-Object { $_ })
+        if ($availability -ne 'active') {
+            foreach ($commit in @($pins | ForEach-Object { [string]$_.commit } | Sort-Object -Unique)) {
+                $present = Test-SourcePin -Where $where -Entry $entry -Commit $commit
+                if ($availability -eq 'retired' -and -not $present) {
+                    Add-Finding -Kind 'historical-pin-unavailable' -Repository $repository `
+                        -Detail "retired source pin $commit no longer contains its recorded Facebook-family paths; record it as unavailable" `
+                        -Evidence ([ordered]@{ commit = $commit; watchPaths = @($entry.watchPaths) })
+                } elseif ($availability -eq 'unavailable' -and $present) {
+                    Add-Finding -Kind 'historical-pin-restored' -Repository $repository `
+                        -Detail "unavailable source pin $commit is reachable again; review its availability" -Evidence ([ordered]@{ commit = $commit })
+                }
+            }
+        }
         if ($live.Status -ne 200) {
+            if ($availability -eq 'unavailable' -and $live.Status -eq 404) { return 'unavailable as recorded (HTTP 404)' }
             Add-Finding -Kind 'repository-gone' -Repository $repository -Detail "the repository answers HTTP $($live.Status)" -Evidence $null
             return "gone (HTTP $($live.Status))"
         }
@@ -820,10 +919,19 @@ foreach ($entry in $entries) {
                 -Evidence ([ordered]@{ spdx = $live.License.Spdx; path = $live.License.Path; recorded = [string]$recordedLicense.sha256
                     sha256 = $live.License.Sha256 })
         }
-        $pins = @(Get-SourceProperty $entry 'branches' | Where-Object { $_ })
         $pinnedCommits = @($pins | ForEach-Object { [string]$_.commit })
         $pinnedNames = @($pins | ForEach-Object { [string]$_.name })
+        if ($availability -ne 'active') {
+            foreach ($name in @($live.Branches.Keys)) {
+                if ($live.Branches[$name].Facebook) {
+                    Add-Finding -Kind 'source-reactivated' -Repository $repository `
+                        -Detail "$availability source has Facebook-family code on branch $name again" `
+                        -Evidence ([ordered]@{ branch = $name; facebookHead = $live.Branches[$name].Facebook; head = $live.Branches[$name].Head })
+                }
+            }
+        }
         foreach ($pin in $pins) {
+            if ($availability -ne 'active') { continue }
             $name = [string]$pin.name
             if (-not $live.Branches.Contains($name)) {
                 Add-Finding -Kind 'branch-removed' -Repository $repository -Detail "branch $name is gone" -Evidence $null
@@ -837,6 +945,7 @@ foreach ($entry in $entries) {
             }
         }
         foreach ($name in @($live.Branches.Keys)) {
+            if ($availability -ne 'active') { continue }
             if ($pinnedNames -contains $name) { continue }
             $now = $live.Branches[$name]
             if (-not $now.Facebook -or $pinnedCommits -contains $now.Facebook) { continue }
@@ -861,7 +970,7 @@ foreach ($entry in $entries) {
             if (@($live.Forks | ForEach-Object { $_.ToLowerInvariant() }) -notcontains $fork) { $notes.Add("$repository no longer lists the fork $fork") }
         }
         $script:forkCount += @($live.Forks).Count
-        "$(@($live.Branches.Keys).Count) branches, $(@($live.Forks).Count) forks, licence " +
+        "$availability source, $(@($live.Branches.Keys).Count) branches, $(@($live.Forks).Count) forks, licence " +
             $(if ($live.License) { $live.License.Sha256.Substring(0, 12) } else { 'none' })
     }
 
@@ -906,13 +1015,18 @@ $lineages = @($entries | Group-Object { [string]$_.lineage } | Sort-Object Name 
     $lineage = $_.Name
     [ordered]@{
         lineage = $lineage
-        sources = @($_.Group | ForEach-Object { [ordered]@{ repository = [string]$_.repository; disposition = [string]$_.disposition } })
+        sources = @($_.Group | ForEach-Object { [ordered]@{ repository = [string]$_.repository; disposition = [string]$_.disposition
+            availability = Get-SourceAvailability $_; targetVersions = $_.targetVersions } })
         mirrors = @(@($_.Group | ForEach-Object { Get-SourceProperty $_ 'mirrors' } | Where-Object { $_ } | ForEach-Object { [string]$_.repository }) +
             @($collapsed | Where-Object { $_.lineage -eq $lineage } | ForEach-Object { $_.repository }))
     }
 })
 $counts = [ordered]@{
     sources = $entries.Count
+    activeSources = $availabilityCounts.activeSources
+    retiredSources = $availabilityCounts.retiredSources
+    unavailableSources = $availabilityCounts.unavailableSources
+    historicalSources = $availabilityCounts.historicalSources
     lineages = $lineageNames.Count
     mirrorsRecorded = @($entries | ForEach-Object { Get-SourceProperty $_ 'mirrors' } | Where-Object { $_ }).Count
     mirrorsCollapsed = $collapsed.Count
@@ -921,10 +1035,12 @@ $counts = [ordered]@{
     requests = $requestCount
     findings = $findings.Count
 }
-$clean = $findings.Count -eq 0
+$clean = $findings.Count -eq 0 -and @($sourceStatus | Where-Object { $_.status -ne 'read' }).Count -eq 0
 Save-Report -Clean $clean -Counts $counts -Lineages $lineages -KnownHits $knownHits
 Write-Step ("$($entries.Count) sources in $($lineageNames.Count) lineages, $($counts.mirrorsRecorded) recorded mirrors, " +
-    "$($collapsed.Count) more collapsed by content, $forkCount forks; $($candidates.Count) repositories found by the indexes and code search")
+    "$($collapsed.Count) more collapsed by content, $forkCount forks; " +
+    "$($counts.activeSources) active, $($counts.retiredSources) retired, $($counts.unavailableSources) unavailable; " +
+    "$($candidates.Count) repositories found by the indexes and code search")
 foreach ($note in $notes) { Write-Step "note: $note" }
 if (-not $clean) {
     foreach ($finding in $findings) {

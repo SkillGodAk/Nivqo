@@ -254,7 +254,6 @@ Videos will save at their lowest quality, for the smallest files.	影片將以�
 Videos will save at %1$s or the closest quality below it. A video with nothing that low will save at the closest quality above.	影片將以 %1$s 或最接近且較低的畫質儲存。若沒有那麼低的畫質，則使用最接近且較高的畫質。
 Settings imported.	設定已匯入。
 Video file name	影片檔名
-%1$s becomes the date and time of the save, %2$s the video's number on Facebook, %3$s who posted it and %4$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %5$s.	%1$s 會替換成儲存日期與時間，%2$s 是影片在 Facebook 的編號，%3$s 是發布者，%4$s 是發布日期。無法取得的資訊會省略；若名稱中完全沒有這些欄位，會自動加入日期。若資料夾內已有同名檔案，會在結尾加入儲存時間。無效字元會改成底線。留白則使用預設值 %5$s。
 Videos are named %1$s. Photos keep Facebook's own %2$s names.	影片會命名為 %1$s。相片則保留 Facebook 原本的 %2$s 名稱。
 Saved videos will be named %1$s.	儲存的影片將命名為 %1$s。
 File name	檔案名稱
@@ -352,8 +351,6 @@ Words that keep a post	保留貼文的文字
 One word or phrase per line, up to %1$d, each %2$d to %3$d characters long, or just one for an emoji, a Chinese character, a kana or a Hangul syllable. Capital letters don't matter, and a phrase matches anywhere in a post's text, inside longer words too.	每行輸入一個單字或詞組，最多 %1$d 行；每個項目需為 %2$d 至 %3$d 個字元。Emoji、單一中文字、假名或韓文字母可只輸入 1 個字元。不區分大小寫，而且只要詞組出現在貼文文字中即可匹配，即使位於較長單字內也會匹配。
 A post with any of these stays, even when it also has a word to hide. One per line, up to %1$d, each %2$d to %3$d characters long, or just one for an emoji, a Chinese character, a kana or a Hangul syllable.	含有這些任一項目的貼文會保留，即使同時含有要隱藏的字詞。每行一個，最多 %1$d 行；每個項目需為 %2$d 至 %3$d 個字元。Emoji、單一中文字、假名或韓文字母可只輸入 1 個字元。
 One word or phrase per line	每行一個單字或片語
-%1$d line was left out. A phrase needs %2$d to %3$d characters, or just one for an emoji, a Chinese character, a kana or a Hangul syllable. One given twice counts once, and a list holds %4$d.	已略過 %1$d 行。詞組需為 %2$d 至 %3$d 個字元；Emoji、單一中文字、假名或韓文字母可只輸入 1 個字元。重複項目只計一次，清單最多可保存 %4$d 個項目。
-%1$d lines were left out. A phrase needs %2$d to %3$d characters, or just one for an emoji, a Chinese character, a kana or a Hangul syllable. One given twice counts once, and a list holds %4$d.	已略過 %1$d 行。詞組需為 %2$d 至 %3$d 個字元；Emoji、單一中文字、假名或韓文字母可只輸入 1 個字元。重複項目只計一次，清單最多可保存 %4$d 個項目。
 No words yet, so no post is hidden.	尚未設定任何文字，因此不會隱藏貼文。
 No words yet.	尚未設定任何文字。
 %1$d word or phrase.	%1$d 個單字或片語。
@@ -496,7 +493,6 @@ Traditional Chinese	繁體中文
 English	英文
 %1$s becomes the date and time of the save, %2$s the video's number on Facebook, %3$s who posted it, %4$s their profile's number on Facebook and %5$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %6$s.	%1$s 會替換為儲存日期與時間，%2$s 為影片在 Facebook 上的編號，%3$s 為發佈者名稱，%4$s 為其 Facebook 個人檔案或粉絲專頁編號，%5$s 為發佈日期。儲存時無法取得的資訊會略過；若檔名不含上述任何資訊，會附加日期。若資料夾中已有同名檔案，會在結尾附加儲存時間。無效字元會改成底線。留白則使用預設名稱 %6$s。
 Android will ask which app gets the links each time.	Android 每次都會詢問要用哪個應用程式開啟連結。
-A tap on the Messenger icon at the top of Facebook opens the Messenger app instead of Chats. Without Messenger installed, Chats opens as before.	點一下 Facebook 頂部的 Messenger 圖示會開啟 Messenger 應用程式，而不是 Facebook 內建聊天。若未安裝 Messenger，則仍會照原本方式開啟聊天。
 Choose a folder name under %1$s. Invalid characters become underscores. Leave it blank to use the default folder, %2$s.	在 %1$s 下選擇資料夾名稱。無效字元會改成底線。留白則使用預設資料夾 %2$s。
 Dark mode draws %1$s instead of dark grey. Turn on dark mode in Facebook to see it.	深色模式會以 %1$s 取代深灰色。請先在 Facebook 開啟深色模式以查看效果。
 Hide "Find friends from contacts"	隱藏「從聯絡人尋找朋友」
@@ -514,7 +510,6 @@ Tapping Download on a reel or video will send its link to an app.	點選 Reel �
 The line under the poster's name keeps the post's date instead of Facebook's rotating details, which go blank on some phones.	發佈者名稱下方會保留貼文日期，不再被 Facebook 的輪替資訊取代；某些手機上該資訊甚至會變成空白。
 The row of friend suggestions between posts, the one on your own profile, and the cards with an Add button in the Stories tray.	貼文之間的好友推薦列、你個人檔案上的推薦列，以及限時動態列中帶有「新增」按鈕的卡片。
 The row of Meta AI questions under some posts. The post, its link card and its buttons stay.	隱藏部分貼文下方的 Meta AI 問題列；貼文、連結卡片與按鈕仍會保留。
-The row of stories at the top of the feed, Create story included, and the rows of stories between posts.	動態消息頂端的限時動態列（包含「建立限時動態」）以及貼文之間的限時動態列。
 the start-up fix for x86 devices	x86 裝置啟動修復
 The Stories tray card asking to upload your contacts. Applies when Facebook next loads the tray.	限時動態列中要求上傳聯絡人的卡片。會在 Facebook 下次載入限時動態列時生效。
 Videos and photos go to %1$s, next to the camera's. Saves you already have stay where they are.	影片與相片會儲存到 %1$s，與相機拍攝內容放在一起。已儲存的檔案不會移動。
@@ -523,3 +518,58 @@ Videos and photos go to %1$s.	影片與相片會儲存到 %1$s。
 Videos and photos will go to %1$s.	影片與相片將儲存到 %1$s。
 Videos go to %1$s and photos to %2$s, as Facebook's own saves do. Some galleries don't show %1$s.	影片會儲存到 %1$s，相片會儲存到 %2$s，與 Facebook 原生儲存方式相同。部分相簿應用程式不會顯示 %1$s。
 Videos will go to %1$s and photos to %2$s.	影片將儲存到 %1$s，相片將儲存到 %2$s。
+
+# Nivqo additions
+%1$d line was left out. A phrase needs %2$d to %3$d characters, or just one for an emoji, a Chinese character, a kana or a Hangul syllable. One given twice counts once.	%1$d 行已略過。每個詞句需要 %2$d 到 %3$d 個字元；若是表情符號、中文字、假名或韓文字節，只需 1 個字元。相同內容重複輸入只計算一次。
+%1$d lines were left out. A phrase needs %2$d to %3$d characters, or just one for an emoji, a Chinese character, a kana or a Hangul syllable. One given twice counts once.	%1$d 行已略過。每個詞句需要 %2$d 到 %3$d 個字元；若是表情符號、中文字、假名或韓文字節，只需 1 個字元。相同內容重複輸入只計算一次。
+A list holds up to %1$d phrases, and this one has more. Remove some, then save again.	每個清單最多可包含 %1$d 個詞句，目前已超出上限。請刪除部分內容後再儲存。
+Adds Saved to Facebook's icon menu when there's room. Existing shortcuts stay.	在空間允許時，將「已儲存」加入 Facebook 圖示選單。現有捷徑不受影響。
+All	全部
+Apply whole-word matching to both lists. For example, hat matches hat! but not what or hats.	對兩個清單套用完整單字比對。例如 hat 會符合 hat!，但不會符合 what 或 hats。
+Both lists together fill %1$d%% of the room they share.	兩個清單合計已使用共用空間的 %1$d%%。
+Both lists together would fill %1$d%% of the room they share. Remove or shorten some phrases, then save again.	兩個清單合計將使用共用空間的 %1$d%%。請刪除或縮短部分詞句後再儲存。
+Build %1$s	組建 %1$s
+Couldn't open or share that saved file. Try again.	無法開啟或分享該已儲存檔案，請再試一次。
+Facebook's web addresses open here now.	Facebook 的網址現在會由這裡開啟。
+Favorites	最愛
+Feeds opens on	「動態消息」開啟於
+Force dark mode	強制深色模式
+Groups	社團
+Hide Stories between posts	隱藏貼文之間的限時動態
+Hide story prompts	隱藏限時動態提示
+Instagram	Instagram
+Instagram can keep facebook.com links for itself, so their switches for this app turn themselves back off. Tap and turn off Open supported links there, then check Supported links above.	Instagram 可能會保留 facebook.com 連結的處理權，導致此應用程式的相關開關再次關閉。點一下並在 Instagram 中關閉「開啟支援的連結」，再回來檢查上方的「支援的連結」。
+Instagram's settings didn't open. Open App info from Instagram's icon, then Open by default.	無法開啟 Instagram 的設定。請長按 Instagram 圖示開啟「應用程式資訊」，再進入「預設開啟」。
+Keep Facebook in dark mode whatever its own setting says, for tablets where Facebook's settings have no Dark mode. Restart Facebook after changing it.	無論 Facebook 自己的設定為何，都保持深色模式，適用於 Facebook 設定中沒有「深色模式」的平板。變更後請重新啟動 Facebook。
+Match whole words	比對完整單字
+Messenger	Messenger
+Messenger can keep facebook.com and m.me links for itself, so their switches for this app turn themselves back off. Tap and turn off Open supported links there, then check Supported links above.	Messenger 可能會保留 facebook.com 和 m.me 連結的處理權，導致此應用程式的相關開關再次關閉。點一下並在 Messenger 中關閉「開啟支援的連結」，再回來檢查上方的「支援的連結」。
+Messenger's settings didn't open. Open App info from Messenger's icon, then Open by default.	無法開啟 Messenger 的設定。請長按 Messenger 圖示開啟「應用程式資訊」，再進入「預設開啟」。
+Meta App Manager	Meta App Manager
+Meta App Manager can keep Facebook's web addresses for itself, so their links skip this app. Tap and turn off Open supported links there, then check Supported links above.	Meta App Manager 可能會保留 Facebook 網址的處理權，讓這些連結略過此應用程式。點一下並在其中關閉「開啟支援的連結」，再回來檢查上方的「支援的連結」。
+Meta App Manager's settings didn't open. Find it in Android's app list with system apps shown, then Open by default.	無法開啟 Meta App Manager 的設定。請在 Android 應用程式清單中顯示系統應用程式後找到它，再進入「預設開啟」。
+Off	關閉
+On	開啟
+Open	開啟
+Pages	粉絲專頁
+Patch again with %1$s selected. Re-signed builds need it for profiles and some Facebook Settings pages.	請重新修補並選取 %1$s。重新簽署的版本需要此補丁，才能正常開啟個人檔案與部分 Facebook 設定頁面。
+Photo saved	照片已儲存
+Profiles and some Settings pages won't open	個人檔案與部分設定頁面將無法開啟
+Rows, large tiles and viewers of Stories between posts, starting with the next feed Facebook loads. The top Stories tray has its own switch.	從 Facebook 下次載入動態消息開始，隱藏貼文之間的限時動態列、大型卡片與檢視區。頂部的限時動態列有獨立開關。
+Saved	已儲存
+Saved isn't available in this build.	此版本無法使用「已儲存」。
+Saved now %1$s. After import %2$s.	目前「已儲存」為 %1$s。匯入後為 %2$s。
+Saved shortcut	「已儲存」捷徑
+Share	分享
+That saved file is no longer available.	該已儲存檔案已無法使用。
+The Feeds tab will open on %1$s.	「動態消息」分頁將開啟於 %1$s。
+The Feeds tab will open on the filter Facebook picks.	「動態消息」分頁將使用 Facebook 選擇的篩選方式。
+The cards beside Create story that suggest a story to make, like Share music you love. Applies when Facebook next loads the tray.	隱藏「建立限時動態」旁邊建議你製作限時動態的卡片，例如「分享你喜愛的音樂」。Facebook 下次載入該區域時生效。
+The word lists in that file are longer than the two lists have room for. Nothing was changed.	該檔案中的單字清單超過兩個清單可用的共同容量，因此未套用任何變更。
+There's no app here that can open or share this saved file.	目前沒有應用程式可以開啟或分享這個已儲存檔案。
+Video saved	影片已儲存
+When Facebook opens on Feeds, the Feeds tab opens on %1$s. If your Feeds tab doesn't have it, it opens as usual.	當 Facebook 開啟「動態消息」時，「動態消息」分頁會開啟於 %1$s。若你的「動態消息」分頁沒有此項目，則會照原本方式開啟。
+When Facebook opens on Feeds, the Feeds tab opens on the filter Facebook picks.	當 Facebook 開啟「動態消息」時，「動態消息」分頁會使用 Facebook 選擇的篩選方式。
+Your launcher has no room for another shortcut.	啟動器沒有空間可再加入捷徑。
+facebook.com and m.me links open here now.	facebook.com 和 m.me 連結現在會由這裡開啟。
+facebook.com links open here now.	facebook.com 連結現在會由這裡開啟。

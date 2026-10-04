@@ -89,6 +89,7 @@ import app.morphe.extension.facebook.search.MetaAiSearchForTests;
 import app.morphe.extension.facebook.stories.StoryAdvance;
 import app.morphe.extension.facebook.stories.StorySeen;
 import app.morphe.extension.facebook.stories.SuggestedStoriesForTests;
+import app.morphe.extension.facebook.theme.ForceDarkModeForTests;
 import app.morphe.extension.facebook.updates.UpdatePrompts;
 import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.diagnostics.FeedFilterCounters;
@@ -178,6 +179,7 @@ public class PausedHooksTest {
         ReleaseCheck.Stored.CHECKED_AT.savedValue();
         // A Facebook start a day after the last try asks GitHub for the newest release.
         probes.put(Settings.CHECK_FOR_RELEASES, ReleaseCheckForTests::aStartAsksGitHub);
+        probes.put(Settings.SAVED_SHORTCUT, SavedShortcutTest::aStartPublishes);
         return probes;
     }
 
@@ -425,6 +427,8 @@ public class PausedHooksTest {
         // Facebook's own override of where the tab bar goes reads YES, for the bottom, where it read NO.
         probes.put(PatchFamily.BOTTOM_TAB_BAR, Collections.singletonList(
                 () -> BottomTabBar.override(TriState.NO.ordinal()) == TriState.YES.ordinal()));
+        // Facebook's dark mode controller answers dark where it answered light.
+        probes.put(PatchFamily.FORCE_DARK_MODE, Collections.singletonList(ForceDarkModeForTests::forcesDark));
         // A request for a post's comments that names no order asks for the chosen one.
         probes.put(PatchFamily.DEFAULT_COMMENT_ORDER,
                 Collections.singletonList(DefaultCommentOrderForTests::asksForTheChosenOrder));

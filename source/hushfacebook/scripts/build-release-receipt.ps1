@@ -162,10 +162,21 @@ if (-not (Test-Path -LiteralPath $Sbom -PathType Leaf)) {
 }
 $Sbom = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Sbom)
 $sbomDocument = Read-ReleaseSbom -Path $Sbom
-$sbomBound = Test-ReleaseSbom -Sbom $sbomDocument -BundlePath $Bundle -BundleName (Split-Path -Leaf $Bundle)
+$sbomBound = Test-ReleaseSbom -Sbom $sbomDocument -BundlePath $Bundle -BundleName (Split-Path -Leaf $Bundle) `
+    -ExpectedCommit $commit
 if (-not $sbomBound.Valid) { throw "The SBOM does not describe the bundle: $($sbomBound.Reason)" }
 Invoke-ReleaseAdvisoryGate -Sbom $sbomDocument -ExceptionsPath (Join-Path $PSScriptRoot 'advisory-exceptions.txt') `
     -SkipAdvisoryCheck:$SkipAdvisoryCheck
+
+$toolingPath = [IO.Path]::ChangeExtension($Bundle, '.tooling.json')
+$toolingDocument = Read-ReleaseTooling -Path $toolingPath
+$toolingScopeText = @(Invoke-RepoGit -Root $Root -Arguments @('show', "${commit}:gradle/tooling-scopes.txt")) -join "`n"
+if (-not $toolingScopeText) { throw 'The release commit has no tooling scope manifest.' }
+$toolingBound = Test-ReleaseTooling -Tooling $toolingDocument -BundlePath $Bundle `
+    -ExpectedCommit $commit -ScopeManifestText $toolingScopeText
+if (-not $toolingBound.Valid) { throw "The tooling report does not describe the release: $($toolingBound.Reason)" }
+$toolingAuditStatus = Invoke-ToolingAdvisoryGate -Tooling $toolingDocument `
+    -ExceptionsPath (Join-Path $PSScriptRoot 'tooling-advisory-exceptions.txt') -SkipAdvisoryCheck:$SkipAdvisoryCheck
 
 function Get-ExtensionPayloads {
     <#
@@ -404,6 +415,13 @@ $receipt = [ordered]@{
         sha256     = $sbomDocument.Sha256
         components = @($sbomDocument.Components).Count
     }
+    tooling       = [ordered]@{
+        file       = Split-Path -Leaf $toolingPath
+        sha256     = $toolingDocument.Sha256
+        components = @($toolingDocument.Components).Count
+        scopes     = @($toolingDocument.Scopes).Count
+        audit      = [ordered]@{ status = $toolingAuditStatus }
+    }
     toolchain     = [ordered]@{
         patcherVersion = $patcherMatch.Groups[1].Value
         managerFloor   = $floorMatch.Groups[1].Value
@@ -422,7 +440,7 @@ $check = Test-ReleaseReceipt -Receipt ($receipt | ConvertTo-Json -Depth 12 | Con
     -ExpectedPackageName $expectedTarget.PackageName `
     -ExpectedPackageVersions $expectedTarget.PackageVersions -ExpectedPackageVersionCodes $expectedTarget.PackageVersionCodes `
     -BundlePath $Bundle `
-    -ApprovedManifestDelta $approved -SbomPath $Sbom
+    -ApprovedManifestDelta $approved -SbomPath $Sbom -ToolingPath $toolingPath -ToolingScopeManifestText $toolingScopeText
 if (-not $check.Valid) { throw "The receipt this run produced does not pass validation: $($check.Reason)" }
 
 $receipt | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $OutputPath -Encoding UTF8
