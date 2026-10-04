@@ -1,3 +1,11 @@
+## [0.3.0](https://github.com/SkillGodAk/Nivqo/commit/f627612ea08191d32a58f01addc28c27d32c4ce5) (2026-10-04)
+
+### New Features
+
+* **Facebook:** Nivqo Patches updates HushFacebook to 0.7.1-nivqo.1 with 60 patches, adds Facebook 581.0.0.45.58 / versionCode 475215365 support, and includes Force dark mode plus the v0.7.x Stories, Saved shortcut, supported-links, filtering, theme and save-flow improvements while preserving Nivqo Traditional Chinese and two-way Messenger routing.
+* **Messenger:** Nivqo Patches keeps HushMessenger 0.14.0-nivqo.1 with 32 patches and its existing Nivqo Traditional Chinese integration.
+* **General:** Nivqo Patches 0.3.0 contains 92 total patch entries (Facebook 60 + Messenger 32).
+
 ## [0.2.0](https://github.com/SkillGodAk/Nivqo/commit/e0e3d7c1b136dbfb792e24430d9885b6a60152f0) (2026-10-03)
 
 ### ✨ New Features
