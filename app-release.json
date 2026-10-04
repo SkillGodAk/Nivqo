@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-03T12:37:08",
-  "description": "繁體中文：Nivqo v1.33.0 同版覆蓋更新，內建 HushFacebook 0.6.0-nivqo.1 與 HushMessenger 0.14.0-nivqo.1 正式核心。HushMessenger 只同步上游正式 v0.14.0，共 32 個 patch，核心設定繁中 203 / 203，Manager patch metadata 32 / 32；新增聊天滑入滑出動畫、Native Bubbles、側邊選單設定入口、手機原生 Emoji，並納入 v0.8.0～v0.14.0 的備份、Root Mount、更新檢查與穩定性修正。App 顯示版本仍為 1.33.0；v1.32.0 與舊 v1.33.0 可直接覆蓋更新。 English: Same-version Nivqo v1.33.0 replacement with bundled HushFacebook 0.6.0-nivqo.1 and HushMessenger 0.14.0-nivqo.1 formal cores. HushMessenger syncs only the formal upstream v0.14.0 release, has 32 patches, 203 / 203 Traditional Chinese core settings strings, and 32 / 32 localized Manager patch metadata. It adds the chat slide animation, Native Bubbles, side-menu settings access, phone-native emoji, and the v0.8.0–v0.14.0 backup, Root Mount, update-check and reliability improvements. The installed version name remains 1.33.0 and existing v1.32.0 / older v1.33.0 builds can update in place.",
+  "created_at": "2026-10-04T16:41:26",
+  "description": "繁體中文：Nivqo v1.33.0 同版覆蓋更新，內建 HushFacebook 0.7.1-nivqo.1 與 HushMessenger 0.14.0-nivqo.1 正式核心。HushFacebook 只同步上游正式 v0.7.1，共 60 個 patch，支援 Facebook 581.0.0.45.58 / versionCode 475215365，保留 580 與 577 支援；核心繁中表 572 筆，Manager patch metadata 60 / 60，並保留 Nivqo 介面語言選擇與 Facebook / Messenger 雙向路由。原版 Morphe Manager 的 Nivqo Patches 整合來源更新為 0.3.0，共 92 個 patch（Facebook 60 + Messenger 32）。App 顯示版本仍為 1.33.0，可由舊 v1.33.0 直接覆蓋更新。 English: Same-version Nivqo v1.33.0 replacement with bundled HushFacebook 0.7.1-nivqo.1 and HushMessenger 0.14.0-nivqo.1 formal cores. HushFacebook syncs only the formal upstream v0.7.1 release, has 60 patches, adds Facebook 581.0.0.45.58 / versionCode 475215365 while retaining 580 and 577 support, carries 572 Traditional Chinese core strings and 60 / 60 localized Manager patch metadata, and preserves the Nivqo interface-language selector and two-way Facebook / Messenger routing. The original Morphe Manager combined Nivqo Patches source is updated to 0.3.0 with 92 patches total (Facebook 60 + Messenger 32). The installed version name remains 1.33.0 and older v1.33.0 builds can update in place.",
   "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v1.33.0/Nivqo-Manager-1.33.0-20261001-release.apk",
   "signature_download_url": "",
-  "version": "1.33.6",
-  "version_code": 39860130
+  "version": "1.33.7",
+  "version_code": 39861814
 }
