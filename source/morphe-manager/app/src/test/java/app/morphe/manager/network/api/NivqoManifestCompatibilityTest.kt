@@ -14,18 +14,18 @@ class NivqoManifestCompatibilityTest {
     fun currentHushFacebookManifestKeepsLegacyLocalDateTimeFormat() {
         val manifest = """
             {
-              "created_at": "2026-10-02T10:15:01",
-              "description": "HushFacebook 0.6.0 Nivqo core",
+              "created_at": "2026-10-04T16:23:32",
+              "description": "HushFacebook 0.7.1 Nivqo core",
               "changelog_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook-changelog.md",
               "signature_download_url": "",
               "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/bundles/hushfacebook.mpp",
-              "version": "0.6.0-nivqo.1"
+              "version": "0.7.1-nivqo.1"
             }
         """.trimIndent()
 
         val asset = json.decodeFromString<MorpheAsset>(manifest)
-        assertEquals("0.6.0-nivqo.1", asset.version)
-        assertEquals("2026-10-02T10:15:01", asset.createdAt.toString())
+        assertEquals("0.7.1-nivqo.1", asset.version)
+        assertEquals("2026-10-04T16:23:32", asset.createdAt.toString())
         assertEquals(
             "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook-changelog.md",
             asset.changelogUrl

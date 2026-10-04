@@ -2416,7 +2416,7 @@ class PatchBundleRepository(
         internal const val HUSHMESSENGER_SOURCE_UID = -1_260_439_702
 
         internal const val HUSHFACEBOOK_BUNDLED_ASSET =
-            "morphe-hush/hushfacebook-0.6.0.mpp"
+            "morphe-hush/hushfacebook-0.7.1.mpp"
         internal const val HUSHMESSENGER_BUNDLED_ASSET =
             "morphe-hush/hushmessenger-0.14.0.mpp"
 
