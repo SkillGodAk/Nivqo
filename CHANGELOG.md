@@ -32,6 +32,30 @@
 
 # Changelog
 
+## 2026-10-06 — v1.34.0
+
+### Manager 同步
+
+- Nivqo Manager 基底由 Morphe Manager `1.33.0` 同步到正式 `1.34.0` / commit `a0e19e5e2d3c2cdc5172d760a2699a079d08b430`。
+- Morphe Patcher 同步到正式 `1.15.1` / commit `812e96eaac173cd058ba49e242325371959befae`。
+- 保留 Nivqo package `app.nivqo.manager`、GitHub Manager 更新通道、HushFacebook / HushMessenger 遠端核心、自有繁中 metadata、WorkManager 背景更新與 Firebase / Google Services 移除。
+- 跟進 1.34.0 的內建更新流程、私人 GitHub patch source + PAT、重新簽章 App Links 引導／還原、首頁卡片與 changelog/update badge 修正，以及 patch source / patcher / installer 效能與穩定性改善。
+
+### 核心
+
+- HushFacebook 維持 `0.7.1-nivqo.1` / 60 patches。
+- HushMessenger 更新為 `0.21.0-nivqo.1` / 33 patches，支援 Messenger 580 / 581 共 37 個 arm64 builds，新增「隱藏已加入的社群聊天」，並擴充 AI 貼圖隱藏與受保護媒體截圖。
+- HushMessenger 核心設定繁中覆蓋 `213 / 213`；Manager patch metadata `33 / 33`。
+- Nivqo Patches 更新為 `0.4.0`，Facebook 60 + Messenger 33 = 93 patches。
+
+### APK
+
+- `Nivqo-Manager-1.34.0-20261006-release.apk`
+- Version code：`39864046`
+- APK SHA-256：`846A424CB72A31A9CBE2FD6D66FC9AC92571BFB1DBED467D39D1CD7F7DB44DEB`
+- Signer SHA-256：`FDEC7E04562314AB6CB90981AA7C88F5AFC145F65264D2D359E331F7A22E9D29`
+
+
 ## 2026-10-02 — HushFacebook 0.6.0 + v1.33.0 replacement
 
 ### HushFacebook

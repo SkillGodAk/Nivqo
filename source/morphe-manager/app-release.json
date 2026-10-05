@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-04T16:41:26",
-  "description": "繁體中文：Nivqo v1.33.0 同版覆蓋更新，內建 HushFacebook 0.7.1-nivqo.1 與 HushMessenger 0.14.0-nivqo.1 正式核心。HushFacebook 只同步上游正式 v0.7.1，共 60 個 patch，支援 Facebook 581.0.0.45.58 / versionCode 475215365，保留 580 與 577 支援；核心繁中表 572 筆，Manager patch metadata 60 / 60，並保留 Nivqo 介面語言選擇與 Facebook / Messenger 雙向路由。原版 Morphe Manager 的 Nivqo Patches 整合來源更新為 0.3.0，共 92 個 patch（Facebook 60 + Messenger 32）。App 顯示版本仍為 1.33.0，可由舊 v1.33.0 直接覆蓋更新。 English: Same-version Nivqo v1.33.0 replacement with bundled HushFacebook 0.7.1-nivqo.1 and HushMessenger 0.14.0-nivqo.1 formal cores. HushFacebook syncs only the formal upstream v0.7.1 release, has 60 patches, adds Facebook 581.0.0.45.58 / versionCode 475215365 while retaining 580 and 577 support, carries 572 Traditional Chinese core strings and 60 / 60 localized Manager patch metadata, and preserves the Nivqo interface-language selector and two-way Facebook / Messenger routing. The original Morphe Manager combined Nivqo Patches source is updated to 0.3.0 with 92 patches total (Facebook 60 + Messenger 32). The installed version name remains 1.33.0 and older v1.33.0 builds can update in place.",
-  "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v1.33.0/Nivqo-Manager-1.33.0-20261001-release.apk",
+  "created_at": "2026-10-06T05:53:52",
+  "description": "繁體中文：Nivqo Manager 更新至 1.34.0，基於正式 Morphe Manager 1.34.0 / Morphe Patcher 1.15.1。保留 Nivqo 品牌、app.nivqo.manager、自有更新通道、WorkManager 背景更新、繁中與 Facebook / Messenger 整合。內建 HushFacebook 0.7.1-nivqo.1（60 patches）與 HushMessenger 0.21.0-nivqo.1（33 patches）；Messenger 新增 581 支援，580 / 581 合計 37 個 arm64 builds，核心繁中 213 / 213、Manager metadata 33 / 33。Nivqo Patches 整合來源更新至 0.4.0，共 93 patches。 English: Nivqo Manager 1.34.0 is based on formal Morphe Manager 1.34.0 / Morphe Patcher 1.15.1 while preserving Nivqo branding, package identity, update channels, WorkManager polling, localization and Facebook/Messenger integration. Bundled cores are HushFacebook 0.7.1-nivqo.1 (60 patches) and HushMessenger 0.21.0-nivqo.1 (33 patches), with Messenger 580/581 support across 37 arm64 builds, 213/213 Traditional Chinese core strings and 33/33 localized Manager metadata. Nivqo Patches 0.4.0 contains 93 patches total.",
+  "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v1.34.0/Nivqo-Manager-1.34.0-20261006-release.apk",
   "signature_download_url": "",
-  "version": "1.33.7",
-  "version_code": 39861814
+  "version": "1.34.0",
+  "version_code": 39864046
 }
