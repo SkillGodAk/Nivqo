@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-03T12:15:34",
-  "description": "HushMessenger 0.14.0 Nivqo 繁中核心；只同步上游正式 Release v0.14.0 / commit c3d91c8200337cd826c2c92ef06e1f9c261f8e62，共 32 個 patch。新增聊天滑入滑出動畫，聊天泡泡支援原始模式 / Chat Heads / Native Bubbles，設定入口擴充到側邊選單，Use system emoji 改用手機自身 Emoji，並納入 v0.8.0～v0.14.0 的備份、Root Mount、更新檢查與穩定性修正。保留 Nivqo 的跟隨系統 / 繁體中文 / English 語言選擇；核心設定翻譯 203 / 203，Manager patch metadata 32 / 32 繁中。",
+  "created_at": "2026-10-06T05:44:42",
+  "description": "HushMessenger 0.21.0 Nivqo 繁中核心；只同步上游正式 Release v0.21.0 / commit d5b196f45f400c3d97eff888ea0464b270731323，共 33 個 patch、30 個可切換控制項。新增 Messenger 581.0.0.49.91 支援，現涵蓋 580 / 581 共 37 個 arm64 builds；新增「隱藏已加入的社群聊天」，並擴充 AI 貼圖工具隱藏與受保護媒體截圖範圍。同步 Morphe Patcher 1.15.1 / MorpheApp ARSCLib，保留 Nivqo 的跟隨系統 / 繁體中文 / English 語言選擇；核心設定翻譯 213 / 213，Manager patch metadata 33 / 33 繁中。",
   "changelog_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushmessenger-changelog.md",
   "signature_download_url": "",
   "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/bundles/hushmessenger.mpp",
-  "version": "0.14.0-nivqo.1"
+  "version": "0.21.0-nivqo.1"
 }

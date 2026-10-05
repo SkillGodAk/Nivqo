@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "0.3.0",
+    [string]$Version = "0.4.0",
     [string]$OutputPath,
     [string]$AndroidSdk = ""
 )
@@ -89,9 +89,11 @@ try {
     Copy-Tree -Source (Join-Path $messenger "extensions\messenger") -Destination (Join-Path $temp "extensions\messenger") -ExcludeDirectories @("build", ".gradle")
 
     # HushFacebook v0.7.1 forces Guava 33.7.2-jre on all project configurations for its
-    # reviewed tooling graph. HushMessenger v0.14.0 still locks its unit-test configurations to
+    # reviewed tooling graph. HushMessenger v0.21.0 still locks its unit-test configurations to
     # 33.6.0-jre. The combined tree is temporary, so align only its copied Messenger lockfile;
     # do not modify the standalone HushMessenger core.
+    # The combined build uses the HushFacebook root build, whose reviewed dependency strategy forces
+    # Guava 33.7.2-jre. HushMessenger 0.21.0 still locks its extension unit-test graph to 33.6.0-jre.
     $messengerLock = Join-Path $temp "extensions\messenger\gradle.lockfile"
     $messengerLockText = [System.IO.File]::ReadAllText($messengerLock)
     $messengerLockText = $messengerLockText.Replace(
@@ -99,6 +101,11 @@ try {
         "com.google.guava:guava:33.7.2-jre="
     )
     [System.IO.File]::WriteAllText($messengerLock, $messengerLockText, [System.Text.UTF8Encoding]::new($false))
+
+    # Messenger 0.21.0 requires Morphe Patcher 1.15.1. The standalone Facebook source remains
+    # pinned to its reviewed 1.15.0 baseline; only this temporary combined build is raised.
+    $versionsToml = Join-Path $temp "gradle\libs.versions.toml"
+    Replace-ExactlyOnce $versionsToml 'morphe-patcher = "1.15.0"' 'morphe-patcher = "1.15.1"'
 
     [System.IO.File]::WriteAllText((Join-Path $temp "local.properties"), ("sdk.dir=" + $AndroidSdk.Replace("\", "\\")), [System.Text.Encoding]::ASCII)
 
@@ -148,7 +155,7 @@ try {
     }
 
     $duplicates = @($patches | Group-Object name | Where-Object { $_.Count -gt 1 })
-    if ($patches.Count -ne 92 -or $facebookCount -ne 60 -or $messengerCount -ne 32 -or $otherCount -ne 0) {
+    if ($patches.Count -ne 93 -or $facebookCount -ne 60 -or $messengerCount -ne 33 -or $otherCount -ne 0) {
         throw "Unexpected catalog split: total=$($patches.Count), Facebook=$facebookCount, Messenger=$messengerCount, other=$otherCount"
     }
     if ($duplicates.Count -ne 0) {
