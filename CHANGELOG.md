@@ -1,3 +1,11 @@
+## [0.4.0](https://github.com/SkillGodAk/Nivqo/commit/7598bc18d9bb8f6313a4a5c21e7d4ad51433a1c7) (2026-10-06)
+
+### New Features
+
+* **Facebook:** Nivqo Patches keeps HushFacebook 0.7.1-nivqo.1 with 60 patches and the existing Nivqo Traditional Chinese integration and Facebook / Messenger routing.
+* **Messenger:** Nivqo Patches updates HushMessenger to 0.21.0-nivqo.1 with 33 patches and 30 switchable controls, adds Messenger 581.0.0.49.91 support alongside 580.0.0.49.91 for 37 arm64 builds total, adds Hide joined community chats, and expands AI sticker hiding and protected-media screenshot support. Nivqo Traditional Chinese settings coverage is 213 / 213 and Manager patch metadata coverage is 33 / 33.
+* **General:** Nivqo Patches 0.4.0 contains 93 total patch entries (Facebook 60 + Messenger 33) and builds against Morphe Patcher 1.15.1 for Messenger compatibility.
+
 ## [0.3.0](https://github.com/SkillGodAk/Nivqo/commit/f627612ea08191d32a58f01addc28c27d32c4ce5) (2026-10-04)
 
 ### New Features
