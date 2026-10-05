@@ -9,10 +9,10 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.graphics.drawable.toDrawable
 import app.morphe.manager.data.platform.Filesystem
 import app.morphe.manager.data.room.apps.installed.InstalledApp
 import app.morphe.manager.data.room.apps.original.OriginalApk
@@ -80,6 +80,9 @@ class ResolverRecords(installed: List<InstalledApp>, originals: List<OriginalApk
  * 2. Original APK (from OriginalApkRepository)
  * 3. Patched APK (from InstalledAppRepository)
  * 4. Constants (hardcoded app names)
+ *
+ * With none of 1-3 at hand, the icon alone may still come from a disabled install or from the
+ * patched install under the name patching gave it.
  */
 class AppDataResolver(
     context: Context,
@@ -192,6 +195,18 @@ class AppDataResolver(
             }
         }
 
+        // Phase 1b: an install the sources above pass over still shows the right icon. Only the
+        // icon is taken, since neither a disabled app nor a renamed clone is the app asked about
+        val fallbackIcon = if (apkResult == null) {
+            installedIconFallback(
+                packageName,
+                lookupRecords ?: ResolverRecords(
+                    installedAppRepository.getAll().first(),
+                    originalApkRepository.getAll().first()
+                )
+            )
+        } else null
+
         // Phase 2: display name
         // apkResult already reflects the preferred source order (PATCHED_APK → ORIGINAL_APK → INSTALLED),
         // so its label is the best available. Bundle metadata is a fallback for when no APK is found
@@ -207,7 +222,7 @@ class AppDataResolver(
             packageInfo = apkResult?.packageInfo,
             source = apkResult?.source
                 ?: if (bundleName != null) AppDataSource.BUNDLE_METADATA else AppDataSource.CONSTANTS,
-            loadIcon = { apkResult?.icon }
+            loadIcon = { apkResult?.icon ?: fallbackIcon?.loadIcon(packageManager) }
         ).also { cache[packageName to preferredSource] = it }
     }
 
@@ -267,6 +282,17 @@ class AppDataResolver(
             null
         }
     }
+
+    /**
+     * The installed app whose icon stands in when no source has [packageName]: the app itself
+     * while disabled, else the patched install tracked under a name of its own.
+     */
+    private fun installedIconFallback(packageName: String, records: ResolverRecords): ApplicationInfo? =
+        listOfNotNull(packageName, records.installed(packageName)?.currentPackageName)
+            .distinct()
+            .firstNotNullOfOrNull { name ->
+                runCatching { pm.getPackageInfo(name, 0)?.applicationInfo }.getOrNull()
+            }
 
     /**
      * Try to get app data from saved original APK.
@@ -346,7 +372,7 @@ class AppDataResolver(
     fun detachedArchiveIcon(packageInfo: PackageInfo): Drawable? =
         packageInfo.applicationInfo
             ?.let(::archiveIconOrNull)
-            ?.let { icon -> runCatching { BitmapDrawable(resources, icon.toBitmap()) }.getOrNull() }
+            ?.let { icon -> runCatching { icon.toBitmap().toDrawable(resources) }.getOrNull() }
 
     /**
      * Try to get app display name from patch bundle metadata.

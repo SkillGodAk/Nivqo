@@ -17,6 +17,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(RobolectricTestRunner.class)
+// Checked AtomicFile writes need Android's POSIX replacement primitive on the Windows host.
 @Config(sdk = {28, 36})
 public class MaterialYouThemeTest {
 

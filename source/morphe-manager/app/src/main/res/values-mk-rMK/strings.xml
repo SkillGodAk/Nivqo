@@ -14,10 +14,10 @@
     <string name="android_11_bug_dialog_description">Дозволата за инсталирање на апликации мора да биде доделена однапред за да се избегне грешка во Android системот 11 што негативно ќе влијае на корисничкото искуство</string>
     <string name="deep_link_add_source_title">Додај извор</string>
     <string name="deep_link_add_source_message">Дали сакате да го додадете овој извор на закрпување во Nivqo?</string>
-    <string name="deep_link_add_source_warning">Додајте ги само изворите во кои верувате</string>
+<string name="deep_link_add_source_warning">Додајте ги само изворите во кои верувате</string>
     <!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Достапно е ажурирање на Nivqo</string>
-    <string name="home_update_available_subtitle">Достапно е ажурирање</string>
+<string name="home_update_available_subtitle">Достапно е ажурирање</string>
     <string name="home_update_error">Ажурирањето не успеа</string>
     <string name="home_update_skipped_metered">Ажурирањето е прескокнато</string>
     <string name="home_update_skipped_metered_subtitle">Мобилни податоци вклучени</string>
@@ -124,11 +124,11 @@
     <string name="home_download_instructions_download_button_toast_4">Сеуште не е тука… сеуште не е тука… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">Ја почитувам посветеноста 🫡</string>
     <string name="home_download_instructions_download_button_toast_6">Сега сте официјален тестер на копчето на Nivqo 🏅</string>
-    <string name="home_download_instructions_step3">Почекајте да се заврши преземањето, и &lt;b&gt;не инсталирајте&lt;/b&gt; го APK</string>
+<string name="home_download_instructions_step3">Почекајте да се заврши преземањето, и &lt;b&gt;не инсталирајте&lt;/b&gt; го APK</string>
     <string name="home_download_instructions_step3_mount">Почекајте да се заврши преземањето, потоа &lt;b&gt;инсталирајте го APK&lt;/b&gt;</string>
     <string name="home_download_instructions_step4">Откако ќе заврши преземањето, вратете се во Nivqo</string>
     <string name="home_download_instructions_step4_mount">Откако ќе ја инсталирате оригиналната APK, вратете се во Nivqo</string>
-    <!-- Home Screen - Dialog 3: File Picker Prompt -->
+<!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_file_picker_prompt_title">Избери APK</string>
     <string name="home_file_picker_prompt_description">Изберете ја APK-то датотеката што току што ја преземавте &lt;b&gt;%s&lt;/b&gt;.</string>
     <string name="home_file_picker_prompt_open_apk">Отвори APK датотека</string>
@@ -274,6 +274,8 @@
     <string name="home_app_info_patch_update_available_description">Достапна е нова верзија на закрпи. Закрпете ја вашата апликација за да ги добиете најновите подобрувања и поправки</string>
     <string name="home_app_info_app_deleted_warning">Апликацијата беше деинсталирана</string>
     <string name="home_app_info_app_deleted_description">Оваа апликација беше деинсталирана надвор од Nivqo. Повторно закрпете ја за да ја вратите функционалноста</string>
+<string name="app_links_badge_enabled">Овозможено</string>
+    <string name="app_links_badge_disabled">Оневозможено</string>
     <string name="home_app_info_apk_size">Големина на APK</string>
     <!-- Home Screen - Root Mode -->
     <string name="root_install_apk_required">Оригиналниот APK не е пронајден. Не можете повторно да закрпите оваа апликација</string>
@@ -304,22 +306,20 @@
     <string name="patcher_installed_conflict_body">"Nivqo ги потпишува закрпените апликации со сопствен сертификат, кој се разликува од оригиналниот. Android бара отстранување на постоечката верзија пред да може да се инсталира закрпената апликација.
 
 Отстранувањето трајно ќе ги избрише сите податоци од апликацијата"</string>
-    <string name="patcher_install_error_title">Грешка при инсталирање</string>
+<string name="patcher_install_error_title">Грешка при инсталирање</string>
     <string name="patcher_install_error_subtitle">Обидете се да ја деинсталирате и повторно инсталирате</string>
     <string name="patcher_ready_to_mount_subtitle">Притиснете го копчето подолу за да монтирате</string>
     <string name="patcher_storage_permission_dialog_title">Не може да пристапи до патеката за складиште</string>
     <string name="patcher_incompatible_patcher_title">Бара ажурирање</string>
-    <string name="patcher_incompatible_patcher_description">Пакувањето &lt;b&gt;%1$s&lt;/b&gt; бара верзија на закрпувач &lt;b&gt;%2$s&lt;/b&gt; или понова. Ве молиме ажурирајте го Nivqo за да го закрпите оваа апликација</string>
-    <string name="patcher_incompatible_patcher_update_button">Преземете и ажурирајте го Nivqo</string>
     <string name="patcher_storage_permission_description_api30">Еден или повеќе опции за закрпување укажуваат на патеки до кои Nivqo не може да пристапи. Доделете пристап до складиште и допрете го копчето, а потоа закрпувањето ќе започне автоматски</string>
-    <string name="patcher_storage_permission_description_legacy">Еден или повеќе опции за закрпи укажуваат на патеки до кои не можете да пристапите. Ажурирајте ги патеките во опциите за закрпи и обидете се повторно</string>
+<string name="patcher_storage_permission_description_legacy">Еден или повеќе опции за закрпи укажуваат на патеки до кои не можете да пристапите. Ажурирајте ги патеките во опциите за закрпи и обидете се повторно</string>
     <string name="patcher_storage_permission_grant">Додели пристап до складиште</string>
     <string name="patcher_storage_permission_denied_warning">Дозволата за складиште беше одбиена. Додели ја дозволата за да ја користиш патеката или премести ги датотеките во приватниот директориум на апликацијата</string>
     <string name="patcher_storage_permission_open_settings">Отвори поставки за складиште</string>
     <string name="patcher_storage_badge_denied">Дозволата е одбиена</string>
     <string name="patcher_storage_badge_missing">Не е пронајдена</string>
     <string name="patcher_storage_permission_hint">Совет: Премести ги датотеките во /Android/data/app.nivqo.manager/files/ - не се потребни дополнителни дозволи</string>
-    <!-- Patcher Screen - Patcher Steps -->
+<!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Подготовка</string>
     <string name="patcher_step_load_patches">Вчитување поправки</string>
     <string name="patcher_step_prepare_split_apk">Спојување на поделена APK</string>
@@ -331,7 +331,7 @@
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Заштита од закрпување во позадина</string>
     <string name="battery_optimization_dialog_description">Некои уреди може да го запре закрпувачот кога апликацијата е минимизирана. Дозволете на Nivqo да работи без ограничувања на батеријата за да се осигури закрпувањето целосно</string>
-    <string name="battery_optimization_not_now">Не сега</string>
+<string name="battery_optimization_not_now">Не сега</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">Поправување во тек…</string>
@@ -466,19 +466,19 @@
     <string name="settings_advanced_update_interval_battery_warning">Проверките во позадина можеби нема да работат доверливо на некои уреди. Производители како Xiaomi, Huawei, Samsung и OnePlus често агресивно ги ограничуваат процесите во позадина за да заштедат батерија</string>
     <!-- Notification content -->
     <string name="notification_manager_update_title">Достапно е ажурирање на Nivqo</string>
-    <string name="notification_bundle_update_title">Достапни се нови закрпи</string>
+<string name="notification_bundle_update_title">Достапни се нови закрпи</string>
     <string name="notification_update_text">Подготвена е верзијата %s за преземање</string>
     <string name="notification_bundle_update_text_unversioned">Допрете за да ја отворите Nivqo и да ја ажурирате</string>
-    <string name="notification_permission_dialog_title">Дозволи известувања</string>
+<string name="notification_permission_dialog_title">Дозволи известувања</string>
     <string name="notification_permission_dialog_description">На Nivqo му е потребна дозвола за известувања за да ве извести кога има достапни ажурирања во позадина</string>
-    <string name="notification_post_patch_dialog_title">Дали сакате да бидете известени кога се достапни ажурирања?</string>
+<string name="notification_post_patch_dialog_title">Дали сакате да бидете известени кога се достапни ажурирања?</string>
     <string name="notification_channel_patcher">Закрпување</string>
     <string name="notification_channel_patcher_description">Се прикажува додека Nivqo го закрпува апликацијата во позадина</string>
-    <!-- Settings - Advanced Tab - Expert settings Section -->
+<!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Напредни поставки</string>
     <string name="settings_advanced_expert_mode">Експертски режим</string>
     <string name="settings_advanced_expert_mode_description">Препорачува и обновува амаждите од Nivqo</string>
-    <string name="settings_advanced_expert_mode_dialog_title">Дали сакате да го вклучите Expert режим?</string>
+<string name="settings_advanced_expert_mode_dialog_title">Дали сакате да го вклучите Expert режим?</string>
     <string name="settings_advanced_expert_mode_dialog_message">Expert режимот дава повеќе контрола врз тоа како се применуваат закрпите, но лошо конфигурирање на поставките во Expert режимот може да резултира со апликација која не функционира</string>
     <string name="settings_advanced_strip_unused_libs">Оптимизирај за архитектура на уред</string>
     <string name="settings_advanced_strip_unused_libs_description">Ја прави резевата на постоечките апликации за оптимизација</string>
@@ -491,7 +491,7 @@
     <string name="settings_advanced_github_pat_export_include_label">Вклучи во извозот на поставки</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_include_supporting">Додава овој PAT на извезените поставки на Nivqo</string>
-    <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
+<!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">Не го споделувајте го вашиот PAT. Ако го вклучите во извозот на поставките, чувајте ја таа датотека приватно, бидејќи содржи token</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
     <string name="settings_advanced_patch_options">Опции за поправки</string>
@@ -577,7 +577,7 @@ morphe_header_custom_dark.png
     <string name="installer_status_shizuku_not_installed">Не е поддржано за оваа акција</string>
     <string name="installer_status_shizuku_not_running">Инсталирај Shizuku или Sui за да ја користиш оваа опција</string>
     <string name="installer_mount_warning_install">Додели дозвола на Nivqo од апликацијата Shizuku</string>
-    <string name="mount_version_mismatch_message">Верзијата на инсталираната апликација (%2$s) не одговара на верзијата на закрпената апликација (%1$s). Монтирајте ја соодветната верзија на инсталираната апликација, а потоа обидете повторно.</string>
+<string name="mount_version_mismatch_message">Верзијата на инсталираната апликација (%2$s) не одговара на верзијата на закрпената апликација (%1$s). Монтирајте ја соодветната верзија на инсталираната апликација, а потоа обидете повторно.</string>
     <string name="installer_status_shizuku_unsupported">Неподдржана верзија на Shizuku</string>
     <string name="installer_action_open_shizuku">Отвори Shizuku</string>
     <string name="installer_hint_generic">Неподдржана верзија на Shizuku</string>
@@ -621,12 +621,12 @@ morphe_header_custom_dark.png
     <string name="settings_system_show_password_field">Прикажи лозинка</string>
     <string name="settings_system_hide_password_field">Скриј лозинка</string>
     <string name="settings_system_morphe_settings">Поставки на Nivqo</string>
-    <string name="settings_system_import_manager_settings_description">Вашиот почеток</string>
+<string name="settings_system_import_manager_settings_description">Вашиот почеток</string>
     <string name="settings_system_import_manager_settings_fail">Неуспешно внесување на поставките на Nivqo: %s</string>
     <string name="settings_system_import_manager_settings_success">Поставките на Nivqo се внесени</string>
     <string name="settings_system_export_manager_settings_fail">Неуспешно извезување на поставките на Nivqo: %s</string>
-    <string name="settings_system_export_manager_settings_success">Поставките на Nivqo се извезени</string>
-    <string name="settings_system_export_debug_logs_description">Пред-пукање на ажурирања</string>
+<string name="settings_system_export_manager_settings_success">Поставките на Nivqo се извезени</string>
+<string name="settings_system_export_debug_logs_description">Пред-пукање на ажурирања</string>
     <string name="settings_system_export_debug_logs_export_read_failed">Неуспешно читање на логови (излезен код %s)</string>
     <string name="settings_system_export_debug_logs_export_failed">Неуспешно извезување на логови</string>
     <string name="settings_system_export_debug_logs_export_success">Логови изнесени</string>
@@ -665,7 +665,7 @@ morphe_header_custom_dark.png
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Прилагоден избирач на датотеки</string>
     <string name="settings_system_custom_file_picker_description">Прелистајте складиште со вградениот избирач на датотеки на Nivqo наместо стандардниот систем</string>
-    <!-- Settings - System Tab - APK download helper -->
+<!-- Settings - System Tab - APK download helper -->
     <!-- File Picker -->
     <string name="file_picker_no_files">Нема датотеки овде</string>
     <string name="file_picker_read_error">Не може да се чита оваа директорија на датотеките</string>
@@ -799,7 +799,7 @@ morphe_header_custom_dark.png
     <string name="onboarding_swipe_title">Гестови на лизгање</string>
     <string name="onboarding_swipe_desc">Повлечете надесно на картичката со апликација за да ги видите достапните закрпи. Повлечете налево за да ја скриете картичката од почетниот екран.</string>
     <string name="onboarding_settings_desc">Прилагодете го Nivqo: изглед, напредни опции и системски алатки</string>
-    <string name="onboarding_sources_patches_desc">Притиснете за да ги видите сите закпри достапни од овој извор</string>
+<string name="onboarding_sources_patches_desc">Притиснете за да ги видите сите закпри достапни од овој извор</string>
     <string name="onboarding_sources_version_desc">Допрете ја верзијата за да ја видите целата листа на промени за овој извор</string>
     <string name="onboarding_sources_prerelease_desc">Овозможете го ова за да добивате предиздание на закрпите од овој извор</string>
     <string name="onboarding_appearance_tab_desc">Прилагодете го изгледот на апликацијата: тема, акцентна боја и позадина</string>
@@ -814,7 +814,7 @@ morphe_header_custom_dark.png
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Брза тура на функции</string>
     <string name="tour_prompt_desc">Сакате брза тура на клучните карактеристики на Nivqo\'s?</string>
-    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
+<!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Покажи ми наоколу</string>
     <string name="onboarding_restart_title">Тура на функции</string>
 </resources>

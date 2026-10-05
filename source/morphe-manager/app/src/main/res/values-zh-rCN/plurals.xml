@@ -81,16 +81,25 @@
     <plurals name="core_count">
         <item quantity="other">%s 个核心</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="other">%s 项新功能</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="other">%s 项功能</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="other">%s 项修复</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="other">%s 项优化</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="other">%s 项更改</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="other">%s 个新版本</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="other">%d 个链接已启用</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="other">%d 个未验证链接</item>
     </plurals>
 </resources>

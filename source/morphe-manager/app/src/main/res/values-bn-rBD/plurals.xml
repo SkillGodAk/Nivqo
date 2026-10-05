@@ -107,13 +107,17 @@
         <item quantity="one">%s কোর</item>
         <item quantity="other">%s কোর</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%sটি নতুন</item>
-        <item quantity="other">%sটি নতুন</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%sটি বৈশিষ্ট্য</item>
+        <item quantity="other">%sটি বৈশিষ্ট্য</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%sটি ফিক্স</item>
         <item quantity="other">%sটি ফিক্স</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%sটি অপ্টিমাইজেশন</item>
+        <item quantity="other">%sটি অপ্টিমাইজেশন</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%sটি পরিবর্তন</item>
@@ -122,5 +126,13 @@
     <plurals name="changelog_new_releases">
         <item quantity="one">%sটি নতুন রিলিজ</item>
         <item quantity="other">%sটি নতুন রিলিজ</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%dটি লিংক সক্রিয়</item>
+        <item quantity="other">%dটি লিংক সক্রিয়</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%dটি অযাচাইকৃত লিংক</item>
+        <item quantity="other">%dটি অযাচাইকৃত লিংক</item>
     </plurals>
 </resources>

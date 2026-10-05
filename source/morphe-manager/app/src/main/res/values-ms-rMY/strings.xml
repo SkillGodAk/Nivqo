@@ -139,11 +139,11 @@
     <string name="home_download_instructions_download_button_toast_4">Belum lagi… belum lagi… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">Okey, saya menghormati dedikasi ini 🫡</string>
     <string name="home_download_instructions_download_button_toast_6">Anda kini penguji butang Nivqo yang rasmi 🏅</string>
-    <string name="home_download_instructions_step3">Tunggu untuk muat turun selesai, dan &lt;b&gt;jangan muat turun&lt;/b&gt; APK itu</string>
+<string name="home_download_instructions_step3">Tunggu untuk muat turun selesai, dan &lt;b&gt;jangan muat turun&lt;/b&gt; APK itu</string>
     <string name="home_download_instructions_step3_mount">Tunggu untuk mhat turun selesai, kemudian &lt;b&gt;instal APK itu&lt;/b&gt;</string>
     <string name="home_download_instructions_step4">Selepas muat turun selesai, pulang ke Nivqo</string>
     <string name="home_download_instructions_step4_mount">Selepas pasang APK asal, pulang ke Nivqo</string>
-    <!-- Home Screen - Dialog 3: File Picker Prompt -->
+<!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_file_picker_prompt_title">Pilih APK yang telah dimuat turun</string>
     <string name="home_file_picker_prompt_description">Pilih fail APK &lt;b&gt;%s&lt;/b&gt; yang baru anda muat turun</string>
     <string name="home_file_picker_prompt_open_apk">Buka fail APK</string>
@@ -286,6 +286,8 @@ Teruskannya mungkin boleh menyebabkan aplikasi tidak dapat berfungsi</string>
     <string name="home_app_info_patch_update_available_description">Versi patch yang lebih baru tersedia. Repatch aplikasi anda untuk mendapatkan penambahbaikan dan pembaikan terkini</string>
     <string name="home_app_info_app_deleted_warning">Aplikasi telah dinyahpasangkan</string>
     <string name="home_app_info_app_deleted_description">Aplikasi ini telah dinyahpasangkan di luar Nivqo. Kembalikan ia untuk memulihkan fungsi</string>
+<string name="app_links_badge_enabled">Didayakan</string>
+    <string name="app_links_badge_disabled">Dilumpuhkan</string>
     <string name="home_app_info_apk_size">Saiz APK</string>
     <!-- Home Screen - Root Mode -->
     <string name="root_install_apk_required">Mod root memerlukan APK asal diinstal pada peranti anda sebelum menampal</string>
@@ -320,16 +322,15 @@ Teruskannya mungkin boleh menyebabkan aplikasi tidak dapat berfungsi</string>
     <string name="patcher_ready_to_mount_subtitle">Tekan butang dibawah untuk memasang</string>
     <string name="patcher_storage_permission_dialog_title">Laluan storan tidak dapat diakses</string>
     <string name="patcher_incompatible_patcher_title">Kemas kini diperlukan</string>
-    <string name="patcher_incompatible_patcher_update_button">Muat turun dan kemas kini Nivqo</string>
     <string name="patcher_storage_permission_description_api30">Satu atau lebih pilihan tampalan menuju ke laluan yang Nivqo tidak dapat baca. Benarkan akses storan dan tekan butang kemudian tampalan akan mula secara automatik</string>
-    <string name="patcher_storage_permission_description_legacy">Satu atau lebih pilihan tampalan menuju ke laluan yang tidak dapat diakses. Kemas kini laluan pada pilihan tampalan dan cuba semula</string>
+<string name="patcher_storage_permission_description_legacy">Satu atau lebih pilihan tampalan menuju ke laluan yang tidak dapat diakses. Kemas kini laluan pada pilihan tampalan dan cuba semula</string>
     <string name="patcher_storage_permission_grant">Berikan akses storan</string>
     <string name="patcher_storage_permission_denied_warning">Akses storan ditolak. Berikan akses untuk gunakan laluan ini atau pindahkan fail-fail ke direktori peribadi aplikasi</string>
     <string name="patcher_storage_permission_open_settings">Buka tetapan storan</string>
     <string name="patcher_storage_badge_denied">Kebenaran ditolak</string>
     <string name="patcher_storage_badge_missing">Tidak dijumpai</string>
     <string name="patcher_storage_permission_hint">Perkongsian maklumat: Pindahkan fail-fail ke /Android/data/app.nivqo.manager/files/ - tiada kebenaran tambahan diperlukan</string>
-    <!-- Patcher Screen - Patcher Steps -->
+<!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Menyediakan</string>
     <string name="patcher_step_load_patches">Memuatkan tampalan</string>
     <string name="patcher_step_prepare_split_apk">Mencantumkan APK terpisah</string>
@@ -341,7 +342,7 @@ Teruskannya mungkin boleh menyebabkan aplikasi tidak dapat berfungsi</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Perlindungan tampalan latar belakang</string>
     <string name="battery_optimization_dialog_description">Sesetengah peranti mungkin menghentikan penampal apabila aplikasi diminimumkan. Benarkan Nivqo berjalan tanpa keterbatasan bateri untuk memastikan tampalan selesai dengan teliti</string>
-    <string name="battery_optimization_not_now">Bukan sekarang</string>
+<string name="battery_optimization_not_now">Bukan sekarang</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">Tampalan sedang berjalan… </string>
@@ -464,12 +465,12 @@ Teruskannya mungkin boleh menyebabkan aplikasi tidak dapat berfungsi</string>
     <string name="notification_bundle_update_title">Tampalan baharu tersedia</string>
     <string name="notification_update_text">Versi %s sedia untuk dimuat turun</string>
     <string name="notification_bundle_update_text_unversioned">Tekan untuk buka Nivqo dan kemas kini</string>
-    <string name="notification_permission_dialog_title">Benarkan notifikasi</string>
+<string name="notification_permission_dialog_title">Benarkan notifikasi</string>
     <string name="notification_permission_dialog_description">Nivqo memerlukan kebenaran notifikasi untuk memberitahu anda apabila kemas kini tersedia di latar belakang</string>
-    <string name="notification_post_patch_dialog_title">Sudikah anda untuk menerima notifikasi apabila kemas kini tersedia? </string>
+<string name="notification_post_patch_dialog_title">Sudikah anda untuk menerima notifikasi apabila kemas kini tersedia? </string>
     <string name="notification_channel_patcher">Menampal</string>
     <string name="notification_channel_patcher_description">Ditunjukkan semasa Nivqo menampal aplikasi di latar belakang</string>
-    <!-- Settings - Advanced Tab - Expert settings Section -->
+<!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Tetapan pakar</string>
     <string name="settings_advanced_expert_mode">Mod mahir</string>
     <string name="settings_advanced_expert_mode_dialog_title">Aktifkan Mod Pakar?</string>
@@ -483,7 +484,7 @@ Teruskannya mungkin boleh menyebabkan aplikasi tidak dapat berfungsi</string>
     <string name="settings_advanced_github_pat_export_include_label">Sertakan dalam eksport tetapan</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_include_supporting">Tambahkan PAT ini ke tetapan Nivqo dieksport</string>
-    <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
+<!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">Jangan kongsi PAT anda. Jika anda menyertakannya dalam satu eksport tetapan, simpan fail tersebut sebagai sulit kerana ia mengandungi token</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
     <string name="settings_advanced_patch_options">Pilihan tampalan</string>
@@ -599,8 +600,8 @@ Dimensi gambar mestilah seperti berikut:
     <string name="settings_system_import_manager_settings_fail">Gagal mengimport tetapan Nivqo: %s</string>
     <string name="settings_system_import_manager_settings_success">Tetapan Nivqo telah diimport</string>
     <string name="settings_system_export_manager_settings_fail">Gagal mengeksport tetapan Nivqo: %s</string>
-    <string name="settings_system_export_manager_settings_success">Tetapan Nivqo telah dieksport</string>
-    <string name="settings_system_export_debug_logs_export_read_failed">Gagal membaca log (kod keluar %s)</string>
+<string name="settings_system_export_manager_settings_success">Tetapan Nivqo telah dieksport</string>
+<string name="settings_system_export_debug_logs_export_read_failed">Gagal membaca log (kod keluar %s)</string>
     <string name="settings_system_export_debug_logs_export_failed">Gagal mengeksport log</string>
     <string name="settings_system_export_debug_logs_export_success">Log dieksport</string>
     <!-- Settings - System Tab - Files & Storage Section -->

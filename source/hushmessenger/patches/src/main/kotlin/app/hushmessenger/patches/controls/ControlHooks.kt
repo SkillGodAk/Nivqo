@@ -96,6 +96,7 @@ internal var messageIdGetterName: String = ""
 internal var messageIsUnsentGetterName: String = ""
 
 internal val expectedHooks = mapOf(
+    COMMUNITY_INBOX to setOf("LX/2GW;->invoke(Ljava/lang/Object;)Ljava/lang/Object;"),
     "stories" to setOf("LX/1mi;->A00()Z"),
     "facebook" to setOf(
         "LX/Sc2;->A06()Z", "LX/YFi;->A04()Z", "LX/2aP;->A0C()Z", "LX/3Ec;->A00()Z",
@@ -106,6 +107,7 @@ internal val expectedHooks = mapOf(
     ),
     "ai_menu" to setOf("LX/HFe;->A00()Z", "LX/HFe;->A01()Z", "LX/Jiu;->A00()Z", "LX/Jiu;->A01()Z"),
     "ai_fab" to setOf("LX/6k8;->render(LX/2MZ;)LX/1GG;"),
+    "ai_sticker_cell" to setOf("LX/FXP;->render(LX/2MZ;)LX/1GG;"),
     "subtabs" to setOf("LX/2UL;->run()V"),
     "typing" to setOf("LX/Ahp;->run()V"),
     "typing_mailbox" to setOf("LX/8eb;->A0I(Ljava/lang/String;Z)LX/325;"),
@@ -124,6 +126,7 @@ internal val expectedHooks = mapOf(
         "LX/8xp;->onScreenCaptured()V",
         "LX/4nW;->A00(Landroid/view/Window;)V",
     ),
+    "screenshot_viewers" to screenshotViewerHooks("A1A"),
     "hide_read_receipts" to setOf("LX/AX0;->run()V"),
     "read_mailbox" to setOf("LX/9sm;->A01(Ljava/lang/Long;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;)V"),
     "keep_unsent" to setOf("LX/SH3;->A01(Landroid/content/Intent;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;)V"),
@@ -156,8 +159,10 @@ internal val expectedHooks = mapOf(
 internal fun Method.hookId() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
 
 /** Match semantics first, then require the complete set from both tested APKs. */
-internal fun findControls(classes: Iterable<ClassDef>): Map<String, List<Method>> {
+internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInboxContract? = findCommunityInbox(classes)): Map<String, List<Method>> {
     val found = expectedHooks.keys.associateWith { mutableListOf<Method>() }
+    community?.let { found.getValue(COMMUNITY_INBOX).add(it.render) }
+    found.getValue("ai_sticker_cell").addAll(findAiStickerCells(classes))
     val adContract = classes.any { it.type == AD_ITEM } && classes.any { cls ->
         cls.type == IMMUTABLE_LIST && cls.methods.any {
             it.name == "copyOf" && it.parameterTypes == listOf("Ljava/util/Collection;") &&
@@ -231,15 +236,23 @@ internal fun findControls(classes: Iterable<ClassDef>): Map<String, List<Method>
         }
     }
     var searchFieldRender: Method? = null
+    var changedViewer = false
     for (cls in classes) {
         val original = cls.fields.firstOrNull { it.name == "__redex_internal_original_name" }
             ?.initialValue.let { (it as? StringEncodedValue)?.value }
         for (method in cls.methods) {
+            fun add(key: String) { found.getValue(key).add(method) }
+            if ((cls.type == EPHEMERAL_VIEWER && (method.name in EPHEMERAL_DIALOGS || method.name == "onResume")) ||
+                (cls.type == QUICKSNAP_VIEWER && method.name == "onCreateView")) {
+                try {
+                    method.screenshotViewerSites()
+                    add("screenshot_viewers")
+                } catch (_: PatchException) { changedViewer = true }
+            }
             val instructions = method.implementation?.instructions?.toList() ?: continue
             val refs = instructions.mapNotNull { (it as? ReferenceInstruction)?.reference }
             val strings = refs.filterIsInstance<StringReference>().map { it.string }.toSet()
             val gate = method.returnType == "Z" && method.parameterTypes.isEmpty()
-            fun add(key: String) { found.getValue(key).add(method) }
             if (method.returnType == "Z" && (method.parameterTypes.isEmpty() ||
                 (AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes == listOf(cls.type)))) {
                 for ((key, spec) in pluginGates) if (strings.any { it in spec.anchors }) add(key)
@@ -266,7 +279,7 @@ internal fun findControls(classes: Iterable<ClassDef>): Map<String, List<Method>
                 refs.any { it.toString() == "Landroid/app/ActivityManager;->isLowRamDevice()Z" }) add("bubbles")
             if (!AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" &&
                 method.parameterTypes == listOf(BUBBLE_SESSION) && instructions.any {
-                    it.opcode == Opcode.CONST_WIDE && (it as? WideLiteralInstruction)?.wideLiteral == BUBBLE_ROLLOUT
+                    it.opcode == Opcode.CONST_WIDE && (it as? WideLiteralInstruction)?.wideLiteral?.let { flag -> flag in BUBBLE_ROLLOUTS } == true
                 }) add("bubble_mode")
             if (method.returnType == "Z" && strings.containsAll(setOf("iab_skipped_reason", "user_prefers_external"))) add("browser")
             if (method.returnType == "Z" && AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes == listOf(cls.type) &&
@@ -392,6 +405,7 @@ internal fun findControls(classes: Iterable<ClassDef>): Map<String, List<Method>
         chip?.methods?.singleOrNull { it.name == "render" && it.returnType == field.returnType }
             ?.let { found.getValue("ai_search_chip").add(it) }
     }
+    if (changedViewer) found.getValue("screenshot_viewers").clear()
     return found
 }
 
@@ -419,6 +433,32 @@ internal fun MutableMethod.injectFeatureSwitch(key: String) {
         invoke-static {v0}, $SETTINGS->enabled(Ljava/lang/String;)Z
         move-result v0
         if-eqz v0, :stock_behavior
+        const/4 v0, 0x0
+        return v0
+    """.trimIndent(), ExternalLabel("stock_behavior", getInstruction(0)))
+}
+
+/**
+ * A plugin composite asks each gate when it counts and lists its plugins, again when it registers their listeners and
+ * again when it removes them, so Messenger caches the first answer in the composite. An enabled switch stores Messenger's
+ * own disabled marker there before answering false. An answer already cached, ours or Messenger's, stands until the
+ * next composite reads the switch again, so a switch, Pause or safe-mode change can't split one composite's calls.
+ */
+internal fun MutableMethod.injectPluginGate(key: String) {
+    validatePluginGate()
+    val code = implementation!!.instructions
+    val owner = (code.first() as TwoRegisterInstruction).registerB
+    val cache = (code.first() as ReferenceInstruction).reference
+    val disabled = (code[code.size - 4] as ReferenceInstruction).reference
+    addInstructionsWithLabels(0, """
+        iget-object v0, v$owner, $cache
+        if-nez v0, :stock_behavior
+        const-string v0, "$key"
+        invoke-static {v0}, $SETTINGS->enabled(Ljava/lang/String;)Z
+        move-result v0
+        if-eqz v0, :stock_behavior
+        sget-object v0, $disabled
+        iput-object v0, v$owner, $cache
         const/4 v0, 0x0
         return v0
     """.trimIndent(), ExternalLabel("stock_behavior", getInstruction(0)))
@@ -484,12 +524,15 @@ internal fun MutableMethod.validatePluginGate() {
     }
 }
 
-/** Wrap both exits, including direct branches to a return. v5 stays intact on the inactive path. */
+/** The registers each release returns from its two exits, in order: v5 from both in 580, v7 then v2 in 581. */
+private val AD_FILTER_RESULTS = setOf(listOf(5, 5), listOf(7, 2))
+
+/** Wrap both exits, including direct branches to a return. The returned list stays intact on the inactive path. */
 internal fun MutableMethod.validateAdFilter(): List<Int> {
     val code = implementation!!.instructions
     val exits = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
     if (implementation!!.registerCount != 24 || code.size != activeProfile.adFilterSize || exits != activeProfile.adFilterExits ||
-        exits.any { (code[it] as? OneRegisterInstruction)?.registerA != 5 }) {
+        exits.map { (code[it] as? OneRegisterInstruction)?.registerA ?: -1 } !in AD_FILTER_RESULTS) {
         throw PatchException("Messenger controls: the inbox ad filter exits differ from the tested build")
     }
     return exits
@@ -498,14 +541,15 @@ internal fun MutableMethod.validateAdFilter(): List<Int> {
 internal fun MutableMethod.injectAdFilter() {
     val exits = validateAdFilter()
     for (index in exits.reversed()) {
-        replaceInstruction(index, "invoke-static {v5}, $SETTINGS->filterInboxAds(Ljava/util/List;)Ljava/util/List;")
+        val result = (implementation!!.instructions[index] as OneRegisterInstruction).registerA
+        replaceInstruction(index, "invoke-static {v$result}, $SETTINGS->filterInboxAds(Ljava/util/List;)Ljava/util/List;")
         addInstructionsWithLabels(index + 1, """
             move-result-object v0
             if-eqz v0, :original_list
             invoke-static {v0}, $IMMUTABLE_LIST->copyOf(Ljava/util/Collection;)$IMMUTABLE_LIST
-            move-result-object v5
+            move-result-object v$result
             :original_list
-            return-object v5
+            return-object v$result
         """.trimIndent())
     }
 }
@@ -664,14 +708,15 @@ internal fun Method.jumpTargets(): Set<Int> {
     return targets
 }
 
-private const val PEOPLE_SERVER_FLAG = 72344235860374863L
+/** The Notifications tab's server flag ID, renumbered by each release: 580's, then 581's. */
+private val PEOPLE_SERVER_FLAGS = setOf(72344235860374863L, 72344231565407716L)
 
 /**
- * Where the Notifications tab loads its server flag: the method's only constant with that value, after the
+ * Where the Notifications tab loads its server flag: the method's only constant with one of those values, after the
  * preference branch at 12. It's at 17 in most builds and at 16 where Redex inlined the list reset into one call.
  */
 private fun List<Instruction>.peopleFlagIndex(): Int =
-    indices.filter { i -> this[i].opcode == Opcode.CONST_WIDE && (this[i] as? WideLiteralInstruction)?.wideLiteral == PEOPLE_SERVER_FLAG }
+    indices.filter { i -> this[i].opcode == Opcode.CONST_WIDE && (this[i] as? WideLiteralInstruction)?.wideLiteral in PEOPLE_SERVER_FLAGS }
         .singleOrNull()?.takeIf { it in 16..17 } ?: -1
 
 /**
@@ -870,6 +915,12 @@ internal fun Method.validateMenuSettingsBind() {
         !parameterTypes[0].startsWith("L") || impl.registerCount < 3) {
         throw PatchException("Messenger controls: invalid menu settings binder registers or parameters")
     }
+    val holder = impl.registerCount - 2
+    if (code.any { instruction ->
+        instruction.opcode != Opcode.CHECK_CAST && instruction.opcode.setsRegister() &&
+            instruction is OneRegisterInstruction && (instruction.registerA == holder ||
+                instruction.opcode.setsWideRegister() && instruction.registerA + 1 == holder)
+    }) throw PatchException("Messenger controls: menu settings binder overwrites its holder")
 }
 
 internal fun MutableMethod.injectMenuSettingsBind() {
@@ -970,12 +1021,17 @@ internal fun MutableMethod.injectOutgoingTyping() {
     """.trimIndent())
 }
 
-/** The Settings folder builder creates exactly one class: the Menu tab's folder row. */
+/**
+ * The Menu tab's folder row class, which the Settings row is built from. The builder may also make other folder rows
+ * of that class (581 adds the QR code row) and their folder keys, but nothing else.
+ */
 internal fun Method.menuFolderItemType(): String {
     val types = implementation!!.instructions.filter { it.opcode == Opcode.NEW_INSTANCE }
         .map { ((it as ReferenceInstruction).reference as TypeReference).type }.toSet()
-    return types.singleOrNull()
-        ?: throw PatchException("Messenger controls: menu settings item builder creates ${types.size} types, expected 1")
+    val row = ((implementation!!.instructions.elementAt(settingsRowCall()) as ReferenceInstruction).reference as DexMethodReference).definingClass
+    if (row !in types || types.any { it != row && !(it.startsWith(DRAWER_MODEL) && it.endsWith("FolderKey;")) })
+        throw PatchException("Messenger controls: menu settings item builder creates ${types.size} types, expected its row and folder keys")
+    return row
 }
 
 /** Messenger casts the tapped folder row just before its folder-selected trace section starts. */

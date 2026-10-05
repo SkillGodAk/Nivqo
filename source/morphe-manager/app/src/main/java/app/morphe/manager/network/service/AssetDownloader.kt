@@ -8,11 +8,13 @@ package app.morphe.manager.network.service
 import android.util.Log
 import app.morphe.manager.domain.manager.PreferencesManager
 import app.morphe.manager.network.api.MorpheAPI
+import app.morphe.manager.network.api.isRawGitHubUrl
 import app.morphe.manager.util.tag
 import io.ktor.client.request.header
 import io.ktor.client.request.url
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CancellationException
 import java.io.File
 
@@ -24,6 +26,9 @@ import java.io.File
  * but networks that drop that host while leaving api.github.com alone are common enough to make
  * both patch bundles and manager updates unreachable. Everything that fetches a release asset
  * goes through here so neither has to know about the detour.
+ *
+ * The same detour reaches assets of a private repository: github.com does not take a token on
+ * its download links, while the API serves them to a PAT that can read the repository.
  */
 class AssetDownloader(
     private val http: HttpService,
@@ -46,11 +51,17 @@ class AssetDownloader(
             try {
                 direct(downloadUrl, saveLocation, onProgress)
             } catch (e: Exception) {
-                if (e is CancellationException || !isTransientNetworkError(e)) throw e
-
-                val signedUrl = resolveThroughApi(downloadUrl) ?: throw e
-                Log.i(tag, "Retrying $downloadUrl through the GitHub API")
-                direct(signedUrl, saveLocation, onProgress)
+                if (e is CancellationException) throw e
+                when {
+                    isTransientNetworkError(e) -> {
+                        val signedUrl = resolveThroughApi(downloadUrl) ?: throw e
+                        Log.i(tag, "Retrying $downloadUrl through the GitHub API")
+                        direct(signedUrl, saveLocation, onProgress)
+                    }
+                    e is HttpService.HttpException && e.status == HttpStatusCode.NotFound ->
+                        if (!downloadPrivate(downloadUrl, saveLocation, onProgress)) throw e
+                    else -> throw e
+                }
             }
         } catch (error: Throwable) {
             saveLocation.delete()
@@ -61,12 +72,37 @@ class AssetDownloader(
     private suspend fun direct(
         url: String,
         saveLocation: File,
-        onProgress: ((bytesRead: Long, contentLength: Long?) -> Unit)?
+        onProgress: ((bytesRead: Long, contentLength: Long?) -> Unit)?,
+        pat: String? = null
     ) = http.downloadToFile(
         saveLocation = saveLocation,
-        builder = { url(url) },
+        builder = {
+            url(url)
+            pat?.let { header(HttpHeaders.Authorization, "Bearer $it") }
+        },
         onProgress = onProgress
     )
+
+    /**
+     * Retries a GitHub asset the direct link reported missing with the PAT, in case it lives in a
+     * private repository. Returns false when there is no PAT or GitHub route to retry with.
+     */
+    private suspend fun downloadPrivate(
+        downloadUrl: String,
+        saveLocation: File,
+        onProgress: ((bytesRead: Long, contentLength: Long?) -> Unit)?
+    ): Boolean {
+        val pat = prefs.gitHubPat.get().ifBlank { return false }
+        if (isRawGitHubUrl(downloadUrl)) {
+            Log.i(tag, "Retrying $downloadUrl with the GitHub PAT")
+            direct(downloadUrl, saveLocation, onProgress, pat)
+            return true
+        }
+        val signedUrl = resolveThroughApi(downloadUrl) ?: return false
+        Log.i(tag, "Retrying $downloadUrl through the GitHub API with the GitHub PAT")
+        direct(signedUrl, saveLocation, onProgress)
+        return true
+    }
 
     /**
      * Resolves the pre-signed URL serving the same asset, or null when [downloadUrl] is not a

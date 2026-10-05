@@ -133,15 +133,20 @@
         <item quantity="few">%s jezgra</item>
         <item quantity="other">%s jezgara</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s novo</item>
-        <item quantity="few">%s nova</item>
-        <item quantity="other">%s novih</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s funkcija</item>
+        <item quantity="few">%s funkcije</item>
+        <item quantity="other">%s funkcija</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s ispravka</item>
         <item quantity="few">%s ispravke</item>
         <item quantity="other">%s ispravki</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">Od:\"Jedne\"%s</item>
+        <item quantity="few">Od: %sX</item>
+        <item quantity="other">Od: %s\"druge\"</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s promena</item>
@@ -152,5 +157,15 @@
         <item quantity="one">%s novo izdanje</item>
         <item quantity="few">%s nova izdanja</item>
         <item quantity="other">%s novih izdanja</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d omogućen link</item>
+        <item quantity="few">%d omogućena linka</item>
+        <item quantity="other">%d omogućenih linkova</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d nepotvrđen link</item>
+        <item quantity="few">%d nepotvrđena linka</item>
+        <item quantity="other">%d nepotvrđenih linkova</item>
     </plurals>
 </resources>

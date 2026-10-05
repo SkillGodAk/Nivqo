@@ -24,10 +24,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.morphe.manager.R
 import app.morphe.manager.domain.installer.InstallerManager
+import app.morphe.manager.domain.links.AppLinksManager
+import app.morphe.manager.domain.links.AppLinksStatus
 import app.morphe.manager.domain.manager.PreferencesManager
 import app.morphe.manager.patcher.patch.installerTypeFor
 import app.morphe.manager.ui.model.RenameWarning
 import app.morphe.manager.ui.model.State
+import app.morphe.manager.ui.screen.home.AppLinksDialog
 import app.morphe.manager.ui.screen.patcher.*
 import app.morphe.manager.ui.screen.patcher.game.MiniGameState
 import app.morphe.manager.ui.screen.settings.system.InstallerSelectionDialog
@@ -64,7 +67,8 @@ fun PatcherScreen(
     onBackgroundSpeedChange: (Float) -> Unit = {},
     onPatchingCompleted: () -> Unit = {},
     onStartTour: () -> Unit = {},
-    onDeclineTour: () -> Unit = {}
+    onDeclineTour: () -> Unit = {},
+    onChangePatches: () -> Unit = {}
 ) {
     // Worn by everything the screen shows, its dialogs included, down to the install button
     ProvideAccent(rememberAppColor(patcherViewModel.packageName)) {
@@ -77,7 +81,8 @@ fun PatcherScreen(
             onBackgroundSpeedChange = onBackgroundSpeedChange,
             onPatchingCompleted = onPatchingCompleted,
             onStartTour = onStartTour,
-            onDeclineTour = onDeclineTour
+            onDeclineTour = onDeclineTour,
+            onChangePatches = onChangePatches
         )
     }
 }
@@ -92,7 +97,8 @@ private fun PatcherScreenContent(
     onBackgroundSpeedChange: (Float) -> Unit,
     onPatchingCompleted: () -> Unit,
     onStartTour: () -> Unit,
-    onDeclineTour: () -> Unit
+    onDeclineTour: () -> Unit,
+    onChangePatches: () -> Unit
 ) {
     val view = LocalView.current
 
@@ -248,6 +254,15 @@ private fun PatcherScreenContent(
     val autoHandleConflict = patcherViewModel.patchedFromInstalledDevice && !usingMountInstall
     // The installer reports the app it installed even after the state has moved on
     val installedPackageName by remember { derivedStateOf { installViewModel.installedPackageName } }
+    val targetInstalledPackage = installedPackageName ?: patcherViewModel.packageName
+
+    // Re-signing drops the verified web links of the original publisher, worth a word once installed
+    val appLinksManager: AppLinksManager = koinInject()
+    var appLinksStatus by remember { mutableStateOf<AppLinksStatus?>(null) }
+    var showAppLinksDialog by remember { mutableStateOf(false) }
+    val ignoredAppLinksPackages by prefs.ignoredAppLinksPackages.getAsState()
+    val linksOpenInBrowser = appLinksStatus?.opensInBrowser == true &&
+            targetInstalledPackage !in ignoredAppLinksPackages
 
     val showInstalledSourceConflictDialog = remember { mutableStateOf(false) }
 
@@ -257,13 +272,27 @@ private fun PatcherScreenContent(
         excludedPatches = patcherViewModel.unavailablePatchNames(installerTypeFor(usingMountInstall))
     }
 
-    LaunchedEffect(installState) {
+    LaunchedEffect(installState, targetInstalledPackage) {
         if (installState is InstallViewModel.InstallState.Installed) {
             patcherViewModel.postPatchPrompts.trigger()
+            appLinksStatus = appLinksManager.getStatus(targetInstalledPackage)
         }
         if (installState is InstallViewModel.InstallState.Conflict && autoHandleConflict) {
             showInstalledSourceConflictDialog.value = true
         }
+    }
+
+    val shownAppLinksStatus = appLinksStatus
+    if (showAppLinksDialog && shownAppLinksStatus?.hasSupportedLinks == true) {
+        AppLinksDialog(
+            appLabel = patcherViewModel.exportMetadata?.appName ?: targetInstalledPackage,
+            appInfo = null,
+            accentColor = LocalAccent.current,
+            packageName = targetInstalledPackage,
+            status = shownAppLinksStatus,
+            onRefresh = { appLinksStatus = appLinksManager.getStatus(targetInstalledPackage) },
+            onDismiss = { showAppLinksDialog = false }
+        )
     }
 
     if (showInstalledSourceConflictDialog.value) {
@@ -541,7 +570,7 @@ private fun PatcherScreenContent(
                 PatcherState.IN_PROGRESS -> {
                     if (useExpertMode) {
                         ExpertPatchingInProgress(
-                            progress = displayProgress.value,
+                            progress = { displayProgress.value },
                             patchesProgress = patchesProgress,
                             patchProgress = patcherViewModel.patchRun,
                             packageName = patcherViewModel.packageName,
@@ -553,7 +582,7 @@ private fun PatcherScreenContent(
                         )
                     } else {
                         SimplePatchingInProgress(
-                            progress = displayProgress.value,
+                            progress = { displayProgress.value },
                             patchesProgress = patchesProgress,
                             patchProgress = patcherViewModel.patchRun,
                             packageName = patcherViewModel.packageName,
@@ -594,6 +623,7 @@ private fun PatcherScreenContent(
                         excludedPatches = excludedPatches,
                         isExpertMode = useExpertMode,
                         showBackToGameHint = showBackToGameHint,
+                        onConfigureAppLinks = { showAppLinksDialog = true }.takeIf { linksOpenInBrowser },
                         onLogsClick = {
                             // Only the hint that was actually on screen counts as found
                             if (showBackToGameHint) {
@@ -634,7 +664,9 @@ private fun PatcherScreenContent(
                         sources = patchSources,
                         errorMessage = state.errorMessage,
                         onHomeClick = onBackClick,
-                        onErrorClick = { state.shownFailure = PatcherFailure.PATCHING }
+                        onErrorClick = { state.shownFailure = PatcherFailure.PATCHING },
+                        // Simple mode keeps no selection of its own to return to
+                        onChangePatchesClick = onChangePatches.takeIf { useExpertMode }
                     )
                 }
             }

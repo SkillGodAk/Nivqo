@@ -81,16 +81,25 @@
     <plurals name="core_count">
         <item quantity="other">%s คอร์</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="other">ใหม่ %s</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="other">คุณสมบัติ %s รายการ</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="other">การแก้ไข %s</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="other">การเพิ่มประสิทธิภาพ %s รายการ</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="other">การเปลี่ยนแปลง %s</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="other">รุ่นใหม่ %s</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="other">เปิดใช้งาน %d ลิงก์</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="other">%d ลิงก์ที่ไม่ผ่านการยืนยัน</item>
     </plurals>
 </resources>

@@ -107,13 +107,17 @@
         <item quantity="one">%s ydin</item>
         <item quantity="other">%s ydintä</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s uusi</item>
-        <item quantity="other">%s uutta</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s ominaisuus</item>
+        <item quantity="other">%s ominaisuutta</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s korjaus</item>
         <item quantity="other">%s korjausta</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s optimointi</item>
+        <item quantity="other">%s optimointia</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s muutos</item>
@@ -122,5 +126,13 @@
     <plurals name="changelog_new_releases">
         <item quantity="one">%s uusi julkaisu</item>
         <item quantity="other">%s uutta julkaisua</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d linkki käytössä</item>
+        <item quantity="other">%d linkkiä käytössä</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d vahvistamaton linkki</item>
+        <item quantity="other">%d vahvistamatonta linkkiä</item>
     </plurals>
 </resources>

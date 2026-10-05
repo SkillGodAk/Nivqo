@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright 2026 Morphe.
  * https://github.com/MorpheApp/morphe-manager
  */
@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -38,12 +39,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import app.morphe.manager.BuildConfig
 import app.morphe.manager.R
 import app.morphe.manager.ui.model.RenameWarning
+import app.morphe.manager.ui.screen.home.ManagerChangelogDialog
 import app.morphe.manager.ui.screen.shared.*
-import app.morphe.manager.util.MANAGER_RELEASES_URL
 import app.morphe.manager.util.PathValidationResult
 import app.morphe.manager.util.deviceStats
 import app.morphe.manager.util.htmlAnnotatedString
@@ -57,7 +57,8 @@ private const val ErrorInfoLabelMaxFraction = 0.45f
 
 /**
  * Shown when a patch bundle requires a newer version of morphe-patcher than the one
- * bundled in this version of the manager. Directs the user to the website to update.
+ * bundled in this version of the manager. The update button hands over to the in-app
+ * update dialog, the same one the home banner opens.
  */
 @Composable
 fun IncompatiblePatcherVersionDialog(
@@ -65,7 +66,17 @@ fun IncompatiblePatcherVersionDialog(
     requiredVersion: String,
     onDismiss: () -> Unit,
 ) {
-    val context = LocalContext.current
+    val showManagerUpdate = rememberSaveable { mutableStateOf(false) }
+
+    if (showManagerUpdate.value) {
+        // Takes this dialog's place rather than stacking on it, and closing it closes both,
+        // since patching with this bundle stays blocked until the update is installed
+        ManagerChangelogDialog(
+            onDismiss = onDismiss,
+            expectsUpdate = true
+        )
+        return
+    }
 
     AppDialog(
         onDismissRequest = onDismiss,
@@ -77,11 +88,8 @@ fun IncompatiblePatcherVersionDialog(
         )),
         footer = {
             AppDialogButtonRow(
-                primaryText = stringResource(R.string.patcher_incompatible_patcher_update_button),
-                onPrimaryClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, MANAGER_RELEASES_URL.toUri())
-                    context.startActivity(intent)
-                },
+                primaryText = stringResource(R.string.sources_management_outdated_manager_badge),
+                onPrimaryClick = { showManagerUpdate.value = true },
                 primaryIcon = Icons.Outlined.SystemUpdate,
                 secondaryText = stringResource(R.string.close),
                 onSecondaryClick = onDismiss

@@ -20,7 +20,6 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.domain.installer.InstallerManager
@@ -197,7 +196,7 @@ fun InstallerSelectionDialog(
     }
 
     val visibleOptions = remember(options) {
-        options.filterNot { it.token.isCollapsedPlayStoreVariant() }
+        options.filterNot { it.token.isPlayStoreModeToken() }
     }
     val currentSelection = remember(selected) { mutableStateOf(selected.baseInstallerToken()) }
     val selectedToken = currentSelection.value
@@ -490,11 +489,6 @@ private fun InstallerManager.Token.baseInstallerToken(): InstallerManager.Token 
     else -> this
 }
 
-private fun InstallerManager.Token.isCollapsedPlayStoreVariant(): Boolean =
-    this == InstallerManager.Token.PlayStore ||
-            this == InstallerManager.Token.RootPlayStore ||
-            this == InstallerManager.Token.ShizukuPlayStore
-
 private fun InstallerManager.Token.isPlayStoreModeToken(): Boolean =
     this == InstallerManager.Token.PlayStore ||
             this == InstallerManager.Token.RootPlayStore ||
@@ -560,16 +554,12 @@ private fun ShizukuStatusDialog(
     onDismiss: () -> Unit
 ) {
     var status by remember { mutableStateOf<SessionInstaller.ShizukuStatus?>(null) }
-    var refreshKey by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(refreshKey) {
-        status = withContext(Dispatchers.IO) { statusProvider() }
-    }
-
-    LaunchedEffect(Unit) {
+    // Polled while open, so a permission granted or a service started in Shizuku shows up on its own
+    LaunchedEffect(statusProvider) {
         while (isActive) {
-            delay(1.seconds)
             status = withContext(Dispatchers.IO) { statusProvider() }
+            delay(1.seconds)
         }
     }
 
@@ -591,10 +581,7 @@ private fun ShizukuStatusDialog(
                         add(
                             DialogAction(
                                 text = stringResource(R.string.installer_shizuku_request_permission),
-                                onClick = {
-                                    runCatching { onRequestPermission.invoke() }
-                                    refreshKey++
-                                },
+                                onClick = { runCatching { onRequestPermission.invoke() } },
                                 icon = Icons.Outlined.Key
                             )
                         )
@@ -610,15 +597,6 @@ private fun ShizukuStatusDialog(
                             )
                         )
                     }
-
-                    add(
-                        DialogAction(
-                            text = stringResource(R.string.refresh),
-                            onClick = { refreshKey++ },
-                            icon = Icons.Outlined.Refresh,
-                            emphasis = DialogActionEmphasis.Outlined
-                        )
-                    )
 
                     add(
                         DialogAction(
@@ -656,35 +634,46 @@ private fun ShizukuStatusDialog(
                 }
 
                 if (current.installed) {
-                    ShizukuStatusRow(
-                        label = stringResource(R.string.installer_shizuku_status_mode),
-                        value = when (current.flavor) {
-                            ShizukuEnvironment.Flavor.Shizuku -> stringResource(R.string.home_app_info_install_type_shizuku)
-                            ShizukuEnvironment.Flavor.ShizukuPlus -> "Shizuku+"
-                            ShizukuEnvironment.Flavor.Sui -> "Sui"
-                        }
-                    )
-                    ShizukuStatusRow(
-                        label = stringResource(R.string.installer_shizuku_status_supported),
-                        value = statusYesNo(current.supported)
-                    )
-                    ShizukuStatusRow(
-                        label = stringResource(R.string.installer_shizuku_status_running),
-                        value = statusYesNo(current.running)
-                    )
-                    ShizukuStatusRow(
-                        label = stringResource(R.string.installer_shizuku_status_permission),
-                        value = if (current.permissionGranted) {
-                            stringResource(R.string.installer_shizuku_status_granted)
-                        } else {
-                            stringResource(R.string.installer_shizuku_status_missing)
-                        }
-                    )
-                    current.packageName?.let { provider ->
-                        ShizukuStatusRow(
-                            label = stringResource(R.string.installer_shizuku_status_provider),
-                            value = provider
+                    InfoPanel {
+                        InfoRow(
+                            icon = Icons.Outlined.Tune,
+                            label = stringResource(R.string.installer_shizuku_status_mode),
+                            value = when (current.flavor) {
+                                ShizukuEnvironment.Flavor.Shizuku -> stringResource(R.string.home_app_info_install_type_shizuku)
+                                ShizukuEnvironment.Flavor.ShizukuPlus -> "Shizuku+"
+                                ShizukuEnvironment.Flavor.Sui -> "Sui"
+                            }
                         )
+                        SettingsDivider()
+                        InfoRow(
+                            icon = Icons.Outlined.Verified,
+                            label = stringResource(R.string.installer_shizuku_status_supported),
+                            value = statusYesNo(current.supported)
+                        )
+                        SettingsDivider()
+                        InfoRow(
+                            icon = Icons.Outlined.PlayCircle,
+                            label = stringResource(R.string.installer_shizuku_status_running),
+                            value = statusYesNo(current.running)
+                        )
+                        SettingsDivider()
+                        InfoRow(
+                            icon = Icons.Outlined.Key,
+                            label = stringResource(R.string.installer_shizuku_status_permission),
+                            value = if (current.permissionGranted) {
+                                stringResource(R.string.installer_shizuku_status_granted)
+                            } else {
+                                stringResource(R.string.installer_shizuku_status_missing)
+                            }
+                        )
+                        current.packageName?.let { provider ->
+                            SettingsDivider()
+                            InfoRow(
+                                icon = Icons.Outlined.Widgets,
+                                label = stringResource(R.string.installer_shizuku_status_provider),
+                                value = provider
+                            )
+                        }
                     }
                 }
             } else {
@@ -705,31 +694,6 @@ private fun statusYesNo(value: Boolean): String =
     } else {
         stringResource(R.string.no)
     }
-
-@Composable
-private fun ShizukuStatusRow(
-    label: String,
-    value: String
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = LocalDialogSecondaryTextColor.current,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = LocalDialogTextColor.current
-        )
-    }
-}
 
 /**
  * Single installer option item in dialog.

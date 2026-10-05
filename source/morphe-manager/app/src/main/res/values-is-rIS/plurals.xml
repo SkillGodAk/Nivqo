@@ -107,13 +107,17 @@
         <item quantity="one">%s kjarni</item>
         <item quantity="other">%s kjarnar</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s nýtt</item>
-        <item quantity="other">%s ný</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s eiginleiki</item>
+        <item quantity="other">%s eiginleikar</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s lagfæring</item>
         <item quantity="other">%s lagfæringar</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s fínstilling</item>
+        <item quantity="other">%s fínstillingar</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s breyting</item>
@@ -122,5 +126,13 @@
     <plurals name="changelog_new_releases">
         <item quantity="one">%s ný útgáfa</item>
         <item quantity="other">%s nýjar útgáfur</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d virkur tengill</item>
+        <item quantity="other">%d virkir tenglar</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d óstaðfestur tengill</item>
+        <item quantity="other">%d óstaðfestir tenglar</item>
     </plurals>
 </resources>

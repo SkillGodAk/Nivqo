@@ -107,13 +107,17 @@
         <item quantity="one">%s çekirdek</item>
         <item quantity="other">%s çekirdek</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s yeni</item>
-        <item quantity="other">%s yeni</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s özelliği</item>
+        <item quantity="other">%s özellikleri</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s düzeltme</item>
         <item quantity="other">%s düzeltme</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s optimizasyonu</item>
+        <item quantity="other">%s optimizasyonları</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s değişiklik</item>
@@ -122,5 +126,13 @@
     <plurals name="changelog_new_releases">
         <item quantity="one">%s yeni sürüm</item>
         <item quantity="other">%s yeni sürüm</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d bağlantı etkinleştirildi</item>
+        <item quantity="other">%d bağlantılar etkinleştirildi</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d doğrulanmamış bağlantı</item>
+        <item quantity="other">%d doğrulanmamış bağlantılar</item>
     </plurals>
 </resources>

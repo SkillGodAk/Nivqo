@@ -21,18 +21,18 @@
     <string name="android_11_bug_dialog_description">Az alkalmazástelepítési engedélyt előre el kell fogadni, hogy elkerülhető legyen az Android 11 rendszerben fellépő hiba, mely negatívan befolyásolja a felhasználói élményt</string>
     <string name="deep_link_add_source_title">Forrás hozzáadása</string>
     <string name="deep_link_add_source_message">Hozzáadod ezt a módosításforrást a Nivqo-hez?</string>
-    <string name="deep_link_add_source_warning">Csak megbízható forrásokat adj hozzá</string>
+<string name="deep_link_add_source_warning">Csak megbízható forrásokat adj hozzá</string>
     <!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Nivqo frissítés elérhető</string>
-    <string name="home_update_available_subtitle">Az új verzió telepítésre vár</string>
+<string name="home_update_available_subtitle">Az új verzió telepítésre vár</string>
     <string name="home_blocked_source_title">Blokkolt módosításforrás észlelve</string>
     <string name="home_blocked_source_subtitle">Érintsd meg a felülvizsgálathoz és eltávolításhoz</string>
     <string name="home_metadata_errors_title">Egyes módosításforrások nem elérhetők</string>
     <string name="home_metadata_errors_subtitle">Koppints a források áttekintéséhez</string>
     <string name="home_outdated_manager_title">A Nivqo verziója elavult</string>
-    <string name="home_outdated_manager_subtitle">Néhány módosítási forráshoz újabb verzió szükséges</string>
+<string name="home_outdated_manager_subtitle">Néhány módosítási forráshoz újabb verzió szükséges</string>
     <string name="home_held_back_title">A Nivqo egy módosításforrás miatt összeomlott</string>
-    <string name="home_held_back_subtitle">Kihagytuk, hogy az alkalmazás elindulhasson. Koppintson a felülvizsgálathoz</string>
+<string name="home_held_back_subtitle">Kihagytuk, hogy az alkalmazás elindulhasson. Koppintson a felülvizsgálathoz</string>
     <string name="home_metered_skipped_title">Frissítések szüneteltetése mobiladat használatakor</string>
     <string name="home_metered_skipped_subtitle">Koppints a frissítések engedélyezéséhez mobiladaton</string>
     <string name="home_repatch_available_subtitle">Koppints az összes sorba állításához</string>
@@ -50,9 +50,9 @@
     <string name="home_app_filter_all_description">Minden alkalmazás a kezdőképernyőn</string>
     <string name="home_app_filter_patched_description">A Nivqo-val módosított vagy mentett alkalmazások</string>
     <string name="home_app_filter_not_patched_description">A Nivqo-ban még nem módosított alkalmazások</string>
-    <string name="home_app_filter_installed_description">Jelenleg az eszközön telepített alkalmazások</string>
+<string name="home_app_filter_installed_description">Jelenleg az eszközön telepített alkalmazások</string>
     <string name="home_app_filter_uninstalled_description">A Nivqo-val módosított, az eszközről már eltávolított alkalmazások</string>
-    <string name="home_app_filter_clones">Klónozott alkalmazások</string>
+<string name="home_app_filter_clones">Klónozott alkalmazások</string>
     <string name="home_app_filter_clones_description">Önálló csomagnévvel, az eredeti alkalmazás mellett telepített alkalmazások</string>
     <string name="home_app_sort_manual_description">Nyomj hosszan egy alkalmazásra, majd koppints az átrendezés gombra</string>
     <string name="home_app_sort_recommended">Ajánlott sorrend</string>
@@ -160,9 +160,9 @@
     <string name="sources_management_metadata_unavailable_hint_missing">A javítócsomag letöltése nem sikerült. A forrás URL helytelen lehet, vagy a fájl nem létezik.</string>
     <string name="sources_management_outdated_manager_badge">Nivqo frissítése</string>
     <string name="sources_management_outdated_manager_hint">Ez a forrás a %1$s javítóprogramhoz készült, de a Nivqo %2$s a %3$s javítóprogramot tartalmazza. Frissítse a Nivqo-t a használatához.</string>
-    <string name="sources_management_held_back_badge">Összeomlott</string>
+<string name="sources_management_held_back_badge">Összeomlott</string>
     <string name="sources_management_held_back_hint">Ez a forrás a betöltése közben okozott összeomlást a Nivqo alkalmazásban, ezért kihagyásra kerül. Frissítse vagy importálja újra, hogy újra megpróbálhassa</string>
-    <string name="sources_management_source_enabled">Forrás engedélyezve</string>
+<string name="sources_management_source_enabled">Forrás engedélyezve</string>
     <string name="sources_management_source_disabled">Forrás letiltva</string>
     <string name="sources_management_source_updating">Forrás frissítése</string>
     <!-- Home Screen - Sources Dialogs -->
@@ -195,7 +195,7 @@
     <string name="sources_dialog_community_notice_message">"A közösségi javításforrásokat saját szerzőik készítik és tartják karban. A Nivqo nem vizsgálja felül és nem ellenőrzi a harmadik féltől származó javításokat, és nem felelős azok tartalmáért vagy azért, amit az eszközén tesznek.
 
 Bármit is ad hozzá erről a weboldalról, azt saját felelősségére teszi."</string>
-    <string name="sources_update_success">A frissítés sikeres</string>
+<string name="sources_update_success">A frissítés sikeres</string>
     <string name="sources_update_unavailable">Nincs elérhető frissítés</string>
     <string name="sources_download_fail">Nem sikerült letölteni a forrásokat: %s</string>
     <string name="sources_download_fail_named">A(z) \'%s\' nem frissíthető. Ellenőrizd az internetkapcsolatot, és próbáld újra.</string>
@@ -215,16 +215,16 @@ Bármit is ad hozzá erről a weboldalról, azt saját felelősségére teszi."<
     <string name="home_apk_helper_download">Használj egy segédalkalmazást.</string>
     <string name="home_apk_helper_title">Töltsd le egy segédalkalmazással.</string>
     <string name="home_apk_helper_description">A Nivqo megkéri az alábbi segédalkalmazást, hogy töltse le az eredeti APK-t, és adja vissza a fájlt.</string>
-    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+<!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">Segéd megnyitása</string>
     <string name="home_apk_helper_warning">Csak akkor folytasd, ha megbízol ebben a segédalkalmazásban. A Nivqo ellenőrzi a csomagot, a verziót és az aláírást a kapott fájlnak, mielőtt bármit is javítanál.</string>
-    <string name="home_apk_helper_warning_unverified">Csak akkor folytasd, ha megbízol ebben a segédalkalmazásban. A Nivqo nem tudja ellenőrizni ennek az APK-nak az aláírását, így egy módosított fájl nem lenne felismerhető.</string>
-    <string name="home_apk_helper_no_result">A segédalkalmazás nem adott vissza APK-t.</string>
+<string name="home_apk_helper_warning_unverified">Csak akkor folytasd, ha megbízol ebben a segédalkalmazásban. A Nivqo nem tudja ellenőrizni ennek az APK-nak az aláírását, így egy módosított fájl nem lenne felismerhető.</string>
+<string name="home_apk_helper_no_result">A segédalkalmazás nem adott vissza APK-t.</string>
     <string name="home_apk_helper_no_access">A segédalkalmazás nem engedte hozzáférést a visszaadott APK-hoz.</string>
     <string name="home_apk_helper_no_package">A segédalkalmazás nem mondta meg, melyik telepített alkalmazást kell használni.</string>
     <string name="home_apk_helper_wrong_package">A segédalkalmazás másik alkalmazást adott vissza, mint amelyiket éppen foltozzák.</string>
     <string name="home_apk_helper_installed_unavailable">A Nivqo nem tudta használni a telepített alkalmazást.</string>
-    <string name="home_apk_helper_installed_incompatible">A telepített verzió nem foltozható.</string>
+<string name="home_apk_helper_installed_incompatible">A telepített verzió nem foltozható.</string>
     <string name="home_apk_use_saved">Mentett APK használata</string>
     <string name="home_apk_use_installed">Telepített APK használata</string>
     <string name="home_apk_use_saved_unsupported">A javítások nem támogatják ezt a mentett másolatot. A javítás megerősítést fog kérni, vagy válasszon másik APK-t.</string>
@@ -232,7 +232,7 @@ Bármit is ad hozzá erről a weboldalról, azt saját felelősségére teszi."<
     <string name="home_unverified">Nem ellenőrzött</string>
     <string name="home_install_verification_pending">Telepítés ellenőrzése…</string>
     <string name="home_app_info_install_unverified">A Nivqo nem tudja megerősíteni, hogy a telepített alkalmazás az a build, amelyet módosított. Módosítsa újra, vagy telepítse újra a mentett APK-ból a műveleteinek visszaállításához.</string>
-    <string name="home_app_info_no_saved_apk">Nincs mentett APK. A módosításhoz újra ki kell választanod az APK-fájlt.</string>
+<string name="home_app_info_no_saved_apk">Nincs mentett APK. A módosításhoz újra ki kell választanod az APK-fájlt.</string>
     <string name="home_version_requires_android">Android %s+ verziót igényel</string>
     <string name="home_apk_no_compatible_versions_title">Nem támogatott ezen az eszközen</string>
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; nem rendelkezik az Android %2$s (API %3$s) verziójával kompatibilis verziókkal. A megadott összes verzió magasabb Android verziót igényel</string>
@@ -245,7 +245,7 @@ Bármit is ad hozzá erről a weboldalról, azt saját felelősségére teszi."<
     <string name="home_download_instructions_step2_variant">Görgess le a weboldalon, majd nyomd meg a legfelső &lt;b&gt;APK-változat&lt;/b&gt; letöltő gombját</string>
     <string name="home_download_instructions_step2_search">Nyiss meg egy keresési találatot egy olyan weboldalról, amelyben megbízol</string>
     <string name="home_download_instructions_step2_search_note">A Nivqo nem tud jótállni ezekért a weboldalakért. Hagyd ki azokat, amelyek APK-fájl helyett saját alkalmazásboltot kínálnak</string>
-    <string name="home_download_instructions_step3_search">Azon a weboldalon töltsd le a &lt;b&gt;%s&lt;/b&gt; verzió APK-ját, nem a legújabbat</string>
+<string name="home_download_instructions_step3_search">Azon a weboldalon töltsd le a &lt;b&gt;%s&lt;/b&gt; verzió APK-ját, nem a legújabbat</string>
     <string name="home_download_instructions_step3_search_any">Azon a weboldalon töltsd le az alkalmazás APK-ját. &lt;b&gt;Bármelyik verzió&lt;/b&gt; patch-elhető</string>
     <string name="home_download_instructions_download_button_toast">​A weboldalon nyomj a letöltésre, ne itt 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Szuper! Most kattints a folytatásra, és látogass el a weboldalra 👆</string>
@@ -253,12 +253,14 @@ Bármit is ad hozzá erről a weboldalról, azt saját felelősségére teszi."<
     <string name="home_download_instructions_download_button_toast_4">Még mindig nem itt… még mindig nem itt… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">Rendben, tiszteletben tartom a szentelt időt 🫡</string>
     <string name="home_download_instructions_download_button_toast_6">Mostantól hivatalos Nivqo gomb tesztelő lettél 🏅</string>
-    <string name="home_download_instructions_step3">Várj, amíg a letöltés befejeződik, és &lt;b&gt;ne telepítsd&lt;/b&gt; az APK-t</string>
+<string name="home_download_instructions_step3">Várj, amíg a letöltés befejeződik, és &lt;b&gt;ne telepítsd&lt;/b&gt; az APK-t</string>
     <string name="home_download_instructions_step3_mount">Várj, amíg a letöltés befejeződik, majd &lt;b&gt;telepítsd az APK-t&lt;/b&gt;</string>
     <string name="home_download_instructions_step4">A letöltés után térj vissza a Nivqo alkalmazásba</string>
     <string name="home_download_instructions_step4_mount">Az eredeti APK telepítése után térj vissza Nivqo alkalmazásba</string>
-    <string name="home_download_instructions_continue_to">Tovább: %s</string>
+<string name="home_download_instructions_continue_to">Tovább: %s</string>
     <string name="home_download_instructions_destination">a letöltési oldalra</string>
+    <string name="home_download_instructions_copy_link">Link másolása</string>
+    <string name="home_download_instructions_link_copied">Link másolva</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_file_picker_prompt_title">Válaszd ki a letöltött APK-t</string>
     <string name="home_file_picker_prompt_description">Válaszd ki a most letöltött &lt;b&gt;%s&lt;/b&gt; APK fájlt</string>
@@ -275,6 +277,7 @@ Bármit is ad hozzá erről a weboldalról, azt saját felelősségére teszi."<
     <string name="home_installed_app_picker_filter_system">Csak rendszeralkalmazások</string>
     <string name="home_invalid_apk_unreadable">Nem sikerült olvasni a fájlt. Ellenőrizd, hogy a \'Külső tároló\' nincs-e akkumulátorkorlátozás alatt</string>
     <string name="home_invalid_apk_not_an_apk">A kiválasztott fájl nem egy érvényes APK</string>
+    <string name="home_invalid_apk_already_patched">A kiválasztott APK már patchelve van. Válaszd helyette az eredeti alkalmazást</string>
     <string name="home_invalid_apk_io_error">Nem sikerült megnyitni a fájlt. Kérjük, próbáld újra</string>
     <string name="home_external_apk_expert_mode_required">Ez a funkció csak szakértői módban érhető el</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
@@ -368,6 +371,7 @@ A legjobb eredmény érdekében az alkalmazás javasolja a &lt;b&gt;teljes APK&l
     <string name="adaptive_icon_create">Alkalmazkodó ikon létrehozása</string>
     <string name="adaptive_icon_select_image">Kép kiválasztása</string>
     <string name="adaptive_icon_change_image">Kép megváltoztatása</string>
+    <string name="image_load_failed">Nem sikerült betölteni ezt a képet</string>
     <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
     <string name="adaptive_icon_foreground">Előtérkép</string>
     <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
@@ -474,6 +478,20 @@ Külső zóna (szaggatott): az indító maszk levághatja – tartsa a fontos r�
     <string name="home_app_info_app_deleted_warning">Az alkalmazást eltávolították</string>
     <string name="home_app_info_app_deleted_description">Ezt az alkalmazást a Morphén kívül távolították el. Alkalmazd újra a módosításokat a működés helyreállításához.</string>
     <string name="home_app_info_not_patched_description">Az alkalmazás nem javított verziója van telepítve. A Nivqo még mindig tartalmazza a korábbi javítási rekordját.</string>
+<string name="app_links_title">Támogatott webes hivatkozások</string>
+    <string name="app_links_description">Android 12+ rendszeren a támogatott domainekre mutató hivatkozások alapértelmezetten a böngésződben nyílnak meg, hacsak nem hagyod jóvá</string>
+    <string name="app_links_unverified_banner_title">Nem ellenőrzött webes hivatkozások</string>
+    <string name="app_links_unverified_banner_description">A támogatott webes hivatkozások jelenleg a böngésződben nyílnak meg az alkalmazás helyett</string>
+    <string name="app_links_enable_auto">Automatikus engedélyezés</string>
+    <string name="app_links_enable_auto_in_progress">Hivatkozások engedélyezése…</string>
+    <string name="app_links_open_settings">Hivatkozásbeállítások megnyitása</string>
+    <string name="app_links_repair_success">Alkalmazáshivatkozások sikeresen engedélyezve</string>
+    <string name="app_links_repair_failed">Nem sikerült automatikusan engedélyezni az alkalmazáshivatkozásokat</string>
+    <string name="app_links_badge_enabled">Engedélyezve</string>
+    <string name="app_links_badge_disabled">Kikapcsolva</string>
+    <string name="app_links_all_verified">Minden támogatott hivatkozás úgy van beállítva, hogy ebben az alkalmazásban nyíljon meg</string>
+    <string name="app_links_fix">Hivatkozások javítása</string>
+    <string name="configure">Beállítás</string>
     <string name="patcher_rename_title">Ez egy klónt telepít</string>
     <string name="patcher_rename_description">A javítócsomagok saját csomagnév alatt építették ezt az alkalmazást, így a telepítése egy klónt ad hozzá a &lt;b&gt;%s&lt;/b&gt; mellé a frissítés helyett.</string>
     <string name="patcher_rename_result_package">Telepítés mint</string>
@@ -487,7 +505,7 @@ Külső zóna (szaggatott): az indító maszk levághatja – tartsa a fontos r�
     <string name="root_pre_patch_installer_mount_title">Root csatolási mód</string>
     <string name="root_pre_patch_installer_mount_description">Javítások root csatoláshoz, majd az APK rátöltése a megfelelő gyári alkalmazásra. Nincs szükség GmsCore-ra</string>
     <string name="root_mount_module_unmount_warning">Ha a KernelSU alapértelmezés szerint engedélyezi a leválasztó modulokat, nyissa meg a KernelSU-t &gt; Szuperfelhasználó &gt; azt az alkalmazást, amelyet rögzített &gt; Profil &gt; Egyéni és tiltsa le a leválasztó modulokat. Ellenkező esetben a rögzített APK nem lép életbe, még akkor sem, ha a Nivqo rögzítettként mutatja.</string>
-    <string name="root_pre_patch_installer_standard_title">Standard telepítési mód</string>
+<string name="root_pre_patch_installer_standard_title">Standard telepítési mód</string>
     <string name="root_pre_patch_installer_standard_description">Folyamatosan APK formátumú javítások GmsCore támogatással. A javítás után a telepítőbeállításaidat használjuk.</string>
     <string name="root_pre_patch_installer_hint">Ez a javítási mód eltér a Beállítások > Rendszer > Telepítő menüponttól, és a javítás után nem módosítható.</string>
     <!-- Patcher Screen -->
@@ -539,6 +557,7 @@ Külső zóna (szaggatott): az indító maszk levághatja – tartsa a fontos r�
     <string name="patcher_failed_title">Hoppá! Valami hiba történt</string>
     <string name="patcher_failed_dialog_title">A javítás sikertelen</string>
     <string name="patcher_error_details">Hiba részletei</string>
+    <string name="patcher_change_patches">Patchok módosítása</string>
     <string name="patcher_unknown_error">Ismeretlen hiba történt</string>
     <string name="patcher_split_step_extracting">Osztott APK-k kibontása</string>
     <string name="patcher_split_step_merging">%s egyesítése</string>
@@ -551,7 +570,7 @@ Külső zóna (szaggatott): az indító maszk levághatja – tartsa a fontos r�
     <string name="patcher_installed_conflict_body">"A Nivqo saját tanúsítvánnyal írja alá a javított alkalmazásokat, ami eltér az eredetitől. Az Androidnak el kell távolítani a meglévő verziót, mielőtt a javított alkalmazást telepíteni lehet.
 
 Az eltávolítás véglegesen törli az alkalmazás összes adatát."</string>
-    <string name="patcher_install_error_title">Telepítési hiba</string>
+<string name="patcher_install_error_title">Telepítési hiba</string>
     <string name="patcher_install_error_subtitle">Próbáld meg eltávolítani és újratelepíteni</string>
     <string name="patcher_ready_to_mount_subtitle">Nyomd meg az alábbi gombot a csatoláshoz</string>
     <string name="patcher_patches_excluded_for_installer">Nem érhető el a telepítési módszerhez és kizárt: %s</string>
@@ -559,9 +578,8 @@ Az eltávolítás véglegesen törli az alkalmazás összes adatát."</string>
     <string name="patcher_storage_permission_dialog_title">Az elérési útvonal nem hozzáférhető</string>
     <string name="patcher_incompatible_patcher_title">Frissítés szükséges</string>
     <string name="patcher_incompatible_patcher_description">A &lt;b&gt;%1$s&lt;/b&gt; csomag a &lt;b&gt;%2$s&lt;/b&gt; vagy újabb módosításverziót igényli. Kérjük, frissítsd a Nivqo-t az alkalmazás módosításához.</string>
-    <string name="patcher_incompatible_patcher_update_button">Töltsd le és frissítsd a Nivqo alkalmazást</string>
-    <string name="patcher_storage_permission_description_api30">Egy vagy több módosítási opció olyan elérési útra mutat, amelyeket a Nivqo nem tud olvasni. Add meg a tárhely hozzáférést, majd koppints a gombra, és a módosítás automatikusan elindul</string>
-    <string name="patcher_storage_permission_description_legacy">Egy vagy több módosítási opció olyan elérési útra mutat, amelyekhez nem lehet hozzáférni. Frissítsd az útvonalakat a módosítási opciókban és próbáld újra</string>
+<string name="patcher_storage_permission_description_api30">Egy vagy több módosítási opció olyan elérési útra mutat, amelyeket a Nivqo nem tud olvasni. Add meg a tárhely hozzáférést, majd koppints a gombra, és a módosítás automatikusan elindul</string>
+<string name="patcher_storage_permission_description_legacy">Egy vagy több módosítási opció olyan elérési útra mutat, amelyekhez nem lehet hozzáférni. Frissítsd az útvonalakat a módosítási opciókban és próbáld újra</string>
     <string name="patcher_storage_permission_grant">Tárhelyhozzáférés engedélyezése</string>
     <string name="patcher_storage_permission_denied_warning">A tárhelyhozzáférési engedély megtagadva. Engedélyezd a tároló használatához, vagy helyezd át a fájlokat az alkalmazás magánkönyvtárába.</string>
     <string name="patcher_storage_permission_open_settings">Tárhelybeállítások megnyitása</string>
@@ -575,7 +593,7 @@ Az eltávolítás véglegesen törli az alkalmazás összes adatát."</string>
     <string name="patcher_option_paths_gone_description">Egy vagy több javítási beállítás olyan fájlokra mutat, amelyek már nem léteznek. Távolítsa el az útvonalakat, hogy a javítás ezek nélkül folytatódjon, vagy tegye vissza a fájlokat, és próbálja újra.</string>
     <string name="patcher_option_paths_clear">Távolítsa el az útvonalakat, és folytassa.</string>
     <string name="patcher_storage_permission_hint">Tipp: Mozgasd át a fájlokat az /Android/data/app.nivqo.manager/files/ könyvtárba - nincs szükség extra engedélyekre</string>
-    <!-- Patcher Screen - Patcher Steps -->
+<!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Előkészítés</string>
     <string name="patcher_step_load_patches">Módosítások betöltése</string>
     <string name="patcher_step_prepare_split_apk">Osztott APK egyesítése</string>
@@ -587,7 +605,7 @@ Az eltávolítás véglegesen törli az alkalmazás összes adatát."</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Háttérjavítási védelem</string>
     <string name="battery_optimization_dialog_description">Bizonyos eszközök leállíthatják a javítót, ha az alkalmazás minimalizálva van. Engedélyezze a Nivqo akadálytalan futását akkumulátor-korlátozások nélkül, hogy a javítás megbízhatóan befejeződjön.</string>
-    <string name="battery_optimization_not_now">Most nem</string>
+<string name="battery_optimization_not_now">Most nem</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">Nincs elég memória</string>
     <string name="patcher_memory_adjustment_description">A rendszer leállította a patchert, miközben %1$d MB memóriakorláttal futott. A korlát %2$d MB-ra csökkentése kisebb célponttá teszi a patchert, és lehetővé teheti a futás befejezését.</string>
@@ -644,8 +662,8 @@ Az eltávolítás véglegesen törli az alkalmazás összes adatát."</string>
     <string name="install_ignore_signature_description">Megőrzi az alkalmazás adatait, de csak akkor működik, ha egy root modul letiltja az Android aláírás-ellenőrzését.</string>
     <string name="uninstall_app_fail">Nem sikerült eltávolítani az alkalmazást: %s</string>
     <string name="uninstall_app_unverified">A helyén hagyva: a Nivqo nem tudta ellenőrizni, hogy a telepített alkalmazás az a build, amelyet javított</string>
-    <string name="launch_app_unverified">A Nivqo nem tudta ellenőrizni, hogy a telepített alkalmazás az a build, amelyet javított</string>
-    <string name="uninstall_timeout">Az eltávolítás időtúllépése</string>
+<string name="launch_app_unverified">A Nivqo nem tudta ellenőrizni, hogy a telepített alkalmazás az a build, amelyet javított</string>
+<string name="uninstall_timeout">Az eltávolítás időtúllépése</string>
     <string name="save_apk_success">APK mentve</string>
     <string name="saved_app_export_failed">Nem sikerült exportálni a módosított alkalmazást</string>
     <string name="saved_app_removed_toast">A módosított alkalmazás mentése eltávolítva</string>
@@ -755,7 +773,7 @@ Az eltávolítás véglegesen törli az alkalmazás összes adatát."</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Alkalmazásikon</string>
     <string name="settings_appearance_app_icon_selector_description">Hogyan néz ki a Nivqo a kezdőképernyőn és az alkalmazásfiókban</string>
-    <string name="settings_appearance_app_icon_default">Alapértelmezett</string>
+<string name="settings_appearance_app_icon_default">Alapértelmezett</string>
     <string name="settings_appearance_app_icon_light_2">Ég</string>
     <string name="settings_appearance_app_icon_light_3">Naplemente</string>
     <string name="settings_appearance_app_icon_dark_1">Óceán</string>
@@ -771,14 +789,14 @@ Az eltávolítás véglegesen törli az alkalmazás összes adatát."</string>
     <string name="settings_advanced_updates_manager_prereleases">Előzetes frissítések</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <string name="settings_advanced_updates_manager_prereleases_description">Korai hozzáférés az új Nivqo verziókhoz</string>
-    <string name="settings_advanced_updates_prerelease_warning_title">Engedélyezd az előzetes frissítéseket?</string>
+<string name="settings_advanced_updates_prerelease_warning_title">Engedélyezd az előzetes frissítéseket?</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
     <string name="settings_advanced_updates_prerelease_warning_message">"Pre-release versions of Nivqo are still in development and can be unstable.
 
 Patches are not affected: enable pre-release patches for each source in the patch sources list"</string>
-    <string name="settings_advanced_updates_allow_metered">Mobiladat-forgalom aktív</string>
+<string name="settings_advanced_updates_allow_metered">Mobiladat-forgalom aktív</string>
     <string name="settings_advanced_updates_allow_metered_description">A Nivqo és a módosítások frissítéseinek letöltése mobiladattal.</string>
-    <string name="settings_advanced_updates_background_notifications">Háttérfrissítési értesítések</string>
+<string name="settings_advanced_updates_background_notifications">Háttérfrissítési értesítések</string>
     <string name="settings_advanced_updates_background_notifications_description">A háttérben periodikusan ellenőrzi a frissítéseket és értesít, ha elérhetőek.</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Azonnali push értesítések fogadása az új kiadásokról akkor is, ha az alkalmazás be van zárva.</string>
     <string name="settings_system_notifications_categories">Értesítési kategóriák</string>
@@ -795,27 +813,27 @@ Patches are not affected: enable pre-release patches for each source in the patc
     <string name="settings_advanced_external_batch_patch_description">Lehetővé teszi az automatizálási alkalmazásoknak, hogy intent segítségével kötegelt javítást indítsanak.</string>
     <string name="external_batch_patch_title">Elindítsa a csoportos javítást?</string>
     <string name="external_batch_patch_description">A(z) %s alkalmazás javításokat és telepítéseket szeretne végrehajtani a Nivqo-val</string>
-    <string name="external_batch_patch_trust_caller">Mindig engedélyezze ezt az alkalmazást</string>
+<string name="external_batch_patch_trust_caller">Mindig engedélyezze ezt az alkalmazást</string>
     <string name="external_batch_patch_unknown_caller">Egy ismeretlen alkalmazás</string>
     <!-- Notification content -->
     <string name="notification_manager_update_title">Nivqo frissítés elérhető</string>
-    <string name="notification_bundle_update_title">Új módosítások érhetők el</string>
+<string name="notification_bundle_update_title">Új módosítások érhetők el</string>
     <string name="notification_update_text">A(z) %s verzió letöltésre kész</string>
     <string name="notification_bundle_update_text_unversioned">Koppints a Nivqo megnyitásához és a frissítéshez</string>
-    <string name="notification_permission_dialog_title">Értesítések engedélyezése</string>
+<string name="notification_permission_dialog_title">Értesítések engedélyezése</string>
     <string name="notification_permission_dialog_description">​A Nivqo-nek értesítési engedélyre van szüksége, hogy jelezni tudja, ha a háttérben frissítés válik elérhetővé</string>
-    <string name="notification_post_patch_dialog_title">Szeretnél értesítést kapni, ha frissítések állnak rendelkezésre?</string>
+<string name="notification_post_patch_dialog_title">Szeretnél értesítést kapni, ha frissítések állnak rendelkezésre?</string>
     <string name="notification_channel_manager_updates">Nivqo-frissítések</string>
     <string name="notification_channel_manager_updates_description">Értesítések az új Nivqo-kiadásokról</string>
-    <string name="notification_channel_patch_updates">Patch-frissítések</string>
+<string name="notification_channel_patch_updates">Patch-frissítések</string>
     <string name="notification_channel_patch_updates_description">Értesítések az új patch-kiadásokról</string>
     <string name="notification_channel_patcher">Módosítás</string>
     <string name="notification_channel_patcher_description">Akkor jelenik meg, amikor a Nivqo a háttérben módosít egy alkalmazást</string>
-    <!-- Settings - Advanced Tab - Expert settings Section -->
+<!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Szakértői beállítások</string>
     <string name="settings_advanced_expert_mode">Szakértői mód</string>
     <string name="settings_advanced_expert_mode_description">Engedélyezi a Nivqo komplex módosítási beállításait és a testreszabási lehetőségeket.</string>
-    <string name="settings_advanced_expert_mode_dialog_title">Engedélyezed a szakértői módot?</string>
+<string name="settings_advanced_expert_mode_dialog_title">Engedélyezed a szakértői módot?</string>
     <string name="settings_advanced_expert_mode_dialog_message">A szakértői mód nagyobb ellenőrzést biztosít a módosítások alkalmazása felett, de ebben a módban a beállítások helytelen konfigurálása az alkalmazás működésképtelenségét eredményezheti</string>
     <string name="settings_advanced_strip_unused_libs">Optimalizálás a készülék architektúrájához</string>
     <string name="settings_advanced_strip_unused_libs_description">Eltávolítja a nem használt CPU architektúra könyvtárakat és az APK modulokat</string>
@@ -831,7 +849,7 @@ Patches are not affected: enable pre-release patches for each source in the patc
     <string name="settings_advanced_github_pat_export_include_label">Felvétel az exportált beállítások közé</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_include_supporting">Hozzáadja a PAT-ot a Nivqo exportált beállításaihoz</string>
-    <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
+<!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">Soha ne oszd meg a PAT-odat! Ha exportálod a beállításokkal kezeld bizalmasan a fájlt, mert tartalmazza a tokent</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
     <string name="settings_advanced_patch_options">Módosítási opciók</string>
@@ -928,7 +946,7 @@ A képek méreteinek a következőknek kell lennie:
     <string name="installer_status_shizuku_not_installed">Telepítsd a Shizuku vagy a Sui alkalmazást a használathoz</string>
     <string name="installer_status_shizuku_not_running">Indítsd el a Shizuku vagy a Sui alkalmazást és próbáld újra</string>
     <string name="installer_status_shizuku_permission">Adj engedélyt a Nivqo számára a Shizuku alkalmazásból</string>
-    <string name="installer_mount_warning_install">Az elsődleges telepítő root telepítőre van állítva. Ez a mentett alkalmazás nem csatolással lett telepítve</string>
+<string name="installer_mount_warning_install">Az elsődleges telepítő root telepítőre van állítva. Ez a mentett alkalmazás nem csatolással lett telepítve</string>
     <string name="mount_version_mismatch_message">A telepített alapverzió (%2$s) nem egyezik a módosított alkalmazás verziójával (%1$s). Csatold a megfelelő alapverziót, majd próbáld újra</string>
     <string name="mount_stock_restore_failed_message">Az Android elutasította a mentett eredeti APK-t. Telepítsd a megfelelő gyári verziót, majd próbáld meg újra a csatolást.</string>
     <string name="installer_status_shizuku_unsupported">A telepített Shizuku verzió nem támogatott</string>
@@ -958,7 +976,7 @@ A képek méreteinek a következőknek kell lennie:
     <string name="settings_auto_uninstall_with_shizuku_description">Az automatikus telepítés során a Shizukuval először eltávolítsa a meglévő alkalmazást, ha az Android aláírási konfliktát jelent. Ez eltávolíthatja az alkalmazás adatait.</string>
     <string name="settings_auto_uninstall_warning_title">Engedélyezze az automatikus eltávolítást?</string>
     <string name="settings_auto_uninstall_warning_message">Ha az Android aláírási konfliktát jelent a Shizuku automatikus telepítése során, a Nivqo eltávolítja a meglévő alkalmazást, mielőtt telepítené a javított APK-t.</string>
-    <string name="settings_auto_uninstall_warning_risk">Ez eltávolíthatja az alkalmazás adatait. Ha a javított APK nem települ az eltávolítás után, a korábbi alkalmazás már eltűnhet.</string>
+<string name="settings_auto_uninstall_warning_risk">Ez eltávolíthatja az alkalmazás adatait. Ha a javított APK nem települ az eltávolítás után, a korábbi alkalmazás már eltűnhet.</string>
     <string name="installer_shizuku_status_action">Ellenőrizze a Shizuku állapotát</string>
     <string name="installer_shizuku_status_title">Shizuku állapot</string>
     <string name="installer_shizuku_status_ready">Készenléti állapot</string>
@@ -976,7 +994,7 @@ A képek méreteinek a következőknek kell lennie:
 
 Részletek: %2$s"</string>
     <string name="installer_shizuku_error_permission">Hiányzik a Shizuku engedély. Adjon engedélyt a Nivqo számára, és próbálja meg újra.</string>
-    <string name="installer_shizuku_error_timeout">A Shizuku nem adta vissza a telepítési eredményt. Győződjön meg arról, hogy még fut, és próbálja meg újra.</string>
+<string name="installer_shizuku_error_timeout">A Shizuku nem adta vissza a telepítési eredményt. Győződjön meg arról, hogy még fut, és próbálja meg újra.</string>
     <string name="installer_shizuku_error_downgrade">Az Android blokkolta ezt, mert visszaállítaná a telepített alkalmazást.</string>
     <string name="installer_shizuku_error_signature">Az Android blokkolta ezt, mert a telepített alkalmazás más aláírással rendelkezik.</string>
     <string name="installer_shizuku_error_invalid_apk">Az Android nem tudta beolvasni ezt az APK-t.</string>
@@ -991,7 +1009,7 @@ Részletek: %2$s"</string>
     <string name="settings_system_process_runtime_enable">Folyamatfutási környezet engedélyezése</string>
     <string name="settings_system_memory_limit_subtitle">Módosításhoz rendelkezésre álló memória</string>
     <string name="settings_system_process_runtime_heap_limit_ignored">Ez az eszköz az utolsó futtatáskor figyelmen kívül hagyta a memóriakorlátot, ezért a javítás visszaeshet a Nivqo-ban való futásra.</string>
-    <string name="settings_system_memory_limit_warning">Alacsony memóriakorlát esetén a nagyobb alkalmazások módosításakor hiba léphet fel</string>
+<string name="settings_system_memory_limit_warning">Alacsony memóriakorlát esetén a nagyobb alkalmazások módosításakor hiba léphet fel</string>
     <string name="settings_system_memory_limit_high_warning">Egy magas memóriakorlát egyes eszközökön sokkal lassabbá teheti a javítást. Csak akkor emeld meg, ha a javítás alacsonyabb korlátoknál is folyamatosan meghiúsul.</string>
     <string name="settings_system_process_runtime_enabled_description">%s MB korlát</string>
     <string name="settings_system_process_runtime_disabled_description">Koppints a konfigurálásához</string>
@@ -1014,8 +1032,8 @@ Részletek: %2$s"</string>
     <string name="settings_system_signing_key">Aláírási kulcs</string>
     <string name="settings_system_signing_key_description">Biztonsági mentést készít és visszaállítja a kulcsot, amellyel a javított alkalmazásaid alá vannak írva.</string>
     <string name="settings_system_signing_key_dialog_description">A Nivqo minden általa javított alkalmazást ezzel a kulccsal ír alá. Tarts meg egy másolatot: enélkül a javított alkalmazások csak eltávolítás után frissíthetők.</string>
-    <string name="settings_system_signing_key_missing">A Nivqo az első javításnál létrehoz egyet.</string>
-    <string name="settings_system_signing_key_created">%s létrehozva</string>
+<string name="settings_system_signing_key_missing">A Nivqo az első javításnál létrehoz egyet.</string>
+<string name="settings_system_signing_key_created">%s létrehozva</string>
     <string name="settings_system_signing_key_fingerprint">SHA-256 ujjlenyomat</string>
     <string name="settings_system_backup_appearance_description">Téma, színek és nyelv</string>
     <string name="settings_system_backup_home_description">Csoportok, rejtett alkalmazások, rendezés és kapcsolók</string>
@@ -1039,10 +1057,10 @@ Részletek: %2$s"</string>
     <string name="settings_system_hide_password_field">Jelszó elrejtése</string>
     <string name="settings_system_morphe_settings">Nivqo beállítások</string>
     <string name="settings_system_import_manager_settings_description">A Nivqo beállításainak biztonsági mentése és visszaállítása.</string>
-    <string name="settings_system_import_manager_settings_fail">Hiba történt a Nivqo beállításainak importálásakor: %s</string>
+<string name="settings_system_import_manager_settings_fail">Hiba történt a Nivqo beállításainak importálásakor: %s</string>
     <string name="settings_system_import_manager_settings_success">Nivqo beállítások importálva</string>
     <string name="settings_system_import_manager_settings_mode_title">Nivqo beállítások importálása</string>
-    <string name="settings_system_import_manager_settings_mode_description">Válassza ki, hogyan alkalmazzák az importált beállításokat és forrásokat</string>
+<string name="settings_system_import_manager_settings_mode_description">Válassza ki, hogyan alkalmazzák az importált beállításokat és forrásokat</string>
     <string name="settings_system_import_selections_mode_title">Módosítások importálása</string>
     <string name="settings_system_import_selections_mode_description">Válassza ki, hogyan kell alkalmazni az importált beállításokat és javítási lehetőségeket</string>
     <string name="import_mode_replace_title">Létező felülírása</string>
@@ -1050,8 +1068,8 @@ Részletek: %2$s"</string>
     <string name="import_mode_merge_title">Összefonódás a meglévőkkel</string>
     <string name="import_mode_merge_description">A biztonsági mentésből hiányzó elemek hozzáadása. A meglévő elemek változatlanok maradnak.</string>
     <string name="settings_system_export_manager_settings_fail">Hiba történt a Nivqo beállításainak exportálásakor: %s</string>
-    <string name="settings_system_export_manager_settings_success">Nivqo beállítások exportálva</string>
-    <string name="settings_system_export_debug_logs">Hibakeresési naplók exportálása</string>
+<string name="settings_system_export_manager_settings_success">Nivqo beállítások exportálva</string>
+<string name="settings_system_export_debug_logs">Hibakeresési naplók exportálása</string>
     <string name="settings_system_export_debug_logs_description">A rendszernaplók mentése hibaelhárításhoz</string>
     <string name="settings_system_export_debug_logs_export_read_failed">Nem sikerült a naplók olvasása (kilépési kód: %s)</string>
     <string name="settings_system_export_debug_logs_export_failed">Nem sikerült exportálni a naplókat</string>
@@ -1087,7 +1105,7 @@ Részletek: %2$s"</string>
     <string name="settings_system_storage_nothing_to_clear">Nincs törölni való</string>
     <string name="settings_system_storage_open_app_info_title">Megnyitás Android alkalmazástár</string>
     <string name="settings_system_storage_open_app_info_description">Nivqo adatok kezelése vagy törlése a rendszerbeállításokon keresztül</string>
-    <string name="settings_system_save_original_apks_title">Tartsd meg az eredeti APK fájlokat</string>
+<string name="settings_system_save_original_apks_title">Tartsd meg az eredeti APK fájlokat</string>
     <string name="settings_system_save_original_apks_description">Mentsd el a patch-elés előtti APK fájlt, hogy újrahasználd a későbbi patch-elésekhez anélkül, hogy újra ki kellene választanod a fájlt.</string>
     <string name="settings_system_save_patched_apks_title">Tartsd meg a patch-elt APK fájlokat</string>
     <string name="settings_system_save_patched_apks_description">Mentsd el a patch-elt APK fájl egy másolatát későbbi exportáláshoz vagy a kezelőből való újratelepítéshez.</string>
@@ -1135,12 +1153,12 @@ Részletek: %2$s"</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Egyéni fájlválasztó</string>
     <string name="settings_system_custom_file_picker_description">A Nivqo beépített fájlválasztóját használja a rendszer alapértelmezett helyett.</string>
-    <!-- Settings - System Tab - APK download helper -->
+<!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">APK letöltő segédprogram</string>
     <string name="settings_system_apk_download_helper_trusted_count">Megbízható: %1$d / %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">A segédalkalmazások letölthetik Ön helyett az eredeti APK-kat. A letöltési utasításokban csak az itt megbízhatónak jelöltek jelennek meg.</string>
     <string name="settings_system_apk_download_helper_warning">Az APK a segédalkalmazásból származik, ezért csak olyan alkalmazásokban bízzon meg, amelyeket ismer. A Nivqo a módosítás előtt továbbra is ellenőrzi minden fájl csomagját, verzióját és aláírását.</string>
-    <string name="settings_system_apk_download_helper_installed_by">Telepítő: %s</string>
+<string name="settings_system_apk_download_helper_installed_by">Telepítő: %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Ismeretlen telepítő</string>
     <!-- File Picker -->
     <string name="file_picker_no_files">Nincs itt fájl</string>
@@ -1148,6 +1166,7 @@ Részletek: %2$s"</string>
     <string name="file_picker_internal_storage">Belső tárhely</string>
     <string name="file_picker_sd_card">SD-kártya</string>
     <string name="file_picker_root">Gyökér (/)</string>
+    <string name="file_picker_storages">Tárolók</string>
     <string name="file_picker_sort_name_asc">Név (A–Z)</string>
     <string name="file_picker_sort_name_desc">Név (Z–A)</string>
     <string name="file_picker_sort_size_desc">Méret (a legnagyobbtól kezdve)</string>
@@ -1295,6 +1314,7 @@ Részletek: %2$s"</string>
     <string name="changelog_download_fail">Nem sikerült letölteni a változásnaplót: %s</string>
     <string name="changelog_empty">A változásnapló nem elérhető</string>
     <string name="changelog_earlier_releases">Korábbi kiadások</string>
+    <string name="changelog_patched_with">Javítva a következővel: %s</string>
     <string name="changelog_older_empty">Nincsenek megjeleníthető régi kiadások</string>
     <string name="changelog_older_failed">Nem sikerült betölteni a régebbi kiadásokat</string>
     <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
@@ -1323,7 +1343,7 @@ Részletek: %2$s"</string>
     <string name="install_update_manager_failed">Nem sikerült telepíteni a frissítést</string>
     <string name="installing_manager_update">Frissítés telepítése…</string>
     <string name="installing_manager_update_hint">A Nivqo bezárul, hogy befejezze a frissítést</string>
-    <string name="downloading_manager_update">Frissítés letöltése…</string>
+<string name="downloading_manager_update">Frissítés letöltése…</string>
     <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB letöltve</string>
     <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
@@ -1344,7 +1364,7 @@ Szeretnéd folytatni?"</string>
     <string name="onboarding_swipe_title">Gesztusvezérléses ujjmozdulatok</string>
     <string name="onboarding_swipe_desc">Csúsztass jobbra egy alkalmazáskártyán a rendelkezésre álló patchekért. Csúsztass balra, hogy elrejtsd a kártyát a kezdőképernyőről</string>
     <string name="onboarding_settings_desc">A Nivqo testreszabása: megjelenés, haladó beállítások és rendszereszközök</string>
-    <string name="onboarding_sources_patches_desc">Érintsd meg a forrásból elérhető összes patch megtekintéséhez</string>
+<string name="onboarding_sources_patches_desc">Érintsd meg a forrásból elérhető összes patch megtekintéséhez</string>
     <string name="onboarding_sources_version_desc">Érintsd meg a verziót a forráshoz tartozó teljes változási napló megtekintéséhez</string>
     <string name="onboarding_sources_prerelease_desc">Ezt engedélyezd, ha a forrásból előzetes patch verziókat szeretnél fogadni</string>
     <string name="onboarding_appearance_tab_desc">Az alkalmazás megjelenésének testreszabása: téma, kiemelő szín és háttér</string>
@@ -1359,7 +1379,7 @@ Szeretnéd folytatni?"</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Rövid funkció bemutató</string>
     <string name="tour_prompt_desc">Szeretnél egy rövid bemutatót a Nivqo fő funkcióiról?</string>
-    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
+<!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Mutasd meg</string>
     <string name="onboarding_restart_title">Funkció bemutató</string>
     <string name="onboarding_restart_desc">Vezetett bemutató a főbb funkciókról</string>

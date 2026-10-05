@@ -14,16 +14,16 @@
     <string name="android_11_bug_dialog_description">Дазвол на ўсталёўку праграмы неабходна даць загадзя, каб пазбегнуць памылкі ў сістэме Android 11, якая негатыўна паўплывае на карыстальніцкі досвед</string>
     <string name="deep_link_add_source_title">Дадаць крыніцу</string>
     <string name="deep_link_add_source_message">Вы хочаце дадаць гэтую крыніцу патча ў Nivqo?</string>
-    <string name="deep_link_add_source_warning">Дадавайце толькі надзейныя крыніцы</string>
+<string name="deep_link_add_source_warning">Дадавайце толькі надзейныя крыніцы</string>
     <!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Даступна абнаўленне Nivqo</string>
-    <string name="home_update_available_subtitle">Новая версія гатовая да ўстаноўкі</string>
+<string name="home_update_available_subtitle">Новая версія гатовая да ўстаноўкі</string>
     <string name="home_blocked_source_title">Выяўлена заблакаваная крыніца патча</string>
     <string name="home_blocked_source_subtitle">Націсніце, каб прагледзець і выдаліць</string>
     <string name="home_metadata_errors_title">Некаторыя крыніцы патчаў недаступныя</string>
     <string name="home_metadata_errors_subtitle">Націсніце, каб прагледзець крыніцы</string>
     <string name="home_outdated_manager_title">Nivqo састарэў</string>
-    <string name="home_outdated_manager_subtitle">Некаторым крыніцам патчаў патрэбна больш новая версія</string>
+<string name="home_outdated_manager_subtitle">Некаторым крыніцам патчаў патрэбна больш новая версія</string>
     <string name="home_metered_skipped_title">Абнаўленні прыпынены для мабільных даных</string>
     <string name="home_metered_skipped_subtitle">Націсніце, каб дазволіць абнаўленні па мабільных даных</string>
     <string name="home_update_error">Абнаўленне не ўдалося</string>
@@ -122,7 +122,7 @@
     <string name="sources_management_metadata_unavailable_hint_missing">Не ўдалося спампаваць пакет патчаў. Магчыма, URL-адрас крыніцы няправільны або файл не існуе</string>
     <string name="sources_management_outdated_manager_badge">Абнавіць Nivqo</string>
     <string name="sources_management_outdated_manager_hint">Гэтая крыніца створана для патчара %1$s, але Nivqo %2$s уключае патчар %3$s. Абнавіце Nivqo, каб выкарыстоўваць яе</string>
-    <string name="sources_management_source_enabled">Крыніца ўключана</string>
+<string name="sources_management_source_enabled">Крыніца ўключана</string>
     <string name="sources_management_source_disabled">Крыніца адключана</string>
     <string name="sources_management_source_updating">Абнаўленне крыніцы</string>
     <!-- Home Screen - Sources Dialogs -->
@@ -161,15 +161,15 @@
     <string name="home_apk_helper_download">Выкарыстоўваць дапаможную праграму</string>
     <string name="home_apk_helper_title">Спампаваць з дапаможнай праграмай</string>
     <string name="home_apk_helper_description">Nivqo папросіць дапаможную праграму ніжэй спампаваць арыгінальны APK і вярнуць файл</string>
-    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+<!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_warning">Працягвайце толькі ў тым выпадку, калі вы давяраеце гэтай дапаможнай праграме. Nivqo правярае пакет, версію і подпіс атрыманых даных перад патчынгам</string>
     <string name="home_apk_helper_warning_unverified">Працягвайце толькі ў тым выпадку, калі вы давяраеце гэтай дапаможнай праграме. Nivqo не можа праверыць подпіс гэтага APK, таму прапатчаны файл не будзе выяўлены</string>
-    <string name="home_apk_helper_no_result">Дапаможная праграма не вярнула APK</string>
+<string name="home_apk_helper_no_result">Дапаможная праграма не вярнула APK</string>
     <string name="home_apk_helper_no_access">Дапаможная праграма не дала доступу да APK, які яна вярнула</string>
     <string name="home_apk_helper_no_package">Дапаможная праграма не пазначыла, якую з усталяваных праграм трэба выкарыстоўваць</string>
     <string name="home_apk_helper_wrong_package">Дапаможная праграма вярнула іншую праграму, чым тую, якую патчыла</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo не змог выкарыстоўваць усталяваную праграму</string>
-    <string name="home_apk_helper_installed_incompatible">Усталяваную версію немагчыма прапатчыць</string>
+<string name="home_apk_helper_installed_incompatible">Усталяваную версію немагчыма прапатчыць</string>
     <string name="home_apk_use_saved">Выкарыстоўваць захаваны APK</string>
     <string name="home_apk_use_installed">Выкарыстоўваць усталяваны APK</string>
     <string name="home_apk_use_installed_unverified">Не ўдалося праверыць подпіс усталяванай праграмы, таму яна, магчыма, ужо прапатчана</string>
@@ -187,11 +187,11 @@
     <string name="home_download_instructions_download_button_toast_4">Усё яшчэ не тут… усё яшчэ не тут… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">Добра, я паважаю адданасць 🫡</string>
     <string name="home_download_instructions_download_button_toast_6">Вы цяпер афіцыйны тэстар кнопкі Nivqo 🏅</string>
-    <string name="home_download_instructions_step3">Дачакайцеся завяршэння спампоўкі і &lt;b&gt;не ўсталёўвайце&lt;/b&gt; APK</string>
+<string name="home_download_instructions_step3">Дачакайцеся завяршэння спампоўкі і &lt;b&gt;не ўсталёўвайце&lt;/b&gt; APK</string>
     <string name="home_download_instructions_step3_mount">Дачакайцеся завяршэння спампоўкі, затым &lt;b&gt;усталюйце APK&lt;/b&gt;</string>
     <string name="home_download_instructions_step4">Пасля завяршэння спампоўкі вярніцеся да Nivqo</string>
-    <string name="home_download_instructions_step4_mount">Пасля ўсталявання арыгінальнага APK, вярніцеся да Nivqo</string>
-    <!-- Home Screen - Dialog 3: File Picker Prompt -->
+<string name="home_download_instructions_step4_mount">Пасля ўсталявання арыгінальнага APK, вярніцеся да Nivqo</string>
+<!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_file_picker_prompt_title">Выберыце спампаваны APK</string>
     <string name="home_file_picker_prompt_description">Выберыце &lt;b&gt;%s&lt;/b&gt; файл APK, які вы толькі што спампавалі</string>
     <string name="home_file_picker_prompt_open_apk">Адкрыць APK-файл</string>
@@ -214,6 +214,8 @@
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Home Screen - App Info Screen -->
+    <string name="app_links_badge_enabled">Уключана</string>
+    <string name="app_links_badge_disabled">Адключана</string>
     <!-- Home Screen - Root Mode -->
     <!-- Patcher Screen -->
     <!-- Titles of the cards the expert log shows in place of the raw start and success log lines -->

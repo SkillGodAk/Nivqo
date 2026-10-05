@@ -18,6 +18,7 @@ import app.morphe.manager.R
  *
  * @param accentColor Color of the app or source the dialog is about, see [ListDialogHeader].
  * @param actions Offered beside Close, which stays primary, so they are outlined unless they ask otherwise.
+ *        Stacked when they do not fit beside it, above Close, which keeps the bottom as in every other dialog.
  */
 @Composable
 fun DetailsDialog(
@@ -33,15 +34,23 @@ fun DetailsDialog(
         onDismissRequest = onDismissRequest,
         accentColor = accentColor,
         footer = {
-            AppDialogActions(
-                actions = listOf(
-                    DialogAction(
-                        text = stringResource(R.string.close),
-                        onClick = onDismissRequest,
-                        emphasis = DialogActionEmphasis.Outlined
-                    )
-                ) + actions
+            val close = DialogAction(
+                text = stringResource(R.string.close),
+                onClick = onDismissRequest,
+                emphasis = DialogActionEmphasis.Outlined
             )
+            // Listed after Close, so only an action asking to stand out is filled
+            val others = actions.map {
+                if (it.emphasis == DialogActionEmphasis.Auto) it.copy(emphasis = DialogActionEmphasis.Outlined) else it
+            }
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val row = listOf(close) + others
+                if (actionsFitInRow(row, maxWidth)) {
+                    AppDialogActions(actions = row, layout = DialogButtonLayout.Horizontal)
+                } else {
+                    AppDialogActions(actions = others + close, layout = DialogButtonLayout.Vertical)
+                }
+            }
         },
         padding = DialogPadding.Compact,
         scrollable = false,

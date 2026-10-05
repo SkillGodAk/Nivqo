@@ -36,12 +36,15 @@ data object Patcher : ComplexParameter<Patcher.ViewModelParams> {
      * @param options The values configured for those patches, per source.
      * @param targetPackageName The install this run is aimed at when that is a clone rather than
      *   the app's own, which is not something [selectedApp] can say.
+     * @param allowIncompatible Whether patches outside the APK's version were offered, kept so
+     *   the selection reopened after a failed run offers the same ones.
      */
     @Parcelize
     data class ViewModelParams(
         val selectedApp: SelectedApp,
         val selectedPatches: PatchSelection,
         val options: @RawValue Options,
-        val targetPackageName: String? = null
+        val targetPackageName: String? = null,
+        val allowIncompatible: Boolean = false
     ) : Parcelable
 }

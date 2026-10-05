@@ -11,6 +11,7 @@ hook ai_menu LX/JiI;->A01()Z
 hook ai_search LX/5O3;->A0A(LX/5O3;)Z
 hook ai_search LX/5O3;->A0B(LX/5O3;)Z
 hook ai_search_chip LX/D7q;->render(LX/2MZ;)LX/1GG;
+hook ai_sticker_cell LX/FWm;->render(LX/2MZ;)LX/1GG;
 hook ai_stickers LX/PN4;->A03(LX/PN4;)Z
 hook ai_stickers LX/PNb;->A07(LX/PNb;)Z
 hook ai_tab LX/1iN;->A02(LX/1iN;)Z
@@ -34,6 +35,7 @@ hook chat_inbox LX/1fs;-><init>()V
 hook chat_legacy LX/1hd;->onCreateAnimation(IZI)Landroid/view/animation/Animation;
 hook chat_promotions LX/Ts2;->A0D()Z
 hook chat_promotions LX/Ts2;->A0E()Z
+hook community_inbox LX/2GW;->invoke(Ljava/lang/Object;)Ljava/lang/Object;
 hook delta_unsent LX/K0w;->Bta(I)Z
 hook emoji_typeface LX/1KV;->A00()Landroid/graphics/Typeface;
 hook event_prompts LX/Ts2;->A07()Z
@@ -89,6 +91,9 @@ hook people_tab LX/JYS;->A01(LX/JYS;)V
 hook read_mailbox LX/9sS;->A01(Ljava/lang/Long;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;)V
 hook reels_badge LX/7wp;->A09(LX/7wp;)Z
 hook save_stories LX/Jfc;->onClick(Landroid/view/View;)V
+hook screenshot_viewers Lcom/facebook/messaging/media/ephemeralmedia/viewer/EphemeralMediaViewerFragment;->A1A(Landroid/os/Bundle;)Landroid/app/Dialog;
+hook screenshot_viewers Lcom/facebook/messaging/media/ephemeralmedia/viewer/EphemeralMediaViewerFragment;->onResume()V
+hook screenshot_viewers Lcom/facebook/messaging/quicksnap/consumption/viewer/MsgrQuicksnapViewerFragment;->onCreateView(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;
 hook stories LX/1mi;->A00()Z
 hook subtabs LX/2UL;->run()V
 hook suggested_replies LX/7SD;->A06(LX/7SD;)Z
@@ -109,6 +114,7 @@ adFilterExits 916 931
 bubbleCapabilityGetter LX/1hy;->A03(Lcom/facebook/auth/usersession/FbUserSession;I)Z
 bubbleRolloutGetter Lcom/facebook/mobileconfig/factory/MobileConfigUnsafeContext;->Ah9(J)Z
 nativeBubbleRoutes LX/8qV;->A02(Landroid/graphics/Bitmap;LX/0MX;Lcom/facebook/auth/usersession/FbUserSession;LX/8qZ;Lcom/facebook/messaging/model/threads/ThreadSummary;LX/6eV;Lcom/facebook/push/constants/PushProperty;Z)V|LX/8qX;->A04(Landroid/content/Context;Landroid/graphics/Bitmap;Lcom/facebook/messaging/model/threadkey/ThreadKey;Ljava/lang/String;)LX/8qZ;|LX/MOA;->A04(Landroid/content/Context;Landroid/graphics/Bitmap;Lcom/facebook/auth/usersession/FbUserSession;LX/MOA;Lcom/facebook/messaging/model/threads/ThreadSummary;)Z
+nativeCommunityInbox LX/1k3;->A0G(LX/1k3;LX/1mM;Ljava/lang/String;Z)V|LX/2GW;-><init>(Lcom/facebook/auth/usersession/FbUserSession;LX/2Fu;LX/2GC;LX/2GU;LX/2EW;LX/2GR;LX/4mn;LX/4sr;LX/1lQ;Lcom/facebook/mig/scheme/interfaces/MigColorScheme;LX/4pe;Lcom/google/common/collect/ImmutableList;Ljava/lang/String;Z)V|LX/1mE;->A01()LX/1lQ;|LX/1k3;->A0H(LX/1k3;LX/1lQ;)V|LX/2WR;->A03:Lcom/facebook/messaging/model/threads/ThreadSummary;|LX/2hK;->A03(Lcom/facebook/messaging/model/threads/ThreadSummary;)Z|Lcom/facebook/messaging/model/threadkey/ThreadKey;->A0n(Lcom/facebook/messaging/model/threadkey/ThreadKey;)Z|Lcom/facebook/messaging/model/threadkey/ThreadKey;->A1I()Z|Lcom/facebook/messaging/model/threadkey/ThreadKey;->A1V()Z|LX/1lQ;->A0E:LX/1lQ;|LX/2GW;->$prefixOffsetCallback:LX/4mn;|LX/1kf;->A00:LX/1k3;|LX/1k3;->A0Y:LX/1mE;|LX/1mE;->A07:LX/1mH;|LX/1mH;->A01:LX/1ma;|LX/1ma;->A00:LX/1mZ;|LX/1mZ;->A00()LX/1V4;|LX/1V4;->A0L:LX/1V4;
 dexSite LX/0iX;->A04(Landroid/app/Application;)V@18 com.facebook.permission.%s.FB_APP_COMMUNICATION
 dexSite LX/15l;->A03()V@25 com.facebook.permission.prod.FB_APP_COMMUNICATION
 dexSite LX/1f4;->A05(Lcom/facebook/auth/usersession/FbUserSession;LX/1f4;Ljava/lang/String;Ljava/lang/String;)V@36 com.facebook.permission.prod.FB_APP_COMMUNICATION

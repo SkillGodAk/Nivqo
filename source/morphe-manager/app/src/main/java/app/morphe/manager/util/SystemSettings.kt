@@ -10,6 +10,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 
 /** Opens the system app info screen for Morphe. */
@@ -40,6 +41,17 @@ fun Context.requestIgnoreBatteryOptimizations() {
     startSettings(
         Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.fromParts("package", packageName, null))
     )
+}
+
+/**
+ * Opens the system "Open by default" screen of [targetPackageName], where its web links are
+ * selected. Falls back to the app info screen on builds without it.
+ */
+fun Context.openAppOpenByDefaultSettings(targetPackageName: String): Boolean {
+    val uri = Uri.fromParts("package", targetPackageName, null)
+    return (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            startSettings(Intent(Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS, uri))) ||
+            startSettings(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, uri))
 }
 
 private fun Context.startSettings(intent: Intent): Boolean = try {

@@ -6,15 +6,20 @@
 package app.morphe.manager.util
 
 import android.app.Application
+import android.os.SystemClock
 import android.util.Log
 import app.morphe.manager.network.service.HttpService
+import app.morphe.manager.network.utils.APIError
+import app.morphe.manager.network.utils.APIFailure
 import app.morphe.manager.network.utils.getOrThrow
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.parameter
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -24,12 +29,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.io.IOException
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -48,6 +55,9 @@ class ContentTranslator(
     private val cacheDir = app.cacheDir.resolve(CACHE_DIR)
     private val stores = ConcurrentHashMap<String, Store>()
     private val storesLock = Mutex()
+
+    // When each endpoint that answered 429 may be asked again, a timestamp of SystemClock.elapsedRealtime
+    private val restingUntil = ConcurrentHashMap<Endpoint, Long>()
 
     /**
      * The language to translate into for an app shown in [locale], or null when there is nothing
@@ -102,11 +112,59 @@ class ContentTranslator(
         }
     }
 
-    /** Translates [phrases], sent as the lines of one request and read back line by line. */
+    /**
+     * Translates [phrases] at the first endpoint not resting after a 429. Google turns away a client
+     * it takes for a bot at one endpoint while the other still answers it.
+     */
     private suspend fun requestTranslation(phrases: List<String>, language: String): List<String> {
-        val body = http.request<String> {
+        var lastError: Exception? = null
+        for (endpoint in Endpoint.entries) {
+            if (SystemClock.elapsedRealtime() < (restingUntil[endpoint] ?: 0L)) continue
+            try {
+                return when (endpoint) {
+                    Endpoint.DICTIONARY -> requestFromDictionary(phrases, language)
+                    Endpoint.GTX -> requestFromGtx(phrases, language)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: APIFailure) {
+                // An unreachable network fails the other endpoint just the same
+                throw e
+            } catch (e: Exception) {
+                if (e is APIError && e.statusCode == HttpStatusCode.TooManyRequests) {
+                    restingUntil[endpoint] = SystemClock.elapsedRealtime() + ENDPOINT_REST.inWholeMilliseconds
+                }
+                Log.w(tag, "Translation endpoint $endpoint failed", e)
+                lastError = e
+            }
+        }
+        throw lastError ?: IOException("Every translation endpoint is resting after a 429")
+    }
+
+    /** Translates [phrases], each sent as its own query of one request and read back in order. */
+    private suspend fun requestFromDictionary(phrases: List<String>, language: String): List<String> {
+        val body = http.request<String>(retryOn429 = false) {
             method = HttpMethod.Post
-            url(ENDPOINT)
+            url(Endpoint.DICTIONARY.url)
+            parameter("client", "dict-chrome-ex")
+            parameter("sl", AppLocale.ENGLISH)
+            parameter("tl", language)
+            setBody(FormDataContent(Parameters.build { appendAll("q", phrases) }))
+        }.getOrThrow()
+
+        // One translation per query, which an unknown source language would pair with the language it detected
+        val translations = http.json.parseToJsonElement(body).jsonArray.map { translation ->
+            (translation as? JsonArray)?.get(0)?.jsonPrimitive?.content ?: translation.jsonPrimitive.content
+        }
+        if (translations.size != phrases.size) throw IOException("Got ${translations.size} translations for ${phrases.size} phrases")
+        return translations.map(String::trim)
+    }
+
+    /** Translates [phrases], sent as the lines of one request and read back line by line. */
+    private suspend fun requestFromGtx(phrases: List<String>, language: String): List<String> {
+        val body = http.request<String>(retryOn429 = false) {
+            method = HttpMethod.Post
+            url(Endpoint.GTX.url)
             parameter("client", "gtx")
             parameter("sl", AppLocale.ENGLISH)
             parameter("tl", language)
@@ -121,7 +179,7 @@ class ContentTranslator(
 
         // A line the translator merged or split leaves the rest unmatched, so each is asked for on its own
         return translated.split('\n').map(String::trim).takeIf { it.size == phrases.size }
-            ?: phrases.flatMap { requestTranslation(listOf(it), language) }
+            ?: phrases.flatMap { requestFromGtx(listOf(it), language) }
     }
 
     /** Translations into one language, kept in memory and mirrored to [file]. */
@@ -185,9 +243,17 @@ class ContentTranslator(
         }
     }
 
+    /** The Google Translate endpoints, in the order they are tried. */
+    private enum class Endpoint(val url: String) {
+        DICTIONARY("https://clients5.google.com/translate_a/t"),
+        GTX("https://translate.googleapis.com/translate_a/single")
+    }
+
     private companion object {
-        const val ENDPOINT = "https://translate.googleapis.com/translate_a/single"
         const val CACHE_DIR = "translations"
+
+        // Long enough for a block to lift, which more requests in the meantime only prolong
+        val ENDPOINT_REST = 30.minutes
 
         // Well under what the endpoint accepts in one request
         const val REQUEST_CHARS = 4000

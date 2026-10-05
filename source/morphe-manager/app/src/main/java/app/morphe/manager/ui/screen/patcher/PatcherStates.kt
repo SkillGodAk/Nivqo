@@ -10,7 +10,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -29,6 +28,7 @@ import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.InstallMobile
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material.icons.outlined.Source
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.Update
@@ -38,8 +38,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -48,6 +53,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.patcher.patch.PatchSourceRef
@@ -242,6 +248,7 @@ fun PatchingSuccess(
     excludedPatches: List<String> = emptyList(),
     isExpertMode: Boolean = false,
     showBackToGameHint: Boolean = false,
+    onConfigureAppLinks: (() -> Unit)? = null,
     onInstall: () -> Unit,
     onUninstall: (String) -> Unit,
     onIgnoreSignatureMismatch: () -> Unit,
@@ -278,6 +285,13 @@ fun PatchingSuccess(
                     .takeIf { excludedPatches.isNotEmpty() && installState is InstallState.Ready },
                 tone = SemanticTone.Neutral,
                 icon = Icons.Outlined.Info
+            )
+            ResultNotice(
+                text = stringResource(R.string.app_links_unverified_banner_description)
+                    .takeIf { installState is InstallState.Installed && onConfigureAppLinks != null },
+                tone = SemanticTone.Warning,
+                icon = Icons.Outlined.LinkOff,
+                action = onConfigureAppLinks?.let { NoticeAction(stringResource(R.string.app_links_fix), it) }
             )
         },
         actions = {
@@ -319,7 +333,8 @@ fun PatchingFailed(
     sources: List<PatchSourceRef>,
     errorMessage: String?,
     onHomeClick: () -> Unit,
-    onErrorClick: () -> Unit
+    onErrorClick: () -> Unit,
+    onChangePatchesClick: (() -> Unit)? = null
 ) {
     ResultScreen(
         status = PatchingFailedStatus,
@@ -337,12 +352,26 @@ fun PatchingFailed(
             )
         },
         actions = {
-            ResultActionButton(
-                text = stringResource(R.string.patcher_error_details),
-                icon = Icons.Outlined.BugReport,
-                failed = true,
-                onClick = onErrorClick
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing)
+            ) {
+                ResultActionButton(
+                    text = stringResource(R.string.patcher_error_details),
+                    icon = Icons.Outlined.BugReport,
+                    failed = true,
+                    onClick = onErrorClick
+                )
+                // A run is often failed by one patch, and going back to the selection drops it
+                // without picking the APK and the rest of the patches all over again
+                onChangePatchesClick?.let {
+                    AppDialogOutlinedButton(
+                        text = stringResource(R.string.patcher_change_patches),
+                        onClick = it,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         },
         bottomBar = { horizontalPadding ->
             PatcherBottomActionBar(
@@ -558,10 +587,14 @@ private fun ResultHeader(status: ResultStatus, packageName: String, windowSize: 
 /** How far the status mark hangs past the corner of the app's icon. */
 private val ResultMarkOverhang = 6.dp
 
+/** Width of the gap cut out of the app's icon around the status mark, within its size. */
+private val ResultMarkGap = 3.dp
+
 /** The patched app's own icon carrying the [status]'s mark, set off by a [resultPulse]. */
 @Composable
 private fun ResultIcon(status: ResultStatus, packageName: String, iconSize: Dp) {
     val color = status.color()
+    val markSize = iconSize * 0.4f
 
     Box(
         modifier = Modifier
@@ -573,15 +606,32 @@ private fun ResultIcon(status: ResultStatus, packageName: String, iconSize: Dp) 
         AppIcon(
             packageName = packageName,
             contentDescription = null,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                // The gap is cleared from the icon rather than painted over it, so it shows
+                // whatever lies behind, the pulse included
+                .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                .drawWithContent {
+                    drawContent()
+                    val cutRadius = markSize.toPx() / 2f
+                    val inset = cutRadius - ResultMarkOverhang.toPx()
+                    // The mark sits at the end corner, which is the left one in RTL
+                    val centerX = if (layoutDirection == LayoutDirection.Rtl) inset else size.width - inset
+                    drawCircle(
+                        color = Color.Black,
+                        radius = cutRadius,
+                        center = Offset(centerX, size.height - inset),
+                        blendMode = BlendMode.Clear
+                    )
+                }
         )
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .offset(x = ResultMarkOverhang, y = ResultMarkOverhang)
-                .size(iconSize * 0.4f)
-                .background(color, CircleShape)
-                .border(3.dp, MaterialTheme.colorScheme.background, CircleShape),
+                .size(markSize)
+                .padding(ResultMarkGap)
+                .background(color, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -646,7 +696,8 @@ private fun ResultNotice(
     tone: SemanticTone,
     icon: ImageVector,
     maxLines: Int = Int.MAX_VALUE,
-    overflowAction: NoticeAction? = null
+    overflowAction: NoticeAction? = null,
+    action: NoticeAction? = null
 ) {
     AnimatedVisibility(
         visible = text != null,
@@ -661,7 +712,8 @@ private fun ResultNotice(
             tone = tone,
             icon = icon,
             maxLines = maxLines,
-            overflowAction = overflowAction
+            overflowAction = overflowAction,
+            action = action
         )
     }
 }

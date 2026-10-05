@@ -81,16 +81,25 @@
     <plurals name="core_count">
         <item quantity="other">%s コア</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="other">%s 件の新規</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="other">%s 件の新機能</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="other">%s 件の修正</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="other">%s 件の最適化</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="other">%s 件の変更</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="other">%s 件の新規リリース</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="other">%d件のアプリリンクが有効です</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="other">%d件の未確認のアプリリンク</item>
     </plurals>
 </resources>

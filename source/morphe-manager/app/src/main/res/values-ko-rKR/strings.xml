@@ -21,18 +21,18 @@
     <string name="android_11_bug_dialog_description">사용자 환경에 부정적인 영향을 미치는 Android 11 시스템 버그를 방지하려면 앱 설치 권한을 미리 부여해야 합니다</string>
     <string name="deep_link_add_source_title">소스 추가</string>
     <string name="deep_link_add_source_message">이 패치 소스를 Nivqo에 추가하시겠습니까?</string>
-    <string name="deep_link_add_source_warning">신뢰할 수 있는 소스만 추가하세요</string>
+<string name="deep_link_add_source_warning">신뢰할 수 있는 소스만 추가하세요</string>
     <!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Nivqo 업데이트 사용 가능</string>
-    <string name="home_update_available_subtitle">새 버전 설치 준비 완료</string>
+<string name="home_update_available_subtitle">새 버전 설치 준비 완료</string>
     <string name="home_blocked_source_title">차단된 패치 소스가 감지됨</string>
     <string name="home_blocked_source_subtitle">검토 및 제거하려면 탭하세요</string>
     <string name="home_metadata_errors_title">일부 패치 소스를 사용할 수 없음</string>
     <string name="home_metadata_errors_subtitle">소스를 검토하려면 탭하세요</string>
     <string name="home_outdated_manager_title">Nivqo가 구버전입니다</string>
-    <string name="home_outdated_manager_subtitle">일부 패치 소스는 최신 버전이 필요합니다</string>
+<string name="home_outdated_manager_subtitle">일부 패치 소스는 최신 버전이 필요합니다</string>
     <string name="home_held_back_title">패치 소스로 인해 Nivqo가 충돌함</string>
-    <string name="home_held_back_subtitle">앱 시작을 위해 건너뛰었습니다. 검토하려면 탭하세요</string>
+<string name="home_held_back_subtitle">앱 시작을 위해 건너뛰었습니다. 검토하려면 탭하세요</string>
     <string name="home_metered_skipped_title">모바일 데이터에서 업데이트가 일시 중지됨</string>
     <string name="home_metered_skipped_subtitle">모바일 데이터에서 업데이트를 허용하려면 탭하세요</string>
     <string name="home_repatch_available_subtitle">모두 패치 목록에 추가하려면 탭하세요</string>
@@ -50,9 +50,9 @@
     <string name="home_app_filter_all_description">홈 화면의 모든 앱</string>
     <string name="home_app_filter_patched_description">Nivqo로 패치하거나 저장한 앱</string>
     <string name="home_app_filter_not_patched_description">아직 Nivqo에서 패치하지 않은 앱</string>
-    <string name="home_app_filter_installed_description">현재 이 기기에 설치된 앱</string>
+<string name="home_app_filter_installed_description">현재 이 기기에 설치된 앱</string>
     <string name="home_app_filter_uninstalled_description">Nivqo로 패치되었지만 더 이상 이 기기에 없는 앱</string>
-    <string name="home_app_filter_clones">복제본</string>
+<string name="home_app_filter_clones">복제본</string>
     <string name="home_app_filter_clones_description">자체 패키지명으로 빌드되어 원본 앱과 함께 설치된 앱</string>
     <string name="home_app_sort_manual_description">앱을 길게 탭한 후에 정렬 버튼을 탭하면 순서를 변경할 수 있습니다</string>
     <string name="home_app_sort_recommended">권장 순서</string>
@@ -139,8 +139,8 @@
     <string name="sources_management_failed_to_open_url">URL을 열 수 없습니다</string>
     <string name="sources_apps">앱</string>
     <string name="sources_apps_description">앱을 탭하면 이 소스에서 제외하거나 다시 가져올 수 있습니다. 길게 누르면 여러 앱을 선택할 수 있습니다. 앱을 가져오는 소스가 하나도 없으면 홈 화면에서 사라집니다.</string>
-    <string name="sources_apps_brought">이 소스에서 가져온 앱</string>
-    <string name="sources_apps_left_out">이 소스에서 제외된 앱</string>
+    <string name="sources_apps_brought">이 소스에서 제공됨</string>
+    <string name="sources_apps_left_out">이 소스에서 제외됨</string>
     <string name="sources_apps_leave_out">제외하기</string>
     <string name="sources_apps_leave_out_done">제외됨</string>
     <string name="sources_apps_bring_back">다시 가져오기</string>
@@ -160,9 +160,9 @@
     <string name="sources_management_metadata_unavailable_hint_missing">패치 번들을 다운로드할 수 없습니다. 소스 URL이 올바르지 않거나 파일이 존재하지 않을 수 있습니다</string>
     <string name="sources_management_outdated_manager_badge">Nivqo 업데이트</string>
     <string name="sources_management_outdated_manager_hint">이 소스는 패처 %1$s용으로 빌드되었지만, Nivqo %2$s에는 패처 %3$s가 포함되어 있습니다. 이를 사용하려면 Nivqo를 업데이트하세요</string>
-    <string name="sources_management_held_back_badge">충돌 발생</string>
+<string name="sources_management_held_back_badge">충돌 발생</string>
     <string name="sources_management_held_back_hint">이 소스를 불러오는 동안 Nivqo가 충돌하여 현재 건너뛰고 있습니다. 다시 시도하려면 소스를 업데이트하거나 다시 가져오세요</string>
-    <string name="sources_management_source_enabled">소스를 활성화하였습니다</string>
+<string name="sources_management_source_enabled">소스를 활성화하였습니다</string>
     <string name="sources_management_source_disabled">소스를 비활성화하였습니다</string>
     <string name="sources_management_source_updating">소스를 업데이트하는 중</string>
     <!-- Home Screen - Sources Dialogs -->
@@ -195,7 +195,7 @@
     <string name="sources_dialog_community_notice_message">"커뮤니티 패치는 각 패치의 개발자가 직접 만들고 유지 관리합니다. Nivqo는 서드파티 패치를 검토하거나 검증하지 않으며, 해당 패치의 내용이나 패치가 사용자의 기기에서 수행하는 작업에 대해 책임을 지지 않습니다
 
 이 웹사이트에서 추가하는 모든 항목은 사용자 본인의 책임하에 사용해야 합니다"</string>
-    <string name="sources_update_success">업데이트를 성공하였습니다</string>
+<string name="sources_update_success">업데이트를 성공하였습니다</string>
     <string name="sources_update_unavailable">새 업데이트가 없습니다</string>
     <string name="sources_download_fail">소스를 다운로드할 수 없습니다: %s</string>
     <string name="sources_download_fail_named">\'%s\'를 업데이트할 수 없습니다. 인터넷 연결 상태를 확인하고 다시 시도하세요</string>
@@ -215,16 +215,16 @@
     <string name="home_apk_helper_download">Helper 앱 사용</string>
     <string name="home_apk_helper_title">Helper 앱으로 다운로드</string>
     <string name="home_apk_helper_description">Nivqo는 아래의 Helper 앱에 원본 APK를 다운로드하고 파일을 다시 전달하도록 요청합니다</string>
-    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+<!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">Helper 열기</string>
     <string name="home_apk_helper_warning">이 Helper 앱을 신뢰하는 경우에만 계속 진행하세요. Nivqo는 패치하기 전에 수신하는 모든 파일의 패키지, 버전 및 서명을 확인합니다</string>
-    <string name="home_apk_helper_warning_unverified">이 Helper 앱을 신뢰하는 경우에만 계속 진행하세요. Nivqo는 이 APK의 서명을 검증할 수 없으므로, 파일이 변조되었더라도 이를 감지하지 못할 수 있습니다</string>
-    <string name="home_apk_helper_no_result">Helper 앱에서 APK 파일을 반환하지 않았습니다</string>
+<string name="home_apk_helper_warning_unverified">이 Helper 앱을 신뢰하는 경우에만 계속 진행하세요. Nivqo는 이 APK의 서명을 검증할 수 없으므로, 파일이 변조되었더라도 이를 감지하지 못할 수 있습니다</string>
+<string name="home_apk_helper_no_result">Helper 앱에서 APK 파일을 반환하지 않았습니다</string>
     <string name="home_apk_helper_no_access">Helper 앱이 반환한 APK에 대한 접근 권한을 부여하지 않았습니다</string>
     <string name="home_apk_helper_no_package">Helper 앱에서 어떤 설치된 앱을 사용해야 하는지 지정하지 않았습니다</string>
     <string name="home_apk_helper_wrong_package">Helper 앱이 패치하려는 앱과 다른 앱을 반환하였습니다</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo가 설치된 앱을 사용할 수 없습니다</string>
-    <string name="home_apk_helper_installed_incompatible">설치된 버전은 패치할 수 없습니다</string>
+<string name="home_apk_helper_installed_incompatible">설치된 버전은 패치할 수 없습니다</string>
     <string name="home_apk_use_saved">저장된 APK 사용</string>
     <string name="home_apk_use_installed">설치된 APK 사용</string>
     <string name="home_apk_use_saved_unsupported">현재 저장된 APK에는 이 패치를 적용할 수 없습니다. 계속 진행하려면 확인을 거치거나 다른 APK를 선택하세요</string>
@@ -232,7 +232,7 @@
     <string name="home_unverified">검증되지 않음</string>
     <string name="home_install_verification_pending">설치를 확인하는 중…</string>
     <string name="home_app_info_install_unverified">Nivqo는 설치된 앱이 패치한 빌드인지 확인할 수 없습니다. 다시 패치하거나 저장된 APK에서 다시 설치하여 작업을 복원하세요</string>
-    <string name="home_app_info_no_saved_apk">저장된 APK가 없습니다. 패치하려면 APK 파일을 다시 선택하세요</string>
+<string name="home_app_info_no_saved_apk">저장된 APK가 없습니다. 패치하려면 APK 파일을 다시 선택하세요</string>
     <string name="home_version_requires_android">Android %s+ 필요</string>
     <string name="home_apk_no_compatible_versions_title">이 기기에서는 지원되지 않음</string>
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt;는 Android %2$s (API %3$s)에서 지원되는 버전이 없습니다. 선언된 모든 앱 버전은 더 높은 Android 버전을 요구합니다</string>
@@ -245,7 +245,7 @@
     <string name="home_download_instructions_step2_variant">웹페이지를 아래로 스크롤한 후에 상단에 있는 &lt;b&gt;APK 변형&lt;/b&gt;의 다운로드 버튼을 탭하세요</string>
     <string name="home_download_instructions_step2_search">신뢰하는 웹사이트에서 검색 결과를 여세요</string>
     <string name="home_download_instructions_step2_search_note">Nivqo는 APK 파일 대신 자체 앱 스토어를 제공하는 웹사이트를 보증할 수 없습니다. 이러한 웹사이트는 건너뛰세요</string>
-    <string name="home_download_instructions_step3_search">해당 웹사이트에서 최신 버전이 아닌 &lt;b&gt;%s&lt;/b&gt; 버전의 APK를 다운로드하세요</string>
+<string name="home_download_instructions_step3_search">해당 웹사이트에서 최신 버전이 아닌 &lt;b&gt;%s&lt;/b&gt; 버전의 APK를 다운로드하세요</string>
     <string name="home_download_instructions_step3_search_any">해당 웹사이트에서 앱의 APK를 다운로드하세요. &lt;b&gt;어떤 버전이든&lt;/b&gt; 패치할 수 있습니다</string>
     <string name="home_download_instructions_download_button_toast">여기 말고, 웹사이트에서 다운로드 버튼을 탭하세요 😊</string>
     <string name="home_download_instructions_download_button_toast_2">좋아요! 이제 계속 버튼을 탭하여 웹사이트로 이동하세요 👆</string>
@@ -253,12 +253,14 @@
     <string name="home_download_instructions_download_button_toast_4">여기는 아니예요… 여기는 아니예요… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">좋아요, 그 끈기는 인정합니다 🫡</string>
     <string name="home_download_instructions_download_button_toast_6">이제 당신은 공식 Nivqo 버튼 테스터입니다 🏅</string>
-    <string name="home_download_instructions_step3">다운로드가 완료될 때까지 기다리세요&lt;br&gt;APK는 &lt;b&gt;설치하지 마세요&lt;/b&gt;</string>
+<string name="home_download_instructions_step3">다운로드가 완료될 때까지 기다리세요&lt;br&gt;APK는 &lt;b&gt;설치하지 마세요&lt;/b&gt;</string>
     <string name="home_download_instructions_step3_mount">다운로드가 완료되면, &lt;b&gt;APK 파일을 설치하세요&lt;/b&gt;</string>
     <string name="home_download_instructions_step4">다운로드가 완료되면 Nivqo로 돌아오세요</string>
     <string name="home_download_instructions_step4_mount">원본 APK를 설치한 후에 Nivqo로 돌아오세요</string>
-    <string name="home_download_instructions_continue_to">%s으로 이동</string>
+<string name="home_download_instructions_continue_to">%s으로 이동</string>
     <string name="home_download_instructions_destination">다운로드 페이지</string>
+    <string name="home_download_instructions_copy_link">링크 복사</string>
+    <string name="home_download_instructions_link_copied">링크 복사됨</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_file_picker_prompt_title">다운로드된 APK 선택</string>
     <string name="home_file_picker_prompt_description">방금 다운로드한 &lt;b&gt;%s&lt;/b&gt; APK 파일을 선택하세요</string>
@@ -275,6 +277,7 @@
     <string name="home_installed_app_picker_filter_system">시스템 앱만</string>
     <string name="home_invalid_apk_unreadable">파일을 읽을 수 없습니다. \'외부 저장소\'가 배터리 제한되어 있는지 확인하세요</string>
     <string name="home_invalid_apk_not_an_apk">선택된 파일이 유효한 APK가 아닙니다</string>
+    <string name="home_invalid_apk_already_patched">선택한 APK는 이미 패치되었습니다. 원본 앱을 선택하세요</string>
     <string name="home_invalid_apk_io_error">파일을 열 수 없습니다. 다시 시도하세요</string>
     <string name="home_external_apk_expert_mode_required">이 기능은 전문가 모드에서만 사용할 수 있습니다</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
@@ -368,6 +371,7 @@
     <string name="adaptive_icon_create">적응형 아이콘 만들기</string>
     <string name="adaptive_icon_select_image">이미지 선택</string>
     <string name="adaptive_icon_change_image">이미지 변경</string>
+    <string name="image_load_failed">이 이미지를 불러올 수 없습니다</string>
     <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
     <string name="adaptive_icon_foreground">전경 이미지</string>
     <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
@@ -473,7 +477,21 @@
     <string name="home_app_info_version_move">설치된 버전 %1$s, 지원되는 최신 버전 %2$s</string>
     <string name="home_app_info_app_deleted_warning">앱이 제거되었습니다</string>
     <string name="home_app_info_app_deleted_description">이 앱은 Nivqo 외부에서 제거되었습니다. 기능을 복원하려면 다시 패치하세요</string>
-    <string name="home_app_info_not_patched_description">이 앱의 패치되지 않은 버전이 설치되어 있습니다. Nivqo는 여전히 이전 패치 기록을 보유하고 있습니다</string>
+<string name="home_app_info_not_patched_description">이 앱의 패치되지 않은 버전이 설치되어 있습니다. Nivqo는 여전히 이전 패치 기록을 보유하고 있습니다</string>
+<string name="app_links_title">지원되는 웹 링크</string>
+    <string name="app_links_description">Android 12 이상에서는 승인된 경우를 제외하고 지원되는 도메인 링크가 기본적으로 브라우저에서 열립니다</string>
+    <string name="app_links_unverified_banner_title">웹 링크가 확인되지 않음</string>
+    <string name="app_links_unverified_banner_description">지원되는 웹 링크가 현재 이 앱 대신 브라우저에서 열립니다</string>
+    <string name="app_links_enable_auto">자동으로 활성화</string>
+    <string name="app_links_enable_auto_in_progress">링크를 활성화하는 중…</string>
+    <string name="app_links_open_settings">링크 설정 열기</string>
+    <string name="app_links_repair_success">앱 링크 활성화 성공</string>
+    <string name="app_links_repair_failed">앱 링크 자동 활성화 실패</string>
+    <string name="app_links_badge_enabled">활성화됨</string>
+    <string name="app_links_badge_disabled">비활성화됨</string>
+    <string name="app_links_all_verified">지원되는 모든 링크가 이 앱에서 열리도록 설정되었습니다</string>
+    <string name="app_links_fix">링크 수정</string>
+    <string name="configure">설정</string>
     <string name="patcher_rename_title">복제본이 설치됩니다</string>
     <string name="patcher_rename_description">이 패치는 이 앱을 사용자가 설정한 자체 패키지명으로 빌드하므로, 설치하면 &lt;b&gt;%s&lt;/b&gt;를 업데이트하는 것이 아니라 그 옆에 복제본이 추가됩니다</string>
     <string name="patcher_rename_result_package">다음 패키지명으로 설치됩니다</string>
@@ -487,7 +505,7 @@
     <string name="root_pre_patch_installer_mount_title">루트 마운트 모드</string>
     <string name="root_pre_patch_installer_mount_description">루트 마운트 모드로 패치한 후에 해당 APK를 동일한 순정 앱 위에 마운트합니다. GmsCore는 필요하지 않습니다</string>
     <string name="root_mount_module_unmount_warning">KernelSU에서 \'모듈 마운트 해제를 기본값으로\'가 활성화되어 있다면, \'KernelSU &gt; 슈퍼유저 &gt; 마운트한 앱 &gt; 프로필 &gt; 사용자 지정\'으로 이동하여 \'모듈 마운트 해제\'를 비활성화하세요. 그렇지 않으면 Nivqo에서 패치된 APK가 마운트된 것으로 표시되더라도, 실제로는 마운트가 적용되지 않아 패치된 APK가 제대로 작동하지 않을 수 있습니다</string>
-    <string name="root_pre_patch_installer_standard_title">일반 설치 모드</string>
+<string name="root_pre_patch_installer_standard_title">일반 설치 모드</string>
     <string name="root_pre_patch_installer_standard_description">GmsCore를 지원하는 일반 APK로 패치합니다. 패치가 완료된 후에는 현재 설정된 설치 프로그램 설정을 사용하여 설치됩니다</string>
     <string name="root_pre_patch_installer_hint">이 패치 모드는 \'설정 &gt; 시스템 &gt; 설치 프로그램\' 설정과는 별개이며, 패치가 완료된 후에는 변경할 수 없습니다</string>
     <!-- Patcher Screen -->
@@ -539,6 +557,7 @@
     <string name="patcher_failed_title">이런! 오류가 발생하였습니다</string>
     <string name="patcher_failed_dialog_title">패치 실패</string>
     <string name="patcher_error_details">오류 세부 정보</string>
+    <string name="patcher_change_patches">패치 변경</string>
     <string name="patcher_unknown_error">알 수 없는 오류가 발생하였습니다</string>
     <string name="patcher_split_step_extracting">분할 APK를 추출하는 중</string>
     <string name="patcher_split_step_merging">%s를 병합하는 중</string>
@@ -551,7 +570,7 @@
     <string name="patcher_installed_conflict_body">"Nivqo는 자체 인증서로 패치된 앱에 서명하므로 원본 앱과 인증서가 다릅니다. Android에서는 기존 버전을 제거해야 패치된 앱을 설치할 수 있습니다
 
 앱을 제거하면 모든 앱 데이터가 영구적으로 삭제됩니다"</string>
-    <string name="patcher_install_error_title">설치 오류</string>
+<string name="patcher_install_error_title">설치 오류</string>
     <string name="patcher_install_error_subtitle">앱을 제거한 후에 다시 설치하세요</string>
     <string name="patcher_ready_to_mount_subtitle">마운트하려면 아래 버튼을 탭하세요</string>
     <string name="patcher_patches_excluded_for_installer">이 설치 방법에는 사용할 수 없으며 제외됩니다: %s</string>
@@ -559,9 +578,8 @@
     <string name="patcher_storage_permission_dialog_title">저장소 경로에 접근할 수 없음</string>
     <string name="patcher_incompatible_patcher_title">업데이트 필요</string>
     <string name="patcher_incompatible_patcher_description">번들 &lt;b&gt;%1$s&lt;/b&gt;는 패처 버전 &lt;b&gt;%2$s&lt;/b&gt; 이상이 필요합니다. 이 앱을 패치하려면 Nivqo를 업데이트하세요</string>
-    <string name="patcher_incompatible_patcher_update_button">Nivqo 다운로드 및 업데이트</string>
-    <string name="patcher_storage_permission_description_api30">하나 이상의 패치 옵션이 Nivqo가 읽을 수 없는 경로를 가리키고 있습니다. 저장소 접근 권한을 부여하고 버튼을 탭하면 패치가 자동으로 시작됩니다</string>
-    <string name="patcher_storage_permission_description_legacy">하나 이상의 패치 옵션이 접근할 수 없는 경로를 가리키고 있습니다. 패치 옵션에서 경로를 업데이트하고 다시 시도하세요</string>
+<string name="patcher_storage_permission_description_api30">하나 이상의 패치 옵션이 Nivqo가 읽을 수 없는 경로를 가리키고 있습니다. 저장소 접근 권한을 부여하고 버튼을 탭하면 패치가 자동으로 시작됩니다</string>
+<string name="patcher_storage_permission_description_legacy">하나 이상의 패치 옵션이 접근할 수 없는 경로를 가리키고 있습니다. 패치 옵션에서 경로를 업데이트하고 다시 시도하세요</string>
     <string name="patcher_storage_permission_grant">저장소 권한 부여</string>
     <string name="patcher_storage_permission_denied_warning">저장소 권한이 거부되었습니다. 이 경로를 사용하려면 권한을 부여하거나, 파일을 앱 전용 디렉터리로 옮겨주세요</string>
     <string name="patcher_storage_permission_open_settings">저장소 설정 열기</string>
@@ -575,7 +593,7 @@
     <string name="patcher_option_paths_gone_description">하나 이상의 패치 옵션이 더 이상 존재하지 않는 파일을 가리키고 있습니다. 해당 파일 없이 패치하려면 경로를 제거하거나, 파일을 원래 위치에 다시 넣은 후 다시 시도하세요</string>
     <string name="patcher_option_paths_clear">경로를 제거하고 계속 진행</string>
     <string name="patcher_storage_permission_hint">힌트: 파일을 \'/Android/data/app.nivqo.manager/files/\' 로 옮기세요. 추가 권한이 필요 없습니다</string>
-    <!-- Patcher Screen - Patcher Steps -->
+<!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">준비하는 중</string>
     <string name="patcher_step_load_patches">패치를 불러오는 중</string>
     <string name="patcher_step_prepare_split_apk">분할 APK를 병합하는 중</string>
@@ -587,7 +605,7 @@
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">백그라운드 패치 보호</string>
     <string name="battery_optimization_dialog_description">일부 기기에서는 앱이 최소화되면 패처가 중지될 수 있습니다. 패치가 안정적으로 완료되도록 Nivqo가 배터리 제한 없이 실행되도록 허용하세요</string>
-    <string name="battery_optimization_not_now">나중에</string>
+<string name="battery_optimization_not_now">나중에</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">메모리가 부족합니다</string>
     <string name="patcher_memory_adjustment_description">패처가 %1$d MB 메모리 제한으로 실행되는 동안 시스템에 의해 중지되었습니다. 제한을 %2$d MB로 낮추면 패처가 사용하는 메모리가 줄어들어 작업이 완료될 수 있습니다</string>
@@ -644,8 +662,8 @@
     <string name="install_ignore_signature_description">앱 데이터를 유지하지만, 루트 모듈이 Android의 서명 검증을 비활성화한 경우에만 작동합니다</string>
     <string name="uninstall_app_fail">앱을 제거할 수 없습니다: %s</string>
     <string name="uninstall_app_unverified">그대로 유지됨: Nivqo는 설치된 앱이 패치한 빌드인지 검증할 수 없습니다.</string>
-    <string name="launch_app_unverified">Nivqo는 설치된 앱이 패치한 빌드인지 검증할 수 없습니다</string>
-    <string name="uninstall_timeout">제거 시간이 초과되었습니다</string>
+<string name="launch_app_unverified">Nivqo는 설치된 앱이 패치한 빌드인지 검증할 수 없습니다</string>
+<string name="uninstall_timeout">제거 시간이 초과되었습니다</string>
     <string name="save_apk_success">APK를 저장하였습니다</string>
     <string name="saved_app_export_failed">패치된 앱을 내보낼 수 없습니다</string>
     <string name="saved_app_removed_toast">저장된 패치된 앱을 제거하였습니다</string>
@@ -714,7 +732,7 @@
     <string name="settings_appearance_color_accents">앱 및 소스 색상</string>
     <string name="settings_appearance_color_accents_description">강조 색상 대신 각 앱과 소스의 고유 색상을 사용합니다</string>
     <string name="settings_appearance_outlines">윤곽선</string>
-    <string name="settings_appearance_outlines_description">카드, 패널, 버튼의 가장자리에 얇은 테두리를 표시합니다</string>
+    <string name="settings_appearance_outlines_description">카드, 패널 및 버튼의 가장자리에 얇은 테두리를 표시합니다</string>
     <!-- Settings - Appearance Tab - Language Selector -->
     <string name="settings_appearance_language_and_display">언어 및 디스플레이</string>
     <string name="settings_appearance_app_language">앱 언어</string>
@@ -755,7 +773,7 @@
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">앱 아이콘</string>
     <string name="settings_appearance_app_icon_selector_description">홈 화면과 앱 서랍에서 Nivqo의 모양</string>
-    <string name="settings_appearance_app_icon_default">기본값</string>
+<string name="settings_appearance_app_icon_default">기본값</string>
     <string name="settings_appearance_app_icon_light_2">하늘</string>
     <string name="settings_appearance_app_icon_light_3">일몰</string>
     <string name="settings_appearance_app_icon_dark_1">바다</string>
@@ -771,14 +789,14 @@
     <string name="settings_advanced_updates_manager_prereleases">Pre-release 업데이트</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <string name="settings_advanced_updates_manager_prereleases_description">새 Nivqo 앱 버전을 미리 받아봅니다</string>
-    <string name="settings_advanced_updates_prerelease_warning_title">Pre-release 업데이트 활성화</string>
+<string name="settings_advanced_updates_prerelease_warning_title">Pre-release 업데이트 활성화</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
     <string name="settings_advanced_updates_prerelease_warning_message">"Nivqo의 Pre-release 버전은 아직 개발 중이며 불안정할 수 있습니다
 
 패치에는 영향을 주지 않습니다: 패치 소스 목록에서 각 소스에 대한 Pre-release 패치를 활성화하세요"</string>
-    <string name="settings_advanced_updates_allow_metered">모바일 데이터에서 업데이트</string>
+<string name="settings_advanced_updates_allow_metered">모바일 데이터에서 업데이트</string>
     <string name="settings_advanced_updates_allow_metered_description">모바일 데이터를 사용하여 Nivqo 및 패치 업데이트를 다운로드할 수 있도록 허용합니다</string>
-    <string name="settings_advanced_updates_background_notifications">백그라운드 업데이트 알림</string>
+<string name="settings_advanced_updates_background_notifications">백그라운드 업데이트 알림</string>
     <string name="settings_advanced_updates_background_notifications_description">백그라운드에서 주기적으로 업데이트를 확인하고 업데이트가 있을 경우에 알림을 보냅니다</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">앱이 닫혀 있어도 새 릴리스에 대한 푸시 알림을 받습니다</string>
     <string name="settings_system_notifications_categories">알림 카테고리</string>
@@ -795,27 +813,27 @@
     <string name="settings_advanced_external_batch_patch_description">인텐트를 통해 자동화 앱이 일괄 패치를 시작할 수 있도록 합니다</string>
     <string name="external_batch_patch_title">일괄 패치 시작</string>
     <string name="external_batch_patch_description">\'%s\'가 Nivqo를 사용하여 앱을 패치하고 설치하려고 합니다</string>
-    <string name="external_batch_patch_trust_caller">이 앱을 항상 허용</string>
+<string name="external_batch_patch_trust_caller">이 앱을 항상 허용</string>
     <string name="external_batch_patch_unknown_caller">알 수 없는 앱</string>
     <!-- Notification content -->
     <string name="notification_manager_update_title">Nivqo 업데이트 사용 가능</string>
-    <string name="notification_bundle_update_title">새 패치 사용 가능</string>
+<string name="notification_bundle_update_title">새 패치 사용 가능</string>
     <string name="notification_update_text">%s 버전 다운로드 준비 완료</string>
     <string name="notification_bundle_update_text_unversioned">Nivqo를 열고 업데이트하려면 탭하세요</string>
-    <string name="notification_permission_dialog_title">알림 허용</string>
+<string name="notification_permission_dialog_title">알림 허용</string>
     <string name="notification_permission_dialog_description">Nivqo는 백그라운드에서 업데이트가 있을 경우에 알림을 보내기 위해 알림 권한이 필요합니다</string>
-    <string name="notification_post_patch_dialog_title">업데이트가 있을 때 알림을 받으시겠습니까?</string>
+<string name="notification_post_patch_dialog_title">업데이트가 있을 때 알림을 받으시겠습니까?</string>
     <string name="notification_channel_manager_updates">Nivqo 업데이트</string>
     <string name="notification_channel_manager_updates_description">새 Nivqo 릴리스에 대한 알림</string>
-    <string name="notification_channel_patch_updates">패치 업데이트</string>
+<string name="notification_channel_patch_updates">패치 업데이트</string>
     <string name="notification_channel_patch_updates_description">새 패치 릴리스에 대한 알림</string>
     <string name="notification_channel_patcher">패치</string>
     <string name="notification_channel_patcher_description">Nivqo가 백그라운드에서 앱을 패치하는 동안에 표시되는 알림</string>
-    <!-- Settings - Advanced Tab - Expert settings Section -->
+<!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">전문가 설정</string>
     <string name="settings_advanced_expert_mode">전문가 모드</string>
     <string name="settings_advanced_expert_mode_description">고급 Nivqo 패치 설정과 커스텀 옵션을 활성화합니다</string>
-    <string name="settings_advanced_expert_mode_dialog_title">전문가 모드 활성화</string>
+<string name="settings_advanced_expert_mode_dialog_title">전문가 모드 활성화</string>
     <string name="settings_advanced_expert_mode_dialog_message">전문가 모드에서는 패치를 적용하는 방식을 더 세밀하게 조절할 수 있지만, 설정을 잘못 건드리면 앱이 정상적으로 작동하지 않을 수 있습니다</string>
     <string name="settings_advanced_strip_unused_libs">기기 아키텍처에 맞게 최적화</string>
     <string name="settings_advanced_strip_unused_libs_description">사용하지 않는 CPU 아키텍처 라이브러리 및 분할 APK 모듈을 제거합니다</string>
@@ -830,7 +848,7 @@
     <string name="settings_advanced_github_pat_export_include_label">설정 내보내기에 포함</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_include_supporting">내보낼 Nivqo 설정에 이 개인 액세스 토큰을 추가합니다</string>
-    <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
+<!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">개인 액세스 토큰을 공유하지 마세요. 설정 내보내기에 포함되는 경우에는 토큰이 포함되어 있으므로 해당 파일을 비공개로 유지하세요</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
     <string name="settings_advanced_patch_options">패치 옵션</string>
@@ -927,7 +945,7 @@ morphe_header_custom_dark.png
     <string name="installer_status_shizuku_not_installed">이 옵션을 사용하려면 Shizuku 또는 Sui를 설치하세요</string>
     <string name="installer_status_shizuku_not_running">Shizuku 또는 Sui 을 시작하고 다시 시도하세요</string>
     <string name="installer_status_shizuku_permission">Shizuku 앱에서 Nivqo에 권한을 부여하세요</string>
-    <string name="installer_mount_warning_install">기본 설치 프로그램이 루팅된 마운트 설치 프로그램으로 설정되어 있습니다. 이 저장된 앱은 마운트를 사용하여 설치되지 않았습니다</string>
+<string name="installer_mount_warning_install">기본 설치 프로그램이 루팅된 마운트 설치 프로그램으로 설정되어 있습니다. 이 저장된 앱은 마운트를 사용하여 설치되지 않았습니다</string>
     <string name="mount_version_mismatch_message">순정 앱 버전(%2$s)이 패치된 앱 버전(%1$s)과 일치하지 않습니다. 일치하는 순정 버전을 마운트한 다음에 다시 시도하세요</string>
     <string name="mount_stock_restore_failed_message">Android에서 저장된 원본 APK를 거부하였습니다. 해당 버전과 일치하는 순정 앱을 설치한 후에 다시 마운트를 시도하세요</string>
     <string name="installer_status_shizuku_unsupported">설치된 Shizuku 버전은 지원되지 않습니다</string>
@@ -957,7 +975,7 @@ morphe_header_custom_dark.png
     <string name="settings_auto_uninstall_with_shizuku_description">Shizuku를 사용하여 자동 설치하는 경우에 Android에서 서명 충돌이 발생했다고 보고되면 기존 앱을 먼저 제거하세요. 이 과정에서 앱 데이터가 지워질 수 있습니다</string>
     <string name="settings_auto_uninstall_warning_title">자동 제거 활성화</string>
     <string name="settings_auto_uninstall_warning_message">Shizuku를 사용하여 자동 설치하는 중에 Android에서 서명 충돌이 발생했다고 보고되면, Nivqo는 패치된 APK를 설치하기 전에 기존 앱을 제거합니다</string>
-    <string name="settings_auto_uninstall_warning_risk">이 과정에서 앱 데이터가 삭제될 수 있습니다. 기존 앱을 삭제한 후에 패치된 APK 설치에 실패하면 이전 앱을 복구하지 못할 수 있습니다</string>
+<string name="settings_auto_uninstall_warning_risk">이 과정에서 앱 데이터가 삭제될 수 있습니다. 기존 앱을 삭제한 후에 패치된 APK 설치에 실패하면 이전 앱을 복구하지 못할 수 있습니다</string>
     <string name="installer_shizuku_status_action">Shizuku 상태 확인</string>
     <string name="installer_shizuku_status_title">Shizuku 상태</string>
     <string name="installer_shizuku_status_ready">준비 완료</string>
@@ -975,7 +993,7 @@ morphe_header_custom_dark.png
 
 상세 정보: %2$s"</string>
     <string name="installer_shizuku_error_permission">Shizuku 권한이 누락되었습니다. Nivqo에 권한을 부여하고 다시 시도하세요</string>
-    <string name="installer_shizuku_error_timeout">Shizuku가 설치 결과를 반환하지 않았습니다. 여전히 실행 중인지 확인하고 다시 시도하세요</string>
+<string name="installer_shizuku_error_timeout">Shizuku가 설치 결과를 반환하지 않았습니다. 여전히 실행 중인지 확인하고 다시 시도하세요</string>
     <string name="installer_shizuku_error_downgrade">Android가 설치된 앱을 다운그레이드할 수 있기 때문에 이 작업을 차단하였습니다</string>
     <string name="installer_shizuku_error_signature">Android가 설치된 앱에 다른 서명이 있기 때문에 이 작업을 차단하였습니다</string>
     <string name="installer_shizuku_error_invalid_apk">Android가 이 APK를 읽을 수 없습니다</string>
@@ -990,7 +1008,7 @@ morphe_header_custom_dark.png
     <string name="settings_system_process_runtime_enable">프로세스 런타임 활성화</string>
     <string name="settings_system_memory_limit_subtitle">패치에 사용 가능한 메모리</string>
     <string name="settings_system_process_runtime_heap_limit_ignored">이 기기는 지난 실행에서 메모리 제한을 무시했으므로 패치 작업이 Nivqo 내부에서 실행되는 방식으로 대체될 수 있습니다</string>
-    <string name="settings_system_memory_limit_warning">메모리 제한이 낮으면 대용랑 앱을 패치할 경우에 오류가 발생할 수 있습니다</string>
+<string name="settings_system_memory_limit_warning">메모리 제한이 낮으면 대용랑 앱을 패치할 경우에 오류가 발생할 수 있습니다</string>
     <string name="settings_system_memory_limit_high_warning">메모리 제한이 높으면 일부 기기에서 패치 속도가 훨씬 느려질 수 있습니다. 더 낮은 제한에서 패치가 계속 실패하는 경우에만 메모리 제한을 높이세요</string>
     <string name="settings_system_process_runtime_enabled_description">%s MB 제한</string>
     <string name="settings_system_process_runtime_disabled_description">설정하려면 탭하세요</string>
@@ -1011,10 +1029,10 @@ morphe_header_custom_dark.png
     <!-- Settings - System Tab - Import and Export Section -->
     <string name="settings_system_import_export">가져오기 &amp; 내보내기</string>
     <string name="settings_system_signing_key">서명키</string>
-    <string name="settings_system_signing_key_description">패치된 앱이 서명된 키를 백업하고 복원합니다</string>
+    <string name="settings_system_signing_key_description">앱 패치에 사용되는 서명키를 백업하고 복원합니다</string>
     <string name="settings_system_signing_key_dialog_description">Nivqo가 패치하는 모든 앱은 이 키로 서명됩니다. 이 키를 반드시 보관하세요: 이 키가 없으면 패치된 앱은 기존 앱을 삭제한 후에만 업데이트할 수 있습니다</string>
-    <string name="settings_system_signing_key_missing">Nivqo는 첫 번째 패치와 함께 하나를 생성합니다</string>
-    <string name="settings_system_signing_key_created">%s에 생성됨</string>
+<string name="settings_system_signing_key_missing">Nivqo는 첫 번째 패치와 함께 하나를 생성합니다</string>
+<string name="settings_system_signing_key_created">%s에 생성됨</string>
     <string name="settings_system_signing_key_fingerprint">SHA-256 핑거프린트</string>
     <string name="settings_system_backup_appearance_description">테마, 색상 및 언어</string>
     <string name="settings_system_backup_home_description">그룹, 숨겨진 앱, 정렬 및 토글</string>
@@ -1038,10 +1056,10 @@ morphe_header_custom_dark.png
     <string name="settings_system_hide_password_field">비밀번호 숨기기</string>
     <string name="settings_system_morphe_settings">Nivqo 설정</string>
     <string name="settings_system_import_manager_settings_description">Nivqo 설정을 백업하고 복원합니다</string>
-    <string name="settings_system_import_manager_settings_fail">Nivqo 설정을 가져올 수 없습니다: %s</string>
+<string name="settings_system_import_manager_settings_fail">Nivqo 설정을 가져올 수 없습니다: %s</string>
     <string name="settings_system_import_manager_settings_success">Nivqo 설정을 가져왔습니다</string>
     <string name="settings_system_import_manager_settings_mode_title">Nivqo 설정 가져오기</string>
-    <string name="settings_system_import_manager_settings_mode_description">가져온 설정 및 소스를 적용하는 방식을 선택하세요</string>
+<string name="settings_system_import_manager_settings_mode_description">가져온 설정 및 소스를 적용하는 방식을 선택하세요</string>
     <string name="settings_system_import_selections_mode_title">패치 선택 목록 가져오기</string>
     <string name="settings_system_import_selections_mode_description">가져온 선택 목록 및 패치 옵션을 적용하는 방법을 선택하세요</string>
     <string name="import_mode_replace_title">기존 항목 바꾸기</string>
@@ -1049,8 +1067,8 @@ morphe_header_custom_dark.png
     <string name="import_mode_merge_title">기존 항목과 병합</string>
     <string name="import_mode_merge_description">백업에서 누락된 항목을 추가합니다. 기존 항목은 변경되지 않습니다</string>
     <string name="settings_system_export_manager_settings_fail">Nivqo 설정을 내보낼 수 없습니다: %s</string>
-    <string name="settings_system_export_manager_settings_success">Nivqo 설정을 내보냈습니다</string>
-    <string name="settings_system_export_debug_logs">디버그 로그 내보내기</string>
+<string name="settings_system_export_manager_settings_success">Nivqo 설정을 내보냈습니다</string>
+<string name="settings_system_export_debug_logs">디버그 로그 내보내기</string>
     <string name="settings_system_export_debug_logs_description">문제 해결을 위해 시스템 로그를 저장합니다</string>
     <string name="settings_system_export_debug_logs_export_read_failed">로그를 읽을 수 없습니다 (종료 코드 %s)</string>
     <string name="settings_system_export_debug_logs_export_failed">로그를 내보낼 수 없습니다</string>
@@ -1086,7 +1104,7 @@ morphe_header_custom_dark.png
     <string name="settings_system_storage_nothing_to_clear">삭제할 항목이 없습니다</string>
     <string name="settings_system_storage_open_app_info_title">Android 앱 저장소 열기</string>
     <string name="settings_system_storage_open_app_info_description">시스템 설정을 통해 모든 Nivqo 데이터를 관리하거나 지울 수 있습니다</string>
-    <string name="settings_system_save_original_apks_title">원본 APK 보관</string>
+<string name="settings_system_save_original_apks_title">원본 APK 보관</string>
     <string name="settings_system_save_original_apks_description">다시 패치할 경우에 파일을 다시 선택하지 않고 사용할 수 있도록 패치 전 APK를 저장합니다</string>
     <string name="settings_system_save_patched_apks_title">패치된 APK 보관</string>
     <string name="settings_system_save_patched_apks_description">나중에 내보내거나 Manager에서 다시 설치할 수 있도록 패치된 APK의 복사본을 저장합니다</string>
@@ -1134,12 +1152,12 @@ morphe_header_custom_dark.png
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">사용자 정의 파일 선택기</string>
     <string name="settings_system_custom_file_picker_description">시스템 기본 파일 선택기 대신 Nivqo에 내장된 파일 선택기를 사용하여 저장소를 탐색합니다</string>
-    <!-- Settings - System Tab - APK download helper -->
+<!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">APK Download Helper</string>
     <string name="settings_system_apk_download_helper_trusted_count">신뢰함: %2$d 개 중 %1$d 개</string>
     <string name="settings_system_apk_download_helper_dialog_description">Helper 앱은 원본 APK를 대신 다운로드할 수 있습니다. 다운로드 안내에는 여기에서 신뢰하는 앱만 제공됩니다</string>
     <string name="settings_system_apk_download_helper_warning">APK는 Helper 앱에서 제공되므로, 신뢰할 수 있는 앱만 사용하세요. Nivqo는 패치하기 전에 모든 파일의 패키지, 버전 및 서명을 확인합니다</string>
-    <string name="settings_system_apk_download_helper_installed_by">%s에 의해 설치됨</string>
+<string name="settings_system_apk_download_helper_installed_by">%s에 의해 설치됨</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">설치 프로그램 알 수 없음</string>
     <!-- File Picker -->
     <string name="file_picker_no_files">파일이 없습니다</string>
@@ -1147,6 +1165,7 @@ morphe_header_custom_dark.png
     <string name="file_picker_internal_storage">내부 저장소</string>
     <string name="file_picker_sd_card">SD 카드</string>
     <string name="file_picker_root">루트 (/)</string>
+    <string name="file_picker_storages">저장소</string>
     <string name="file_picker_sort_name_asc">이름 (오름차순)</string>
     <string name="file_picker_sort_name_desc">이름 (내림차순)</string>
     <string name="file_picker_sort_size_desc">크기 (큰 순)</string>
@@ -1294,27 +1313,28 @@ morphe_header_custom_dark.png
     <string name="changelog_download_fail">변경 사항을 다운로드할 수 없습니다: %s</string>
     <string name="changelog_empty">변경 사항이 없습니다</string>
     <string name="changelog_earlier_releases">이전 릴리스</string>
+    <string name="changelog_patched_with">%s로 패치됨</string>
     <string name="changelog_older_empty">표시할 이전 릴리스가 없습니다</string>
     <string name="changelog_older_failed">이전 릴리스를 불러올 수 없습니다</string>
     <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="changelog_release_page">릴리스 페이지</string>
     <string name="content_translate">번역</string>
     <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
-    <string name="content_show_original">원문</string>
+    <string name="content_show_original">원본</string>
     <string name="content_translation_failed">번역할 수 없습니다: %s</string>
-    <string name="changelog_section_new">신규 사항</string>
-    <string name="changelog_section_fixes">수정 사항</string>
+    <string name="changelog_section_new">신규</string>
+    <string name="changelog_section_fixes">수정</string>
     <string name="changelog_section_performance">성능</string>
-    <string name="changelog_section_improvements">개선 사항</string>
+    <string name="changelog_section_improvements">개선</string>
     <string name="changelog_section_app_support">앱 지원</string>
-    <string name="changelog_section_other">변경 사항</string>
+    <string name="changelog_section_other">변경</string>
     <string name="changelog_badge_latest">최신</string>
     <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
     <string name="changelog_badge_downloaded">다운로드</string>
     <string name="changelog_badge_prerelease">Pre-release</string>
     <!-- "%s" is the number of changes in the section -->
     <string name="changelog_show_all">모두 표시 (%s)</string>
-    <string name="changelog_show_less">간략히 보기</string>
+    <string name="changelog_show_less">간단히 보기</string>
     <string name="no_network_toast">인터넷에 연결할 수 없습니다</string>
     <string name="update_available">업데이트 사용 가능</string>
     <string name="ready_to_install_update">업데이트 설치 준비 완료</string>
@@ -1322,7 +1342,7 @@ morphe_header_custom_dark.png
     <string name="install_update_manager_failed">업데이트를 할 수 없습니다</string>
     <string name="installing_manager_update">업데이트를 설치하는 중…</string>
     <string name="installing_manager_update_hint">Nivqo가 업데이트를 완료하기 위해 종료됩니다</string>
-    <string name="downloading_manager_update">업데이트를 다운로드하는 중…</string>
+<string name="downloading_manager_update">업데이트를 다운로드하는 중…</string>
     <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB 다운로드됨</string>
     <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
@@ -1343,7 +1363,7 @@ morphe_header_custom_dark.png
     <string name="onboarding_swipe_title">스와이프 제스처</string>
     <string name="onboarding_swipe_desc">앱 카드를 오른쪽으로 스와이프하여 사용 가능한 패치를 확인할 수 있고, 왼쪽으로 스와이프하여 홈 화면에서 카드를 숨길 수 있습니다</string>
     <string name="onboarding_settings_desc">레이아웃, 고급 옵션 및 시스템 도구와 같은 Nivqo 설정을 관리할 수 있습니다</string>
-    <string name="onboarding_sources_patches_desc">패치 버튼을 탭하여 이 소스에서 사용할 수 있는 모든 패치를 볼 수 있습니다</string>
+<string name="onboarding_sources_patches_desc">패치 버튼을 탭하여 이 소스에서 사용할 수 있는 모든 패치를 볼 수 있습니다</string>
     <string name="onboarding_sources_version_desc">버전 버튼을 탭하여 이 소스의 전체 변경 사항을 볼 수 있습니다</string>
     <string name="onboarding_sources_prerelease_desc">이 옵션을 활성화하여 이 소스의 Pre-release 패치 버전을 수신할 수 있습니다</string>
     <string name="onboarding_appearance_tab_desc">테마, 강조 색상 및 배경을 변경하여 앱 디자인을 꾸며 볼 수 있습니다</string>
@@ -1358,7 +1378,7 @@ morphe_header_custom_dark.png
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">빠른 기능 투어</string>
     <string name="tour_prompt_desc">Nivqo의 주요 기능을 빠르게 둘러보시겠습니까?</string>
-    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
+<!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">안내해 드릴게요</string>
     <string name="onboarding_restart_title">기능 투어</string>
     <string name="onboarding_restart_desc">주요 기능 둘러보기</string>

@@ -7,10 +7,14 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -28,8 +32,8 @@ class ExpandedControlsTest {
         val patches = Class.forName("app.hushmessenger.patches.controls.MessengerControlsPatchKt").methods
             .filter { it.name.startsWith("get") && it.returnType == BytecodePatch::class.java }
             .map { it.invoke(null) as BytecodePatch }.filter { it.name != null }
-        assertEquals(29, patches.size)
-        assertEquals(29, patches.map { it.name }.toSet().size)
+        assertEquals(30, patches.size)
+        assertEquals(30, patches.map { it.name }.toSet().size)
         val shared = patches.map { it.dependencies.filterIsInstance<BytecodePatch>().single() }.toSet()
         assertEquals(1, shared.size)
         assertNull(shared.single().name)
@@ -45,7 +49,7 @@ class ExpandedControlsTest {
             .filter { it.name.startsWith("get") && it.returnType == BytecodePatch::class.java }
             .map { it.invoke(null) as BytecodePatch }.filter { it.name != null }
         val directed = patches.filter { "Patch controls" in it.description.orEmpty() }
-        assertEquals(28, directed.size)
+        assertEquals(29, directed.size)
         for (patch in directed) {
             assertTrue("Long-press Messenger's home screen icon > Patch controls." in patch.description!!, "${patch.name}")
         }
@@ -96,6 +100,101 @@ class ExpandedControlsTest {
         }
     }
 
+    /**
+     * Runs a gate's straight-line code against one composite's cache field. The switch is what Settings.enabled answers;
+     * static fields read as their own names, so Messenger's markers compare by identity like the real ones.
+     */
+    private class GateRun(val method: MutableMethod) {
+        val fields = mutableMapOf<String, Any?>()
+        var switchOn = false
+        var switchReads = 0
+
+        fun call(): Boolean {
+            val code = method.implementation!!.instructions.toList()
+            val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+            val registers = arrayOfNulls<Any>(method.implementation!!.registerCount)
+            var result: Any? = null
+            var i = 0
+            fun jump(instruction: Instruction) { i = addresses.indexOf(addresses[i] + (instruction as OffsetInstruction).codeOffset) }
+            while (true) {
+                val instruction = code[i]
+                val a = (instruction as? OneRegisterInstruction)?.registerA
+                val reference = (instruction as? ReferenceInstruction)?.reference?.toString()
+                when (instruction.opcode) {
+                    Opcode.IGET_OBJECT -> registers[a!!] = fields[reference]
+                    Opcode.IPUT_OBJECT -> fields[reference!!] = registers[a!!]
+                    Opcode.SGET_OBJECT -> registers[a!!] = reference!!.intern()
+                    Opcode.CONST_STRING -> registers[a!!] = (instruction as ReferenceInstruction).reference.toString()
+                    Opcode.CONST_4 -> registers[a!!] = (instruction as NarrowLiteralInstruction).narrowLiteral
+                    Opcode.INVOKE_STATIC -> {
+                        assertEquals("$SETTINGS->enabled(Ljava/lang/String;)Z", reference)
+                        switchReads++
+                        result = if (switchOn) 1 else 0
+                    }
+                    Opcode.MOVE_RESULT -> registers[a!!] = result
+                    Opcode.IF_EQZ, Opcode.IF_NEZ -> {
+                        val zero = registers[a!!].let { it == null || it == 0 }
+                        if (zero == (instruction.opcode == Opcode.IF_EQZ)) { jump(instruction); continue }
+                    }
+                    Opcode.IF_EQ -> {
+                        val two = instruction as TwoRegisterInstruction
+                        if (registers[two.registerA] === registers[two.registerB]) { jump(instruction); continue }
+                    }
+                    Opcode.RETURN -> return registers[a!!] == 1
+                    else -> fail("unexpected ${instruction.opcode}")
+                }
+                i++
+            }
+        }
+    }
+
+    /** Messenger's shape: decide once, cache the marker in the composite, then answer from the cache. */
+    private val cachingGate = """
+        iget-object v0, p0, Lfixture/Gate;->cache:Ljava/lang/Object;
+        const/4 v6, 0x1
+        const/4 v5, 0x0
+        if-nez v0, :cached
+        sget-object v0, LX/1dj;->A02:Ljava/lang/Object;
+        iput-object v0, p0, Lfixture/Gate;->cache:Ljava/lang/Object;
+        :cached
+        iget-object v1, p0, Lfixture/Gate;->cache:Ljava/lang/Object;
+        sget-object v0, LX/1dj;->A03:Ljava/lang/Object;
+        if-eq v1, v0, :disabled
+        return v6
+        :disabled
+        return v5
+    """.trimIndent()
+
+    // #30: the inbox lists its suppliers' keys and registers their listeners on first use and removes them in later
+    // calls, so a gate that changed its answer mid-composite left suggestion work registered with nothing to remove it.
+    @Test fun pluginGateKeepsOneAnswerForTheLifeOfItsComposite() {
+        val hidden = GateRun(method("Lfixture/Gate;", "gate", 8, "Z", cachingGate).apply { injectPluginGate("people") })
+        hidden.switchOn = true
+        assertFalse(hidden.call())
+        assertEquals("LX/1dj;->A03:Ljava/lang/Object;", hidden.fields["Lfixture/Gate;->cache:Ljava/lang/Object;"])
+        hidden.switchOn = false
+        assertFalse(hidden.call(), "turning the switch off reopened a composite that already left the plugin out")
+        assertEquals(1, hidden.switchReads)
+
+        val shown = GateRun(method("Lfixture/Gate;", "gate", 8, "Z", cachingGate).apply { injectPluginGate("people") })
+        assertTrue(shown.call())
+        assertEquals("LX/1dj;->A02:Ljava/lang/Object;", shown.fields["Lfixture/Gate;->cache:Ljava/lang/Object;"])
+        shown.switchOn = true
+        assertTrue(shown.call(), "turning the switch on removed a plugin the composite had already started")
+
+        // The next composite reads the switch again.
+        val next = GateRun(method("Lfixture/Gate;", "gate", 8, "Z", cachingGate).apply { injectPluginGate("people") })
+        next.switchOn = true
+        assertFalse(next.call())
+    }
+
+    @Test fun pluginGateLatchRejectsAChangedGateBeforeEditing() {
+        val changed = method("Lfixture/Gate;", "gate", 8, "Z", cachingGate.replace("if-eq", "if-ne"))
+        val original = changed.implementation!!.instructions.toList()
+        assertFailsWith<PatchException> { changed.injectPluginGate("people") }
+        assertEquals(original, changed.implementation!!.instructions.toList())
+    }
+
     @Test fun pluginPolarityConstantsCannotAliasOrBeOverwritten() {
         val body = """
             iget-object v0, p0, Lfixture/Gate;->cache:Ljava/lang/Object;
@@ -139,6 +238,29 @@ class ExpandedControlsTest {
         }
         assertFailsWith<PatchException> {
             method("LX/2Wl;", "D2i", 24, IMMUTABLE_LIST, body.replace("return-object v5", "return-object v6")).injectAdFilter()
+        }
+    }
+
+    @Test fun messenger581AdExitsEachKeepTheirOwnResultRegister() {
+        val body = "goto/16 :first_exit\n" + "nop\n".repeat(1449) + ":first_exit\nreturn-object v7\n" +
+            "nop\n".repeat(8) + "return-object v2\n" + "nop\n".repeat(3)
+        activeProfile = PROFILE_346213494
+        try {
+            val method = method("LX/2LJ;", "D3q", 24, IMMUTABLE_LIST, body)
+            method.injectAdFilter()
+            val code = method.implementation!!.instructions
+            val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+            val filters = code.filter { (it as? ReferenceInstruction)?.reference.toString().contains("->filterInboxAds(") }
+            assertEquals(listOf(7, 2), filters.map { (it as FiveRegisterInstruction).registerC })
+            val kept = code.indices.filter { code[it].opcode == Opcode.IF_EQZ }.map { index ->
+                code[addresses.indexOf(addresses[index] + (code[index] as OffsetInstruction).codeOffset)]
+            }
+            assertEquals(listOf(7, 2), kept.map { (it as com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction).registerA })
+            for (changed in listOf(body.replace("return-object v2", "return-object v7"), body.replace("return-object v7", "return-object v5"))) {
+                assertFailsWith<PatchException> { method("LX/2LJ;", "D3q", 24, IMMUTABLE_LIST, changed).injectAdFilter() }
+            }
+        } finally {
+            activeProfile = BASE_PROFILE
         }
     }
 
@@ -196,13 +318,26 @@ class ExpandedControlsTest {
         }
     }
 
-    @Test fun folderRowTypeComesFromTheSettingsBuilderAlone() {
+    private fun folderRow(type: String, key: String) = key + "\nnew-instance v0, $type\ninvoke-direct/range {v0 .. v8}, $type-><init>(" +
+        "Landroid/content/Context;LX/HHA;LX/IXL;$DRAWER_KEY$DRAWER_METADATA" + "Ljava/lang/Integer;Ljava/lang/String;Ljava/util/List;)V\n"
+    private val settingsKey = "sget-object v4, $SETTINGS_KEY->A00:$SETTINGS_KEY"
+    private val qrKey = "new-instance v4, ${DRAWER_MODEL}FolderNameDrawerFolderKey;"
+
+    @Test fun folderRowTypeComesFromTheSettingsRowAlone() {
         val id = "LX/HFb;->Ax1(LX/0MG;)Ljava/util/ArrayList;"
-        assertEquals("LX/HRf;", fixtureMethod(id, "new-instance v1, LX/HRf;\nconst/4 v0, 0x0\nreturn-object v0").menuFolderItemType())
-        assertFailsWith<PatchException> {
-            fixtureMethod(id, "new-instance v1, LX/HRf;\nnew-instance v2, LX/HRg;\nconst/4 v0, 0x0\nreturn-object v0").menuFolderItemType()
-        }
-        assertFailsWith<PatchException> { fixtureMethod(id, "const/4 v0, 0x0\nreturn-object v0").menuFolderItemType() }
+        fun builder(rows: String) = fixtureMethod(id, rows + "const/4 v0, 0x0\nreturn-object v0", 10)
+        assertEquals("LX/HRf;", builder(folderRow("LX/HRf;", settingsKey)).menuFolderItemType())
+        // 581 builds the QR code row in the same method, from the same row class and its own folder key.
+        val both = builder(folderRow("LX/HRf;", settingsKey) + folderRow("LX/HRf;", qrKey))
+        assertEquals("LX/HRf;", both.menuFolderItemType())
+        assertEquals(2, both.settingsRowCall())
+        for (changed in listOf(
+            folderRow("LX/HRf;", settingsKey) + "new-instance v2, LX/HRg;\n",
+            folderRow("LX/HRf;", settingsKey) + folderRow("LX/HRf;", settingsKey),
+            folderRow("LX/HRf;", qrKey),
+            "new-instance v1, LX/HRf;\n",
+            "",
+        )) assertFailsWith<PatchException> { builder(changed).menuFolderItemType() }
     }
 
     @Test fun keyboardTabFilterReplacesTheOnlyExitAndKeepsItsBranches() {

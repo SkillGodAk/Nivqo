@@ -70,6 +70,7 @@ internal val settingsResources = resourcePatch(description = "Install HushMessen
 internal var discoveredControls: Map<String, List<Method>> = emptyMap()
 internal var nativeBubbleActivityVerified = false
 internal var nativeBubbleRoutesVerified = false
+internal var communityInboxContract: CommunityInboxContract? = null
 
 internal val settingsExtension = bytecodePatch(description = "Load HushMessenger runtime controls") {
     dependsOn(settingsResources)
@@ -78,7 +79,8 @@ internal val settingsExtension = bytecodePatch(description = "Load HushMessenger
         activeProfile = controlProfileFor(packageMetadata.versionCode)
         val classes = mutableListOf<com.android.tools.smali.dexlib2.iface.ClassDef>()
         classDefForEach { classes.add(it) }
-        discoveredControls = findControls(classes)
+        communityInboxContract = findCommunityInbox(classes)
+        discoveredControls = findControls(classes, communityInboxContract)
         val nativeGate = discoveredControls["bubble_mode"].orEmpty().singleOrNull()
         nativeBubbleRoutesVerified = nativeBubbleActivityVerified && nativeGate != null &&
             findNativeBubbleRoutes(classes, nativeGate.hookId()) == activeProfile.nativeBubbleRoutes
@@ -91,6 +93,7 @@ internal val settingsExtension = bytecodePatch(description = "Load HushMessenger
         activeProfile = BASE_PROFILE
         nativeBubbleActivityVerified = false
         nativeBubbleRoutesVerified = false
+        communityInboxContract = null
     }
 }
 
@@ -117,6 +120,8 @@ internal fun injectControl(key: String, methods: Map<String, List<MutableMethod>
     for ((hook, selectedMethods) in methods) for (method in selectedMethods) {
         if (hook in pluginGates) method.validatePluginGate()
         when (hook) {
+            "ai_sticker_cell" -> method.validateAiStickerCell()
+            "screenshot_viewers" -> method.validateScreenshotViewer()
             "subtabs" -> method.validateSubtabs()
             "browser" -> method.validateBrowserPreference()
             "ads" -> method.validateAdFilter()
@@ -140,6 +145,8 @@ internal fun injectControl(key: String, methods: Map<String, List<MutableMethod>
     }
     for ((hook, selectedMethods) in methods) for (method in selectedMethods) {
         when (hook) {
+            "ai_sticker_cell" -> method.injectAiStickerCell()
+            "screenshot_viewers" -> method.injectScreenshotViewer()
             "subtabs" -> method.injectSubtabs()
             "browser" -> method.injectBrowserPreference()
             "ads" -> method.injectAdFilter()
@@ -165,7 +172,7 @@ internal fun injectControl(key: String, methods: Map<String, List<MutableMethod>
             "typing_mailbox" -> method.injectOutgoingTyping()
             "anonymous_stories" -> method.injectStorySeen()
             "growth_notes" -> method.injectNotesTips()
-            else -> method.injectFeatureSwitch(key)
+            else -> if (hook in pluginGates) method.injectPluginGate(key) else method.injectFeatureSwitch(key)
         }
     }
 }
@@ -203,7 +210,22 @@ private fun controlPatch(key: String, title: String, summary: String, group: Str
                     mutableClassDefBy(original.definingClass).methods.single { it.hookId() == original.hookId() }
                 }
             }
-            if (key == "bubbles") {
+            if (key == COMMUNITY_INBOX) {
+                val contract = communityInboxContract ?: throw PatchException("Messenger controls: the native community inbox route is missing")
+                val host = mutableClassDefBy(HOST_SCREENS)
+                val helpers = host.methods
+                val joined = helpers.singleOrNull { it.hookId() == JOINED_COMMUNITY_ROW }
+                    ?: throw PatchException("Messenger controls: the joined-community helper is missing")
+                val scope = helpers.singleOrNull { it.hookId() == MAIN_INBOX_SCOPE }
+                    ?: throw PatchException("Messenger controls: the Main inbox helper is missing")
+                val replacements = injectCommunityInbox(contract, methods.getValue(COMMUNITY_INBOX).single(), joined, scope)
+                // MutableMethod.implementation has no setter. Keep both method indexes in sync when replacing it.
+                val direct = host.directMethods
+                helpers.removeAll(listOf(joined, scope))
+                direct.removeAll(listOf(joined, scope))
+                helpers.addAll(replacements)
+                direct.addAll(replacements)
+            } else if (key == "bubbles") {
                 val capability = mutableClassDefBy(HOST_SCREENS).methods.singleOrNull { it.hookId() == NATIVE_BUBBLE_ROUTES }
                     ?: throw PatchException("Messenger controls: the extension has no native bubble capability")
                 injectNativeBubbles(methods.getValue("bubbles").single(), methods.getValue("bubble_mode").single(),
@@ -223,6 +245,9 @@ val hidePeoplePatch = controlPatch("people", "Hide People You May Know", "Hides 
 @Suppress("unused")
 val hideFriendRequestsPatch = controlPatch("friend_requests", "Hide friend request cards", "Hides friend request cards inside the inbox.", "Inbox")
 @Suppress("unused")
+val hideJoinedCommunityChatsPatch = controlPatch("community_inbox", "Hide joined community chats",
+    "Hides joined community-chat rows from the main inbox on its next render. Keeps Search, community folders, delivery and unread counts unchanged.", "Inbox")
+@Suppress("unused")
 val hideGrowthPatch = controlPatch("growth", "Hide growth prompts", "Hides the inbox's add-more-people promotion unit. " +
     "Also hides the tip sheets in notes, like Make my notes public, and the Share your own story card after someone else's stories.",
     "Inbox", "growth", "growth_notes", "growth_story_card")
@@ -241,7 +266,7 @@ val hideMomentsPatch = controlPatch("moments", "Hide Chat Moments", "Hides the C
 @Suppress("unused")
 val hideReelsBadgePatch = controlPatch("reels_badge", "Hide Reels badge", "Hides the Reels notification badge.", "Navigation")
 @Suppress("unused")
-val hideAiStickersPatch = controlPatch("ai_stickers", "Hide AI sticker tools", "Hides the generated-sticker tab and AI sticker suggestions.", "Stickers")
+val hideAiStickersPatch = controlPatch("ai_stickers", "Hide AI sticker tools", "Hides the Generate AI sticker buttons, generated-sticker tab and AI sticker suggestions.", "Stickers", "ai_stickers", "ai_sticker_cell")
 @Suppress("unused")
 val hideAvatarStickersPatch = controlPatch("avatar_stickers", "Hide avatar stickers", "Hides the avatar tab in the sticker keyboard.", "Stickers", "avatar_stickers", "avatar_tabs")
 @Suppress("unused")
@@ -263,9 +288,9 @@ val useSystemEmojiPatch = controlPatch("use_system_emoji", "Use system emoji", "
 @Suppress("unused")
 val originalPhotoPatch = controlPatch("original_photo", "Send photos at original quality", "With HD on, sends a JPEG photo's own image data instead of a re-encoded copy, without its metadata except the rotation tag. Videos and photos over 20 MB are still compressed.", "Conversations")
 @Suppress("unused")
-val allowScreenshotPatch = controlPatch("allow_screenshot", "Allow screenshots", "Lets you screenshot photos, media and video Messenger protects in a chat, and stops screenshot notices. View-once media stays protected.", "Privacy")
+val allowScreenshotPatch = controlPatch("allow_screenshot", "Allow screenshots", "Lets you screenshot protected chat media, including view-once media and Quicksnap, and stops screenshot notices. This doesn't add replay or saving.", "Privacy", "allow_screenshot", "screenshot_viewers")
 @Suppress("unused")
-val hideReadReceiptsPatch = controlPatch("hide_read_receipts", "Hide read receipts", "Suppresses your outgoing read receipt. In end-to-end encrypted chats, chats you open stay unread until you reply.", "Privacy", "hide_read_receipts", "read_mailbox")
+val hideReadReceiptsPatch = controlPatch("hide_read_receipts", "Hide read receipts", "Stops sending read receipts. Opened encrypted chats can stay unread on this phone. Replying or switching this off may notify the sender. Group coverage isn't verified.", "Privacy", "hide_read_receipts", "read_mailbox")
 @Suppress("unused")
 val keepUnsentPatch = controlPatch("keep_unsent", "Keep unsent messages", "Preserves messages on verified legacy unsend routes. End-to-end encrypted chats are unsupported, and group coverage is unverified. Activity records intercepted legacy unsends, not chat support. Your own unsend may be limited.", "Privacy", "keep_unsent", "unsent_indicator", "delta_unsent")
 private var anonymousStoriesApplied = false
@@ -339,7 +364,10 @@ val saveStoriesPatch = bytecodePatch(
         if (builderClass.methods.any { it.name == STORY_SAVE_HELPER }) {
             throw PatchException("Messenger controls: the story menu already has $STORY_SAVE_HELPER")
         }
-        builderClass.methods.add(storySaveHelper(original.definingClass, save))
+        val direct = builderClass.directMethods
+        val helper = storySaveHelper(original.definingClass, save)
+        builderClass.methods.add(helper)
+        direct.add(helper)
         builder.injectStorySave(save)
         recordControl("save_stories")
         saveStoriesApplied = true

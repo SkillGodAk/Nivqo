@@ -3,6 +3,7 @@
     <!-- Home Screen -->
     <string name="home_other_apps">កម្មវិធីផ្សេង</string>
     <string name="home_not_patched_yet">មិនទាន់បានបំណេះនៅឡើយទេ</string>
+    <string name="home_app_hide_message">កម្មវិធីនេះនឹងត្រូវបានលាក់មិនបង្ហាញលើអេក្រង់មុខ។ អ្នកអាចបង្ហាញវាឡើងវិញដោយចុចប៊ូតុងនៅខាងក្រោមបំផុតនៃបញ្ជី</string>
     <!-- Home Screen - Update Notifications -->
     <string name="home_update_available_subtitle">កំណែថ្មីត្រៀមជាស្រេច ដើម្បីដំឡើង</string>
     <string name="home_update_error">ការអាប់ដេតបានបរាជ័យ</string>
@@ -61,6 +62,8 @@
     <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="shortcut_check_updates_short">ពិនិត្យបច្ចុប្បន្នភាព</string>
     <!-- Home Screen - App Info Screen -->
+    <string name="app_links_badge_enabled">បានបើក</string>
+    <string name="app_links_badge_disabled">បានផ្ដាច់</string>
     <!-- Home Screen - Root Mode -->
     <!-- Patcher Screen -->
     <!-- Titles of the cards the expert log shows in place of the raw start and success log lines -->

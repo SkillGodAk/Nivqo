@@ -107,13 +107,17 @@
         <item quantity="one">%s kern</item>
         <item quantity="other">%s kernen</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s nieuwe</item>
-        <item quantity="other">%s nieuwe</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s functie</item>
+        <item quantity="other">%s functies</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s oplossing</item>
         <item quantity="other">%s oplossingen</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s optimalisatie</item>
+        <item quantity="other">%s optimalisaties</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s wijziging</item>
@@ -122,5 +126,13 @@
     <plurals name="changelog_new_releases">
         <item quantity="one">%s nieuwe release</item>
         <item quantity="other">%s nieuwe releases</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d link ingeschakeld</item>
+        <item quantity="other">%d links ingeschakeld</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d onbevestigde link</item>
+        <item quantity="other">%d onbevestigde links</item>
     </plurals>
 </resources>

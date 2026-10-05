@@ -81,16 +81,25 @@
     <plurals name="core_count">
         <item quantity="other">%s 개의 코어</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="other">%s 개의 신규 사항</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="other">%s 개의 기능</item>
     </plurals>
     <plurals name="changelog_fix_count">
-        <item quantity="other">%s 개의 수정 사항</item>
+        <item quantity="other">%s 개의 수정</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="other">%s 개의 최적화</item>
     </plurals>
     <plurals name="changelog_change_count">
-        <item quantity="other">%s 개의 변경 사항</item>
+        <item quantity="other">%s 개의 변경</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="other">%s 개의 새 릴리스</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="other">%d 개의 링크가 활성화됨</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="other">%d 개의 미확인 링크</item>
     </plurals>
 </resources>

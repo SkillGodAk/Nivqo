@@ -133,15 +133,20 @@
         <item quantity="few">%s језгра</item>
         <item quantity="other">%s језгара</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s ново</item>
-        <item quantity="few">%s нова</item>
-        <item quantity="other">%s нових</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s функција</item>
+        <item quantity="few">%s функције</item>
+        <item quantity="other">%s функција</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s исправка</item>
         <item quantity="few">%s исправке</item>
         <item quantity="other">%s исправака</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s оптимизација</item>
+        <item quantity="few">%s оптимизације</item>
+        <item quantity="other">%s оптимизација</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s измена</item>
@@ -152,5 +157,15 @@
         <item quantity="one">%s ново издање</item>
         <item quantity="few">%s нова издања</item>
         <item quantity="other">%s нових издања</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d линк омогућен</item>
+        <item quantity="few">%d линка омогућена</item>
+        <item quantity="other">%d линкова омогућено</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d неверификовани линк</item>
+        <item quantity="few">%d неверификована линка</item>
+        <item quantity="other">%d неверификованих линкова</item>
     </plurals>
 </resources>

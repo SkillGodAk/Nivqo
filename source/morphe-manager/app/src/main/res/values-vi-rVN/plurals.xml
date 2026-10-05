@@ -81,16 +81,25 @@
     <plurals name="core_count">
         <item quantity="other">%s lõi</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="other">%s mới</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="other">%s tính năng</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="other">%s bản sửa lỗi</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="other">%s tối ưu hóa</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="other">%s thay đổi</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="other">%s bản phát hành mới</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="other">Đã bật %d liên kết</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="other">%d liên kết chưa xác minh</item>
     </plurals>
 </resources>

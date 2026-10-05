@@ -107,13 +107,17 @@
         <item quantity="one">%s nüvə</item>
         <item quantity="other">%s nüvə</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s yeni</item>
-        <item quantity="other">%s yeni</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s xüsusiyyət</item>
+        <item quantity="other">%s xüsusiyyət</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s düzəliş</item>
         <item quantity="other">%s düzəliş</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s optimallaşdırma</item>
+        <item quantity="other">%s optimallaşdırma</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s dəyişiklik</item>
@@ -122,5 +126,13 @@
     <plurals name="changelog_new_releases">
         <item quantity="one">%s yeni buraxılış</item>
         <item quantity="other">%s yeni buraxılış</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d link aktivdir</item>
+        <item quantity="other">%d link aktivdir</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d təsdiqlənməmiş link</item>
+        <item quantity="other">%d təsdiqlənməmiş link</item>
     </plurals>
 </resources>

@@ -12,12 +12,15 @@ import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.domain.repository.SourceMuteRepository
 import app.morphe.manager.domain.repository.PatchBundleRepository.Companion.DEFAULT_SOURCE_UID
 import app.morphe.manager.patcher.patch.PatchBundleInfo
+import app.morphe.manager.util.AppCoroutineScope
 import app.morphe.manager.util.compareVersions
 import app.morphe.patcher.patch.AppTarget
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 
 /**
  * An [AppTarget] annotated with the bundle it originates from.
@@ -140,12 +143,16 @@ fun versionStatus(
 class AppVersionCatalog(
     patchBundleRepository: PatchBundleRepository,
     sourceMuteRepository: SourceMuteRepository,
-    prefs: PreferencesManager
+    prefs: PreferencesManager,
+    scope: AppCoroutineScope
 ) {
     /**
      * Every version each package can be patched at, grouped by source, newest first. This is the
      * full set, which is what an APK already on the device has to be judged against; [offered]
      * narrows it to what a picker should put in front of the user.
+     *
+     * Walks every version of every patch, so it is built once in the background and shared by
+     * all readers instead of being rebuilt by each of them, on whatever thread collects it.
      */
     val compatibleVersions: Flow<Map<String, List<BundledAppTarget>>> = combine(
         patchBundleRepository.bundleInfoFlow,
@@ -167,7 +174,7 @@ class AppVersionCatalog(
             // Unlike the source list this drops the last one: extract promises that a listed
             // package has a version to offer, and one with none left is a state readers handle
             .filterValues { it.isNotEmpty() }
-    }
+    }.shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
     /** The single version to offer per package. */
     val recommendedVersions: Flow<Map<String, AppTarget>> =
@@ -177,7 +184,7 @@ class AppVersionCatalog(
                     bundledTargets.recommended()?.let { put(packageName, it) }
                 }
             }
-        }
+        }.shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
     /** One-shot lookup for the entry points that resolve one app at a time. */
     suspend fun recommendedVersion(packageName: String): String? =

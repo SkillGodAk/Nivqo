@@ -1,6 +1,7 @@
 package app.hushmessenger.patches.controls
 
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.util.proxy.mutableTypes.MutableClass
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -28,7 +29,7 @@ class ControlDiscoveryTest {
     )
 
     private fun completeFixture(): List<MutableClass> {
-        val methods = expectedHooks.filter { it.key != "unsent_indicator" && it.key != "delta_unsent" }.flatMap { (key, ids) ->
+        val methods = expectedHooks.filter { it.key !in setOf("unsent_indicator", "delta_unsent", "ai_sticker_cell", "screenshot_viewers", COMMUNITY_INBOX) }.flatMap { (key, ids) ->
             ids.map { id ->
                 if (key == "people_jewel") return@map peopleJewelMethod()
                 if (key == "people_tab") return@map peopleTabMethod()
@@ -111,7 +112,10 @@ class ControlDiscoveryTest {
         } + listOf(fixtureClass(AD_ITEM), fixtureClass(IMMUTABLE_LIST, listOf(
             fixtureMethod("$IMMUTABLE_LIST->copyOf(Ljava/util/Collection;)$IMMUTABLE_LIST",
                 "const/4 v0, 0x0\nreturn-object v0", flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value),
-        )), peopleJewelKeyHolder(), storyCardKeyHolder(), debugDumperFixture(), messageWrapperFixture(type = "LX/K1Y;"), searchFieldFixture())
+        )), peopleJewelKeyHolder(), storyCardKeyHolder(), debugDumperFixture(), messageWrapperFixture(type = "LX/K1Y;"), searchFieldFixture()) +
+            aiStickerCellFixture() + communityInboxFixture().filter { it.type != IMMUTABLE_LIST } +
+            expectedHooks.getValue("screenshot_viewers").map { screenshotViewerFixture(it) }
+                .groupBy { it.definingClass }.map { (type, group) -> fixtureClass(type, group) }
     }
 
     // The search field builds a render-less click helper first, then the Ask Meta AI chip component.
@@ -133,8 +137,39 @@ class ControlDiscoveryTest {
     @Test fun discoversTheCompleteHookUnionThroughRealClassDefinitions() {
         val found = findControls(completeFixture())
         validateControls(found)
-        assertEquals(95, found.values.sumOf { it.size })
+        assertEquals(100, found.values.sumOf { it.size })
         for (key in expectedHooks.keys) validateControls(found, setOf(key))
+    }
+
+    @Test fun aChangedViewerLeavesOnlyScreenshotDiscoveryUnavailable() {
+        val classes = completeFixture()
+        val method = classes.single { it.type == EPHEMERAL_VIEWER }.methods.single { it.name == "onResume" }
+        method.replaceInstruction(method.screenshotViewerSites().first(), "nop")
+        val before = lifecycleDex(classes)
+        val found = findControls(classes)
+        validateControls(found, expectedHooks.keys - "screenshot_viewers")
+        assertFailsWith<PatchException> { validateControls(found, setOf("screenshot_viewers")) }
+        kotlin.test.assertContentEquals(before, lifecycleDex(classes))
+    }
+
+    @Test fun aSuppliedUnavailableCommunityContractDoesNotRunDiscoveryAgain() {
+        val found = findControls(completeFixture(), null)
+        assertTrue(found.getValue(COMMUNITY_INBOX).isEmpty())
+        validateControls(found, expectedHooks.keys - COMMUNITY_INBOX)
+    }
+
+    @Test fun anExtraInvalidViewerDisablesTheWholeControlInEitherMethodOrder() {
+        for (first in listOf(false, true)) {
+            val classes = completeFixture()
+            val viewer = classes.single { it.type == EPHEMERAL_VIEWER }
+            val extra = fixtureMethod("$EPHEMERAL_VIEWER->onResume(I)V", "return-void", 2)
+            val methods = viewer.methods.toList()
+            val changed = fixtureClass(viewer.type, if (first) listOf(extra) + methods else methods + extra)
+            val found = findControls(classes.filter { it !== viewer } + changed)
+            validateControls(found, expectedHooks.keys - "screenshot_viewers")
+            assertTrue(found.getValue("screenshot_viewers").isEmpty())
+            assertFailsWith<PatchException> { validateControls(found, setOf("screenshot_viewers")) }
+        }
     }
 
     @Test fun peopleTabHandlerIsFoundOnlyThroughItsFetchCoroutine() {

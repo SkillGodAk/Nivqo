@@ -6,6 +6,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.view.Window;
+import android.view.WindowManager;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -191,6 +193,12 @@ public final class Settings {
         return preferences.getBoolean(BUBBLE_CHAT_HEADS, false) ? "chat_heads" : "native";
     }
     public static boolean allowScreenshot() { return enabled("allow_screenshot"); }
+    public static void addScreenshotFlags(Window window, int flags) {
+        window.addFlags(allowScreenshot() ? flags & ~WindowManager.LayoutParams.FLAG_SECURE : flags);
+    }
+    public static void setScreenshotFlags(Window window, int flags, int mask) {
+        window.setFlags(allowScreenshot() ? flags & ~WindowManager.LayoutParams.FLAG_SECURE : flags, mask);
+    }
     public static boolean hideReadReceipts() { return enabled("hide_read_receipts"); }
     public static boolean keepUnsent() { return wouldUse("keep_unsent"); }
     public static boolean viewStoriesAnonymously() { return enabled("anonymous_stories"); }
@@ -265,13 +273,26 @@ public final class Settings {
     }
 
     private static final String KEPT_UNSENT_KEY = "kept_unsent_ids";
+    private static final int KEPT_UNSENT_LIMIT = 4096;
+    private static final Object KEPT_UNSENT_LOCK = new Object();
 
-    public static synchronized void recordUnsent(String messageId) {
+    public static void recordUnsent(String messageId) {
         if (messageId == null || messageId.isEmpty() || !wouldUse("keep_unsent")) return;
         SharedPreferences prefs = preferences;
         if (prefs == null) return;
-        Set<String> ids = new HashSet<>(prefs.getStringSet(KEPT_UNSENT_KEY, Collections.emptySet()));
-        if (ids.add(messageId)) prefs.edit().putStringSet(KEPT_UNSENT_KEY, ids).apply();
+        synchronized (KEPT_UNSENT_LOCK) {
+            Set<String> previous = prefs.getStringSet(KEPT_UNSENT_KEY, Collections.emptySet());
+            if (previous.size() > KEPT_UNSENT_LIMIT || !previous.contains(messageId)) {
+                Set<String> ids = new HashSet<>();
+                ids.add(messageId);
+                // StringSet has no age ordering. Preserve this interception and bound the remaining markers.
+                for (String id : previous) {
+                    if (ids.size() == KEPT_UNSENT_LIMIT) break;
+                    ids.add(id);
+                }
+                prefs.edit().putStringSet(KEPT_UNSENT_KEY, ids).apply();
+            }
+        }
         activeAt.put("keep_unsent", System.currentTimeMillis());
     }
 
@@ -369,6 +390,36 @@ public final class Settings {
             if (!ad && filtered != null) filtered.add(item);
         }
         return filtered;
+    }
+
+    /** Only the section renderer receives a copy. The captured native snapshot is never changed. */
+    public static List<?> filterJoinedCommunityInboxRows(List<?> items, Object callback, Object filter) {
+        return filterJoinedCommunityInboxRows(items, () -> isAllChatsFilter(filter) && HostScreens.isMainInboxScope(callback, filter),
+            HostScreens::isJoinedCommunityRow);
+    }
+
+    // Every chip except Message Requests keeps the INBOX folder, so Channels and Unread would otherwise count as the main list.
+    static boolean isAllChatsFilter(Object filter) {
+        return filter instanceof Enum && "ALL".equals(((Enum<?>) filter).name());
+    }
+
+    static List<?> filterJoinedCommunityInboxRows(List<?> items, java.util.function.BooleanSupplier mainInbox,
+            java.util.function.Predicate<Object> joined) {
+        if (items == null || items.isEmpty() || !enabled("community_inbox")) return items;
+        try {
+            if (!mainInbox.getAsBoolean()) return items;
+            List<Object> kept = null;
+            for (int at = 0; at < items.size(); at++) {
+                Object item = items.get(at);
+                boolean hide = item != null && joined.test(item);
+                if (hide && kept == null) kept = new ArrayList<>(items.subList(0, at));
+                if (!hide && kept != null) kept.add(item);
+            }
+            return kept == null ? items : Collections.unmodifiableList(kept);
+        } catch (RuntimeException | LinkageError error) {
+            hookFailedPrivately("community_inbox", "Can't filter joined community chats", error);
+            return items;
+        }
     }
 
     private static final String AVATAR_TAB_EVENT = "com.facebook.xapp.messaging.composer.avatar.composertab.event.ActivateAvatarSticker";
@@ -506,12 +557,16 @@ public final class Settings {
         }
     }
 
-    /** Appends a HushMessenger copy of the Menu tab's Settings folder row (one title String per row). */
+    /** Puts a HushMessenger copy of the Menu tab's Settings folder row right after it (one title String per row). */
     @SuppressWarnings("unchecked")
     public static void addMenuSettingsEntry(ArrayList list) {
         try {
             if (list == null || list.isEmpty()) return;
-            Object original = list.get(0);
+            // Messenger 581 builds its QR code row into the same list, so find Settings by its folder key.
+            int at = -1;
+            for (int i = 0; i < list.size() && at < 0; i++) if (holdsSettingsKey(list.get(i))) at = i;
+            if (at < 0) return;
+            Object original = list.get(at);
             Object clone = shallowClone(original);
             if (clone == null) return;
             java.lang.reflect.Field title = null;
@@ -545,10 +600,21 @@ public final class Settings {
             }
             if (title == null) return;
             title.set(clone, "HushMessenger");
-            list.add(clone);
+            list.add(at + 1, clone);
         } catch (Exception e) {
             hookFailed("menu_row", "addMenuSettingsEntry failed", e);
         }
+    }
+
+    private static boolean holdsSettingsKey(Object row) throws IllegalAccessException {
+        if (row == null) return false;
+        for (java.lang.reflect.Field f : row.getClass().getDeclaredFields()) {
+            if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
+            f.setAccessible(true);
+            Object value = f.get(row);
+            if (value != null && value.getClass().getName().endsWith("SettingsFolderKey")) return true;
+        }
+        return false;
     }
 
     /** Opens settings for the HushMessenger folder row and returns null; other rows come back unchanged. */

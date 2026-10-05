@@ -107,13 +107,17 @@
         <item quantity="one">%s kerne</item>
         <item quantity="other">%s kerner</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s ny</item>
-        <item quantity="other">%s nye</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s funktion</item>
+        <item quantity="other">%s funktioner</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s rettelse</item>
         <item quantity="other">%s rettelser</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s optimering</item>
+        <item quantity="other">%s optimeringer</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s ændring</item>
@@ -122,5 +126,13 @@
     <plurals name="changelog_new_releases">
         <item quantity="one">%s ny udgivelse</item>
         <item quantity="other">%s nye udgivelser</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d aktiveret link</item>
+        <item quantity="other">%d aktiverede links</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d ubekræftet link</item>
+        <item quantity="other">%d ubekræftede links</item>
     </plurals>
 </resources>
