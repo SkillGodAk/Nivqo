@@ -1,4 +1,4 @@
-﻿package app.morphe.manager.network.api
+package app.morphe.manager.network.api
 
 import android.util.Log
 import app.morphe.manager.BuildConfig
@@ -11,6 +11,7 @@ import app.morphe.manager.network.utils.getOrNull
 import app.morphe.manager.util.*
 import io.ktor.client.request.header
 import io.ktor.client.request.url
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -21,12 +22,81 @@ import kotlin.time.Instant
 
 private const val GITHUB_DOWNLOAD_PREFIX = "https://github.com/"
 
+private const val GITHUB_RAW_HOST = "raw.githubusercontent.com"
+
+/** Whether [url] is a file served from a repository by raw.githubusercontent.com. */
+internal fun isRawGitHubUrl(url: String): Boolean = runCatching {
+    java.net.URI(url).host.equals(GITHUB_RAW_HOST, ignoreCase = true)
+}.getOrDefault(false)
+
+@PublishedApi
 internal fun rawGitHubCacheBusted(url: String, minute: Long = System.currentTimeMillis() / 60_000L): String {
-    val isRawGitHub = runCatching {
-        java.net.URI(url).host?.equals("raw.githubusercontent.com", ignoreCase = true) == true
-    }.getOrDefault(false)
-    if (!isRawGitHub) return url
+    if (!isRawGitHubUrl(url)) return url
     return if ('?' in url) "$url&t=$minute" else "$url?t=$minute"
+}
+
+/**
+ * Derives the sibling CHANGELOG.md URL from a remote bundle manifest endpoint.
+ * Keeps compatibility with Nivqo's historical raw GitHub refs/heads and refs/tags URLs.
+ */
+internal fun changelogUrlFromBundleEndpointUrl(endpoint: String): String? {
+    return try {
+        val uri = java.net.URI(endpoint)
+        val host = uri.host?.lowercase(java.util.Locale.US) ?: return null
+        val parts = uri.path?.trim('/')?.split('/')?.filter { it.isNotBlank() } ?: return null
+        when (host) {
+            "raw.githubusercontent.com" -> {
+                if (parts.size < 3) return null
+                val refLength = if (
+                    parts.getOrNull(2) == "refs" &&
+                    parts.getOrNull(3) in listOf("heads", "tags") &&
+                    parts.size >= 5
+                ) 5 else 3
+                val base = parts.take(refLength).joinToString("/")
+                "https://raw.githubusercontent.com/$base/CHANGELOG.md"
+            }
+            "github.com" -> {
+                if (parts.size < 2) return null
+                val branch = if (parts.size >= 4 && parts[2] in listOf("tree", "blob")) parts[3] else "main"
+                "https://raw.githubusercontent.com/${parts[0]}/${parts[1]}/$branch/CHANGELOG.md"
+            }
+            "gitlab.com" -> {
+                if (parts.size < 2) return null
+                val rawIndex = parts.indexOf("raw")
+                val branch = if (rawIndex >= 0 && parts.getOrNull(rawIndex - 1) == "-") {
+                    parts.getOrNull(rawIndex + 1) ?: "main"
+                } else "main"
+                "https://gitlab.com/${parts[0]}/${parts[1]}/-/raw/$branch/CHANGELOG.md"
+            }
+            else -> null
+        }
+    } catch (_: Exception) {
+        null
+    }
+}
+
+/** Same-version Nivqo replacement builds use version_code as the authoritative update key. */
+internal fun managerUpdateAvailable(
+    installedVersion: String,
+    installedVersionCode: Long,
+    remoteVersion: String,
+    remoteVersionCode: Long?,
+): Boolean {
+    remoteVersionCode?.let { return it > installedVersionCode }
+    return managerVersionWeight(remoteVersion.removePrefix("v")) >
+        managerVersionWeight(installedVersion.removePrefix("v"))
+}
+
+private fun managerVersionWeight(version: String): Long {
+    val dashIdx = version.indexOf('-')
+    val core = if (dashIdx >= 0) version.substring(0, dashIdx) else version
+    val pre = if (dashIdx >= 0) version.substring(dashIdx + 1) else null
+    val parts = core.split('.').map { it.toIntOrNull() ?: 0 }
+    val major = parts.getOrElse(0) { 0 }.toLong()
+    val minor = parts.getOrElse(1) { 0 }.toLong()
+    val patch = parts.getOrElse(2) { 0 }.toLong()
+    val preWeight = if (pre == null) 100_000L else pre.split('.').lastOrNull()?.toLongOrNull() ?: 0L
+    return major * 1_000_000_000L + minor * 1_000_000L + patch * 100_000L + preWeight
 }
 
 /** Coordinates of a single asset inside a GitHub release download link. */
@@ -70,83 +140,6 @@ internal fun parseReleaseAssetUrl(downloadUrl: String): ReleaseAssetRef? {
 }
 
 /**
- * Derives the sibling CHANGELOG.md URL from a remote bundle manifest endpoint.
- *
- * Nivqo historically used raw GitHub URLs with an explicit refs/heads/main segment. Raw GitHub
- * accepts that form, but it means the branch reference spans three path segments instead of one.
- * Keep supporting it so older Nivqo source URLs and imported backups continue to resolve correctly.
- */
-internal fun changelogUrlFromBundleEndpointUrl(endpoint: String): String? {
-    return try {
-        val uri = java.net.URI(endpoint)
-        val host = uri.host?.lowercase(java.util.Locale.US) ?: return null
-        val parts = uri.path?.trim('/')?.split('/')?.filter { it.isNotBlank() } ?: return null
-
-        when (host) {
-            "raw.githubusercontent.com" -> {
-                if (parts.size < 3) return null
-                val refLength = if (
-                    parts.getOrNull(2) == "refs" &&
-                    parts.getOrNull(3) in listOf("heads", "tags") &&
-                    parts.size >= 5
-                ) 5 else 3
-                val base = parts.take(refLength).joinToString("/")
-                "https://raw.githubusercontent.com/$base/CHANGELOG.md"
-            }
-
-            "github.com" -> {
-                if (parts.size < 2) return null
-                val branch = if (parts.size >= 4 && parts[2] in listOf("tree", "blob")) parts[3] else "main"
-                "https://raw.githubusercontent.com/${parts[0]}/${parts[1]}/$branch/CHANGELOG.md"
-            }
-
-            "gitlab.com" -> {
-                if (parts.size < 2) return null
-                val rawIndex = parts.indexOf("raw")
-                val branch = if (rawIndex >= 0 && parts.getOrNull(rawIndex - 1) == "-") {
-                    parts.getOrNull(rawIndex + 1) ?: "main"
-                } else "main"
-                "https://gitlab.com/${parts[0]}/${parts[1]}/-/raw/$branch/CHANGELOG.md"
-            }
-
-            else -> null
-        }
-    } catch (_: Exception) {
-        null
-    }
-}
-
-/**
- * Manager update comparison used by Nivqo replacement builds.
- *
- * When version_code is present it is authoritative. Legacy Nivqo builds do not know that field and
- * continue to compare the transport version string, so a current v1.33.0 can still discover a
- * replacement. The replacement APK keeps versionName 1.33.0 but stops offering itself once its
- * Android versionCode matches the published version_code.
- */
-internal fun managerUpdateAvailable(
-    installedVersion: String,
-    installedVersionCode: Long,
-    remoteVersion: String,
-    remoteVersionCode: Long?,
-): Boolean {
-    remoteVersionCode?.let { return it > installedVersionCode }
-    return managerVersionWeight(remoteVersion.removePrefix("v")) >
-        managerVersionWeight(installedVersion.removePrefix("v"))
-}
-
-private fun managerVersionWeight(version: String): Long {
-    val dashIdx = version.indexOf('-')
-    val core = if (dashIdx >= 0) version.substring(0, dashIdx) else version
-    val pre = if (dashIdx >= 0) version.substring(dashIdx + 1) else null
-    val parts = core.split('.').map { it.toIntOrNull() ?: 0 }
-    val major = parts.getOrElse(0) { 0 }.toLong()
-    val minor = parts.getOrElse(1) { 0 }.toLong()
-    val patch = parts.getOrElse(2) { 0 }.toLong()
-    val preWeight = if (pre == null) 100_000L else pre.split('.').lastOrNull()?.toLongOrNull() ?: 0L
-    return major * 1_000_000_000L + minor * 1_000_000L + patch * 100_000L + preWeight
-}
-/**
  * High-level network layer for Morphe.
  *
  * Responsible for:
@@ -158,7 +151,7 @@ private fun managerVersionWeight(version: String): Long {
  * except [getAssetFromPullRequest], which throws on hard failure.
  */
 class MorpheAPI(
-    private val client: HttpService,
+    @PublishedApi internal val client: HttpService,
     private val prefs: PreferencesManager
 ) {
     /**
@@ -269,6 +262,32 @@ class MorpheAPI(
     }
 
     /**
+     * Fetches a source's file, retrying a raw.githubusercontent.com 404 with the user's PAT. GitHub
+     * answers a stale token with 404 even on public files, so the token only follows a miss.
+     */
+    suspend inline fun <reified T> rawFileRequest(url: String): APIResponse<T> {
+        val requestUrl = rawGitHubCacheBusted(url)
+        val response: APIResponse<T> = client.request {
+            url(requestUrl)
+            header("Cache-Control", "no-cache")
+        }
+        val pat = patForMissingRawFile(url, response) ?: return response
+        return client.request {
+            header(HttpHeaders.Authorization, "Bearer $pat")
+            header("Cache-Control", "no-cache")
+            url(requestUrl)
+        }
+    }
+
+    /** The PAT to retry [url] with after [response], or null when a retry cannot help. */
+    @PublishedApi
+    internal suspend fun patForMissingRawFile(url: String, response: APIResponse<*>): String? {
+        val missing = response is APIResponse.Error && response.error.statusCode == HttpStatusCode.NotFound
+        if (!missing || !isRawGitHubUrl(url)) return null
+        return prefs.gitHubPat.get().takeIf { it.isNotBlank() && it != rejectedPat }
+    }
+
+    /**
      * Makes a request to the Morphe backend API at [route].
      *
      * Note: [HttpService.request] already retries 429 and dropped connections internally, so
@@ -281,7 +300,7 @@ class MorpheAPI(
 
     /**
      * Fetches a raw file directly from GitHub (raw.githubusercontent.com).
-     * Does not attach auth headers — raw files are always public.
+     * Does not attach auth headers, as the Morphe repositories are public.
      */
     private suspend inline fun <reified T> rawPatchesBundleRequest(
         config: RepoConfig,
@@ -325,9 +344,7 @@ class MorpheAPI(
      * minutes, which is long enough for the release JSON and CHANGELOG.md to disagree about
      * the newest version. A per-minute key bypasses that without defeating caching entirely.
      */
-    private fun cacheBusted(url: String): String {
-        return rawGitHubCacheBusted(url)
-    }
+    private fun cacheBusted(url: String): String = rawGitHubCacheBusted(url)
 
     /**
      * Maps a [GitHubRelease] + its [GitHubAsset] into the unified [MorpheAsset] format.
@@ -474,7 +491,7 @@ class MorpheAPI(
     /**
      * Returns a newer [MorpheAsset] if one is available, or null if the app is up to date.
      *
-     * Channel selection logic for stable/prerelease Manager updates:
+     * Channel selection logic (mirrors FCM subscription matrix in [app.morphe.manager.util.syncFcmTopics]):
      *  - `usePrereleases == true` OR current build is dev → use `dev` branch / prerelease channel
      *  - Otherwise → use `main` branch / stable channel
      *
@@ -498,9 +515,7 @@ class MorpheAPI(
             getManagerFromGitHub()
         }.getOrNull()
 
-        // Legacy Nivqo builds only understood the version string. Replacement builds also publish
-        // version_code, letting us replace the v1.33.0 APK in place without making the newly
-        // installed replacement offer itself again forever.
+        // Nivqo replacement builds may keep the same versionName; version_code is authoritative when present.
         val update = candidate?.takeIf {
             managerUpdateAvailable(
                 installedVersion = BuildConfig.VERSION_NAME,
@@ -520,6 +535,27 @@ class MorpheAPI(
         return update
     }
 
+    /**
+     * Converts a semver-like version string to a comparable [Long] weight.
+     *
+     * Format: `MAJOR.MINOR.PATCH[-prerelease.N]`
+     *
+     * Stable releases rank strictly above pre-releases with the same core version:
+     * e.g. `1.2.3` > `1.2.3-beta.5`.
+     */
+    private fun versionWeight(version: String): Long {
+        val dashIdx = version.indexOf('-')
+        val core = if (dashIdx >= 0) version.substring(0, dashIdx) else version
+        val pre = if (dashIdx >= 0) version.substring(dashIdx + 1) else null
+        val parts = core.split('.').map { it.toIntOrNull() ?: 0 }
+        val major = parts.getOrElse(0) { 0 }.toLong()
+        val minor = parts.getOrElse(1) { 0 }.toLong()
+        val patch = parts.getOrElse(2) { 0 }.toLong()
+        // Stable gets a 100_000 bonus so it always beats any pre-release of the same version
+        val preWeight = if (pre == null) 100_000L
+        else pre.split('.').lastOrNull()?.toLongOrNull() ?: 0L
+        return major * 1_000_000_000L + minor * 1_000_000L + patch * 100_000L + preWeight
+    }
 
     /**
      * Fetches patches update from the Morphe backend API.
@@ -618,12 +654,8 @@ class MorpheAPI(
      * Used for third-party bundles that follow the Morphe changelog format.
      */
     suspend fun fetchChangelogFromUrl(changelogUrl: String, stopAfterFirstStable: Boolean = false): List<ChangelogEntry> {
-        val requestUrl = rawGitHubCacheBusted(changelogUrl)
-        Log.d(tag, "fetchChangelogFromUrl: $requestUrl")
-        return parseChangelog(client.request<String> {
-            url(requestUrl)
-            header("Cache-Control", "no-cache")
-        }, stopAfterFirstStable, changelogUrl)
+        Log.d(tag, "fetchChangelogFromUrl: $changelogUrl")
+        return parseChangelog(rawFileRequest<String>(changelogUrl), stopAfterFirstStable, changelogUrl)
     }
 
     private suspend fun fetchChangelogFromRepo(

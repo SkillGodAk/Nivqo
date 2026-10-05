@@ -14,10 +14,10 @@
     <string name="android_11_bug_dialog_description">پێویستە پێشوەختە مۆڵەتی دامەزراندنی ئەپەکە بدرێت بۆ ئەوەی هەڵەیەک لە سیستەمی ئەندرۆید ١١ ڕوونەدات کە کاریگەری نەرێنی لەسەر ئەزموونی بەکارهێنەر دەبێت</string>
     <string name="deep_link_add_source_title">زیادکردنی سەرچاوە</string>
     <string name="deep_link_add_source_message">دەتەوێت ئەم سەرچاوەی پاچە زیاد بکەیت بۆ Nivqo؟</string>
-    <string name="deep_link_add_source_warning">تەنها ئەو سەرچاوانە زیاد بکە کە متمانەت پێیانە</string>
+<string name="deep_link_add_source_warning">تەنها ئەو سەرچاوانە زیاد بکە کە متمانەت پێیانە</string>
     <!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Nivqo نوێکردنەوە بەردەستە</string>
-    <string name="home_update_available_subtitle">وەشانی نوێ ئامادەیە بۆ دابەزاندن</string>
+<string name="home_update_available_subtitle">وەشانی نوێ ئامادەیە بۆ دابەزاندن</string>
     <string name="home_update_error">نوێکردنەوە شکستس هێنا</string>
     <string name="home_update_skipped_metered">نوێکردنەوەکان پەڕێندرا</string>
     <string name="home_update_skipped_metered_subtitle">داتای مۆبایل چاڵاکە</string>
@@ -114,7 +114,7 @@
 &lt;b&gt;  APK دابەزێنە &lt;/b&gt;</string>
     <string name="home_download_instructions_step4">دوای تەواوبوونی داگرتنەکە بگەڕێوە بۆ Nivqo</string>
     <string name="home_download_instructions_step4_mount">دوای دامەزراندنی APK ی بنەڕەتی، بگەڕێوە بۆ Nivqo</string>
-    <!-- Home Screen - Dialog 3: File Picker Prompt -->
+<!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_file_picker_prompt_title">APKی دابەزێندراو دیاری بکە</string>
     <string name="home_file_picker_prompt_description">&lt;b&gt;%s&lt;/b&gt; APK دیاری بکە کە داتبەزاندووە</string>
     <string name="home_file_picker_prompt_open_apk">کردنەوەی فایلی APK</string>
@@ -235,6 +235,8 @@
     <string name="home_app_info_patch_update_available_description">وەشانێکی نوێتری پینەکردن بەردەستە. دووبارە پینەکردنی ئەپەکەت بۆ بەدەستهێنانی نوێترین چاکسازی و چاککردنەوەکان</string>
     <string name="home_app_info_app_deleted_warning">App was uninstalled</string>
     <string name="home_app_info_app_deleted_description">ئەم کاربەرنامەیە لە دەرەوەی Nivqo سڕاوەتەوە. دووبارە بیچەوە بۆ گەڕاندنەوەی ئەرکەکان</string>
+<string name="app_links_badge_enabled">چالاککراو</string>
+    <string name="app_links_badge_disabled">لەکارخراو</string>
     <string name="home_app_info_apk_size">قەبارەی APK</string>
     <!-- Home Screen - Root Mode -->
     <string name="root_install_apk_required">دۆخی ڕۆت پێویستی بە دامەزراندنی APK ی ڕەسەن هەیە لەسەر ئامێرەکەت پێش پینەکردن</string>
@@ -264,22 +266,20 @@
     <string name="patcher_installed_conflict_body">"Nivqo ئەپە پینەکراوەکان بە بڕوانامەی تایبەت بە خۆی واژۆ دەکات، کە جیاوازە لە بنەڕەتی. ئەندرۆید پێویستی بە دامەزراندنی وەشانی ئێستا هەیە پێش ئەوەی کاربەرنامە پینەکراوەکە دابمەزرێنێت.
 
 هەڵوەشاندنەوەی داتای ئەپ بە هەمیشەیی دەسڕێتەوە"</string>
-    <string name="patcher_install_error_title">هەڵەی دامەزراندن</string>
+<string name="patcher_install_error_title">هەڵەی دامەزراندن</string>
     <string name="patcher_install_error_subtitle">هەوڵی سڕینەوە و دووبارە دامەزراندن بدە</string>
     <string name="patcher_ready_to_mount_subtitle">دوگمەی خوارەوە دابگرە بۆ جێگیرکردن</string>
     <string name="patcher_storage_permission_dialog_title">ناتوانیت بچیتە ناو ڕێڕەوی هەمارگە</string>
     <string name="patcher_incompatible_patcher_title">نوێکردنەوە پێویستە</string>
-    <string name="patcher_incompatible_patcher_description">باندڵی &lt;b&gt;%1$s&lt;/b&gt; پێویستی بە وەشانی پینەکەری &lt;b&gt;%2$s&lt;/b&gt; هەیە یان نوێتر. تکایە Nivqo نوێبکەرەوە بۆ پینەکردنی ئەم ئەپە</string>
-    <string name="patcher_incompatible_patcher_update_button">داگرتن و نوێکردنەوەی Nivqo</string>
     <string name="patcher_storage_permission_description_api30">یەکێک یان زیاتر لە هەڵبژاردنەکانی پینەکردن ئاماژە بۆ ئەو ڕێچکانە دەکات کە Nivqo ناتوانێت بیخوێنێتەوە. پێدانی دەستگەیشتنی هەمارگە و کرتە لە دوگمەکە، پاشان پینەکردن بە شێوەیەکی خۆکەرانە دەست پێدەکات</string>
-    <string name="patcher_storage_permission_description_legacy">یەکێک یان زیاتر لە هەڵبژاردنەکانی پینەکردن ئاماژە بە ڕێڕەوەکان دەکەن کە ناتوانن بگەنە ژورەوە. نوێکردنەوەی ڕێڕەوەکان لە بەربژارەکانی پینەکردن و دووبارە هەوڵدەوە</string>
+<string name="patcher_storage_permission_description_legacy">یەکێک یان زیاتر لە هەڵبژاردنەکانی پینەکردن ئاماژە بە ڕێڕەوەکان دەکەن کە ناتوانن بگەنە ژورەوە. نوێکردنەوەی ڕێڕەوەکان لە بەربژارەکانی پینەکردن و دووبارە هەوڵدەوە</string>
     <string name="patcher_storage_permission_grant">پێدانی مۆڵەتی کۆگا</string>
     <string name="patcher_storage_permission_denied_warning">مۆڵەتی کۆگا ڕەتکرایەوە. پێدانی مۆڵەت بۆ بەکارهێنانی ئەم ڕێگایە، یان گواستنەوەی فایلەکان بۆ ڕێبەری تایبەتی ئەپەکە</string>
     <string name="patcher_storage_permission_open_settings">کردنەوەی ڕێکخستنەکانی کۆگا</string>
     <string name="patcher_storage_badge_denied">مۆڵەت ڕەتکرایەوە</string>
     <string name="patcher_storage_badge_missing">نەدۆزرایەوە</string>
     <string name="patcher_storage_permission_hint">ئامۆژگاری: فایلەکان بگوازەوە بۆ /Android/data/app.nivqo.manager/files/ - پێویست بە مۆڵەتی زیادە ناکات</string>
-    <!-- Patcher Screen - Patcher Steps -->
+<!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">ئامادەکردن</string>
     <string name="patcher_step_load_patches">بارکردنی پینەکان</string>
     <string name="patcher_step_prepare_split_apk">ئاوێتەکردنی APKی دابەشکراو</string>
@@ -291,7 +291,7 @@
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">پاراستن لە پینەکردنی پاشخان</string>
     <string name="battery_optimization_dialog_description">هەندێک ئامێر لەوانەیە پینەکەرەکە بوەستێنن کاتێک ئەپەکە بچووک دەکرێتەوە. ڕێگە بە Nivqo بدە بە کارکردن بەبێ سنووردارکردنی پاتری بۆ دڵنیابوون لە تەواوبوونی پینەکردن بە شێوەیەکی باوەڕپێکراو</string>
-    <string name="battery_optimization_not_now">ئێستا نا</string>
+<string name="battery_optimization_not_now">ئێستا نا</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">پینەکردن بەردەوامە…</string>
@@ -412,7 +412,7 @@
     <string name="settings_advanced_update_interval_battery_warning">لەوانەیە پشکنینی پاشبنەما بە شێوەیەکی باوەڕپێکراو کار نەکات لەسەر هەندێک ئامێر. بەرهەمهێنەرانی وەک شیاومی، هواوی، سامسۆنگ و وەن پڵەس زۆرجار پرۆسەکانی پاشخان سنووردار دەکەن بۆ پاشەکەوت کردنی پاتری.</string>
     <!-- Notification content -->
     <string name="notification_manager_update_title">نوێکردنەوەی Nivqo بەردەستە</string>
-    <string name="notification_bundle_update_title">پینەی نوێ بەردەستە</string>
+<string name="notification_bundle_update_title">پینەی نوێ بەردەستە</string>
     <string name="notification_update_text">وەشانی %s ئامادەیە بۆ دابەزاندن</string>
     <string name="notification_channel_patcher">پینەکردن</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->

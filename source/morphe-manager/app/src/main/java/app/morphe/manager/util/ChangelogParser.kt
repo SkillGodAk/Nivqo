@@ -235,6 +235,33 @@ object ChangelogParser {
     }
 
     /**
+     * True when [entries], a dev changelog read up to its last stable release, stops above
+     * [version], so the releases between them are missing from it.
+     */
+    fun stopsAbove(entries: List<ChangelogEntry>, version: String?): Boolean {
+        val baseline = entries.lastOrNull()?.takeUnless { it.isPrerelease } ?: return false
+        return version != null && isNewerVersion(version, baseline.version)
+    }
+
+    /**
+     * Releases an app patched with [version] catches up on: [entries] newer than it, then the
+     * releases of [stableHistory] between it and the last of [entries], which a dev changelog
+     * stopping above [version] leaves out.
+     */
+    fun entriesSince(
+        entries: List<ChangelogEntry>,
+        version: String?,
+        stableHistory: List<ChangelogEntry> = emptyList()
+    ): List<ChangelogEntry> {
+        val newer = entriesNewerThan(entries, version)
+        if (!stopsAbove(entries, version)) return newer
+        val baseline = entries.last().version
+        return newer + stableHistory.filter {
+            !it.isPrerelease && isNewerVersion(version, it.version) && isNewerVersion(it.version, baseline)
+        }
+    }
+
+    /**
      * Returns true if any changelog entry newer than [installedVersion] has a
      * scoped bullet whose scope exactly matches one of [appNames] or starts with
      * `"$appName - "`, and that bullet is more than just adding support for a
@@ -255,10 +282,8 @@ object ChangelogParser {
         entries: List<ChangelogEntry>,
         installedVersion: String?,
         appNames: Collection<String>,
-    ): Boolean {
-        if (appNames.isEmpty()) return false
-        return entriesNewerThan(entries, installedVersion).any { it.hasChangesFor(appNames) }
-    }
+    ): Boolean = appNames.isNotEmpty() &&
+            entriesNewerThan(entries, installedVersion).any { it.hasChangesFor(appNames) }
 
     /**
      * Narrows [entries] to one app, dropping entries with no substantive bullet for it. Kept

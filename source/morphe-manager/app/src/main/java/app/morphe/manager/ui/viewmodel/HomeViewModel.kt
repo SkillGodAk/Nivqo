@@ -42,6 +42,7 @@ import app.morphe.manager.patcher.patch.PatchBundleInfo.Extensions.toPatchSelect
 import app.morphe.manager.patcher.split.SplitApkInspector
 import app.morphe.manager.patcher.split.SplitApkPreparer
 import app.morphe.manager.ui.model.*
+import app.morphe.manager.ui.model.navigation.Patcher
 import app.morphe.manager.ui.screen.shared.CopySelectionCandidate
 import app.morphe.manager.util.*
 import app.morphe.manager.util.PatchSelectionUtils.applyAvailability
@@ -114,20 +115,6 @@ data class InvalidSignatureDialogState(
     val packageName: String,
     val appName: String,
 )
-
-/**
- * Quick patch parameters.
- *
- * @param targetPackageName The install being rebuilt when that is a clone rather than the app's
- *   own, so the run can tell the name it was aimed at from the one its patches produce.
- */
-data class QuickPatchParams(
-    val selectedApp: SelectedApp,
-    val patches: PatchSelection,
-    val options: Options,
-    val targetPackageName: String? = null
-)
-
 
 /** An installed app entry shown in the universal-patch app picker. */
 data class InstalledAppPickerItem(
@@ -683,7 +670,7 @@ class HomeViewModel(
     }
 
     // Callback for starting patch
-    var onStartQuickPatch: ((QuickPatchParams) -> Unit)? = null
+    var onStartQuickPatch: ((Patcher.ViewModelParams) -> Unit)? = null
 
     init {
         observeManagerUpdate()
@@ -779,10 +766,8 @@ class HomeViewModel(
      * Returns `true` when the user has disabled metered updates AND is currently on
      * a metered (mobile data) connection - meaning patches may not be up to date.
      */
-    fun isOnMeteredWithUpdatesDisabled(): Boolean {
-        if (prefs.allowMeteredUpdates.getBlocking()) return false
-        return networkInfo.isMetered()
-    }
+    fun isOnMeteredWithUpdatesDisabled(): Boolean =
+        !prefs.allowMeteredUpdates.getBlocking() && networkInfo.isMetered()
 
     /** True while a batch queue is patching, so callers can explain why a start was ignored. */
     val batchPatchRunning: Boolean get() = batchPatchCoordinator.isRunning
@@ -1562,7 +1547,7 @@ class HomeViewModel(
             try {
                 val items = withContext(Dispatchers.IO) {
                     try {
-                        pm.getInstalledPackages()
+                        val candidates = pm.getInstalledPackages()
                             .mapNotNull { pkgInfo ->
                                 if (pkgInfo.packageName == app.packageName) return@mapNotNull null
                                 val appInfo = pkgInfo.applicationInfo ?: return@mapNotNull null
@@ -1587,6 +1572,10 @@ class HomeViewModel(
                                     )
                                 )
                             }
+                        // A patched build is no app to patch, it is the app's own install
+                        val patched = localApkSources.patchedInstalls(candidates.map { it.packageInfo })
+                        candidates
+                            .filterNot { it.packageName in patched }
                             .sortedBy { it.label.lowercase() }
                     } catch (e: Exception) {
                         Log.e(tag, "Failed to load installed apps for picker", e)
@@ -1643,7 +1632,7 @@ class HomeViewModel(
                     }
                 }
                 if (selectedApp != null) {
-                    // Installed APK may be signed with our keystore - skip signature check.
+                    // The picker only offers unpatched installs - skip split and signature checks.
                     // Version/versionCode check still runs via processSelectedApp.
                     processSelectedApp(selectedApp, skipSplitCheck = true)
                 } else {
@@ -1731,6 +1720,7 @@ class HomeViewModel(
                     }
                     is ApkLoadResult.Unreadable -> app.toast(app.getString(R.string.home_invalid_apk_unreadable))
                     is ApkLoadResult.NotAnApk -> app.toast(app.getString(R.string.home_invalid_apk_not_an_apk))
+                    is ApkLoadResult.AlreadyPatched -> app.toast(app.getString(R.string.home_invalid_apk_already_patched))
                     is ApkLoadResult.IoError -> app.toast(app.getString(R.string.home_invalid_apk_io_error))
                 }
             } finally {
@@ -2197,7 +2187,7 @@ class HomeViewModel(
                         .mapTo(mutableSetOf()) { it.name }
                     if (patchNames.isNotEmpty()) {
                         val patches = mapOf(bundle.uid to patchNames).applyInstallerRules()
-                        proceedWithPatching(selectedApp, patches, emptyMap())
+                        proceedWithPatching(selectedApp, patches, emptyMap(), allowIncompatible = true)
                         return
                     }
                 }
@@ -2217,7 +2207,7 @@ class HomeViewModel(
                 .associate { (bundle, patches) -> bundle.uid to patches }
                 .applyInstallerRules()
 
-            proceedWithPatching(selectedApp, patches, emptyMap())
+            proceedWithPatching(selectedApp, patches, emptyMap(), allowIncompatible)
         }
     }
 
@@ -2259,20 +2249,22 @@ class HomeViewModel(
     fun proceedWithPatching(
         selectedApp: SelectedApp,
         patches: PatchSelection,
-        options: Options
+        options: Options,
+        allowIncompatible: Boolean
     ) {
         // Dismiss InstalledAppInfoDialog here, right before navigating to PatcherScreen.
         // This ensures there is never a gap between the info dialog closing and the next screen appearing
         dismissInstalledAppInfo()
 
         onStartQuickPatch?.invoke(
-            QuickPatchParams(
+            Patcher.ViewModelParams(
                 selectedApp = selectedApp,
-                patches = patches,
+                selectedPatches = patches,
                 options = options,
                 // Handed over before the state below is cleared, since the run has no other way
                 // to learn which install it was started for
-                targetPackageName = pendingRepatchPackageName
+                targetPackageName = pendingRepatchPackageName,
+                allowIncompatible = allowIncompatible
             )
         )
 
@@ -2287,6 +2279,22 @@ class HomeViewModel(
         resolvedDownloadUrl = null
         showDownloadInstructionsDialog = false
         showFilePickerPromptDialog = false
+    }
+
+    /**
+     * Reopens the selection a failed [run] was started from, so the patch that failed it can be
+     * dropped without picking the APK again. The selection itself was saved before the run.
+     */
+    fun reopenPatchSelection(run: Patcher.ViewModelParams) {
+        // A failed run leaves its input in place, but storage cleanup may have taken it since
+        if ((run.selectedApp as? SelectedApp.Local)?.file?.exists() == false) {
+            app.toast(app.getString(R.string.home_invalid_apk_io_error))
+            return
+        }
+        pendingRepatchPackageName = run.targetPackageName
+        viewModelScope.launch {
+            startPatchingWithApp(run.selectedApp, run.allowIncompatible)
+        }
     }
 
     /**
@@ -2610,7 +2618,7 @@ class HomeViewModel(
                 saveSeenPatchesForBundles(configurationKey)
             }
 
-            proceedWithPatching(selectedApp, finalPatches, patcherOptions)
+            proceedWithPatching(selectedApp, finalPatches, patcherOptions, expertModeAllowIncompatible)
             cleanupExpertModeData()
         }
     }
@@ -2702,10 +2710,10 @@ class HomeViewModel(
     /**
      * Handle download instructions continue.
      */
-    fun handleDownloadInstructionsContinue(onOpenUrl: (String) -> Boolean) {
+    fun handleDownloadInstructionsContinue(handOff: (String) -> Boolean) {
         val urlToOpen = resolvedDownloadUrl!!
 
-        if (onOpenUrl(urlToOpen)) {
+        if (handOff(urlToOpen)) {
             showDownloadInstructionsDialog = false
             showFilePickerPromptDialog = true
         } else {
@@ -2796,18 +2804,27 @@ class HomeViewModel(
             }
 
             // A split archive is read through its base module, deleted after the call, so the icon is read in it
-            val (packageInfo, icon) = SplitApkInspector.withRepresentativeApk(
+            val (packageInfo, icon, patched) = SplitApkInspector.withRepresentativeApk(
                 source = tempFile,
                 workspace = filesystem.uiTempDir
             ) { apk ->
                 val info = pm.getPackageInfo(apk)
-                info to info?.let(appDataResolver::detachedArchiveIcon)
+                Triple(
+                    info,
+                    info?.let(appDataResolver::detachedArchiveIcon),
+                    info != null && localApkSources.isPatchedApk(apk, info.packageName)
+                )
             }
 
             if (packageInfo == null) {
                 Log.w(tag, "Picked file $fileName could not be parsed as an APK")
                 tempFile.delete()
                 return@withContext ApkLoadResult.NotAnApk
+            }
+
+            if (patched) {
+                tempFile.delete()
+                return@withContext ApkLoadResult.AlreadyPatched
             }
 
             ApkLoadResult.Success(
@@ -2835,6 +2852,8 @@ private sealed interface ApkLoadResult {
     data object Unreadable : ApkLoadResult
     /** File was read but is not a valid APK/split archive. */
     data object NotAnApk : ApkLoadResult
+    /** File is a patched build, which is never patched again. */
+    data object AlreadyPatched : ApkLoadResult
     /** An unexpected IO or system exception occurred while copying or parsing. */
     data object IoError : ApkLoadResult
 }

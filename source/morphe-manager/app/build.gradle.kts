@@ -1,4 +1,4 @@
-﻿import com.mikepenz.aboutlibraries.plugin.DuplicateMode
+import com.mikepenz.aboutlibraries.plugin.DuplicateMode
 import com.mikepenz.aboutlibraries.plugin.DuplicateRule
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import kotlin.random.Random
@@ -207,6 +207,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    // Unit tests run on the JVM, where android.util.Log is only a stub
+    testOptions.unitTests.isReturnDefaultValues = true
 
     dependenciesInfo {
         includeInApk = false

@@ -107,13 +107,17 @@
         <item quantity="one">%s núcleo</item>
         <item quantity="other">%s núcleos</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s novidade</item>
-        <item quantity="other">%s novidades</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s recurso</item>
+        <item quantity="other">%s recursos</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s correção</item>
         <item quantity="other">%s correções</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s otimização</item>
+        <item quantity="other">%s otimizações</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s alteração</item>
@@ -122,5 +126,13 @@
     <plurals name="changelog_new_releases">
         <item quantity="one">%s nova versão</item>
         <item quantity="other">%s novas versões</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d link ativado</item>
+        <item quantity="other">%d links ativados</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d link não verificado</item>
+        <item quantity="other">%d links não verificados</item>
     </plurals>
 </resources>

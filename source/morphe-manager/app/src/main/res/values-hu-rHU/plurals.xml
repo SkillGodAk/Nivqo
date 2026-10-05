@@ -107,13 +107,17 @@
         <item quantity="one">%s mag</item>
         <item quantity="other">%s mag</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s újdonság</item>
-        <item quantity="other">%s újdonság</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s funkció</item>
+        <item quantity="other">%s funkció</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s javítás</item>
         <item quantity="other">%s javítás</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s optimalizálás</item>
+        <item quantity="other">%s optimalizálás</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s változás</item>
@@ -122,5 +126,13 @@
     <plurals name="changelog_new_releases">
         <item quantity="one">%s új kiadás</item>
         <item quantity="other">%s új kiadás</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d link engedélyezve</item>
+        <item quantity="other">%d link engedélyezve</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d nem ellenőrzött link</item>
+        <item quantity="other">%d nem ellenőrzött link</item>
     </plurals>
 </resources>

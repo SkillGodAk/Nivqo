@@ -107,13 +107,17 @@
         <item quantity="one">%s πυρήνας</item>
         <item quantity="other">%s πυρήνες</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s νέο</item>
-        <item quantity="other">%s νέα</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s δυνατότητα</item>
+        <item quantity="other">%s δυνατότητες</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s επιδιόρθωση</item>
         <item quantity="other">%s επιδιορθώσεις</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s βελτιστοποίηση</item>
+        <item quantity="other">%s βελτιστοποιήσεις</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s αλλαγή</item>
@@ -122,5 +126,13 @@
     <plurals name="changelog_new_releases">
         <item quantity="one">%s νέα έκδοση</item>
         <item quantity="other">%s νέες εκδόσεις</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d σύνδεσμος ενεργοποιήθηκε</item>
+        <item quantity="other">%d σύνδεσμοι ενεργοποιήθηκαν</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d μη επαληθευμένος σύνδεσμος</item>
+        <item quantity="other">%d μη επαληθευμένοι σύνδεσμοι</item>
     </plurals>
 </resources>

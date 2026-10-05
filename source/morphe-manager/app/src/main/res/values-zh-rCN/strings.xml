@@ -21,18 +21,18 @@
     <string name="android_11_bug_dialog_description">必须提前授予应用安装权限，以避免 Android 11 系统中的某个错误对用户体验造成负面影响。</string>
     <string name="deep_link_add_source_title">添加来源</string>
     <string name="deep_link_add_source_message">您想将此补丁源添加到Nivqo吗？</string>
-    <string name="deep_link_add_source_warning">仅添加您信任的来源</string>
+<string name="deep_link_add_source_warning">仅添加您信任的来源</string>
     <!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Nivqo更新可用</string>
-    <string name="home_update_available_subtitle">新版本已准备好安装</string>
+<string name="home_update_available_subtitle">新版本已准备好安装</string>
     <string name="home_blocked_source_title">检测到已阻止的补丁源</string>
     <string name="home_blocked_source_subtitle">点击查看并移除</string>
     <string name="home_metadata_errors_title">部分补丁源不可用</string>
     <string name="home_metadata_errors_subtitle">点击查看源</string>
     <string name="home_outdated_manager_title">Nivqo 管理器需要更新</string>
-    <string name="home_outdated_manager_subtitle">部分补丁需要更新管理器版本</string>
+<string name="home_outdated_manager_subtitle">部分补丁需要更新管理器版本</string>
     <string name="home_held_back_title">一个补丁源导致 Nivqo 崩溃</string>
-    <string name="home_held_back_subtitle">它已被跳过，以便应用能够启动。点按以查看</string>
+<string name="home_held_back_subtitle">它已被跳过，以便应用能够启动。点按以查看</string>
     <string name="home_metered_skipped_title">在移动数据上暂停更新</string>
     <string name="home_metered_skipped_subtitle">点击允许在移动数据上更新</string>
     <string name="home_repatch_available_subtitle">点击以全部排队</string>
@@ -50,9 +50,9 @@
     <string name="home_app_filter_all_description">主屏幕上的所有应用</string>
     <string name="home_app_filter_patched_description">你已使用 Nivqo 修补或保存的应用</string>
     <string name="home_app_filter_not_patched_description">你尚未在 Nivqo 中修补的应用</string>
-    <string name="home_app_filter_installed_description">此设备上当前安装的应用</string>
+<string name="home_app_filter_installed_description">此设备上当前安装的应用</string>
     <string name="home_app_filter_uninstalled_description">使用 Nivqo 修补过且已不在本设备上的应用</string>
-    <string name="home_app_filter_clones">克隆应用</string>
+<string name="home_app_filter_clones">克隆应用</string>
     <string name="home_app_filter_clones_description">以自有包名构建，与原始应用一起安装的应用</string>
     <string name="home_app_sort_manual_description">长按一个应用，然后点击重新排序按钮</string>
     <string name="home_app_sort_recommended">推荐顺序</string>
@@ -160,9 +160,9 @@
     <string name="sources_management_metadata_unavailable_hint_missing">无法下载补丁包。源URL可能不正确或文件不存在</string>
     <string name="sources_management_outdated_manager_badge">更新 Nivqo</string>
     <string name="sources_management_outdated_manager_hint">此补丁源需要修补器版本 %1$s，而 Nivqo %2$s 内置修补器版本为 %3$s 。需要更新 Nivqo 才能应用该补丁</string>
-    <string name="sources_management_held_back_badge">已崩溃</string>
+<string name="sources_management_held_back_badge">已崩溃</string>
     <string name="sources_management_held_back_hint">此来源在加载时导致 Nivqo 崩溃，因此已将其跳过。更新或重新导入该来源以重试</string>
-    <string name="sources_management_source_enabled">源已启用</string>
+<string name="sources_management_source_enabled">源已启用</string>
     <string name="sources_management_source_disabled">源已禁用</string>
     <string name="sources_management_source_updating">正在更新源</string>
     <!-- Home Screen - Sources Dialogs -->
@@ -195,7 +195,7 @@
     <string name="sources_dialog_community_notice_message">"社区补丁源由其作者自行制作和维护。Nivqo 不审查或验证第三方补丁，也不对其内容或对您设备造成的影响负责。
 
 您从此网站添加的任何内容均由您自行承担风险。"</string>
-    <string name="sources_update_success">更新成功</string>
+<string name="sources_update_success">更新成功</string>
     <string name="sources_update_unavailable">无可用更新</string>
     <string name="sources_download_fail">下载补丁失败：%s</string>
     <string name="sources_download_fail_named">无法更新“%s”。请检查您的互联网连接并重试。</string>
@@ -215,16 +215,16 @@
     <string name="home_apk_helper_download">使用辅助应用程序</string>
     <string name="home_apk_helper_title">使用辅助应用程序下载</string>
     <string name="home_apk_helper_description">Nivqo 将要求下面的辅助应用程序下载原始 APK 并交回该文件</string>
-    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+<!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">打开助手</string>
     <string name="home_apk_helper_warning">只有在您信任此辅助应用程序时才继续。Nivqo 会检查它收到的软件包、版本和签名，然后再进行修补</string>
-    <string name="home_apk_helper_warning_unverified">只有在您信任此辅助应用程序时才继续。Nivqo 无法验证此 APK 的签名，因此修改后的文件将无法检测到</string>
-    <string name="home_apk_helper_no_result">辅助应用程序未返回 APK</string>
+<string name="home_apk_helper_warning_unverified">只有在您信任此辅助应用程序时才继续。Nivqo 无法验证此 APK 的签名，因此修改后的文件将无法检测到</string>
+<string name="home_apk_helper_no_result">辅助应用程序未返回 APK</string>
     <string name="home_apk_helper_no_access">辅助应用程序未授予对其返回的 APK 的访问权限</string>
     <string name="home_apk_helper_no_package">辅助应用未说明要使用哪个已安装的应用</string>
     <string name="home_apk_helper_wrong_package">辅助应用返回的应用与正在修补的应用不同</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo 无法使用已安装的应用</string>
-    <string name="home_apk_helper_installed_incompatible">已安装的版本无法修补</string>
+<string name="home_apk_helper_installed_incompatible">已安装的版本无法修补</string>
     <string name="home_apk_use_saved">使用保存的 APK</string>
     <string name="home_apk_use_installed">使用已安装的 APK</string>
     <string name="home_apk_use_saved_unsupported">补丁不支持此保存的副本。打补丁将要求您确认，或选择另一个APK。</string>
@@ -232,7 +232,7 @@
     <string name="home_unverified">未验证</string>
     <string name="home_install_verification_pending">正在检查安装...</string>
     <string name="home_app_info_install_unverified">Nivqo 无法确认已安装的应用是它修补的构建版本。请从保存的 APK 重新修补或重新安装以恢复其操作。</string>
-    <string name="home_app_info_no_saved_apk">没有已保存的 APK 文件, 需要重新选择 APK 文件进行修补</string>
+<string name="home_app_info_no_saved_apk">没有已保存的 APK 文件, 需要重新选择 APK 文件进行修补</string>
     <string name="home_version_requires_android">需要 Android %s+。</string>
     <string name="home_apk_no_compatible_versions_title">不支持此设备</string>
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; 没有支持 Android %2$s (API %3$s) 的版本。所有声明的版本都需要更高的 Android 版本</string>
@@ -245,7 +245,7 @@
     <string name="home_download_instructions_step2_variant">向下滚动网页，然后点击顶部 &lt;b&gt;APK 变体&lt;/b&gt; 的下载按钮</string>
     <string name="home_download_instructions_step2_search">打开来自你信任的网站的搜索结果</string>
     <string name="home_download_instructions_step2_search_note">Nivqo 无法为这些网站担保。请跳过那些提供自己的应用商店而不是 APK 文件的网站</string>
-    <string name="home_download_instructions_step3_search">在那个网站上，下载 &lt;b&gt;%s&lt;/b&gt; 版本的 APK，而不是最新版本</string>
+<string name="home_download_instructions_step3_search">在那个网站上，下载 &lt;b&gt;%s&lt;/b&gt; 版本的 APK，而不是最新版本</string>
     <string name="home_download_instructions_step3_search_any">在那个网站上，下载该应用的 APK。&lt;b&gt;任何版本&lt;/b&gt;都可以修补</string>
     <string name="home_download_instructions_download_button_toast">在网站上按下下载，而不是在这里 😊</string>
     <string name="home_download_instructions_download_button_toast_2">太棒了！现在点击继续并访问网站👆</string>
@@ -253,12 +253,14 @@
     <string name="home_download_instructions_download_button_toast_4">还没到…还没到…🙈</string>
     <string name="home_download_instructions_download_button_toast_5">好的，我尊重您的奉献精神 🫡</string>
     <string name="home_download_instructions_download_button_toast_6">您现在是 Nivqo 按钮的官方测试员 🏅</string>
-    <string name="home_download_instructions_step3">等待下载完成，并 &lt;b&gt;不要安装&lt;/b&gt; APK</string>
+<string name="home_download_instructions_step3">等待下载完成，并 &lt;b&gt;不要安装&lt;/b&gt; APK</string>
     <string name="home_download_instructions_step3_mount">等待下载完成，然后 &lt;b&gt;安装 APK&lt;/b&gt;</string>
     <string name="home_download_instructions_step4">下载完成后，返回 Nivqo</string>
     <string name="home_download_instructions_step4_mount">安装原始APK后，返回Nivqo</string>
-    <string name="home_download_instructions_continue_to">继续前往 %s</string>
+<string name="home_download_instructions_continue_to">继续前往 %s</string>
     <string name="home_download_instructions_destination">下载页面</string>
+    <string name="home_download_instructions_copy_link">复制链接</string>
+    <string name="home_download_instructions_link_copied">链接已复制</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_file_picker_prompt_title">选择下载的 APK</string>
     <string name="home_file_picker_prompt_description">选择您刚刚下载的&lt;b&gt;%s&lt;/b&gt; APK 文件</string>
@@ -275,6 +277,7 @@
     <string name="home_installed_app_picker_filter_system">仅系统应用</string>
     <string name="home_invalid_apk_unreadable">无法读取文件。请检查“外部存储”是否被限制电池使用</string>
     <string name="home_invalid_apk_not_an_apk">所选文件不是有效的 APK</string>
+    <string name="home_invalid_apk_already_patched">所选 APK 已被修补。请改为选择原始应用</string>
     <string name="home_invalid_apk_io_error">无法打开文件。请重试</string>
     <string name="home_external_apk_expert_mode_required">此功能仅在专家模式下可用</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
@@ -368,6 +371,7 @@
     <string name="adaptive_icon_create">创建自适应图标</string>
     <string name="adaptive_icon_select_image">选择图像</string>
     <string name="adaptive_icon_change_image">更改图像</string>
+    <string name="image_load_failed">无法加载此图片</string>
     <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
     <string name="adaptive_icon_foreground">前景图像</string>
     <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
@@ -473,7 +477,21 @@
     <string name="home_app_info_version_move">已安装 %1$s，最新支持的版本为 %2$s</string>
     <string name="home_app_info_app_deleted_warning">应用已卸载</string>
     <string name="home_app_info_app_deleted_description">此应用已在 Nivqo 外卸载。重新安装以恢复功能</string>
-    <string name="home_app_info_not_patched_description">此应用安装的是未修补版本。Nivqo仍保留其先前的补丁记录。</string>
+<string name="home_app_info_not_patched_description">此应用安装的是未修补版本。Nivqo仍保留其先前的补丁记录。</string>
+<string name="app_links_title">支持的网页链接</string>
+    <string name="app_links_description">在 Android 12 及更高版本中，指向受支持域的链接默认会在浏览器中打开，除非已获得批准</string>
+    <string name="app_links_unverified_banner_title">网页链接未经验证</string>
+    <string name="app_links_unverified_banner_description">受支持的网页链接目前会在您的浏览器中打开，而不是在此应用中打开</string>
+    <string name="app_links_enable_auto">自动启用</string>
+    <string name="app_links_enable_auto_in_progress">正在启用链接……</string>
+    <string name="app_links_open_settings">打开链接设置</string>
+    <string name="app_links_repair_success">应用链接已成功启用</string>
+    <string name="app_links_repair_failed">自动启用应用链接失败</string>
+    <string name="app_links_badge_enabled">已启用</string>
+    <string name="app_links_badge_disabled">已禁用</string>
+    <string name="app_links_all_verified">所有受支持的链接均已配置为在此应用中打开</string>
+    <string name="app_links_fix">修复链接</string>
+    <string name="configure">配置</string>
     <string name="patcher_rename_title">这将安装一个克隆</string>
     <string name="patcher_rename_description">补丁以它们自己的包名构建了这个应用，因此安装它会添加一个克隆，与 &lt;b&gt;%s&lt;/b&gt; 并列，而不是更新它。</string>
     <string name="patcher_rename_result_package">将安装为</string>
@@ -487,7 +505,7 @@
     <string name="root_pre_patch_installer_mount_title">Root 挂载模式</string>
     <string name="root_pre_patch_installer_mount_description">针对 root 挂载的补丁，然后将 APK 覆盖到匹配的库存应用上。无需 GmsCore</string>
     <string name="root_mount_module_unmount_warning">如果 KernelSU 默认启用了卸载模块，请打开 KernelSU &gt; Superuser &gt; 您已挂载的应用 &gt; Profile &gt; Custom 并禁用卸载模块。否则，即使 Nivqo 显示已挂载，已挂载的修补 APK 也可能无法生效。</string>
-    <string name="root_pre_patch_installer_standard_title">标准安装模式</string>
+<string name="root_pre_patch_installer_standard_title">标准安装模式</string>
     <string name="root_pre_patch_installer_standard_description">将补丁作为带有 GmsCore 支持的普通 APK 安装。应用补丁后将使用您的安装程序设置。</string>
     <string name="root_pre_patch_installer_hint">此补丁模式与“设置 > 系统 > 安装程序”中的设置分开，并且在应用补丁后无法更改。</string>
     <!-- Patcher Screen -->
@@ -539,6 +557,7 @@
     <string name="patcher_failed_title">哎呀！出现错误</string>
     <string name="patcher_failed_dialog_title">补丁失败</string>
     <string name="patcher_error_details">错误详情</string>
+    <string name="patcher_change_patches">更改补丁</string>
     <string name="patcher_unknown_error">发生未知错误</string>
     <string name="patcher_split_step_extracting">提取拆分 APK</string>
     <string name="patcher_split_step_merging">合并 %s</string>
@@ -551,7 +570,7 @@
     <string name="patcher_installed_conflict_body">"Nivqo 使用自己的证书对已打补丁的应用进行签名，该证书与原始证书不同。Android 要求在安装已打补丁的应用之前，移除现有版本。
 
 卸载将永久删除所有应用数据"</string>
-    <string name="patcher_install_error_title">安装错误</string>
+<string name="patcher_install_error_title">安装错误</string>
     <string name="patcher_install_error_subtitle">尝试重新卸载并安装</string>
     <string name="patcher_ready_to_mount_subtitle">按下方按钮挂载</string>
     <string name="patcher_patches_excluded_for_installer">不适用于此安装方法并已排除：%s</string>
@@ -559,9 +578,8 @@
     <string name="patcher_storage_permission_dialog_title">无法访问存储路径</string>
     <string name="patcher_incompatible_patcher_title">更新要求</string>
     <string name="patcher_incompatible_patcher_description">该补丁包&lt;b&gt;%1$s&lt;/b&gt;需要补丁程序版本&lt;b&gt;%2$s&lt;/b&gt;或更高版本。请更新 Nivqo 以补丁此应用</string>
-    <string name="patcher_incompatible_patcher_update_button">下载并更新 Nivqo</string>
-    <string name="patcher_storage_permission_description_api30">一个或多个补丁选项指向Nivqo无法读取的路径。授予存储访问权限并点击按钮，然后补丁将自动开始</string>
-    <string name="patcher_storage_permission_description_legacy">一个或多个补丁选项指向无法访问的路径。更新补丁选项中的路径，然后重试</string>
+<string name="patcher_storage_permission_description_api30">一个或多个补丁选项指向Nivqo无法读取的路径。授予存储访问权限并点击按钮，然后补丁将自动开始</string>
+<string name="patcher_storage_permission_description_legacy">一个或多个补丁选项指向无法访问的路径。更新补丁选项中的路径，然后重试</string>
     <string name="patcher_storage_permission_grant">授予存储权限</string>
     <string name="patcher_storage_permission_denied_warning">存储权限已被拒绝。授予权限以使用此路径，或将文件移动到应用的私有目录</string>
     <string name="patcher_storage_permission_open_settings">打开存储设置</string>
@@ -575,7 +593,7 @@
     <string name="patcher_option_paths_gone_description">One or more patch options point to files that are no longer there. Remove the paths to patch without them, or put the files back and try again</string>
     <string name="patcher_option_paths_clear">Remove the paths and continue</string>
     <string name="patcher_storage_permission_hint">提示：将文件移动到/Android/data/app.nivqo.manager/files/ - 不需要额外权限</string>
-    <!-- Patcher Screen - Patcher Steps -->
+<!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">准备中</string>
     <string name="patcher_step_load_patches">加载补丁</string>
     <string name="patcher_step_prepare_split_apk">合并分割的APK</string>
@@ -587,7 +605,7 @@
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">后台补丁保护</string>
     <string name="battery_optimization_dialog_description">一些设备在应用被最小化时可能会停止补丁程序。允许 Nivqo 在没有电池限制的情况下运行，以确保补丁完成可靠。</string>
-    <string name="battery_optimization_not_now">暂不</string>
+<string name="battery_optimization_not_now">暂不</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">内存不足</string>
     <string name="patcher_memory_adjustment_description">补丁程序在内存限制为 %1$d MB 的情况下运行时被系统停止。将限制降低到 %2$d MB 会使补丁程序成为更小的目标，并可能让运行完成。</string>
@@ -644,8 +662,8 @@
     <string name="install_ignore_signature_description">保留应用数据，但仅在根模块禁用 Android 的签名验证时才有效。</string>
     <string name="uninstall_app_fail">卸载应用失败：%s</string>
     <string name="uninstall_app_unverified">保留：Nivqo 无法验证已安装的应用是它修补的构建。</string>
-    <string name="launch_app_unverified">Nivqo 无法验证已安装的应用是它修补的构建。</string>
-    <string name="uninstall_timeout">卸载超时</string>
+<string name="launch_app_unverified">Nivqo 无法验证已安装的应用是它修补的构建。</string>
+<string name="uninstall_timeout">卸载超时</string>
     <string name="save_apk_success">APK 已保存</string>
     <string name="saved_app_export_failed">导出修补的应用失败</string>
     <string name="saved_app_removed_toast">已移除保存的修补应用</string>
@@ -756,7 +774,7 @@
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">应用图标</string>
     <string name="settings_appearance_app_icon_selector_description">Nivqo 在主屏幕和应用抽屉中的外观</string>
-    <string name="settings_appearance_app_icon_default">默认</string>
+<string name="settings_appearance_app_icon_default">默认</string>
     <string name="settings_appearance_app_icon_light_2">天空</string>
     <string name="settings_appearance_app_icon_light_3">日落</string>
     <string name="settings_appearance_app_icon_dark_1">大海</string>
@@ -772,14 +790,14 @@
     <string name="settings_advanced_updates_manager_prereleases">预发布更新</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <string name="settings_advanced_updates_manager_prereleases_description">抢先体验新的 Nivqo 版本</string>
-    <string name="settings_advanced_updates_prerelease_warning_title">启用预发布更新？</string>
+<string name="settings_advanced_updates_prerelease_warning_title">启用预发布更新？</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
     <string name="settings_advanced_updates_prerelease_warning_message">"Nivqo 的预发布版本仍在开发中，可能不稳定。
 
 补丁不受影响：为补丁来源列表中的每个来源启用预发布补丁。"</string>
-    <string name="settings_advanced_updates_allow_metered">移动数据更新</string>
+<string name="settings_advanced_updates_allow_metered">移动数据更新</string>
     <string name="settings_advanced_updates_allow_metered_description">允许 Nivqo 通过移动数据下载应用和补丁更新</string>
-    <string name="settings_advanced_updates_background_notifications">后台更新通知</string>
+<string name="settings_advanced_updates_background_notifications">后台更新通知</string>
     <string name="settings_advanced_updates_background_notifications_description">定期在后台检查更新并通知可用</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">即使应用已关闭，也推送新版本的通知</string>
     <string name="settings_system_notifications_categories">通知类别</string>
@@ -796,27 +814,27 @@
     <string name="settings_advanced_external_batch_patch_description">允许自动化应用通过 Intent 开始批量修补</string>
     <string name="external_batch_patch_title">开始批量修补？</string>
     <string name="external_batch_patch_description">%s 想要 Nivqo 修补和安装应用程序</string>
-    <string name="external_batch_patch_trust_caller">始终允许此应用程序</string>
+<string name="external_batch_patch_trust_caller">始终允许此应用程序</string>
     <string name="external_batch_patch_unknown_caller">一个未知应用程序</string>
     <!-- Notification content -->
     <string name="notification_manager_update_title">Nivqo update available</string>
-    <string name="notification_bundle_update_title">有新的补丁可用</string>
+<string name="notification_bundle_update_title">有新的补丁可用</string>
     <string name="notification_update_text">版本 %s 已准备好下载。</string>
     <string name="notification_bundle_update_text_unversioned">点按打开 Nivqo 并更新</string>
-    <string name="notification_permission_dialog_title">允许通知</string>
+<string name="notification_permission_dialog_title">允许通知</string>
     <string name="notification_permission_dialog_description">Nivqo needs notification permission to alert you when updates are available in the background</string>
-    <string name="notification_post_patch_dialog_title">您是否希望在有更新时收到通知？</string>
+<string name="notification_post_patch_dialog_title">您是否希望在有更新时收到通知？</string>
     <string name="notification_channel_manager_updates">Nivqo 更新</string>
     <string name="notification_channel_manager_updates_description">有关新 Nivqo 版本的通知</string>
-    <string name="notification_channel_patch_updates">补丁更新</string>
+<string name="notification_channel_patch_updates">补丁更新</string>
     <string name="notification_channel_patch_updates_description">有关新补丁版本的通知</string>
     <string name="notification_channel_patcher">修补中</string>
     <string name="notification_channel_patcher_description">当 Nivqo 在后台为应用打补丁时显示</string>
-    <!-- Settings - Advanced Tab - Expert settings Section -->
+<!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">高级设置</string>
     <string name="settings_advanced_expert_mode">高级模式</string>
     <string name="settings_advanced_expert_mode_description">启用复杂 Nivqo 修补设置和自定义选项</string>
-    <string name="settings_advanced_expert_mode_dialog_title">启用专家模式？</string>
+<string name="settings_advanced_expert_mode_dialog_title">启用专家模式？</string>
     <string name="settings_advanced_expert_mode_dialog_message">专家模式提供了更多控制如何应用补丁的选项，但如果错误配置专家模式设置，可能会导致应用程序无法使用</string>
     <string name="settings_advanced_strip_unused_libs">为设备架构优化</string>
     <string name="settings_advanced_strip_unused_libs_description">删除未使用的 CPU 架构库和分体 APK 模块</string>
@@ -832,7 +850,7 @@
     <string name="settings_advanced_github_pat_export_include_label">包含在设置导出中</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_include_supporting">在导出 Nivqo 设置时也导出令牌</string>
-    <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
+<!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">请勿共享您的 PAT。如果您在设置导出中包含它，请将该文件保持为私有，因为它包含令牌</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
     <string name="settings_advanced_patch_options">补丁选项</string>
@@ -929,7 +947,7 @@ morphe_header_custom_dark.png
     <string name="installer_status_shizuku_not_installed">安装 Shizuku 或 Sui 以使用此选项</string>
     <string name="installer_status_shizuku_not_running">启动 Shizuku 或 Sui 后重试</string>
     <string name="installer_status_shizuku_permission">授予 Nivqo 从 Shizuku 应用权限</string>
-    <string name="installer_mount_warning_install">您的主要安装程序设置为根挂载安装程序。此保存的应用未使用挂载安装</string>
+<string name="installer_mount_warning_install">您的主要安装程序设置为根挂载安装程序。此保存的应用未使用挂载安装</string>
     <string name="mount_version_mismatch_message">原始应用版本（%2$s）与修补后的应用版本（%1$s）不匹配。挂载匹配的原始版本，然后重试</string>
     <string name="mount_stock_restore_failed_message">Android 拒绝了保存的原始 APK。请安装匹配的系统版本，然后重试挂载。</string>
     <string name="installer_status_shizuku_unsupported">已安装的 Shizuku 版本不受支持</string>
@@ -959,7 +977,7 @@ morphe_header_custom_dark.png
     <string name="settings_auto_uninstall_with_shizuku_description">使用 Shizuku 自动安装时，如果 Android 报告签名冲突，则先卸载现有的应用。这可能会删除应用数据</string>
     <string name="settings_auto_uninstall_warning_title">启用自动卸载？</string>
     <string name="settings_auto_uninstall_warning_message">如果在 Shizuku 自动安装期间，Android 报告签名冲突，Nivqo 将在安装修补后的 APK 之前卸载现有的应用</string>
-    <string name="settings_auto_uninstall_warning_risk">这可能会删除应用数据。如果卸载后修补后的 APK 安装失败，则以前的应用可能已经消失</string>
+<string name="settings_auto_uninstall_warning_risk">这可能会删除应用数据。如果卸载后修补后的 APK 安装失败，则以前的应用可能已经消失</string>
     <string name="installer_shizuku_status_action">检查 Shizuku 状态</string>
     <string name="installer_shizuku_status_title">Shizuku 状态</string>
     <string name="installer_shizuku_status_ready">已准备就绪</string>
@@ -977,7 +995,7 @@ morphe_header_custom_dark.png
 
 详细信息：%2$s"</string>
     <string name="installer_shizuku_error_permission">缺少 Shizuku 权限。授予 Nivqo 权限并重试</string>
-    <string name="installer_shizuku_error_timeout">Shizuku 没有返回安装结果。请确保它仍在运行并重试</string>
+<string name="installer_shizuku_error_timeout">Shizuku 没有返回安装结果。请确保它仍在运行并重试</string>
     <string name="installer_shizuku_error_downgrade">Android 阻止了此操作，因为它会降级已安装的应用</string>
     <string name="installer_shizuku_error_signature">Android 阻止了此操作，因为已安装的应用具有不同的签名</string>
     <string name="installer_shizuku_error_invalid_apk">Android 无法读取此 APK</string>
@@ -992,7 +1010,7 @@ morphe_header_custom_dark.png
     <string name="settings_system_process_runtime_enable">启用独立进程</string>
     <string name="settings_system_memory_limit_subtitle">修补程序可用的内存大小</string>
     <string name="settings_system_process_runtime_heap_limit_ignored">此设备在上次运行中忽略了内存限制，因此修补可能会回退到在 Nivqo 内运行。</string>
-    <string name="settings_system_memory_limit_warning">较低的内存限制可能会导致修补较大应用时失败</string>
+<string name="settings_system_memory_limit_warning">较低的内存限制可能会导致修补较大应用时失败</string>
     <string name="settings_system_memory_limit_high_warning">高内存限制可能会在某些设备上使修补速度慢很多。仅在较低限制下修补持续失败时才提高该限制。</string>
     <string name="settings_system_process_runtime_enabled_description">%s MB限制</string>
     <string name="settings_system_process_runtime_disabled_description">点击以配置</string>
@@ -1015,8 +1033,8 @@ morphe_header_custom_dark.png
     <string name="settings_system_signing_key">签名密钥</string>
     <string name="settings_system_signing_key_description">备份并恢复用于签署修补后应用的密钥</string>
     <string name="settings_system_signing_key_dialog_description">Nivqo 修补的每个应用都使用此密钥签名。请保存一份副本：没有它，修补后的应用只能先卸载再更新。</string>
-    <string name="settings_system_signing_key_missing">Nivqo 会在首次修补时自动创建一个。</string>
-    <string name="settings_system_signing_key_created">创建于 %s</string>
+<string name="settings_system_signing_key_missing">Nivqo 会在首次修补时自动创建一个。</string>
+<string name="settings_system_signing_key_created">创建于 %s</string>
     <string name="settings_system_signing_key_fingerprint">SHA-256 指纹</string>
     <string name="settings_system_backup_appearance_description">主题、颜色和语言</string>
     <string name="settings_system_backup_home_description">分组、隐藏的应用、排序和开关</string>
@@ -1040,10 +1058,10 @@ morphe_header_custom_dark.png
     <string name="settings_system_hide_password_field">隐藏密码</string>
     <string name="settings_system_morphe_settings">Nivqo 设置</string>
     <string name="settings_system_import_manager_settings_description">备份和还原您的 Nivqo 设置</string>
-    <string name="settings_system_import_manager_settings_fail">导入 Nivqo 设置失败：%s</string>
+<string name="settings_system_import_manager_settings_fail">导入 Nivqo 设置失败：%s</string>
     <string name="settings_system_import_manager_settings_success">Nivqo 设置已导入</string>
     <string name="settings_system_import_manager_settings_mode_title">导入 Nivqo 设置</string>
-    <string name="settings_system_import_manager_settings_mode_description">选择导入的设置和资源的应用方式</string>
+<string name="settings_system_import_manager_settings_mode_description">选择导入的设置和资源的应用方式</string>
     <string name="settings_system_import_selections_mode_title">导入补丁选择</string>
     <string name="settings_system_import_selections_mode_description">选择如何应用导入的选择和补丁选项</string>
     <string name="import_mode_replace_title">替换现有</string>
@@ -1051,8 +1069,8 @@ morphe_header_custom_dark.png
     <string name="import_mode_merge_title">合并现有</string>
     <string name="import_mode_merge_description">添加备份中缺失的项目。现有项目保持不变</string>
     <string name="settings_system_export_manager_settings_fail">导出 Nivqo 设置失败：%s</string>
-    <string name="settings_system_export_manager_settings_success">Nivqo 设置已导出</string>
-    <string name="settings_system_export_debug_logs">导出调试日志</string>
+<string name="settings_system_export_manager_settings_success">Nivqo 设置已导出</string>
+<string name="settings_system_export_debug_logs">导出调试日志</string>
     <string name="settings_system_export_debug_logs_description">保存系统日志以便进行故障排除</string>
     <string name="settings_system_export_debug_logs_export_read_failed">读取日志失败 (退出代码 %s)</string>
     <string name="settings_system_export_debug_logs_export_failed">导出日志失败</string>
@@ -1088,7 +1106,7 @@ morphe_header_custom_dark.png
     <string name="settings_system_storage_nothing_to_clear">无需清除</string>
     <string name="settings_system_storage_open_app_info_title">打开 Android 应用存储空间</string>
     <string name="settings_system_storage_open_app_info_description">通过系统设置管理或清除所有 Nivqo 数据</string>
-    <string name="settings_system_save_original_apks_title">保留原始APK</string>
+<string name="settings_system_save_original_apks_title">保留原始APK</string>
     <string name="settings_system_save_original_apks_description">保存修改前APK，以便在无需再次选择文件的情况下重复修补</string>
     <string name="settings_system_save_patched_apks_title">保留已修补的APK</string>
     <string name="settings_system_save_patched_apks_description">保存已修补APK的副本，以便以后导出或从管理器重新安装</string>
@@ -1136,12 +1154,12 @@ morphe_header_custom_dark.png
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">自定义文件选择器</string>
     <string name="settings_system_custom_file_picker_description">使用Nivqo内置的文件选择器代替系统默认的文件选择器</string>
-    <!-- Settings - System Tab - APK download helper -->
+<!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">APK 下载助手</string>
     <string name="settings_system_apk_download_helper_trusted_count">受信任：%1$d / %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">辅助应用可以为你下载原始 APK。只有你在此处信任的应用才会在下载说明中提供。</string>
     <string name="settings_system_apk_download_helper_warning">APK 来自辅助应用，因此只信任你了解的应用。Nivqo 在修补前仍会检查每个文件的软件包、版本和签名。</string>
-    <string name="settings_system_apk_download_helper_installed_by">由 %s 安装</string>
+<string name="settings_system_apk_download_helper_installed_by">由 %s 安装</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">安装来源未知</string>
     <!-- File Picker -->
     <string name="file_picker_no_files">这里没有文件</string>
@@ -1149,6 +1167,7 @@ morphe_header_custom_dark.png
     <string name="file_picker_internal_storage">内部存储空间</string>
     <string name="file_picker_sd_card">SD卡</string>
     <string name="file_picker_root">根目录 (/)</string>
+    <string name="file_picker_storages">存储</string>
     <string name="file_picker_sort_name_asc">名称 (A–Z)</string>
     <string name="file_picker_sort_name_desc">名称 (Z–A)</string>
     <string name="file_picker_sort_size_desc">大小 (从大到小)</string>
@@ -1296,6 +1315,7 @@ morphe_header_custom_dark.png
     <string name="changelog_download_fail">下载更新日志失败：%s</string>
     <string name="changelog_empty">无可用更新日志</string>
     <string name="changelog_earlier_releases">更早的版本</string>
+    <string name="changelog_patched_with">已使用 %s 修补</string>
     <string name="changelog_older_empty">没有更多旧版本显示</string>
     <string name="changelog_older_failed">无法加载更早的版本</string>
     <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
@@ -1324,7 +1344,7 @@ morphe_header_custom_dark.png
     <string name="install_update_manager_failed">安装更新失败</string>
     <string name="installing_manager_update">正在安装更新…</string>
     <string name="installing_manager_update_hint">Nivqo 将关闭以完成更新</string>
-    <string name="downloading_manager_update">正在下载更新…</string>
+<string name="downloading_manager_update">正在下载更新…</string>
     <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">已下载 %1$s MB</string>
     <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
@@ -1343,7 +1363,7 @@ morphe_header_custom_dark.png
     <string name="onboarding_swipe_title">滑动势</string>
     <string name="onboarding_swipe_desc">向右滑动应用程序卡片以查看其可用补丁。向左滑动可从主屏幕隐藏该卡片</string>
     <string name="onboarding_settings_desc">自定义 Nivqo：外观、高级选项和系统工具</string>
-    <string name="onboarding_sources_patches_desc">点击以查看此源可用的所有补丁</string>
+<string name="onboarding_sources_patches_desc">点击以查看此源可用的所有补丁</string>
     <string name="onboarding_sources_version_desc">点击版本以查看此源的完整更改日志</string>
     <string name="onboarding_sources_prerelease_desc">启用此选项以从此源接收预发布补丁版本</string>
     <string name="onboarding_appearance_tab_desc">自定义应用程序的外观：主题、强调色和背景</string>
@@ -1358,7 +1378,7 @@ morphe_header_custom_dark.png
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">快速功能导览</string>
     <string name="tour_prompt_desc">您想快速了解 Nivqo 的主要功能吗？</string>
-    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
+<!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">带我参观</string>
     <string name="onboarding_restart_title">功能导览</string>
     <string name="onboarding_restart_desc">主要功能导览</string>

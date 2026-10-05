@@ -107,13 +107,17 @@
         <item quantity="one">%s ядро</item>
         <item quantity="other">%s ядра</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s ново</item>
-        <item quantity="other">%s нови</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s функция</item>
+        <item quantity="other">%s функции</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s поправка</item>
         <item quantity="other">%s поправки</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s оптимизация</item>
+        <item quantity="other">%s оптимизации</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s промяна</item>
@@ -122,5 +126,13 @@
     <plurals name="changelog_new_releases">
         <item quantity="one">%s нова версия</item>
         <item quantity="other">%s нови версии</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d връзка е активирана</item>
+        <item quantity="other">%d връзки са активирани</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d непроверена връзка</item>
+        <item quantity="other">%d непроверени връзки</item>
     </plurals>
 </resources>

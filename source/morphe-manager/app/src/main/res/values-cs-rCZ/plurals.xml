@@ -159,17 +159,23 @@
         <item quantity="many">%s jader</item>
         <item quantity="other">%s jádra</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s novinka</item>
-        <item quantity="few">%s novinky</item>
-        <item quantity="many">%s novinek</item>
-        <item quantity="other">%s novinek</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s funkce</item>
+        <item quantity="few">%s funkce</item>
+        <item quantity="many">%s funkce</item>
+        <item quantity="other">%s funkcí</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s oprava</item>
         <item quantity="few">%s opravy</item>
         <item quantity="many">%s oprav</item>
         <item quantity="other">%s oprav</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s optimalizace</item>
+        <item quantity="few">%s optimalizace</item>
+        <item quantity="many">%s optimalizace</item>
+        <item quantity="other">%s optimalizací</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s změna</item>
@@ -182,5 +188,17 @@
         <item quantity="few">%s nové verze</item>
         <item quantity="many">%s nových verzí</item>
         <item quantity="other">%s nových verzí</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d povolený odkaz</item>
+        <item quantity="few">%d povolené odkazy</item>
+        <item quantity="many">%d povolených odkazů</item>
+        <item quantity="other">%d povoleného odkazu</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d neověřený odkaz</item>
+        <item quantity="few">%d neověřené odkazy</item>
+        <item quantity="many">%d neověřených odkazů</item>
+        <item quantity="other">%d neověřeného odkazu</item>
     </plurals>
 </resources>

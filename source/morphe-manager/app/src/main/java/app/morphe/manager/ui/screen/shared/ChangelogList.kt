@@ -61,9 +61,9 @@ data class OlderReleases(
  * it. The newest release opens unfolded and the rest wait for a tap, so a long history reads as
  * a list of versions.
  *
- * @param currentVersion Version to mark with [currentBadge] wherever it turns up.
- * @param currentBadge What the current version is: the manager on the device, or the patches a
- *   source patches with.
+ * @param badges Versions to single out wherever they turn up, with what each one is: the manager
+ *   on the device, the patches a source holds, or the ones an app on the device was patched with.
+ * @param olderLabel Heads the [older] releases, which are the earlier ones unless it says otherwise.
  * @param header Content above the timeline that scrolls along with it.
  * @param contentPadding Around the releases inside the list, so they scroll through it up to the
  *   list's edge rather than stopping short of it.
@@ -72,8 +72,8 @@ data class OlderReleases(
 fun ChangelogList(
     entries: List<ChangelogEntry>,
     older: OlderReleases? = null,
-    currentVersion: String? = null,
-    currentBadge: ChangelogBadge = ChangelogBadge.INSTALLED,
+    badges: Map<String, ChangelogBadge> = emptyMap(),
+    olderLabel: String? = null,
     header: (@Composable () -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues()
 ) {
@@ -81,6 +81,7 @@ fun ChangelogList(
     val expansion = remember { ChangelogExpansion() }
     val olderEntries = older?.entries
     val currentOlder by rememberUpdatedState(older)
+    val marks = remember(badges) { badges.mapKeys { it.key.normalizeVersion() } }
 
     LaunchedEffect(listState) {
         snapshotFlow {
@@ -107,7 +108,7 @@ fun ChangelogList(
             entries = entries,
             keyPrefix = "changelog",
             expansion = expansion,
-            current = currentVersion?.let { it to currentBadge },
+            marks = marks,
             startsTimeline = true,
             // The rail runs on into whatever the older releases show, unless that is nothing at all
             continuesBelow = older != null && olderEntries?.isEmpty() != true
@@ -139,13 +140,13 @@ fun ChangelogList(
             else -> {
                 // Sets the history apart from the releases the dialog was opened for
                 item("changelog_older_label") {
-                    ChangelogTimelineLabel(text = stringResource(R.string.changelog_earlier_releases))
+                    ChangelogTimelineLabel(text = olderLabel ?: stringResource(R.string.changelog_earlier_releases))
                 }
                 releaseItems(
                     entries = olderEntries,
                     keyPrefix = "changelog_older",
                     expansion = expansion,
-                    current = currentVersion?.let { it to currentBadge },
+                    marks = marks,
                     startsTimeline = false,
                     continuesBelow = false
                 )
@@ -253,7 +254,7 @@ private class ChangelogExpansion {
  * unique within the enclosing LazyColumn to avoid key collisions with other item groups. The
  * version joins the key, so a release turning up above the rest does not hand its row to another.
  *
- * @param current The version to single out and the badge it gets.
+ * @param marks Badges by normalized version, for the releases to single out.
  * @param startsTimeline Whether the first of [entries] is the newest release of the list.
  * @param continuesBelow Whether more releases follow, so the rail runs on past the last one.
  */
@@ -261,7 +262,7 @@ private fun LazyListScope.releaseItems(
     entries: List<ChangelogEntry>,
     keyPrefix: String,
     expansion: ChangelogExpansion,
-    current: Pair<String, ChangelogBadge>?,
+    marks: Map<String, ChangelogBadge>,
     startsTimeline: Boolean,
     continuesBelow: Boolean
 ) {
@@ -272,7 +273,7 @@ private fun LazyListScope.releaseItems(
         val isNewest = startsTimeline && index == 0
         ChangelogRelease(
             entry = entry,
-            badge = badgeOf(entry, current, isNewest),
+            badge = badgeOf(entry, marks, isNewest),
             isFirst = isNewest,
             isLast = index == entries.lastIndex && !continuesBelow,
             expanded = expansion.isExpanded(entry.version, default = isNewest),
@@ -285,11 +286,9 @@ private fun LazyListScope.releaseItems(
 
 private fun badgeOf(
     entry: ChangelogEntry,
-    current: Pair<String, ChangelogBadge>?,
+    marks: Map<String, ChangelogBadge>,
     isNewest: Boolean
-): ChangelogBadge? = when {
-    current != null && entry.version.normalizeVersion() == current.first.normalizeVersion() -> current.second
-
+): ChangelogBadge? = marks[entry.version.normalizeVersion()] ?: when {
     entry.isPrerelease -> ChangelogBadge.PRERELEASE
     isNewest -> ChangelogBadge.LATEST
     else -> null

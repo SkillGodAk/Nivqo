@@ -22,8 +22,26 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
 }
 
+val nativeFixtureRoot = providers.environmentVariable("HUSH_NATIVE_FIXTURES").getOrElse("")
+val requireNativeFixtures = tasks.register("requireNativeFixtures") {
+    group = "verification"
+    description = "Require private stock inputs for the complete compatibility gate."
+    doLast {
+        require(nativeFixtureRoot.isNotBlank() && file(nativeFixtureRoot).isDirectory) {
+            "Set HUSH_NATIVE_FIXTURES to the exact stock APK directory before running :patches:check. Use :patches:test for unit-only work."
+        }
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
+    mustRunAfter(requireNativeFixtures)
+    inputs.property("nativeFixtureRoot", nativeFixtureRoot)
+    if (nativeFixtureRoot.isNotBlank()) inputs.files(fileTree(nativeFixtureRoot) { include("*.apk") })
+        .withPropertyName("nativeApks").withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir(rootProject.file("scripts/profiles")).withPropertyName("stockProfiles")
+    inputs.files(rootProject.files("README.md", "patches-bundle.json", "scripts/CompatReport.java"))
+        .withPropertyName("compatibilitySources")
 }
 
 tasks.named<Jar>("jar") {
@@ -60,7 +78,34 @@ for ((taskName, mode) in mapOf("generatePatchCatalog" to "generate", "checkPatch
     }
 }
 
-tasks.check { dependsOn("checkPatchCatalog") }
+tasks.check { dependsOn("checkPatchCatalog", requireNativeFixtures) }
+
+for (taskName in listOf("checkFrozenPatchCatalog", "checkRebuiltApk")) tasks.register<JavaExec>(taskName) {
+    group = "verification"
+    description = "Check a frozen bundle without running any bundle producer."
+    // Materialize plain paths. Kotlin's test compilation graph also depends on jar.
+    // The required preceding test run supplies these classes; validation must never rebuild them.
+    val toolClasses = sourceSets["test"].output.classesDirs.files
+    mustRunAfter("compileTestKotlin", "compileTestJava")
+    classpath = files(toolClasses, configurations["testRuntimeClasspath"].files)
+    doFirst {
+        val compiled = toolClasses.map { it.resolve("app/hushmessenger/tools/CatalogTool.class") }.firstOrNull { it.isFile }
+        require(compiled != null && compiled.lastModified() >= file("src/test/kotlin/app/hushmessenger/tools/CatalogTool.kt").lastModified()) {
+            "Run :patches:test before validating a frozen bundle. The catalog tool is missing or stale."
+        }
+    }
+    mainClass.set("app.hushmessenger.tools.CatalogTool")
+    maxHeapSize = "1024m"
+    jvmArgs("-XX:ActiveProcessorCount=2")
+    if (taskName == "checkRebuiltApk") {
+        description = "Parse a rebuilt APK without running any bundle producer."
+        args("apk", providers.gradleProperty("validationApk").getOrElse(""),
+            providers.gradleProperty("validationAapt2").getOrElse(""))
+    } else {
+        args("check", providers.gradleProperty("validationBundle").getOrElse(""), rootDir.absolutePath,
+            providers.gradleProperty("validationEvidence").getOrElse(""))
+    }
+}
 
 tasks.register<JavaExec>("scanDex") {
     group = "verification"

@@ -30,6 +30,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -589,17 +590,23 @@ internal fun AppCardLayout(
                     end   = Offset(endEdgeX(w, rtl), 0f)
                 )
 
-                // Border: bright top-start → faded bottom-end
-                val border = Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.65f),
-                        midColor.copy(alpha = 0.30f),
-                        endColor.copy(alpha = 0.15f),
-                        Color.White.copy(alpha = 0.20f)
-                    ),
-                    start = Offset(startEdgeX(w, rtl), 0f),
-                    end   = Offset(endEdgeX(w, rtl), h)
-                )
+                // Border: bright top-start → faded bottom-end. The highlight borrows its middle from
+                // the card colors, which on a single dark color fades into the background and leaves
+                // only the corners lit, so a flat card gets an even edge instead
+                val border = if (colors.all { it == baseColor }) {
+                    SolidColor(cardStyle.titleColor.copy(alpha = 0.30f))
+                } else {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.65f),
+                            midColor.copy(alpha = 0.30f),
+                            endColor.copy(alpha = 0.15f),
+                            Color.White.copy(alpha = 0.20f)
+                        ),
+                        start = Offset(startEdgeX(w, rtl), 0f),
+                        end   = Offset(endEdgeX(w, rtl), h)
+                    )
+                }
                 val borderStroke = Stroke(width = 1.5.dp.toPx())
 
                 onDrawWithContent {

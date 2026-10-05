@@ -159,17 +159,23 @@
         <item quantity="few">%s jedra</item>
         <item quantity="other">%s jeder</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s nova</item>
-        <item quantity="two">%s novi</item>
-        <item quantity="few">%s nove</item>
-        <item quantity="other">%s novih</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s funkcija</item>
+        <item quantity="two">%s funkciji</item>
+        <item quantity="few">%s funkcije</item>
+        <item quantity="other">%s funkcij</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s popravek</item>
         <item quantity="two">%s popravka</item>
         <item quantity="few">%s popravki</item>
         <item quantity="other">%s popravkov</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s optimizacija</item>
+        <item quantity="two">%s optimizaciji</item>
+        <item quantity="few">%s optimizacije</item>
+        <item quantity="other">%s optimizacij</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s sprememba</item>
@@ -182,5 +188,17 @@
         <item quantity="two">%s novi izdaji</item>
         <item quantity="few">%s nove izdaje</item>
         <item quantity="other">%s novih izdaj</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d omogočena povezava</item>
+        <item quantity="two">%d omogočeni povezavi</item>
+        <item quantity="few">%d omogočene povezave</item>
+        <item quantity="other">%d omogočenih povezav</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d nepreverjena povezava</item>
+        <item quantity="two">%d nepreverjeni povezavi</item>
+        <item quantity="few">%d nepreverjene povezave</item>
+        <item quantity="other">%d nepreverjenih povezav</item>
     </plurals>
 </resources>

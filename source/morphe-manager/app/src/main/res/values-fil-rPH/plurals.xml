@@ -107,13 +107,17 @@
         <item quantity="one">%s core</item>
         <item quantity="other">%s core</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s bago</item>
-        <item quantity="other">%s bago</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s tampok</item>
+        <item quantity="other">%s mga tampok</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s pag-aayos</item>
         <item quantity="other">%s pag-aayos</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s pag-optimize</item>
+        <item quantity="other">%s mga pag-optimize</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s pagbabago</item>
@@ -122,5 +126,13 @@
     <plurals name="changelog_new_releases">
         <item quantity="one">%s bagong release</item>
         <item quantity="other">%s bagong release</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d naka-enable na link</item>
+        <item quantity="other">%d naka-enable na link</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d hindi pa na-verify na link</item>
+        <item quantity="other">%d hindi pa na-verify na link</item>
     </plurals>
 </resources>

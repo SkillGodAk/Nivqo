@@ -170,7 +170,8 @@ class PatchBundleLoadGuard(
      */
     private fun installIdentity() = "${BuildConfig.VERSION_CODE}|${app.applicationInfo.sourceDir}"
 
-    private fun stampOf(patchesJar: File) =
+    /** Identifies the version of [patchesJar] on disk, which changes whenever the file is replaced. */
+    fun stampOf(patchesJar: File) =
         runCatching { "${patchesJar.lastModified()}-${patchesJar.length()}" }.getOrDefault("unknown")
 
     private data class Strike(val count: Int, val stamp: String)

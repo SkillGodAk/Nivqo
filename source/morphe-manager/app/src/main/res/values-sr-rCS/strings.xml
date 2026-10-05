@@ -21,18 +21,18 @@
     <string name="android_11_bug_dialog_description">Dozvola za instalaciju aplikacije mora biti odobrena prethodno kako bi se izbjegla greška u Android 11 sistemu koja će negativno utjecati na korisničko iskustvo</string>
     <string name="deep_link_add_source_title">Dodaj izvor</string>
     <string name="deep_link_add_source_message">Da li želite da dodate ovaj izvor patch-a u Nivqo?</string>
-    <string name="deep_link_add_source_warning">Dodajte samo izvore kojima verujete</string>
+<string name="deep_link_add_source_warning">Dodajte samo izvore kojima verujete</string>
     <!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Dostupno ažuriranje za Nivqo</string>
-    <string name="home_update_available_subtitle">Nova verzija sprema za instalaciju</string>
+<string name="home_update_available_subtitle">Novu verziju možete instalirati</string>
     <string name="home_blocked_source_title">Detektovan blokiran izvor zakrpe</string>
     <string name="home_blocked_source_subtitle">Dodirnite da biste pregledali i uklonili</string>
     <string name="home_metadata_errors_title">Neki izvori zakrpe nisu dostupni</string>
     <string name="home_metadata_errors_subtitle">Dodirnite da biste pregledali izvore</string>
     <string name="home_outdated_manager_title">Nivqo je zastareo</string>
-    <string name="home_outdated_manager_subtitle">Neki izvori zakrpa zahtevaju noviju verziju</string>
+<string name="home_outdated_manager_subtitle">Neki izvori zakrpa zahtevaju noviju verziju</string>
     <string name="home_held_back_title">Jedan izvor zakrpa je srušio Nivqo</string>
-    <string name="home_held_back_subtitle">Preskočen je da bi se aplikacija pokrenula. Dodirnite da biste pregledali.</string>
+<string name="home_held_back_subtitle">Preskočen je da bi se aplikacija pokrenula. Dodirnite da biste pregledali.</string>
     <string name="home_metered_skipped_title">Ažuriranja su pauzirana na mobilnim podacima</string>
     <string name="home_metered_skipped_subtitle">Dodirnite da biste dozvolili ažuriranja putem mobilnih podataka</string>
     <string name="home_repatch_available_subtitle">Dodirni da ih sve dodaš u red čekanja</string>
@@ -50,9 +50,9 @@
     <string name="home_app_filter_all_description">Sve aplikacije na početnom ekranu</string>
     <string name="home_app_filter_patched_description">Aplikacije koje ste zakrpili ili sačuvali koristeći Nivqo</string>
     <string name="home_app_filter_not_patched_description">Aplikacije koje još niste zakrpili u aplikaciji Nivqo</string>
-    <string name="home_app_filter_installed_description">Aplikacije koje su trenutno instalirane na ovom uređaju</string>
+<string name="home_app_filter_installed_description">Aplikacije koje su trenutno instalirane na ovom uređaju</string>
     <string name="home_app_filter_uninstalled_description">Aplikacije zakrpljene pomoću Nivqo-a koje više nisu na ovom uređaju</string>
-    <string name="home_app_filter_clones">Klonovi</string>
+<string name="home_app_filter_clones">Klonovi</string>
     <string name="home_app_filter_clones_description">Aplikacije napravljene pod sopstvenim imenom paketa, instalirane pored originala</string>
     <string name="home_app_sort_manual_description">Pritisnite i zadržite aplikaciju, zatim dodirnite dugme za promenu reda</string>
     <string name="home_app_sort_recommended">Preporučeni redosled</string>
@@ -160,9 +160,9 @@
     <string name="sources_management_metadata_unavailable_hint_missing">Paket zakrpa nije uspeo da se preuzme. URL adresa izvora može biti netačna ili datoteka ne postoji.</string>
     <string name="sources_management_outdated_manager_badge">Ažuriraj Nivqo</string>
     <string name="sources_management_outdated_manager_hint">Ovaj izvor je napravljen za patcher %1$s, ali Nivqo %2$s uključuje patcher %3$s. Ažuriraj Nivqo da bi ga koristio</string>
-    <string name="sources_management_held_back_badge">Srušio se</string>
+<string name="sources_management_held_back_badge">Srušio se</string>
     <string name="sources_management_held_back_hint">Ovaj izvor je srušio Nivqo tokom učitavanja, pa se preskače. Ažurirajte ga ili ponovo uvezite da biste pokušali ponovo.</string>
-    <string name="sources_management_source_enabled">Izvor je uključen</string>
+<string name="sources_management_source_enabled">Izvor je uključen</string>
     <string name="sources_management_source_disabled">Izvor je isključen</string>
     <string name="sources_management_source_updating">Ažuriranje izvora</string>
     <!-- Home Screen - Sources Dialogs -->
@@ -195,7 +195,7 @@
     <string name="sources_dialog_community_notice_message">"Izvore zakrpa zajednice kreiraju i održavaju njihovi autori. Nivqo ne pregleda niti verifikuje zakrpe trećih strana i nije odgovoran za njihov sadržaj ili za ono što rade na vašem uređaju.
 
 Sve što dodate sa ove veb stranice koristite na sopstvenu odgovornost."</string>
-    <string name="sources_update_success">Uspešno ažurirano</string>
+<string name="sources_update_success">Uspešno ažurirano</string>
     <string name="sources_update_unavailable">Nema dostupnih ažuriranja</string>
     <string name="sources_download_fail">Neuspešno preuzimanje izvora: %s</string>
     <string name="sources_download_fail_named">\'%s\' nije mogao da se ažurira. Proverite vašu internet konekciju i pokušajte ponovo</string>
@@ -215,16 +215,16 @@ Sve što dodate sa ove veb stranice koristite na sopstvenu odgovornost."</string
     <string name="home_apk_helper_download">Koristite pomoćnu aplikaciju</string>
     <string name="home_apk_helper_title">Preuzmite pomoću pomoćne aplikacije</string>
     <string name="home_apk_helper_description">Nivqo će zamoliti pomoćnu aplikaciju u nastavku da preuzme originalni APK i vrati datoteku</string>
-    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+<!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">Otvori pomoć</string>
     <string name="home_apk_helper_warning">Nastavite samo ako verujete ovoj pomoćnoj aplikaciji. Nivqo provere paket, verziju i potpis onošto primi pre krpljenja</string>
-    <string name="home_apk_helper_warning_unverified">Nastavite samo ako verujete ovoj pomoćnoj aplikaciji. Nivqo ne može da potvrdi potpis ovog APK-a, pa izmenjena datoteka ne bi bila otkrivena</string>
-    <string name="home_apk_helper_no_result">Pomoćna aplikacija nije vratila APK</string>
+<string name="home_apk_helper_warning_unverified">Nastavite samo ako verujete ovoj pomoćnoj aplikaciji. Nivqo ne može da potvrdi potpis ovog APK-a, pa izmenjena datoteka ne bi bila otkrivena</string>
+<string name="home_apk_helper_no_result">Pomoćna aplikacija nije vratila APK</string>
     <string name="home_apk_helper_no_access">Pomoćna aplikacija nije dozvolila pristup APK datoteci koju je vratila</string>
     <string name="home_apk_helper_no_package">Pomoćna aplikacija nije navela koju instaliranu aplikaciju treba koristiti</string>
     <string name="home_apk_helper_wrong_package">Pomoćna aplikacija je vratila drugu aplikaciju od one koja se zakrpljuje</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo nije mogao da koristi instaliranu aplikaciju</string>
-    <string name="home_apk_helper_installed_incompatible">Instalirana verzija ne može da se zakrpi</string>
+<string name="home_apk_helper_installed_incompatible">Instalirana verzija ne može da se zakrpi</string>
     <string name="home_apk_use_saved">Koristi sačuvani APK</string>
     <string name="home_apk_use_installed">Koristi instalirani APK</string>
     <string name="home_apk_use_saved_unsupported">Zakrpe ne podržavaju ovu sačuvanu kopiju. Primena zakrpe će tražiti da potvrdiš ili izaberi drugi APK.</string>
@@ -232,7 +232,7 @@ Sve što dodate sa ove veb stranice koristite na sopstvenu odgovornost."</string
     <string name="home_unverified">Neverifikovano</string>
     <string name="home_install_verification_pending">Provera instalacije…</string>
     <string name="home_app_info_install_unverified">Nivqo ne može potvrditi da je instalirana aplikacija verzija koju je ispravio. Ponovite ispravljanje ili je ponovo instalirajte iz sačuvanog APK-a kako biste vratili njene funkcionalnosti</string>
-    <string name="home_app_info_no_saved_apk">Nema sačuvanog APK-a. Krpljenje će zahtevati ponovni odabir APK datoteke</string>
+<string name="home_app_info_no_saved_apk">Nema sačuvanog APK-a. Krpljenje će zahtevati ponovni odabir APK datoteke</string>
     <string name="home_version_requires_android">Zahteva Android %s+</string>
     <string name="home_apk_no_compatible_versions_title">Nije podržano na ovom uređaju</string>
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; nema podržanih verzija za Android %2$s (API %3$s). Sve deklarisane verzije zahtevaju više verziju Androida</string>
@@ -245,7 +245,7 @@ Sve što dodate sa ove veb stranice koristite na sopstvenu odgovornost."</string
     <string name="home_download_instructions_step2_variant">Skrolujte niz veb stranicu i pritisnite dugme za preuzimanje gornje &lt;b&gt;APK varijante&lt;/b&gt;</string>
     <string name="home_download_instructions_step2_search">Otvorite rezultat pretrage sa veb sajta kojem verujete</string>
     <string name="home_download_instructions_step2_search_note">Nivqo ne može da garantuje za ove veb sajtove. Preskočite one koji nude svoju prodavnicu aplikacija umesto APK datoteke</string>
-    <string name="home_download_instructions_step3_search">Na tom veb sajtu preuzmite APK za verziju &lt;b&gt;%s&lt;/b&gt;, a ne najnoviju</string>
+<string name="home_download_instructions_step3_search">Na tom veb sajtu preuzmite APK za verziju &lt;b&gt;%s&lt;/b&gt;, a ne najnoviju</string>
     <string name="home_download_instructions_step3_search_any">Na tom veb sajtu preuzmite APK aplikacije. &lt;b&gt;Bilo koja verzija&lt;/b&gt; može da se zakrpi</string>
     <string name="home_download_instructions_download_button_toast">Pritisnite preuzmi na sajtu, a ne ovde 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Odlično! Sada kliknite na „nastavi“ i idite na veb-sajt 👆</string>
@@ -253,12 +253,14 @@ Sve što dodate sa ove veb stranice koristite na sopstvenu odgovornost."</string
     <string name="home_download_instructions_download_button_toast_4">Još nisi tu… još nisi tu… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">U redu, poštujem posvećenost 🫡</string>
     <string name="home_download_instructions_download_button_toast_6">Sada ste zvanični tester Nivqo dugmeta 🏅</string>
-    <string name="home_download_instructions_step3">Sačekajte da preuzimanje bude završeno, i &lt;b&gt;nemojte instalirati&lt;/b&gt; APK</string>
+<string name="home_download_instructions_step3">Sačekajte da preuzimanje bude završeno, i &lt;b&gt;nemojte instalirati&lt;/b&gt; APK</string>
     <string name="home_download_instructions_step3_mount">Sačekajte da preuzimanje bude završeno, a onda &lt;b&gt;instalirajte APK&lt;/b&gt;</string>
     <string name="home_download_instructions_step4">Nakon što se preuzimanje završi, vratite se na Nivqo</string>
     <string name="home_download_instructions_step4_mount">Nakon instaliranja originalnog APK-a, vratite se na Nivqo</string>
-    <string name="home_download_instructions_continue_to">Nastavite na %s</string>
+<string name="home_download_instructions_continue_to">Nastavite na %s</string>
     <string name="home_download_instructions_destination">stranicu za preuzimanje</string>
+    <string name="home_download_instructions_copy_link">Kopiraj link</string>
+    <string name="home_download_instructions_link_copied">Link kopiran</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_file_picker_prompt_title">Izaberite preuzete APK</string>
     <string name="home_file_picker_prompt_description">Odaberite &lt;b&gt;%s&lt;/b&gt; APK fajl koji ste nedavno preuzeli</string>
@@ -275,6 +277,7 @@ Sve što dodate sa ove veb stranice koristite na sopstvenu odgovornost."</string
     <string name="home_installed_app_picker_filter_system">Samo sistemske aplikacije</string>
     <string name="home_invalid_apk_unreadable">Nije moguće pročitati datoteku. Proverite da \'Eksternu memoriju\' ne ograničava baterija</string>
     <string name="home_invalid_apk_not_an_apk">Odabrana datoteka nije validan APK</string>
+    <string name="home_invalid_apk_already_patched">Izabrani APK je već zakrpljen. Izaberite originalnu aplikaciju umesto toga</string>
     <string name="home_invalid_apk_io_error">Nije uspelo otvaranje datoteke. Molimo pokušajte ponovo</string>
     <string name="home_external_apk_expert_mode_required">Ova funkcionalnost je dostupna samo u režimu stručnjaka.</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
@@ -368,6 +371,7 @@ Da li ste sigurni da želite nastaviti?"</string>
     <string name="adaptive_icon_create">Napravi adaptivni ikon</string>
     <string name="adaptive_icon_select_image">Izaberi sliku</string>
     <string name="adaptive_icon_change_image">Promeni sliku</string>
+    <string name="image_load_failed">Ne mogu da učitam ovu sliku</string>
     <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
     <string name="adaptive_icon_foreground">Slika u prvom planu</string>
     <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
@@ -473,7 +477,21 @@ Spoljna zona (isprekidana): može biti isečena maskom pokretača – držite va
     <string name="home_app_info_version_move">Instalirana %1$s, najnovija podržana %2$s</string>
     <string name="home_app_info_app_deleted_warning">Aplikacija je deinstalirana</string>
     <string name="home_app_info_app_deleted_description">Ova aplikacija je deinstalirana izvan Nivqo. Ponovo je instalirajte da bi obnovili funkcionalnost</string>
-    <string name="home_app_info_not_patched_description">Instalirana je nezakrpana verzija ove aplikacije. Nivqo i dalje ima svoj prethodni zapis o zakrpi</string>
+<string name="home_app_info_not_patched_description">Instalirana je nezakrpana verzija ove aplikacije. Nivqo i dalje ima svoj prethodni zapis o zakrpi</string>
+<string name="app_links_title">Podržani veb linkovi</string>
+    <string name="app_links_description">Na Androidu 12+, linkovi ka podržanim domenima se podrazumevano otvaraju u vašem pregledaču, osim ako su odobreni</string>
+    <string name="app_links_unverified_banner_title">Veb linkovi nisu verifikovani</string>
+    <string name="app_links_unverified_banner_description">Podržani veb linkovi se trenutno otvaraju u vašem pregledaču umesto u ovoj aplikaciji</string>
+    <string name="app_links_enable_auto">Omogući automatski</string>
+    <string name="app_links_enable_auto_in_progress">Omogućavanje linkova…</string>
+    <string name="app_links_open_settings">Otvori podešavanja linkova</string>
+    <string name="app_links_repair_success">Linkovi aplikacije su uspešno omogućeni</string>
+    <string name="app_links_repair_failed">Automatsko omogućavanje aplikacionih linkova nije uspelo</string>
+    <string name="app_links_badge_enabled">Omogućeno</string>
+    <string name="app_links_badge_disabled">Onemogućen</string>
+    <string name="app_links_all_verified">Svi podržani linkovi su konfigurisani da se otvaraju u ovoj aplikaciji</string>
+    <string name="app_links_fix">Popravite linkove</string>
+    <string name="configure">Konfigurišite</string>
     <string name="patcher_rename_title">Ovo će instalirati klon</string>
     <string name="patcher_rename_description">Zakrpe su napravile ovu aplikaciju pod sopstvenim imenom paketa, tako da njeno instaliranje dodaje klon pored &lt;b&gt;%s&lt;/b&gt; umesto da je ažurira.</string>
     <string name="patcher_rename_result_package">Instaliraće se kao</string>
@@ -487,7 +505,7 @@ Spoljna zona (isprekidana): može biti isečena maskom pokretača – držite va
     <string name="root_pre_patch_installer_mount_title">Režim root montaže</string>
     <string name="root_pre_patch_installer_mount_description">Zakrpe za root montažu, zatim montira APK preko odgovarajuće fabričke aplikacije. Nije potreban GmsCore</string>
     <string name="root_mount_module_unmount_warning">Ako KernelSU ima podrazumevano omogućene module za razmontiranje, otvorite KernelSU > Superuser > aplikaciju koju ste montirali > Profil > Prilagođeno i onemogućite module za razmontiranje. Inače, montirani ispravljeni APK možda neće stupiti na snagu, čak i ako Nivqo pokazuje da je montiran</string>
-    <string name="root_pre_patch_installer_standard_title">Standardni način instalacije</string>
+<string name="root_pre_patch_installer_standard_title">Standardni način instalacije</string>
     <string name="root_pre_patch_installer_standard_description">Paketi kao normalni APK uz podršku GmsCore-a. Vaša postavka instalera se koristi nakon pakovanja</string>
     <string name="root_pre_patch_installer_hint">Ovaj režim pakovanja je odvojen od Podešavanja > Sistem > Instalera i ne može se menjati nakon pakovanja</string>
     <!-- Patcher Screen -->
@@ -539,6 +557,7 @@ Spoljna zona (isprekidana): može biti isečena maskom pokretača – držite va
     <string name="patcher_failed_title">Ups! Nešto je pošlo po zlu</string>
     <string name="patcher_failed_dialog_title">Pečanje je neuspešno</string>
     <string name="patcher_error_details">Detalji greške</string>
+    <string name="patcher_change_patches">Promeni zakrpe</string>
     <string name="patcher_unknown_error">Dogodila se nepoznata greška</string>
     <string name="patcher_split_step_extracting">Ekstrahovanje split APK-ova</string>
     <string name="patcher_split_step_merging">Spajanje %s</string>
@@ -551,7 +570,7 @@ Spoljna zona (isprekidana): može biti isečena maskom pokretača – držite va
     <string name="patcher_installed_conflict_body">"Nivqo potpisuje modifikovane aplikacije sopstvenim sertifikatom, koji se razlikuje od originalnog. Android zahteva uklanjanje postojeće verzije pre instalacije modifikovane aplikacije.
 
 Deinstalacija će trajno obrisati sve podatke aplikacije"</string>
-    <string name="patcher_install_error_title">Greška pri instalaciji</string>
+<string name="patcher_install_error_title">Greška pri instalaciji</string>
     <string name="patcher_install_error_subtitle">Pokušajte deinstalirati pa ponovo instalirati</string>
     <string name="patcher_ready_to_mount_subtitle">Pritisnite dugme ispod za postavljanje</string>
     <string name="patcher_patches_excluded_for_installer">Nije dostupno za ovu metodu instalacije i isključeno: %s</string>
@@ -559,9 +578,8 @@ Deinstalacija će trajno obrisati sve podatke aplikacije"</string>
     <string name="patcher_storage_permission_dialog_title">Ne mogu pristupiti putu za pohranu</string>
     <string name="patcher_incompatible_patcher_title">Ažuriranje je potrebno</string>
     <string name="patcher_incompatible_patcher_description">Paket &lt;b&gt;%1$s&lt;/b&gt; zahteva verziju zakrpe &lt;b&gt;%2$s&lt;/b&gt; ili noviju. Molimo ažurirajte Nivqo da biste zakrpili ovu aplikaciju</string>
-    <string name="patcher_incompatible_patcher_update_button">Preuzmi i ažuriraj Nivqo</string>
-    <string name="patcher_storage_permission_description_api30">Jedna ili više opcija patch-a pokazuju na putanje koje Nivqo ne može da čita. Dajte dozvolu za skladište i dodirnite dugme, a zatim će se patching automatski pokrenuti</string>
-    <string name="patcher_storage_permission_description_legacy">Jedan ili više opcija za patching ukazuju na putove koje ne mogu biti pristupili. Ažurirajte putove u opcijama za patching i pokušajte ponovo</string>
+<string name="patcher_storage_permission_description_api30">Jedna ili više opcija patch-a pokazuju na putanje koje Nivqo ne može da čita. Dajte dozvolu za skladište i dodirnite dugme, a zatim će se patching automatski pokrenuti</string>
+<string name="patcher_storage_permission_description_legacy">Jedan ili više opcija za patching ukazuju na putove koje ne mogu biti pristupili. Ažurirajte putove u opcijama za patching i pokušajte ponovo</string>
     <string name="patcher_storage_permission_grant">Dajte dozvolu za pohranu</string>
     <string name="patcher_storage_permission_denied_warning">Dozvola za pohranu je odbijena. Dopustite ovu putanju da biste je koristili ili premestite fajlove u privatni direktorijum aplikacije</string>
     <string name="patcher_storage_permission_open_settings">Otvori postavke pohrane</string>
@@ -575,7 +593,7 @@ Deinstalacija će trajno obrisati sve podatke aplikacije"</string>
     <string name="patcher_option_paths_gone_description">Barem jedna opcija zakrpe upućuje na datoteke kojih više nema. Ukloni putanje da zakrpiš aplikaciju bez njih, ili vrati datoteke i pokušaj ponovo.</string>
     <string name="patcher_option_paths_clear">Ukloni putanje i nastavi</string>
     <string name="patcher_storage_permission_hint">Savet: Premestite fajlove u /Android/data/app.nivqo.manager/files/ - ne potrebne su dodatne dopuštenja</string>
-    <!-- Patcher Screen - Patcher Steps -->
+<!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Priprema</string>
     <string name="patcher_step_load_patches">Učitavanje zakrpa</string>
     <string name="patcher_step_prepare_split_apk">Spojivanje APK-ova</string>
@@ -587,7 +605,7 @@ Deinstalacija će trajno obrisati sve podatke aplikacije"</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Zaštita od zakrpljivanja u pozadini</string>
     <string name="battery_optimization_dialog_description">Neki uređaji mogu zaustaviti program za zakrpljivanje kada je aplikacija minimizovana. Dopustite programu Nivqo da radi bez ograničenja potrošnje baterije kako biste osigurali pouzdano završavanje zakrpljivanja.</string>
-    <string name="battery_optimization_not_now">Ne sada</string>
+<string name="battery_optimization_not_now">Ne sada</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">Nema dovoljno memorije</string>
     <string name="patcher_memory_adjustment_description">Sistem je zaustavio patcher dok je radio sa ograničenjem memorije od %1$d MB. Smanjenje ograničenja na %2$d MB čini patcher manjom metom i može omogućiti da se proces završi.</string>
@@ -644,8 +662,8 @@ Deinstalacija će trajno obrisati sve podatke aplikacije"</string>
     <string name="install_ignore_signature_description">Čuva podatke aplikacije, ali funkcioniše samo ako root modul onemogući verifikaciju potpisa Androida</string>
     <string name="uninstall_app_fail">Nije uspešno deinstalirana aplikacija: %s</string>
     <string name="uninstall_app_unverified">Ostavljeno na mestu: Nivqo nije mogao da potvrdi da je instalirana aplikacija verzija koju je zakrpio.</string>
-    <string name="launch_app_unverified">Nivqo nije mogao da potvrdi da je instalirana aplikacija verzija koju je zakrpio.</string>
-    <string name="uninstall_timeout">Vreme isteka deinstalacije je isteklo</string>
+<string name="launch_app_unverified">Nivqo nije mogao da potvrdi da je instalirana aplikacija verzija koju je zakrpio.</string>
+<string name="uninstall_timeout">Vreme isteka deinstalacije je isteklo</string>
     <string name="save_apk_success">Sačuvana APK datoteka</string>
     <string name="saved_app_export_failed">Nije uspelo izvoz zakrpljene aplikacije</string>
     <string name="saved_app_removed_toast">Uklonjena sačuvana zakrpljena aplikacija</string>
@@ -756,7 +774,7 @@ Deinstalacija će trajno obrisati sve podatke aplikacije"</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Ikonica aplikacije</string>
     <string name="settings_appearance_app_icon_selector_description">Kako Nivqo izgleda na vašem početnom ekranu i u fioci aplikacija</string>
-    <string name="settings_appearance_app_icon_default">Podrazumevana</string>
+<string name="settings_appearance_app_icon_default">Podrazumevana</string>
     <string name="settings_appearance_app_icon_light_2">Nebesno</string>
     <string name="settings_appearance_app_icon_light_3">Zalazni</string>
     <string name="settings_appearance_app_icon_dark_1">Okean</string>
@@ -772,14 +790,14 @@ Deinstalacija će trajno obrisati sve podatke aplikacije"</string>
     <string name="settings_advanced_updates_manager_prereleases">Prerelease ažuriranja</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <string name="settings_advanced_updates_manager_prereleases_description">Rani pristup novim Nivqo verzijama</string>
-    <string name="settings_advanced_updates_prerelease_warning_title">Omogući prerelease ažuriranja?</string>
+<string name="settings_advanced_updates_prerelease_warning_title">Omogući prerelease ažuriranja?</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
     <string name="settings_advanced_updates_prerelease_warning_message">"Prerelease verzije Nivqo-a su još u razvoju i mogu biti nestabilne.
 
 Zakrpe nisu pogođene: omogućite prerelease zakrpe za svaki izvor na listi izvora zakrpa"</string>
-    <string name="settings_advanced_updates_allow_metered">Ažuriranja putem mobilnih podataka</string>
+<string name="settings_advanced_updates_allow_metered">Ažuriranja putem mobilnih podataka</string>
     <string name="settings_advanced_updates_allow_metered_description">Omogućava preuzimanje ažuriranja aplikacije Nivqo i patchovanja putem mobilnih podataka</string>
-    <string name="settings_advanced_updates_background_notifications">Ažuriranja u pozadini</string>
+<string name="settings_advanced_updates_background_notifications">Ažuriranja u pozadini</string>
     <string name="settings_advanced_updates_background_notifications_description">Periodično proveravaj za ažuriranja u pozadini i obaveštavaj kada su dostupna</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Push obaveštenja za nove verzije, čak i kada je aplikacija zatvorena</string>
     <string name="settings_system_notifications_categories">Kategorije obaveštenja</string>
@@ -796,27 +814,27 @@ Zakrpe nisu pogođene: omogućite prerelease zakrpe za svaki izvor na listi izvo
     <string name="settings_advanced_external_batch_patch_description">Omogućava aplikacijama za automatizaciju da započnu grupnu primenu zakrpa putem intent-a</string>
     <string name="external_batch_patch_title">Pokreni masovno zakrpljivanje?</string>
     <string name="external_batch_patch_description">%s želi da Nivqo zakrpi i instalira aplikacije</string>
-    <string name="external_batch_patch_trust_caller">Uvek dozvoli ovu aplikaciju</string>
+<string name="external_batch_patch_trust_caller">Uvek dozvoli ovu aplikaciju</string>
     <string name="external_batch_patch_unknown_caller">Nepoznata aplikacija</string>
     <!-- Notification content -->
     <string name="notification_manager_update_title">Доступна је надоградња Nivqo-а</string>
-    <string name="notification_bundle_update_title">Dostupne ispravke</string>
+<string name="notification_bundle_update_title">Dostupne ispravke</string>
     <string name="notification_update_text">Verzija %s je spremna za preuzimanje</string>
     <string name="notification_bundle_update_text_unversioned">Додирните да бисте отворили Nivqo и надоградили</string>
-    <string name="notification_permission_dialog_title">Dozvoli obaveštenja</string>
+<string name="notification_permission_dialog_title">Dozvoli obaveštenja</string>
     <string name="notification_permission_dialog_description">Nivqo треба дозволу за обавештења да вас упозори када су доступне надоградње у позадини</string>
-    <string name="notification_post_patch_dialog_title">Da li biste hteli da budete obavešteni kada su ažuriranja dostupna?</string>
+<string name="notification_post_patch_dialog_title">Da li biste hteli da budete obavešteni kada su ažuriranja dostupna?</string>
     <string name="notification_channel_manager_updates">Nivqo ažuriranja</string>
     <string name="notification_channel_manager_updates_description">Obaveštenja o novim Nivqo izdanjima</string>
-    <string name="notification_channel_patch_updates">Ažuriranja zakrpa</string>
+<string name="notification_channel_patch_updates">Ažuriranja zakrpa</string>
     <string name="notification_channel_patch_updates_description">Obaveštenja o novim zakrpama</string>
     <string name="notification_channel_patcher">Zakrpavanje</string>
     <string name="notification_channel_patcher_description">Prikazuje se dok Nivqo zakrpava aplikaciju u pozadini</string>
-    <!-- Settings - Advanced Tab - Expert settings Section -->
+<!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Napredne postavke</string>
     <string name="settings_advanced_expert_mode">Napredni način</string>
     <string name="settings_advanced_expert_mode_description">Omogućava kompleksna podešavanja i opcije prilagođavanja patchovanja u aplikaciji Nivqo</string>
-    <string name="settings_advanced_expert_mode_dialog_title">Omogućiti režim eksperta?</string>
+<string name="settings_advanced_expert_mode_dialog_title">Omogućiti režim eksperta?</string>
     <string name="settings_advanced_expert_mode_dialog_message">Režim eksperta daje više kontrole nad primenom patchova, ali pogrešno podešavanje u režimu eksperta može da rezultuje u nefunkcionalnoj aplikaciji</string>
     <string name="settings_advanced_strip_unused_libs">Optimizujte za arhitekturu uređaja</string>
     <string name="settings_advanced_strip_unused_libs_description">Uklanja neiskorišćene CPU arhitektonske biblioteke i split APK module</string>
@@ -832,7 +850,7 @@ Zakrpe nisu pogođene: omogućite prerelease zakrpe za svaki izvor na listi izvo
     <string name="settings_advanced_github_pat_export_include_label">Uključeno u postavke izvoza</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_include_supporting">Додаје овај PAT у извозене подешавања Nivqo-а</string>
-    <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
+<!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">Ne deli svoj PAT. Ako ga uključiš u postavke izvoza, drž taj fajl privatno jer sadrži token</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
     <string name="settings_advanced_patch_options">Opcije patchiranja</string>
@@ -913,7 +931,7 @@ Opciono, putanja sadrži ikonu obaveštenja u jednom od sledećih formata:
     <string name="installer_status_shizuku_not_installed">Instalirajte Shizuku ili Sui da biste koristili ovu opciju</string>
     <string name="installer_status_shizuku_not_running">Pokrenite Shizuku ili Sui i pokušajte ponovo</string>
     <string name="installer_status_shizuku_permission">Dajte dozvolu Nivqo-u iz Shizuku aplikacije</string>
-    <string name="installer_mount_warning_install">Vaš primarni instalera je postavljen na instalera s korijenskim mountom. Ova sačuvana aplikacija nije instalirana koristeći mount</string>
+<string name="installer_mount_warning_install">Vaš primarni instalera je postavljen na instalera s korijenskim mountom. Ova sačuvana aplikacija nije instalirana koristeći mount</string>
     <string name="mount_version_mismatch_message">Verzija originalne aplikacije (%2$s) ne podudara se sa verzijom patchane aplikacije (%1$s). Mountujte podudaranu verziju originalne aplikacije, a zatim pokušajte ponovo</string>
     <string name="mount_stock_restore_failed_message">Android je odbacio originalni sačuvani APK. Instalirajte odgovarajuću fabričku verziju, a zatim ponovo pokušajte sa montažom</string>
     <string name="installer_status_shizuku_unsupported">Instalirana verzija Shizuku nije podržana</string>
@@ -943,7 +961,7 @@ Opciono, putanja sadrži ikonu obaveštenja u jednom od sledećih formata:
     <string name="settings_auto_uninstall_with_shizuku_description">Kada se automatski instalira sa Shizuku, prvo deinstaliraj postojeću aplikaciju ako Android prijavljuje konflikt potpisa. Ovo može ukloniti podatke aplikacije</string>
     <string name="settings_auto_uninstall_warning_title">Omogući automatsku deinstalaciju?</string>
     <string name="settings_auto_uninstall_warning_message">Ako Android prijavljuje konflikt potpisa tokom Shizuku auto-instalacije, Nivqo će deinstalirati postojeću aplikaciju pre instaliranja popravljenog APK-a</string>
-    <string name="settings_auto_uninstall_warning_risk">Ovo može ukloniti podatke aplikacije. Ako popravljeni APK ne uspe da se instalira nakon deinstalacije, prethodna aplikacija je možda već uklonjena</string>
+<string name="settings_auto_uninstall_warning_risk">Ovo može ukloniti podatke aplikacije. Ako popravljeni APK ne uspe da se instalira nakon deinstalacije, prethodna aplikacija je možda već uklonjena</string>
     <string name="installer_shizuku_status_action">Proveri status Shizuku-a</string>
     <string name="installer_shizuku_status_title">Status Shizuku-a</string>
     <string name="installer_shizuku_status_ready">Spreman</string>
@@ -961,7 +979,7 @@ Opciono, putanja sadrži ikonu obaveštenja u jednom od sledećih formata:
 
 Detalji: %2$s"</string>
     <string name="installer_shizuku_error_permission">Nedostaje dozvola Shizuku-a. Dajte dozvolu Nivqo-u i pokušajte ponovo</string>
-    <string name="installer_shizuku_error_timeout">Shizuku nije vratio rezultat instalacije. Uverite se da je i dalje u pokretu i pokušajte ponovo</string>
+<string name="installer_shizuku_error_timeout">Shizuku nije vratio rezultat instalacije. Uverite se da je i dalje u pokretu i pokušajte ponovo</string>
     <string name="installer_shizuku_error_downgrade">Android je ovo blokirao jer bi to smanjilo verziju instalirane aplikacije</string>
     <string name="installer_shizuku_error_signature">Android je ovo blokirao jer instalirana aplikacija ima drugačiji potpis</string>
     <string name="installer_shizuku_error_invalid_apk">Android nije mogao da pročita ovaj APK</string>
@@ -976,7 +994,7 @@ Detalji: %2$s"</string>
     <string name="settings_system_process_runtime_enable">Memorija dostupna za patchiranje</string>
     <string name="settings_system_memory_limit_subtitle">Upozorenje: Niska memorija ograničenja može dovesti neuspeh u patchiranju većih aplikacija</string>
     <string name="settings_system_process_runtime_heap_limit_ignored">Ovaj uređaj je ignorisao ograničenje memorije pri poslednjem pokretanju, pa zakrpljivanje može da se vrati na izvršavanje unutar Nivqo-a.</string>
-    <string name="settings_system_memory_limit_warning">%d MB ograničenje</string>
+<string name="settings_system_memory_limit_warning">%d MB ograničenje</string>
     <string name="settings_system_memory_limit_high_warning">Veliko ograničenje memorije može znatno usporiti primenu zakrpa na nekim uređajima. Povećajte ga samo ako primena zakrpa stalno ne uspeva pri nižim ograničenjima.</string>
     <string name="settings_system_process_runtime_enabled_description">%s MB ograničenje</string>
     <string name="settings_system_process_runtime_disabled_description">Dodirni za konfigurisanje</string>
@@ -999,8 +1017,8 @@ Detalji: %2$s"</string>
     <string name="settings_system_signing_key">Ključ za potpisivanje</string>
     <string name="settings_system_signing_key_description">Pravi rezervnu kopiju i vraća ključ kojim su potpisane vaše zakrpljene aplikacije</string>
     <string name="settings_system_signing_key_dialog_description">Svaka aplikacija koju Nivqo zakrpi potpisana je ovim ključem. Sačuvajte kopiju: bez njega, zakrpljene aplikacije se mogu ažurirati samo nakon deinstalacije.</string>
-    <string name="settings_system_signing_key_missing">Nivqo ga kreira pri vašoj prvoj zakrpi.</string>
-    <string name="settings_system_signing_key_created">Kreirano %s</string>
+<string name="settings_system_signing_key_missing">Nivqo ga kreira pri vašoj prvoj zakrpi.</string>
+<string name="settings_system_signing_key_created">Kreirano %s</string>
     <string name="settings_system_signing_key_fingerprint">SHA-256 otisak</string>
     <string name="settings_system_backup_appearance_description">Tema, boje i jezik</string>
     <string name="settings_system_backup_home_description">Grupe, skrivene aplikacije, sortiranje i prekidači</string>
@@ -1024,10 +1042,10 @@ Detalji: %2$s"</string>
     <string name="settings_system_hide_password_field">Sakrij lozinku</string>
     <string name="settings_system_morphe_settings">Nivqo podešavanja</string>
     <string name="settings_system_import_manager_settings_description">Pravi backup i vraća vaše podešavanje aplikacije Nivqo</string>
-    <string name="settings_system_import_manager_settings_fail">Није успело увожење подешавања Nivqo-а: %s</string>
+<string name="settings_system_import_manager_settings_fail">Није успело увожење подешавања Nivqo-а: %s</string>
     <string name="settings_system_import_manager_settings_success">Увезена су подешавања Nivqo-а</string>
     <string name="settings_system_import_manager_settings_mode_title">Uvoz podešavanja Nivqo</string>
-    <string name="settings_system_import_manager_settings_mode_description">Izaberite kako da se primene uvezeni podaci i izvori</string>
+<string name="settings_system_import_manager_settings_mode_description">Izaberite kako da se primene uvezeni podaci i izvori</string>
     <string name="settings_system_import_selections_mode_title">Uvoz izbora paketa</string>
     <string name="settings_system_import_selections_mode_description">Izaberite kako da se primene uvezeni izbori i opcije zakrpe</string>
     <string name="import_mode_replace_title">Zameni postojeće</string>
@@ -1035,8 +1053,8 @@ Detalji: %2$s"</string>
     <string name="import_mode_merge_title">Spoji sa postojećim</string>
     <string name="import_mode_merge_description">Dodaj nedostajuće stavke iz rezervne kopije. Postojeće stavke ostaju nepromenjene</string>
     <string name="settings_system_export_manager_settings_fail">Није успело извожење подешавања Nivqo-а: %s</string>
-    <string name="settings_system_export_manager_settings_success">Извезена су подешавања Nivqo-а</string>
-    <string name="settings_system_export_debug_logs">Izvezi evidencije otklanjanja grešaka</string>
+<string name="settings_system_export_manager_settings_success">Извезена су подешавања Nivqo-а</string>
+<string name="settings_system_export_debug_logs">Izvezi evidencije otklanjanja grešaka</string>
     <string name="settings_system_export_debug_logs_description">Čuva sistemske logove za rešavanje problema</string>
     <string name="settings_system_export_debug_logs_export_read_failed">Neuspeh pri čitanju dnevnika (kôd izlaza %s)</string>
     <string name="settings_system_export_debug_logs_export_failed">Neuspešan izvoz evidencija</string>
@@ -1072,7 +1090,7 @@ Detalji: %2$s"</string>
     <string name="settings_system_storage_nothing_to_clear">Nema ničega za čišćenje</string>
     <string name="settings_system_storage_open_app_info_title">Otvorite skladište Android aplikacija</string>
     <string name="settings_system_storage_open_app_info_description">Upravljajte ili očistite sve Nivqo podatke putem sistemskih postavki</string>
-    <string name="settings_system_save_original_apks_title">Sačuvaj originalne APK fajlove</string>
+<string name="settings_system_save_original_apks_title">Sačuvaj originalne APK fajlove</string>
     <string name="settings_system_save_original_apks_description">Sačuvaj APK fajl pre modifikacije kako bi mogao da se ponovo koristi za ponovno zakrpivanje bez ponovnog odabira fajla</string>
     <string name="settings_system_save_patched_apks_title">Sačuvaj zakrpane APK fajlove</string>
     <string name="settings_system_save_patched_apks_description">Sačuvaj kopiju zakrpljenog APK fajla za kasniji izvoz ili ponovnu instalaciju iz menadžera</string>
@@ -1120,12 +1138,12 @@ Detalji: %2$s"</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Prilagođeni odabir datoteka</string>
     <string name="settings_system_custom_file_picker_description">Koristite ugrađeni odabir datoteka u Nivqou umesto fabričkog sistema</string>
-    <!-- Settings - System Tab - APK download helper -->
+<!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">Preuzimač APK datoteka</string>
     <string name="settings_system_apk_download_helper_trusted_count">Pouzdano: %1$d od %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Pomoćne aplikacije mogu da preuzimaju originalne APK-ove umesto vas. U uputstvima za preuzimanje nude se samo one kojima ovde verujete.</string>
     <string name="settings_system_apk_download_helper_warning">APK dolazi od pomoćne aplikacije, zato verujte samo aplikacijama koje poznajete. Nivqo i dalje proverava paket, verziju i potpis svake datoteke pre zakrpljivanja.</string>
-    <string name="settings_system_apk_download_helper_installed_by">Instalirao: %s</string>
+<string name="settings_system_apk_download_helper_installed_by">Instalirao: %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Instalater nepoznat</string>
     <!-- File Picker -->
     <string name="file_picker_no_files">Ovde nema datoteka</string>
@@ -1133,6 +1151,7 @@ Detalji: %2$s"</string>
     <string name="file_picker_internal_storage">Interna memorija</string>
     <string name="file_picker_sd_card">SD kartica</string>
     <string name="file_picker_root">Koren (/)</string>
+    <string name="file_picker_storages">Memorije</string>
     <string name="file_picker_sort_name_asc">Naziv (A–Š)</string>
     <string name="file_picker_sort_name_desc">Naziv (Š–A)</string>
     <string name="file_picker_sort_size_desc">Veličina (od najveće)</string>
@@ -1280,6 +1299,7 @@ Detalji: %2$s"</string>
     <string name="changelog_download_fail">Preuzimanje zapisa o promenama nije uspelo: %s</string>
     <string name="changelog_empty">Nema dostupne verzije promjene</string>
     <string name="changelog_earlier_releases">Ranija izdanja</string>
+    <string name="changelog_patched_with">Zakrpljeno sa %s</string>
     <string name="changelog_older_empty">Nema starijih verzija za prikaz</string>
     <string name="changelog_older_failed">Ne mogu da se učitaju starija izdanja</string>
     <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
@@ -1308,7 +1328,7 @@ Detalji: %2$s"</string>
     <string name="install_update_manager_failed">Neuspešno instaliranje ažuriranja</string>
     <string name="installing_manager_update">Instaliranje ažuriranja…</string>
     <string name="installing_manager_update_hint">Nivqo će se zatvoriti da bi završio ažuriranje</string>
-    <string name="downloading_manager_update">Preuzimanje ažuriranja…</string>
+<string name="downloading_manager_update">Preuzimanje ažuriranja…</string>
     <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB preuzeto</string>
     <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
@@ -1329,7 +1349,7 @@ Da li i dalje želite da nastavite?"</string>
     <string name="onboarding_swipe_title">Gestovi prevlačenja</string>
     <string name="onboarding_swipe_desc">Prevučite prstom udesno na kartici aplikacije da biste videli dostupne zakrpe. Prevučite prstom ulevo da biste sakrili karticu sa početnog ekrana.</string>
     <string name="onboarding_settings_desc">Prilagodite Nivqo: izgled, napredne opcije i sistemske alate.</string>
-    <string name="onboarding_sources_patches_desc">Dodirnite da biste videli sve zakrpe dostupne iz ovog izvora.</string>
+<string name="onboarding_sources_patches_desc">Dodirnite da biste videli sve zakrpe dostupne iz ovog izvora.</string>
     <string name="onboarding_sources_version_desc">Dodirnite verziju da biste videli kompletan spisak izmena za ovaj izvor.</string>
     <string name="onboarding_sources_prerelease_desc">Omogućite ovo da biste primali verzije zakrpa u beta fazi iz ovog izvora.</string>
     <string name="onboarding_appearance_tab_desc">Prilagodite izgled aplikacije: temu, boju naglaska i pozadinu.</string>
@@ -1344,7 +1364,7 @@ Da li i dalje želite da nastavite?"</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Brza tura po funkcijama</string>
     <string name="tour_prompt_desc">Želite brzu turu po ključnim funkcijama Nivqo?</string>
-    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
+<!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Pokaži mi</string>
     <string name="onboarding_restart_title">Tura po funkcijama</string>
     <string name="onboarding_restart_desc">Vođeni obilazak ključnih funkcija</string>

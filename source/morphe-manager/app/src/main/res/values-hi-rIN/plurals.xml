@@ -107,13 +107,17 @@
         <item quantity="one">%s कोर</item>
         <item quantity="other">%s कोर</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s नया</item>
-        <item quantity="other">%s नए</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s सुविधा</item>
+        <item quantity="other">%s सुविधाएँ</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s सुधार</item>
         <item quantity="other">%s सुधार</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s अनुकूलन</item>
+        <item quantity="other">%s अनुकूलन</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s बदलाव</item>
@@ -122,5 +126,13 @@
     <plurals name="changelog_new_releases">
         <item quantity="one">%s नई रिलीज़</item>
         <item quantity="other">%s नई रिलीज़ें</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d लिंक सक्षम किया गया</item>
+        <item quantity="other">%d लिंक सक्षम किए गए</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d असत्यापित लिंक</item>
+        <item quantity="other">%d असत्यापित लिंक</item>
     </plurals>
 </resources>

@@ -1336,7 +1336,7 @@ internal fun MainAppsSection(
                                 animationSpec = tween(150),
                                 label = "fade_bottom_alpha"
                             )
-                            if (showFadeOverlay && (topAlpha > 0f || bottomAlpha > 0f)) {
+                            if (showFadeOverlay) {
                                 val bgColor = MaterialTheme.colorScheme.background
                                 val fadePx = with(LocalDensity.current) { 8.dp.toPx() } // Fade size
                                 Box(

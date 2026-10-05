@@ -21,18 +21,18 @@
     <string name="android_11_bug_dialog_description">Permisiunea de instalare a aplicației trebuie acordată în avans pentru a evita o problemă în sistemul Android 11 care poate afecta negativ experiența utilizatorului</string>
     <string name="deep_link_add_source_title">Adaugă sursă</string>
     <string name="deep_link_add_source_message">Dorești să adaugi această sursă de patch la Nivqo?</string>
-    <string name="deep_link_add_source_warning">Adaugă numai surse în care ai încredere</string>
+<string name="deep_link_add_source_warning">Adaugă numai surse în care ai încredere</string>
     <!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Actualizare Nivqo disponibilă</string>
-    <string name="home_update_available_subtitle">Versiune nouă pregătită pentru instalare</string>
+<string name="home_update_available_subtitle">Versiune nouă pregătită pentru instalare</string>
     <string name="home_blocked_source_title">Sursă de patch blocată detectată</string>
     <string name="home_blocked_source_subtitle">Atingeți pentru a revizui și elimina</string>
     <string name="home_metadata_errors_title">Unele surse de patch-uri sunt indisponibile</string>
     <string name="home_metadata_errors_subtitle">Atinge pentru a revizui sursele</string>
     <string name="home_outdated_manager_title">Nivqo este învechit</string>
-    <string name="home_outdated_manager_subtitle">Unele surse de patch-uri necesită o versiune mai nouă</string>
+<string name="home_outdated_manager_subtitle">Unele surse de patch-uri necesită o versiune mai nouă</string>
     <string name="home_held_back_title">O sursă de patch-uri a cauzat prăbușirea Nivqo</string>
-    <string name="home_held_back_subtitle">A fost omisă pentru ca aplicația să poată porni. Atingeți pentru a examina.</string>
+<string name="home_held_back_subtitle">A fost omisă pentru ca aplicația să poată porni. Atingeți pentru a examina.</string>
     <string name="home_metered_skipped_title">Actualizările sunt întrerupte pe date mobile</string>
     <string name="home_metered_skipped_subtitle">Atingeți pentru a permite actualizări pe date mobile</string>
     <string name="home_repatch_available_subtitle">Atinge pentru a le pune pe toate în coadă</string>
@@ -50,9 +50,9 @@
     <string name="home_app_filter_all_description">Fiecare aplicație de pe ecranul de pornire</string>
     <string name="home_app_filter_patched_description">Aplicațiile pe care le-ai patch-uit sau salvat cu Nivqo</string>
     <string name="home_app_filter_not_patched_description">Aplicațiile pe care nu le-ai patch-uit încă în Nivqo</string>
-    <string name="home_app_filter_installed_description">Aplicații instalate în prezent pe acest dispozitiv</string>
+<string name="home_app_filter_installed_description">Aplicații instalate în prezent pe acest dispozitiv</string>
     <string name="home_app_filter_uninstalled_description">Aplicații patch-uite cu Nivqo care nu mai sunt pe acest dispozitiv</string>
-    <string name="home_app_filter_clones">Clone</string>
+<string name="home_app_filter_clones">Clone</string>
     <string name="home_app_filter_clones_description">Aplicații create sub un nume de pachet propriu, instalate alături de original</string>
     <string name="home_app_sort_manual_description">Apăsați lung pe o aplicație, apoi atingeți butonul de reordonare</string>
     <string name="home_app_sort_recommended">Ordinare recomandată</string>
@@ -160,9 +160,9 @@
     <string name="sources_management_metadata_unavailable_hint_missing">Pachetul de corecție nu a putut fi descărcat. URL-ul sursă poate fi incorect sau fișierul nu există</string>
     <string name="sources_management_outdated_manager_badge">Actualizează Nivqo</string>
     <string name="sources_management_outdated_manager_hint">Această sursă este construită pentru patcherul %1$s, însă Nivqo %2$s include patcherul %3$s. Actualizează Nivqo pentru a-l folosi</string>
-    <string name="sources_management_held_back_badge">A cauzat prăbușirea</string>
+<string name="sources_management_held_back_badge">A cauzat prăbușirea</string>
     <string name="sources_management_held_back_hint">Această sursă a cauzat prăbușirea Nivqo în timpul încărcării. Actualizați-o sau reimportați-o pentru a încerca din nou.</string>
-    <string name="sources_management_source_enabled">Sursă activată</string>
+<string name="sources_management_source_enabled">Sursă activată</string>
     <string name="sources_management_source_disabled">Sursă dezactivată</string>
     <string name="sources_management_source_updating">Se actualizează sursa</string>
     <!-- Home Screen - Sources Dialogs -->
@@ -195,7 +195,7 @@
     <string name="sources_dialog_community_notice_message">"Sursele de patch-uri comunitare sunt create și întreținute de propriii autori. Nivqo nu verifică sau validează patch-urile terțe și nu este responsabil pentru conținutul lor sau pentru ceea ce fac pe dispozitivul tău.
 
 Orice adaugi de pe acest site este folosit pe propriul risc."</string>
-    <string name="sources_update_success">Actualizare reușită</string>
+<string name="sources_update_success">Actualizare reușită</string>
     <string name="sources_update_unavailable">Nu există actualizări disponibile</string>
     <string name="sources_download_fail">Eroare la descărcarea surselor: %s</string>
     <string name="sources_download_fail_named">\"%s\" nu a putut fi actualizat. Verificați conexiunea la internet și încercați din nou</string>
@@ -215,16 +215,16 @@ Orice adaugi de pe acest site este folosit pe propriul risc."</string>
     <string name="home_apk_helper_download">Utilizați o aplicație de asistență</string>
     <string name="home_apk_helper_title">Descărcare cu o aplicație de asistență</string>
     <string name="home_apk_helper_description">Nivqo va solicita aplicației de asistență de mai jos să descarce APK-ul original și să returneze fișierul</string>
-    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+<!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">Deschide asistentul</string>
     <string name="home_apk_helper_warning">Continuă numai dacă ai încredere în această aplicație auxiliară. Nivqo verifică pachetul, versiunea și semnătura oricărui element primit înainte de aplicarea modificărilor</string>
-    <string name="home_apk_helper_warning_unverified">Continuă numai dacă ai încredere în această aplicație auxiliară. Nivqo nu poate verifica semnătura acestui APK, astfel încât un fișier modificat nu ar fi detectat</string>
-    <string name="home_apk_helper_no_result">Aplicația auxiliară nu a returnat un APK</string>
+<string name="home_apk_helper_warning_unverified">Continuă numai dacă ai încredere în această aplicație auxiliară. Nivqo nu poate verifica semnătura acestui APK, astfel încât un fișier modificat nu ar fi detectat</string>
+<string name="home_apk_helper_no_result">Aplicația auxiliară nu a returnat un APK</string>
     <string name="home_apk_helper_no_access">Aplicația auxiliară nu a acordat acces la APK-ul returnat</string>
     <string name="home_apk_helper_no_package">Aplicația de ajutor nu a precizat ce aplicație instalată să folosească</string>
     <string name="home_apk_helper_wrong_package">Aplicația de ajutor a returnat o aplicație diferită de cea care este modificată</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo nu a putut utiliza aplicația instalată</string>
-    <string name="home_apk_helper_installed_incompatible">Versiunea instalată nu poate fi modificată</string>
+<string name="home_apk_helper_installed_incompatible">Versiunea instalată nu poate fi modificată</string>
     <string name="home_apk_use_saved">Utilizează APK salvat</string>
     <string name="home_apk_use_installed">Utilizează APK instalat</string>
     <string name="home_apk_use_saved_unsupported">The patches do not support this saved copy. Patching it will ask you to confirm, or pick another APK</string>
@@ -232,7 +232,7 @@ Orice adaugi de pe acest site este folosit pe propriul risc."</string>
     <string name="home_unverified">Neverificat</string>
     <string name="home_install_verification_pending">Verificare instalare…</string>
     <string name="home_app_info_install_unverified">Nivqo nu poate confirma că aplicația instalată este versiunea pe care a patch-uit-o. Patch-uiește din nou sau reinstaleaz-o din fișierul APK salvat pentru a-i restaura acțiunile</string>
-    <string name="home_app_info_no_saved_apk">Niciun APK salvat. Patch-uirea necesită selectarea APK-ului din nou</string>
+<string name="home_app_info_no_saved_apk">Niciun APK salvat. Patch-uirea necesită selectarea APK-ului din nou</string>
     <string name="home_version_requires_android">Necesită Android %s+</string>
     <string name="home_apk_no_compatible_versions_title">Nu este suportat pe acest dispozitiv</string>
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; nu are versiuni suportate pentru Android %2$s (API %3$s). Toate versiunile declarate necesită o versiune Android mai mare</string>
@@ -245,7 +245,7 @@ Orice adaugi de pe acest site este folosit pe propriul risc."</string>
     <string name="home_download_instructions_step2_variant">Derulează în josul paginii web și apasă butonul de descărcare al &lt;b&gt;variantei APK&lt;/b&gt; din partea de sus</string>
     <string name="home_download_instructions_step2_search">Deschide un rezultat de căutare de pe un site web de încredere</string>
     <string name="home_download_instructions_step2_search_note">Nivqo nu poate garanta pentru aceste site-uri web. Evită-le pe cele care oferă propriul magazin de aplicații în loc de un fișier APK</string>
-    <string name="home_download_instructions_step3_search">Pe site-ul respectiv, descarcă APK-ul versiunii &lt;b&gt;%s&lt;/b&gt;, nu pe cea mai nouă</string>
+<string name="home_download_instructions_step3_search">Pe site-ul respectiv, descarcă APK-ul versiunii &lt;b&gt;%s&lt;/b&gt;, nu pe cea mai nouă</string>
     <string name="home_download_instructions_step3_search_any">Pe site-ul respectiv, descarcă APK-ul aplicației. &lt;b&gt;Orice versiune&lt;/b&gt; poate fi patch-uită</string>
     <string name="home_download_instructions_download_button_toast">Apasă butonul pe site, nu aici 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Excelent! Acum apasă pe continuare și mergi pe site-ul web 👆</string>
@@ -253,12 +253,14 @@ Orice adaugi de pe acest site este folosit pe propriul risc."</string>
     <string name="home_download_instructions_download_button_toast_4">Încă nu ești aici… încă nu ești aici… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">Bine, respect dedicarea 🫡</string>
     <string name="home_download_instructions_download_button_toast_6">Acum ești un tester oficial Nivqo 🏅</string>
-    <string name="home_download_instructions_step3">Așteaptă ca descărcarea să se finalizeze, și &lt;b&gt;nu instala&lt;/b&gt; APK-ul</string>
+<string name="home_download_instructions_step3">Așteaptă ca descărcarea să se finalizeze, și &lt;b&gt;nu instala&lt;/b&gt; APK-ul</string>
     <string name="home_download_instructions_step3_mount">Așteaptă ca descărcarea să se finalizeze, și &lt;b&gt;instalează&lt;/b&gt; APK-ul</string>
     <string name="home_download_instructions_step4">După ce descărcarea se termină, revino la Nivqo</string>
     <string name="home_download_instructions_step4_mount">După instalarea APK-ului original, revino la Nivqo</string>
-    <string name="home_download_instructions_continue_to">Continuă la %s</string>
+<string name="home_download_instructions_continue_to">Continuă la %s</string>
     <string name="home_download_instructions_destination">pagina de descărcare</string>
+    <string name="home_download_instructions_copy_link">Copiază linkul</string>
+    <string name="home_download_instructions_link_copied">Link copiat</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_file_picker_prompt_title">Selectează APK-ul descărcat</string>
     <string name="home_file_picker_prompt_description">Selectează fișierul APK &lt;b&gt;%s&lt;/b&gt; pe care tocmai l-ai descărcat</string>
@@ -275,6 +277,7 @@ Orice adaugi de pe acest site este folosit pe propriul risc."</string>
     <string name="home_installed_app_picker_filter_system">Doar aplicații de sistem</string>
     <string name="home_invalid_apk_unreadable">Nu s-a putut citi fișierul. Verificați dacă \'Stocare Externă\' nu este restricționată de baterie</string>
     <string name="home_invalid_apk_not_an_apk">Fișierul selectat nu este un APK valid</string>
+    <string name="home_invalid_apk_already_patched">APK-ul selectat este deja patchuit. Selectați în schimb aplicația originală</string>
     <string name="home_invalid_apk_io_error">Nu s-a putut deschide fișierul. Vă rugăm încercați din nou</string>
     <string name="home_external_apk_expert_mode_required">Această funcție este disponibilă doar în modul Expert</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
@@ -368,6 +371,7 @@ Pentru cele mai bune rezultate, această aplicație recomandă patch-uirea unui 
     <string name="adaptive_icon_create">Creează iconiță adaptivă</string>
     <string name="adaptive_icon_select_image">Selectează imagine</string>
     <string name="adaptive_icon_change_image">Schimbă imagine</string>
+    <string name="image_load_failed">Nu s-a putut încărca această imagine</string>
     <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
     <string name="adaptive_icon_foreground">Imagine de prim-plan</string>
     <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
@@ -473,7 +477,21 @@ Zona exterioară (întreruptă): poate fi decupată de masca lansatorului - păs
     <string name="home_app_info_version_move">Instalat: %1$s, cea mai nouă versiune suportată: %2$s</string>
     <string name="home_app_info_app_deleted_warning">Aplicația a fost dezinstalată</string>
     <string name="home_app_info_app_deleted_description">Această aplicație a fost dezinstalată în afara Nivqo. Aplica-o din nou pentru a restabili funcționalitatea</string>
-    <string name="home_app_info_not_patched_description">O versiune necorectată a acestei aplicații este instalată. Nivqo încă are înregistrarea anterioară a corecțiilor sale.</string>
+<string name="home_app_info_not_patched_description">O versiune necorectată a acestei aplicații este instalată. Nivqo încă are înregistrarea anterioară a corecțiilor sale.</string>
+<string name="app_links_title">Linkuri web acceptate</string>
+    <string name="app_links_description">Pe Android 12+, linkurile către domeniile acceptate se deschid implicit în browserul dvs., cu excepția cazului în care acestea sunt aprobate</string>
+    <string name="app_links_unverified_banner_title">Linkuri web neverificate</string>
+    <string name="app_links_unverified_banner_description">Linkurile web acceptate se deschid în prezent în browserul dvs., în locul acestei aplicații</string>
+    <string name="app_links_enable_auto">Activați automat</string>
+    <string name="app_links_enable_auto_in_progress">Se activează linkurile…</string>
+    <string name="app_links_open_settings">Deschideți setările pentru linkuri</string>
+    <string name="app_links_repair_success">Linkurile aplicației au fost activate cu succes</string>
+    <string name="app_links_repair_failed">Nu s-a reușit activarea automată a linkurilor aplicației</string>
+    <string name="app_links_badge_enabled">Activat</string>
+    <string name="app_links_badge_disabled">Dezactivat</string>
+    <string name="app_links_all_verified">Toate linkurile acceptate sunt configurate să se deschidă în această aplicație</string>
+    <string name="app_links_fix">Repară linkurile</string>
+    <string name="configure">Configurează</string>
     <string name="patcher_rename_title">Aceasta va instala o clonă</string>
     <string name="patcher_rename_description">Patch-urile au construit această aplicație sub un nume de pachet propriu, așa că instalarea acesteia adaugă o clonă alături de &lt;b&gt;%s&lt;/b&gt; în loc să o actualizeze.</string>
     <string name="patcher_rename_result_package">Se va instala ca</string>
@@ -487,7 +505,7 @@ Zona exterioară (întreruptă): poate fi decupată de masca lansatorului - păs
     <string name="root_pre_patch_installer_mount_title">Mod de montare root</string>
     <string name="root_pre_patch_installer_mount_description">Patch-uri pentru montare root, apoi montează APK-ul peste aplicația stock corespunzătoare. Nu este necesar GmsCore</string>
     <string name="root_mount_module_unmount_warning">Dacă KernelSU are modulul Deconectare module activat implicit, deschide KernelSU &gt; Superuser &gt; aplicația montată &gt; Profil &gt; Personalizat și dezactivează Deconectare module. Altfel, fișierul APK patch-uit montat s-ar putea să nu aibă efect, chiar dacă Nivqo îl afișează ca fiind montat</string>
-    <string name="root_pre_patch_installer_standard_title">Mod de instalare standard</string>
+<string name="root_pre_patch_installer_standard_title">Mod de instalare standard</string>
     <string name="root_pre_patch_installer_standard_description">Patch-uri ca un APK normal cu suport GmsCore. Setarea de instalare este folositã dupã aplicarea patch-ului.</string>
     <string name="root_pre_patch_installer_hint">Acest mod de patch este separat de Settings &gt; System &gt; Installer şi nu poate fi modificat dupã aplicarea patch-ului.</string>
     <!-- Patcher Screen -->
@@ -539,6 +557,7 @@ Zona exterioară (întreruptă): poate fi decupată de masca lansatorului - păs
     <string name="patcher_failed_title">Ups! Ceva nu a mers bine</string>
     <string name="patcher_failed_dialog_title">Aplicarea patch-ului a eșuat</string>
     <string name="patcher_error_details">Detalii eroare</string>
+    <string name="patcher_change_patches">Schimbă patch-urile</string>
     <string name="patcher_unknown_error">A apărut o eroare necunoscută</string>
     <string name="patcher_split_step_extracting">Extragerea fișierelor APK divizate</string>
     <string name="patcher_split_step_merging">Îmbinarea %s</string>
@@ -551,7 +570,7 @@ Zona exterioară (întreruptă): poate fi decupată de masca lansatorului - păs
     <string name="patcher_installed_conflict_body">"Nivqo semnează aplicațiile modificate cu propriul certificat, care diferă de cel original. Android necesită eliminarea versiunii existente înainte ca aplicația modificată să poată fi instalată.
 
 Dezinstalarea va șterge definitiv toate datele aplicației."</string>
-    <string name="patcher_install_error_title">Eroare la instalare</string>
+<string name="patcher_install_error_title">Eroare la instalare</string>
     <string name="patcher_install_error_subtitle">Încearcă să dezinstalezi și să instalezi din nou</string>
     <string name="patcher_ready_to_mount_subtitle">Apăsați butonul de mai jos pentru a monta</string>
     <string name="patcher_patches_excluded_for_installer">Nu este disponibil pentru această metodă de instalare și exclus: %s</string>
@@ -559,9 +578,8 @@ Dezinstalarea va șterge definitiv toate datele aplicației."</string>
     <string name="patcher_storage_permission_dialog_title">Nu se poate accesa calea de stocare</string>
     <string name="patcher_incompatible_patcher_title">Actualizare necesară</string>
     <string name="patcher_incompatible_patcher_description">Pachetul &lt;b&gt;%1$s&lt;/b&gt; necesită versiunea patcher-ului &lt;b&gt;%2$s&lt;/b&gt; sau mai nouă. Vă rugăm să actualizați Nivqo pentru a aplica patch la această aplicație</string>
-    <string name="patcher_incompatible_patcher_update_button">Descărcă și actualizează Nivqo</string>
-    <string name="patcher_storage_permission_description_api30">Una sau mai multe opțiuni de patch indică către căi pe care Nivqo nu le poate citi. Acordă acces la stocare și atinge butonul, apoi patch-uirea va începe automat</string>
-    <string name="patcher_storage_permission_description_legacy">Una sau mai multe opțiuni de patch indică căi de stocare care nu pot fi accesate. Actualizați căile în opțiunile de patch și încercați din nou</string>
+<string name="patcher_storage_permission_description_api30">Una sau mai multe opțiuni de patch indică către căi pe care Nivqo nu le poate citi. Acordă acces la stocare și atinge butonul, apoi patch-uirea va începe automat</string>
+<string name="patcher_storage_permission_description_legacy">Una sau mai multe opțiuni de patch indică căi de stocare care nu pot fi accesate. Actualizați căile în opțiunile de patch și încercați din nou</string>
     <string name="patcher_storage_permission_grant">Acordați permisiunea de stocare</string>
     <string name="patcher_storage_permission_denied_warning">Permisiunea de stocare a fost refuzată. Acordați permisiunea pentru a utiliza acest drum, sau mutați fișierul în directorul privat al aplicației</string>
     <string name="patcher_storage_permission_open_settings">Deschide setările de stocare</string>
@@ -575,7 +593,7 @@ Dezinstalarea va șterge definitiv toate datele aplicației."</string>
     <string name="patcher_option_paths_gone_description">Una sau mai multe opțiuni de patch indică fișiere care nu mai există. Eliminați căile pentru a aplica patch-uri fără ele sau puneți la loc fișierele și încercați din nou</string>
     <string name="patcher_option_paths_clear">Eliminați căile și continuați</string>
     <string name="patcher_storage_permission_hint">Sugestie: Mută fișierul în /Android/data/app.nivqo.manager/files/ - nu sunt necesare alte permisiuni</string>
-    <!-- Patcher Screen - Patcher Steps -->
+<!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Pregătire</string>
     <string name="patcher_step_load_patches">Se încarcă modificările</string>
     <string name="patcher_step_prepare_split_apk">Concatenează APK-uri</string>
@@ -587,7 +605,7 @@ Dezinstalarea va șterge definitiv toate datele aplicației."</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Protecție la patch-uri în fundal</string>
     <string name="battery_optimization_dialog_description">Unele dispozitive pot opri patcher-ul când aplicația este minimizată. Permiteți aplicației Nivqo să ruleze fără restricții de baterie pentru a asigura finalizarea fiabilă a patch-urilor</string>
-    <string name="battery_optimization_not_now">Nu acum</string>
+<string name="battery_optimization_not_now">Nu acum</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">Memorie insuficientă</string>
     <string name="patcher_memory_adjustment_description">Patcher-ul a fost oprit de sistem în timp ce rula cu o limită de memorie de %1$d MB. Scăderea limitei la %2$d MB face din patcher o țintă mai mică și poate permite finalizarea rulării.</string>
@@ -644,8 +662,8 @@ Dezinstalarea va șterge definitiv toate datele aplicației."</string>
     <string name="install_ignore_signature_description">Păstrează datele aplicației, dar funcționează doar dacă un modul root dezactivează verificarea semnăturii Android</string>
     <string name="uninstall_app_fail">Eșuat la dezinstalarea aplicației: %s</string>
     <string name="uninstall_app_unverified">Rămas instalat: Nivqo nu a putut verifica că aplicația instalată este build-ul pe care l-a patch-uit</string>
-    <string name="launch_app_unverified">Nivqo nu a putut verifica că aplicația instalată este build-ul pe care l-a patch-uit</string>
-    <string name="uninstall_timeout">Depășirea limitei de timp pentru dezinstalare</string>
+<string name="launch_app_unverified">Nivqo nu a putut verifica că aplicația instalată este build-ul pe care l-a patch-uit</string>
+<string name="uninstall_timeout">Depășirea limitei de timp pentru dezinstalare</string>
     <string name="save_apk_success">APK salvat</string>
     <string name="saved_app_export_failed">Nu s-a putut exporta aplicația modificată</string>
     <string name="saved_app_removed_toast">Aplicație modificată salvată eliminată</string>
@@ -755,7 +773,7 @@ Dezinstalarea va șterge definitiv toate datele aplicației."</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Pictogramă aplicație</string>
     <string name="settings_appearance_app_icon_selector_description">Cum arată Nivqo pe ecranul de pornire și în sertarul de aplicații</string>
-    <string name="settings_appearance_app_icon_default">Implicit</string>
+<string name="settings_appearance_app_icon_default">Implicit</string>
     <string name="settings_appearance_app_icon_light_2">Cer</string>
     <string name="settings_appearance_app_icon_light_3">Amurg</string>
     <string name="settings_appearance_app_icon_dark_1">Ocean</string>
@@ -771,14 +789,14 @@ Dezinstalarea va șterge definitiv toate datele aplicației."</string>
     <string name="settings_advanced_updates_manager_prereleases">Actualizări pre-lansare</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <string name="settings_advanced_updates_manager_prereleases_description">Acces timpuriu la noile versiuni Nivqo</string>
-    <string name="settings_advanced_updates_prerelease_warning_title">Activezi actualizările pre-lansare?</string>
+<string name="settings_advanced_updates_prerelease_warning_title">Activezi actualizările pre-lansare?</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
     <string name="settings_advanced_updates_prerelease_warning_message">"Pre-release versions of Nivqo are still in development and can be unstable.
 
 Patches are not affected: enable pre-release patches for each source in the patch sources list"</string>
-    <string name="settings_advanced_updates_allow_metered">Actualizări de date mobile</string>
+<string name="settings_advanced_updates_allow_metered">Actualizări de date mobile</string>
     <string name="settings_advanced_updates_allow_metered_description">Permite aplicației Nivqo și actualizărilor de patch-uri să se descarce prin date mobile</string>
-    <string name="settings_advanced_updates_background_notifications">Notificări de actualizări în fundal</string>
+<string name="settings_advanced_updates_background_notifications">Notificări de actualizări în fundal</string>
     <string name="settings_advanced_updates_background_notifications_description">Verifică periodic pentru actualizări în fundal și notifică când sunt disponibile</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Primește notificări push instantanee pentru noile versiuni, chiar și când aplicația este închisă</string>
     <string name="settings_system_notifications_categories">Categorii de notificări</string>
@@ -795,27 +813,27 @@ Patches are not affected: enable pre-release patches for each source in the patc
     <string name="settings_advanced_external_batch_patch_description">Permite aplicațiilor de automatizare să înceapă aplicarea de patch-uri în lot printr-un intent.</string>
     <string name="external_batch_patch_title">Începe aplicarea patch-urilor în masă?</string>
     <string name="external_batch_patch_description">%s dorește ca Nivqo să aplice patch-uri și să instaleze aplicații</string>
-    <string name="external_batch_patch_trust_caller">Permite întotdeauna această aplicație</string>
+<string name="external_batch_patch_trust_caller">Permite întotdeauna această aplicație</string>
     <string name="external_batch_patch_unknown_caller">O aplicație necunoscută</string>
     <!-- Notification content -->
     <string name="notification_manager_update_title">Actualizare Nivqo disponibilă</string>
-    <string name="notification_bundle_update_title">Există actualizări disponibile</string>
+<string name="notification_bundle_update_title">Există actualizări disponibile</string>
     <string name="notification_update_text">Versiunea %s este gata de descărcare</string>
     <string name="notification_bundle_update_text_unversioned">Apasă pentru a deschide Nivqo și a actualiza</string>
-    <string name="notification_permission_dialog_title">Permite notificări</string>
+<string name="notification_permission_dialog_title">Permite notificări</string>
     <string name="notification_permission_dialog_description">Nivqo are nevoie de permisiunea de notificare pentru a te avertiza când sunt disponibile actualizări în fundal</string>
-    <string name="notification_post_patch_dialog_title">Doriți să fiți notificați când sunt disponibile actualizări?</string>
+<string name="notification_post_patch_dialog_title">Doriți să fiți notificați când sunt disponibile actualizări?</string>
     <string name="notification_channel_manager_updates">Actualizări Nivqo</string>
     <string name="notification_channel_manager_updates_description">Notificări despre noile lansări Nivqo</string>
-    <string name="notification_channel_patch_updates">Actualizări de patch</string>
+<string name="notification_channel_patch_updates">Actualizări de patch</string>
     <string name="notification_channel_patch_updates_description">Notificări despre noile lansări de patch</string>
     <string name="notification_channel_patcher">Se aplică patch-uri</string>
     <string name="notification_channel_patcher_description">Afișate în timp ce Nivqo aplică un patch unei aplicații în fundal</string>
-    <!-- Settings - Advanced Tab - Expert settings Section -->
+<!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Setări expert</string>
     <string name="settings_advanced_expert_mode">Mod expert</string>
     <string name="settings_advanced_expert_mode_description">Activează setările complexe de patch-uire Nivqo și opțiunile de personalizare</string>
-    <string name="settings_advanced_expert_mode_dialog_title">Vrei sâ activezi modul expert?</string>
+<string name="settings_advanced_expert_mode_dialog_title">Vrei sâ activezi modul expert?</string>
     <string name="settings_advanced_expert_mode_dialog_message">Modul expert oferâ mai mult control asupra modului cum pateâturile sunt aplicaâ, dar o configurare greşită a setârilor poate duce la o aplicaâ nefuncțională</string>
     <string name="settings_advanced_strip_unused_libs">Optimize pentru arhitectura dispozitivului</string>
     <string name="settings_advanced_strip_unused_libs_description">Elimină bibliotecile arhitecturii CPU neutilizate și modulele APK împărțite</string>
@@ -831,7 +849,7 @@ Patches are not affected: enable pre-release patches for each source in the patc
     <string name="settings_advanced_github_pat_export_include_label">Include în exportul setărilor</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_include_supporting">Adaugă acest PAT la setările Nivqo exportate</string>
-    <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
+<!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">Nu partaja PAT-ul tău. Dacă îl incluzi într-un export de setări, păstrează acel fișier privat, deoarece conține jetonul</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
     <string name="settings_advanced_patch_options">Opțiuni de patch-uire</string>
@@ -928,7 +946,7 @@ Dimensiunile imaginilor trebuie să fie următoarele:
     <string name="installer_status_shizuku_not_installed">Instalează Shizuku sau Sui pentru a folosi această opțiune</string>
     <string name="installer_status_shizuku_not_running">Pornește Shizuku sau Sui și încearcă din nou</string>
     <string name="installer_status_shizuku_permission">Acordă permisiune aplicației Nivqo din aplicația Shizuku</string>
-    <string name="installer_mount_warning_install">Instalatorul principal setat la instalatorul montat radical. Această aplicație salvată nu a fost instalată folosind montaj</string>
+<string name="installer_mount_warning_install">Instalatorul principal setat la instalatorul montat radical. Această aplicație salvată nu a fost instalată folosind montaj</string>
     <string name="mount_version_mismatch_message">Versiunea aplicației de bază (%2$s) nu se potrivște cu versiunea aplicației patate (%1$s). Montează versiunea de bază potrivită, apoi reîncercați</string>
     <string name="mount_stock_restore_failed_message">Android a respins APK-ul original salvat. Instaleazã versiunea implicitã corespunzãtoare, apoi încercã din nou Montare.</string>
     <string name="installer_status_shizuku_unsupported">Versiunea Shizuku instalată nu este suportată</string>
@@ -958,7 +976,7 @@ Dimensiunile imaginilor trebuie să fie următoarele:
     <string name="settings_auto_uninstall_with_shizuku_description">Când se instalează automat cu Shizuku, dezinstalează mai întâi aplicația existentă dacă Android raportează un conflict de semnătură. Acest lucru poate elimina datele aplicației.</string>
     <string name="settings_auto_uninstall_warning_title">Activează dezinstalarea automată?</string>
     <string name="settings_auto_uninstall_warning_message">Dacă Android raportează un conflict de semnătură în timpul instalării automate Shizuku, Nivqo va dezinstala aplicația existentă înainte de a instala fișierul APK modificat.</string>
-    <string name="settings_auto_uninstall_warning_risk">Acest lucru poate elimina datele aplicației. Dacă fișierul APK modificat nu se instalează după dezinstalare, este posibil ca aplicația anterioară să nu mai existe.</string>
+<string name="settings_auto_uninstall_warning_risk">Acest lucru poate elimina datele aplicației. Dacă fișierul APK modificat nu se instalează după dezinstalare, este posibil ca aplicația anterioară să nu mai existe.</string>
     <string name="installer_shizuku_status_action">Verifică starea Shizuku</string>
     <string name="installer_shizuku_status_title">Starea Shizuku</string>
     <string name="installer_shizuku_status_ready">Pregătit</string>
@@ -976,7 +994,7 @@ Dimensiunile imaginilor trebuie să fie următoarele:
 
 Detalii: %2$s"</string>
     <string name="installer_shizuku_error_permission">Permisiunea Shizuku lipsește. Acordă permisiune aplicației Nivqo și încearcă din nou.</string>
-    <string name="installer_shizuku_error_timeout">Shizuku nu a returnat un rezultat de instalare. Asigură-te că rulează încă și încearcă din nou.</string>
+<string name="installer_shizuku_error_timeout">Shizuku nu a returnat un rezultat de instalare. Asigură-te că rulează încă și încearcă din nou.</string>
     <string name="installer_shizuku_error_downgrade">Android a blocat această acțiune deoarece ar face o retrogradare a aplicației instalate.</string>
     <string name="installer_shizuku_error_signature">Android a blocat această acțiune deoarece aplicația instalată are o semnătură diferită.</string>
     <string name="installer_shizuku_error_invalid_apk">Android nu a putut citi acest fișier APK.</string>
@@ -991,7 +1009,7 @@ Detalii: %2$s"</string>
     <string name="settings_system_process_runtime_enable">Activează proces runtime</string>
     <string name="settings_system_memory_limit_subtitle">Memorie disponibilă pentru patachizare</string>
     <string name="settings_system_process_runtime_heap_limit_ignored">Acest dispozitiv a ignorat limita de memorie la ultima rulare, așa că patch-urile ar putea recurge la rularea în interiorul Nivqo.</string>
-    <string name="settings_system_memory_limit_warning">O limită memorie joasă poate cauza eșecuri când patachizați aplicații mai mari</string>
+<string name="settings_system_memory_limit_warning">O limită memorie joasă poate cauza eșecuri când patachizați aplicații mai mari</string>
     <string name="settings_system_memory_limit_high_warning">O limită mare de memorie poate face aplicarea de patch-uri mult mai lentă pe unele dispozitive. Măriți-o doar dacă aplicarea de patch-uri continuă să eșueze la limite mici.</string>
     <string name="settings_system_process_runtime_enabled_description">Limită %s MO</string>
     <string name="settings_system_process_runtime_disabled_description">Clic pentru a configura</string>
@@ -1014,8 +1032,8 @@ Detalii: %2$s"</string>
     <string name="settings_system_signing_key">Cheie de semnare</string>
     <string name="settings_system_signing_key_description">Creează copii de rezervă și restaurează cheia cu care sunt semnate aplicațiile patch-uite.</string>
     <string name="settings_system_signing_key_dialog_description">Fiecare aplicație pe care Nivqo o patch-uiește este semnată cu această cheie. Păstrează o copie: fără ea, aplicațiile patch-uite pot fi actualizate doar după dezinstalarea lor.</string>
-    <string name="settings_system_signing_key_missing">Nivqo creează una odată cu primul tău patch.</string>
-    <string name="settings_system_signing_key_created">Creată %s</string>
+<string name="settings_system_signing_key_missing">Nivqo creează una odată cu primul tău patch.</string>
+<string name="settings_system_signing_key_created">Creată %s</string>
     <string name="settings_system_signing_key_fingerprint">Amprenta SHA-256</string>
     <string name="settings_system_backup_appearance_description">Temă, culori și limbă</string>
     <string name="settings_system_backup_home_description">Grupuri, aplicații ascunse, sortare și comutatoare</string>
@@ -1039,10 +1057,10 @@ Detalii: %2$s"</string>
     <string name="settings_system_hide_password_field">Ascunde parolă</string>
     <string name="settings_system_morphe_settings">Setări Nivqo</string>
     <string name="settings_system_import_manager_settings_description">Realizează copii de rezervă și restaurează setările Nivqo</string>
-    <string name="settings_system_import_manager_settings_fail">Eșec la importarea setărilor Nivqo: %s</string>
+<string name="settings_system_import_manager_settings_fail">Eșec la importarea setărilor Nivqo: %s</string>
     <string name="settings_system_import_manager_settings_success">Setările Nivqo au fost importate</string>
     <string name="settings_system_import_manager_settings_mode_title">Importă setări Nivqo</string>
-    <string name="settings_system_import_manager_settings_mode_description">Alegeți modul în care setările și sursele importate trebuie aplicate</string>
+<string name="settings_system_import_manager_settings_mode_description">Alegeți modul în care setările și sursele importate trebuie aplicate</string>
     <string name="settings_system_import_selections_mode_title">Importă selecții de patch-uri</string>
     <string name="settings_system_import_selections_mode_description">Alegeți modul în care selecțiile și opțiunile de corecție importate ar trebui aplicate</string>
     <string name="import_mode_replace_title">Înlocuire existente</string>
@@ -1050,8 +1068,8 @@ Detalii: %2$s"</string>
     <string name="import_mode_merge_title">Combinare cu cele existente</string>
     <string name="import_mode_merge_description">Adăugare elemente lipsă din copia de rezervă. Elementele existente rămân neschimbate</string>
     <string name="settings_system_export_manager_settings_fail">A eșuat exportarea setărilor Nivqo: %s</string>
-    <string name="settings_system_export_manager_settings_success">Setările Nivqo au fost exportate</string>
-    <string name="settings_system_export_debug_logs">Exportare jurnale de depanare</string>
+<string name="settings_system_export_manager_settings_success">Setările Nivqo au fost exportate</string>
+<string name="settings_system_export_debug_logs">Exportare jurnale de depanare</string>
     <string name="settings_system_export_debug_logs_description">Salvează jurnalele de sistem pentru depanare</string>
     <string name="settings_system_export_debug_logs_export_read_failed">A eșuat citirea jurnalelor (cod de retur %s)</string>
     <string name="settings_system_export_debug_logs_export_failed">Eșec la exportarea jurnalelor</string>
@@ -1087,7 +1105,7 @@ Detalii: %2$s"</string>
     <string name="settings_system_storage_nothing_to_clear">Nimic de șters</string>
     <string name="settings_system_storage_open_app_info_title">Deschide stocarea aplicației Android</string>
     <string name="settings_system_storage_open_app_info_description">Gestionează sau șterge toate datele Nivqo prin setările sistemului</string>
-    <string name="settings_system_save_original_apks_title">Păstrează fișierele APK originale</string>
+<string name="settings_system_save_original_apks_title">Păstrează fișierele APK originale</string>
     <string name="settings_system_save_original_apks_description">Salvează fișierul APK pre-patch pentru a-l putea refolosi pentru repatch-uire fără a selecta din nou fișierul</string>
     <string name="settings_system_save_patched_apks_title">Păstrează fișierele APK patch-uite</string>
     <string name="settings_system_save_patched_apks_description">Salvează o copie a fișierului APK patch-uit pentru export ulterior sau reinstalare din manager</string>
@@ -1135,12 +1153,12 @@ Detalii: %2$s"</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Selector de fișiere personalizat</string>
     <string name="settings_system_custom_file_picker_description">Răsfoiește stocarea cu selectorul de fișiere integrat Nivqo în loc de cel implicit al sistemului</string>
-    <!-- Settings - System Tab - APK download helper -->
+<!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">Asistent descărcare APK</string>
     <string name="settings_system_apk_download_helper_trusted_count">De încredere: %1$d din %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Aplicațiile de ajutor pot descărca APK-uri originale pentru tine. Doar cele în care ai încredere aici sunt oferite în instrucțiunile de descărcare</string>
     <string name="settings_system_apk_download_helper_warning">APK-ul provine de la aplicația de ajutor, așa că ai încredere doar în aplicațiile pe care le cunoști. Nivqo verifică în continuare pachetul, versiunea și semnătura fiecărui fișier înainte de a aplica patch-ul</string>
-    <string name="settings_system_apk_download_helper_installed_by">Instalat de %s</string>
+<string name="settings_system_apk_download_helper_installed_by">Instalat de %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Instalator necunoscut</string>
     <!-- File Picker -->
     <string name="file_picker_no_files">Nu există fișiere aici</string>
@@ -1148,6 +1166,7 @@ Detalii: %2$s"</string>
     <string name="file_picker_internal_storage">Stocare internă</string>
     <string name="file_picker_sd_card">Card SD</string>
     <string name="file_picker_root">Rădăcină (/)</string>
+    <string name="file_picker_storages">Stocări</string>
     <string name="file_picker_sort_name_asc">Nume (A–Z)</string>
     <string name="file_picker_sort_name_desc">Nume (Z–A)</string>
     <string name="file_picker_sort_size_desc">Dimensiune (cea mai mare prima)</string>
@@ -1295,6 +1314,7 @@ Detalii: %2$s"</string>
     <string name="changelog_download_fail">Nu s-a putut descărca jurnalul de modificări: %s</string>
     <string name="changelog_empty">Nu există jurnale disponibile</string>
     <string name="changelog_earlier_releases">Versiuni anterioare</string>
+    <string name="changelog_patched_with">Patch aplicat cu %s</string>
     <string name="changelog_older_empty">Nu există versiuni mai vechi de afișat</string>
     <string name="changelog_older_failed">Nu s-au putut încărca versiunile mai vechi</string>
     <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
@@ -1323,7 +1343,7 @@ Detalii: %2$s"</string>
     <string name="install_update_manager_failed">Eroare la instalarea actualizării</string>
     <string name="installing_manager_update">Se instalează actualizarea...</string>
     <string name="installing_manager_update_hint">Nivqo se va închide pentru a finaliza actualizarea</string>
-    <string name="downloading_manager_update">Se descarcă actualizarea...</string>
+<string name="downloading_manager_update">Se descarcă actualizarea...</string>
     <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB descărcați</string>
     <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
@@ -1344,7 +1364,7 @@ Doriți totuși să continuați?"</string>
     <string name="onboarding_swipe_title">Gesturi de glisare</string>
     <string name="onboarding_swipe_desc">Glisează spre dreapta pe o carte de aplicație pentru a vedea patch-urile disponibile. Glisează spre stânga pentru a ascunde cardul de pe ecranul principal</string>
     <string name="onboarding_settings_desc">Personalizează Nivqo: aspect, opțiuni avansate și instrumente de sistem</string>
-    <string name="onboarding_sources_patches_desc">Atinge pentru a vedea toate patch-urile disponibile din această sursă</string>
+<string name="onboarding_sources_patches_desc">Atinge pentru a vedea toate patch-urile disponibile din această sursă</string>
     <string name="onboarding_sources_version_desc">Atinge versiunea pentru a vedea istoricul complet al modificărilor pentru această sursă</string>
     <string name="onboarding_sources_prerelease_desc">Activează această opțiune pentru a primi versiuni de patch-uri pre-lansare de la această sursă</string>
     <string name="onboarding_appearance_tab_desc">Personalizează aspectul aplicației: temă, culoare de accent și fundal</string>
@@ -1359,7 +1379,7 @@ Doriți totuși să continuați?"</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Tur rapid de prezentare</string>
     <string name="tour_prompt_desc">Dorești un tur rapid al funcțiilor cheie Nivqo?</string>
-    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
+<!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Arată-mi</string>
     <string name="onboarding_restart_title">Tur de prezentare</string>
     <string name="onboarding_restart_desc">Un tur ghidat al funcțiilor cheie</string>

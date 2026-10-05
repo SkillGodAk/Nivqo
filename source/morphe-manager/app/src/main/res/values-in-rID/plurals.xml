@@ -81,16 +81,25 @@
     <plurals name="core_count">
         <item quantity="other">%s inti</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="other">%s baru</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="other">%s fitur</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="other">%s perbaikan</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="other">%s optimasi</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="other">%s perubahan</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="other">%s rilis baru</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="other">%d tautan diaktifkan</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="other">%d tautan belum diverifikasi</item>
     </plurals>
 </resources>

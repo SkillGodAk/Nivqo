@@ -159,17 +159,23 @@
         <item quantity="many">%s ядер</item>
         <item quantity="other">%s ядер</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s нове</item>
-        <item quantity="few">%s нові</item>
-        <item quantity="many">%s нових</item>
-        <item quantity="other">%s нових</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s функція</item>
+        <item quantity="few">%s функції</item>
+        <item quantity="many">%s функцій</item>
+        <item quantity="other">%s функцій</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s виправлення</item>
         <item quantity="few">%s виправлення</item>
         <item quantity="many">%s виправлень</item>
         <item quantity="other">%s виправлень</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s оптимізація</item>
+        <item quantity="few">%s оптимізації</item>
+        <item quantity="many">%s оптимізацій</item>
+        <item quantity="other">%s оптимізацій</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s зміна</item>
@@ -182,5 +188,17 @@
         <item quantity="few">%s нові релізи</item>
         <item quantity="many">%s нових релізів</item>
         <item quantity="other">%s нових релізів</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d посилання увімкнено</item>
+        <item quantity="few">%d посилання увімкнено</item>
+        <item quantity="many">%d посилань увімкнено</item>
+        <item quantity="other">%d посилань увімкнено</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d непідтверджене посилання</item>
+        <item quantity="few">%d непідтверджені посилання</item>
+        <item quantity="many">%d непідтверджених посилань</item>
+        <item quantity="other">%d непідтверджених посилань</item>
     </plurals>
 </resources>

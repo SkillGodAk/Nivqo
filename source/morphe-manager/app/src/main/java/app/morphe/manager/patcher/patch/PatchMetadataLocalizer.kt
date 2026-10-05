@@ -303,9 +303,13 @@ object PatchMetadataLocalizer {
             "允許聊天泡泡",
             "提供原始模式、Chat Heads 與原生泡泡三種模式。原生泡泡需要 Android 11 以上、帳號支援與通知權限。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
+        "Hide joined community chats" to Zh(
+            "隱藏已加入的社群聊天",
+            "從主要收件匣隱藏已加入的社群聊天；搜尋與社群資料夾仍保留，訊息傳遞與未讀計數不受影響。下次重新顯示收件匣時套用。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
+        ),
         "Hide AI sticker tools" to Zh(
             "隱藏 AI 貼圖工具",
-            "隱藏 AI 產生貼圖分頁與 AI 貼圖建議。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
+            "隱藏 AI 貼圖的「產生」按鈕、產生貼圖分頁與 AI 貼圖建議。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide Chat Moments" to Zh(
             "隱藏 Chat Moments",
@@ -386,7 +390,7 @@ object PatchMetadataLocalizer {
 
         "Allow screenshots" to Zh(
             "允許截圖",
-            "允許截取 Messenger 在聊天中保護的照片、媒體與影片，並停止截圖通知。僅限查看一次的媒體仍受保護。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
+            "允許截取受保護的聊天媒體，包括僅限查看一次的媒體與 Quicksnap，並停止截圖通知；不會新增重新播放或儲存功能。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
         ),
         "Hide Meta AI" to Zh(
             "隱藏 Meta AI",

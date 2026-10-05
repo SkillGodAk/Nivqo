@@ -438,6 +438,31 @@ class HomeApps(
         .flowOn(Dispatchers.IO)
         .stateIn(scope, SharingStarted.Eagerly, null)
 
+    /**
+     * What the enabled bundles say about each app, and what every bundle does. The cards are
+     * rebuilt for every change to the apps and the preferences, while the bundles change far less
+     * often, so this is only walked again when they do. Read by [buildHomeAppState] alone, which
+     * runs one build at a time.
+     */
+    private var homeMetadata: Pair<Map<Int, PatchBundleInfo.Global>, HomeMetadata>? = null
+
+    private data class HomeMetadata(
+        val enabled: Map<String, BundleAppMetadata>,
+        /** Names only, for records whose bundle the user has since disabled. */
+        val all: Map<String, BundleAppMetadata>
+    )
+
+    private fun homeMetadataFor(
+        info: Map<Int, PatchBundleInfo.Global>,
+        enabledInfo: Map<Int, PatchBundleInfo.Global>
+    ): HomeMetadata {
+        homeMetadata?.takeIf { it.first === info }?.let { return it.second }
+        return HomeMetadata(
+            enabled = BundleAppMetadata.buildFrom(enabledInfo),
+            all = BundleAppMetadata.buildFrom(info)
+        ).also { homeMetadata = info to it }
+    }
+
     /** The home cards for [inputs], or the cached ones while the bundles load. */
     private suspend fun buildHomeAppState(inputs: HomeInputs): HomeAppState? {
         val (homeBundle, homePrefs, installedApps, updatesMap, trackedSnapshots) = inputs
@@ -446,9 +471,7 @@ class HomeApps(
             ?: return cachedHomeCards?.toState(installedApps, homePrefs)
 
         val enabledInfo = ready.info.filter { (_, info) -> info.enabled }
-        val metadata = BundleAppMetadata.buildFrom(enabledInfo)
-        // Names only, for records whose bundle the user has since disabled
-        val allMetadata = BundleAppMetadata.buildFrom(ready.info)
+        val (metadata, allMetadata) = homeMetadataFor(ready.info, enabledInfo)
         val appsBySource = enabledInfo.mapValues { (_, info) -> info.appsBrought(keptFrom) }
         val packages = appsBySource.values.flatMapTo(mutableSetOf()) { it }
         val sourceGroups = buildHomeAppSourceGroups(
@@ -460,7 +483,6 @@ class HomeApps(
             expandedSourceGroups = homePrefs.expandedSourceGroups
         )
 
-        val recordsByApp = installedApps.groupBy { it.originalPackageName }
         // One query for installed packages instead of one per card
         val installedPackages = pm.getInstalledPackages().mapTo(HashSet()) { it.packageName }
 
@@ -551,15 +573,9 @@ class HomeApps(
             )
         }
 
-        // Include apps patched with universal patches through "Other apps", and patched apps no
-        // source brings anymore: they are not in the list but must still appear as cards so users
-        // can reinstall/uninstall/see updates
-        val universalOnlyPackages = recordsByApp.keys.filter { it !in packages }.toSet()
-        val allPackages = packages + universalOnlyPackages
-
-        val allSlots = allPackages.flatMap { pkg ->
-            homeAppSlots(pkg, recordsByApp[pkg].orEmpty())
-        }
+        // Apps patched through "Other apps" and apps no source brings anymore are not in the
+        // list, but still need cards so users can reinstall/uninstall/see updates
+        val allSlots = homeAppSlots(packages, installedApps)
 
         val visibleSlots = allSlots.filter { it.id !in homePrefs.hiddenPackages }
         val hiddenSlots = allSlots.filter { it.id in homePrefs.hiddenPackages }
@@ -745,8 +761,7 @@ class HomeApps(
             hasThirdPartySource,
             prefs.useExpertMode.flow
         ) { state, thirdParty, expertMode ->
-            if (state?.visible.isNullOrEmpty()) false
-            else expertMode || thirdParty
+            !state?.visible.isNullOrEmpty() && (expertMode || thirdParty)
         }.stateIn(scope, SharingStarted.Eagerly, false)
 
     /**
@@ -918,21 +933,33 @@ class HomeApps(
             return@withContext
         }
 
-        // Pre-fetch changelog entries for every remote bundle, keyed by uid.
-        // runCatching per bundle so a network failure in one doesn't block others.
-        val changelogByUid: Map<Int, List<ChangelogEntry>?> = sources.associate { source ->
-            source.uid to runCatching {
-                source.asRemoteOrNull?.fetchChangelogEntries(sinceVersion = null)
-            }.getOrNull()
+        val currentVersionByUid: Map<Int, String?> = sources.associate { it.uid to it.trackingVersion }
+
+        val storedVersionsByApp = installedApps.associateWith { app ->
+            installedAppRepository.getBundleVersionsForApp(app.currentPackageName)
         }
 
-        val currentVersionByUid: Map<Int, String?> = sources.associate { it.uid to it.trackingVersion }
+        // A changelog only refines the badge of an app whose bundle is newer than the one it was
+        // patched with, so no other bundle's changelog is worth downloading
+        val outdatedUids = outdatedBundleUids(storedVersionsByApp.values, currentVersionByUid)
+        if (outdatedUids.isEmpty()) {
+            _appUpdatesAvailable.value = emptyMap()
+            return@withContext
+        }
+
+        // Remote bundles with an outdated app whose changelog can be read, tried once each up front
+        // so a failing one is not retried for every app. runCatching per bundle so a network failure
+        // in one doesn't block others
+        val readableByUid: Map<Int, RemotePatchBundle> = sources
+            .filter { it.uid in outdatedUids }
+            .mapNotNull { it.asRemoteOrNull }
+            .filter { runCatching { it.fetchChangelogEntries() }.isSuccess }
+            .associateBy { it.uid }
 
         val updates = mutableMapOf<String, AppPatchUpdate>()
 
         installedApps.forEach { app ->
-            // Get stored bundle versions for this app
-            val storedVersions = installedAppRepository.getBundleVersionsForApp(app.currentPackageName)
+            val storedVersions = storedVersionsByApp.getValue(app)
             val appNames = resolveChangelogNames(app.originalPackageName)
 
             // Take the first bundle used for this app that has been updated
@@ -941,12 +968,16 @@ class HomeApps(
                 if (!isNewerVersion(storedVersion, currentVersion)) return@firstNotNullOfOrNull null
 
                 // Bundle is newer - refine with changelog if available.
-                // No changelog (null) → show badge (network error or local bundle).
+                // No changelog → show badge (network error or local bundle).
                 // No resolvable app name → show badge (can't match scopes).
                 // Known name, no matching scope → no badge.
                 val unscoped = AppPatchUpdate(bundleUid, storedVersion)
-                val entries = changelogByUid[bundleUid] ?: return@firstNotNullOfOrNull unscoped
+                val source = readableByUid[bundleUid] ?: return@firstNotNullOfOrNull unscoped
                 if (appNames.isEmpty()) return@firstNotNullOfOrNull unscoped
+                // The same releases the update's changelog lists, so the badge never promises
+                // changes the dialog does not show, nor misses ones it does
+                val entries = runCatching { source.fetchChangelogSince(storedVersion) }.getOrNull()
+                    ?: return@firstNotNullOfOrNull unscoped
 
                 AppPatchUpdate(bundleUid, storedVersion, appNames).takeIf {
                     ChangelogParser.hasChangesFor(
@@ -983,4 +1014,15 @@ class HomeApps(
         pm.getPackageInfo(packageName)?.let { with(pm) { it.label() } }?.let { names += it }
         return names
     }
+}
+
+/** Uids of the bundles that are newer than the version at least one of [storedVersions] was patched with. */
+internal fun outdatedBundleUids(
+    storedVersions: Collection<Map<Int, String?>>,
+    currentVersionByUid: Map<Int, String?>
+): Set<Int> = storedVersions.flatMapTo(mutableSetOf()) { versions ->
+    versions.filter { (uid, storedVersion) ->
+        val currentVersion = currentVersionByUid[uid] ?: return@filter false
+        isNewerVersion(storedVersion, currentVersion)
+    }.keys
 }

@@ -6,8 +6,6 @@
 package app.morphe.manager.ui.screen
 
 import android.view.HapticFeedbackConstants
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,10 +21,10 @@ import app.morphe.manager.R
 import app.morphe.manager.data.room.apps.installed.supportsMount
 import app.morphe.manager.data.room.apps.installed.trackingKey
 import app.morphe.manager.domain.batch.BatchTarget
-import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.isHeldBack
 import app.morphe.manager.domain.manager.*
 import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.ui.model.HomeAppItem
+import app.morphe.manager.ui.model.navigation.Patcher
 import app.morphe.manager.ui.screen.home.*
 import app.morphe.manager.ui.screen.settings.system.InstallerFlowDialogs
 import app.morphe.manager.ui.screen.settings.system.PrePatchInstallerDialog
@@ -46,7 +44,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 fun HomeScreen(
     onSettingsClick: () -> Unit,
-    onStartQuickPatch: (QuickPatchParams) -> Unit,
+    onStartQuickPatch: (Patcher.ViewModelParams) -> Unit,
     onStartBatchPatch: (List<BatchTarget>, Boolean) -> Unit,
     homeViewModel: HomeViewModel = koinViewModel(),
     prefs: PreferencesManager = koinInject(),
@@ -217,22 +215,16 @@ fun HomeScreen(
 
     // Sources built for a newer patcher than this manager ships. They cannot be loaded or patched
     // with until the app is updated, so surface it instead of leaving the source silently broken
-    val bundleSources by homeViewModel.patchBundleRepository.sources.collectAsStateWithLifecycle(emptyList())
-    val hasOutdatedManagerSources = bundleSources.any { it.requiresManagerUpdate }
+    val hasOutdatedManagerSources by homeViewModel.patchBundleRepository.hasOutdatedManagerSources.collectAsStateWithLifecycle()
 
     // Reading these took the process down, so they are skipped until the file changes. Nothing
     // else on this screen would explain why their patches are suddenly gone
-    val hasHeldBackSources = bundleSources.any { it.isHeldBack }
+    val hasHeldBackSources by homeViewModel.patchBundleRepository.hasHeldBackSources.collectAsStateWithLifecycle()
 
     // Manager update details dialog
     if (showUpdateDetailsDialog.value) {
-        // Activity-scoped so the download this starts is the same one Settings sees
-        val updateViewModel: UpdateViewModel = koinViewModel(
-            viewModelStoreOwner = LocalActivity.current as ComponentActivity
-        )
         ManagerChangelogDialog(
             onDismiss = { showUpdateDetailsDialog.value = false },
-            updateViewModel = updateViewModel,
             expectsUpdate = true
         )
     }

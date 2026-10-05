@@ -133,15 +133,20 @@
         <item quantity="few">%s nuclee</item>
         <item quantity="other">%s de nuclee</item>
     </plurals>
-    <plurals name="changelog_new_count">
-        <item quantity="one">%s noutate</item>
-        <item quantity="few">%s noutăți</item>
-        <item quantity="other">%s de noutăți</item>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s funcție</item>
+        <item quantity="few">%s funcții</item>
+        <item quantity="other">%s de funcții</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s remediere</item>
         <item quantity="few">%s remedieri</item>
         <item quantity="other">%s de remedieri</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s optimizare</item>
+        <item quantity="few">%s optimizări</item>
+        <item quantity="other">%s de optimizări</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s modificare</item>
@@ -152,5 +157,15 @@
         <item quantity="one">%s versiune nouă</item>
         <item quantity="few">%s versiuni noi</item>
         <item quantity="other">%s de versiuni noi</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d link activat</item>
+        <item quantity="few">%d linkuri activate</item>
+        <item quantity="other">%d de linkuri activate</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d link neverificat</item>
+        <item quantity="few">%d linkuri neverificate</item>
+        <item quantity="other">%d de linkuri neverificate</item>
     </plurals>
 </resources>

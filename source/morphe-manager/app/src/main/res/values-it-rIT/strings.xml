@@ -21,18 +21,18 @@
     <string name="android_11_bug_dialog_description">È necessario concedere in anticipo il permesso per l\'installazione dell\'app per evitare un bug con il sistema operativo Android 11 che potrebbe influire negativamente sull\'esperienza dell\'utente.</string>
     <string name="deep_link_add_source_title">Aggiungi fonte</string>
     <string name="deep_link_add_source_message">Vuoi aggiungere questa fonte di modifiche a Nivqo</string>
-    <string name="deep_link_add_source_warning">Aggiungi solo fonti di cui ti fidi</string>
+<string name="deep_link_add_source_warning">Aggiungi solo fonti di cui ti fidi</string>
     <!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Aggiornamento di Nivqo disponibile</string>
-    <string name="home_update_available_subtitle">Nuova versione pronta per l\'installazione</string>
+<string name="home_update_available_subtitle">Nuova versione pronta per l\'installazione</string>
     <string name="home_blocked_source_title">Rilevata una fonte di modifiche bloccata</string>
     <string name="home_blocked_source_subtitle">Tocca per visualizzare e rimuovere</string>
     <string name="home_metadata_errors_title">Alcune fonti di modifiche non sono disponibili</string>
     <string name="home_metadata_errors_subtitle">Tocca per visualizzare le fonti</string>
     <string name="home_outdated_manager_title">Nivqo non è aggiornato</string>
-    <string name="home_outdated_manager_subtitle">Alcune sorgenti di modifiche richiedono una versione più recente</string>
+<string name="home_outdated_manager_subtitle">Alcune sorgenti di modifiche richiedono una versione più recente</string>
     <string name="home_held_back_title">Una sorgente di modifiche ha causato l\'arresto anomalo di Nivqo</string>
-    <string name="home_held_back_subtitle">È stata saltata per consentire l\'avvio dell\'app. Tocca per rivedere</string>
+<string name="home_held_back_subtitle">È stata saltata per consentire l\'avvio dell\'app. Tocca per rivedere</string>
     <string name="home_metered_skipped_title">Aggiornamenti in pausa sulla rete dati mobile</string>
     <string name="home_metered_skipped_subtitle">Tocca per consentire gli aggiornamenti sulla rete mobile</string>
     <string name="home_repatch_available_subtitle">Tocca per accodarli tutti</string>
@@ -50,9 +50,9 @@
     <string name="home_app_filter_all_description">Tutte le applicazioni nella schermata Home</string>
     <string name="home_app_filter_patched_description">Applicazioni che hai modificato o salvato con Nivqo</string>
     <string name="home_app_filter_not_patched_description">Applicazioni che non hai ancora modificato in Nivqo</string>
-    <string name="home_app_filter_installed_description">Applicazioni attualmente installate su questo dispositivo</string>
+<string name="home_app_filter_installed_description">Applicazioni attualmente installate su questo dispositivo</string>
     <string name="home_app_filter_uninstalled_description">App patchate con Nivqo che non sono più presenti su questo dispositivo</string>
-    <string name="home_app_filter_clones">Cloni</string>
+<string name="home_app_filter_clones">Cloni</string>
     <string name="home_app_filter_clones_description">App create con un nome pacchetto proprio, installate accanto all\'originale</string>
     <string name="home_app_sort_manual_description">Tieni premuta un\'app, quindi tocca il pulsante di riordino</string>
     <string name="home_app_sort_recommended">Ordine consigliato</string>
@@ -160,14 +160,14 @@
     <string name="sources_management_metadata_unavailable_hint_missing">Impossibile scaricare il bundle di patch. L\'URL di origine potrebbe essere errato oppure il file inesistente </string>
     <string name="sources_management_outdated_manager_badge">Aggiorna Nivqo</string>
     <string name="sources_management_outdated_manager_hint">Questa sorgente è stata creata per patcher %1$s, ma Nivqo %2$s include patcher %3$s. Aggiorna Nivqo per utilizzarlo</string>
-    <string name="sources_management_held_back_badge">Arresto anomalo</string>
+<string name="sources_management_held_back_badge">Arresto anomalo</string>
     <string name="sources_management_held_back_hint">Questa sorgente ha causato l\'arresto anomalo di Nivqo durante il caricamento, quindi viene saltata. Aggiornala o reimportala per riprovare.</string>
-    <string name="sources_management_source_enabled">Sorgente abilitata</string>
+<string name="sources_management_source_enabled">Sorgente abilitata</string>
     <string name="sources_management_source_disabled">Sorgente disabilitata</string>
     <string name="sources_management_source_updating">Aggiornamento sorgente</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">Nome visualizzato</string>
-    <string name="sources_dialog_rename">Rinomina la fonte delle patch</string>
+    <string name="sources_dialog_rename">Rinomina la fonte</string>
     <string name="sources_dialog_duplicate_name_error">Esiste già una fonte delle patch con questo nome</string>
     <string name="sources_dialog_missing_error">Impossibile aggiornare questa fonte delle patch</string>
     <string name="sources_dialog_add_source">Aggiungi fonte delle patch</string>
@@ -195,7 +195,7 @@
     <string name="sources_dialog_community_notice_message">"Le sorgenti di patch della community sono mantenute dai rispettivi autori. Nivqo non esamina né verifica le patch di terze parti e non è responsabile del loro contenuto o di ciò che fanno sul tuo dispositivo.
 
 Tutto ciò che aggiungi da questo sito viene utilizzato a tuo rischio."</string>
-    <string name="sources_update_success">Aggiornamento riuscito</string>
+<string name="sources_update_success">Aggiornamento riuscito</string>
     <string name="sources_update_unavailable">Nessun aggiornamento disponibile</string>
     <string name="sources_download_fail">Impossibile scaricare le fonti: %s</string>
     <string name="sources_download_fail_named">\"%s\" non è stato possibile aggiornarlo. Controlla la tua connessione internet e riprova</string>
@@ -215,16 +215,16 @@ Tutto ciò che aggiungi da questo sito viene utilizzato a tuo rischio."</string>
     <string name="home_apk_helper_download">Usa un\'applicazione di supporto</string>
     <string name="home_apk_helper_title">Scarica con un\'app di supporto</string>
     <string name="home_apk_helper_description">Nivqo chiederà all\'app di supporto sottostante di scaricare l\'APK originale e restituire il file</string>
-    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+<!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">Apri helper</string>
     <string name="home_apk_helper_warning">Continua solo se ti fidi di questa app di supporto. Nivqo verifica il pacchetto, la versione e la firma di ciò che riceve prima di applicare le patch</string>
-    <string name="home_apk_helper_warning_unverified">Continua solo se ti fidi di questa app di supporto. Nivqo non può verificare la firma di questo APK, quindi un file modificato non verrebbe rilevato</string>
-    <string name="home_apk_helper_no_result">L\'app di supporto non ha restituito un APK</string>
+<string name="home_apk_helper_warning_unverified">Continua solo se ti fidi di questa app di supporto. Nivqo non può verificare la firma di questo APK, quindi un file modificato non verrebbe rilevato</string>
+<string name="home_apk_helper_no_result">L\'app di supporto non ha restituito un APK</string>
     <string name="home_apk_helper_no_access">L\'app di supporto non ha concesso l\'accesso all\'APK restituito</string>
     <string name="home_apk_helper_no_package">L\'app helper non ha indicato quale app installata utilizzare</string>
     <string name="home_apk_helper_wrong_package">L\'app helper ha restituito un\'app diversa da quella in fase di patch</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo non ha potuto utilizzare l\'app installata</string>
-    <string name="home_apk_helper_installed_incompatible">La versione installata non può essere patchata</string>
+<string name="home_apk_helper_installed_incompatible">La versione installata non può essere patchata</string>
     <string name="home_apk_use_saved">Usa APK salvato</string>
     <string name="home_apk_use_installed">Usa APK installato</string>
     <string name="home_apk_use_saved_unsupported">Le patch non supportano questa copia salvata. Applicarla richiederà una conferma, oppure scegli un altro APK</string>
@@ -232,7 +232,7 @@ Tutto ciò che aggiungi da questo sito viene utilizzato a tuo rischio."</string>
     <string name="home_unverified">Non verificata</string>
     <string name="home_install_verification_pending">Controllo dell\'installazione…</string>
     <string name="home_app_info_install_unverified">Nivqo non può confermare che l\'app installata sia la build modificata. Modificala di nuovo o reinstallala dall\'APK salvato per ripristinare le sue azioni</string>
-    <string name="home_app_info_no_saved_apk">Nessun APK salvato. Il patching richiederà la selezione del file APK</string>
+<string name="home_app_info_no_saved_apk">Nessun APK salvato. Il patching richiederà la selezione del file APK</string>
     <string name="home_version_requires_android">Richiede Android %s+</string>
     <string name="home_apk_no_compatible_versions_title">Non supportato su questo dispositivo</string>
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; non ha versioni supportate per Android %2$s (API %3$s). Tutte le versioni dichiarate richiedono una versione di Android superiore</string>
@@ -245,7 +245,7 @@ Tutto ciò che aggiungi da questo sito viene utilizzato a tuo rischio."</string>
     <string name="home_download_instructions_step2_variant">Scorri verso il basso la pagina web e premi il pulsante di download della &lt;b&gt;variante APK&lt;/b&gt; in cima</string>
     <string name="home_download_instructions_step2_search">Apri un risultato di ricerca da un sito web di cui ti fidi</string>
     <string name="home_download_instructions_step2_search_note">Nivqo non può garantire per questi siti web. Salta quelli che offrono il proprio app store invece di un file APK</string>
-    <string name="home_download_instructions_step3_search">Su quel sito web, scarica l\'APK della versione &lt;b&gt;%s&lt;/b&gt;, non quella più recente</string>
+<string name="home_download_instructions_step3_search">Su quel sito web, scarica l\'APK della versione &lt;b&gt;%s&lt;/b&gt;, non quella più recente</string>
     <string name="home_download_instructions_step3_search_any">Su quel sito web, scarica l\'APK dell\'app. &lt;b&gt;Qualsiasi versione&lt;/b&gt; può essere patchata</string>
     <string name="home_download_instructions_download_button_toast">Premi scarica sul sito web, e non qui 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Ottimo! Ora clicca su continua e vai al sito web 👆</string>
@@ -253,12 +253,14 @@ Tutto ciò che aggiungi da questo sito viene utilizzato a tuo rischio."</string>
     <string name="home_download_instructions_download_button_toast_4">Ancora non ci sei... ancora non ci sei... 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">OK, rispetto la dedizione 🫡</string>
     <string name="home_download_instructions_download_button_toast_6">Ora sei un tester ufficiale del pulsante Nivqo 🏅</string>
-    <string name="home_download_instructions_step3">Attendi che il download si completi, e &lt;b&gt;non installare&lt;/b&gt; l\'APK</string>
+<string name="home_download_instructions_step3">Attendi che il download si completi, e &lt;b&gt;non installare&lt;/b&gt; l\'APK</string>
     <string name="home_download_instructions_step3_mount">Attendi che il download si completi, poi &lt;b&gt;installa l\'APK&lt;/b&gt;</string>
     <string name="home_download_instructions_step4">Dopo che il download è terminato, torna a Nivqo</string>
     <string name="home_download_instructions_step4_mount">Dopo aver installato l\'APK originale, torna a Nivqo</string>
-    <string name="home_download_instructions_continue_to">Continua verso %s</string>
+<string name="home_download_instructions_continue_to">Continua verso %s</string>
     <string name="home_download_instructions_destination">la pagina di download</string>
+    <string name="home_download_instructions_copy_link">Copia link</string>
+    <string name="home_download_instructions_link_copied">Link copiato</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_file_picker_prompt_title">Seleziona l\'APK scaricato</string>
     <string name="home_file_picker_prompt_description">Seleziona il file &lt;b&gt;%s&lt;/b&gt; APK che hai appena scaricato</string>
@@ -275,6 +277,7 @@ Tutto ciò che aggiungi da questo sito viene utilizzato a tuo rischio."</string>
     <string name="home_installed_app_picker_filter_system">Solo app di sistema</string>
     <string name="home_invalid_apk_unreadable">Impossibile leggere il file. Controlla che \'Archiviazione esterna\' non sia limitata nell\'uso della batteria</string>
     <string name="home_invalid_apk_not_an_apk">Il file selezionato non è un APK valido</string>
+    <string name="home_invalid_apk_already_patched">L\'APK selezionato è già patchato. Seleziona invece l\'app originale</string>
     <string name="home_invalid_apk_io_error">Impossibile aprire il file. Riprova</string>
     <string name="home_external_apk_expert_mode_required">Questa funzione è disponibile solo in modalità Esperto</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
@@ -368,6 +371,7 @@ Per ottenere i risultati migliori, questa app raccomanda di applicare una patch 
     <string name="adaptive_icon_create">Crea icona adattiva</string>
     <string name="adaptive_icon_select_image">Seleziona immagine</string>
     <string name="adaptive_icon_change_image">Cambia immagine</string>
+    <string name="image_load_failed">Impossibile caricare questa immagine</string>
     <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
     <string name="adaptive_icon_foreground">Immagine in primo piano</string>
     <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
@@ -473,7 +477,21 @@ Zona esterna (tratteggiata): potrebbe essere ritagliata dalla maschera di avvio:
     <string name="home_app_info_version_move">Installata %1$s, ultima versione supportata %2$s</string>
     <string name="home_app_info_app_deleted_warning">L\'app è stata disinstallata</string>
     <string name="home_app_info_app_deleted_description">Questa app è stata disinstallata al di fuori di Nivqo. Ripatchala per ripristinare la funzionalità</string>
-    <string name="home_app_info_not_patched_description">Una versione non patchata di questa app è installata. Nivqo ha ancora il suo record di patch precedente</string>
+<string name="home_app_info_not_patched_description">Una versione non patchata di questa app è installata. Nivqo ha ancora il suo record di patch precedente</string>
+<string name="app_links_title">Collegamenti web supportati</string>
+    <string name="app_links_description">Su Android 12+, i collegamenti ai domini supportati si aprono nel browser per impostazione predefinita, a meno che non siano approvati</string>
+    <string name="app_links_unverified_banner_title">Collegamenti web non verificati</string>
+    <string name="app_links_unverified_banner_description">I collegamenti web supportati attualmente si aprono nel browser invece che in questa app</string>
+    <string name="app_links_enable_auto">Abilita automaticamente</string>
+    <string name="app_links_enable_auto_in_progress">Abilitazione dei collegamenti…</string>
+    <string name="app_links_open_settings">Apri le impostazioni dei collegamenti</string>
+    <string name="app_links_repair_success">Collegamenti all\'app abilitati correttamente</string>
+    <string name="app_links_repair_failed">Non è stato possibile abilitare automaticamente i collegamenti all\'app</string>
+    <string name="app_links_badge_enabled">Abilitato</string>
+    <string name="app_links_badge_disabled">Disattivato</string>
+    <string name="app_links_all_verified">Tutti i collegamenti supportati sono configurati per aprirsi in questa app</string>
+    <string name="app_links_fix">Correggi i collegamenti</string>
+    <string name="configure">Configura</string>
     <string name="patcher_rename_title">Questo installerà un clone</string>
     <string name="patcher_rename_description">Le patch hanno compilato questa app con un nome del pacchetto proprio, quindi installarla aggiunge un clone accanto a &lt;b&gt;%s&lt;/b&gt; invece di aggiornarla</string>
     <string name="patcher_rename_result_package">Verrà installato come</string>
@@ -487,7 +505,7 @@ Zona esterna (tratteggiata): potrebbe essere ritagliata dalla maschera di avvio:
     <string name="root_pre_patch_installer_mount_title">Modalità di montaggio root</string>
     <string name="root_pre_patch_installer_mount_description">Applica patch per il montaggio root, quindi monta l\'APK sull\'app stock corrispondente. Non è necessario GmsCore</string>
     <string name="root_mount_module_unmount_warning">Se KernelSU ha i moduli di smontaggio abilitati di default, apri KernelSU &gt; Superuser &gt; l\'app che hai montato &gt; Profilo &gt; Personalizzato e disabilita lo smontaggio dei moduli. Altrimenti l\'APK modificato montato potrebbe non avere effetto, anche se Nivqo lo mostra come montato</string>
-    <string name="root_pre_patch_installer_standard_title">Modalità di installazione standard</string>
+<string name="root_pre_patch_installer_standard_title">Modalità di installazione standard</string>
     <string name="root_pre_patch_installer_standard_description">Patch come un normale APK con supporto GmsCore. L\'impostazione dell\'installer verrà utilizzata dopo la patch.</string>
     <string name="root_pre_patch_installer_hint">Questa modalità di patch è separata da Impostazioni > Sistema > Installer e non può essere modificata dopo la patch.</string>
     <!-- Patcher Screen -->
@@ -539,6 +557,7 @@ Zona esterna (tratteggiata): potrebbe essere ritagliata dalla maschera di avvio:
     <string name="patcher_failed_title">Ops! Qualcosa è andato storto</string>
     <string name="patcher_failed_dialog_title">Patching fallito</string>
     <string name="patcher_error_details">Dettagli errore</string>
+    <string name="patcher_change_patches">Cambia patch</string>
     <string name="patcher_unknown_error">Si è verificato un errore sconosciuto</string>
     <string name="patcher_split_step_extracting">Estrazione degli APK divisi</string>
     <string name="patcher_split_step_merging">Unione %s</string>
@@ -551,7 +570,7 @@ Zona esterna (tratteggiata): potrebbe essere ritagliata dalla maschera di avvio:
     <string name="patcher_installed_conflict_body">"Nivqo firma le app patchate con il proprio certificato, che è diverso da quello originale. Android richiede la rimozione della versione esistente prima che l'app patchata possa essere installata.
 
 La disinstallazione cancellerà definitivamente tutti i dati dell'app."</string>
-    <string name="patcher_install_error_title">Errore di installazione</string>
+<string name="patcher_install_error_title">Errore di installazione</string>
     <string name="patcher_install_error_subtitle">Prova a disinstallare e installare di nuovo</string>
     <string name="patcher_ready_to_mount_subtitle">Premi il pulsante qui sotto per montare</string>
     <string name="patcher_patches_excluded_for_installer">Non disponibile per questo metodo di installazione ed escluso: %s</string>
@@ -559,9 +578,8 @@ La disinstallazione cancellerà definitivamente tutti i dati dell'app."</string>
     <string name="patcher_storage_permission_dialog_title">Non è possibile accedere alla cartella di archiviazione</string>
     <string name="patcher_incompatible_patcher_title">Aggiornamento richiesto</string>
     <string name="patcher_incompatible_patcher_description">Il bundle &lt;b&gt;%1$s&lt;/b&gt; richiede la versione del patcher &lt;b&gt;%2$s&lt;/b&gt; o successiva. Aggiorna Nivqo per poter patchare questa app</string>
-    <string name="patcher_incompatible_patcher_update_button">Scarica e aggiorna Nivqo</string>
-    <string name="patcher_storage_permission_description_api30">Una o più opzioni delle patch fanno riferimento a percorsi che Nivqo non può leggere. Concedi l\'accesso alla memoria di archiviazione e tocca il pulsante, quindi il patching partirà automaticamente</string>
-    <string name="patcher_storage_permission_description_legacy">Una o più opzioni delle patch fanno riferimento a percorsi non raggiungibili. Aggiorna i percorsi nelle opzioni delle patch e riprova</string>
+<string name="patcher_storage_permission_description_api30">Una o più opzioni delle patch fanno riferimento a percorsi che Nivqo non può leggere. Concedi l\'accesso alla memoria di archiviazione e tocca il pulsante, quindi il patching partirà automaticamente</string>
+<string name="patcher_storage_permission_description_legacy">Una o più opzioni delle patch fanno riferimento a percorsi non raggiungibili. Aggiorna i percorsi nelle opzioni delle patch e riprova</string>
     <string name="patcher_storage_permission_grant">Concedi l\'autorizzazione alla memoria di archiviazione</string>
     <string name="patcher_storage_permission_denied_warning">L\'autorizzazione alla memoria di archiviazione è stata negata. Concedi l\'autorizzazione per utilizzare questo percorso o sposta i file nella directory privata dell\'app.</string>
     <string name="patcher_storage_permission_open_settings">Apri le impostazioni di archiviazione</string>
@@ -575,7 +593,7 @@ La disinstallazione cancellerà definitivamente tutti i dati dell'app."</string>
     <string name="patcher_option_paths_gone_description">Una o più opzioni di modifica puntano a file che non esistono più. Rimuovi i percorsi per continuare senza di esse, o aggiungi i file e prova di nuovo</string>
     <string name="patcher_option_paths_clear">Rimuovi i percorsi e continua</string>
     <string name="patcher_storage_permission_hint">Suggerimento: sposta i file in /Android/data/app.nivqo.manager/files/ - non sono necessarie autorizzazioni extra</string>
-    <!-- Patcher Screen - Patcher Steps -->
+<!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Preparazione</string>
     <string name="patcher_step_load_patches">Caricamento delle patch</string>
     <string name="patcher_step_prepare_split_apk">Unendo gli APK suddivisi</string>
@@ -587,7 +605,7 @@ La disinstallazione cancellerà definitivamente tutti i dati dell'app."</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Protezione applicazione patch in background</string>
     <string name="battery_optimization_dialog_description">Alcuni dispositivi potrebbero interrompere l\'applicazione patch quando l\'app è minimizzata. Consenti a Nivqo di funzionare senza restrizioni sulla batteria per garantire che l\'applicazione patch venga completata in modo affidabile.</string>
-    <string name="battery_optimization_not_now">Non ora</string>
+<string name="battery_optimization_not_now">Non ora</string>
     <!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">Memoria insufficiente</string>
     <string name="patcher_memory_adjustment_description">Il patcher è stato interrotto dal sistema mentre era in esecuzione con un limite di memoria di %1$d MB. Ridurre il limite a %2$d MB rende il patcher un bersaglio più piccolo e può consentire il completamento dell\'esecuzione.</string>
@@ -644,8 +662,8 @@ La disinstallazione cancellerà definitivamente tutti i dati dell'app."</string>
     <string name="install_ignore_signature_description">Mantiene i dati dell\'app, ma funziona solo se un modulo root disabilita la verifica della firma di Android.</string>
     <string name="uninstall_app_fail">Impossibile disinstallare l\'app: %s</string>
     <string name="uninstall_app_unverified">Lasciata al suo posto: Nivqo non ha potuto verificare che l\'app installata sia la build che ha patchato.</string>
-    <string name="launch_app_unverified">Nivqo non ha potuto verificare che l\'app installata sia la build che ha patchato.</string>
-    <string name="uninstall_timeout">Timeout dell\'installazione</string>
+<string name="launch_app_unverified">Nivqo non ha potuto verificare che l\'app installata sia la build che ha patchato.</string>
+<string name="uninstall_timeout">Timeout dell\'installazione</string>
     <string name="save_apk_success">APK salvato</string>
     <string name="saved_app_export_failed">Impossibile esportare l\'app patchata</string>
     <string name="saved_app_removed_toast">App patchata salvata rimossa</string>
@@ -756,7 +774,7 @@ La disinstallazione cancellerà definitivamente tutti i dati dell'app."</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Icona dell\'app</string>
     <string name="settings_appearance_app_icon_selector_description">Come appare Nivqo sulla schermata Home e nel cassetto delle app</string>
-    <string name="settings_appearance_app_icon_default">Predefinita</string>
+<string name="settings_appearance_app_icon_default">Predefinita</string>
     <string name="settings_appearance_app_icon_light_2">Cielo</string>
     <string name="settings_appearance_app_icon_light_3">Tramonto</string>
     <string name="settings_appearance_app_icon_dark_1">Oceano</string>
@@ -772,12 +790,12 @@ La disinstallazione cancellerà definitivamente tutti i dati dell'app."</string>
     <string name="settings_advanced_updates_manager_prereleases">Aggiornamenti pre-release</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <string name="settings_advanced_updates_manager_prereleases_description">Accesso anticipato alle nuove versioni di Nivqo</string>
-    <string name="settings_advanced_updates_prerelease_warning_title">Abilitare gli aggiornamenti pre-release?</string>
+<string name="settings_advanced_updates_prerelease_warning_title">Abilitare gli aggiornamenti pre-release?</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
     <string name="settings_advanced_updates_prerelease_warning_message">"Le versioni pre-release di Nivqo sono ancora in sviluppo e possono essere instabili.
 
 Le patch non sono interessate: abilita le patch pre-release per ciascuna fonte nell'elenco delle fonti delle patch"</string>
-    <string name="settings_advanced_updates_allow_metered">I dati mobili sono attivi</string>
+<string name="settings_advanced_updates_allow_metered">I dati mobili sono attivi</string>
     <string name="settings_advanced_updates_allow_metered_description">Consenti alle fonti delle patch e agli aggiornamenti del manager di essere scaricati con la connessione dei dati mobili</string>
     <string name="settings_advanced_updates_background_notifications">Notifiche degli aggiornamenti in background</string>
     <string name="settings_advanced_updates_background_notifications_description">Controlla periodicamente la presenza di aggiornamenti in background e notifica quando sono disponibili</string>
@@ -796,27 +814,27 @@ Le patch non sono interessate: abilita le patch pre-release per ciascuna fonte n
     <string name="settings_advanced_external_batch_patch_description">Consente alle app di automazione di avviare l\'applicazione di patch in batch tramite un intent.</string>
     <string name="external_batch_patch_title">Avvia la modifica in batch?</string>
     <string name="external_batch_patch_description">%s vuole che Nivqo modifichi e installi le app</string>
-    <string name="external_batch_patch_trust_caller">Consenti sempre questa app</string>
+<string name="external_batch_patch_trust_caller">Consenti sempre questa app</string>
     <string name="external_batch_patch_unknown_caller">Un\'app sconosciuta</string>
     <!-- Notification content -->
     <string name="notification_manager_update_title">Aggiornamento di Nivqo disponibile</string>
-    <string name="notification_bundle_update_title">Nuove patch disponibili</string>
+<string name="notification_bundle_update_title">Nuove patch disponibili</string>
     <string name="notification_update_text">La versione %s è pronta per il download</string>
     <string name="notification_bundle_update_text_unversioned">Fai clic per aprire Nivqo e aggiornare</string>
-    <string name="notification_permission_dialog_title">Consenti le notifiche</string>
+<string name="notification_permission_dialog_title">Consenti le notifiche</string>
     <string name="notification_permission_dialog_description">Nivqo ha bisogno del permesso di notifica per avvisarti quando gli aggiornamenti sono disponibili in background</string>
-    <string name="notification_post_patch_dialog_title">Vorresti essere notificato quando ci sono aggiornamenti disponibili?</string>
+<string name="notification_post_patch_dialog_title">Vorresti essere notificato quando ci sono aggiornamenti disponibili?</string>
     <string name="notification_channel_manager_updates">Aggiornamenti di Nivqo</string>
     <string name="notification_channel_manager_updates_description">Notifiche sulle nuove versioni di Nivqo</string>
-    <string name="notification_channel_patch_updates">Aggiornamenti patch</string>
+<string name="notification_channel_patch_updates">Aggiornamenti patch</string>
     <string name="notification_channel_patch_updates_description">Notifiche sui nuovi rilasci di patch</string>
     <string name="notification_channel_patcher">Applicazione delle patch</string>
     <string name="notification_channel_patcher_description">Visualizzate mentre Nivqo sta patchando una app in background</string>
-    <!-- Settings - Advanced Tab - Expert settings Section -->
+<!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Impostazioni avanzate</string>
     <string name="settings_advanced_expert_mode">Modalità esperto</string>
     <string name="settings_advanced_expert_mode_description">Abilita le impostazioni avanzate e le opzioni di personalizzazione del patching di Nivqo</string>
-    <string name="settings_advanced_expert_mode_dialog_title">Attivare la modalità Esperto?</string>
+<string name="settings_advanced_expert_mode_dialog_title">Attivare la modalità Esperto?</string>
     <string name="settings_advanced_expert_mode_dialog_message">La modalità esperto fornisce un maggiore controllo su come vengono applicate le patch, ma la configurazione errata delle impostazioni in modalità esperto può produrre un\'app non funzionante</string>
     <string name="settings_advanced_strip_unused_libs">Ottimizza per l\'architettura del dispositivo</string>
     <string name="settings_advanced_strip_unused_libs_description">Rimuove librerie inutilizzate per architetture CPU e moduli APK divisi</string>
@@ -832,7 +850,7 @@ Le patch non sono interessate: abilita le patch pre-release per ciascuna fonte n
     <string name="settings_advanced_github_pat_export_include_label">Includi nelle impostazioni di esportazione</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_include_supporting">Aggiunge questa PAT alle impostazioni di Nivqo esportate</string>
-    <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
+<!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_warning">Non condividere il tuo PAT. Se lo includi in un\'esportazione delle impostazioni, mantieni quel file privato perché contiene il token</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
     <string name="settings_advanced_patch_options">Opzioni delle patch</string>
@@ -929,7 +947,7 @@ Le dimensioni delle immagini devono essere le seguenti:
     <string name="installer_status_shizuku_not_installed">Installa Shizuku o Sui per utilizzare questa opzione</string>
     <string name="installer_status_shizuku_not_running">Avvia Shizuku o Sui e riprova</string>
     <string name="installer_status_shizuku_permission">Concedi il permesso a Nivqo dall\'app Shizuku</string>
-    <string name="installer_mount_warning_install">Il tuo installatore principale è impostato sull\'installatore mount con privilegi di root. Questa app salvata non è stata installata utilizzando il montaggio</string>
+<string name="installer_mount_warning_install">Il tuo installatore principale è impostato sull\'installatore mount con privilegi di root. Questa app salvata non è stata installata utilizzando il montaggio</string>
     <string name="mount_version_mismatch_message">La versione dell\'app di sistema (%2$s) non corrisponde alla versione dell\'app patchata (%1$s). Monta la versione di sistema corrispondente, quindi riprova</string>
     <string name="mount_stock_restore_failed_message">Android ha rifiutato l\'APK originale salvato. Installa la versione stock corrispondente, quindi riprova a montare.</string>
     <string name="installer_status_shizuku_unsupported">La versione di Shizuku installata non è supportata</string>
@@ -959,7 +977,7 @@ Le dimensioni delle immagini devono essere le seguenti:
     <string name="settings_auto_uninstall_with_shizuku_description">Quando installi automaticamente con Shizuku, disinstalla prima l\'app esistente se Android segnala un conflitto di firma. Questo può rimuovere i dati dell\'app.</string>
     <string name="settings_auto_uninstall_warning_title">Abilita la disinstallazione automatica?</string>
     <string name="settings_auto_uninstall_warning_message">Se Android segnala un conflitto di firma durante l\'installazione automatica con Shizuku, Nivqo disinstallerà l\'app esistente prima di installare l\'APK modificato.</string>
-    <string name="settings_auto_uninstall_warning_risk">Questo può rimuovere i dati dell\'app. Se l\'APK modificato non viene installato dopo la disinstallazione, l\'app precedente potrebbe essere già stata rimossa.</string>
+<string name="settings_auto_uninstall_warning_risk">Questo può rimuovere i dati dell\'app. Se l\'APK modificato non viene installato dopo la disinstallazione, l\'app precedente potrebbe essere già stata rimossa.</string>
     <string name="installer_shizuku_status_action">Verifica lo stato di Shizuku</string>
     <string name="installer_shizuku_status_title">Stato di Shizuku</string>
     <string name="installer_shizuku_status_ready">Pronto</string>
@@ -977,7 +995,7 @@ Le dimensioni delle immagini devono essere le seguenti:
 
 Dettagli: %2$s"</string>
     <string name="installer_shizuku_error_permission">Il permesso di Shizuku è mancante. Concedi il permesso a Nivqo e riprova.</string>
-    <string name="installer_shizuku_error_timeout">Shizuku non ha restituito un risultato di installazione. Assicurati che sia ancora in esecuzione e riprova.</string>
+<string name="installer_shizuku_error_timeout">Shizuku non ha restituito un risultato di installazione. Assicurati che sia ancora in esecuzione e riprova.</string>
     <string name="installer_shizuku_error_downgrade">Android ha bloccato questa operazione perché comporterebbe un downgrade dell\'app installata</string>
     <string name="installer_shizuku_error_signature">Android ha bloccato questa operazione perché l\'app installata ha una firma diversa</string>
     <string name="installer_shizuku_error_invalid_apk">Android non è stato in grado di leggere questo APK.</string>
@@ -992,7 +1010,7 @@ Dettagli: %2$s"</string>
     <string name="settings_system_process_runtime_enable">Abilita il processo di esecuzione</string>
     <string name="settings_system_memory_limit_subtitle">Memoria disponibile per il patching</string>
     <string name="settings_system_process_runtime_heap_limit_ignored">Questo dispositivo ha ignorato il limite di memoria nell\'ultima esecuzione, quindi il patching potrebbe ripiegare sull\'esecuzione all\'interno di Nivqo.</string>
-    <string name="settings_system_memory_limit_warning">Un limite di memoria basso potrebbe causare errori durante il patching delle app più grandi</string>
+<string name="settings_system_memory_limit_warning">Un limite di memoria basso potrebbe causare errori durante il patching delle app più grandi</string>
     <string name="settings_system_memory_limit_high_warning">Un limite di memoria elevato può rendere il patching molto più lento su alcuni dispositivi. Aumentalo solo se il patching continua a fallire con limiti inferiori.</string>
     <string name="settings_system_process_runtime_enabled_description">%s MB limite</string>
     <string name="settings_system_process_runtime_disabled_description">Clicca per configurare</string>
@@ -1015,8 +1033,8 @@ Dettagli: %2$s"</string>
     <string name="settings_system_signing_key">Chiave di firma</string>
     <string name="settings_system_signing_key_description">Esegue il backup e il ripristino della chiave con cui vengono firmate le app patchate</string>
     <string name="settings_system_signing_key_dialog_description">Ogni app patchata da Nivqo è firmata con questa chiave. Conservane una copia: senza di essa, le app patchate possono essere aggiornate solo dopo averle disinstallate.</string>
-    <string name="settings_system_signing_key_missing">Nivqo ne crea una con la tua prima patch</string>
-    <string name="settings_system_signing_key_created">Creata %s</string>
+<string name="settings_system_signing_key_missing">Nivqo ne crea una con la tua prima patch</string>
+<string name="settings_system_signing_key_created">Creata %s</string>
     <string name="settings_system_signing_key_fingerprint">Impronta SHA-256</string>
     <string name="settings_system_backup_appearance_description">Tema, colori e lingua</string>
     <string name="settings_system_backup_home_description">Gruppi, app nascoste, ordinamento e interruttori</string>
@@ -1039,11 +1057,11 @@ Dettagli: %2$s"</string>
     <string name="settings_system_show_password_field">Mostra la password</string>
     <string name="settings_system_hide_password_field">Nascondi la password</string>
     <string name="settings_system_morphe_settings">Impostazioni Nivqo</string>
-    <string name="settings_system_import_manager_settings_description">Salva i logs del sistema per la risoluzione dei problemi</string>
+<string name="settings_system_import_manager_settings_description">Salva i logs del sistema per la risoluzione dei problemi</string>
     <string name="settings_system_import_manager_settings_fail">Impossibile importare le impostazioni di Nivqo: %s</string>
     <string name="settings_system_import_manager_settings_success">Impostazioni di Nivqo importate</string>
     <string name="settings_system_import_manager_settings_mode_title">Importa impostazioni di Nivqo</string>
-    <string name="settings_system_import_manager_settings_mode_description">Scegli come applicare le impostazioni e le risorse importate</string>
+<string name="settings_system_import_manager_settings_mode_description">Scegli come applicare le impostazioni e le risorse importate</string>
     <string name="settings_system_import_selections_mode_title">Importa selezioni patch</string>
     <string name="settings_system_import_selections_mode_description">Scegli come applicare le selezioni importate e le opzioni di patch</string>
     <string name="import_mode_replace_title">Sostituisci gli elementi esistenti</string>
@@ -1051,8 +1069,8 @@ Dettagli: %2$s"</string>
     <string name="import_mode_merge_title">Unisci con gli elementi esistenti</string>
     <string name="import_mode_merge_description">Aggiungi gli elementi mancanti dal backup. Gli elementi esistenti rimangono invariati</string>
     <string name="settings_system_export_manager_settings_fail">Impossibile esportare le impostazioni di Nivqo: %s</string>
-    <string name="settings_system_export_manager_settings_success">Impostazioni di Nivqo esportate</string>
-    <string name="settings_system_export_debug_logs">Esporta log di debug</string>
+<string name="settings_system_export_manager_settings_success">Impostazioni di Nivqo esportate</string>
+<string name="settings_system_export_debug_logs">Esporta log di debug</string>
     <string name="settings_system_export_debug_logs_description">Gestione dei file delle applicazioni patchate</string>
     <string name="settings_system_export_debug_logs_export_read_failed">Lettura dei log non riuscita (codice di uscita %s)</string>
     <string name="settings_system_export_debug_logs_export_failed">Esportazione dei logs non riuscita</string>
@@ -1088,7 +1106,7 @@ Dettagli: %2$s"</string>
     <string name="settings_system_storage_nothing_to_clear">Niente da cancellare</string>
     <string name="settings_system_storage_open_app_info_title">Apri l\'archiviazione dell\'app Android</string>
     <string name="settings_system_storage_open_app_info_description">Gestisci o cancella tutti i dati di Nivqo tramite le impostazioni di sistema</string>
-    <string name="settings_system_save_original_apks_title">Conserva gli APK originali</string>
+<string name="settings_system_save_original_apks_title">Conserva gli APK originali</string>
     <string name="settings_system_save_original_apks_description">Salva l\'APK pre-patch in modo che possa essere riutilizzato per il ri-patching senza dover selezionare nuovamente il file</string>
     <string name="settings_system_save_patched_apks_title">Conserva gli APK patchati</string>
     <string name="settings_system_save_patched_apks_description">Salva una copia dell\'APK patchato per un\'esportazione successiva o per la reinstallazione tramite il gestore</string>
@@ -1136,12 +1154,12 @@ Dettagli: %2$s"</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Selettore di file personalizzato</string>
     <string name="settings_system_custom_file_picker_description">Utilizza il selettore di file integrato di Nivqo invece di quello predefinito del sistema</string>
-    <!-- Settings - System Tab - APK download helper -->
+<!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">App di supporto per il download di APK</string>
     <string name="settings_system_apk_download_helper_trusted_count">Approvate: %1$d di %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Le app helper possono scaricare APK originali per te. Solo quelle di cui ti fidi qui vengono offerte nelle istruzioni di download.</string>
     <string name="settings_system_apk_download_helper_warning">L\'APK proviene dall\'app helper, quindi fidati solo di app che conosci. Nivqo controlla comunque il pacchetto, la versione e la firma di ogni file prima della patch.</string>
-    <string name="settings_system_apk_download_helper_installed_by">Installata da %s</string>
+<string name="settings_system_apk_download_helper_installed_by">Installata da %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Installer sconosciuto</string>
     <!-- File Picker -->
     <string name="file_picker_no_files">Nessun file qui</string>
@@ -1149,6 +1167,7 @@ Dettagli: %2$s"</string>
     <string name="file_picker_internal_storage">Memoria interna</string>
     <string name="file_picker_sd_card">Scheda SD</string>
     <string name="file_picker_root">Radice (/)</string>
+    <string name="file_picker_storages">Archiviazione</string>
     <string name="file_picker_sort_name_asc">Nome (A–Z)</string>
     <string name="file_picker_sort_name_desc">Nome (Z–A)</string>
     <string name="file_picker_sort_size_desc">Dimensione (la più grande prima)</string>
@@ -1296,6 +1315,7 @@ Dettagli: %2$s"</string>
     <string name="changelog_download_fail">Download del registro delle modifiche non riuscito: %s</string>
     <string name="changelog_empty">Nessun registro delle modifiche disponibile</string>
     <string name="changelog_earlier_releases">Versioni precedenti</string>
+    <string name="changelog_patched_with">Corretto con %s</string>
     <string name="changelog_older_empty">Nessuna versione precedente da visualizzare </string>
     <string name="changelog_older_failed">Impossibile caricare le versioni precedenti</string>
     <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
@@ -1324,7 +1344,7 @@ Dettagli: %2$s"</string>
     <string name="install_update_manager_failed">Impossibile installare l\'aggiornamento</string>
     <string name="installing_manager_update">Installazione dell\'aggiornamento in corso…</string>
     <string name="installing_manager_update_hint">Nivqo si chiuderà per completare l\'aggiornamento</string>
-    <string name="downloading_manager_update">Download dell\'aggiornamento in corso…</string>
+<string name="downloading_manager_update">Download dell\'aggiornamento in corso…</string>
     <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB scaricato</string>
     <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
@@ -1345,7 +1365,7 @@ Vuoi comunque continuare?"</string>
     <string name="onboarding_swipe_title">Gesti di scorrimento</string>
     <string name="onboarding_swipe_desc">Scorri verso destra su una scheda app per visualizzare le patch disponibili. Scorri verso sinistra per nascondere la scheda dalla schermata Home</string>
     <string name="onboarding_settings_desc">Personalizza Nivqo: aspetto, opzioni avanzate e strumenti di sistema</string>
-    <string name="onboarding_sources_patches_desc">Tocca per visualizzare tutte le patch disponibili da questa sorgente</string>
+<string name="onboarding_sources_patches_desc">Tocca per visualizzare tutte le patch disponibili da questa sorgente</string>
     <string name="onboarding_sources_version_desc">Tocca la versione per visualizzare il changelog completo per questa sorgente</string>
     <string name="onboarding_sources_prerelease_desc">Abilita questa opzione per ricevere versioni di patch pre-release da questa sorgente</string>
     <string name="onboarding_appearance_tab_desc">Personalizza l\'aspetto dell\'app: tema, colore di accento e sfondo</string>
@@ -1360,7 +1380,7 @@ Vuoi comunque continuare?"</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Tour rapido delle funzionalità</string>
     <string name="tour_prompt_desc">Vuoi un tour rapido delle funzionalità chiave di Nivqo?</string>
-    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
+<!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Mostrami in giro</string>
     <string name="onboarding_restart_title">Tour delle funzionalità</string>
     <string name="onboarding_restart_desc">Un tour guidato delle funzionalità principali</string>
