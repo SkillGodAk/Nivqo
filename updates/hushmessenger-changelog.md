@@ -1,3 +1,8 @@
+# 0.21.0-nivqo.1 (2026-10-06)
+
+* **Messenger:** 繁體中文：同步正式 HushMessenger v0.21.0（commit d5b196f45f400c3d97eff888ea0464b270731323），不納入發版後的 main commit。核心由 32 個 patch 更新為 33 個、30 個可切換控制項；新增 Messenger 581.0.0.49.91 支援，與既有 580.0.0.49.91 合計涵蓋 37 個 arm64 builds。新增「隱藏已加入的社群聊天」，「隱藏 AI 貼圖工具」擴充到新版貼圖鍵盤的 Generate 按鈕，「允許截圖」擴充到僅限查看一次的媒體與 Quicksnap。工具鏈同步 Morphe Patcher 1.15.1 與 MorpheApp ARSCLib。Nivqo 保留「跟隨系統／繁體中文／English」語言選擇，並補齊 0.21.0 新增與改寫文字，核心設定繁中覆蓋 213 / 213，Manager patch metadata 33 / 33。
+* **Messenger:** English: Syncs only the formal HushMessenger v0.21.0 release (commit d5b196f45f400c3d97eff888ea0464b270731323) and excludes post-release main commits. The core grows from 32 to 33 patches with 30 switchable controls, adds Messenger 581.0.0.49.91 alongside 580.0.0.49.91 for 37 supported arm64 builds total, adds Hide joined community chats, expands Hide AI sticker tools to the newer Generate buttons, and extends Allow screenshots to view-once media and Quicksnap. The toolchain moves to Morphe Patcher 1.15.1 and the maintained MorpheApp ARSCLib. Nivqo preserves Follow system / Traditional Chinese / English selection, with 213 / 213 core settings strings and 33 / 33 Manager patch metadata localized in Traditional Chinese.
+
 # 0.14.0-nivqo.1 (2026-10-03)
 
 * **Messenger:** 繁體中文：同步正式 HushMessenger v0.14.0（commit c3d91c8200337cd826c2c92ef06e1f9c261f8e62），不納入發版後的 main commit。核心由 31 個 patch 更新為 32 個，新增「聊天滑入滑出動畫」；「允許聊天泡泡」擴充為原始模式、Chat Heads 與 Native Bubbles；HushMessenger 設定入口支援 Messenger 側邊選單；「使用系統 Emoji」改為使用手機自己的 Emoji。並納入 v0.8.0～v0.14.0 的選擇檔備份、Root Mount 快捷方式、更新檢查、安全模式與多項穩定性修正。Nivqo 保留「跟隨系統／繁體中文／English」語言選擇，核心設定文字繁中覆蓋為 203 / 203，Manager patch metadata 為 32 / 32。
