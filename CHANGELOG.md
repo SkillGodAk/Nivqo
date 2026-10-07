@@ -1,3 +1,11 @@
+## [0.5.0](https://github.com/SkillGodAk/Nivqo/commit/1d49a8224be6895070fc08a6ff5a90c93ffc0706) (2026-10-08)
+
+### New Features
+
+* **Facebook:** Nivqo Patches updates HushFacebook to 0.7.2-nivqo.1 with 70 patches. New controls include screenshots/screenshot detection, Instant Games ads, selectable hidden tabs, analytics uploads, Reels picture-in-picture, Marketplace seller profile access, HDR brightness, haptics and screen transitions, together with the formal v0.7.2 AI, ad, download/transcode, navigation, settings and compatibility changes. Nivqo Traditional Chinese core coverage is 609 / 609 and Manager Facebook metadata is 70 / 70.
+* **Messenger:** Nivqo Patches keeps HushMessenger 0.21.0-nivqo.1 with 33 patches and 30 switchable controls, including the existing 580 / 581 support and Nivqo Traditional Chinese integration.
+* **General:** Nivqo Patches 0.5.0 contains 103 total patch entries (Facebook 70 + Messenger 33). The combined build namespaces four duplicate Facebook/Messenger patch names without changing either standalone core.
+
 ## [0.4.0](https://github.com/SkillGodAk/Nivqo/commit/7598bc18d9bb8f6313a4a5c21e7d4ad51433a1c7) (2026-10-06)
 
 ### New Features
