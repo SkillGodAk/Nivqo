@@ -1,8 +1,8 @@
 {
-    "created_at": "2026-10-04T16:23:32",
-    "description": "HushFacebook 0.7.1 Nivqo 繁中核心；同步上游正式 Release v0.7.1（cd40d35fd92f09fdd4194654167fba276005aa81），不納入發布後 main commit。核心共 60 個 patch，新增強制深色模式，並整合 Stories 分離控制、隱藏限時動態提示、完整單字比對、Saved 捷徑、儲存完成後開啟／分享、支援連結修正、AMOLED／Material You 與下載穩定性改進。支援 Facebook 581.0.0.45.58 / 475215365，並保留 580.0.0.51.74 / 475019344 與 577.0.0.50.72 / 474426275。保留 Nivqo 繁體中文／English 介面、語言選擇，以及 Facebook 頂部 Messenger 圖示雙向路由。",
-    "changelog_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook-changelog.md",
-    "signature_download_url": "",
-    "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/bundles/hushfacebook.mpp",
-    "version": "0.7.1-nivqo.1"
+  "created_at": "2026-10-08T01:48:00",
+  "description": "HushFacebook 0.7.2 Nivqo 繁中核心；同步上游正式 Release v0.7.2（4c102f39fd80e41c9f14b346885e8d7959d0b930），不納入發布後 main commit。核心由 60 增至 70 個 patch，加入允許截圖、阻擋截圖偵測、Instant Games 去廣告、隱藏分頁、阻止分析資料上傳、子母畫面、Marketplace 賣家查看個人檔案、關閉 HDR 自動增亮、關閉觸覺回饋與畫面轉場等功能；同時更新 AI 內容、Marketplace/Reels 廣告、下載/轉碼、導航、設定與相容性。Nivqo 保留繁體中文／English 介面、語言選擇與 Facebook 頂部 Messenger 圖示雙向路由。核心繁中 609/609，Manager Facebook patch metadata 70/70。",
+  "changelog_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook-changelog.md",
+  "signature_download_url": "",
+  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/bundles/hushfacebook.mpp",
+  "version": "0.7.2-nivqo.1"
 }

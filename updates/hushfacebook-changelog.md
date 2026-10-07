@@ -1,3 +1,8 @@
+# 0.7.2-nivqo.1 (2026-10-08)
+
+* **Facebook:** 同步上游正式 HushFacebook v0.7.2（4c102f39fd80e41c9f14b346885e8d7959d0b930），不納入發布後 main commit。核心由 60 增至 70 個 patch，新增允許截圖、阻擋截圖偵測、Instant Games 去廣告、隱藏指定分頁、阻止分析資料上傳、Reels 子母畫面、Marketplace 賣家「查看個人檔案」、關閉 HDR 自動增亮、關閉觸覺回饋與關閉畫面轉場；並整合 v0.7.2 的 AI 內容、Marketplace / Reels 廣告、下載與轉碼、導航、設定及相容性修正。Nivqo 保留繁體中文／English 介面、語言選擇，以及 Facebook 頂部 Messenger 圖示雙向路由。核心繁中 609 / 609，Manager Facebook patch metadata 70 / 70。
+* **Facebook:** English: Syncs only the formal HushFacebook v0.7.2 release (4c102f39fd80e41c9f14b346885e8d7959d0b930), excluding post-release main commits. The core grows from 60 to 70 patches with Allow screenshots, Block screenshot detection, Block Instant Games ads, Hide tabs, Hold back analytics uploads, Picture-in-picture, Marketplace seller View profile, HDR brightness, haptics and screen-transition controls, plus v0.7.2 AI-content, Marketplace/Reels ad, download/transcode, navigation, settings and compatibility updates. Nivqo keeps the Traditional Chinese/English UI, interface-language selector and two-way top Messenger routing. Core Traditional Chinese coverage is 609/609 and Manager Facebook metadata is 70/70.
+
 # 0.7.1-nivqo.1 (2026-10-04)
 
 * **Facebook:** 繁體中文：同步 HushFacebook 正式 Release v0.7.1（cd40d35fd92f09fdd4194654167fba276005aa81），只採用正式 Release / Tag，不納入發布後 main commit。核心由 59 增為 60 個 patch，新增「強制深色模式」，並整合 v0.7.x 的 Stories 頂部列／貼文間限時動態分離控制、隱藏限時動態提示、貼文關鍵字完整單字比對、Saved 捷徑、儲存完成後 Open / Share、Messenger／Instagram 支援連結修正、AMOLED 未讀顏色與 Material You 修正，以及下載與設定穩定性改善。新增支援 Facebook 581.0.0.45.58 / versionCode 475215365，並保留 580.0.0.51.74 / 475019344 與 577.0.0.50.72 / 474426275。Nivqo 保留繁中／English 介面、介面語言選擇與 Facebook 頂部 Messenger 圖示雙向路由；HushFacebook 介面繁中表 572 筆，Manager patch metadata 60 / 60。
