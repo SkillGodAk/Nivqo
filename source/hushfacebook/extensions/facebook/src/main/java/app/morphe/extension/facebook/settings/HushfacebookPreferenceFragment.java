@@ -49,6 +49,7 @@ import app.morphe.extension.facebook.download.SaveTo;
 import app.morphe.extension.facebook.download.SendLink;
 import app.morphe.extension.facebook.feed.PostWords;
 import app.morphe.extension.facebook.media.PlaybackQuality;
+import app.morphe.extension.facebook.navigation.HiddenTabs;
 import app.morphe.extension.facebook.navigation.FeedsSubtab;
 import app.morphe.extension.facebook.navigation.StartTab;
 import app.morphe.extension.facebook.navigation.MarketplaceOnly;
@@ -298,6 +299,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         AppPages.marketplace(this, screen, context, build);
         AppPages.notifications(this, screen, context, build);
         AppPages.links(this, screen, context, build);
+        AppPages.privacy(this, screen, context, build);
         HushfacebookPages.updates(this, screen, context, build);
         HushfacebookPages.appearance(this, screen, context, build);
         HushfacebookPages.patched(this, screen, context, build);
@@ -527,7 +529,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                     ? L10n.f("The file %1$s couldn't be removed. Delete it from %2$s, then tap Resume again.", file, folder)
                     : L10n.f("The file %1$s couldn't be removed. Delete it from %2$s to turn Hushfacebook back on.",
                     file, folder);
-            statusCard.setSummary(left + "\n" + L10n.f("Build %1$s", L10n.isolate(Utils.getPatchesBuildIdentity())));
+            statusCard.setSummary(left + "\n" + overviewBuildDetails());
             // Resume can be tapped on a category page too, where the card isn't in view.
             Utils.showToastLong(left);
             return;
@@ -549,18 +551,36 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         boolean pausedNext = HushfacebookPause.pausesNextStart(context);
         String status;
         if (!HushfacebookPause.isPaused()) {
-            String version = L10n.f("Version %1$s for Facebook %2$s",
-                    L10n.isolate(Utils.getPatchesReleaseVersion()), L10n.isolate(Utils.getAppVersionName()));
-            status = pausedNext ? version + " " + L10n.t("Hushfacebook pauses when Facebook restarts.") : version;
+            status = L10n.t(pausedNext ? "Hushfacebook pauses when Facebook restarts." : "Your controls are active.");
         } else if (pausedNext) {
             status = pausedSummary(HushfacebookPause.reason(), context.getPackageName())
                     + " " + L10n.t("Tap to turn it back on.");
         } else {
             status = L10n.t("Hushfacebook turns back on when Facebook restarts.");
         }
-        status += "\n" + L10n.f("Build %1$s", L10n.isolate(Utils.getPatchesBuildIdentity()));
+        status += "\n" + overviewBuildDetails();
         String release = ReleaseCheck.statusLine();
         card.setSummary(release == null ? status : status + "\n" + release);
+    }
+
+    private static final java.util.regex.Pattern BUILD_IDENTITY = java.util.regex.Pattern.compile(
+            "sha256=([0-9a-f]{64}); source=(?:(clean|dirty):[0-9a-f]{40}; tree=[0-9a-f]{40}|(unknown)); inputs=[0-9a-f]{64}");
+
+    /** Only the overview abbreviates identity. About and exported diagnostics keep the original bytes. */
+    static String overviewBuildDetails() {
+        String value = Utils.getPatchesBuildIdentity();
+        java.util.regex.Matcher identity = BUILD_IDENTITY.matcher(value == null ? "" : value);
+        String build;
+        if (identity.matches()) {
+            String shortId = L10n.isolate(identity.group(1).substring(0, 8));
+            build = "dirty".equals(identity.group(2)) ? L10n.f("Build %1$s (modified)", shortId)
+                    : "clean".equals(identity.group(2)) ? L10n.f("Build %1$s (source known)", shortId)
+                    : L10n.f("Build %1$s (source unknown)", shortId);
+        } else {
+            String state = value == null || value.isEmpty() || "unknown".equals(value) ? "unknown" : "unverified";
+            build = L10n.f("Build %1$s", L10n.isolate(state));
+        }
+        return L10n.f("Version %1$s", L10n.isolate(Utils.getPatchesReleaseVersion())) + "\n" + build;
     }
 
     /**
@@ -594,7 +614,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         row.setKey(SUPPORTED_LINKS);
         row.setTitle(L10n.t("Supported links"));
         row.setPersistent(false);
-        row.setSummary(SupportedLinks.summary(SupportedLinks.read(context)));
+        row.setSummary(SupportedLinks.summary(SupportedLinks.read(context).state));
         row.setOnPreferenceClickListener(p -> {
             openLinkSettings(context);
             return true;
@@ -609,16 +629,15 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
      * has to let go first.
      */
     List<Preference> linkHolderRows(Context context) {
-        SupportedLinks.State state = SupportedLinks.read(context);
-        Set<String> notOpen = SupportedLinks.hostsNotOpen(context);
+        SupportedLinks.Snapshot snapshot = SupportedLinks.read(context);
         List<Preference> rows = new ArrayList<>();
         for (SupportedLinks.Holder holder : SupportedLinks.Holder.values()) {
-            if (!SupportedLinks.mayHoldLinks(holder, state, SupportedLinks.isOn(context, holder), notOpen)) continue;
+            if (!SupportedLinks.mayHoldLinks(holder, snapshot, SupportedLinks.isOn(context, holder))) continue;
             Row row = new Row(context);
             row.setKey(holder.rowKey);
             row.setTitle(holder.title());
             row.setPersistent(false);
-            row.setSummary(SupportedLinks.holderSummary(holder, state, notOpen));
+            row.setSummary(SupportedLinks.holderSummary(holder, snapshot));
             row.setOnPreferenceClickListener(p -> {
                 openLinkPage(SupportedLinks.holderIntents(holder), holder.reportKey, holder.notOpened());
                 return true;
@@ -632,12 +651,11 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         if (getPreferenceScreen() == null) return;
         Preference row = findPreference(SUPPORTED_LINKS);
         if (row == null) return;
-        SupportedLinks.State state = SupportedLinks.read(row.getContext());
-        row.setSummary(SupportedLinks.summary(state));
-        Set<String> notOpen = SupportedLinks.hostsNotOpen(row.getContext());
+        SupportedLinks.Snapshot snapshot = SupportedLinks.read(row.getContext());
+        row.setSummary(SupportedLinks.summary(snapshot.state));
         for (SupportedLinks.Holder holder : SupportedLinks.Holder.values()) {
             Preference holderRow = findPreference(holder.rowKey);
-            if (holderRow != null) holderRow.setSummary(SupportedLinks.holderSummary(holder, state, notOpen));
+            if (holderRow != null) holderRow.setSummary(SupportedLinks.holderSummary(holder, snapshot));
         }
     }
 
@@ -979,6 +997,11 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         if (tab == StartTab.VIDEO && Settings.HIDE_REELS_TAB.savedValue() && PatchFamily.REELS_TAB.inBuild()) {
             return L10n.t("Facebook opens on Home while Hide the Reels tab is on, since Video is off the tab bar. "
                     + "Your choice stays saved.");
+        }
+        HiddenTabs.Tab hidden = HiddenTabs.Tab.forStart(tab);
+        if (hidden != null && hidden.setting().savedValue() && PatchFamily.HIDDEN_TABS.inBuild()) {
+            return L10n.f("Facebook opens on Home while Hide tabs keeps %1$s off the tab bar. Your choice stays saved.",
+                    tabLabel(tab));
         }
         return L10n.f("Facebook opens on %1$s. If your tab bar doesn't have it, Facebook opens on Home.",
                 tabLabel(tab));

@@ -42,6 +42,23 @@ class PatchMetadataLocalizerTest {
         assertEquals("保留貼文日期", PatchMetadataLocalizer.name("Keep post dates"))
         assertEquals("支援 x86 裝置啟動", PatchMetadataLocalizer.name("Start on x86 devices"))
         assertEquals("分頁列置底", PatchMetadataLocalizer.name("Tab bar at the bottom"))
+        assertEquals("阻擋 Instant Games 廣告", PatchMetadataLocalizer.name("Block Instant Games ads"))
+        assertEquals("阻擋截圖偵測", PatchMetadataLocalizer.name("Block screenshot detection"))
+        assertEquals("隱藏分頁", PatchMetadataLocalizer.name("Hide tabs"))
+        assertEquals("阻止分析資料上傳", PatchMetadataLocalizer.name("Hold back analytics uploads"))
+        assertEquals("子母畫面", PatchMetadataLocalizer.name("Picture-in-picture"))
+        assertEquals("Marketplace 賣家顯示「查看個人檔案」",
+            PatchMetadataLocalizer.name("Show View profile on Marketplace sellers"))
+        assertEquals("關閉 HDR 自動增亮", PatchMetadataLocalizer.name("Turn off HDR brightness"))
+        assertEquals("關閉觸覺回饋", PatchMetadataLocalizer.name("Turn off haptics"))
+        assertEquals("關閉畫面轉場", PatchMetadataLocalizer.name("Turn off screen transitions"))
+        assertEquals(
+            "讓 Facebook 原本禁止截圖或螢幕錄影的頁面也能正常出現在截圖、錄影與最近使用的 App 畫面中。選取補丁後開關預設開啟，位於「隱私」。",
+            PatchMetadataLocalizer.description(
+                "Allow screenshots",
+                "Lets you take screenshots and record the screen on the pages Facebook blocks them on. Its switch starts on, under Privacy."
+            )
+        )
     }
 
     @Test
@@ -71,6 +88,13 @@ class PatchMetadataLocalizerTest {
     fun `messenger duplicate patch names keep messenger wording`() {
         Locale.setDefault(Locale.forLanguageTag("zh-TW"))
 
+        assertEquals(
+            "允許截取受保護的聊天媒體，包括僅限查看一次的媒體與 Quicksnap，並停止截圖通知；不會新增重新播放或儲存功能。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。",
+            PatchMetadataLocalizer.description(
+                "Allow screenshots",
+                "Lets you screenshot protected chat media, including view-once media and Quicksnap, and stops screenshot notices. This doesn't add replay or saving. Long-press Messenger's home screen icon > Patch controls. Starts off."
+            )
+        )
         assertEquals(
             "Android 12 以上讓 Messenger 深色模式使用桌布配色；Android 11 使用固定藍色調。淺色模式不變。請先在 Messenger 開啟深色模式。",
             PatchMetadataLocalizer.description(

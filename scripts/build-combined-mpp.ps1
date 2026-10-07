@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "0.4.0",
+    [string]$Version = "0.5.0",
     [string]$OutputPath,
     [string]$AndroidSdk = ""
 )
@@ -88,7 +88,7 @@ try {
     Copy-Tree -Source (Join-Path $messenger "patches\src\main") -Destination (Join-Path $temp "patches\src\main")
     Copy-Tree -Source (Join-Path $messenger "extensions\messenger") -Destination (Join-Path $temp "extensions\messenger") -ExcludeDirectories @("build", ".gradle")
 
-    # HushFacebook v0.7.1 forces Guava 33.7.2-jre on all project configurations for its
+    # HushFacebook v0.7.2 forces Guava 33.7.2-jre on all project configurations for its
     # reviewed tooling graph. HushMessenger v0.21.0 still locks its unit-test configurations to
     # 33.6.0-jre. The combined tree is temporary, so align only its copied Messenger lockfile;
     # do not modify the standalone HushMessenger core.
@@ -101,11 +101,6 @@ try {
         "com.google.guava:guava:33.7.2-jre="
     )
     [System.IO.File]::WriteAllText($messengerLock, $messengerLockText, [System.Text.UTF8Encoding]::new($false))
-
-    # Messenger 0.21.0 requires Morphe Patcher 1.15.1. The standalone Facebook source remains
-    # pinned to its reviewed 1.15.0 baseline; only this temporary combined build is raised.
-    $versionsToml = Join-Path $temp "gradle\libs.versions.toml"
-    Replace-ExactlyOnce $versionsToml 'morphe-patcher = "1.15.0"' 'morphe-patcher = "1.15.1"'
 
     [System.IO.File]::WriteAllText((Join-Path $temp "local.properties"), ("sdk.dir=" + $AndroidSdk.Replace("\", "\\")), [System.Text.Encoding]::ASCII)
 
@@ -123,6 +118,7 @@ try {
     Replace-ExactlyOnce $patchBuild 'website = "https://github.com/SysAdminDoc/Hushfacebook"' 'website = "https://github.com/SkillGodAk/Nivqo"'
 
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MaterialYouPatch.kt") 'name = "Material You theme"' 'name = "Messenger · Material You theme"'
+    Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'controlPatch("allow_screenshot", "Allow screenshots",' 'controlPatch("allow_screenshot", "Messenger · Allow screenshots",'
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\coexist\RestoreTrustPatch.kt") 'name = "Restore screens on re-signed builds"' 'name = "Messenger · Restore screens on re-signed builds"'
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'name = "View stories anonymously"' 'name = "Messenger · View stories anonymously"'
 
@@ -155,7 +151,7 @@ try {
     }
 
     $duplicates = @($patches | Group-Object name | Where-Object { $_.Count -gt 1 })
-    if ($patches.Count -ne 93 -or $facebookCount -ne 60 -or $messengerCount -ne 33 -or $otherCount -ne 0) {
+    if ($patches.Count -ne 103 -or $facebookCount -ne 70 -or $messengerCount -ne 33 -or $otherCount -ne 0) {
         throw "Unexpected catalog split: total=$($patches.Count), Facebook=$facebookCount, Messenger=$messengerCount, other=$otherCount"
     }
     if ($duplicates.Count -ne 0) {

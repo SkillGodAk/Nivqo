@@ -108,6 +108,38 @@ public class MarketplaceAdFilterTest {
         assertEquals(FamilyNames.SPONSORED_MARKETPLACE + ": invoked 1, 1 found, 0 missing", statusLine());
     }
 
+    /** A video ad that reaches Marketplace's feed isn't drawn, and the report counts it. */
+    @Test
+    public void aVideoAdIsntDrawn() {
+        assertTrue(MarketplaceAdFilter.hidesVideoAd());
+        assertEquals(MarketplaceAdFilter.ROUTE + ": 1 lists, 1 items, 1 removed. Last reason: "
+                + MarketplaceAdFilter.NOT_DRAWN + ". Removed: " + MarketplaceAdFilter.NOT_DRAWN + " 1. Kinds: "
+                + MarketplaceAdFilter.VIDEO_AD + " 1", counterLine());
+        assertEquals(FamilyNames.SPONSORED_MARKETPLACE + ": invoked 1, 1 found, 0 missing", statusLine());
+    }
+
+    /** Off or paused, Facebook draws its video ad, and the report still shows one came. */
+    @Test
+    public void offOrPausedAVideoAdIsDrawn() {
+        Settings.HIDE_SPONSORED_MARKETPLACE_LISTINGS.save(false);
+        assertFalse(MarketplaceAdFilter.hidesVideoAd());
+        assertEquals(MarketplaceAdFilter.ROUTE + ": 1 lists, 1 items, 0 removed. Kinds: "
+                + MarketplaceAdFilter.VIDEO_AD + " 1", counterLine());
+        Settings.HIDE_SPONSORED_MARKETPLACE_LISTINGS.resetToDefault();
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse(MarketplaceAdFilter.hidesVideoAd());
+        PauseForTests.resume();
+        assertTrue(MarketplaceAdFilter.hidesVideoAd());
+    }
+
+    /** Without the patch in the build, a video ad is drawn and nothing is counted. */
+    @Test
+    public void withoutThePatchAVideoAdIsDrawn() {
+        MarketplaceAdFilterForTests.inBuild(Boolean.FALSE);
+        assertFalse(MarketplaceAdFilter.hidesVideoAd());
+        assertNull(counterLine());
+    }
+
     /** Every one of Facebook's four ads-only queries is held back, and counted as that. */
     @Test
     public void theAdsOnlyQueriesDontGoOut() {
@@ -119,6 +151,43 @@ public class MarketplaceAdFilterTest {
         assertEquals(4, MarketplaceAdFilter.ADS_ONLY_QUERIES.length);
         for (String query : MarketplaceAdFilter.ADS_ONLY_QUERIES) {
             assertTrue(query, query.startsWith("MarketplaceHomeFeed") && query.contains("Ads"));
+        }
+    }
+
+    /**
+     * The three queries behind a listing page's ad rows are held back too, and the log says so.
+     * The page's own queries go out as they were, and off or paused so do the ad rows' queries.
+     */
+    @Test
+    public void aListingPagesAdsDontGoOut() {
+        BaseSettings.DEBUG.save(true);
+        LogBufferManager.clearLogBuffer();
+        String body = body("{\"count\":4,\"targetId\":\"1\"}");
+        for (String query : MarketplaceAdFilter.LISTING_ADS_QUERIES) {
+            assertNull(query, MarketplaceAdFilterForTests.requestBody(query, body));
+        }
+        String[] pages = {"MarketplacePDPContainerQuery", "MarketplacePDPSurfaceQuery",
+                "MarketplacePDPTailSectionsContainerQuery", "MarketplacePDPRelatedSearchesSectionQueryRendererQuery"};
+        for (String query : pages) {
+            assertSame(query, body, MarketplaceAdFilterForTests.requestBody(query, body));
+        }
+        assertEquals(3, MarketplaceAdFilter.LISTING_ADS_QUERIES.length);
+        assertTrue(counterLine(), counterLine().startsWith(MarketplaceAdFilter.ROUTE
+                + ": 7 lists, 7 items, 3 removed. Last reason: " + MarketplaceAdFilter.HELD_BACK));
+        String report = LogBufferManager.buildExportText();
+        for (String query : MarketplaceAdFilter.LISTING_ADS_QUERIES) {
+            assertEquals(report, 1, occurrences(report, "Marketplace ads: held back " + query
+                    + ", one of the listing page's ad rows."));
+        }
+
+        Settings.HIDE_SPONSORED_MARKETPLACE_LISTINGS.save(false);
+        for (String query : MarketplaceAdFilter.LISTING_ADS_QUERIES) {
+            assertSame("off: " + query, body, MarketplaceAdFilterForTests.requestBody(query, body));
+        }
+        Settings.HIDE_SPONSORED_MARKETPLACE_LISTINGS.resetToDefault();
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        for (String query : MarketplaceAdFilter.LISTING_ADS_QUERIES) {
+            assertSame("paused: " + query, body, MarketplaceAdFilterForTests.requestBody(query, body));
         }
     }
 

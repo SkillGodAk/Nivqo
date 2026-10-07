@@ -39,9 +39,13 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  *       boosted listings out of its answer. A Marketplace query whose variables name either one at
  *       their top level has it set to true. A variable a query doesn't name is never added.
  *   <li>The four ads-only queries Facebook's own code lists beside the feed ({@link
- *       #ADS_ONLY_QUERIES}) aren't sent. The body answered is null, and the Networking module
+ *       #ADS_ONLY_QUERIES}) aren't sent, and neither are the three that fill a listing page's ad
+ *       rows ({@link #LISTING_ADS_QUERIES}). The body answered is null, and the Networking module
  *       reports that to Relay as a request it couldn't make, its own error path.
  * </ul>
+ *
+ * <p>A video ad that reaches the feed anyway isn't drawn: the two native components that draw one
+ * ask {@link #hidesVideoAd} first, and draw nothing on a yes.
  *
  * <p>Nothing else in a body changes: every other byte of it goes out as Facebook wrote it. Requests
  * of other surfaces aren't read past their tracking name.
@@ -92,6 +96,19 @@ public final class MarketplaceAdFilter {
             "MarketplaceHomeFeedBoostedListingAdsPaginationQuery",
     };
 
+    /**
+     * The queries that fill a listing page's ad rows: "Ads inspired by your views", the boosted
+     * listings under "Ads from sellers", and "Suggested ad products", which Facebook asks for when
+     * the first goes unanswered. None is on Facebook's list, and their names are only in the
+     * compressed JavaScript bundle, so no fixture holds them. On 581 the first two answered ad
+     * stories and nothing else, and every tile of the rows they fill was an ad.
+     */
+    static final String[] LISTING_ADS_QUERIES = {
+            "MarketplaceProductDetailsPageRelatedAdsDetailQuery",
+            "MarketplacePDPBoostedListingAdsQuery",
+            "MarketplacePDPPersonalizedAdsQuery",
+    };
+
     /** The variables of the feed's query that ask the server to leave its ads out. */
     static final String[] SKIP_VARIABLES = {
             "shouldSkipAdRequest",
@@ -101,6 +118,10 @@ public final class MarketplaceAdFilter {
     /** What the counter says was done to a request. */
     static final String HELD_BACK = "ads-only query held back";
     static final String SKIPPED = "feed query asked to skip ads";
+
+    /** What the counter calls a video ad in Marketplace's feed, and what it says when one isn't drawn. */
+    static final String VIDEO_AD = "video ad";
+    static final String NOT_DRAWN = "video ad not drawn";
 
     /** What names a Marketplace search query, and what names the ones whose answers carry no results. */
     static final String SEARCH = "Search";
@@ -171,13 +192,14 @@ public final class MarketplaceAdFilter {
             FeedFilterCounters.sawKind(ROUTE, query);
             MarketplaceResponseDiagnostics.request(query, body);
             boolean on = switchedOn();
-            if (isAdsOnly(query)) {
+            String heldBack = heldBack(query);
+            if (heldBack != null) {
                 if (!on) {
                     log(query + " went out, the switch is off.");
                     return body;
                 }
                 FeedFilterCounters.removed(ROUTE, 1, HELD_BACK);
-                log("held back " + query + ", one of the feed's ads-only queries.");
+                log("held back " + query + ", " + heldBack + ".");
                 return null;
             }
             Rewrite rewrite = skipAds(body, on);
@@ -187,6 +209,31 @@ public final class MarketplaceAdFilter {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.SPONSORED_MARKETPLACE, "Marketplace request", failure);
             return body;
+        }
+    }
+
+    /**
+     * Injection point, first thing in each of the two Litho components that draw a video ad in
+     * Marketplace's feed. Answers true to have the component draw nothing, before it asks for the
+     * ad's video. Never throws.
+     */
+    public static boolean hidesVideoAd() {
+        try {
+            if (!inBuild()) return false;
+            HookStatus.invoked(FamilyNames.SPONSORED_MARKETPLACE);
+            HookStatus.bound(FamilyNames.SPONSORED_MARKETPLACE, "Marketplace video ad");
+            FeedFilterCounters.sawList(ROUTE, 1);
+            FeedFilterCounters.sawKind(ROUTE, VIDEO_AD);
+            if (!switchedOn()) {
+                log("drew a video ad, the switch is off.");
+                return false;
+            }
+            FeedFilterCounters.removed(ROUTE, 1, NOT_DRAWN);
+            log("didn't draw a video ad.");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.SPONSORED_MARKETPLACE, "Marketplace video ad", failure);
+            return false;
         }
     }
 
@@ -293,12 +340,19 @@ public final class MarketplaceAdFilter {
         return trackingName.substring(RELAY.length());
     }
 
-    /** Whether [query] is one of {@link #ADS_ONLY_QUERIES}. */
-    static boolean isAdsOnly(String query) {
+    /**
+     * Why [query] isn't sent, for the log: it's one of {@link #ADS_ONLY_QUERIES} or {@link
+     * #LISTING_ADS_QUERIES}. Null for a query that goes out.
+     */
+    @Nullable
+    static String heldBack(String query) {
         for (String ads : ADS_ONLY_QUERIES) {
-            if (ads.equals(query)) return true;
+            if (ads.equals(query)) return "one of the feed's ads-only queries";
         }
-        return false;
+        for (String ads : LISTING_ADS_QUERIES) {
+            if (ads.equals(query)) return "one of the listing page's ad rows";
+        }
+        return null;
     }
 
     /**

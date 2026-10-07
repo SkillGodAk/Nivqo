@@ -109,7 +109,7 @@ object PatchMetadataLocalizer {
         ),
         "Hide AI-detected posts" to Zh(
             "隱藏 AI 偵測內容",
-            "移除 Facebook 自行偵測為 AI 產生的貼文、Reels 與 Watch 影片；另有開關可移除作者自行標註為 AI 的貼文。所有開關預設關閉。"
+            "移除 Facebook 自行偵測為 AI 產生的貼文、Reels 與 Watch 影片；另有獨立開關可隱藏作者標註為 AI 的貼文、動態消息中的 Meta AI 卡片，以及 Meta AI Studio 角色貼文。Meta AI 卡片開關預設開啟，其餘依上游設定。"
         ),
         "Hide Menu promotions" to Zh(
             "隱藏功能表推廣內容",
@@ -145,7 +145,7 @@ object PatchMetadataLocalizer {
         ),
         "Hide sponsored Marketplace listings" to Zh(
             "隱藏 Marketplace 贊助刊登",
-            "移除 Marketplace 動態中的廣告與付費推廣刊登，並阻止只用於抓取廣告的請求。一般刊登仍會保留。"
+            "移除 Marketplace 動態、搜尋結果與刊登詳情頁中的廣告與付費推廣內容，並阻止廣告專用請求與影片廣告載入。一般刊登與相關內容仍會保留。"
         ),
         "Hide sponsored posts" to Zh(
             "隱藏贊助貼文",
@@ -181,7 +181,7 @@ object PatchMetadataLocalizer {
         ),
         "Hushfacebook in the Menu" to Zh(
             "在功能表加入 Hushfacebook",
-            "在 Facebook「設定和隱私」底部加入 Hushfacebook 設定入口；長按 Facebook 標誌與啟動器捷徑仍可開啟設定。"
+            "在 Facebook「設定和隱私」底部加入 Hushfacebook 設定入口；啟用「已儲存」捷徑時，會在其上方一併加入「已儲存」列。長按 Facebook 標誌與啟動器捷徑仍可開啟設定。"
         ),
         "Hushfacebook settings" to Zh(
             "Hushfacebook 設定",
@@ -213,7 +213,7 @@ object PatchMetadataLocalizer {
         ),
         "Resume long videos" to Zh(
             "續播長影片",
-            "超過兩分鐘的影片下次播放時會從上次離開的位置繼續。Reels、直播與廣告仍照原本方式開始播放。此開關預設關閉。"
+            "超過兩分鐘的影片會在動態消息或全螢幕播放器從上次離開的位置繼續；短 Reels、直播與廣告仍照原本方式開始。此開關預設關閉。"
         ),
         "Sanitize sharing links" to Zh(
             "清除分享連結追蹤",
@@ -296,6 +296,43 @@ object PatchMetadataLocalizer {
         "View stories anonymously" to Zh(
             "匿名觀看限時動態",
             "不把你看過哪些限時動態回報給 Facebook，因此不會出現在觀看者名單中。若回覆或傳送表情回應仍會顯示你的身分，而且看過的限時動態仍會保留未觀看外框。"
+        ),
+
+        "Block Instant Games ads" to Zh(
+            "阻擋 Instant Games 廣告",
+            "阻止 Facebook 內的 Instant Games 載入全螢幕、獎勵式或橫幅廣告。遊戲要求廣告時會收到沒有廣告可顯示的回應，因此獎勵式廣告也不會提供獎勵。"
+        ),
+        "Block screenshot detection" to Zh(
+            "阻擋截圖偵測",
+            "阻止 Facebook 偵測截圖與螢幕錄影，包括動態消息、Reels、聊天、遊戲、Marketplace 與廣告畫面。選取補丁後開關預設開啟，位於「隱私」。"
+        ),
+        "Hide tabs" to Zh(
+            "隱藏分頁",
+            "可分別隱藏 Feeds、朋友、Marketplace、社團、遊戲與活動分頁；頁面仍可從功能表開啟。各開關預設關閉，重新啟動 Facebook 後套用。"
+        ),
+        "Hold back analytics uploads" to Zh(
+            "阻止分析資料上傳",
+            "阻止 Facebook 在背景上傳 App 使用分析資料，並略過裝置端模型學習工作。選取補丁後開關預設開啟，位於「隱私」，變更後需重新啟動 Facebook。"
+        ),
+        "Picture-in-picture" to Zh(
+            "子母畫面",
+            "播放 Reels 時離開 Facebook，可透過 Facebook 原生子母畫面繼續在小視窗播放。需要 Android 12 以上；選取補丁後開關預設開啟。"
+        ),
+        "Show View profile on Marketplace sellers" to Zh(
+            "Marketplace 賣家顯示「查看個人檔案」",
+            "讓每個 Marketplace 賣家頁面都顯示 Facebook 原生的「查看個人檔案」按鈕，可開啟賣家的普通 Facebook 個人檔案；原本只有部分帳號會看到。"
+        ),
+        "Turn off HDR brightness" to Zh(
+            "關閉 HDR 自動增亮",
+            "避免 Facebook 播放 HDR 影片或照片時把螢幕亮度自動拉高，解析度維持不變。選取補丁後開關預設開啟，位於「播放」。"
+        ),
+        "Turn off haptics" to Zh(
+            "關閉觸覺回饋",
+            "關閉 Facebook 自己在點按與手勢時產生的短震動；鍵盤、手機系統觸覺回饋與來電震動不受影響。選取補丁後開關預設開啟。"
+        ),
+        "Turn off screen transitions" to Zh(
+            "關閉畫面轉場",
+            "讓 Facebook 分頁、功能表與覆蓋畫面直接顯示或關閉，不再使用滑入／滑出轉場；左右滑動分頁與頁面內動畫仍保留。選取補丁後開關預設開啟。"
         ),
 
         // HushMessenger
@@ -390,7 +427,7 @@ object PatchMetadataLocalizer {
 
         "Allow screenshots" to Zh(
             "允許截圖",
-            "允許截取受保護的聊天媒體，包括僅限查看一次的媒體與 Quicksnap，並停止截圖通知；不會新增重新播放或儲存功能。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。"
+            "讓 Facebook 原本禁止截圖或螢幕錄影的頁面也能正常出現在截圖、錄影與最近使用的 App 畫面中。選取補丁後開關預設開啟，位於「隱私」。"
         ),
         "Hide Meta AI" to Zh(
             "隱藏 Meta AI",
@@ -427,6 +464,8 @@ object PatchMetadataLocalizer {
     )
 
     private val messengerZhDescriptions = mapOf(
+        "Allow screenshots" to
+            "允許截取受保護的聊天媒體，包括僅限查看一次的媒體與 Quicksnap，並停止截圖通知；不會新增重新播放或儲存功能。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。",
         "Material You theme" to
             "Android 12 以上讓 Messenger 深色模式使用桌布配色；Android 11 使用固定藍色調。淺色模式不變。請先在 Messenger 開啟深色模式。",
         "View stories anonymously" to
@@ -445,6 +484,8 @@ object PatchMetadataLocalizer {
     }
 
     private fun isMessengerVariant(name: String, original: String?): Boolean = when (name) {
+        "Allow screenshots" -> original?.contains("protected chat media", ignoreCase = true) == true ||
+            original?.contains("Quicksnap", ignoreCase = true) == true
         "Material You theme" -> original?.contains("Messenger", ignoreCase = true) == true
         "View stories anonymously" ->
             original?.contains("marked as seen on your side", ignoreCase = true) == true
