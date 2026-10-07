@@ -40,6 +40,17 @@
 
 # Changelog
 
+## 2026-10-08 — v1.34.0 replacement / stable core 更新提示修正
+
+### Manager replacement
+
+- 修正 `0.7.2-nivqo.1`、`0.21.0-nivqo.1` 這類 Nivqo 正式 revision 被 `ChangelogParser` 誤判為 prerelease，導致 stable channel 把 core changelog 濾掉、首頁不顯示「更新／重新修補」的問題。
+- `-nivqo.N` 現在正確視為 stable revision；`dev` / `beta` / `rc` 等仍維持 prerelease。
+- 已驗證 HushFacebook `0.7.1-nivqo.1 -> 0.7.2-nivqo.1` 會被判定為新版，且 Facebook scoped changelog 可觸發重新修補提示。
+- Manager 顯示版本維持 `1.34.0`；update transport 提高至 `1.34.2`，VersionCode 提高至 `39866739`。
+- APK SHA-256：`AB7EEDBD404985532948A9800C9771B1094AC471262E3D7C533208A6E21064F6`。
+- Signer SHA-256 維持：`FDEC7E04562314AB6CB90981AA7C88F5AFC145F65264D2D359E331F7A22E9D29`。
+
 ## 2026-10-08 — v1.34.0 replacement / HushFacebook 0.7.2
 
 ### Facebook 核心
