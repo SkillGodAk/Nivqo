@@ -40,6 +40,24 @@
 
 # Changelog
 
+## 2026-10-08 — v1.34.0 replacement / HushFacebook 0.7.2
+
+### Facebook 核心
+
+- HushFacebook 更新到 `0.7.2-nivqo.1`，只同步上游正式 `v0.7.2` / commit `4c102f39fd80e41c9f14b346885e8d7959d0b930`。
+- Facebook 核心由 60 增至 70 patches；核心繁中覆蓋 `609 / 609`，Manager patch metadata `70 / 70`。
+- 保留 Nivqo 語言選擇與 Facebook 頂部 Messenger 圖示雙向路由。
+- HushMessenger 維持 `0.21.0-nivqo.1` / 33 patches。
+- Nivqo Patches 更新到 `0.5.0`，Facebook 70 + Messenger 33 = `103 patches`。
+
+### Manager replacement
+
+- Manager 顯示版本維持 `1.34.0`，更新 transport 為 `1.34.1`，VersionCode 提高到 `39866700`。
+- 修正離線首次啟動 Messenger seed 路徑仍指向 `0.14.0` 的歷史問題；內建 seed 現為 HushFacebook 0.7.2 + HushMessenger 0.21.0。
+- APK SHA-256：`542DD647947EEEFF58E5854091A85026F1CE3BF3210E79C51592A00CC4B938F1`。
+- Signer SHA-256 維持：`FDEC7E04562314AB6CB90981AA7C88F5AFC145F65264D2D359E331F7A22E9D29`。
+
+
 ## 2026-10-06 — v1.34.0
 
 ### Manager 同步
