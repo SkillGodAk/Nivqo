@@ -7,6 +7,7 @@ package app.morphe.manager.util
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -15,6 +16,49 @@ import kotlin.test.assertTrue
  * `### Features` and `### Bug Fixes` headings over `*` bullets, optionally scoped to a patch.
  */
 class ChangelogSectionsTest {
+    @Test
+    fun `nivqo release revisions stay on the stable channel`() {
+        val entries = ChangelogParser.parse(
+            """
+            # 0.7.2-nivqo.1 (2026-10-08)
+
+            * **Facebook:** 繁體中文：正式更新。
+
+            # 0.7.2-dev.1 (2026-10-07)
+
+            * **Facebook:** Development update.
+            """.trimIndent()
+        )
+
+        assertFalse(entries.first { it.version == "0.7.2-nivqo.1" }.isPrerelease)
+        assertTrue(entries.first { it.version == "0.7.2-dev.1" }.isPrerelease)
+        assertEquals(listOf("0.7.2-nivqo.1"), entries.filterNot { it.isPrerelease }.map { it.version })
+    }
+
+    @Test
+    fun `facebook 071 nivqo install sees 072 nivqo scoped update`() {
+        val entries = ChangelogParser.parse(
+            """
+            # 0.7.2-nivqo.1 (2026-10-08)
+
+            * **Facebook:** 繁體中文：核心由 60 個 patch 更新為 70 個。
+            * **Facebook:** English: Bundle grows from 60 to 70 patches.
+
+            # 0.7.1-nivqo.1 (2026-10-04)
+
+            * **Facebook:** Previous release.
+            """.trimIndent()
+        ).filterNot { it.isPrerelease }
+
+        assertTrue(
+            ChangelogParser.hasChangesFor(
+                entries = entries,
+                installedVersion = "0.7.1-nivqo.1",
+                appNames = listOf("Facebook"),
+            )
+        )
+    }
+
     @Test
     fun `facebook nivqo release scope triggers home repatch detection`() {
         val entries = ChangelogParser.parse(

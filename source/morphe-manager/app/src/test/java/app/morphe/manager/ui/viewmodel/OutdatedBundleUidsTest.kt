@@ -14,6 +14,13 @@ class OutdatedBundleUidsTest {
     private val current = mapOf(1 to "1.2.0", 2 to "3.0.0", 3 to null)
 
     @Test
+    fun `facebook 071 nivqo is outdated against 072 nivqo`() {
+        val stored = listOf(mapOf(1 to "0.7.1-nivqo.1"))
+        val currentNivqo = mapOf(1 to "0.7.2-nivqo.1")
+        assertEquals(setOf(1), outdatedBundleUids(stored, currentNivqo))
+    }
+
+    @Test
     fun `nothing is outdated when every app is on the current version`() {
         val stored = listOf(mapOf(1 to "1.2.0"), mapOf(2 to "3.0.0"))
         assertTrue(outdatedBundleUids(stored, current).isEmpty())
