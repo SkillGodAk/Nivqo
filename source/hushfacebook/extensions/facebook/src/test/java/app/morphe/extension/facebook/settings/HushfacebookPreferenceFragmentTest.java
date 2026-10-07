@@ -155,19 +155,19 @@ public class HushfacebookPreferenceFragmentTest {
     }
 
     /**
-     * Facebook builds the feed's adapters once per feed view and the tray is one of them, so the
-     * switch can't act before a restart (an S22 check on 2026-09-26 pulled to refresh and got no
-     * tray back). The row says so, after what the tray is.
+     * The tray adapter is built at every start and counts no rows while the switch is on, and the
+     * feed reads that count on a pull to refresh, so a change shows then (a Galaxy S25 check on
+     * 2026-10-05, both ways). The row says so, after what the tray is.
      */
     @Test
-    public void theStoriesTrayRowSaysTheSwitchWaitsForARestart() {
+    public void theStoriesTrayRowSaysAChangeShowsOnTheNextRefresh() {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.STORIES_TRAY);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             List<Preference> rows = rowsOf(controller);
             int tray = indexOfKey(rows, Settings.HIDE_TOP_STORIES_TRAY.key);
             assertTrue("the Stories tray row is missing", tray >= 0);
             assertEquals("The row of stories at the top of the feed, Create story included. "
-                    + "The switch takes effect when Facebook restarts.",
+                    + "A change shows the next time you pull down to refresh.",
                     String.valueOf(rows.get(tray).getSummary()));
             int between = indexOfKey(rows, Settings.HIDE_STORIES_BETWEEN_POSTS.key);
             assertEquals("the between-post Stories switch isn't immediately after the tray switch", tray + 1, between);
@@ -219,6 +219,25 @@ public class HushfacebookPreferenceFragmentTest {
         }
     }
 
+    /**
+     * The AI character switch sits right below the Meta AI cards' row, in the same family, and says
+     * it starts off.
+     */
+    @Test
+    public void theAiCharacterRowSitsRightBelowTheMetaAiCardsRow() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.AI_DETECTED_POSTS);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(controller);
+            int cards = indexOfKey(rows, Settings.HIDE_META_AI_FEED_UNITS.key);
+            int characters = indexOfKey(rows, Settings.HIDE_AI_CHARACTER_POSTS.key);
+            assertTrue("the Meta AI cards row is missing", cards >= 0);
+            assertEquals("the AI character row isn't right below the Meta AI cards row", cards + 1, characters);
+            assertEquals("Hide AI character posts", String.valueOf(rows.get(characters).getTitle()));
+            assertTrue(String.valueOf(rows.get(characters).getSummary()), String.valueOf(rows.get(characters)
+                    .getSummary()).contains("It's off by default"));
+        }
+    }
+
     @Test
     public void thePausedCardSaysWhatStaysInForEveryReason() {
         for (HushfacebookPause.Reason why : HushfacebookPause.Reason.values()) {
@@ -244,7 +263,7 @@ public class HushfacebookPreferenceFragmentTest {
             Preference card = rowsOf(controller).get(0);
             assertEquals("Hushfacebook is paused", String.valueOf(card.getTitle()));
             assertEquals(HushfacebookPreferenceFragment.pausedSummary(HushfacebookPause.Reason.CRASH_LOOP, RuntimeEnvironment.getApplication().getPackageName())
-                    + " Tap to turn it back on.\n" + L10n.f("Build %1$s", L10n.isolate("unknown")), String.valueOf(card.getSummary()));
+                    + " Tap to turn it back on.\n" + HushfacebookPreferenceFragment.overviewBuildDetails(), String.valueOf(card.getSummary()));
         }
     }
 
@@ -264,7 +283,9 @@ public class HushfacebookPreferenceFragmentTest {
             List<Preference> rows = rowsOf(controller);
             Preference card = rows.get(0);
             assertEquals("Hushfacebook is on", String.valueOf(card.getTitle()));
-            assertTrue(String.valueOf(card.getSummary()), String.valueOf(card.getSummary()).contains(L10n.isolate(facebook)));
+            // The compact overview names this patch version; About retains Facebook's full version too.
+            assertTrue(String.valueOf(card.getSummary()), String.valueOf(card.getSummary()).contains(
+                    L10n.isolate(app.morphe.extension.shared.Utils.getPatchesReleaseVersion())));
             assertTrue(String.valueOf(card.getSummary()), String.valueOf(card.getSummary()).contains(L10n.isolate("unknown")));
             Preference version = null;
             for (Preference row : rows) {
