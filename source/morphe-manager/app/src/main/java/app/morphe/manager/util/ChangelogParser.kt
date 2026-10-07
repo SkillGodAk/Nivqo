@@ -24,10 +24,21 @@ data class ChangelogEntry(
 )
 
 /**
- * True when version carries a semver pre-release suffix (e.g. `1.2.3-dev.4`).
- * Stable releases have no dash in the version string.
+ * True when version carries an actual pre-release suffix (for example `1.2.3-dev.4`).
+ *
+ * Nivqo uses `-nivqo.N` for stable post-release rebuilds of an upstream base. Those revisions
+ * belong to the stable channel and must never be filtered out as prereleases, otherwise the
+ * home re-patch badge cannot see their scoped changelog entries.
  */
-val ChangelogEntry.isPrerelease: Boolean get() = version.contains('-')
+private val NIVQO_STABLE_REVISION_RE = Regex(
+    """^[\d.]+-nivqo\.\d+$""",
+    RegexOption.IGNORE_CASE
+)
+
+val ChangelogEntry.isPrerelease: Boolean
+    get() = version.normalizeVersion().let { normalized ->
+        normalized.contains('-') && !NIVQO_STABLE_REVISION_RE.matches(normalized)
+    }
 
 /** The changes of one release under a single heading, such as its features or its fixes. */
 data class ChangelogSection(
