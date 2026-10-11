@@ -14,6 +14,7 @@ import com.facebook.graphql.model.GraphQLStory;
 import com.facebook.graphql.modelutil.BaseModelWithTree;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,7 +37,14 @@ public class FeedFilterTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
     /** Stands in for GraphQLFeedStoryCategory: only the constant names matter to the rule. */
-    enum Category { ORGANIC, SPONSORED, PROMOTION, INJECTED_STORY, ENGAGEMENT, ENGAGEMENT_QP, FB_SHORTS, FB_SHORTS_FALLBACK, END_OF_FEED_REELS, FB_STORIES }
+    enum Category { ORGANIC, SPONSORED, PROMOTION, INJECTED_STORY, TRENDING, ENGAGEMENT, ENGAGEMENT_QP, FB_SHORTS, FB_SHORTS_FALLBACK, END_OF_FEED_REELS, FB_STORIES }
+
+    /** The patch is in Morphe Manager's default selection with its switches off; these tests turn them on. */
+    @Before
+    public void turnTheSwitchOn() {
+        Settings.HIDE_FEED_REELS.save(true);
+        Settings.HIDE_STORIES_BETWEEN_POSTS.save(true);
+    }
 
     @After
     public void restoreSwitches() {
@@ -47,6 +55,9 @@ public class FeedFilterTest {
         Settings.HIDE_PEOPLE_YOU_MAY_KNOW.resetToDefault();
         Settings.HIDE_SUGGESTED_GROUPS.resetToDefault();
         Settings.HIDE_STORIES_YOU_MIGHT_LIKE.resetToDefault();
+        Settings.HIDE_FEED_MEMORIES.resetToDefault();
+        Settings.HIDE_FEED_FRIEND_REQUESTS.resetToDefault();
+        Settings.HIDE_FRIENDS_LOCATIONS.resetToDefault();
         Settings.HIDE_STORIES_BETWEEN_POSTS.resetToDefault();
         Settings.HIDE_FEED_REELS.resetToDefault();
         FeedFilter.storiesTrayInBuildForTests = null;
@@ -60,12 +71,12 @@ public class FeedFilterTest {
 
     /**
      * A row of reels goes under each of the three categories Facebook files one under, with the
-     * patch in and the switch on (its default). A post, a story row and the reels rows of a build
+     * patch in and the switch on (it starts off). A post, a story row and the reels rows of a build
      * without the patch all stay, and so do the rows once the switch is off.
      */
     @Test
     public void reelsRowsLeaveTheFeedWithTheirPatchAndSwitch() {
-        assertTrue("the switch starts on", Settings.HIDE_FEED_REELS.get());
+        assertFalse("the switch starts off", Settings.HIDE_FEED_REELS.defaultValue);
         for (Category reels : new Category[]{Category.FB_SHORTS, Category.FB_SHORTS_FALLBACK, Category.END_OF_FEED_REELS}) {
             assertTrue(reels.name(), reelsOnly(reels, new Object(), true));
             assertFalse("without the patch: " + reels, reelsOnly(reels, new Object(), false));
@@ -192,15 +203,33 @@ public class FeedFilterTest {
 
     /**
      * On a signed-in feed, posts from accounts nobody there followed arrived as ENGAGEMENT stories,
-     * like posts from friends, and no INJECTED_STORY edge ever came. The "Suggested for you" switch
-     * reads Facebook's own recommendation flag now (RecommendationRuleTest), and the category on its
-     * own hides nothing.
+     * like posts from friends, and no INJECTED_STORY edge ever came, so the "Suggested for you"
+     * switch reads Facebook's own recommendation flag (RecommendationRuleTest). The two categories
+     * Facebook can file a post it picked under go with that switch as well, as extras no feed has
+     * served yet, whatever the flag reads. Each counts under its own name. Without the patch, or
+     * with the switch off, they stay.
      */
     @Test
-    public void theStoryCategoryAloneNoLongerMarksASuggestedPost() {
+    public void aSuggestedCategoryGoesWithTheSuggestedForYouSwitch() {
+        FeedFilterCounters.clear();
+        for (Category category : new Category[] {Category.INJECTED_STORY, Category.TRENDING}) {
+            assertTrue(category.name(), FeedFilter.hideEdge(category, new Object(), false, true));
+            assertTrue(category + " stayed for a false flag", FeedFilter.hideEdge(category, new GraphQLStory(), false, true,
+                    story -> FeedGuardForTests.recommendationContext(false), false, GenAiLabel.PATCHED));
+            assertFalse("without the patch " + category + " went", FeedFilter.hideEdge(category, new Object(), true, false));
+        }
+        assertFalse("an ordinary post went", FeedFilter.hideEdge(Category.ENGAGEMENT, new Object(), false, true));
+        String report = String.join("\n", FeedFilterCounters.report());
+        assertTrue(report, report.contains("Removed: INJECTED_STORY 2, TRENDING 2"));
+
+        // The units switch doesn't hold them back; only their own does.
+        Settings.HIDE_SUGGESTED_POSTS.save(false);
+        assertTrue(FeedFilter.hideEdge(Category.TRENDING, new Object(), false, true));
+        Settings.HIDE_SUGGESTED_FOR_YOU.save(false);
         assertFalse(FeedFilter.hideEdge(Category.INJECTED_STORY, new Object(), false, true));
-        assertFalse(FeedFilter.hideEdge(Category.INJECTED_STORY, new GraphQLStory(), false, true,
-                story -> FeedGuardForTests.recommendationContext(false), false, GenAiLabel.PATCHED));
+        assertFalse(FeedFilter.hideEdge(Category.TRENDING, new Object(), false, true));
+        assertNull(FeedFilter.suggestedCategory(null));
+        assertNull(FeedFilter.suggestedCategory("ENGAGEMENT"));
     }
 
     /**
@@ -243,6 +272,85 @@ public class FeedFilterTest {
         Settings.HIDE_SUGGESTED_GROUPS.save(false);
         assertFalse(FeedFilter.hideEdge(Category.ORGANIC, TypedFeedUnit.suggestedGroups(), false, true));
         assertTrue(FeedFilter.hideEdge(Category.ORGANIC, TypedFeedUnit.peopleYouMayKnow(), false, true));
+    }
+
+    /**
+     * Memories, friend requests and friends' locations between posts go by their type names, each
+     * with its own switch that starts off. Picked, a switch takes only its own kind, and nothing goes
+     * without the patch.
+     */
+    @Test
+    public void memoriesFriendRequestsAndLocationsFollowTheirOwnSwitches() {
+        Object requests = new TypedFeedUnit(FeedFilter.FRIEND_REQUESTS_TYPE);
+        Object locations = new TypedFeedUnit(FeedFilter.FRIENDS_LOCATIONS_TYPE);
+        assertFalse(Settings.HIDE_FEED_MEMORIES.defaultValue);
+        assertFalse(Settings.HIDE_FEED_FRIEND_REQUESTS.defaultValue);
+        assertFalse(Settings.HIDE_FRIENDS_LOCATIONS.defaultValue);
+        for (String memory : FeedFilter.MEMORIES_TYPES) {
+            assertFalse(memory, FeedFilter.hideEdge(Category.ORGANIC, new TypedFeedUnit(memory), false, true));
+        }
+        assertFalse(FeedFilter.hideEdge(Category.ORGANIC, requests, false, true));
+        assertFalse(FeedFilter.hideEdge(Category.ORGANIC, locations, false, true));
+
+        Settings.HIDE_FEED_MEMORIES.save(true);
+        for (String memory : FeedFilter.MEMORIES_TYPES) {
+            assertTrue(memory, FeedFilter.hideEdge(Category.ORGANIC, new TypedFeedUnit(memory), false, true));
+            assertFalse("without the patch " + memory + " went",
+                    FeedFilter.hideEdge(Category.ORGANIC, new TypedFeedUnit(memory), true, false));
+        }
+        assertFalse("the Memories switch took friend requests", FeedFilter.hideEdge(Category.ORGANIC, requests, false, true));
+        assertFalse("a post went with Memories", FeedFilter.hideEdge(Category.ORGANIC, new TypedFeedUnit("Story"), false, true));
+        Settings.HIDE_FEED_MEMORIES.save(false);
+
+        Settings.HIDE_FEED_FRIEND_REQUESTS.save(true);
+        assertTrue(FeedFilter.hideEdge(Category.ORGANIC, requests, false, true));
+        assertFalse("the requests switch took friends' locations", FeedFilter.hideEdge(Category.ORGANIC, locations, false, true));
+        Settings.HIDE_FEED_FRIEND_REQUESTS.save(false);
+
+        Settings.HIDE_FRIENDS_LOCATIONS.save(true);
+        assertTrue(FeedFilter.hideEdge(Category.ORGANIC, locations, false, true));
+        assertFalse("the locations switch took friend requests", FeedFilter.hideEdge(Category.ORGANIC, requests, false, true));
+
+        // With every other type rule off, each kind's switch still works on its own.
+        Settings.HIDE_SUGGESTED_POSTS.save(false);
+        Settings.HIDE_PEOPLE_YOU_MAY_KNOW.save(false);
+        Settings.HIDE_SUGGESTED_GROUPS.save(false);
+        Settings.HIDE_STORIES_YOU_MIGHT_LIKE.save(false);
+        assertTrue(FeedFilter.hideEdge(Category.ORGANIC, locations, false, true));
+    }
+
+    /**
+     * The promotions and prompts that have no model class on every build go by their type names
+     * with the suggested posts switch, and only with it.
+     */
+    @Test
+    public void promotionsAndPromptsWithoutAClassGoByTheirTypeNames() {
+        for (String kind : FeedFilter.SUGGESTED_TYPES) {
+            assertTrue(kind, FeedFilter.hideEdge(Category.ORGANIC, new TypedFeedUnit(kind), false, true));
+            assertFalse("without the patch " + kind + " went",
+                    FeedFilter.hideEdge(Category.ORGANIC, new TypedFeedUnit(kind), true, false));
+        }
+        assertFalse(FeedFilter.hideEdge(Category.ORGANIC, new TypedFeedUnit("QuickPromotionFeedUnitItem"), false, true));
+        Settings.HIDE_SUGGESTED_POSTS.save(false);
+        for (String kind : FeedFilter.SUGGESTED_TYPES) {
+            assertFalse("with the switch off " + kind + " went",
+                    FeedFilter.hideEdge(Category.ORGANIC, new TypedFeedUnit(kind), false, true));
+        }
+    }
+
+    /**
+     * A carousel of several ads goes with the sponsored posts switch by its type name, even on an
+     * edge Facebook doesn't file as SPONSORED. The suggested posts patch alone keeps it, and so does
+     * the switch turned off.
+     */
+    @Test
+    public void aMultiAdCarouselGoesWithSponsoredPostsWhateverItsCategory() {
+        Object carousel = new TypedFeedUnit(FeedFilter.MULTI_ADS_TYPE);
+        assertTrue(FeedFilter.hideEdge(Category.ORGANIC, carousel, true, false));
+        assertFalse("the suggested posts patch took an ad", FeedFilter.hideEdge(Category.ORGANIC, carousel, false, true));
+        assertFalse(FeedFilter.hideEdge(Category.ORGANIC, new TypedFeedUnit("FBMultiAdsFeedUnitFormat"), true, false));
+        Settings.HIDE_SPONSORED_POSTS.save(false);
+        assertFalse("with the switch off the carousel went", FeedFilter.hideEdge(Category.ORGANIC, carousel, true, false));
     }
 
     /**
@@ -419,7 +527,7 @@ public class FeedFilterTest {
         Settings.HIDE_STORIES_BETWEEN_POSTS.save(false);
         assertFalse(FeedFilter.hideEdge(Category.ORGANIC, FeedGuardForTests.storiesRow(false), false, false));
         assertFalse(FeedFilter.hideEdge(Category.ORGANIC, TypedFeedUnit.storiesTray(), false, false));
-        Settings.HIDE_STORIES_BETWEEN_POSTS.resetToDefault();
+        Settings.HIDE_STORIES_BETWEEN_POSTS.save(true);
         FeedFilter.storiesTrayInBuildForTests = false;
         assertFalse(FeedFilter.hideEdge(Category.ORGANIC, FeedGuardForTests.storiesRow(false), false, false));
     }
@@ -448,7 +556,7 @@ public class FeedFilterTest {
         Settings.HIDE_STORIES_BETWEEN_POSTS.save(false);
         assertFalse(FeedFilter.hideEdge(Category.ORGANIC, tile, false, false));
         assertFalse(FeedFilter.hideEdge(Category.ORGANIC, viewer, false, false));
-        Settings.HIDE_STORIES_BETWEEN_POSTS.resetToDefault();
+        Settings.HIDE_STORIES_BETWEEN_POSTS.save(true);
         FeedFilter.storiesTrayInBuildForTests = false;
         assertFalse(FeedFilter.hideEdge(Category.ORGANIC, tile, false, false));
     }

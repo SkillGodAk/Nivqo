@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.facebook.coexist.clonedPackagePatch
+import app.morphe.patches.facebook.media.hdr.playbackFormatEvidencePatch
 import app.morphe.patches.facebook.misc.extension.FACEBOOK_APPLICATION
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
@@ -75,9 +76,9 @@ internal fun BytecodePatchContext.declaredInHierarchy(
 @Suppress("unused")
 val settingsPatch = bytecodePatch(
     name = "Hushfacebook settings",
-    description = "Adds Hushfacebook settings to Facebook. Long-press the Facebook logo at the top of " +
-        "your feed, or Facebook's launcher icon, to turn features on or off, pause Hushfacebook, save your " +
-        "switches to a file or load them, and export diagnostics. The licenses are there too.",
+    description = "Adds Hushfacebook settings to Facebook, where you turn features on or off, pause Hushfacebook " +
+        "and back up your choices. To open them, long-press the Facebook logo at the top of your feed or " +
+        "Facebook's app icon. Other patches need it, so keep it selected.",
     default = true,
 ) {
     category("Settings")
@@ -85,6 +86,9 @@ val settingsPatch = bytecodePatch(
     // Every patch depends on this one, so a copy renamed with Clone app works whatever is picked,
     // and the patches Morphe runs before Clone app bring it in early enough. See ClonedPackage.kt.
     dependsOn(clonedPackagePatch)
+    // With Debug logging on, a report names the video formats Facebook's decoders were set up
+    // with, so it says whether a video was HDR whatever was picked. See PlaybackFormatEvidencePatch.kt.
+    dependsOn(playbackFormatEvidencePatch)
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {

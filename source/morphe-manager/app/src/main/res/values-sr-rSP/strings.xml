@@ -20,68 +20,68 @@
     <string name="android_11_bug_dialog_title">Грешка на Android 11</string>
     <string name="android_11_bug_dialog_description">Dozvola za instalaciju aplikacije mora biti data unapred kako bi se izbjegao greška u sistemu Android 11 koja može negativno utjecati na korisničko iskustvo</string>
     <string name="deep_link_add_source_title">Додај извор</string>
-    <string name="deep_link_add_source_message">Да ли желите да додати овај извор исправки у Nivqo?</string>
+    <string name="deep_link_add_source_message">Да ли желите да додати овај извор исправки у Morphe?</string>
 <string name="deep_link_add_source_warning">Додајте само изворе којима верујете</string>
-    <!-- Home Screen - Update Notifications -->
+<!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Доступно је ажурирање за Nivqo</string>
 <string name="home_update_available_subtitle">Нова верзија спремна за инсталирање</string>
-    <string name="home_blocked_source_title">Уочен блокиран извор закрпе</string>
+<string name="home_blocked_source_title">Уочен блокиран извор закрпе</string>
     <string name="home_blocked_source_subtitle">Додирните да прегледате и уклоните</string>
-    <string name="home_metadata_errors_title">Неки извори закрпа нису доступни</string>
+<string name="home_metadata_errors_title">Неки извори закрпа нису доступни</string>
     <string name="home_metadata_errors_subtitle">Додирните да прегледате изворе</string>
-    <string name="home_outdated_manager_title">Nivqo je zastareo</string>
+<string name="home_outdated_manager_title">Morphe je zastareo</string>
 <string name="home_outdated_manager_subtitle">Неки извори закрпа захтевају новију верзију</string>
-    <string name="home_held_back_title">Закрпљени извор је срушио Nivqo</string>
+<string name="home_held_back_title">Закрпљени извор је срушио Morphe</string>
 <string name="home_held_back_subtitle">Прескочено је да би апликација могла да се покрене. Додирните да бисте прегледали.</string>
-    <string name="home_metered_skipped_title">Ажурирања су паузирана на мобилним подацима</string>
+<string name="home_metered_skipped_title">Ажурирања су паузирана на мобилним подацима</string>
     <string name="home_metered_skipped_subtitle">Додирните да бисте дозволили ажурирања преко мобилних података</string>
-    <string name="home_repatch_available_subtitle">Додирните да их све ставите у ред чекања</string>
+<string name="home_repatch_available_subtitle">Додирните да их све ставите у ред чекања</string>
     <string name="home_update_error">Ажурирање није успело</string>
-    <string name="home_update_error_subtitle">Нешто је пошло по злом док се ажурирају извори</string>
+<string name="home_update_error_subtitle">Нешто је пошло по злом док се ажурирају извори</string>
     <string name="home_update_skipped_metered">Пропуштено ажурирања</string>
-    <string name="home_update_skipped_metered_subtitle">Мобилни подаци су активни</string>
+<string name="home_update_skipped_metered_subtitle">Мобилни подаци су активни</string>
     <string name="home_updating_sources">Ажурирање извора…</string>
-    <string name="home_update_success">Ажурирање извора завршено</string>
+<string name="home_update_success">Ажурирање извора завршено</string>
     <string name="home_update_success_subtitle">Ваши извори су ажурни</string>
-    <string name="home_sources_are_loading">Извори се учитавају, молимо сачекајте…</string>
+<string name="home_sources_are_loading">Извори се учитавају, молимо сачекајте…</string>
     <string name="home_search_apps">Претрага апликација</string>
-    <string name="home_app_list_options_title">Сортирање и филтрирање</string>
+<string name="home_app_list_options_title">Сортирање и филтрирање</string>
     <string name="home_app_list_options_state_description">Сортирано по %1$s, филтрирано по %2$s</string>
-    <string name="home_app_filter_all_description">Свака апликација на почетном екрану</string>
+<string name="home_app_filter_all_description">Свака апликација на почетном екрану</string>
     <string name="home_app_filter_patched_description">Апликације које сте закрпили или сачували помоћу Nivqo</string>
-    <string name="home_app_filter_not_patched_description">Апликације које још нисте закрпили у Nivqo-у</string>
+<string name="home_app_filter_not_patched_description">Апликације које још нисте закрпили у Morphe-у</string>
 <string name="home_app_filter_installed_description">Апликације које су тренутно инсталиране на овом уређају</string>
-    <string name="home_app_filter_uninstalled_description">Апликације закрпљене помоћу Nivqo-а које више нису на овом уређају</string>
+<string name="home_app_filter_uninstalled_description">Апликације закрпљене помоћу Morphe-а које више нису на овом уређају</string>
 <string name="home_app_filter_clones">Клонови</string>
-    <string name="home_app_filter_clones_description">Апликације направљене под сопственим именом пакета, инсталиране уз оригинал</string>
+<string name="home_app_filter_clones_description">Апликације направљене под сопственим именом пакета, инсталиране уз оригинал</string>
     <string name="home_app_sort_manual_description">Притисните и задржите апликацију, затим додирните дугме за поредање</string>
-    <string name="home_app_sort_recommended">Препоручени поредак</string>
+<string name="home_app_sort_recommended">Препоручени поредак</string>
     <string name="home_app_sort_recommended_description">Инсталиране и причвршћене апликације прво</string>
-    <string name="home_app_sort_name_asc_description">Абецедно, од А до Ш</string>
+<string name="home_app_sort_name_asc_description">Абецедно, од А до Ш</string>
     <string name="home_app_sort_name_desc_description">Упадна абецеда, од З до А</string>
-    <string name="home_app_sort_updates_first">Прво ажурирања закрпа</string>
+<string name="home_app_sort_updates_first">Прво ажурирања закрпа</string>
     <string name="home_app_sort_updates_first_description">Апликације са новијим закрпама прво, затим препоручени редослед</string>
-    <string name="home_app_sort_recently_patched">Недавно закрпљене</string>
+<string name="home_app_sort_recently_patched">Недавно закрпљене</string>
     <string name="home_app_sort_recently_patched_description">Најновије закрпљене апликације прво</string>
-    <string name="home_no_apps_title">Нисe доступни апликације</string>
+<string name="home_no_apps_title">Нисe доступни апликације</string>
     <string name="home_no_apps_subtitle">Додај извор пача или омогући постојећи у %s</string>
-    <string name="home_no_apps_search_subtitle">Нема апликација које одговарају на \"%s\"</string>
+<string name="home_no_apps_search_subtitle">Нема апликација које одговарају на \"%s\"</string>
     <string name="home_all_apps_hidden_title">Све апликације су скривене</string>
-    <string name="home_all_apps_hidden_subtitle">Скрио/Скриле сте све апликације са почетног екрана</string>
+<string name="home_all_apps_hidden_subtitle">Скрио/Скриле сте све апликације са почетног екрана</string>
     <string name="home_no_apps_filter_title">Ниједна апликација не одговара овом филтеру</string>
-    <string name="home_no_apps_filter_subtitle">Ништа није пронађено за %s</string>
+<string name="home_no_apps_filter_subtitle">Ништа није пронађено за %s</string>
     <string name="home_category_add">Додај категорију</string>
-    <string name="home_category_all_apps">Све апликације</string>
+<string name="home_category_all_apps">Све апликације</string>
     <string name="home_category_custom">Прилагођено</string>
-    <string name="home_category_uncategorized">Некатегорисано</string>
+<string name="home_category_uncategorized">Некатегорисано</string>
     <string name="home_category_new_title">Нова категорија</string>
-    <string name="home_category_rename_title">Преименуј категорију</string>
+<string name="home_category_rename_title">Преименуј категорију</string>
     <string name="home_category_name">Назив категорије</string>
-    <string name="home_category_move_to">Премести у категорију</string>
+<string name="home_category_move_to">Премести у категорију</string>
     <string name="home_category_move_selected_title">Премести изабране апликације</string>
-    <string name="home_category_delete_confirm_title">Обриши категорију</string>
+<string name="home_category_delete_confirm_title">Обриши категорију</string>
     <string name="home_category_delete_confirm_message">Обриши категорију &lt;b&gt;%1$s&lt;/b&gt;? Апликације у њој ће бити враћене у &lt;b&gt;%2$s&lt;/b&gt;</string>
-    <string name="home_category_actions_unavailable">Функције нису доступне за ову категорију</string>
+<string name="home_category_actions_unavailable">Функције нису доступне за ову категорију</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">Коју апликацију желите да печујете?</string>
     <!-- Humorous hype message with light nostalgia -->
@@ -123,6 +123,26 @@
     <string name="home_greeting_super_late_3">У овом тренутку, останите будни и запакујте</string>
     <string name="home_greeting_super_late_4">Ти и сервери, обоје будни</string>
     <string name="home_greeting_super_late_5">Ноћни и продуктивни</string>
+    <!-- Halloween greetings, shown instead of the ones above around October 31 -->
+    <!-- Pun on "Trick or treat" -->
+    <string name="home_greeting_halloween_1">Трик или закрпа?</string>
+    <string name="home_greeting_halloween_2">Нема духова у овим APK-овима, проверили смо</string>
+    <string name="home_greeting_halloween_3">Језива сезона, свеже закрпе</string>
+    <!-- Pun on "Something wicked this way comes", a line from Shakespeare's Macbeth -->
+    <string name="home_greeting_halloween_4">Нешто опако овамо крпи</string>
+    <!-- Winter holiday greetings, shown instead of the ones above from late December to early January -->
+    <string name="home_greeting_winter_1">Срећни празници, свеже закрпе</string>
+    <!-- Pun on the song "Let It Snow! Let It Snow! Let It Snow!" -->
+    <string name="home_greeting_winter_2">Нека пада снег, нека падају закрпе</string>
+    <string name="home_greeting_winter_3">Нова година, нове закрпе</string>
+    <!-- Pun on "Dashing through the snow", the opening line of "Jingle Bells" -->
+    <string name="home_greeting_winter_4">Крпећи кроз снег</string>
+    <!-- New Year greetings, shown instead of the ones above on December 31 and January 1 -->
+    <string name="home_greeting_new_year_1">Срећна Нова година!</string>
+    <string name="home_greeting_new_year_2">Одбројавамо до свежих закрпа</string>
+    <string name="home_greeting_new_year_3">Нова година, исте апликације без реклама</string>
+    <!-- Pun on the saying "Out with the old, in with the new" -->
+    <string name="home_greeting_new_year_4">Напоље са старим верзијама, унутра с новим</string>
     <!-- Home Screen - Sources Management -->
     <string name="sources_management_title">Извор печовања</string>
     <string name="sources_search">Претражите изворе и закрпе</string>
@@ -161,9 +181,9 @@
     <string name="sources_management_outdated_manager_badge">Ажурирај Морфе</string>
     <string name="sources_management_outdated_manager_hint">Овај извор је направљен за закрпљивач %1$s, али Морфе %2$s укључује закрпљивач %3$s. Ажурирај Морфе да би га користио</string>
     <string name="sources_management_held_back_badge">Пао</string>
-    <string name="sources_management_held_back_hint">Овај извор је срушио Nivqo током учитавања, па се прескаче. Ажурирајте га или поново увезите да бисте покушали поново</string>
+    <string name="sources_management_held_back_hint">Овај извор је срушио Morphe током учитавања, па се прескаче. Ажурирајте га или поново увезите да бисте покушали поново</string>
 <string name="sources_management_source_enabled">Извор омогућен</string>
-    <string name="sources_management_source_disabled">Извор онемогућен</string>
+<string name="sources_management_source_disabled">Извор онемогућен</string>
     <string name="sources_management_source_updating">Ажурирање извора</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">Назив за приказ</string>
@@ -192,11 +212,11 @@
     <string name="sources_dialog_choose_apps_description">Изаберите које од његових апликација да задржите када се извор учита.</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Извори патчева трећих страна</string>
-    <string name="sources_dialog_community_notice_message">"Патчеве заједнице праве и одржавају њихови аутори. Nivqo не прегледа нити проверава патчеве трећих страна и није одговоран за њихов садржај или за оно што они раде на вашем уређају.
+    <string name="sources_dialog_community_notice_message">"Патчеве заједнице праве и одржавају њихови аутори. Morphe не прегледа нити проверава патчеве трећих страна и није одговоран за њихов садржај или за оно што они раде на вашем уређају.
 
 Све што додате са ове веб странице користите на сопствену одговорност."</string>
 <string name="sources_update_success">Успешно ажурирано</string>
-    <string name="sources_update_unavailable">Нema ажурирање</string>
+<string name="sources_update_unavailable">Нema ажурирање</string>
     <string name="sources_download_fail">Неуспешно преузимање извора: %s</string>
     <string name="sources_download_fail_named">\"%s\" није могло да се ажурира. Проверите интернет везу и покушајте поново</string>
     <string name="sources_download_endpoint_not_found">\"%s\": метаподаци за закрпу нису пронађени</string>
@@ -223,17 +243,17 @@
     <string name="home_apk_helper_no_access">Помоћна апликација није одобрила приступ APK-у који је вратила</string>
     <string name="home_apk_helper_no_package">Помоћна апликација није навела коју инсталирану апликацију треба користити</string>
     <string name="home_apk_helper_wrong_package">Помоћна апликација је вратила другу апликацију од оне која се пачује</string>
-    <string name="home_apk_helper_installed_unavailable">Nivqo не може да користи инсталирану апликацију</string>
+    <string name="home_apk_helper_installed_unavailable">Morphe не може да користи инсталирану апликацију</string>
 <string name="home_apk_helper_installed_incompatible">Инсталирана верзија не може да се пачује</string>
-    <string name="home_apk_use_saved">Користи сачувани APK</string>
+<string name="home_apk_use_saved">Користи сачувани APK</string>
     <string name="home_apk_use_installed">Користи инсталирани APK</string>
     <string name="home_apk_use_saved_unsupported">Ове закрпе не подржавају сачувану копију. Приликом примене затражиће потврду или изаберите другу АПК датотеку.</string>
     <string name="home_apk_use_installed_unverified">Нисмо могли да потврдимо потпис инсталиране апликације, тако да је она можда већ закрпљена</string>
     <string name="home_unverified">Неверификовано. Морпхе не може да потврди да је инсталирана апликација верзија коју је закрпио. Поново је инсталирајте из сачуваног АПК-а да бисте вратили његове радње.</string>
     <string name="home_install_verification_pending">Проверавање инсталације…</string>
-    <string name="home_app_info_install_unverified">Nivqo не може да потврди да је инсталирана апликација верзија која је исправљена. Поново је исправљете или инсталирајте из сачуваног APK-а како бисте вратили њене функције</string>
+    <string name="home_app_info_install_unverified">Morphe не може да потврди да је инсталирана апликација верзија која је исправљена. Поново је исправљете или инсталирајте из сачуваног APK-а како бисте вратили њене функције</string>
 <string name="home_app_info_no_saved_apk">Nema saćuvanog APK-a. Patching zahtijeva ponovno odabir APK datoteke</string>
-    <string name="home_version_requires_android">Захтева Android %s+</string>
+<string name="home_version_requires_android">Захтева Android %s+</string>
     <string name="home_apk_no_compatible_versions_title">Није подржано на овом уређају</string>
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; нема подржане верзије за Android %2$s (API %3$s). Све декларисане верзије захтевају вишу Android верзију</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
@@ -244,9 +264,9 @@
     <string name="home_download_instructions_step2_generic">Скролујте низ веб-страницу и притисните њено дугме за преузимање</string>
     <string name="home_download_instructions_step2_variant">Скролујте низ веб-страницу и притисните дугме за преузимање горње &lt;b&gt;APK варијанте&lt;/b&gt;</string>
     <string name="home_download_instructions_step2_search">Отворите резултат претраге са веб-сајта којем верујете</string>
-    <string name="home_download_instructions_step2_search_note">Nivqo не може да гарантује за ове веб-сајтове. Прескочите оне који нуде сопствену продавницу апликација уместо APK датотеке</string>
+    <string name="home_download_instructions_step2_search_note">Morphe не може да гарантује за ове веб-сајтове. Прескочите оне који нуде сопствену продавницу апликација уместо APK датотеке</string>
 <string name="home_download_instructions_step3_search">На том веб-сајту преузмите APK датотеку верзије &lt;b&gt;%s&lt;/b&gt;, а не најновију</string>
-    <string name="home_download_instructions_step3_search_any">На том веб-сајту преузмите APK датотеку апликације. &lt;b&gt;Било која верзија&lt;/b&gt; се може пачовати</string>
+<string name="home_download_instructions_step3_search_any">На том веб-сајту преузмите APK датотеку апликације. &lt;b&gt;Било која верзија&lt;/b&gt; се може пачовати</string>
     <string name="home_download_instructions_download_button_toast">Притисните преузимање на веб-сајту, а не овде 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Одлично! Сада кликните на настави и посетите веб страницу 👆</string>
     <string name="home_download_instructions_download_button_toast_3">Вежба води до савршенства и ти си на добром путу 💪</string>
@@ -257,11 +277,11 @@
     <string name="home_download_instructions_step3_mount">Сачекајте да преузимање буде завршено, а затим &lt;b&gt;инсталирајте APK&lt;/b&gt;</string>
     <string name="home_download_instructions_step4">После завршетка преузимања, вратите се на Nivqo</string>
 <string name="home_download_instructions_step4_mount">Након инсталирања оригиналног АПК-а, вратите се у Морфе</string>
-    <string name="home_download_instructions_continue_to">Наставите на %s</string>
+<string name="home_download_instructions_continue_to">Наставите на %s</string>
     <string name="home_download_instructions_destination">страницу за преузимање</string>
-    <string name="home_download_instructions_copy_link">Копирај линк</string>
+<string name="home_download_instructions_copy_link">Копирај линк</string>
     <string name="home_download_instructions_link_copied">Линк је копиран</string>
-    <!-- Home Screen - Dialog 3: File Picker Prompt -->
+<!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_file_picker_prompt_title">Odaberite preuzete APK</string>
     <string name="home_file_picker_prompt_description">Изаберите &lt;b&gt;%s&lt;/b&gt; APK фајл који сте управо преузели</string>
     <string name="home_file_picker_prompt_open_apk">Отворите APK фајл</string>
@@ -272,7 +292,6 @@
     <string name="home_use_installed_app">Користи инсталирану апликацију</string>
     <string name="home_installed_app_picker_title">Инсталиране апликације</string>
     <string name="home_installed_app_picker_empty">Нема пронађених апликација</string>
-    <string name="home_installed_app_picker_filter_all">Све апликације</string>
     <string name="home_installed_app_picker_filter_user">Само корисничке апликације</string>
     <string name="home_installed_app_picker_filter_system">Само системске апликације</string>
     <string name="home_invalid_apk_unreadable">Није могуће прочитати датотеку. Проверите да \'Екстерна складишта\' није ограничено од стране батерије</string>
@@ -281,7 +300,6 @@
     <string name="home_invalid_apk_io_error">Није успело отварање датотеке. Поново покушајте.</string>
     <string name="home_external_apk_expert_mode_required">Ова функција је доступна само у режиму за напредне кориснике</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
-    <string name="expert_mode_title">Експерт мод</string>
     <string name="expert_mode_search">Претражи печеве</string>
     <string name="expert_mode_disable_all">Онемогући све</string>
     <string name="expert_mode_disable_all_done">Сви закрпе су деактивиране</string>
@@ -372,44 +390,43 @@
     <string name="adaptive_icon_select_image">Изабери слику</string>
     <string name="adaptive_icon_change_image">Промени слику</string>
     <string name="image_load_failed">Не могу да учитам ову слику</string>
-    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
-    <string name="adaptive_icon_foreground">Слика у првом плану</string>
-    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
+    <!-- Card of the adaptive icon creator where the picture is placed on the icon -->
     <string name="adaptive_icon_launcher">Икона покретача</string>
+    <string name="adaptive_icon_gesture_hint">Превуците да померите, штипните да промените величину</string>
+    <!-- Card of the adaptive icon creator showing the icons as the device draws them -->
+    <string name="adaptive_icon_preview">Преглед</string>
+    <!-- Caption under the launcher icon in its own colors -->
+    <string name="adaptive_icon_standard">Стандардна</string>
+    <!-- Caption under the launcher icon recolored by the system theme -->
+    <string name="adaptive_icon_themed">Тематска</string>
     <string name="adaptive_icon_background_color">Боја позадине</string>
     <string name="adaptive_icon_reset_transform">Ресетујте положај и скала</string>
-    <string name="adaptive_icon_safe_zone_inner">Зона безбедности (увек видљива)</string>
-    <string name="adaptive_icon_safe_zone_outer">Маска зона (може бити одсечена)</string>
-    <string name="adaptive_icon_no_transparency_warning">Слика нема пикселе са транспарентношћу. Резултат може изгледати некоректно</string>
+    <string name="adaptive_icon_no_transparency_warning">Ова слика нема провидних пиксела, па тематске и иконе за обавештења задржавају Morphe лого</string>
     <string name="adaptive_icon_created_success">Адаптивни иконика успјешно створен</string>
     <string name="adaptive_icon_creation_failed">Неуспјех у креирању адаптивног иконика</string>
-    <string name="adaptive_icon_label">Адаптивно</string>
-    <string name="adaptive_icon_monochrome_label">Монохромно</string>
     <string name="adaptive_icon_guide">Упутство за креирање икона</string>
     <string name="adaptive_icon_guide_png_title">Користите PNG слику са провидном позадином</string>
-    <string name="adaptive_icon_guide_png_body">Предњи план мора бити PNG датотека са провидном позадином. Пуна позадинска боја ће изгледати неправилно – боја позадине треба да дође са бирача позадине испод.</string>
+    <string name="adaptive_icon_guide_png_body">Лого на провидној позадини најбоље функционише, а боја позадине се бира испод. Слика без провидности уместо тога испуњава целу икону, па тематске и иконе за обавештења тада задржавају Morphe лого.</string>
     <string name="adaptive_icon_guide_safe_zones_title">Сигурносне зоне</string>
-    <string name="adaptive_icon_guide_safe_zones_body">"Унутрашња зона (пуна): садржај је увек у потпуности видљив на свим облицима лансера.
-Спољашња зона (испрекидана): може бити исечена маском лансера – држите важне детаље унутар унутрашње зоне."</string>
+    <string name="adaptive_icon_guide_safe_zones_body">Обрис приказује облик иконе вашег покретача, а све што је изван њега се одсеца. Остали покретачи користе другачије облике, зато важне детаље држите унутар испрекиданог круга, који се приказује код сваког облика.</string>
     <string name="adaptive_icon_guide_notification_title">Икона обавештења</string>
-    <string name="adaptive_icon_guide_notification_body">Генерише се аутоматски из слике предњег плана. Подесите његову величину помоћу клизача Обавештења. Сав видљив садржај се појављује у белој боји на траци статуса.</string>
-    <string name="adaptive_icon_guide_monochrome_title">Монохромна икона</string>
-    <string name="adaptive_icon_guide_monochrome_body">Генерише се аутоматски из слике предњег плана користећи исте трансформације адаптивне иконе. Појављује се затамњена акцентном бојом позадине на Android 13 и новијим верзијама.</string>
+    <string name="adaptive_icon_guide_notification_body">Икона за обавештења се сече из видљивог дела слике и исте је величине као и остале иконе статусне траке, без обзира на маргину коју датотека има. Подесите је клизачем испод прегледа. Android је приказује у једној боји.</string>
+    <string name="adaptive_icon_guide_monochrome_title">Тематска икона</string>
+    <string name="adaptive_icon_guide_monochrome_body">Сече се из слике са истим положајем и величином као и икона покретача. На Android-у 13 и новијим верзијама, покретачи код којих су укључене тематске иконе приказују је у бојама са позадине.</string>
     <string name="notification_icon_preview">Обавештење</string>
     <!-- Header Creator -->
     <string name="header_creator_create">Направи обични заглавље</string>
     <string name="header_creator_light_theme">Заглавље светле теме</string>
     <string name="header_creator_dark_theme">Заглавље тамне теме</string>
-    <string name="header_creator_no_image">Није одабрана слика</string>
     <string name="header_creator_success">Заглавље успјешно креирано</string>
     <string name="header_creator_failed">Неуспјех у креирању заглавља</string>
     <string name="header_creator_guide">Упутство за креирање заглавља</string>
     <string name="header_creator_guide_image_title">Захтеви за слику</string>
-    <string name="header_creator_guide_image_body">Користите било коју датотеку слике (PNG или JPEG). За најбоље резултате, користите слику широког формата са приближном резолуцијом 2,7:1. PNG датотеке са провидним позадинама ће се природно спојити са темом апликације.</string>
+    <string name="header_creator_guide_image_body">PNG са провидном позадином се стапа са траком апликације. Маргине око логоа у датотеци се занемарују, па су величина и положај исти као код подразумеваног логоа.</string>
     <string name="header_creator_guide_themes_title">Светле и тамне теме</string>
     <string name="header_creator_guide_themes_body">Већини апликација су потребне посебне слике за светле и тамне теме. Неке апликације (као што је YouTube Music) користе само тамну тему, па се приказује само та секција.</string>
     <string name="header_creator_guide_positioning_title">Позиционирање и скалирање</string>
-    <string name="header_creator_guide_positioning_body">Користите гестове пецкања за зумирање и превлачење директно у прегледу да бисте позиционирали и скалирали слику. Водичи се појављују када је слика близу центра. Такође можете користити клизач испод прегледа.</string>
+    <string name="header_creator_guide_positioning_body">Превуците и штипните слику у уређивачу или промените њену величину клизачем. Испрекидани оквир означава положај подразумеваног логоа, а помоћне линије се појављују када се слика поравна са њим.</string>
     <!-- Batch patching -->
     <string name="batch_patch_action">Закрпи изабрано</string>
     <string name="batch_patch_title">Групно закрпљивање</string>
@@ -475,38 +492,39 @@
     <string name="home_app_info_app_update_available_description">Извори закрпа подржавају новију верзију ове апликације. Поново закрпите апликацију да бисте прешли на ту верзију</string>
     <string name="home_app_info_newest_supported_version">Најновија подржана</string>
     <string name="home_app_info_version_move">Инсталирана %1$s, најновија подржана %2$s</string>
+    <string name="home_app_info_version_restore">Инсталирано %1$s, закрпљено %2$s</string>
     <string name="home_app_info_app_deleted_warning">Aplikacija je deinstalirana</string>
-    <string name="home_app_info_app_deleted_description">Ova aplikacija je deinstalirana izvan Nivqo. Ponovo je instalirajte da bi obnovili funkcionalnost</string>
-<string name="home_app_info_not_patched_description">Инсталирана је незакрпљена верзија ове апликације. Nivqo и даље има свој претходни запис о закрпама</string>
+    <string name="home_app_info_app_deleted_description">Ova aplikacija je deinstalirana izvan Morphe. Ponovo je instalirajte da bi obnovili funkcionalnost</string>
+    <string name="home_app_info_not_patched_description">Инсталирана је незакрпљена верзија ове апликације. Morphe и даље има свој претходни запис о закрпама</string>
+    <string name="home_app_info_mount_replaced_description">Друга верзија је заменила монтирану апликацију, па закрпа више не важи. Враћање враћа закрпљену верзију</string>
+    <string name="home_app_info_mount_replaced_by_play_store_description">Google Play је ажурирао монтирану апликацију, па закрпа више не важи. Враћање враћа закрпљену верзију. Искључите аутоматско ажурирање за њу у Google Play-у да би остала закрпљена</string>
 <string name="app_links_title">Подржани веб линкови</string>
-    <string name="app_links_description">На Android 12+, линкови ка подржаним доменима се подразумевано отварају у вашем прегледачу, осим ако су одобрени</string>
+<string name="app_links_description">На Android 12+, линкови ка подржаним доменима се подразумевано отварају у вашем прегледачу, осим ако су одобрени</string>
     <string name="app_links_unverified_banner_title">Веб линкови нису верификовани</string>
-    <string name="app_links_unverified_banner_description">Подржани веб линкови се тренутно отварају у вашем прегледачу уместо у овој апликацији</string>
+<string name="app_links_unverified_banner_description">Подржани веб линкови се тренутно отварају у вашем прегледачу уместо у овој апликацији</string>
     <string name="app_links_enable_auto">Омогући аутоматски</string>
-    <string name="app_links_enable_auto_in_progress">Омогућавање линкова…</string>
+<string name="app_links_enable_auto_in_progress">Омогућавање линкова…</string>
     <string name="app_links_open_settings">Отвори подешавања линкова</string>
-    <string name="app_links_repair_success">Апликациони линкови су успешно омогућени</string>
+<string name="app_links_repair_success">Апликациони линкови су успешно омогућени</string>
     <string name="app_links_repair_failed">Аутоматско омогућавање апликационих линкова није успело</string>
-    <string name="app_links_badge_enabled">Омогућено</string>
-    <string name="app_links_badge_disabled">Онемогућен</string>
-    <string name="app_links_all_verified">Сви подржани линкови су подешени да се отварају у овој апликацији</string>
+<string name="app_links_all_verified">Сви подржани линкови су подешени да се отварају у овој апликацији</string>
     <string name="app_links_fix">Поправи линкове</string>
-    <string name="configure">Подеси</string>
+<string name="configure">Подеси</string>
     <string name="patcher_rename_title">Ово ће инсталирати клон</string>
-    <string name="patcher_rename_description">Пачови су направили ову апликацију под сопственим именом пакета, тако да инсталација додаје клон поред &lt;b&gt;%s&lt;/b&gt; уместо да је ажурира</string>
+<string name="patcher_rename_description">Пачови су направили ову апликацију под сопственим именом пакета, тако да инсталација додаје клон поред &lt;b&gt;%s&lt;/b&gt; уместо да је ажурира</string>
     <string name="patcher_rename_result_package">Инсталираће се као</string>
-    <string name="patcher_rename_replaces">Апликација је већ инсталирана под тим именом и биће замењена</string>
+<string name="patcher_rename_replaces">Апликација је већ инсталирана под тим именом и биће замењена</string>
     <string name="home_app_info_apk_size">Величина APK</string>
-    <string name="home_app_info_cpu_arch">Архитектура процесора</string>
+<string name="home_app_info_cpu_arch">Архитектура процесора</string>
     <!-- Home Screen - Root Mode -->
     <string name="root_install_apk_required">Root режим захтева да оригинални APK буде инсталиран на вашем уређају пре печовања</string>
     <string name="root_pre_patch_installer_title">Изберите режим за фластере</string>
     <string name="root_pre_patch_installer_description">Ваш уређај има рут приступ. Изаберите да ли ће апликација бити фластерована за рут монтирање или стандардну инсталацију.</string>
     <string name="root_pre_patch_installer_mount_title">Режим фластеровања рут монтирања</string>
     <string name="root_pre_patch_installer_mount_description">Фластери за рут монтирање, затим монтира APK преко одговарајуће оригиналне апликације. Није потребна GmsCore.</string>
-    <string name="root_mount_module_unmount_warning">Ако KernelSU има подразумевано укључене модуле за демонтажу, отворите KernelSU &gt; Superuser &gt; апликацију коју сте монтирали &gt; Profile &gt; Custom и деактивирајте демонтажу модула. У супротном, монтирана закрпљена APK апликација можда неће ступити на снагу, чак и ако Nivqo показује да је монтирана</string>
+    <string name="root_mount_module_unmount_warning">Ако KernelSU има подразумевано укључене модуле за демонтажу, отворите KernelSU &gt; Superuser &gt; апликацију коју сте монтирали &gt; Profile &gt; Custom и деактивирајте демонтажу модула. У супротном, монтирана закрпљена APK апликација можда неће ступити на снагу, чак и ако Morphe показује да је монтирана</string>
 <string name="root_pre_patch_installer_standard_title">Стандардна мода инсталације</string>
-    <string name="root_pre_patch_installer_standard_description">Закрпе као нормалан APK са GmsCore подршком. Ваша поставка инсталатера се користи након закрпе.</string>
+<string name="root_pre_patch_installer_standard_description">Закрпе као нормалан APK са GmsCore подршком. Ваша поставка инсталатера се користи након закрпе.</string>
     <string name="root_pre_patch_installer_hint">Овај режим закрпе је посебан од Подешавања > Систем > Инсталатер и не може се променити након закрпе.</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">Грешка је копирана у привремену меморију</string>
@@ -519,10 +537,10 @@
     <!-- Field labels, shown in a column beside their values. Keep them short, a long one is cut off rather than wrapped -->
     <string name="patcher_field_app">Апликација</string>
     <string name="patcher_field_package">Пакет</string>
+    <string name="patcher_field_failed_patch">Неуспешна закрпа</string>
     <string name="patcher_field_source">Извор</string>
     <string name="patcher_field_split">Подељени АПК</string>
     <string name="patcher_field_manager">Менаџер</string>
-    <string name="patcher_field_patcher">Пачер</string>
     <string name="patcher_field_runtime">Рантим</string>
     <!-- Native code libraries (.so files) packed inside the APK -->
     <string name="patcher_field_libraries">Библиотеке</string>
@@ -553,6 +571,7 @@
     <string name="patcher_installing_subtitle">Скоро спремно за рад! 🎸</string>
     <string name="patcher_success_title">Готово! 🎉</string>
     <string name="patcher_success_subtitle">Ваша апликација је печована и инсталирана!</string>
+    <string name="patcher_mounted_subtitle">Ваша апликација је закрпљена и монтирана!</string>
     <string name="patcher_complete_title">Закрапа завршено! ✨</string>
     <string name="patcher_failed_title">Упс! Дошло је до грешке</string>
     <string name="patcher_failed_dialog_title">Закрапа није успела</string>
@@ -567,49 +586,50 @@
     <string name="patcher_conflict_subtitle">Морате деинсталирати постојећу верзију</string>
     <string name="patcher_conflict_hint">Modifikovana aplikacija koristi drugačiji sertifikat od instalirane verzije. Deinstalacija će obrisati sve podatke aplikacije.</string>
     <string name="patcher_installed_conflict_title">Потребно је деинсталирати</string>
-    <string name="patcher_installed_conflict_body">"Nivqo потписује поправљене апликације сопственим сертификатом, који се разликује од оригиналног. Android захтева уклањање постојеће верзије пре него што се поправљена апликација може инсталирати.
+    <string name="patcher_installed_conflict_body">"Morphe потписује поправљене апликације сопственим сертификатом, који се разликује од оригиналног. Android захтева уклањање постојеће верзије пре него што се поправљена апликација може инсталирати.
 
 Деинсталација ће трајно избрисати све податке апликације"</string>
-<string name="patcher_install_error_title">Грешка при инсталацији</string>
+    <string name="patcher_install_error_title">Грешка при инсталацији</string>
+    <string name="patcher_mount_error_title">Грешка при монтовању</string>
     <string name="patcher_install_error_subtitle">Покушајте деинсталирати па поново инсталирати</string>
     <string name="patcher_ready_to_mount_subtitle">Притисните дугме испод за монтирање</string>
     <string name="patcher_patches_excluded_for_installer">Није доступно за ову методу инсталације и искључено: %s</string>
     <string name="patcher_back_to_game_hint">Додирните %1$s да се вратите на своју игру</string>
     <string name="patcher_storage_permission_dialog_title">Не могу приступити до пута складиштења</string>
     <string name="patcher_incompatible_patcher_title">Захтевано је ажурирање</string>
-    <string name="patcher_incompatible_patcher_description">Пакетић &lt;b&gt;%1$s&lt;/b&gt; захтева верзију закрпе &lt;b&gt;%2$s&lt;/b&gt; или новију. Молимо вас да ажурирате Nivqo како бисте применили ову апликацију</string>
+    <string name="patcher_incompatible_patcher_description">Извор &lt;b&gt;%1$s&lt;/b&gt; захтева патчер &lt;b&gt;%2$s&lt;/b&gt; или новији. Ажурирајте Morphe да бисте га користили</string>
 <string name="patcher_storage_permission_description_api30">Једна или више опција исправки указују на путеве које Nivqo не може да чита. Доделите дозволу за складиште и додирните дугме, а затим ће почети аутоматско отклањање грешака</string>
 <string name="patcher_storage_permission_description_legacy">Један или више опција пачања указују на путеве које не могу да се приступе. Ажурирајте путеве у опцијама пачања и покушајте поново</string>
-    <string name="patcher_storage_permission_grant">Дозволите приступ складишту</string>
+<string name="patcher_storage_permission_grant">Дозволите приступ складишту</string>
     <string name="patcher_storage_permission_denied_warning">Дозвола за складиштење је одбијена. Дозволите дозволу да бисте користили ову путању, или преместите датотеке у приватни директоријум апликације.</string>
-    <string name="patcher_storage_permission_open_settings">Отворите поставке складиштења</string>
+<string name="patcher_storage_permission_open_settings">Отворите поставке складиштења</string>
     <string name="patcher_storage_badge_denied">Дозвола одбијена</string>
-    <string name="patcher_storage_badge_missing">Непознато</string>
+<string name="patcher_storage_badge_missing">Непознато</string>
     <string name="batch_patch_option_paths_skipped">Датотеке са опцијама закрпе недостају и биће прескочене: %1$s</string>
-    <string name="patcher_missing_patches_title">Неки пачеви су нестали</string>
+<string name="patcher_missing_patches_title">Неки пачеви су нестали</string>
     <string name="patcher_missing_patches_description">Сачувани избор за ову апликацију наводи закрпе које ниједан укључени извор више не нуди. Ако се настави, апликација ће бити закрпљена без њих.</string>
-    <string name="patcher_missing_patches_label">Више се не нуде</string>
+<string name="patcher_missing_patches_label">Више се не нуде</string>
     <string name="patcher_option_paths_gone_title">Недостају датотеке са опцијама закрпе.</string>
-    <string name="patcher_option_paths_gone_description">Једна или више опција закрпе указује на датотеке којих више нема. Уклоните путање да бисте закрпили без њих, или вратите датотеке и покушајте поново.</string>
+<string name="patcher_option_paths_gone_description">Једна или више опција закрпе указује на датотеке којих више нема. Уклоните путање да бисте закрпили без њих, или вратите датотеке и покушајте поново.</string>
     <string name="patcher_option_paths_clear">Уклоните путање и наставите.</string>
-    <string name="patcher_storage_permission_hint">Совет: Преместите датотеке у /Android/data/app.nivqo.manager/files/ - није потребна додатна дозвола</string>
-<!-- Patcher Screen - Patcher Steps -->
+<string name="patcher_storage_permission_hint">Совет: Преместите датотеке у /Android/data/app.morphe.manager/files/ - није потребна додатна дозвола</string>
+    <!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Припрема</string>
     <string name="patcher_step_load_patches">Учитавање закрпа</string>
     <string name="patcher_step_prepare_split_apk">Спајање подељених APK</string>
     <string name="patcher_step_unpack">Прочитај APK-файл</string>
-    <string name="patcher_step_group_patching">Закрпљавање</string>
     <string name="patcher_step_group_saving">Чување</string>
     <string name="patcher_step_write_patched">Писање закрпљене АПК датотеке</string>
     <string name="patcher_step_sign_apk">Потписивање закрпљене АПК датотеке</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Заштита од позадинског подешавања</string>
-    <string name="battery_optimization_dialog_description">На неким уређајима, подешавач може бити заустављен када је апликација минимизована. Дозволите Nivqo-у да ради без ограничења батерије како бисте осигурали поуздано подешавање.</string>
+    <string name="battery_optimization_dialog_description">На неким уређајима, подешавач може бити заустављен када је апликација минимизована. Дозволите Morphe-у да ради без ограничења батерије како бисте осигурали поуздано подешавање.</string>
 <string name="battery_optimization_not_now">Касније</string>
-    <!-- Memory limit dialog, shown after the patcher process was killed -->
+<!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">Нема довољно меморије</string>
     <string name="patcher_memory_adjustment_description">Систем је зауставио патчера док је радио са меморијским ограничењем од %1$d MB. Смањење ограничења на %2$d MB чини патчера мањом метом и може омогућити да се извршавање заврши.</string>
     <string name="patcher_memory_adjustment_description_at_minimum">Систем је зауставио патчера док је радио са меморијским ограничењем од %1$d MB, што је већ најниже доступно. Покушајте да покренете патчовање са мање извора патчева, или изаберите мање патчева.</string>
+    <string name="patcher_memory_adjustment_description_finished">Систем је зауставио пачер при меморијском ограничењу од %1$d MB, а завршио је тек при %2$d MB. Покретање од %2$d MB следећи пут прескаче тај изгубљени покушај</string>
     <string name="patcher_memory_adjustment_apply">Смањи на %1$d MB</string>
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">Закрпљавање је у току…</string>
@@ -661,16 +681,16 @@
     <string name="install_ignore_signature">Ипак инсталирај</string>
     <string name="install_ignore_signature_description">Чува податке апликације, али ради само ако root модул онемогући проверу потписа Андроида</string>
     <string name="uninstall_app_fail">Неуспешно деинсталирана апликација: %s</string>
-    <string name="uninstall_app_unverified">Остављено на месту: Nivqo није могао да потврди да је инсталирана апликација верзија коју је закрпио.</string>
+    <string name="uninstall_app_unverified">Остављено на месту: Morphe није могао да потврди да је инсталирана апликација верзија коју је закрпио.</string>
 <string name="launch_app_unverified">Nivqo није могао да потврди да је инсталирана апликација верзија коју је закрпио.</string>
 <string name="uninstall_timeout">Време за деинсталацију је истекло</string>
-    <string name="save_apk_success">АПК је сачуван</string>
+<string name="save_apk_success">АПК је сачуван</string>
     <string name="saved_app_export_failed">Није успео извоз покрпљене апликације</string>
-    <string name="saved_app_removed_toast">Уклоњена сачувана покрпљена апликација</string>
+<string name="saved_app_removed_toast">Уклоњена сачувана покрпљена апликација</string>
     <string name="saved_app_launch_unavailable">Инсталирајте апликацију пре отварања.</string>
-    <string name="package_name">Име пакета</string>
+<string name="package_name">Име пакета</string>
     <string name="failed_to_mount">Није успело монтирање: %s</string>
-    <string name="failed_to_unmount">Није успело демонтирање: %s</string>
+<string name="failed_to_unmount">Није успело демонтирање: %s</string>
     <!-- Patcher Screen - Mini-games -->
     <string name="mini_game_score">Резултат %s</string>
     <string name="mini_game_best">Најбољи %s</string>
@@ -709,6 +729,9 @@
     <string name="settings_appearance_background_snow">Снег</string>
     <string name="settings_appearance_background_grid">Мрежа</string>
     <string name="settings_appearance_background_particles">Партикле</string>
+    <string name="settings_appearance_background_lava">Лава лампа</string>
+    <string name="settings_appearance_background_halloween">Ноћ вештица</string>
+    <string name="settings_appearance_background_fireworks">Ватромет</string>
     <string name="settings_appearance_background_none">Ништа</string>
     <string name="settings_appearance_background_random">Насумично</string>
     <string name="settings_appearance_background_random_interval_launch">При покретању</string>
@@ -716,6 +739,10 @@
     <string name="settings_appearance_background_random_interval_3days">Свака 3 дана</string>
     <string name="settings_appearance_parallax_effect">Efekt paralaksa</string>
     <string name="settings_appearance_parallax_effect_description">Umiranje pozadine pri kretanju ugao naprijed nazad</string>
+    <string name="settings_appearance_seasonal_themes">Сезонске теме</string>
+    <string name="settings_appearance_seasonal_themes_description">Свечане позадине и поздрави током празника</string>
+    <!-- %1$s is a holiday background name, such as Halloween. %2$s is a date, such as November 1 -->
+    <string name="settings_appearance_seasonal_background_notice">Позадина %1$s се приказује до %2$s док су сезонске теме укључене</string>
     <!-- Settings - Appearance Tab - Theme -->
     <string name="settings_appearance_theme">Начин</string>
     <string name="settings_appearance_theme_mode">Режим теме</string>
@@ -773,13 +800,28 @@
     <string name="settings_appearance_app_card_colors_bundle_description">Користи боју сваке апликације овде, аутоматски затамњену да би се уклопила</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Иконица апликације</string>
-    <string name="settings_appearance_app_icon_selector_description">Како Nivqo изгледа на вашем почетном екрану и у фиоци апликација</string>
+    <string name="settings_appearance_app_icon_selector_description">Како Morphe изгледа на вашем почетном екрану и у фиоци апликација</string>
 <string name="settings_appearance_app_icon_default">Подразумеван</string>
-    <string name="settings_appearance_app_icon_light_2">Небо</string>
+<string name="settings_appearance_app_icon_light_2">Небо</string>
     <string name="settings_appearance_app_icon_light_3">Залаз сунца</string>
-    <string name="settings_appearance_app_icon_dark_1">Океан</string>
+    <string name="settings_appearance_app_icon_light_4">Лаванда</string>
+    <string name="settings_appearance_app_icon_light_5">Глечер</string>
+    <string name="settings_appearance_app_icon_light_6">Измаглица</string>
+    <string name="settings_appearance_app_icon_light_7">Песак</string>
+    <string name="settings_appearance_app_icon_dark_1">Тиркизна</string>
     <string name="settings_appearance_app_icon_dark_2">Празност</string>
-    <string name="settings_appearance_app_icon_dark_3">Индиго</string>
+    <string name="settings_appearance_app_icon_dark_3">Шљива</string>
+    <string name="settings_appearance_app_icon_dark_4">Поноћ</string>
+    <string name="settings_appearance_app_icon_dark_5">Шкриљац</string>
+    <string name="settings_appearance_app_icon_accent_1">Аурора</string>
+    <string name="settings_appearance_app_icon_accent_2">Мастило</string>
+    <string name="settings_appearance_app_icon_accent_3">Папир</string>
+    <string name="settings_appearance_app_icon_accent_4">Сумрак</string>
+    <string name="settings_appearance_app_icon_background">Позадина</string>
+    <string name="settings_appearance_app_icon_mark">Лого</string>
+    <string name="settings_appearance_app_icon_mark_color">Боја</string>
+    <string name="settings_appearance_app_icon_mark_white">Бела</string>
+    <string name="settings_appearance_app_icon_mark_black">Црна</string>
     <string name="settings_appearance_app_icon_change_dialog_title">Променити икону</string>
     <string name="settings_appearance_app_icon_change_dialog_message">Промените у &lt;b&gt;%s&lt;/b&gt; и поново покрените?</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -791,53 +833,55 @@
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <string name="settings_advanced_updates_manager_prereleases_description">Рани приступ новим верзијама Nivqo</string>
 <string name="settings_advanced_updates_prerelease_warning_title">Омогући ажурирања пре издања?</string>
-    <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
+<!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
     <string name="settings_advanced_updates_prerelease_warning_message">"Pre-release versions of Nivqo are still in development and can be unstable.
 
 Patches are not affected: enable pre-release patches for each source in the patch sources list"</string>
 <string name="settings_advanced_updates_allow_metered">Ажурирања преко мобилних података</string>
-    <string name="settings_advanced_updates_allow_metered_description">Омогућава апликацији Nivqo и ажурирањима закрпе да се преузму преко мобилних података</string>
+<string name="settings_advanced_updates_allow_metered_description">Омогућава апликацији Morphe и ажурирањима закрпе да се преузму преко мобилних података</string>
 <string name="settings_advanced_updates_background_notifications">Opozori o pozadinskom ažuriranju</string>
-    <string name="settings_advanced_updates_background_notifications_description">Povremeno proveravaj da li postoje ažuriranja u pozadini i obaveštavaj kada su dostupna</string>
+<string name="settings_advanced_updates_background_notifications_description">Povremeno proveravaj da li postoje ažuriranja u pozadini i obaveštavaj kada su dostupna</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Пуш обавештења за нове верзије, чак и када је апликација затворена</string>
-    <string name="settings_system_notifications_categories">Категорије обавештења</string>
+<string name="settings_system_notifications_categories">Категорије обавештења</string>
     <string name="settings_system_notifications_categories_description">Изаберите у системским подешавањима која ажурирања ће вас обавештавати</string>
-    <string name="settings_advanced_update_interval">Фреквенција провере</string>
+<string name="settings_advanced_update_interval">Фреквенција провере</string>
     <string name="settings_advanced_update_interval_dialog_title">Провери за ажурирања</string>
-    <string name="settings_advanced_update_interval_hourly">Одавно једном на сат</string>
+<string name="settings_advanced_update_interval_hourly">Одавно једном на сат</string>
     <string name="settings_advanced_update_interval_daily">Одавно једном на дан</string>
-    <string name="settings_advanced_update_interval_weekly">Одавно једном на недељу</string>
+<string name="settings_advanced_update_interval_weekly">Одавно једном на недељу</string>
     <string name="settings_advanced_update_interval_monthly">Одавно једном на месец</string>
-    <string name="settings_advanced_update_interval_chip_subtitle">Фреквенција позадинских провере</string>
+<string name="settings_advanced_update_interval_chip_subtitle">Фреквенција позадинских провере</string>
     <string name="settings_advanced_update_interval_battery_warning">Позадинске провере могу не радити на неким уређајима. Производитељи попут Xiaomi, Huawei, Samsung и OnePlus често агресивно ограничавају позадинске процесе да би сачували батерију</string>
-    <string name="settings_advanced_external_batch_patch">Дозволи екстерне окидаче</string>
+<string name="settings_advanced_external_batch_patch">Дозволи екстерне окидаче</string>
     <string name="settings_advanced_external_batch_patch_description">Омогућава апликацијама за аутоматизацију да покрену групно закрпљење путем намере</string>
-    <string name="external_batch_patch_title">Почните групно печење?</string>
+<string name="external_batch_patch_title">Почните групно печење?</string>
     <string name="external_batch_patch_description">%s жели да Nivqo пеци и инсталира апликације</string>
 <string name="external_batch_patch_trust_caller">Увек дозволи ову апликацију</string>
-    <string name="external_batch_patch_unknown_caller">Непозната апликација</string>
+<string name="external_batch_patch_unknown_caller">Непозната апликација</string>
     <!-- Notification content -->
-    <string name="notification_manager_update_title">Доступно ажурирање Nivqo-а</string>
 <string name="notification_bundle_update_title">Доступна су нова патчеа</string>
-    <string name="notification_update_text">Верзија %s је спремна за преузимање</string>
+<string name="notification_update_text">Верзија %s је спремна за преузимање</string>
     <string name="notification_bundle_update_text_unversioned">Додирните да бисте отворили Nivqo и ажурирали</string>
 <string name="notification_permission_dialog_title">Дозволи обавештења</string>
-    <string name="notification_permission_dialog_description">Nivqo треба дозволу за обавештавања да вас упозори када су доступна ажурирања у позадини</string>
-<string name="notification_post_patch_dialog_title">Желите ли да будете обавештени када су ажурирања доступна?</string>
-    <string name="notification_channel_manager_updates">Nivqo ажурирања</string>
-    <string name="notification_channel_manager_updates_description">Обавештења о новим Nivqo издањима</string>
+    <string name="notification_permission_dialog_description">Morphe треба дозволу за обавештавања да вас упозори када су доступна ажурирања у позадини</string>
+    <string name="notification_post_patch_dialog_title">Желите ли да будете обавештени када су ажурирања доступна?</string>
+    <string name="notification_channel_manager_updates">Morphe ажурирања</string>
+    <string name="notification_channel_manager_updates_description">Обавештења о новим Morphe издањима</string>
 <string name="notification_channel_patch_updates">Ажурирања закрпа</string>
-    <string name="notification_channel_patch_updates_description">Обавештења о новим издањима закрпа</string>
-    <string name="notification_channel_patcher">Патчинг</string>
-    <string name="notification_channel_patcher_description">Приказано док Nivqo патчи апликацију у позадини</string>
-<!-- Settings - Advanced Tab - Expert settings Section -->
+<string name="notification_channel_patch_updates_description">Обавештења о новим издањима закрпа</string>
+    <string name="notification_channel_patcher_description">Приказано док Morphe патчи апликацију у позадини</string>
+    <string name="notification_channel_mounted_apps">Монтиране апликације</string>
+    <string name="notification_channel_mounted_apps_description">Када друга верзија замени монтирану апликацију и њена закрпа се више не примењује</string>
+    <string name="notification_mount_replaced_title">%1$s више није закрпљена</string>
+    <string name="notification_mount_replaced_text">v%1$s је заменила закрпљену v%2$s. Отворите Morphe да бисте је вратили</string>
+    <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Навише подешавања</string>
     <string name="settings_advanced_expert_mode">Нави моћ</string>
     <string name="settings_advanced_expert_mode_description">Омогућава комплексна подешавања закрпе за Nivqo и опције прилагођавања</string>
 <string name="settings_advanced_expert_mode_dialog_title">Omogući režim eksperta?</string>
-    <string name="settings_advanced_expert_mode_dialog_message">Režim eksperta omogućava veću kontrolu nad primenom patchova, ali pogrešno podešavanje postavki u režimu eksperta može da rezultuje nefunkcionalnom aplikacijom</string>
+<string name="settings_advanced_expert_mode_dialog_message">Režim eksperta omogućava veću kontrolu nad primenom patchova, ali pogrešno podešavanje postavki u režimu eksperta može da rezultuje nefunkcionalnom aplikacijom</string>
     <string name="settings_advanced_strip_unused_libs">Optimizujte za arhitekturu uređaja</string>
-    <string name="settings_advanced_strip_unused_libs_description">Уклања неискоришћене библиотеке ЦПУ архитектуре и подељене APK модуле</string>
+<string name="settings_advanced_strip_unused_libs_description">Уклања неискоришћене библиотеке ЦПУ архитектуре и подељене APK модуле</string>
     <!-- Settings - Advanced Tab - GitHub PAT Settings -->
     <string name="settings_advanced_github_pat_description">Неопходно за изворе из GitHub pull request</string>
     <string name="settings_advanced_github_pat_configured">Токен конфигурисан</string>
@@ -948,59 +992,59 @@ morphe_header_custom_dark.png
     <string name="installer_status_shizuku_not_running">Почните Шизуку или Суи и покушајте поново.</string>
     <string name="installer_status_shizuku_permission">Дозволите Nivqo-у приступ од апликације Shizuku</string>
 <string name="installer_mount_warning_install">Ваш главни инсталатор је постављен на инсталатор за кореновани монтажу. Ова сачувана апликација није инсталирана коришћењем монтаже.</string>
-    <string name="mount_version_mismatch_message">Верзија оригиналне апликације (%2$s) не одговара верзији патчене апликације (%1$s). Монтирајте одговараћу оригиналну верзију, а затим покушајте поново.</string>
+<string name="mount_version_mismatch_message">Верзија оригиналне апликације (%2$s) не одговара верзији патчене апликације (%1$s). Монтирајте одговараћу оригиналну верзију, а затим покушајте поново.</string>
     <string name="mount_stock_restore_failed_message">Андроид је одбио сачувани оригинални APK. Инсталирајте одговарајућу оригиналну верзију, па покушајте да поново монтирате.</string>
-    <string name="installer_status_shizuku_unsupported">Верзија Шизуку која је инсталирана није подржана.</string>
+<string name="installer_status_shizuku_unsupported">Верзија Шизуку која је инсталирана није подржана.</string>
     <string name="installer_action_open_shizuku">Отвори Схизуку</string>
-    <string name="installer_hint_generic">Инсталација је неуспела. Покушајте поново или пребаците на други инсталатор.</string>
+<string name="installer_hint_generic">Инсталација је неуспела. Покушајте поново или пребаците на други инсталатор.</string>
     <string name="installer_hint_conflict">Друга апликација са истим именом пакета је већ инсталирана. Деинсталирајте је пре наставка.</string>
-    <string name="installer_confirm_notification_title">Потврдите инсталацију</string>
+<string name="installer_confirm_notification_title">Потврдите инсталацију</string>
     <string name="installer_confirm_notification_text">Додирните да бисте довршили инсталацију закрпљене апликације</string>
-    <string name="installer_external_launched">Отварање %s…</string>
+<string name="installer_external_launched">Отварање %s…</string>
     <string name="installer_external_timeout">%s није потврдио инсталацију. Проверите другу апликацију и покушајте поново</string>
-    <string name="installer_external_success">%s је пријавио успешну инсталацију</string>
+<string name="installer_external_success">%s је пријавио успешну инсталацију</string>
     <string name="installer_unavailable_title">%s није доступно</string>
-    <string name="installer_unavailable_message">Ваш главни инсталатор (%s) тренутно није доступан. Можете решити проблем и покушати поново или користити стандардни инсталатор уместо тога.</string>
+<string name="installer_unavailable_message">Ваш главни инсталатор (%s) тренутно није доступан. Можете решити проблем и покушати поново или користити стандардни инсталатор уместо тога.</string>
     <string name="installer_unavailable_shizuku_hint">Уверите се да је Шизуку покренут и дозвола је дата овој апликацији.</string>
-    <string name="installer_use_standard">Користи стандардни</string>
+<string name="installer_use_standard">Користи стандардни</string>
     <string name="installer_play_store_warning_title">Инсталирати као Плаи Сторе?</string>
-    <string name="installer_play_store_warning_message">Поправљена апликација ће бити забележена као инсталирана из Google Play Store-а. Ово може помоћи сервисима као што је Android Auto да је препозна као апликацију из Play Store-а, али то није загарантовано за сваку апликацију или уређај. Понашање може да варира у зависности од верзије Android-а, ROM-а, бренда уређаја и специфичних провера апликације.</string>
+<string name="installer_play_store_warning_message">Поправљена апликација ће бити забележена као инсталирана из Google Play Store-а. Ово може помоћи сервисима као што је Android Auto да је препозна као апликацију из Play Store-а, али то није загарантовано за сваку апликацију или уређај. Понашање може да варира у зависности од верзије Android-а, ROM-а, бренда уређаја и специфичних провера апликације.</string>
     <string name="installer_play_store_warning_risk">Плаи Сторе може да понуди ажурирања за примењену апликацију. Инсталирање тог ажурирања ће преписати примењени APK оригиналном верзијом и уклонитити примењене поправке. Ако вас то пита, додирните мени са три тачке на страници апликације у Плаи Сторе и изаберите „Искључити ажурирања“</string>
-    <string name="installer_play_store_warning_continue">Разумем, настави</string>
+<string name="installer_play_store_warning_continue">Разумем, настави</string>
     <string name="installer_play_store_mode">Инсталирај као Play Store</string>
-    <string name="installer_play_store_mode_description">Забележите Google Play Store као извор инсталације за ову методу</string>
+<string name="installer_play_store_mode_description">Забележите Google Play Store као извор инсталације за ову методу</string>
     <string name="settings_prompt_installer_on_install">Упит за избор инсталатера</string>
-    <string name="settings_prompt_installer_on_install_description">Приказује дијалог за избор инсталатера сваки пут када се инсталира закрпљена апликација</string>
+<string name="settings_prompt_installer_on_install_description">Приказује дијалог за избор инсталатера сваки пут када се инсталира закрпљена апликација</string>
     <string name="settings_auto_install_with_shizuku">Аутоматска инсталација након закрпе</string>
-    <string name="settings_auto_install_with_shizuku_description">Инсталира закрпљени APK чим се закрпљивање заврши</string>
+<string name="settings_auto_install_with_shizuku_description">Инсталира закрпљени APK чим се закрпљивање заврши</string>
     <string name="settings_auto_uninstall_with_shizuku">Аутоматско деинсталирање у случају конфликта</string>
-    <string name="settings_auto_uninstall_with_shizuku_description">Када се аутоматски инсталира преко Shizuku-а, прво деинсталирајте постојећу апликацију ако Android извештава о конфликту потписа. Ово може уклонити податке апликације.</string>
+<string name="settings_auto_uninstall_with_shizuku_description">Када се аутоматски инсталира преко Shizuku-а, прво деинсталирајте постојећу апликацију ако Android извештава о конфликту потписа. Ово може уклонити податке апликације.</string>
     <string name="settings_auto_uninstall_warning_title">Омогућите аутоматско деинсталирање?</string>
-    <string name="settings_auto_uninstall_warning_message">Ако Android извештава о конфликту потписа током аутоматске инсталације преко Shizuku-а, Nivqo ће деинсталирати постојећу апликацију пре инсталирања поправљеног APK-а.</string>
+<string name="settings_auto_uninstall_warning_message">Ако Android извештава о конфликту потписа током аутоматске инсталације преко Shizuku-а, Morphe ће деинсталирати постојећу апликацију пре инсталирања поправљеног APK-а.</string>
 <string name="settings_auto_uninstall_warning_risk">Ово може уклонити податке апликације. Ако поправљени APK не успе да се инсталира након деинсталирања, претходна апликација је можда већ нестала.</string>
-    <string name="installer_shizuku_status_action">Провери статус Shizuku-а</string>
+<string name="installer_shizuku_status_action">Провери статус Shizuku-а</string>
     <string name="installer_shizuku_status_title">Статус Shizuku-а</string>
-    <string name="installer_shizuku_status_ready">Спремно</string>
+<string name="installer_shizuku_status_ready">Спремно</string>
     <string name="installer_shizuku_status_issue">Захтева пажњу</string>
-    <string name="installer_shizuku_status_supported">Подржано</string>
+<string name="installer_shizuku_status_supported">Подржано</string>
     <string name="installer_shizuku_status_running">У току</string>
-    <string name="installer_shizuku_status_permission">Дозвола</string>
+<string name="installer_shizuku_status_permission">Дозвола</string>
     <string name="installer_shizuku_status_mode">Режим</string>
-    <string name="installer_shizuku_status_provider">Провајдер</string>
+<string name="installer_shizuku_status_provider">Провајдер</string>
     <string name="installer_shizuku_status_granted">Добијена</string>
-    <string name="installer_shizuku_status_missing">Недостаје</string>
+<string name="installer_shizuku_status_missing">Недостаје</string>
     <string name="installer_shizuku_request_permission">Захтевај дозволу</string>
-    <string name="installer_shizuku_install_fail">Инсталација Shizuku-а није успела: %s</string>
+<string name="installer_shizuku_install_fail">Инсталација Shizuku-а није успела: %s</string>
     <string name="installer_shizuku_install_fail_with_details">"Инсталација Shizuku-а није успела: %1$s
 
 Детаљи: %2$s"</string>
-    <string name="installer_shizuku_error_permission">Дозвола за Shizuku недостаје. Доделите дозволу Nivqo-у и покушајте поново.</string>
+<string name="installer_shizuku_error_permission">Дозвола за Shizuku недостаје. Доделите дозволу Morphe-у и покушајте поново.</string>
 <string name="installer_shizuku_error_timeout">Shizuku није вратио резултат инсталације. Уверите се да и даље ради и покушајте поново.</string>
-    <string name="installer_shizuku_error_downgrade">Android је блокирао ово јер би деградирао инсталирану апликацију</string>
+<string name="installer_shizuku_error_downgrade">Android је блокирао ово јер би деградирао инсталирану апликацију</string>
     <string name="installer_shizuku_error_signature">Android је блокирао ово јер инсталирана апликација има другачији потпис</string>
-    <string name="installer_shizuku_error_invalid_apk">Android није могао да прочита овај APK</string>
+<string name="installer_shizuku_error_invalid_apk">Android није могао да прочита овај APK</string>
     <string name="installer_shizuku_error_user_profile">Систем је блокирао ову инсталацију. На Xiaomi и сличним уређајима, укључите \"Инсталирај преко USB-а\" у опцијама за програмере. На радном профилу, инсталације могу бити ограничене политиком</string>
-    <!-- Settings - System Tab - Performance Section -->
+<!-- Settings - System Tab - Performance Section -->
     <string name="settings_system_battery_optimization">Оптимизација батерије</string>
     <string name="settings_system_battery_optimization_description">Држи закрпљивач активним када је апликација минимизирана</string>
     <string name="settings_system_background">Позадина</string>
@@ -1011,13 +1055,13 @@ morphe_header_custom_dark.png
     <string name="settings_system_memory_limit_subtitle">Кликните да конфигуришете</string>
     <string name="settings_system_process_runtime_heap_limit_ignored">Овај уређај је игнорисао ограничење меморије при последњем покретању, па ће се примена закрпа можда вратити на покретање унутар Nivqo-а.</string>
 <string name="settings_system_memory_limit_warning">Mala ograniÄena memorija može uzrokovati greške pri nadogradnji veÄih aplikacija</string>
-    <string name="settings_system_memory_limit_high_warning">Високо ограничење меморије може учинити закрпање много споријим на неким уређајима. Подигните га само ако закрпање стално не успева при нижим ограничењима.</string>
+<string name="settings_system_memory_limit_high_warning">Високо ограничење меморије може учинити закрпање много споријим на неким уређајима. Подигните га само ако закрпање стално не успева при нижим ограничењима.</string>
     <string name="settings_system_process_runtime_enabled_description">%s МБ лимит</string>
-    <string name="settings_system_process_runtime_disabled_description">Упозорење: ниско ограничење меморије може довести до греша при патчирању веће апликације</string>
+<string name="settings_system_process_runtime_disabled_description">Упозорење: ниско ограничење меморије може довести до греша при патчирању веће апликације</string>
     <string name="settings_system_process_runtime_description_not_available">Ова карактеристика захтева Android 11 или новији</string>
-    <string name="settings_system_patcher_completion_sound">Звук завршетка</string>
+<string name="settings_system_patcher_completion_sound">Звук завршетка</string>
     <string name="settings_system_patcher_completion_sound_description">Пушта посебан тон за успех или неуспех када се заврши закачивање</string>
-    <!-- Settings - System Tab - Notifications Section -->
+<!-- Settings - System Tab - Notifications Section -->
     <string name="settings_system_notifications">Обавештења</string>
     <string name="settings_system_notifications_description">Конфигуришите обавештења у позадини и звукове завршетка</string>
     <string name="settings_system_notifications_success_sound">Звук успеха</string>
@@ -1032,50 +1076,50 @@ morphe_header_custom_dark.png
     <string name="settings_system_import_export">Увоз и извоз</string>
     <string name="settings_system_signing_key">Кључ за потписивање</string>
     <string name="settings_system_signing_key_description">Прави резервну копију и враћа кључ којим су потписане ваше закрпљене апликације</string>
-    <string name="settings_system_signing_key_dialog_description">Свака апликација коју Nivqo закрпи потписана је овим кључем. Сачувајте копију: без њега, закрпљене апликације могу да се ажурирају само након што их деинсталирате</string>
+    <string name="settings_system_signing_key_dialog_description">Свака апликација коју Morphe закрпи потписана је овим кључем. Сачувајте копију: без њега, закрпљене апликације могу да се ажурирају само након што их деинсталирате</string>
 <string name="settings_system_signing_key_missing">Nivqo га креира приликом ваше прве закрпе</string>
 <string name="settings_system_signing_key_created">Креирано %s</string>
-    <string name="settings_system_signing_key_fingerprint">SHA-256 отисак</string>
+<string name="settings_system_signing_key_fingerprint">SHA-256 отисак</string>
     <string name="settings_system_backup_appearance_description">Тема, боје и језик</string>
-    <string name="settings_system_backup_home_description">Групе, скривене апликације, сортирање и прекидачи</string>
+<string name="settings_system_backup_home_description">Групе, скривене апликације, сортирање и прекидачи</string>
     <string name="settings_system_backup_patching">Примена закрпа и инсталација</string>
-    <string name="settings_system_backup_patching_description">Инсталер, патчер и сачувани APK-ови</string>
+<string name="settings_system_backup_patching_description">Инсталер, патчер и сачувани APK-ови</string>
     <string name="settings_system_backup_updates_description">Пре-издања и провере ажурирања</string>
-    <string name="settings_system_backup_sources_description">Прилагођени извори и GitHub токен</string>
+<string name="settings_system_backup_sources_description">Прилагођени извори и GitHub токен</string>
     <string name="settings_system_backup_patch_selections_description">Изабране закрпе за сваку апликацију</string>
-    <string name="settings_system_backup_signing_key_note">Резервна копија кључа за потписивање прави се одвојено</string>
+<string name="settings_system_backup_signing_key_note">Резервна копија кључа за потписивање прави се одвојено</string>
     <string name="settings_system_import_keystore_dialog_title">Унесите податке кластерског кључа</string>
-    <string name="settings_system_import_keystore_dialog_description">Требаћете да унесете дугме за складиштење</string>
+<string name="settings_system_import_keystore_dialog_description">Требаћете да унесете дугме за складиштење</string>
     <string name="settings_system_import_keystore_dialog_alias_field">Корисник (Алиас)</string>
-    <string name="settings_system_import_keystore_dialog_password_field">Лозинка</string>
+<string name="settings_system_import_keystore_dialog_password_field">Лозинка</string>
     <string name="settings_system_import_keystore_dialog_format_field">Формат кејстора</string>
-    <string name="settings_system_import_keystore_wrong_credentials">Погрешно унете податке кластерског кључа</string>
+<string name="settings_system_import_keystore_wrong_credentials">Погрешно унете податке кластерског кључа</string>
     <string name="settings_system_import_keystore_success">Кластерски кључ успешно увезен</string>
-    <string name="settings_system_import_keystore_failed">Неуспешно увоз кластерског кључа</string>
+<string name="settings_system_import_keystore_failed">Неуспешно увоз кластерског кључа</string>
     <string name="settings_system_export_keystore_success">Кластерски кључ успешно извезен</string>
-    <string name="settings_system_export_keystore_failed">Неуспешно извезена keystore</string>
+<string name="settings_system_export_keystore_failed">Неуспешно извезена keystore</string>
     <string name="settings_system_show_password_field">Прикажите лозинку</string>
-    <string name="settings_system_hide_password_field">Сакрити лозинку</string>
+<string name="settings_system_hide_password_field">Сакрити лозинку</string>
     <string name="settings_system_morphe_settings">Подешавања Nivqo</string>
-    <string name="settings_system_import_manager_settings_description">Прави резервне копије и враћа подешавања апликације Nivqo</string>
+<string name="settings_system_import_manager_settings_description">Прави резервне копије и враћа подешавања апликације Morphe</string>
 <string name="settings_system_import_manager_settings_fail">Неуспело увожење подешавања Nivqo-а: %s</string>
-    <string name="settings_system_import_manager_settings_success">Подешавања Nivqo-а су увезена</string>
+<string name="settings_system_import_manager_settings_success">Подешавања Morphe-а су увезена</string>
     <string name="settings_system_import_manager_settings_mode_title">Увоз подешавања Nivqo</string>
 <string name="settings_system_import_manager_settings_mode_description">Изаберите како да се примене увезена подешавања и извори</string>
-    <string name="settings_system_import_selections_mode_title">Увоз изабраних подешавања</string>
+<string name="settings_system_import_selections_mode_title">Увоз изабраних подешавања</string>
     <string name="settings_system_import_selections_mode_description">Изаберите како ће увезене селекције и опције за подешавање да буду примењене</string>
     <string name="import_mode_replace_title">Замени постојеће</string>
     <string name="import_mode_replace_description">Тачно поклапање са резервном копијом. Ставке које нису у резервној копији ће бити уклоњене</string>
     <string name="import_mode_merge_title">Спајање са постојећим</string>
     <string name="import_mode_merge_description">Додајте ставке које недостају из резервне копије. Постојеће ставке остају непромењене</string>
-    <string name="settings_system_export_manager_settings_fail">Неуспео извоз подешавања Nivqo-а: %s</string>
+    <string name="settings_system_export_manager_settings_fail">Неуспео извоз подешавања Morphe-а: %s</string>
 <string name="settings_system_export_manager_settings_success">Подешавања Nivqo-а су извезена</string>
 <string name="settings_system_export_debug_logs">Извези евиденције отклањања грешака</string>
-    <string name="settings_system_export_debug_logs_description">Сачувава системске логове за решавање проблема</string>
+<string name="settings_system_export_debug_logs_description">Сачувава системске логове за решавање проблема</string>
     <string name="settings_system_export_debug_logs_export_read_failed">Неуспех у читању дневника (код изласка %s)</string>
-    <string name="settings_system_export_debug_logs_export_failed">Неуспешан извоз евиденција</string>
+<string name="settings_system_export_debug_logs_export_failed">Неуспешан извоз евиденција</string>
     <string name="settings_system_export_debug_logs_export_success">Евиденције успешно извезене</string>
-    <!-- Settings - System Tab - Files & Storage Section -->
+<!-- Settings - System Tab - Files & Storage Section -->
     <string name="settings_system_files">Фајлови и складиштење</string>
     <string name="settings_system_apks_size">Укупна величина: %s</string>
     <string name="settings_system_apks_delete_all_confirm">Ово ће трајно избрисати сачуване APK фајлове приказане овде</string>
@@ -1105,9 +1149,9 @@ morphe_header_custom_dark.png
     <string name="settings_system_storage_cleared">Ослобођено %s</string>
     <string name="settings_system_storage_nothing_to_clear">Ништа за брисање</string>
     <string name="settings_system_storage_open_app_info_title">Отвори складиште апликација за Android</string>
-    <string name="settings_system_storage_open_app_info_description">Управљајте или избришите све податке Nivqo-а преко подешавања система</string>
+    <string name="settings_system_storage_open_app_info_description">Управљајте или избришите све податке Morphe-а преко подешавања система</string>
 <string name="settings_system_save_original_apks_title">Сачувај оригиналне APK фајлове</string>
-    <string name="settings_system_save_original_apks_description">Сачувај пре-патчovani APK да би могао поново да се користи за патч без поновног бирања фајла</string>
+<string name="settings_system_save_original_apks_description">Сачувај пре-патчovani APK да би могао поново да се користи за патч без поновног бирања фајла</string>
     <string name="settings_system_save_patched_apks_title">Сачувај патчоване APK фајлове</string>
     <string name="settings_system_save_patched_apks_description">Сачувај копију патчованог APK-а за каснији извоз или поновну инсталацију из менаџера</string>
     <!-- Settings - System Tab - Storage Management - Patched APKs Management -->
@@ -1153,14 +1197,14 @@ morphe_header_custom_dark.png
     <string name="copy_selection_same_source">Исти извор</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Подешавач фајлова по мери</string>
-    <string name="settings_system_custom_file_picker_description">Прегледајте складиште користећи уграђени изабирач фајлова у Nivqo-у уместо подразумеваног у систему</string>
-<!-- Settings - System Tab - APK download helper -->
+    <string name="settings_system_custom_file_picker_description">Прегледајте складиште користећи уграђени изабирач фајлова у Morphe-у уместо подразумеваног у систему</string>
+    <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">Помоћник за преузимање APK-а</string>
     <string name="settings_system_apk_download_helper_trusted_count">Поуздано: %1$d од %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Помоћне апликације могу да преузму оригиналне APK датотеке уместо вас. У упутствима за преузимање нуде се само оне којима овде верујете.</string>
-    <string name="settings_system_apk_download_helper_warning">APK датотека долази из помоћне апликације, па верујте само апликацијама које знате. Nivqo и даље проверава пакет, верзију и потпис сваке датотеке пре него што примени закрпу.</string>
+    <string name="settings_system_apk_download_helper_warning">APK датотека долази из помоћне апликације, па верујте само апликацијама које знате. Morphe и даље проверава пакет, верзију и потпис сваке датотеке пре него што примени закрпу.</string>
 <string name="settings_system_apk_download_helper_installed_by">Инсталирао %s</string>
-    <string name="settings_system_apk_download_helper_installed_by_unknown">Непознати инсталер</string>
+<string name="settings_system_apk_download_helper_installed_by_unknown">Непознати инсталер</string>
     <!-- File Picker -->
     <string name="file_picker_no_files">Нема фајлова овде</string>
     <string name="file_picker_read_error">Не могу да прочитам ову директорију</string>
@@ -1246,9 +1290,7 @@ morphe_header_custom_dark.png
     <string name="selected">Одабрано</string>
     <string name="not_selected">Није одбрано</string>
     <string name="select_all">Изаберите све</string>
-    <string name="select_all_done">Све изабрано</string>
     <string name="deselect_all">Поништи све изборе</string>
-    <string name="deselect_all_done">Све поништено</string>
     <string name="reorder_list">Преуреди листу</string>
     <string name="reorder_list_hint">Превуците да преуредите</string>
     <string name="reorder_done">Ред је сачуван</string>
@@ -1284,6 +1326,7 @@ morphe_header_custom_dark.png
     <string name="unmount">Демонтирај</string>
     <string name="unmounted">Демонтирано</string>
     <string name="remount">Поново монтирати</string>
+    <string name="restore">Врати</string>
     <string name="share">Делите</string>
     <string name="install">Инсталирај</string>
     <string name="installed">Инсталирано</string>
@@ -1304,6 +1347,8 @@ morphe_header_custom_dark.png
     <string name="sources">Извори</string>
     <string name="installing_ellipsis">Инсталирање…</string>
     <string name="mounting_ellipsis">Монтирање…</string>
+    <string name="mount_stage_restoring_stock">Враћање оригинала…</string>
+    <string name="mount_stage_copying">Копирање…</string>
     <string name="unmounting_ellipsis">Демонтирање…</string>
     <string name="importing_ellipsis">Увоз…</string>
     <string name="imported_successfully">Успјешно импортирано</string>
@@ -1345,13 +1390,12 @@ morphe_header_custom_dark.png
     <string name="installing_manager_update">Инсталирање ажурирања…</string>
     <string name="installing_manager_update_hint">Nivqo ће се затворити да би завршио ажурирање.</string>
 <string name="downloading_manager_update">Преузимање ажурирања…</string>
-    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
+<!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">Преузето %1$s MB</string>
     <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
     <string name="manager_update_progress_size">%1$s / %2$s MB</string>
     <string name="manager_update_not_ready">Овај издање је и даље у процесу објављивања. Покушајте поново за неколико минута</string>
     <string name="update_download_missing">Преузето ажурирање више није доступно. Преузмите га поново.</string>
-    <string name="download_manager_failed">Није успело преузимање ажурирања: %s</string>
     <string name="failed_to_check_updates">Није успело провера ажурирања: %s</string>
     <string name="failed_to_download_update">Није успело преузимање ажурирања: %s</string>
     <string name="download_confirmation_metered">"Тренутно сте на вези са ограниченим подацима, а могу се примењивати трошкови за пренос података вашег оператера.
@@ -1384,4 +1428,6 @@ morphe_header_custom_dark.png
     <string name="tour_prompt_confirm">Покажи ми</string>
     <string name="onboarding_restart_title">Водич кроз функције</string>
     <string name="onboarding_restart_desc">Вођена тура кроз кључне функције</string>
+    <string name="app_links_badge_disabled">Онемогућен</string>
+    <string name="notification_channel_patcher">Патчинг</string>
 </resources>

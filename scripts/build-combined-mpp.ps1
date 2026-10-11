@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "0.5.0",
+    [string]$Version = "0.6.0",
     [string]$OutputPath,
     [string]$AndroidSdk = ""
 )
@@ -119,6 +119,9 @@ try {
 
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MaterialYouPatch.kt") 'name = "Material You theme"' 'name = "Messenger · Material You theme"'
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'controlPatch("allow_screenshot", "Allow screenshots",' 'controlPatch("allow_screenshot", "Messenger · Allow screenshots",'
+    Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'controlPatch("hide_read_receipts", "Hide read receipts",' 'controlPatch("hide_read_receipts", "Messenger · Hide read receipts",'
+    Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'controlPatch("typing", "Hide typing indicator",' 'controlPatch("typing", "Messenger · Hide typing indicator",'
+    Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'controlPatch("app_icons", "Unlock app icons",' 'controlPatch("app_icons", "Messenger · Unlock app icons",'
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\coexist\RestoreTrustPatch.kt") 'name = "Restore screens on re-signed builds"' 'name = "Messenger · Restore screens on re-signed builds"'
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'name = "View stories anonymously"' 'name = "Messenger · View stories anonymously"'
 
@@ -151,7 +154,7 @@ try {
     }
 
     $duplicates = @($patches | Group-Object name | Where-Object { $_.Count -gt 1 })
-    if ($patches.Count -ne 103 -or $facebookCount -ne 70 -or $messengerCount -ne 33 -or $otherCount -ne 0) {
+    if ($patches.Count -ne 130 -or $facebookCount -ne 87 -or $messengerCount -ne 43 -or $otherCount -ne 0) {
         throw "Unexpected catalog split: total=$($patches.Count), Facebook=$facebookCount, Messenger=$messengerCount, other=$otherCount"
     }
     if ($duplicates.Count -ne 0) {

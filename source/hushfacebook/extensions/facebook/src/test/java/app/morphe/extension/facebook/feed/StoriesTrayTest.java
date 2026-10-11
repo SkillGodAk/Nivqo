@@ -12,6 +12,7 @@ import static org.robolectric.Shadows.shadowOf;
 import android.os.Looper;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,12 +39,20 @@ import app.morphe.extension.shared.settings.preference.LogBufferManager;
 public class StoriesTrayTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
+    /** The patch is in Morphe Manager's default selection with its switches off; these tests turn them on. */
+    @Before
+    public void turnTheSwitchOn() {
+        Settings.HIDE_TOP_STORIES_TRAY.save(true);
+        Settings.HIDE_STORIES_BETWEEN_POSTS.save(true);
+    }
+
     @After
     public void restore() {
         PauseForTests.resume();
         Settings.HIDE_TOP_STORIES_TRAY.resetToDefault();
         Settings.HIDE_STORIES_BETWEEN_POSTS.resetToDefault();
         Settings.HIDE_STORIES_YOU_MIGHT_LIKE.resetToDefault();
+        Settings.HIDE_HOME_COMPOSER.resetToDefault();
         FeedFilter.storiesTrayInBuildForTests = null;
         FeedFilter.forgetTraysForTests();
         FeedFilterCounters.clear();
@@ -64,16 +73,51 @@ public class StoriesTrayTest {
     }
 
     private static String line() {
+        return line(FeedFilter.TRAY_ROUTE);
+    }
+
+    private static String line(String route) {
         for (String line : FeedFilterCounters.report()) {
-            if (line.startsWith(FeedFilter.TRAY_ROUTE + ": ")) return line;
+            if (line.startsWith(route + ": ")) return line;
         }
         return null;
     }
 
-    /** Picking the patch is the choice to hide the tray, so its switch starts on. */
+    /**
+     * The composer row answers its own switch, which starts off, never the tray's, and counts on a
+     * route of its own. A change reaches the feed through the adapter's notifyDataSetChanged, as
+     * the tray's does.
+     */
     @Test
-    public void theSwitchStartsOnOnceThePatchIsPicked() {
-        assertTrue(Settings.HIDE_TOP_STORIES_TRAY.defaultValue);
+    public void theComposerRowAnswersItsOwnSwitch() {
+        assertFalse(Settings.HIDE_HOME_COMPOSER.defaultValue);
+        Tray composer = new Tray();
+        assertEquals("the tray's switch is on, the composer's off", 1,
+                FeedFilter.storiesTrayCount(composer, FeedFilter.HOME_COMPOSER, 1));
+        assertEquals(FeedFilter.COMPOSER_ROUTE + ": 1 lists, 1 items, 0 removed. Kinds: composer 1", line(FeedFilter.COMPOSER_ROUTE));
+        assertEquals(null, line());
+
+        Settings.HIDE_HOME_COMPOSER.save(true);
+        assertEquals(1, FeedFilter.storiesTrayCount(composer, FeedFilter.HOME_COMPOSER, 1));
+        idle();
+        assertEquals(1, composer.notified);
+        assertEquals(0, FeedFilter.storiesTrayCount(composer, FeedFilter.HOME_COMPOSER, 1));
+        assertEquals(0, FeedFilter.storiesTrayCount(new Tray(), FeedFilter.HOME_COMPOSER, 1));
+        assertEquals(FeedFilter.COMPOSER_ROUTE + ": 3 lists, 3 items, 2 removed. Last reason: composer adapter hidden. "
+                + "Removed: composer adapter hidden 2. Kinds: composer 3", line(FeedFilter.COMPOSER_ROUTE));
+
+        Settings.HIDE_TOP_STORIES_TRAY.save(false);
+        assertEquals("the tray's switch leaves the composer alone", 0,
+                FeedFilter.storiesTrayCount(new Tray(), FeedFilter.HOME_COMPOSER, 1));
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertEquals("paused, a new composer row shows", 1, FeedFilter.storiesTrayCount(new Tray(), FeedFilter.HOME_COMPOSER, 1));
+    }
+
+    /** The patch is in Morphe Manager's default selection, so the tray stays until its switch is turned on. */
+    @Test
+    public void theSwitchStartsOff() {
+        assertFalse(Settings.HIDE_TOP_STORIES_TRAY.defaultValue);
     }
 
     /** Each adapter decides at its first count and keeps that answer however often the feed asks. */

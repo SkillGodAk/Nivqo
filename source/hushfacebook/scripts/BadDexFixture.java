@@ -57,8 +57,8 @@ import java.util.Set;
  * the one feed guard goes, and the bundle's {@code FeedFilter.hideEdge} is the guard, under the
  * same names the contract file holds the real APK to. The bundle's two story-flag stubs are there
  * under their real names too, filled the way the patches fill them: a call to GraphQLStory's
- * accessor before anything returns. And two classes stand in for the feed's two Stories tray
- * adapters, each given a getItemCount() of its own in the patched builds, which calls
+ * accessor before anything returns. And three classes stand in for the feed's two Stories tray
+ * adapters and Home's composer row, each given a getItemCount() of its own in the patched builds, which calls
  * {@code FeedFilter.storiesTrayCount}. The reels patch's two
  * changes are there as well: a renamed feed unit class answering ShowcaseFeedUnit, whose accessor
  * the {@code ShowcaseType} stub calls, and a pre-EOF injector holding its adapter's name, with the
@@ -85,7 +85,9 @@ import java.util.Set;
  * bar's jewel count, holding its log name, with Hide the Reels tab dot's call to
  * {@code ReelsTabDot.clear} first. And the three places Facebook asks its configured tabs about a
  * link, holding "extra_launch_uri", "DEEPLINK" and "target_tab_id", each asking {@code TabBarFilter}
- * once, as the tab links patch has them. Beside each
+ * once, as the tab links patch has them. And a launcher badge writer of 18 registers, whose count
+ * parameter sits in v17, with Hide tab badges' call to {@code TabBadges.iconCount} first as a range
+ * call, as the patch has to make it there. Beside each
  * method a start-call, next-call,
  * sole-call or once-call rule picks sit methods holding part of what it's picked by: the
  * refresh controller's onPause, two other methods naming both surfaces and one
@@ -121,6 +123,7 @@ public class BadDexFixture {
 
     private static final String CLASSIC_TRAY = "Lfixture/ClassicTray;";
     private static final String UNIFIED_TRAY = "Lfixture/UnifiedTray;";
+    private static final String COMPOSER_ROW = "Lfixture/ComposerRow;";
     private static final ImmutableMethodReference STORIES_TRAY_COUNT =
             method(FILTER, "storiesTrayCount", "I", OBJECT, "I", "I");
     /** An extension class of the bundle's own, for an added method that writes past its registers. */
@@ -144,6 +147,11 @@ public class BadDexFixture {
     private static final String REEL_MODEL = "Lfixture/ReelModel;";
     private static final ImmutableMethodReference ATTRIBUTION_FINDER =
             method("Lfixture/Attributions;", "A02", MODEL, REEL_MODEL, "Ljava/lang/String;");
+
+    private static final String REEL_MID_CARDS = "Lapp/morphe/extension/facebook/reels/ReelMidCards;";
+    /** A Reels mid-card item and its read of the card's unit, both names Redex made up. */
+    private static final String MID_CARD_ITEM = "Lfixture/MidCardItem;";
+    private static final ImmutableMethodReference MID_CARD_UNIT = method(MID_CARD_ITEM, "A0F", OBJECT);
 
     private static final String FOLLOW_CHECK = "Lfixture/FollowCheck;";
     private static final String FB_USER_SESSION = "Lcom/facebook/auth/usersession/FbUserSession;";
@@ -180,12 +188,23 @@ public class BadDexFixture {
     private static final String TAB_TAG = "Lcom/facebook/navigation/tabbar/state/model/TabTag;";
     private static final String REELS_TAB_DOT = "Lapp/morphe/extension/facebook/navigation/ReelsTabDot;";
     private static final ImmutableMethodReference CLEAR_DOT = method(REELS_TAB_DOT, "clear", "Z", OBJECT);
+    private static final String ICON_BADGER = "Lfixture/IconBadger;";
+    private static final String TAB_BADGES = "Lapp/morphe/extension/facebook/navigation/TabBadges;";
+    private static final ImmutableMethodReference ICON_COUNT = method(TAB_BADGES, "iconCount", "I", "I");
+    private static final ImmutableMethodReference STORE_COUNT = method(ICON_BADGER, "store", "V", "I");
     private static final String TAB_LINKS = "Lfixture/TabLinks;";
     private static final String INTENT = "Landroid/content/Intent;";
     private static final String TAB_BAR_FILTER = "Lapp/morphe/extension/facebook/navigation/TabBarFilter;";
     private static final ImmutableMethodReference LAUNCHED_TAB = method(TAB_BAR_FILTER, "launchedTab", OBJECT, OBJECT);
     private static final ImmutableMethodReference FRIENDS_TAB = method(TAB_BAR_FILTER, "friendsTab", OBJECT, OBJECT);
     private static final ImmutableMethodReference CONFIGURES_TAB = method(TAB_BAR_FILTER, "configuresTab", "Z", "Z", OBJECT);
+    private static final String POST_TEXT = "Lapp/morphe/extension/facebook/feed/PostText;";
+    private static final String POST_SOURCES = "Lapp/morphe/extension/facebook/feed/PostSources;";
+    private static final String MAILBOX = "Lfixture/Mailbox;";
+    private static final String TYPING_INDICATOR = "Lapp/morphe/extension/facebook/chats/TypingIndicator;";
+    private static final ImmutableMethodReference CHAT_TYPING = method(TYPING_INDICATOR, "chatTyping", "Z", "Z");
+    private static final String READ_RECEIPTS = "Lapp/morphe/extension/facebook/chats/ReadReceipts;";
+    private static final ImmutableMethodReference HOLDS_CHAT_READ = method(READ_RECEIPTS, "holdsChatRead", "Z");
 
     private static final String SHORTCUT_MANAGER = "Landroid/content/pm/ShortcutManager;";
     private static final String SHORTCUT_INFO = "Landroid/content/pm/ShortcutInfo;";
@@ -532,8 +551,8 @@ public class BadDexFixture {
     }
 
     /**
-     * One of the feed's two Stories tray adapter classes, which inherit their count as Facebook
-     * ships them. The tray patch gives each a getItemCount() of its own, [count] in it; [other]
+     * One of the feed's two Stories tray adapter classes or Home's composer row, which inherit their
+     * count as Facebook ships them. The tray patch gives each a getItemCount() of its own, [count] in it; [other]
      * stands in for another method of the class. Null leaves the method out.
      */
     private static ClassDef tray(String type, List<Instruction> count, List<Instruction> other) {
@@ -561,9 +580,10 @@ public class BadDexFixture {
                 op(Opcode.MOVE_RESULT, 0));
     }
 
-    /** Both tray classes, each given a count holding [classic] or [unified]; null leaves it out. */
-    private static List<ClassDef> trays(List<Instruction> classic, List<Instruction> unified) {
-        return Arrays.asList(tray(CLASSIC_TRAY, classic, null), tray(UNIFIED_TRAY, unified, null));
+    /** The three counted classes, each given a count holding [classic], [unified] or [composer]; null leaves it out. */
+    private static List<ClassDef> trays(List<Instruction> classic, List<Instruction> unified, List<Instruction> composer) {
+        return Arrays.asList(tray(CLASSIC_TRAY, classic, null), tray(UNIFIED_TRAY, unified, null),
+                tray(COMPOSER_ROW, composer, null));
     }
 
     /**
@@ -652,7 +672,7 @@ public class BadDexFixture {
     }
 
     private static List<ClassDef> hookedTrays() {
-        return trays(trayCount(0), trayCount(1));
+        return trays(trayCount(0), trayCount(1), trayCount(2));
     }
 
     private static ClassDef followCheck(List<Instruction> prefix) {
@@ -1025,6 +1045,41 @@ public class BadDexFixture {
         return late;
     }
 
+    /**
+     * A launcher badge writer the way Facebook's twelve are shaped where it matters: an instance
+     * write taking a context and the count, in a method of 18 registers, so the count, p2, is v17.
+     * [hook] goes first, then Facebook's own use of the count, handed on as a range.
+     */
+    private static ClassDef iconBadger(List<Instruction> hook) {
+        List<Instruction> instructions = new ArrayList<>(hook);
+        instructions.add(new ImmutableInstruction3rc(Opcode.INVOKE_STATIC_RANGE, 17, 1, STORE_COUNT));
+        instructions.add(op(Opcode.RETURN_VOID));
+        return new ImmutableClassDef(ICON_BADGER, AccessFlags.PUBLIC.getValue(), OBJECT, null, null, null, null,
+                Collections.singletonList(define(ICON_BADGER, "write", "V", false,
+                        new ImmutableMethodImplementation(18, instructions, null, null), CONTEXT, "I")));
+    }
+
+    /** What Hide tab badges puts first: the count in v17 handed over as a range, its answer written back there. */
+    private static List<Instruction> iconHook() {
+        return Arrays.asList(new ImmutableInstruction3rc(Opcode.INVOKE_STATIC_RANGE, 17, 1, ICON_COUNT),
+                op(Opcode.MOVE_RESULT, 17));
+    }
+
+    /**
+     * What Morphe's inline compiler made of {@code invoke-static { p2 }} and its move-result in that
+     * method: a plain invoke names only v0 to v15, so it dropped the call without a word and kept the
+     * move-result, which then takes the result of nothing (Hide tab badges on 581's Htc writer).
+     */
+    private static List<Instruction> droppedIconHook() {
+        return Collections.singletonList(op(Opcode.MOVE_RESULT, 17));
+    }
+
+    private static ClassDef tabBadges() {
+        return new ImmutableClassDef(TAB_BADGES, AccessFlags.PUBLIC.getValue() | AccessFlags.FINAL.getValue(),
+                OBJECT, null, null, null, null, Collections.singletonList(
+                        define(TAB_BADGES, "iconCount", "I", true, body(1, op(Opcode.RETURN, 0)), "I")));
+    }
+
     private static ClassDef reelsTabDot() {
         return new ImmutableClassDef(REELS_TAB_DOT, AccessFlags.PUBLIC.getValue() | AccessFlags.FINAL.getValue(),
                 OBJECT, null, null, null, null, Collections.singletonList(
@@ -1033,17 +1088,19 @@ public class BadDexFixture {
     }
 
     /**
-     * The three places Facebook asks its configured tabs about a link, each holding its string in v0
-     * with no tab in v1: the startActivity lookup, static, taking an Intent and a session and
-     * returning a TabTag; the Friends link and the target_tab_id check, instance methods taking a
-     * context, an Intent and a session and returning the Intent. Each asks the extension when its
+     * The three places Facebook asks its configured tabs about a link, each holding its strings in v0
+     * with no tab in v1: the startActivity lookup, an instance method of a singleton on 582, taking
+     * an Intent and a session and returning a TabTag; the Friends link and the target_tab_id check,
+     * instance methods taking a context, an Intent and a session and returning the Intent. The
+     * target_tab_id check also holds the key_uri extra and the /menu/bookmarks path its rule names,
+     * since arm64 582 reads "target_tab_id" through a string table. Each asks the extension when its
      * flag says so, as the tab links patch does.
      */
     private static ClassDef tabLinks(boolean launched, boolean friends, boolean configured) {
         return new ImmutableClassDef(TAB_LINKS, AccessFlags.PUBLIC.getValue(), OBJECT, null, null, null, null,
                 Arrays.asList(
-                        define(TAB_LINKS, "launchTab", TAB_TAG, true,
-                                tabLinkBody("extra_launch_uri", launched ? LAUNCHED_TAB : null, 4, 1), INTENT, FB_USER_SESSION),
+                        define(TAB_LINKS, "launchTab", TAB_TAG, false,
+                                tabLinkBody("extra_launch_uri", launched ? LAUNCHED_TAB : null, 5, 1), INTENT, FB_USER_SESSION),
                         define(TAB_LINKS, "friendsLink", INTENT, false,
                                 tabLinkBody("DEEPLINK", friends ? FRIENDS_TAB : null, 6, 4), CONTEXT, INTENT, FB_USER_SESSION),
                         define(TAB_LINKS, "targetTabLink", INTENT, false, configuredTabBody(configured),
@@ -1065,10 +1122,15 @@ public class BadDexFixture {
         return new ImmutableMethodImplementation(registers, instructions, null, null);
     }
 
-    /** "target_tab_id" in v0, then a yes in v0 and no tab in v1, the extension asked about both when [hooked], and the Intent returned. */
+    /**
+     * "target_tab_id", "key_uri" and "/menu/bookmarks" in v0, then a yes in v0 and no tab in v1, the extension asked about both
+     * when [hooked], and the Intent returned.
+     */
     private static ImmutableMethodImplementation configuredTabBody(boolean hooked) {
         List<Instruction> instructions = new ArrayList<>();
         instructions.add(new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference("target_tab_id")));
+        instructions.add(new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference("key_uri")));
+        instructions.add(new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference("/menu/bookmarks")));
         instructions.add(new ImmutableInstruction11n(Opcode.CONST_4, 0, 1));
         instructions.add(new ImmutableInstruction11n(Opcode.CONST_4, 1, 0));
         if (hooked) {
@@ -1085,6 +1147,75 @@ public class BadDexFixture {
                         define(TAB_BAR_FILTER, "launchedTab", OBJECT, true, body(1, op(Opcode.RETURN_OBJECT, 0)), OBJECT),
                         define(TAB_BAR_FILTER, "friendsTab", OBJECT, true, body(1, op(Opcode.RETURN_OBJECT, 0)), OBJECT),
                         define(TAB_BAR_FILTER, "configuresTab", "Z", true, body(2, op(Opcode.RETURN, 0)), "Z", OBJECT)));
+    }
+
+    /** An extension class of two story stubs, [first] and [second], each filled as given. */
+    private static ClassDef storyStubs(String owner, String first, ImmutableMethodImplementation firstBody,
+            String second, ImmutableMethodImplementation secondBody) {
+        return new ImmutableClassDef(owner, AccessFlags.PUBLIC.getValue() | AccessFlags.FINAL.getValue(), OBJECT,
+                null, null, null, null,
+                Arrays.asList(define(owner, first, OBJECT, true, firstBody, OBJECT),
+                        define(owner, second, OBJECT, true, secondBody, OBJECT)));
+    }
+
+    /** The sources filter's text stubs: message as [message], attachedStory as [attached]. */
+    private static ClassDef postText(ImmutableMethodImplementation message, ImmutableMethodImplementation attached) {
+        return storyStubs(POST_TEXT, "message", message, "attachedStory", attached);
+    }
+
+    /** The sources filter's author and link stubs: actors as [actors], attachments as [attachments]. */
+    private static ClassDef postSources(ImmutableMethodImplementation actors, ImmutableMethodImplementation attachments) {
+        return storyStubs(POST_SOURCES, "actors", actors, "attachments", attachments);
+    }
+
+    /**
+     * Mailbox's two chat calls: the typing setter, static and taking the flag (v0 free, v1 the
+     * flag), with [typingPrefix] first and the setter's API name after it; and the mark-read, its
+     * API name in v0, asking the extension [reads] times.
+     */
+    private static ClassDef mailbox(List<Instruction> typingPrefix, int reads) {
+        List<Instruction> typing = new ArrayList<>(typingPrefix);
+        typing.add(new ImmutableInstruction21c(Opcode.CONST_STRING, 0,
+                new ImmutableStringReference("setTypingIndicatorForThreadWithThreadIdentifier")));
+        typing.add(op(Opcode.RETURN_VOID));
+        List<Instruction> read = new ArrayList<>();
+        read.add(new ImmutableInstruction21c(Opcode.CONST_STRING, 0,
+                new ImmutableStringReference("markAsReadThreadWithThreadIdentifier")));
+        for (int i = 0; i < reads; i++) {
+            read.add(invoke(HOLDS_CHAT_READ));
+            read.add(op(Opcode.MOVE_RESULT, 0));
+        }
+        read.add(op(Opcode.RETURN_VOID));
+        return new ImmutableClassDef(MAILBOX, AccessFlags.PUBLIC.getValue(), OBJECT, null, null, null, null,
+                Arrays.asList(
+                        define(MAILBOX, "setTyping", "V", true, new ImmutableMethodImplementation(2, typing, null, null), "Z"),
+                        define(MAILBOX, "markRead", "V", true, new ImmutableMethodImplementation(1, read, null, null))));
+    }
+
+    /** What Hide typing indicator puts first in the setter: the flag through the extension and back. */
+    private static List<Instruction> typingHook() {
+        return Arrays.asList(invoke(CHAT_TYPING, 1), op(Opcode.MOVE_RESULT, 1));
+    }
+
+    /** The typing hook after a branch on the flag, not first. */
+    private static List<Instruction> lateTypingHook() {
+        List<Instruction> late = new ArrayList<>();
+        late.add(ifEqz(1, 3));                                            // 0 -> 3
+        late.add(op(Opcode.NOP));                                         // 2
+        late.addAll(typingHook());                                        // 3
+        return late;
+    }
+
+    /** The two chat classes the extension ships, each answering no. */
+    private static List<ClassDef> chatStubs() {
+        return Arrays.<ClassDef>asList(
+                new ImmutableClassDef(TYPING_INDICATOR, AccessFlags.PUBLIC.getValue() | AccessFlags.FINAL.getValue(),
+                        OBJECT, null, null, null, null, Collections.singletonList(define(TYPING_INDICATOR,
+                                "chatTyping", "Z", true, body(1, op(Opcode.RETURN, 0)), "Z"))),
+                new ImmutableClassDef(READ_RECEIPTS, AccessFlags.PUBLIC.getValue() | AccessFlags.FINAL.getValue(),
+                        OBJECT, null, null, null, null, Collections.singletonList(define(READ_RECEIPTS,
+                                "holdsChatRead", "Z", true, body(1,
+                                        new ImmutableInstruction11n(Opcode.CONST_4, 0, 0), op(Opcode.RETURN, 0))))));
     }
 
     private static ClassDef reelSpeed() {
@@ -1552,6 +1683,7 @@ public class BadDexFixture {
                 recommendationLabel, showcaseUnit(), showcaseType, preEof, returnController(returnHook()), returnRefresh(),
                 shortcuts(Collections.<String>emptySet()), settingsEntry(), followCheck(followHook()), reelDeclutter(),
                 topBar(false, true, 1), finderStub(FILLED_FINDER_STUB),
+                stub(REEL_MID_CARDS, "midCardType", FILLED_MID_CARD_STUB),
                 emojiProvider(emojiHook(), Collections.<Instruction>emptyList()), systemEmoji(),
                 emojiPictures(emojiPicturesHook(), Collections.<Instruction>emptyList()),
                 batcher(heldBack(), false, false), reelWatchHistory(), edgeSwap(swapGuard(), false, false),
@@ -1561,13 +1693,15 @@ public class BadDexFixture {
                 attachmentTap(tapHook(), Collections.<Instruction>emptyList()), doubleTapLike(),
                 speedToast(toastHook(3), Collections.<Instruction>emptyList()), reelSpeed(),
                 jewelController(dotHook(4), Collections.<Instruction>emptyList()), reelsTabDot(),
-                tabLinks(true, true, true), tabBarFilter()));
+                tabLinks(true, true, true), tabBarFilter(), postText(FILLED_STUB, FILLED_STUB),
+                postSources(FILLED_STUB, FILLED_STUB), mailbox(typingHook(), 1), iconBadger(iconHook()), tabBadges()));
+        classes.addAll(chatStubs());
         return classes;
     }
 
     /** The clean host, Facebook's classes as they ship, with the batcher's flush making [handOver]. */
     private static List<ClassDef> clean(List<Instruction> handOver) {
-        List<ClassDef> classes = new ArrayList<>(trays(null, null));
+        List<ClassDef> classes = new ArrayList<>(trays(null, null, null));
         classes.addAll(Arrays.asList(cleanHost(),
                 showcaseUnit(), preEof(Collections.<Instruction>emptyList()), returnController(Collections.<Instruction>emptyList()),
                 shortcuts(allShortcutCalls()), followCheck(Collections.<Instruction>emptyList()),
@@ -1581,7 +1715,8 @@ public class BadDexFixture {
                 attachmentTap(Collections.<Instruction>emptyList(), Collections.<Instruction>emptyList()),
                 speedToast(Collections.<Instruction>emptyList(), Collections.<Instruction>emptyList()),
                 jewelController(Collections.<Instruction>emptyList(), Collections.<Instruction>emptyList()),
-                tabLinks(false, false, false)));
+                tabLinks(false, false, false), mailbox(Collections.<Instruction>emptyList(), 0),
+                iconBadger(Collections.<Instruction>emptyList())));
         return classes;
     }
 
@@ -1601,6 +1736,13 @@ public class BadDexFixture {
             new ImmutableInstruction3rc(Opcode.INVOKE_STATIC_RANGE, 0, 2, ATTRIBUTION_FINDER),
             op(Opcode.MOVE_RESULT_OBJECT, 0),
             op(Opcode.RETURN_OBJECT, 0));
+
+    /** What the reels patch writes in the Threads card stub: the item cast, then its first read. */
+    private static final ImmutableMethodImplementation FILLED_MID_CARD_STUB = body(2,
+            new ImmutableInstruction21c(Opcode.CHECK_CAST, 1, new ImmutableTypeReference(MID_CARD_ITEM)),
+            new ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 1, 0, 0, 0, 0, MID_CARD_UNIT),
+            op(Opcode.MOVE_RESULT_OBJECT, 1),
+            op(Opcode.RETURN_OBJECT, 1));
 
     /** The stub as the extension ships it, given a local for its marker: no call at all. */
     private static final ImmutableMethodImplementation UNFILLED_FINDER_STUB = body(3,
@@ -1964,6 +2106,9 @@ public class BadDexFixture {
         dexes.put("bad-move-result", withFeedEdge(body(4,
                 invoke(HIDE_EDGE, 2, 3), op(Opcode.NOP), op(Opcode.MOVE_RESULT, 0), ifEqz(0, 3),
                 op(Opcode.RETURN_VOID), op(Opcode.RETURN_VOID))));
+        // result: Hide tab badges' invoke-static { p2 } in an 18-register writer, as Morphe's inline
+        // compiler left it: the call dropped and its move-result first in the method.
+        dexes.put("bad-dropped-invoke", replaced(good(), iconBadger(droppedIconHook())));
         // try: the range starts inside the invoke it means to cover.
         dexes.put("bad-try-range", withTry(tryBlock(1, 2, 5)));
         // try: the handler starts inside the invoke.
@@ -2006,12 +2151,12 @@ public class BadDexFixture {
         // contract: the unified tray's count left without the tray patch's call.
         ClassDef filledGenAi = genAiLabel(FILLED_STUB);
         dexes.put("bad-tray-hook-missing", bundle(goodHost, filledGenAi, filledRecommendation,
-                trays(trayCount(0), Collections.<Instruction>emptyList())));
-        // contract: both calls in the classic tray's count and the unified tray given none.
+                trays(trayCount(0), Collections.<Instruction>emptyList(), trayCount(2))));
+        // contract: both tray calls in the classic tray's count and the unified tray given none.
         List<Instruction> countTwice = new ArrayList<>(trayCount(0));
         countTwice.addAll(trayCount(1));
         dexes.put("bad-tray-count-twice", bundle(goodHost, filledGenAi, filledRecommendation,
-                trays(countTwice, null)));
+                trays(countTwice, null, trayCount(2))));
         // contract: the unified tray's call in another of its methods, not its count.
         dexes.put("bad-tray-hook-wrong-method", replaced(good(), tray(CLASSIC_TRAY, trayCount(0), null),
                 tray(UNIFIED_TRAY, null, trayCount(1))));
@@ -2122,6 +2267,18 @@ public class BadDexFixture {
         dexes.put("bad-tab-links-launch-hook-missing", replaced(good(), tabLinks(false, true, true)));
         dexes.put("bad-tab-links-friends-hook-missing", replaced(good(), tabLinks(true, false, true)));
         dexes.put("bad-tab-links-check-hook-missing", replaced(good(), tabLinks(true, true, false)));
+
+        // contract: each of the sources filter's story stubs left as the extension ships it.
+        dexes.put("bad-post-message-stub-not-filled", replaced(good(), postText(UNFILLED_STUB, FILLED_STUB)));
+        dexes.put("bad-post-attached-stub-not-filled", replaced(good(), postText(FILLED_STUB, UNFILLED_STUB)));
+        dexes.put("bad-post-actors-stub-not-filled", replaced(good(), postSources(UNFILLED_STUB, FILLED_STUB)));
+        dexes.put("bad-post-attachments-stub-not-filled", replaced(good(), postSources(FILLED_STUB, UNFILLED_STUB)));
+        // contract: Mailbox's typing setter left without Hide typing indicator's call, or with the
+        // call after a branch; its mark-read left without Hide read receipts' call, or with two.
+        dexes.put("bad-typing-hook-missing", replaced(good(), mailbox(Collections.<Instruction>emptyList(), 1)));
+        dexes.put("bad-typing-hook-late", replaced(good(), mailbox(lateTypingHook(), 1)));
+        dexes.put("bad-read-receipts-hook-missing", replaced(good(), mailbox(typingHook(), 0)));
+        dexes.put("bad-read-receipts-hook-twice", replaced(good(), mailbox(typingHook(), 2)));
 
         // contract: the GenAI reel stub left as the extension ships it, answering its marker.
         dexes.put("bad-finder-stub-not-filled", withFinderStub(good(), UNFILLED_FINDER_STUB));

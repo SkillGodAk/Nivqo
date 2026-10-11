@@ -33,25 +33,41 @@ internal const val REELS_TAB_DOT = "Lapp/morphe/extension/facebook/navigation/Re
 internal const val CLEAR = "$REELS_TAB_DOT->clear(Ljava/lang/Object;)Z"
 
 /**
- * The dot and "new" count on the Reels tab (Video on some accounts) go. Facebook's tab bar asks its
- * jewel controller (FbMainTabActivityJewelController, 580 `LX/1np;`, 577 `LX/1je;`) for each tab's
- * count through one static method, (FbUserSession, controller, TabTag, int) -> int, which loads
- * [JEWEL_COUNT] for its logging. The extension goes first in it and answers 0 for the Reels tab;
- * every other tab gets Facebook's count.
+ * The tab bar's one count hook. Facebook's tab bar asks its jewel controller
+ * (FbMainTabActivityJewelController, 581 `LX/1pM;`) for each tab's count through one static method,
+ * (FbUserSession, controller, TabTag, int) -> int, which loads [JEWEL_COUNT] for its logging; the
+ * tab bar's layout, its count updates and a runnable of its own all call it. The extension goes
+ * first in it, handed the tab. Hide the Reels tab dot and Hide tab badges both depend on this, so
+ * the method carries one Hushfacebook call whichever of them is in, and each only switches its own
+ * rule on.
+ */
+internal val jewelCountHookPatch = bytecodePatch {
+    dependsOn(settingsPatch)
+
+    execute {
+        applyJewelCount(findJewelCount())
+    }
+}
+
+/**
+ * The dot and "new" count on the Reels tab (Video on some accounts) go: the shared count hook
+ * answers 0 for the Reels tab, and every other tab gets Facebook's count unless Hide tab badges
+ * takes it.
  */
 @Suppress("unused")
 val hideReelsTabDotPatch = bytecodePatch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Hide the Reels tab dot",
-    description = "Takes the new-item dot and count off the Reels tab, which some accounts call Video. " +
-        "Every other tab keeps its own.",
+    description = "Takes the new-item dot and count off the Reels tab, called Video on some accounts, so it " +
+        "stops calling for your attention. Other tabs keep theirs. On by default. Turn it off in Hushfacebook " +
+        "settings > Reels and Watch.",
 ) {
-    category("Interface")
+    category("Navigation")
     dependsOn(settingsPatch)
+    dependsOn(jewelCountHookPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {
-        applyJewelCount(findJewelCount())
         enableStatus("reelsTabDot")
     }
 }

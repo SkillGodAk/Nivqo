@@ -16,12 +16,10 @@ import android.provider.MediaStore;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import app.morphe.extension.shared.Logger;
@@ -96,10 +94,11 @@ final class MediaStoreWriter implements Downloader.Sink {
         // Read here, per file, like the folder. The top folder decides the collection too: only
         // the Downloads one takes Download, and it takes both kinds.
         SaveTo to = SaveTo.current();
-        // One folder name for both kinds, so a story's photos and its videos land side by side.
-        // It's read here, per file, and cleaned where it's read: a slash or a dot segment in the
-        // setting can't turn this into a path of the setting's choosing.
-        location = to.directory(video) + "/" + SaveFolder.leaf();
+        // One folder name for both kinds, so a story's photos and its videos land side by side,
+        // unless a kind has a subfolder of its own inside it. Both are read here, per file, and
+        // cleaned where they're read: a slash or a dot segment in a setting can't turn this into a
+        // path of the setting's choosing.
+        location = to.directory(video) + "/" + SaveFolder.path(video);
 
         Uri collection = to.collection(video);
 
@@ -209,25 +208,21 @@ final class MediaStoreWriter implements Downloader.Sink {
         if (suffix == null) suffix = video ? ".mp4" : ".jpg";
 
         Date now = new Date();
-        if (video) {
-            // The person's template, read here, per file, and cleaned where it's read. As it
-            // ships it's Facebook's own FB_VID_ name.
-            String template = FileNameTemplate.current();
-            reportMissingTokens(template);
-            String name = FileNameTemplate.videoName(template, now, details) + suffix;
-            if (!inSaveFolder(collection, name)) return name;
-            // MediaStore would number it, up to (31), and then refuse the save.
-            String taken = FileNameTemplate.takenVideoName(template, now, details);
-            if (taken == null) return name;
-            Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE,
-                    () -> "the file name was already in the save folder, so the time of the save went on the end");
-            return taken + suffix;
-        }
-
-        // Facebook's own naming, so that files from this patch and from Facebook sit together.
-        // The locale has to be fixed. Under a Thai or an Arabic locale the default calendar
-        // writes Buddhist years or Eastern Arabic digits into the file name.
-        return FileNameTemplate.PHOTO_PREFIX + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(now) + suffix;
+        // The person's template for the kind, read here, per file, and cleaned where it's read. As
+        // it ships it's Facebook's own FB_VID_ or FB_IMG_ name, so files from this patch and from
+        // Facebook sit together.
+        String template = video ? FileNameTemplate.current() : FileNameTemplate.currentPhoto();
+        reportMissingTokens(template);
+        String name = (video ? FileNameTemplate.videoName(template, now, details)
+                : FileNameTemplate.photoName(template, now, details)) + suffix;
+        if (!inSaveFolder(collection, name)) return name;
+        // MediaStore would number it, up to (31), and then refuse the save.
+        String taken = video ? FileNameTemplate.takenVideoName(template, now, details)
+                : FileNameTemplate.takenPhotoName(template, now, details);
+        if (taken == null) return name;
+        Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE,
+                () -> "the file name was already in the save folder, so the time of the save went on the end");
+        return taken + suffix;
     }
 
     /**
@@ -266,14 +261,18 @@ final class MediaStoreWriter implements Downloader.Sink {
      */
     private void reportMissingTokens(String template) {
         List<String> missing = new ArrayList<>();
-        if (FileNameTemplate.usesVideoId(template) && !details.hasVideoId()) missing.add("the video id");
+        boolean asksId = video ? FileNameTemplate.usesVideoId(template) : FileNameTemplate.usesPhotoId(template);
+        if (asksId && !details.hasVideoId()) missing.add(video ? "the video id" : "the photo id");
         if (FileNameTemplate.usesOwner(template) && !details.hasOwner()) missing.add("the poster");
         if (FileNameTemplate.usesOwnerId(template) && !details.hasOwnerId()) missing.add("the poster's id");
         if (FileNameTemplate.usesPosted(template) && !details.hasPosted()) missing.add("the post date");
         if (missing.isEmpty()) return;
 
-        boolean apart = FileNameTemplate.keepsApart(template, details.hasVideoId(), details.hasOwner(),
-            details.hasOwnerId(), details.hasPosted());
+        boolean apart = video
+            ? FileNameTemplate.keepsApart(template, details.hasVideoId(), details.hasOwner(),
+                details.hasOwnerId(), details.hasPosted())
+            : FileNameTemplate.keepsPhotosApart(template, details.hasVideoId(), details.hasOwner(),
+                details.hasOwnerId(), details.hasPosted());
         String asked = missing.size() == 1 ? missing.get(0)
             : String.join(", ", missing.subList(0, missing.size() - 1)) + " and " + missing.get(missing.size() - 1);
         String has = missing.size() == 1 ? "none" : missing.size() == 2 ? "neither" : "none of them";

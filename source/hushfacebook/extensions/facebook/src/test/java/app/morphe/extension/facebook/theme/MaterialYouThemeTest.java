@@ -4,20 +4,35 @@
  */
 package app.morphe.extension.facebook.theme;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
+import android.app.Activity;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.res.ColorStateList;
+import android.content.res.TypedArray;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.InsetDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.os.Looper;
+import android.util.AttributeSet;
+import android.util.TypedValue;
+import android.view.View;
+import android.view.Window;
+import android.widget.FrameLayout;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
@@ -201,6 +216,46 @@ public class MaterialYouThemeTest {
                 MaterialYouTheme.fds(0x402D88FF, Token.ACCENT_DEEMPHASIZED));
     }
 
+    /**
+     * Issue #34 with both themes: on AMOLED's lighter #5B513F, a text role reaches this theme lifted.
+     * It takes the palette at the lifted lightness, and on every surface AMOLED makes there it keeps
+     * 4.5:1, Mig's roles too. Over black the secondary grey takes the palette as it always did.
+     */
+    @Test
+    public void amoledsLiftedTextTakesThePaletteAndKeepsItsContrast() {
+        DarkMode.answer(true);
+        int sand = 0xFF5B513F;
+        int[] surfaces = {sand, 0xFF5F5543, 0xFF615746, 0xFF625846, 0xFF645A48, 0xFF675D4B,
+                AmoledTheme.over(sand, AmoledTheme.UNREAD_ROW)};
+        try {
+            AmoledTheme.useBackground(sand, 12);
+            for (Token token : new Token[]{Token.SECONDARY_TEXT, Token.PRIMARY_TEXT}) {
+                int colour = DARK[token.ordinal()];
+                int amoled = AmoledTheme.apply(colour, token);
+                int drawn = MaterialYouTheme.fds(amoled, token);
+                assertNotEquals("kept AMOLED's grey for " + Integer.toHexString(colour), amoled, drawn);
+                for (int surface : surfaces) {
+                    assertTrue(Integer.toHexString(drawn) + " on " + Integer.toHexString(surface),
+                            AmoledThemeTest.contrast(drawn, surface) >= AmoledTheme.TEXT_CONTRAST);
+                }
+            }
+            int link = MaterialYouTheme.fds(AmoledTheme.apply(0xFF5AA7FF, Token.BLUE_LINK), Token.BLUE_LINK);
+            for (int surface : surfaces) assertTrue("the link", AmoledThemeTest.contrast(link, surface) >= AmoledTheme.TEXT_CONTRAST);
+            for (int colour : new int[]{0xFFA8ABAF, 0xFFB0B3B8, 0xFFE4E6EB}) {
+                int drawn = MaterialYouTheme.mig(AmoledTheme.apply(colour, AmoledThemeTest.Role.SECONDARY), AmoledThemeTest.Role.SECONDARY);
+                for (int surface : surfaces) {
+                    assertTrue("Mig's " + Integer.toHexString(colour), AmoledThemeTest.contrast(drawn, surface) >= AmoledTheme.TEXT_CONTRAST);
+                }
+            }
+            assertEquals("a divider AMOLED leaves still takes the palette", palette.sameLightness(TonePalette.NEUTRAL, 0xFF65686C),
+                    MaterialYouTheme.fds(0xFF65686C, Token.DIVIDER));
+        } finally {
+            AmoledTheme.useBackground(AmoledTheme.backgroundColour());
+        }
+        assertEquals("over black", palette.sameLightness(TonePalette.NEUTRAL, 0xFFB0B3B8),
+                MaterialYouTheme.fds(AmoledTheme.apply(0xFFB0B3B8, Token.SECONDARY_TEXT), Token.SECONDARY_TEXT));
+    }
+
     /** Issue #37: the Like button's blue after you like, a dark-only colour, takes the palette. */
     @Test
     public void theLikeButtonAfterYouLikeTakesThePalette() {
@@ -340,6 +395,29 @@ public class MaterialYouThemeTest {
         assertEquals("a grey that is also a light-mode colour", 0xFF333334, MaterialYouTheme.parseColor("#333334"));
         assertEquals("white", 0xFFFFFFFF, MaterialYouTheme.parseColor("#FFFFFF"));
         assertEquals("a translucent surface", 0x80252728, MaterialYouTheme.parseColor("#80252728"));
+    }
+
+    /**
+     * Issue #37: the box under a link post's picture is #333334 from a colour MobileConfig sends in
+     * dark mode. Its own parse takes the palette's neutral once Facebook says dark mode is on, as a
+     * grey the dark theme lists. Light mode, the time before Facebook answers, and a colour that
+     * isn't one of those greys keep what they parse to.
+     */
+    @Test
+    public void theLinkBoxsGreyTakesThePaletteOnceFacebookSaysDark() {
+        DarkMode.answer(true);
+        assertEquals(palette.sameLightness(TonePalette.NEUTRAL, 0xFF333334), MaterialYouTheme.parseLinkBox("#333334"));
+        assertEquals("the other grey a config can pick", palette.sameLightness(TonePalette.NEUTRAL, 0xFF3B3C3E),
+                MaterialYouTheme.parseLinkBox("#3B3C3E"));
+        assertEquals("a dark surface, as route four", palette.sameLightness(TonePalette.NEUTRAL, 0xFF252728),
+                MaterialYouTheme.parseLinkBox("#252728"));
+        assertEquals("a colour that isn't Facebook's grey", 0xFF123456, MaterialYouTheme.parseLinkBox("#123456"));
+        assertEquals("the plain parse still leaves it", 0xFF333334, MaterialYouTheme.parseColor("#333334"));
+
+        DarkMode.answer(false);
+        assertEquals("light mode", 0xFF333334, MaterialYouTheme.parseLinkBox("#333334"));
+        DarkMode.forget();
+        assertEquals("before Facebook answers", 0xFF333334, MaterialYouTheme.parseLinkBox("#333334"));
     }
 
     /**
@@ -678,6 +756,308 @@ public class MaterialYouThemeTest {
         DarkMode.answer(false);
         ColorDrawable light = new ColorDrawable(0xFF252728);
         assertEquals("light mode", 0xFF252728, ((ColorDrawable) MaterialYouTheme.recolour(light)).getColor());
+    }
+
+    /**
+     * 582's comment rows (#37) load their background as a shape of #252728 through the rerouted
+     * getDrawable and draw it from a drawable of their own, which no view walk reaches. As it loads,
+     * the flat fill takes the palette in dark mode on its own copy of the state; light mode and a fill
+     * that changes when pressed keep Facebook's.
+     */
+    @Test
+    public void aCommentRowsShapeTakesThePaletteAsItLoads() {
+        GradientDrawable row = filled(0xFF252728);
+        Drawable sibling = row.getConstantState().newDrawable();
+
+        DarkMode.answer(true);
+        assertEquals("the same drawable", row, MaterialYouTheme.recolour(row));
+        assertEquals("the row", palette.sameLightness(TonePalette.NEUTRAL, 0xFF252728), fill(row));
+        assertEquals("the resource's other drawables", 0xFF252728, fill(sibling));
+        LayerDrawable layered = new LayerDrawable(new Drawable[] {filled(0xFF252728)});
+        MaterialYouTheme.recolour(layered);
+        assertEquals("a layer", palette.sameLightness(TonePalette.NEUTRAL, 0xFF252728), fill(layered.getDrawable(0)));
+        GradientDrawable pressable = new GradientDrawable();
+        ColorStateList pressed = new ColorStateList(new int[][] {{android.R.attr.state_pressed}, {}},
+                new int[] {0xFF3B3C3E, 0xFF252728});
+        pressable.setColor(pressed);
+        MaterialYouTheme.recolour(pressable);
+        assertEquals("a fill that changes when pressed", pressed, pressable.getColor());
+
+        DarkMode.answer(false);
+        GradientDrawable light = filled(0xFF252728);
+        MaterialYouTheme.recolour(light);
+        assertEquals("light mode", 0xFF252728, fill(light));
+    }
+
+    /**
+     * The comment sheet's rows (issue #37): code that resolves SURFACE_BACKGROUND into a TypedValue
+     * and reads its data gets #252728 from the night item, which no colour call sees. A colour value
+     * takes the palette in dark mode; a dimension, a flag or a reference keeps its bits, and so does
+     * light mode.
+     */
+    @Test
+    public void aThemeAttributeReadAsDataTakesThePaletteInDarkModeWhenItIsAColour() {
+        TypedValue surface = value(TypedValue.TYPE_INT_COLOR_ARGB8, 0xFF252728);
+        TypedValue sameBitsDimension = value(TypedValue.TYPE_DIMENSION, 0xFF252728);
+        TypedValue reference = value(TypedValue.TYPE_REFERENCE, 0xFF252728);
+        TypedValue white = value(TypedValue.TYPE_INT_COLOR_ARGB8, 0xFFFFFFFF);
+
+        DarkMode.answer(true);
+        assertEquals("a colour that is a dark surface", palette.sameLightness(TonePalette.NEUTRAL, 0xFF252728),
+                MaterialYouTheme.colourData(surface));
+        assertEquals("a dimension with the same bits", 0xFF252728, MaterialYouTheme.colourData(sameBitsDimension));
+        assertEquals("a reference with the same bits", 0xFF252728, MaterialYouTheme.colourData(reference));
+        assertEquals("a colour that is no dark surface", 0xFFFFFFFF, MaterialYouTheme.colourData(white));
+        assertEquals("the value is only read", 0xFF252728, surface.data);
+
+        DarkMode.answer(false);
+        assertEquals("light mode", 0xFF252728, MaterialYouTheme.colourData(surface));
+    }
+
+    /** The same drawable read through {@code Resources}: a colour that is no dark surface comes back as it was. */
+    @Test
+    public void aDrawableReadThroughResourcesGoesTheSameWay() {
+        Context context = RuntimeEnvironment.getApplication();
+        DarkMode.answer(true);
+        Drawable plain = MaterialYouTheme.getDrawable(context.getResources(), android.R.color.white);
+        assertEquals(0xFFFFFFFF, ((ColorDrawable) plain).getColor());
+        Drawable themed = MaterialYouTheme.getDrawable(context.getResources(), android.R.color.white, context.getTheme());
+        assertEquals(0xFFFFFFFF, ((ColorDrawable) themed).getColor());
+    }
+
+    private static TypedValue value(int type, int data) {
+        TypedValue value = new TypedValue();
+        value.type = type;
+        value.data = data;
+        return value;
+    }
+
+    /**
+     * The page under the feed's last unit in dark mode is the window's own background, the #101011
+     * the dark style gives WASH, and the framework draws it with no hook to see it. Once the activity
+     * is created, and again as it resumes, it takes the palette's neutral at the same lightness, the
+     * colour route three gives the rest of the page. Light mode, AMOLED, another colour and a
+     * background that is no plain colour keep theirs.
+     */
+    @Test
+    public void theWindowUnderTheFeedTakesThePaletteInDarkMode() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Window window = activity.getWindow();
+        MaterialYouTheme.WindowBackgrounds callbacks = new MaterialYouTheme.WindowBackgrounds();
+        int themed = palette.sameLightness(TonePalette.NEUTRAL, 0xFF101011);
+        assertNotEquals("the palette moves #101011", 0xFF101011, themed);
+
+        DarkMode.answer(true);
+        window.setBackgroundDrawable(new ColorDrawable(0xFF101011));
+        callbacks.onActivityPostCreated(activity, null);
+        assertEquals("once the activity is created", themed, windowColour(window));
+        assertFalse("the palette's colour is left as it is", MaterialYouTheme.recolourWindow(window, false));
+        window.setBackgroundDrawable(new ColorDrawable(0xFF101011));
+        callbacks.onActivityResumed(activity);
+        assertEquals("as it resumes", themed, windowColour(window));
+
+        window.setBackgroundDrawable(new ColorDrawable(0xFF101011));
+        assertFalse("AMOLED", MaterialYouTheme.recolourWindow(window, true));
+        assertEquals(0xFF101011, windowColour(window));
+        window.setBackgroundDrawable(new ColorDrawable(0xFFC9CCD1));
+        assertFalse("a colour that is no dark surface", MaterialYouTheme.recolourWindow(window, false));
+        assertEquals(0xFFC9CCD1, windowColour(window));
+        GradientDrawable shape = new GradientDrawable();
+        shape.setColor(0xFF101011);
+        window.setBackgroundDrawable(shape);
+        assertFalse("a background that is no plain colour", MaterialYouTheme.recolourWindow(window, false));
+        assertFalse("no window", MaterialYouTheme.recolourWindow(null, false));
+
+        DarkMode.answer(false);
+        window.setBackgroundDrawable(new ColorDrawable(0xFF101011));
+        callbacks.onActivityResumed(activity);
+        assertEquals("light mode", 0xFF101011, windowColour(window));
+    }
+
+    /**
+     * On a cold start the feed's window had #101011 again after both callbacks ran, four starts of
+     * four on 581. From the resume on, the window takes the palette before each frame too, and one
+     * that has no decor yet as it resumes is watched once the framework has made it.
+     */
+    @Test
+    public void aWindowGivenItsDarkBackgroundLaterTakesThePaletteBeforeTheNextFrame() {
+        // Attached but not created, since Robolectric's create() makes the decor already.
+        Activity activity = Robolectric.buildActivity(Activity.class).get();
+        Window window = activity.getWindow();
+        MaterialYouTheme.WindowBackgrounds callbacks = new MaterialYouTheme.WindowBackgrounds();
+        int themed = palette.sameLightness(TonePalette.NEUTRAL, 0xFF101011);
+        DarkMode.answer(true);
+
+        assertEquals("no decor before the resume", null, window.peekDecorView());
+        callbacks.onActivityPostCreated(activity, null);
+        callbacks.onActivityResumed(activity);
+        // What the framework does right after the activity resumes, before the posted watch runs.
+        window.getDecorView();
+        shadowOf(Looper.getMainLooper()).idle();
+
+        window.setBackgroundDrawable(new ColorDrawable(0xFF101011));
+        window.peekDecorView().getViewTreeObserver().dispatchOnPreDraw();
+        assertEquals("before the next frame", themed, windowColour(window));
+        callbacks.onActivityResumed(activity);
+        window.setBackgroundDrawable(new ColorDrawable(0xFF101011));
+        window.peekDecorView().getViewTreeObserver().dispatchOnPreDraw();
+        assertEquals("after another resume", themed, windowColour(window));
+
+        DarkMode.answer(false);
+        window.setBackgroundDrawable(new ColorDrawable(0xFF101011));
+        window.peekDecorView().getViewTreeObserver().dispatchOnPreDraw();
+        assertEquals("light mode", 0xFF101011, windowColour(window));
+    }
+
+    /**
+     * The comment sheet is a dialog fragment over the screen, and its comment list sits on a view
+     * with a plain #252728 background (#37). A window the screen opens above its own takes the
+     * palette on such views, then again after each of its layouts; other colours and light mode
+     * keep theirs.
+     */
+    @Test
+    public void aSheetOverTheScreenTakesThePaletteOnItsPlainDarkSurfaces() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        int themed = palette.sameLightness(TonePalette.NEUTRAL, 0xFF252728);
+        DarkMode.answer(true);
+        Dialog sheet = new Dialog(activity);
+        FrameLayout content = new FrameLayout(activity);
+        View list = plain(activity, 0xFF252728);
+        View light = plain(activity, 0xFFC9CCD1);
+        content.addView(list);
+        content.addView(light);
+        sheet.setContentView(content);
+        sheet.show();
+        View root = sheet.getWindow().getDecorView();
+        root.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(2000, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, 1000, 2000);
+
+        MaterialYouTheme.watchWindowsAbove(activity, activity.getWindow().getDecorView());
+        assertEquals("the list's background", themed, ((ColorDrawable) list.getBackground()).getColor());
+        assertEquals("a colour that is no dark surface", 0xFFC9CCD1, ((ColorDrawable) light.getBackground()).getColor());
+
+        View later = plain(activity, 0xFF252728);
+        content.addView(later);
+        root.getViewTreeObserver().dispatchOnGlobalLayout();
+        assertEquals("a view added later, after the next layout", themed, ((ColorDrawable) later.getBackground()).getColor());
+
+        DarkMode.answer(false);
+        View inLightMode = plain(activity, 0xFF252728);
+        content.addView(inLightMode);
+        root.getViewTreeObserver().dispatchOnGlobalLayout();
+        assertEquals("light mode", 0xFF252728, ((ColorDrawable) inLightMode.getBackground()).getColor());
+        sheet.dismiss();
+    }
+
+    /**
+     * The comment sheet's bar (#37) is 581's sutro_top_border: a DIVIDER #65686C shape under a
+     * SURFACE_BACKGROUND #252728 one inset at the top, both read from the theme by the framework.
+     * Each flat fill takes the palette's neutral at its lightness, on a copy of the state the
+     * resource's other drawables share. A gradient, a fill that changes when pressed and light mode
+     * keep Facebook's colours.
+     */
+    @Test
+    public void aSheetsShapeFillsTakeThePalette() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        DarkMode.answer(true);
+        LayerDrawable bar = new LayerDrawable(new Drawable[] {filled(0xFF65686C), filled(0xFF252728)});
+        bar.setLayerInsetTop(1, 3);
+        Drawable sameResource = bar.getConstantState().newDrawable();
+        GradientDrawable gradient = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[] {0xFF252728, 0xFF101011});
+        GradientDrawable pressable = new GradientDrawable();
+        ColorStateList pressed = new ColorStateList(new int[][] {{android.R.attr.state_pressed}, {}},
+                new int[] {0xFF3B3C3E, 0xFF252728});
+        pressable.setColor(pressed);
+        Dialog sheet = new Dialog(activity);
+        FrameLayout content = new FrameLayout(activity);
+        View barView = shaped(activity, bar);
+        View card = shaped(activity, filled(0xFF333334));
+        content.addView(barView);
+        content.addView(card);
+        content.addView(shaped(activity, gradient));
+        content.addView(shaped(activity, pressable));
+        sheet.setContentView(content);
+        sheet.show();
+        View root = sheet.getWindow().getDecorView();
+        root.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(2000, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, 1000, 2000);
+
+        MaterialYouTheme.watchWindowsAbove(activity, activity.getWindow().getDecorView());
+
+        LayerDrawable drawn = (LayerDrawable) barView.getBackground();
+        assertEquals("the bar's border", palette.sameLightness(TonePalette.NEUTRAL, 0xFF65686C), fill(drawn.getDrawable(0)));
+        assertEquals("the bar", palette.sameLightness(TonePalette.NEUTRAL, 0xFF252728), fill(drawn.getDrawable(1)));
+        assertEquals("a card's shape", palette.sameLightness(TonePalette.NEUTRAL, 0xFF333334), fill(card.getBackground()));
+        LayerDrawable shared = (LayerDrawable) sameResource;
+        assertEquals("the resource's other drawables", 0xFF65686C, fill(shared.getDrawable(0)));
+        assertEquals("the resource's other drawables", 0xFF252728, fill(shared.getDrawable(1)));
+        assertArrayEquals("a gradient", new int[] {0xFF252728, 0xFF101011}, gradient.getColors());
+        assertEquals("a fill that changes when pressed", pressed, pressable.getColor());
+
+        DarkMode.answer(false);
+        View inLightMode = shaped(activity, filled(0xFF252728));
+        content.addView(inLightMode);
+        root.getViewTreeObserver().dispatchOnGlobalLayout();
+        assertEquals("light mode", 0xFF252728, fill(inLightMode.getBackground()));
+        sheet.dismiss();
+    }
+
+    /**
+     * Litho reads a token's colour from the theme with TypedArray.getColor (581 LX/1Mx;->A04), and
+     * SURFACE_BACKGROUND's night style item keeps #252728, so the comment list's rows drew it (#37).
+     * In dark mode a dark surface read that way takes the palette; light mode and other colours keep
+     * Facebook's.
+     */
+    @Test
+    public void aThemeAttributesDarkSurfaceTakesThePalette() {
+        Context context = RuntimeEnvironment.getApplication();
+        DarkMode.answer(true);
+        TypedArray surface = attribute(context, "#FF252728");
+        assertEquals("dark mode", palette.sameLightness(TonePalette.NEUTRAL, 0xFF252728),
+                MaterialYouTheme.getColor(surface, 0, 0, false));
+        TypedArray light = attribute(context, "#FFC9CCD1");
+        assertEquals("no dark surface", 0xFFC9CCD1, MaterialYouTheme.getColor(light, 0, 0, false));
+
+        DarkMode.answer(false);
+        assertEquals("light mode", 0xFF252728, MaterialYouTheme.getColor(surface, 0, 0, false));
+        surface.recycle();
+        light.recycle();
+    }
+
+    private static TypedArray attribute(Context context, String colour) {
+        AttributeSet set = Robolectric.buildAttributeSet().addAttribute(android.R.attr.textColor, colour).build();
+        return context.obtainStyledAttributes(set, new int[] {android.R.attr.textColor});
+    }
+
+    private static GradientDrawable filled(int color) {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setColor(color);
+        return shape;
+    }
+
+    private static View shaped(Context context, Drawable background) {
+        View view = new View(context);
+        view.setBackground(background);
+        return view;
+    }
+
+    private static int fill(Drawable shape) {
+        return ((GradientDrawable) shape).getColor().getDefaultColor();
+    }
+
+    private static View plain(Context context, int color) {
+        View view = new View(context);
+        view.setBackgroundColor(color);
+        return view;
+    }
+
+    private static int windowColour(Window window) {
+        Drawable background = window.getDecorView().getBackground();
+        if (background instanceof InsetDrawable) background = ((InsetDrawable) background).getDrawable();
+        return ((ColorDrawable) background).getColor();
     }
 
     /** The tokens of the bars at the bottom of the screen. */

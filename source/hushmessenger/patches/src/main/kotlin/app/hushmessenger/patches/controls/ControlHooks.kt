@@ -11,6 +11,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableClass
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -53,6 +54,12 @@ internal const val AVATAR_TAB_EVENT = "Lcom/facebook/xapp/messaging/composer/ava
 internal const val COMPOSER_FACTORY = "Lcom/facebook/messaging/msys/thread/composer/configuration/xapp/BaseXappComposerConfigurationFactory;"
 internal const val SEARCH_CLEAR_TAG = "messenger_search_clear_button_tag"
 internal const val MONTAGE_CARD = "Lcom/facebook/messaging/montage/model/MontageCard;"
+internal const val MONTAGE_BUCKET_PREVIEW = "Lcom/facebook/messaging/montage/model/MontageBucketPreview;"
+/** Every story preview comes out of this one constructor, the chat list's ring included. All tested builds share it. */
+internal const val STORY_PREVIEW_INIT = "$MONTAGE_BUCKET_PREVIEW-><init>(Lcom/facebook/messaging/montage/model/MontageBucketKey;" +
+    "Lcom/facebook/messaging/montage/model/MontageBucketLooperLoggingItem;${MONTAGE_CARD}Lcom/facebook/user/model/UserKey;" +
+    "${IMMUTABLE_LIST}Ljava/lang/Integer;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IIZZZZZ)V"
+internal const val STORY_RING_HELPER = "hushmessengerStoryRing"
 internal const val STORY_MARK_READ_TAG = "MontageMsysMarkReadHandler"
 /** The story viewer's More options button logs this as it builds its menu. */
 internal const val STORY_MENU_TAG = "toolbar_click_menu_button"
@@ -120,6 +127,7 @@ internal val expectedHooks = mapOf(
     "people_search" to setOf("LX/CX5;->DLP(LX/EA8;Ljava/lang/Object;)LX/EBu;"),
     "people_story" to setOf("Lcom/facebook/messaging/montage/viewer/MontageViewerFragment;->" +
         "A0Y(Lcom/facebook/messaging/montage/viewer/MontageViewerFragment;)V"),
+    INBOX_REFRESH_HOOK to setOf("$INBOX_SUPPLIER->A0B()$IMMUTABLE_LIST"),
     "allow_screenshot" to setOf(
         "LX/N2h;->run()V",
         "Lcom/facebook/screenshot/ScreenshotContentObserver;->onChange(ZLandroid/net/Uri;)V",
@@ -130,7 +138,8 @@ internal val expectedHooks = mapOf(
     "hide_read_receipts" to setOf("LX/AX0;->run()V"),
     "read_mailbox" to setOf("LX/9sm;->A01(Ljava/lang/Long;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;)V"),
     "keep_unsent" to setOf("LX/SH3;->A01(Landroid/content/Intent;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;)V"),
-    "anonymous_stories" to setOf("LX/HNV;->C1V(${MONTAGE_CARD}Z)V"),
+    "anonymous_stories" to setOf("LX/HNV;->C1V(${MONTAGE_CARD}Z)V", STORY_PREVIEW_INIT),
+    APP_ICONS to setOf("LX/7Ya;->A02($FB_USER_SESSION)Z", "LX/7Ya;->A03($FB_USER_SESSION)Z"),
     "save_stories" to setOf("LX/JgG;->onClick(Landroid/view/View;)V"),
     "growth_notes" to setOf("Lcom/facebook/presence/note/ui/nux/controller/NotesNuxController;->" +
         "A01(Landroidx/fragment/app/Fragment;LX/Ocr;Ljava/util/List;LX/5MS;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;"),
@@ -141,7 +150,24 @@ internal val expectedHooks = mapOf(
     "ai_search" to setOf("LX/5OA;->A0A(LX/5OA;)Z", "LX/5OA;->A0B(LX/5OA;)Z"),
     "ai_search_chip" to setOf("LX/D8E;->render(LX/2MZ;)LX/1GG;"),
     "emoji_typeface" to setOf("LX/1KV;->A00()Landroid/graphics/Typeface;"),
+    ANALYTICS_UPLOADS to setOf(
+        "LX/0c0;->onStartCommand(Landroid/content/Intent;II)I",
+        "LX/0c0;->onStartJob(Landroid/app/job/JobParameters;)Z",
+        "Lcom/facebook/analytics2/logger/GooglePlayUploadService;->onStartCommand(Landroid/content/Intent;II)I",
+        "Lcom/facebook/analytics2/logger/legacy/uploader/AlarmBasedUploadService;->onStartCommand(Landroid/content/Intent;II)I",
+        "Lcom/facebook/analytics2/logger/legacy/uploader/HighPriUploadRetryReceiver;->onReceive(Landroid/content/Context;Landroid/content/Intent;)V",
+        "Lcom/facebook/analytics2/logger/legacy/uploader/LollipopUploadService;->onStartCommand(Landroid/content/Intent;II)I",
+        "Lcom/facebook/analytics2/logger/legacy/uploader/LollipopUploadService;->onStartJob(Landroid/app/job/JobParameters;)Z",
+        "Lcom/facebook/analytics2/logger/service/LollipopUploadSafeService;->onStartCommand(Landroid/content/Intent;II)I",
+        "Lcom/facebook/analytics2/logger/service/LollipopUploadSafeService;->onStartJob(Landroid/app/job/JobParameters;)Z",
+    ),
+    MESSAGE_LOG to setOf(newMessageNotificationCtor("LX/5qJ;", "LX/5Yc;")),
+    EMOJI_SEARCH to setOf("LX/7TX;->A8Y(Landroid/text/Editable;Z)V"),
+    EMOJI_DRAWER to setOf("Lcom/facebook/mobileconfig/factory/MobileConfigUnsafeContext;->A02()Z",
+        "LX/H1n;->invoke(Ljava/lang/Object;)Ljava/lang/Object;"),
     "original_photo" to setOf(TRANSCODE_IMAGE, TRANSCODE_IMAGE_ASYNC),
+    ORIGINAL_VIDEO to setOf(VIDEO_TRANSCODE),
+    SYSTEM_CAMERA to setOf("LX/7Jp;->DXV($MONTAGE_PARAMS$NAVIGATION_TRIGGER)V"),
     "avatar_tabs" to setOf("Lcom/facebook/messaging/msys/thread/composer/configuration/xapp/BaseXappComposerConfigurationFactory;->A0P()$IMMUTABLE_LIST"),
     "menu_settings" to setOf(
         "LX/9rv;->A1i()V",
@@ -235,8 +261,11 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
             break
         }
     }
+    val appIconManagers = findAppIconManagers(classes)
     var searchFieldRender: Method? = null
     var changedViewer = false
+    val drawerReaders = mutableListOf<Method>()
+    val drawerAnchors = mutableListOf<Method>()
     for (cls in classes) {
         val original = cls.fields.firstOrNull { it.name == "__redex_internal_original_name" }
             ?.initialValue.let { (it as? StringEncodedValue)?.value }
@@ -253,6 +282,8 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
             val refs = instructions.mapNotNull { (it as? ReferenceInstruction)?.reference }
             val strings = refs.filterIsInstance<StringReference>().map { it.string }.toSet()
             val gate = method.returnType == "Z" && method.parameterTypes.isEmpty()
+            if (instructions.any { it.isEmojiDrawerFlag() }) drawerReaders.add(method)
+            if (EMOJI_DRAWER_ANCHOR in strings) drawerAnchors.add(method)
             if (method.returnType == "Z" && (method.parameterTypes.isEmpty() ||
                 (AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes == listOf(cls.type)))) {
                 for ((key, spec) in pluginGates) if (strings.any { it in spec.anchors }) add(key)
@@ -260,6 +291,7 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
             if (adContract && method.returnType == IMMUTABLE_LIST && method.parameterTypes.size == 3 &&
                 strings.containsAll(setOf("messaging.inbox.itemlistprocessor.ItemListProcessorInterfaceSpec", "processItems", "new_friend_bump_threads"))) add("ads")
             if (gate && "com.facebook.messaging.friendsinboxunit.plugins.inboxunit.FriendsInboxUnitKillSwitch" in strings) add("stories")
+            if (cls.type in appIconManagers && method.isAppIconGate()) add(APP_ICONS)
             if (gate && instructions.any {
                 it.opcode == Opcode.NEW_INSTANCE &&
                     ((it as? ReferenceInstruction)?.reference as? TypeReference)?.type in facebookPlugins
@@ -293,6 +325,9 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
                 strings.containsAll(setOf(PEOPLE_SEARCH_SOURCE, "Failed to load people you may know"))) add("people_search")
             if (AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.parameterTypes == listOf(cls.type) &&
                 STORY_SUGGESTIONS_QUERY in strings) add("people_story")
+            // The chat list supplier's items read, which first traces under its own name.
+            if (cls.type == INBOX_SUPPLIER && !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == IMMUTABLE_LIST &&
+                method.parameterTypes.isEmpty() && INBOX_ITEMS_TRACE in strings) add(INBOX_REFRESH_HOOK)
             if (cls.type == "Lcom/facebook/screenshot/ScreenshotContentObserver;" && method.name == "onChange" &&
                 method.returnType == "V") add("allow_screenshot")
             // Android 14 and newer report a screenshot here, and Messenger turns it into the in-chat notice.
@@ -304,6 +339,7 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
                 instructions.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == FLAG_SECURE } &&
                 refs.any { it.toString() == "Landroid/view/Window;->addFlags(I)V" }) add("allow_screenshot")
             if (cls.type == MEDIA_TRANSCODER && method.hookId().let { it == TRANSCODE_IMAGE || it == TRANSCODE_IMAGE_ASYNC }) add("original_photo")
+            if (method.isVideoTranscode(strings)) add(ORIGINAL_VIDEO)
             if (method.returnType == "V" && method.parameterTypes.size == 3 &&
                 method.parameterTypes[0] == "Landroid/content/Intent;" &&
                 strings.any { "ACTION_REVOKE_MESSAGE" in it }) add("keep_unsent")
@@ -355,6 +391,9 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
             // Opening a story card sends its seen state through the handler Messenger tags with this name.
             if (method.returnType == "V" && method.parameterTypes == listOf(MONTAGE_CARD, "Z") &&
                 !AccessFlags.STATIC.isSet(method.accessFlags) && STORY_MARK_READ_TAG in strings) add("anonymous_stories")
+            // Every story preview is built here, so a card opened anonymously can start out seen in the chat list.
+            if (cls.type == MONTAGE_BUCKET_PREVIEW && method.name == "<init>" &&
+                method.parameterTypes.any { it.toString() == MONTAGE_CARD }) add("anonymous_stories")
             // The story viewer's More options button builds its menu here, your own story's Save item included.
             if (method.name == "onClick" && method.returnType == "V" && method.parameterTypes == listOf("Landroid/view/View;") &&
                 STORY_MENU_TAG in strings) add("save_stories")
@@ -406,6 +445,12 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
             ?.let { found.getValue("ai_search_chip").add(it) }
     }
     if (changedViewer) found.getValue("screenshot_viewers").clear()
+    found.getValue(EMOJI_DRAWER).addAll(connectEmojiDrawer(drawerReaders, drawerAnchors))
+    found.getValue(EMOJI_SEARCH).addAll(findEmojiSearch(classes))
+    found.getValue(ANALYTICS_UPLOADS).addAll(findAnalyticsUploads(classes))
+    found.getValue(MESSAGE_LOG).addAll(findMessageLogHook(classes))
+    messageLogContract = resolveMessageLogContract(classes)
+    found.getValue(SYSTEM_CAMERA).addAll(findSystemCamera(classes))
     return found
 }
 
@@ -585,19 +630,6 @@ internal fun MutableMethod.validateSwitch() {
     if (returnType != "V" && returnType != "Z" && !returnType.startsWith("L")) {
         throw PatchException("Unexpected hook return type: $returnType")
     }
-}
-
-internal fun MutableMethod.injectEmojiTypeface() {
-    validateScratch()
-    if (returnType != "Landroid/graphics/Typeface;") {
-        throw PatchException("Expected Typeface return for emoji hook: ${hookId()}")
-    }
-    addInstructionsWithLabels(0, """
-        invoke-static {}, $SETTINGS->systemEmojiTypeface()Landroid/graphics/Typeface;
-        move-result-object v0
-        if-eqz v0, :stock_behavior
-        return-object v0
-    """.trimIndent(), ExternalLabel("stock_behavior", getInstruction(0)))
 }
 
 internal fun MutableMethod.validateOriginalPhoto() {
@@ -1300,6 +1332,103 @@ internal fun MutableMethod.injectStoryReadSetSeed(readSet: StoryReadSet) {
         iget-object v1, p0, ${readSet.session}
         invoke-static {v0, v1}, $SETTINGS->seedSeenStories(Ljava/util/Set;Ljava/lang/Object;)V
     """.trimIndent())
+}
+
+/**
+ * A story preview: the card it stands for and the two values its ring reads. The chat list and a chat's header draw
+ * the new-story ring straight from [unread], and the preview's own ring state also counts [unreadCount]. Messenger
+ * fills both from the server's seen state when it loads stories and never checks the cards read on this phone, so a
+ * card opened anonymously kept its ring, through restarts too (#35).
+ */
+internal class StoryRing(val constructor: String, val card: String, val unread: String, val unreadCount: String)
+
+internal fun ClassDef.validateStoryRing(): StoryRing {
+    fun fail(what: String): Nothing = throw PatchException("Messenger controls: the story preview $what")
+    if (type != MONTAGE_BUCKET_PREVIEW) fail("is $type, expected $MONTAGE_BUCKET_PREVIEW")
+    val instanceFields = fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }
+    val card = instanceFields.singleOrNull { it.type == MONTAGE_CARD } ?: fail("no longer holds exactly one card")
+    val cardField = "$type->${card.name}:$MONTAGE_CARD"
+
+    // Messenger's own ring state for a preview: a new story while the flag is set or the count is above zero.
+    val ringState = methods.singleOrNull {
+        !AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(CharSequence::toString) == listOf(FB_USER_SESSION, "Z") &&
+            it.returnType.startsWith("L")
+    } ?: fail("no longer has one ring state")
+    val code = ringState.implementation?.instructions?.toList() ?: fail("ring state has no code")
+    val self = ringState.locals()
+    fun Instruction.readsOwn(opcode: Opcode, fieldType: String): Boolean {
+        if (this.opcode != opcode || (this as TwoRegisterInstruction).registerB != self) return false
+        val field = (this as ReferenceInstruction).reference as FieldReference
+        return field.definingClass == type && field.type == fieldType && instanceFields.any { it.name == field.name && it.type == fieldType }
+    }
+    fun Instruction.tests(read: Instruction, opcode: Opcode) =
+        this.opcode == opcode && (this as OneRegisterInstruction).registerA == (read as TwoRegisterInstruction).registerA
+    val reads = code.indices.filter { i ->
+        i + 3 < code.size && code[i].readsOwn(Opcode.IGET_BOOLEAN, "Z") && code[i + 1].tests(code[i], Opcode.IF_NEZ) &&
+            code[i + 2].readsOwn(Opcode.IGET, "I") && code[i + 3].tests(code[i + 2], Opcode.IF_LEZ)
+    }
+    val at = reads.singleOrNull() ?: fail("ring state no longer reads one new-story flag and count")
+    val unread = (code[at] as ReferenceInstruction).reference.toString()
+    val unreadCount = (code[at + 2] as ReferenceInstruction).reference.toString()
+
+    // The helper call takes the place of the constructor's only return, at its end. p0 must suit a plain invoke.
+    val constructor = methods.filter { it.name == "<init>" }.singleOrNull() ?: fail("no longer has one constructor")
+    val built = constructor.implementation?.instructions?.toList() ?: fail("constructor has no code")
+    if (constructor.parameterTypes.none { it.toString() == MONTAGE_CARD } || built.lastOrNull()?.opcode != Opcode.RETURN_VOID ||
+        built.count { it.opcode == Opcode.RETURN_VOID } != 1 || constructor.locals() > 15) {
+        fail("constructor no longer matches the tested build")
+    }
+    val writes = setOf(Opcode.IPUT, Opcode.IPUT_BOOLEAN, Opcode.IPUT_OBJECT)
+    fun setOnce(field: String) = built.count { insn ->
+        insn.opcode in writes && (insn as TwoRegisterInstruction).registerB == constructor.locals() &&
+            (insn as ReferenceInstruction).reference.toString() == field
+    } == 1
+    if (!setOnce(cardField) || !setOnce(unread) || !setOnce(unreadCount)) fail("constructor no longer sets the card and its ring once each")
+    if (methods.any { it.name == STORY_RING_HELPER }) fail("already has $STORY_RING_HELPER")
+    return StoryRing(constructor.hookId(), cardField, unread, unreadCount)
+}
+
+/**
+ * Asks the extension about the preview's card and clears its ring when the card was opened with the switch on. Each
+ * new preview runs it once, and the extension runs it again on a preview it saw earlier once that card is opened.
+ */
+internal fun storyRingHelper(ring: StoryRing, cardId: String): MutableMethod =
+    MutableMethod(ImmutableMethod(MONTAGE_BUCKET_PREVIEW, STORY_RING_HELPER, listOf(ImmutableMethodParameter(MONTAGE_BUCKET_PREVIEW, null, null)),
+        "V", AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, ImmutableMethodImplementation(2, emptyList(), null, null)))
+        .apply {
+            addInstructionsWithLabels(0, """
+                iget-object v0, p0, ${ring.card}
+                if-eqz v0, :done
+                iget-object v0, v0, $cardId
+                invoke-static {p0, v0}, $SETTINGS->storyRingSeen(Ljava/lang/Object;Ljava/lang/String;)Z
+                move-result v0
+                if-eqz v0, :done
+                const/4 v0, 0x0
+                iput-boolean v0, p0, ${ring.unread}
+                iput v0, p0, ${ring.unreadCount}
+                :done
+                return-void
+            """.trimIndent())
+        }
+
+/**
+ * Hands every new preview to the helper on its way out of the constructor. The two ring fields drop final, since the
+ * helper also clears them on a preview Messenger already holds.
+ */
+internal fun MutableClass.injectStoryRing(ring: StoryRing, cardId: String) {
+    for (field in fields) {
+        if ("$type->${field.name}:${field.type}" in setOf(ring.unread, ring.unreadCount)) {
+            field.setAccessFlags(field.accessFlags and AccessFlags.FINAL.value.inv())
+        }
+    }
+    val direct = directMethods
+    val helper = storyRingHelper(ring, cardId)
+    methods.add(helper)
+    direct.add(helper)
+    val constructor = methods.single { it.hookId() == ring.constructor }
+    val exit = constructor.implementation!!.instructions.indexOfLast { it.opcode == Opcode.RETURN_VOID }
+    constructor.replaceInstruction(exit, "invoke-static {p0}, $type->$STORY_RING_HELPER($type)V")
+    constructor.addInstructions(exit + 1, "return-void")
 }
 
 private val RESOURCE_CONSTS = setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST, Opcode.CONST_HIGH16)

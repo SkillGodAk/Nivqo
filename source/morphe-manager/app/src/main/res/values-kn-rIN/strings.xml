@@ -13,24 +13,24 @@
     <string name="android_11_bug_dialog_title">Android 11 ಸಮಸ್ಯೆಯಿತ್ತು</string>
     <string name="android_11_bug_dialog_description">ಆ್ಯಪ್‌ ಅನ್ನು ಸ್ಥಾಪಿಸಲು ಅನುಮತಿ ನೀಡಬೇಕು, ಇಲ್ಲವಾದರೆ Android 11 ಸಿಸ್ಟಮ್‌ನಲ್ಲಿ ಒಂದು ತಪ್ಪು ಸಂಭವಿಸುತ್ತದೆ, ಅದು ಬಳಕೆದಾರರ ಅನುಭವವನ್ನು ದುಷ್ಪರಿಣಾಮ ಬೀರುತ್ತದೆ</string>
     <string name="deep_link_add_source_title">ಉৎস ಸೇರಿಸಿ</string>
-    <string name="deep_link_add_source_message">Nivqoಗೆ ಈ ಪ್ಯಾಚ್ ಮೂಲವನ್ನು ಸೇರಿಸಬೇಕೆಂದು ನೀವು ಬಯಸುತ್ತೀರಾ?</string>
+    <string name="deep_link_add_source_message">Morpheಗೆ ಈ ಪ್ಯಾಚ್ ಮೂಲವನ್ನು ಸೇರಿಸಬೇಕೆಂದು ನೀವು ಬಯಸುತ್ತೀರಾ?</string>
 <string name="deep_link_add_source_warning">ನೀವು ನಂಬುವಿರುವ ಮೂಲಗಳನ್ನು ಮಾತ್ರ ಸೇರಿಸಿ</string>
-    <!-- Home Screen - Update Notifications -->
+<!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Nivqo ನವೀಕರಣ ಲಭ್ಯವಿದೆ</string>
 <string name="home_update_skipped_metered">಑ಠಿಟವಿఅ ದ್ರಿಟಸಾ಻ನಿ಍಻ಜವಟ</string>
-    <string name="home_update_skipped_metered_subtitle">ಮೊಬೈಲ್ ಡೇಟಾ ಸಕ್ರಿಯವಾಗಿದೆ</string>
+<string name="home_update_skipped_metered_subtitle">ಮೊಬೈಲ್ ಡೇಟಾ ಸಕ್ರಿಯವಾಗಿದೆ</string>
     <string name="home_updating_sources">ಬೋರಿಸ್ಸಿನ ಪರಿಮಾಣವನ್ನು ನವೀಕರಿಸುತ್ತಿರುವುದು…</string>
-    <string name="home_update_success">ಮקורಗಳನ್ನು ನವೀಕರಿಸಲಾಗಿದೆ</string>
+<string name="home_update_success">ಮקורಗಳನ್ನು ನವೀಕರಿಸಲಾಗಿದೆ</string>
     <string name="home_update_success_subtitle">ನಿಮ್ಮ ಮೂಲಗಳು ನವೀಕೃತಗೊಂಡಿವೆ</string>
-    <string name="home_sources_are_loading">ಕರೋತಾರೆಗಳನ್ನು ಲೋಡ್ ಮಾಡುತ್ತಿದ್ದೇವೆ, ದಯವಿಟ್ಟು ಕಾಯಿರಿ…</string>
+<string name="home_sources_are_loading">ಕರೋತಾರೆಗಳನ್ನು ಲೋಡ್ ಮಾಡುತ್ತಿದ್ದೇವೆ, ದಯವಿಟ್ಟು ಕಾಯಿರಿ…</string>
     <string name="home_search_apps">ಅಪ್ಲಿಕೇಷನ್‌ಗಳನ್ನು ಹುಡುಕಿ</string>
-    <string name="home_no_apps_title">ಆ್ಯಪ್‌ಗಳು ಲಭ್ಯವಿಲ್ಲ</string>
+<string name="home_no_apps_title">ಆ್ಯಪ್‌ಗಳು ಲಭ್ಯವಿಲ್ಲ</string>
     <string name="home_no_apps_subtitle">ಒಂದು ಪ್ಯಾಚ್ ಮೂಲವನ್ನು ಸೇರಿಸಿ ಅಥವಾ %s ನಲ್ಲಿ ಈಗಾಗಲೇ ಇರುವものを ಸಕ್ರಿಯಗೊಳಿಸಿ</string>
-    <string name="home_no_apps_search_subtitle">\"%s\"ಗೆ ಹೊಂದಿಕೆಯಾಗುವ ಅಪ್ಲಿಕೇಶನ್‌ಗಳು ಯಾವುದೂ ಇಲ್ಲ</string>
+<string name="home_no_apps_search_subtitle">\"%s\"ಗೆ ಹೊಂದಿಕೆಯಾಗುವ ಅಪ್ಲಿಕೇಶನ್‌ಗಳು ಯಾವುದೂ ಇಲ್ಲ</string>
     <string name="home_all_apps_hidden_title">ಎಲ್ಲಾ ಅಪ್ಲಿಕೇಶನ್‌ಗಳು ಮರೆಮಾಡಲಾಗಿದೆ</string>
-    <string name="home_all_apps_hidden_subtitle">ನೀವು ಹೋಮ್ ಸ್ಕ್ರೀನ್‌ನಿಂದ ಎಲ್ಲಾ ಅಪ್ಲಿಕೇಶನ್‌ಗಳನ್ನು ಮರೆಮಾಡಿದ್ದೀರಿ</string>
+<string name="home_all_apps_hidden_subtitle">ನೀವು ಹೋಮ್ ಸ್ಕ್ರೀನ್‌ನಿಂದ ಎಲ್ಲಾ ಅಪ್ಲಿಕೇಶನ್‌ಗಳನ್ನು ಮರೆಮಾಡಿದ್ದೀರಿ</string>
     <string name="home_category_all_apps">ಎಲ್ಲಾ ಅಪ್ಲಿಕೇಶನ್‌ಗಳು</string>
-    <string name="home_category_custom">Custom</string>
+<string name="home_category_custom">Custom</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">ನೀವು ಯಾವ ಅಪ್ಲಿಕೇಶನ್ ಅನ್ನು ಪ್ಯಾಚ್ ಮಾಡಲು ಬಯಸುತ್ತೀರಿ?</string>
     <!-- Humorous hype message with light nostalgia -->
@@ -56,6 +56,14 @@
     <!-- Evening greetings (17:00–21:59) -->
     <!-- Late night greetings (22:00–23:59) -->
     <!-- Super late night greetings (0:00–4:59) -->
+    <!-- Halloween greetings, shown instead of the ones above around October 31 -->
+    <!-- Pun on "Trick or treat" -->
+    <!-- Pun on "Something wicked this way comes", a line from Shakespeare's Macbeth -->
+    <!-- Winter holiday greetings, shown instead of the ones above from late December to early January -->
+    <!-- Pun on the song "Let It Snow! Let It Snow! Let It Snow!" -->
+    <!-- Pun on "Dashing through the snow", the opening line of "Jingle Bells" -->
+    <!-- New Year greetings, shown instead of the ones above on December 31 and January 1 -->
+    <!-- Pun on the saying "Out with the old, in with the new" -->
     <!-- Home Screen - Sources Management -->
     <string name="sources_management_title">ಸೋಸ್ ಕೋಡ್‌ಗಳನ್ನು ಸರಿಪಡಿಸು</string>
     <string name="sources_management_open_in_browser">ಬ್ರೌಸರ್‌ನಲ್ಲಿ ತೆರೆ</string>
@@ -89,14 +97,12 @@
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_use_installed_app">ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿದ ಅಪ್ಲಿಕೇಶನ್ ಬಳಸಿ</string>
     <string name="home_installed_app_picker_empty">ಆ್ಯಪ್‌ಗಳು ಕಂಡುಬರಲಿಲ್ಲ</string>
-    <string name="home_installed_app_picker_filter_all">ಎಲ್ಲಾ ಅಪ್ಲಿಕೇಶನ್‌ಗಳು</string>
     <string name="home_installed_app_picker_filter_user">రಪರಸಲ್ి్ಕಾರ್సేరు಻స్వ్సై</string>
     <string name="home_installed_app_picker_filter_system">రಪರಸಲ್ి్ಕಾರ್సేరు಻స్వ్సై</string>
     <string name="home_invalid_apk_unreadable">\'External Storage\' ಬ್ಯಾಟರಿ ನಿರ್ಬಂಧಿತವಾಗಿಲ್ಲ ಎಂದು ಪರಿಶೀಲಿಸಿ.</string>
     <string name="home_invalid_apk_io_error">ಫೈಲ್ ತೆರೆಯಲು ವಿಫಲವಾಯಿತು. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ</string>
     <string name="home_external_apk_expert_mode_required">ಈ ವೈಶಿಷ್ಟ್ಯವು ತಜ್ಞ ಮೋಡ್‌ನಲ್ಲಿ ಮಾತ್ರ ಲಭ್ಯವಿದೆ</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
-    <string name="expert_mode_title">ಜ್ಞಾನಿ ಮೋಡ್</string>
     <string name="expert_mode_search">ಪ್ಯಾಚ್‌ಗಳನ್ನು ಹುಡುಕಿ</string>
     <string name="expert_mode_disable_all">ಎಲ್ಲವನ್ನೂ ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿ</string>
     <string name="expert_mode_disable_all_done">ಎಲ್ಲಾ ಪ್ಯಾಚ್‌ಗಳನ್ನು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ</string>
@@ -112,8 +118,10 @@
     <!-- Badge on a patch option that has to be filled in before patching -->
     <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
     <!-- Adaptive Icon Creator -->
-    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
-    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
+    <!-- Card of the adaptive icon creator where the picture is placed on the icon -->
+    <!-- Card of the adaptive icon creator showing the icons as the device draws them -->
+    <!-- Caption under the launcher icon in its own colors -->
+    <!-- Caption under the launcher icon recolored by the system theme -->
     <!-- Header Creator -->
     <!-- Batch patching -->
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -147,6 +155,7 @@
     <!-- Patcher Screen - Mini-games -->
     <!-- Settings -->
     <!-- Settings - Appearance Tab - Background animation -->
+    <!-- %1$s is a holiday background name, such as Halloween. %2$s is a date, such as November 1 -->
     <!-- Settings - Appearance Tab - Theme -->
     <!-- Settings - Appearance Tab - Language Selector -->
     <!-- Settings - Appearance Tab - Interface Scale -->

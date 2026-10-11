@@ -20,68 +20,68 @@
     <string name="android_11_bug_dialog_title">Android 11-bug</string>
     <string name="android_11_bug_dialog_description">De toestemming voor het installeren van de app moet vooraf worden verleend om een bug in Android 11 te voorkomen die de gebruikerservaring negatief zal beïnvloeden</string>
     <string name="deep_link_add_source_title">Bron toevoegen</string>
-    <string name="deep_link_add_source_message">Wilt u deze patchbron toevoegen aan Nivqo?</string>
+    <string name="deep_link_add_source_message">Wilt u deze patchbron toevoegen aan Morphe?</string>
 <string name="deep_link_add_source_warning">Voeg alleen bronnen toe die u vertrouwt</string>
-    <!-- Home Screen - Update Notifications -->
+<!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Nivqo-update beschikbaar</string>
 <string name="home_update_available_subtitle">Nieuwe versie gereed voor installatie</string>
-    <string name="home_blocked_source_title">Geblokkeerde patchbron gedetecteerd</string>
+<string name="home_blocked_source_title">Geblokkeerde patchbron gedetecteerd</string>
     <string name="home_blocked_source_subtitle">Tik om te bekijken en te verwijderen</string>
-    <string name="home_metadata_errors_title">Sommige patchbronnen zijn niet beschikbaar</string>
+<string name="home_metadata_errors_title">Sommige patchbronnen zijn niet beschikbaar</string>
     <string name="home_metadata_errors_subtitle">Tik om bronnen te bekijken</string>
-    <string name="home_outdated_manager_title">Nivqo is verouderd</string>
+<string name="home_outdated_manager_title">Morphe is verouderd</string>
 <string name="home_outdated_manager_subtitle">Sommige patchbronnen vereisen een nieuwere versie</string>
-    <string name="home_held_back_title">Een patchbron heeft Nivqo laten crashen.}</string>
+<string name="home_held_back_title">Een patchbron heeft Morphe laten crashen.}</string>
 <string name="home_held_back_subtitle">Empty</string>
-    <string name="home_metered_skipped_title">Updates gepauzeerd op mobiele data</string>
+<string name="home_metered_skipped_title">Updates gepauzeerd op mobiele data</string>
     <string name="home_metered_skipped_subtitle">Tik om updates via mobiele data toe te staan</string>
-    <string name="home_repatch_available_subtitle">Tik om ze allemaal in de wachtrij te zetten</string>
+<string name="home_repatch_available_subtitle">Tik om ze allemaal in de wachtrij te zetten</string>
     <string name="home_update_error">Update mislukt</string>
-    <string name="home_update_error_subtitle">Er is iets misgegaan tijdens het bijwerken van bronnen</string>
+<string name="home_update_error_subtitle">Er is iets misgegaan tijdens het bijwerken van bronnen</string>
     <string name="home_update_skipped_metered">Updates overgeslagen</string>
-    <string name="home_update_skipped_metered_subtitle">Mobiele gegevens zijn actief</string>
+<string name="home_update_skipped_metered_subtitle">Mobiele gegevens zijn actief</string>
     <string name="home_updating_sources">Bronnen worden bijgewerkt…</string>
-    <string name="home_update_success">Bronnen zijn bijgewerkt</string>
+<string name="home_update_success">Bronnen zijn bijgewerkt</string>
     <string name="home_update_success_subtitle">Uw bronnen zijn up-to-date</string>
-    <string name="home_sources_are_loading">Bronnen worden ingeladen, even geduld…</string>
+<string name="home_sources_are_loading">Bronnen worden ingeladen, even geduld…</string>
     <string name="home_search_apps">Apps zoeken</string>
-    <string name="home_app_list_options_title">Sorteren en filteren</string>
+<string name="home_app_list_options_title">Sorteren en filteren</string>
     <string name="home_app_list_options_state_description">Gesorteerd op %1$s, gefilterd op %2$s</string>
-    <string name="home_app_filter_all_description">Elke app op het startscherm</string>
+<string name="home_app_filter_all_description">Elke app op het startscherm</string>
     <string name="home_app_filter_patched_description">Apps die je met Nivqo hebt gepatcht of opgeslagen</string>
-    <string name="home_app_filter_not_patched_description">Apps die je nog niet in Nivqo hebt gepatcht</string>
+<string name="home_app_filter_not_patched_description">Apps die je nog niet in Morphe hebt gepatcht</string>
 <string name="home_app_filter_installed_description">Apps die momenteel op dit apparaat zijn geïnstalleerd</string>
-    <string name="home_app_filter_uninstalled_description">Apps die met Nivqo zijn gepatcht en niet meer op dit apparaat staan</string>
+<string name="home_app_filter_uninstalled_description">Apps die met Morphe zijn gepatcht en niet meer op dit apparaat staan</string>
 <string name="home_app_filter_clones">Klonen</string>
-    <string name="home_app_filter_clones_description">Apps die onder een eigen pakketnaam zijn gebouwd en naast het origineel zijn geïnstalleerd</string>
+<string name="home_app_filter_clones_description">Apps die onder een eigen pakketnaam zijn gebouwd en naast het origineel zijn geïnstalleerd</string>
     <string name="home_app_sort_manual_description">Houd een app ingedrukt en tik vervolgens op de herordenen-knop</string>
-    <string name="home_app_sort_recommended">Aanbevolen volgorde</string>
+<string name="home_app_sort_recommended">Aanbevolen volgorde</string>
     <string name="home_app_sort_recommended_description">Geïnstalleerde en vastgezette apps eerst</string>
-    <string name="home_app_sort_name_asc_description">Alfabetisch, A tot Z</string>
+<string name="home_app_sort_name_asc_description">Alfabetisch, A tot Z</string>
     <string name="home_app_sort_name_desc_description">Omgekeerd alfabetisch, Z tot A</string>
-    <string name="home_app_sort_updates_first">Eerst patches bijwerken</string>
+<string name="home_app_sort_updates_first">Eerst patches bijwerken</string>
     <string name="home_app_sort_updates_first_description">Apps met nieuwere patches eerst, daarna de aanbevolen volgorde</string>
-    <string name="home_app_sort_recently_patched">Recent gepatcht</string>
+<string name="home_app_sort_recently_patched">Recent gepatcht</string>
     <string name="home_app_sort_recently_patched_description">Meest recent gepatchte apps eerst</string>
-    <string name="home_no_apps_title">Geen apps beschikbaar</string>
+<string name="home_no_apps_title">Geen apps beschikbaar</string>
     <string name="home_no_apps_subtitle">Voeg een patchbron toe of schakel een bestaande in %s</string>
-    <string name="home_no_apps_search_subtitle">Er zijn geen apps die overeenkomen met \"%s\"</string>
+<string name="home_no_apps_search_subtitle">Er zijn geen apps die overeenkomen met \"%s\"</string>
     <string name="home_all_apps_hidden_title">Alle apps zijn verborgen</string>
-    <string name="home_all_apps_hidden_subtitle">U heeft alle apps van het startscherm verborgen</string>
+<string name="home_all_apps_hidden_subtitle">U heeft alle apps van het startscherm verborgen</string>
     <string name="home_no_apps_filter_title">Geen apps voldoen aan dit filter</string>
-    <string name="home_no_apps_filter_subtitle">Niets kwam overeen met %s</string>
+<string name="home_no_apps_filter_subtitle">Niets kwam overeen met %s</string>
     <string name="home_category_add">Categorie toevoegen</string>
-    <string name="home_category_all_apps">Alle apps</string>
+<string name="home_category_all_apps">Alle apps</string>
     <string name="home_category_custom">Aangepast</string>
-    <string name="home_category_uncategorized">Niet gecategoriseerd</string>
+<string name="home_category_uncategorized">Niet gecategoriseerd</string>
     <string name="home_category_new_title">Nieuwe categorie</string>
-    <string name="home_category_rename_title">Categorie hernoemen</string>
+<string name="home_category_rename_title">Categorie hernoemen</string>
     <string name="home_category_name">Categorienaam</string>
-    <string name="home_category_move_to">Verplaatsen naar categorie</string>
+<string name="home_category_move_to">Verplaatsen naar categorie</string>
     <string name="home_category_move_selected_title">Verplaats geselecteerde apps</string>
-    <string name="home_category_delete_confirm_title">Categorie verwijderen</string>
+<string name="home_category_delete_confirm_title">Categorie verwijderen</string>
     <string name="home_category_delete_confirm_message">Categorie &lt;b&gt;%1$s&lt;/b&gt; verwijderen? Apps hierin worden teruggeplaatst naar &lt;b&gt;%2$s&lt;/b&gt;</string>
-    <string name="home_category_actions_unavailable">Acties zijn niet beschikbaar voor deze categorie</string>
+<string name="home_category_actions_unavailable">Acties zijn niet beschikbaar voor deze categorie</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">Welke app wil je patchen?</string>
     <!-- Humorous hype message with light nostalgia -->
@@ -123,6 +123,26 @@
     <string name="home_greeting_super_late_3">Blijf gewoon op en patch</string>
     <string name="home_greeting_super_late_4">Jij en de servers, allebei wakker</string>
     <string name="home_greeting_super_late_5">Nachtelijk en productief</string>
+    <!-- Halloween greetings, shown instead of the ones above around October 31 -->
+    <!-- Pun on "Trick or treat" -->
+    <string name="home_greeting_halloween_1">Patch of je leven?</string>
+    <string name="home_greeting_halloween_2">Geen spookjes in deze APK\'s, gecheckt</string>
+    <string name="home_greeting_halloween_3">Griezelseizoen, verse patches</string>
+    <!-- Pun on "Something wicked this way comes", a line from Shakespeare's Macbeth -->
+    <string name="home_greeting_halloween_4">Iets kwaads patcht deze kant op</string>
+    <!-- Winter holiday greetings, shown instead of the ones above from late December to early January -->
+    <string name="home_greeting_winter_1">Fijne feestdagen, verse patches</string>
+    <!-- Pun on the song "Let It Snow! Let It Snow! Let It Snow!" -->
+    <string name="home_greeting_winter_2">Laat het sneeuwen, laat het patchen</string>
+    <string name="home_greeting_winter_3">Nieuw jaar, nieuwe patches</string>
+    <!-- Pun on "Dashing through the snow", the opening line of "Jingle Bells" -->
+    <string name="home_greeting_winter_4">Patchend door de sneeuw</string>
+    <!-- New Year greetings, shown instead of the ones above on December 31 and January 1 -->
+    <string name="home_greeting_new_year_1">Gelukkig Nieuwjaar!</string>
+    <string name="home_greeting_new_year_2">Aftellen naar nieuwe patches</string>
+    <string name="home_greeting_new_year_3">Nieuw jaar, dezelfde advertentievrije apps</string>
+    <!-- Pun on the saying "Out with the old, in with the new" -->
+    <string name="home_greeting_new_year_4">Oude versies eruit, nieuwe erin</string>
     <!-- Home Screen - Sources Management -->
     <string name="sources_management_title">Patchbronnen</string>
     <string name="sources_search">Zoek bronnen en patches</string>
@@ -159,11 +179,11 @@
     <string name="sources_management_metadata_unavailable_hint">Het externe metadabestand is niet beschikbaar. Patchen met het geïnstalleerde bundel werkt nog steeds, maar automatische update is uitgeschakeld voor deze bron</string>
     <string name="sources_management_metadata_unavailable_hint_missing">De patch-bundel kon niet worden gedownload. De bron-URL is mogelijk onjuist of het bestand bestaat niet</string>
     <string name="sources_management_outdated_manager_badge">Update Nivqo</string>
-    <string name="sources_management_outdated_manager_hint">Deze bron is gebouwd voor patcher %1$s, maar Nivqo %2$s bevat patcher %3$s. Update Nivqo om deze te gebruiken</string>
+<string name="sources_management_outdated_manager_hint">Deze bron is gebouwd voor patcher %1$s, maar Morphe %2$s bevat patcher %3$s. Update Morphe om deze te gebruiken</string>
 <string name="sources_management_held_back_badge">Gecrasht</string>
-    <string name="sources_management_held_back_hint">Deze bron heeft Nivqo laten crashen tijdens het laden en wordt daarom overgeslagen. Werk deze bij of importeer deze opnieuw om het opnieuw te proberen.</string>
+<string name="sources_management_held_back_hint">Deze bron heeft Morphe laten crashen tijdens het laden en wordt daarom overgeslagen. Werk deze bij of importeer deze opnieuw om het opnieuw te proberen.</string>
 <string name="sources_management_source_enabled">Bron ingeschakeld</string>
-    <string name="sources_management_source_disabled">Bron uitgeschakeld</string>
+<string name="sources_management_source_disabled">Bron uitgeschakeld</string>
     <string name="sources_management_source_updating">Bron bijwerken</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">Weergavenaam</string>
@@ -192,11 +212,11 @@
     <string name="sources_dialog_choose_apps_description">Kies welke van de apps je wilt behouden zodra de bron is geladen.</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Bronnen voor patches van derden</string>
-    <string name="sources_dialog_community_notice_message">"Community-patchbronnen worden gemaakt en onderhouden door hun eigen auteurs. Nivqo beoordeelt of verifieert patches van derden niet en is niet verantwoordelijk voor hun inhoud of voor wat ze op uw apparaat doen.
+    <string name="sources_dialog_community_notice_message">"Community-patchbronnen worden gemaakt en onderhouden door hun eigen auteurs. Morphe beoordeelt of verifieert patches van derden niet en is niet verantwoordelijk voor hun inhoud of voor wat ze op uw apparaat doen.
 
 Alles wat u van deze website toevoegt, gebruikt u op eigen risico"</string>
 <string name="sources_update_success">Bijwerken geslaagd</string>
-    <string name="sources_update_unavailable">Geen bijwerken beschikbaar</string>
+<string name="sources_update_unavailable">Geen bijwerken beschikbaar</string>
     <string name="sources_download_fail">Kan bronnen niet downloaden: %s</string>
     <string name="sources_download_fail_named">\'%s\' kon niet worden bijgewerkt. Controleer je internetverbinding en probeer het opnieuw</string>
     <string name="sources_download_endpoint_not_found">\'%s\': patch metadata niet gevonden</string>
@@ -214,26 +234,26 @@ Alles wat u van deze website toevoegt, gebruikt u op eigen risico"</string>
     <string name="home_apk_availability_no">Nee, ik heb al een .APK</string>
     <string name="home_apk_helper_download">Gebruik een hulpprogramma</string>
     <string name="home_apk_helper_title">Downloaden met een hulpprogramma</string>
-    <string name="home_apk_helper_description">Nivqo vraagt de onderstaande hulpprogramma om de originele APK te downloaden en het bestand terug te geven</string>
-<!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="home_apk_helper_description">Morphe vraagt de onderstaande hulpprogramma om de originele APK te downloaden en het bestand terug te geven</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">Helper openen</string>
-    <string name="home_apk_helper_warning">Ga alleen verder als u deze hulpprogramma-app vertrouwt. Nivqo controleert het pakket, de versie en de handtekening van alles wat het ontvangt voordat het gaat patchen.</string>
+    <string name="home_apk_helper_warning">Ga alleen verder als u deze hulpprogramma-app vertrouwt. Morphe controleert het pakket, de versie en de handtekening van alles wat het ontvangt voordat het gaat patchen.</string>
 <string name="home_apk_helper_warning_unverified">Ga alleen verder als u deze hulpprogramma-app vertrouwt. Nivqo kan de handtekening van deze APK niet verifiëren, dus een gewijzigd bestand zou niet worden gedetecteerd.</string>
 <string name="home_apk_helper_no_result">De hulpprogramma-app heeft geen APK geretourneerd.</string>
-    <string name="home_apk_helper_no_access">De hulpprogramma-app heeft geen toegang verleend tot de geretourneerde APK.</string>
+<string name="home_apk_helper_no_access">De hulpprogramma-app heeft geen toegang verleend tot de geretourneerde APK.</string>
     <string name="home_apk_helper_no_package">De helper-app heeft niet aangegeven welke geïnstalleerde app gebruikt moet worden</string>
-    <string name="home_apk_helper_wrong_package">De helper-app retourneerde een andere app dan degene die wordt gepatcht</string>
+<string name="home_apk_helper_wrong_package">De helper-app retourneerde een andere app dan degene die wordt gepatcht</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo kon de geïnstalleerde app niet gebruiken</string>
 <string name="home_apk_helper_installed_incompatible">De geïnstalleerde versie kan niet worden gepatcht</string>
-    <string name="home_apk_use_saved">Gebruik opgeslagen APK</string>
+<string name="home_apk_use_saved">Gebruik opgeslagen APK</string>
     <string name="home_apk_use_installed">Gebruik geïnstalleerde APK</string>
     <string name="home_apk_use_saved_unsupported">De patches ondersteunen deze opgeslagen kopie niet. Het patchen ervan zal je vragen om te bevestigen, of kies een andere APK</string>
     <string name="home_apk_use_installed_unverified">Kon de handtekening van de geïnstalleerde app niet verifiëren, dus deze is mogelijk al gepatcht</string>
     <string name="home_unverified">Ongeverifieerd</string>
     <string name="home_install_verification_pending">Installatie controleren…</string>
-    <string name="home_app_info_install_unverified">Nivqo kan niet bevestigen dat de geïnstalleerde app de build is die is gepatcht. Patch deze opnieuw of installeer deze opnieuw vanuit de opgeslagen APK om de acties te herstellen</string>
+    <string name="home_app_info_install_unverified">Morphe kan niet bevestigen dat de geïnstalleerde app de build is die is gepatcht. Patch deze opnieuw of installeer deze opnieuw vanuit de opgeslagen APK om de acties te herstellen</string>
 <string name="home_app_info_no_saved_apk">Er is geen APK opgeslagen. Om de patch uit te voeren, moet u het APK opnieuw selecteren</string>
-    <string name="home_version_requires_android">Vereist Android %s+</string>
+<string name="home_version_requires_android">Vereist Android %s+</string>
     <string name="home_apk_no_compatible_versions_title">Niet ondersteund voor dit apparaat</string>
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; heeft geen ondersteunde versies voor Android %2$s (API %3$s). Alle gedeclareerde versies vereisen een hogere Android versie</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
@@ -244,21 +264,21 @@ Alles wat u van deze website toevoegt, gebruikt u op eigen risico"</string>
     <string name="home_download_instructions_step2_generic">Scroll omlaag op de webpagina en druk op de downloadknop</string>
     <string name="home_download_instructions_step2_variant">Scroll omlaag op de webpagina en druk op de downloadknop van de bovenste &lt;b&gt;APK-variant&lt;/b&gt;</string>
     <string name="home_download_instructions_step2_search">Open een zoekresultaat van een website die je vertrouwt</string>
-    <string name="home_download_instructions_step2_search_note">Nivqo kan niet voor deze websites instaan. Sla de websites over die een eigen appwinkel aanbieden in plaats van een APK-bestand</string>
+    <string name="home_download_instructions_step2_search_note">Morphe kan niet voor deze websites instaan. Sla de websites over die een eigen appwinkel aanbieden in plaats van een APK-bestand</string>
 <string name="home_download_instructions_step3_search">Download op die website de APK van versie &lt;b&gt;%s&lt;/b&gt;, niet de nieuwste</string>
-    <string name="home_download_instructions_step3_search_any">Download op die website de APK van de app. &lt;b&gt;Elke versie&lt;/b&gt; kan worden gepatcht</string>
+<string name="home_download_instructions_step3_search_any">Download op die website de APK van de app. &lt;b&gt;Elke versie&lt;/b&gt; kan worden gepatcht</string>
     <string name="home_download_instructions_download_button_toast">Druk op de download op de website, en niet hier 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Geweldig! Klik nu op doorgaan en ga naar de website 👆</string>
     <string name="home_download_instructions_download_button_toast_3">Oefening baart kunst en jij bent zeker op het goede pad 💪</string>
     <string name="home_download_instructions_download_button_toast_4">Nog steeds niet hier… nog steeds niet hier… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">OK, ik respecteer de toewijding 🫡</string>
-    <string name="home_download_instructions_download_button_toast_6">Je bent nu een officiële Nivqo knop tester 🏅</string>
+    <string name="home_download_instructions_download_button_toast_6">Je bent nu een officiële Morphe knop tester 🏅</string>
 <string name="home_download_instructions_step3">Wacht tot de download is voltooid, en &lt;b&gt;installeer de APK niet&lt;/b&gt;</string>
-    <string name="home_download_instructions_step3_mount">Wacht tot de download is voltooid, en &lt;b&gt;installeer de APK&lt;/b&gt;</string>
+<string name="home_download_instructions_step3_mount">Wacht tot de download is voltooid, en &lt;b&gt;installeer de APK&lt;/b&gt;</string>
     <string name="home_download_instructions_step4">Na het downloaden, ga terug naar Nivqo</string>
-    <string name="home_download_instructions_step4_mount">Na het installeren van het oorspronkelijke APK, ga terug naar Nivqo</string>
+<string name="home_download_instructions_step4_mount">Na het installeren van het oorspronkelijke APK, ga terug naar Morphe</string>
 <string name="home_download_instructions_continue_to">Ga verder naar %s</string>
-    <string name="home_download_instructions_destination">de downloadpagina</string>
+<string name="home_download_instructions_destination">de downloadpagina</string>
     <string name="home_download_instructions_copy_link">Link kopiëren</string>
     <string name="home_download_instructions_link_copied">Link gekopieerd</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
@@ -272,7 +292,6 @@ Alles wat u van deze website toevoegt, gebruikt u op eigen risico"</string>
     <string name="home_use_installed_app">Geïnstalleerde app gebruiken</string>
     <string name="home_installed_app_picker_title">Geïnstalleerde apps</string>
     <string name="home_installed_app_picker_empty">Geen apps gevonden</string>
-    <string name="home_installed_app_picker_filter_all">Alle apps</string>
     <string name="home_installed_app_picker_filter_user">Alleen gebruikersapps</string>
     <string name="home_installed_app_picker_filter_system">Alleen systeemapps</string>
     <string name="home_invalid_apk_unreadable">Kon het bestand niet lezen. Controleer of \'Opslag\' niet beperkt is qua batterijgebruik</string>
@@ -281,7 +300,6 @@ Alles wat u van deze website toevoegt, gebruikt u op eigen risico"</string>
     <string name="home_invalid_apk_io_error">Het bestand kon niet worden geopend. Probeer het opnieuw</string>
     <string name="home_external_apk_expert_mode_required">Deze functie is alleen beschikbaar in de Expert-modus</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
-    <string name="expert_mode_title">Expert-modus</string>
     <string name="expert_mode_search">Zoek patches</string>
     <string name="expert_mode_disable_all">Alles uitschakelen</string>
     <string name="expert_mode_disable_all_done">Alle patches uitgeschakeld</string>
@@ -372,44 +390,43 @@ Voor de beste resultaten beveelt deze app aan om een &lt;b&gt;volledig APK&lt;/b
     <string name="adaptive_icon_select_image">Afbeelding selecteren</string>
     <string name="adaptive_icon_change_image">Afbeelding wijzigen</string>
     <string name="image_load_failed">Kan deze afbeelding niet laden</string>
-    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
-    <string name="adaptive_icon_foreground">Voorgrondafbeelding</string>
-    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
+    <!-- Card of the adaptive icon creator where the picture is placed on the icon -->
     <string name="adaptive_icon_launcher">Startschermpictogram</string>
+    <string name="adaptive_icon_gesture_hint">Sleep om te verplaatsen, knijp om het formaat te wijzigen</string>
+    <!-- Card of the adaptive icon creator showing the icons as the device draws them -->
+    <string name="adaptive_icon_preview">Voorbeeld</string>
+    <!-- Caption under the launcher icon in its own colors -->
+    <string name="adaptive_icon_standard">Standaard</string>
+    <!-- Caption under the launcher icon recolored by the system theme -->
+    <string name="adaptive_icon_themed">Thema</string>
     <string name="adaptive_icon_background_color">Achtergrondkleur</string>
     <string name="adaptive_icon_reset_transform">Reset positie en schaal</string>
-    <string name="adaptive_icon_safe_zone_inner">Veilige zone (altijd zichtbaar)</string>
-    <string name="adaptive_icon_safe_zone_outer">Maskerzone (mag worden geknipt)</string>
-    <string name="adaptive_icon_no_transparency_warning">De afbeelding heeft geen transparante pixels. Het resultaat kan er onjuist uitzien</string>
+    <string name="adaptive_icon_no_transparency_warning">Deze afbeelding heeft geen transparante pixels, dus de thema- en meldingspictogrammen behouden het Morphe-logo</string>
     <string name="adaptive_icon_created_success">Adaptieve icoon succesvol gemaakt</string>
     <string name="adaptive_icon_creation_failed">Mislukt om adaptieve icoon te maken</string>
-    <string name="adaptive_icon_label">Adaptief</string>
-    <string name="adaptive_icon_monochrome_label">Monochroom</string>
     <string name="adaptive_icon_guide">Handleiding voor het maken van pictogrammen</string>
     <string name="adaptive_icon_guide_png_title">Gebruik een PNG met een transparante achtergrond</string>
-    <string name="adaptive_icon_guide_png_body">De voorgrond moet een PNG-bestand zijn met een transparante achtergrond. Een effen achtergrond ziet er verkeerd uit - de achtergrondkleur moet afkomstig zijn van de achtergrondkiezer hieronder.</string>
+    <string name="adaptive_icon_guide_png_body">Een logo op een transparante achtergrond werkt het beste, met de hieronder gekozen achtergrondkleur. Een afbeelding zonder transparantie vult in plaats daarvan het hele pictogram, en de thema- en meldingspictogrammen behouden dan het Morphe-logo.</string>
     <string name="adaptive_icon_guide_safe_zones_title">Veilige zones</string>
-    <string name="adaptive_icon_guide_safe_zones_body">"Binnenste zone (effen): inhoud is altijd volledig zichtbaar op alle launcher-vormen.
-Buitenste zone (gestippeld): kan worden afgesneden door het launcher-masker - houd belangrijke details binnen de binnenste zone."</string>
+    <string name="adaptive_icon_guide_safe_zones_body">De omtrek toont de pictogramvorm van je launcher en alles daarbuiten wordt weggesneden. Andere launchers gebruiken andere vormen, dus houd belangrijke details binnen de onderbroken cirkel, die in elke vorm zichtbaar is.</string>
     <string name="adaptive_icon_guide_notification_title">Meldingenpictogram</string>
-    <string name="adaptive_icon_guide_notification_body">Automatisch gegenereerd op basis van de voorgrondafbeelding. Pas de grootte aan met de schuifregelaar voor meldingen. Alle zichtbare inhoud verschijnt wit in de statusbalk.</string>
-    <string name="adaptive_icon_guide_monochrome_title">Monochroom pictogram</string>
-    <string name="adaptive_icon_guide_monochrome_body">Automatisch gegenereerd op basis van de voorgrondafbeelding met behulp van dezelfde adaptieve pictogramtransformaties. Het wordt gekleurd weergegeven met de achtergrondkleur van het wallpaper op Android 13 en hoger.</string>
+    <string name="adaptive_icon_guide_notification_body">Bijgesneden uit het zichtbare deel van de afbeelding en qua formaat zoals andere statusbalkpictogrammen, ongeacht de marge die het bestand heeft. Pas dit aan met de schuifregelaar onder het voorbeeld. Android toont het in één kleur.</string>
+    <string name="adaptive_icon_guide_monochrome_title">Themapictogram</string>
+    <string name="adaptive_icon_guide_monochrome_body">Uitgesneden uit de afbeelding met dezelfde positie en grootte als het launcher-pictogram. Op Android 13 en hoger kleuren launchers met ingeschakelde themapictogrammen het op basis van het behang.</string>
     <string name="notification_icon_preview">Melding</string>
     <!-- Header Creator -->
     <string name="header_creator_create">Aangepaste koptekst maken</string>
     <string name="header_creator_light_theme">Lichte thema header</string>
     <string name="header_creator_dark_theme">Donkere thema header</string>
-    <string name="header_creator_no_image">Geen afbeelding geselecteerd</string>
     <string name="header_creator_success">Header succesvol gemaakt</string>
     <string name="header_creator_failed">Mislukt om header te maken</string>
     <string name="header_creator_guide">Handleiding voor header-maker</string>
     <string name="header_creator_guide_image_title">Afbeeldingseisen</string>
-    <string name="header_creator_guide_image_body">Gebruik elk afbeeldingsbestand (PNG of JPEG). Voor de beste resultaten gebruikt u een breedformaat afbeelding met een aspectratio van ongeveer 2,7:1. PNG-bestanden met transparante achtergronden passen naadloos bij het thema van de app.</string>
+    <string name="header_creator_guide_image_body">Een PNG met een transparante achtergrond gaat naadloos over in de appbalk. Marges rond het logo in het bestand worden genegeerd, dus het begint op het formaat en de plaats van het standaardlogo.</string>
     <string name="header_creator_guide_themes_title">Lichte en donkere thema\'s</string>
     <string name="header_creator_guide_themes_body">De meeste apps vereisen aparte afbeeldingen voor de lichte en donkere thema\'s. Sommige apps (zoals YouTube Music) gebruiken alleen het donkere thema, dus alleen dat gedeelte wordt weergegeven.</string>
     <string name="header_creator_guide_positioning_title">Positionering en schaling</string>
-    <string name="header_creator_guide_positioning_body">Gebruik knijp-om-zoomen en sleepgeesten direct in de preview om uw afbeelding te positioneren en te schalen. Snap-richtlijnen verschijnen wanneer de afbeelding zich dicht bij het midden bevindt. U kunt ook de schuifregelaar onder de preview gebruiken.</string>
+    <string name="header_creator_guide_positioning_body">Sleep en knijp de afbeelding in de editor, of wijzig het formaat met de schuifregelaar. Het onderbroken vak geeft aan waar het standaardlogo staat, en er verschijnen hulplijnen wanneer de afbeelding ermee uitgelijnd is.</string>
     <!-- Batch patching -->
     <string name="batch_patch_action">Patches geselecteerd</string>
     <string name="batch_patch_title">Batch patching</string>
@@ -475,38 +492,39 @@ Buitenste zone (gestippeld): kan worden afgesneden door het launcher-masker - ho
     <string name="home_app_info_app_update_available_description">De patchbronnen ondersteunen een nieuwere versie van deze app. Pas de patch opnieuw toe om naar die versie over te stappen.</string>
     <string name="home_app_info_newest_supported_version">Nieuwste ondersteunde versie</string>
     <string name="home_app_info_version_move">Geïnstalleerd %1$s, nieuwste ondersteunde versie %2$s</string>
+    <string name="home_app_info_version_restore">Geïnstalleerd %1$s, gepatcht %2$s</string>
     <string name="home_app_info_app_deleted_warning">App was verwijderd</string>
-    <string name="home_app_info_app_deleted_description">Deze app is buiten Nivqo verwijderd. Installeer de patch om de functionaliteit te herstellen</string>
-<string name="home_app_info_not_patched_description">Er is een niet-gepatchte versie van deze app geïnstalleerd. Nivqo heeft nog steeds zijn eerdere patchrecord.</string>
+    <string name="home_app_info_app_deleted_description">Deze app is buiten Morphe verwijderd. Installeer de patch om de functionaliteit te herstellen</string>
+    <string name="home_app_info_not_patched_description">Er is een niet-gepatchte versie van deze app geïnstalleerd. Morphe heeft nog steeds zijn eerdere patchrecord.</string>
+    <string name="home_app_info_mount_replaced_description">Een andere versie heeft de gemounte app vervangen, dus de patch is niet meer van toepassing. Herstellen zet de gepatchte versie terug</string>
+    <string name="home_app_info_mount_replaced_by_play_store_description">Google Play heeft de gemounte app bijgewerkt, waardoor de patch niet meer van toepassing is. Herstellen zet de gepatchte versie terug. Schakel automatische updates voor de app uit in Google Play om deze gepatcht te houden</string>
 <string name="app_links_title">Ondersteunde weblinks</string>
-    <string name="app_links_description">Op Android 12+ worden links naar ondersteunde domeinen standaard in je browser geopend, tenzij ze zijn goedgekeurd</string>
+<string name="app_links_description">Op Android 12+ worden links naar ondersteunde domeinen standaard in je browser geopend, tenzij ze zijn goedgekeurd</string>
     <string name="app_links_unverified_banner_title">Weblinks niet geverifieerd</string>
-    <string name="app_links_unverified_banner_description">Ondersteunde weblinks worden momenteel in je browser geopend in plaats van in deze app</string>
+<string name="app_links_unverified_banner_description">Ondersteunde weblinks worden momenteel in je browser geopend in plaats van in deze app</string>
     <string name="app_links_enable_auto">Automatisch inschakelen</string>
-    <string name="app_links_enable_auto_in_progress">Links inschakelen…</string>
+<string name="app_links_enable_auto_in_progress">Links inschakelen…</string>
     <string name="app_links_open_settings">Linkinstellingen openen</string>
-    <string name="app_links_repair_success">App-links succesvol ingeschakeld</string>
+<string name="app_links_repair_success">App-links succesvol ingeschakeld</string>
     <string name="app_links_repair_failed">Het is niet gelukt om app-links automatisch in te schakelen</string>
-    <string name="app_links_badge_enabled">Ingeschakeld</string>
-    <string name="app_links_badge_disabled">Uitgeschakeld</string>
-    <string name="app_links_all_verified">Alle ondersteunde links zijn geconfigureerd om in deze app te worden geopend</string>
+<string name="app_links_all_verified">Alle ondersteunde links zijn geconfigureerd om in deze app te worden geopend</string>
     <string name="app_links_fix">Links herstellen</string>
-    <string name="configure">Configureren</string>
+<string name="configure">Configureren</string>
     <string name="patcher_rename_title">Dit zal een kloon installeren</string>
-    <string name="patcher_rename_description">De patches hebben deze app gebouwd onder een eigen pakketnaam, dus het installeren voegt een kloon toe naast <b>%s</b> in plaats van het bij te werken</string>
+<string name="patcher_rename_description">De patches hebben deze app gebouwd onder een eigen pakketnaam, dus het installeren voegt een kloon toe naast <b>%s</b> in plaats van het bij te werken</string>
     <string name="patcher_rename_result_package">Zal installeren als</string>
-    <string name="patcher_rename_replaces">Er is al een app met die naam geïnstalleerd en deze wordt vervangen</string>
+<string name="patcher_rename_replaces">Er is al een app met die naam geïnstalleerd en deze wordt vervangen</string>
     <string name="home_app_info_apk_size">APK-grootte</string>
-    <string name="home_app_info_cpu_arch">CPU-architectuur</string>
+<string name="home_app_info_cpu_arch">CPU-architectuur</string>
     <!-- Home Screen - Root Mode -->
     <string name="root_install_apk_required">Root-modus vereist dat de oorspronkelijke APK op uw apparaat geïnstalleerd is voordat gepatcht wordt</string>
     <string name="root_pre_patch_installer_title">Kies patch-modus</string>
     <string name="root_pre_patch_installer_description">Je apparaat heeft root-toegang. Kies of deze app gepatcht moet worden voor root-mount of standaard installatie</string>
     <string name="root_pre_patch_installer_mount_title">Root-mount modus</string>
     <string name="root_pre_patch_installer_mount_description">Patches voor root-mount, en mount vervolgens de APK over de bijbehorende stock app. Geen GmsCore nodig</string>
-    <string name="root_mount_module_unmount_warning">Als KernelSU standaard het loskoppelen van modules heeft ingeschakeld, open dan KernelSU &gt; Superuser &gt; de app die je hebt gemonteerd &gt; Profiel &gt; Aangepast en schakel het loskoppelen van modules uit. Anders kan de gemonteerde gepatchte APK mogelijk niet effectief worden, zelfs als Nivqo aangeeft dat deze is gemonteerd.</string>
+    <string name="root_mount_module_unmount_warning">Als KernelSU standaard het loskoppelen van modules heeft ingeschakeld, open dan KernelSU &gt; Superuser &gt; de app die je hebt gemonteerd &gt; Profiel &gt; Aangepast en schakel het loskoppelen van modules uit. Anders kan de gemonteerde gepatchte APK mogelijk niet effectief worden, zelfs als Morphe aangeeft dat deze is gemonteerd.</string>
 <string name="root_pre_patch_installer_standard_title">Standaard installatiemodus</string>
-    <string name="root_pre_patch_installer_standard_description">Patches als een normale APK met GmsCore-ondersteuning. Je installatie-instelling wordt gebruikt na het patchen</string>
+<string name="root_pre_patch_installer_standard_description">Patches als een normale APK met GmsCore-ondersteuning. Je installatie-instelling wordt gebruikt na het patchen</string>
     <string name="root_pre_patch_installer_hint">Deze patchmodus is gescheiden van Instellingen &gt; Systeem &gt; Installateur en kan niet worden gewijzigd na het patchen</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">Fout gekopieerd naar klembord</string>
@@ -519,10 +537,10 @@ Buitenste zone (gestippeld): kan worden afgesneden door het launcher-masker - ho
     <!-- Field labels, shown in a column beside their values. Keep them short, a long one is cut off rather than wrapped -->
     <string name="patcher_field_app">App</string>
     <string name="patcher_field_package">Pakket</string>
+    <string name="patcher_field_failed_patch">Mislukte patch</string>
     <string name="patcher_field_source">Bron</string>
     <string name="patcher_field_split">Gesplitste APK</string>
     <string name="patcher_field_manager">Beheerder</string>
-    <string name="patcher_field_patcher">Patcher</string>
     <string name="patcher_field_runtime">Runtime</string>
     <!-- Native code libraries (.so files) packed inside the APK -->
     <string name="patcher_field_libraries">Bibliotheken</string>
@@ -553,6 +571,7 @@ Buitenste zone (gestippeld): kan worden afgesneden door het launcher-masker - ho
     <string name="patcher_installing_subtitle">Bijna klaar om te knallen! 🎸</string>
     <string name="patcher_success_title">Klaar! 🎉</string>
     <string name="patcher_success_subtitle">Je app is gepatcht en geïnstalleerd!</string>
+    <string name="patcher_mounted_subtitle">Je app is gepatcht en gemount!</string>
     <string name="patcher_complete_title">Patchen voltooid! ✨</string>
     <string name="patcher_failed_title">Oeps! Er ging iets mis</string>
     <string name="patcher_failed_dialog_title">Patchen mislukt</string>
@@ -567,49 +586,50 @@ Buitenste zone (gestippeld): kan worden afgesneden door het launcher-masker - ho
     <string name="patcher_conflict_subtitle">Je moet de bestaande versie verwijderen</string>
     <string name="patcher_conflict_hint">De aangepaste app gebruikt een ander certificaat dan de geïnstalleerde versie. Door het verwijderen worden alle app-gegevens gewist.</string>
     <string name="patcher_installed_conflict_title">Vereiste deïnstallatie</string>
-    <string name="patcher_installed_conflict_body">"Nivqo ondertekent gepatchte apps met zijn eigen certificaat, dat verschilt van het origineel. Android vereist dat de bestaande versie wordt verwijderd voordat de gepatchte app kan worden geïnstalleerd.
+    <string name="patcher_installed_conflict_body">"Morphe ondertekent gepatchte apps met zijn eigen certificaat, dat verschilt van het origineel. Android vereist dat de bestaande versie wordt verwijderd voordat de gepatchte app kan worden geïnstalleerd.
 
 Deïnstalleren wist alle app-gegevens permanent."</string>
-<string name="patcher_install_error_title">Installatiefout</string>
+    <string name="patcher_install_error_title">Installatiefout</string>
+    <string name="patcher_mount_error_title">Mountfout</string>
     <string name="patcher_install_error_subtitle">Probeer opnieuw te verwijderen en te installeren</string>
     <string name="patcher_ready_to_mount_subtitle">Druk op de onderstaande knop om te koppelen</string>
     <string name="patcher_patches_excluded_for_installer">Niet beschikbaar voor deze installatiemethode en uitgesloten: %s</string>
     <string name="patcher_back_to_game_hint">Tik op %1$s om terug te keren naar je spel</string>
     <string name="patcher_storage_permission_dialog_title">Kan opslagpad niet openen</string>
     <string name="patcher_incompatible_patcher_title">Update vereist</string>
-    <string name="patcher_incompatible_patcher_description">Het bundel &lt;b&gt;%1$s&lt;/b&gt; vereist patcher versie &lt;b&gt;%2$s&lt;/b&gt; of hoger. Update Nivqo om deze app te patchen</string>
+    <string name="patcher_incompatible_patcher_description">De bron &lt;b&gt;%1$s&lt;/b&gt; vereist patcher &lt;b&gt;%2$s&lt;/b&gt; of nieuwer. Werk Morphe bij om deze te gebruiken</string>
 <string name="patcher_storage_permission_description_api30">Een of meer patchopties verwijzen naar paden die Nivqo niet kan lezen. Geef toegang tot de opslag en tik op de knop; het patchproces start dan automatisch</string>
 <string name="patcher_storage_permission_description_legacy">Een of meer patch-opties wijzen naar bestanden die niet kunnen worden geopend. Update de bestanden in patch-opties en probeer het nogmaals</string>
-    <string name="patcher_storage_permission_grant">Geef opslagtoegang</string>
+<string name="patcher_storage_permission_grant">Geef opslagtoegang</string>
     <string name="patcher_storage_permission_denied_warning">Toegang tot de opslaglocatie is geweigerd. Geef toestemming om dit pad te gebruiken of verplaats de bestanden naar de privémap van de app</string>
-    <string name="patcher_storage_permission_open_settings">Open opslaginstellingen</string>
+<string name="patcher_storage_permission_open_settings">Open opslaginstellingen</string>
     <string name="patcher_storage_badge_denied">Toestemming geweigerd</string>
-    <string name="patcher_storage_badge_missing">Niet gevonden</string>
+<string name="patcher_storage_badge_missing">Niet gevonden</string>
     <string name="batch_patch_option_paths_skipped">Patchoptiebestanden ontbreken en worden overgeslagen: %1$s</string>
-    <string name="patcher_missing_patches_title">Niet meer aangeboden</string>
+<string name="patcher_missing_patches_title">Niet meer aangeboden</string>
     <string name="patcher_missing_patches_description">Patchoptiebestanden ontbreken</string>
-    <string name="patcher_missing_patches_label">Een of meer patchopties verwijzen naar bestanden die er niet meer zijn. Verwijder de paden om zonder deze bestanden te patchen, of zet de bestanden terug en probeer het opnieuw.</string>
+<string name="patcher_missing_patches_label">Een of meer patchopties verwijzen naar bestanden die er niet meer zijn. Verwijder de paden om zonder deze bestanden te patchen, of zet de bestanden terug en probeer het opnieuw.</string>
     <string name="patcher_option_paths_gone_title">Verwijder de paden en ga door</string>
-    <string name="patcher_option_paths_gone_description">Deze map kan niet meer worden gelezen. Kies hem opnieuw of wis hem, anders stopt het patchen en wordt ernaar gevraagd.</string>
+<string name="patcher_option_paths_gone_description">Deze map kan niet meer worden gelezen. Kies hem opnieuw of wis hem, anders stopt het patchen en wordt ernaar gevraagd.</string>
     <string name="patcher_option_paths_clear">Het pictogram waarmee de app wordt gepatcht. Het wordt ook gebruikt waar de app het later niet kan wijzigen, zoals bij Android Auto en in de app-lijst van de systeeminstellingen.</string>
-    <string name="patcher_storage_permission_hint">Tip: Verplaats bestanden naar /Android/data/app.nivqo.manager/files/ - geen extra toestemmingen nodig</string>
-<!-- Patcher Screen - Patcher Steps -->
+<string name="patcher_storage_permission_hint">Tip: Verplaats bestanden naar /Android/data/app.morphe.manager/files/ - geen extra toestemmingen nodig</string>
+    <!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Voorbereiden</string>
     <string name="patcher_step_load_patches">Patches laden</string>
     <string name="patcher_step_prepare_split_apk">Splits APK samenvoegen</string>
     <string name="patcher_step_unpack">APK-bestand lezen</string>
-    <string name="patcher_step_group_patching">Patchen</string>
     <string name="patcher_step_group_saving">Opslaan</string>
     <string name="patcher_step_write_patched">Gepatcht APK-bestand schrijven</string>
     <string name="patcher_step_sign_apk">Gepatcht APK-bestand ondertekenen</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Bescherming tegen achtergrond patching</string>
-    <string name="battery_optimization_dialog_description">Sommige apparaten kunnen de patcher stoppen wanneer de app geminimaliseerd is. Sta Nivqo toe om zonder batterijbeperkingen te draaien om ervoor te zorgen dat het patchen betrouwbaar voltooid wordt.</string>
+    <string name="battery_optimization_dialog_description">Sommige apparaten kunnen de patcher stoppen wanneer de app geminimaliseerd is. Sta Morphe toe om zonder batterijbeperkingen te draaien om ervoor te zorgen dat het patchen betrouwbaar voltooid wordt.</string>
 <string name="battery_optimization_not_now">Niet nu</string>
-    <!-- Memory limit dialog, shown after the patcher process was killed -->
+<!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">Onvoldoende geheugen</string>
     <string name="patcher_memory_adjustment_description">De patcher is door het systeem gestopt terwijl deze draaide met een geheugenlimiet van %1$d MB. Het verlagen van de limiet naar %2$d MB maakt de patcher een kleiner doelwit en kan de run laten voltooien.</string>
     <string name="patcher_memory_adjustment_description_at_minimum">De patcher is door het systeem gestopt terwijl deze draaide met een geheugenlimiet van %1$d MB, wat al het laagst beschikbare is. Probeer te patchen met minder patchbronnen of selecteer minder patches.</string>
+    <string name="patcher_memory_adjustment_description_finished">Het systeem stopte de patcher bij een geheugenlimiet van %1$d MB, en deze werd pas voltooid bij %2$d MB. De volgende keer slaat het starten met %2$d MB die verloren poging over</string>
     <string name="patcher_memory_adjustment_apply">Verlaag naar %1$d MB</string>
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">Patchen bezig…</string>
@@ -661,16 +681,16 @@ Deïnstalleren wist alle app-gegevens permanent."</string>
     <string name="install_ignore_signature">Toch installeren</string>
     <string name="install_ignore_signature_description">Behoudt de app-gegevens, maar werkt alleen als een root-module de handtekeningverificatie van Android uitschakelt.</string>
     <string name="uninstall_app_fail">Kon de app niet verwijderen: %s</string>
-    <string name="uninstall_app_unverified">Op zijn plaats gelaten: Nivqo kon niet verifiëren dat de geïnstalleerde app de build is die het heeft gepatcht.</string>
+    <string name="uninstall_app_unverified">Op zijn plaats gelaten: Morphe kon niet verifiëren dat de geïnstalleerde app de build is die het heeft gepatcht.</string>
 <string name="launch_app_unverified">Nivqo kon niet verifiëren dat de geïnstalleerde app de build is die het heeft gepatcht.</string>
 <string name="uninstall_timeout">De-installatie is mislukt door time-out</string>
-    <string name="save_apk_success">APK opgeslagen</string>
+<string name="save_apk_success">APK opgeslagen</string>
     <string name="saved_app_export_failed">Kan gepatchte app niet exporteren</string>
-    <string name="saved_app_removed_toast">Opgeslagen gepatchte app verwijderd</string>
+<string name="saved_app_removed_toast">Opgeslagen gepatchte app verwijderd</string>
     <string name="saved_app_launch_unavailable">Installeer de app voordat u deze opent</string>
-    <string name="package_name">Pakketnaam</string>
+<string name="package_name">Pakketnaam</string>
     <string name="failed_to_mount">Kon %s niet koppelen</string>
-    <string name="failed_to_unmount">Mislukt om te demonteer: %s</string>
+<string name="failed_to_unmount">Mislukt om te demonteer: %s</string>
     <!-- Patcher Screen - Mini-games -->
     <string name="mini_game_score">Score %s</string>
     <string name="mini_game_best">Beste %s</string>
@@ -709,6 +729,9 @@ Deïnstalleren wist alle app-gegevens permanent."</string>
     <string name="settings_appearance_background_snow">Sneeuw</string>
     <string name="settings_appearance_background_grid">Raster</string>
     <string name="settings_appearance_background_particles">Deeltjes</string>
+    <string name="settings_appearance_background_lava">Lavalamp</string>
+    <string name="settings_appearance_background_halloween">Halloween</string>
+    <string name="settings_appearance_background_fireworks">Vuurwerk</string>
     <string name="settings_appearance_background_none">Geen</string>
     <string name="settings_appearance_background_random">Willekeurig</string>
     <string name="settings_appearance_background_random_interval_launch">Bij het opstarten</string>
@@ -716,6 +739,10 @@ Deïnstalleren wist alle app-gegevens permanent."</string>
     <string name="settings_appearance_background_random_interval_3days">Om de 3 dagen</string>
     <string name="settings_appearance_parallax_effect">Parallax-effect</string>
     <string name="settings_appearance_parallax_effect_description">Vloeiende achtergrondverschuiving bij het kantelen van het apparaat</string>
+    <string name="settings_appearance_seasonal_themes">Seizoensgebonden thema\'s</string>
+    <string name="settings_appearance_seasonal_themes_description">Feestelijke achtergronden en begroetingen tijdens feestdagen</string>
+    <!-- %1$s is a holiday background name, such as Halloween. %2$s is a date, such as November 1 -->
+    <string name="settings_appearance_seasonal_background_notice">De achtergrond %1$s is ingeschakeld tot %2$s terwijl seizoensgebonden thema\'s aan staan</string>
     <!-- Settings - Appearance Tab - Theme -->
     <string name="settings_appearance_theme">Thema</string>
     <string name="settings_appearance_theme_mode">Themamodus</string>
@@ -773,13 +800,28 @@ Deïnstalleren wist alle app-gegevens permanent."</string>
     <string name="settings_appearance_app_card_colors_bundle_description">Gebruik hier de eigen kleur van elke app, automatisch aangepast aan de achtergrond</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">App-pictogram</string>
-    <string name="settings_appearance_app_icon_selector_description">Hoe Nivqo eruitziet op je startscherm en in de app-lade</string>
+    <string name="settings_appearance_app_icon_selector_description">Hoe Morphe eruitziet op je startscherm en in de app-lade</string>
 <string name="settings_appearance_app_icon_default">Standaard</string>
-    <string name="settings_appearance_app_icon_light_2">Licht</string>
+<string name="settings_appearance_app_icon_light_2">Licht</string>
     <string name="settings_appearance_app_icon_light_3">Zonsondergang</string>
-    <string name="settings_appearance_app_icon_dark_1">Oceaan</string>
+    <string name="settings_appearance_app_icon_light_4">Lavendel</string>
+    <string name="settings_appearance_app_icon_light_5">Gletsjer</string>
+    <string name="settings_appearance_app_icon_light_6">Mist</string>
+    <string name="settings_appearance_app_icon_light_7">Zand</string>
+    <string name="settings_appearance_app_icon_dark_1">Groenblauw</string>
     <string name="settings_appearance_app_icon_dark_2">Leegte</string>
-    <string name="settings_appearance_app_icon_dark_3">Indigo</string>
+    <string name="settings_appearance_app_icon_dark_3">Pruim</string>
+    <string name="settings_appearance_app_icon_dark_4">Middernacht</string>
+    <string name="settings_appearance_app_icon_dark_5">Leisteen</string>
+    <string name="settings_appearance_app_icon_accent_1">Aurora</string>
+    <string name="settings_appearance_app_icon_accent_2">Inkt</string>
+    <string name="settings_appearance_app_icon_accent_3">Papier</string>
+    <string name="settings_appearance_app_icon_accent_4">Schemering</string>
+    <string name="settings_appearance_app_icon_background">Achtergrond</string>
+    <string name="settings_appearance_app_icon_mark">Logo</string>
+    <string name="settings_appearance_app_icon_mark_color">Kleur</string>
+    <string name="settings_appearance_app_icon_mark_white">Wit</string>
+    <string name="settings_appearance_app_icon_mark_black">Zwart</string>
     <string name="settings_appearance_app_icon_change_dialog_title">App-icoon wijzigen?</string>
     <string name="settings_appearance_app_icon_change_dialog_message">Wijzigen naar &lt;b&gt;%s&lt;/b&gt; en herstarten?</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -791,53 +833,55 @@ Deïnstalleren wist alle app-gegevens permanent."</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <string name="settings_advanced_updates_manager_prereleases_description">Vroege toegang tot nieuwe Nivqo-versies</string>
 <string name="settings_advanced_updates_prerelease_warning_title">Pre-release-updates inschakelen?</string>
-    <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
+<!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
     <string name="settings_advanced_updates_prerelease_warning_message">"Pre-release-versies van Nivqo zijn nog in ontwikkeling en kunnen instabiel zijn.
 
 Patches worden niet beïnvloed: schakel pre-release-patches in voor elke bron in de patchbronnenlijst"</string>
 <string name="settings_advanced_updates_allow_metered">Mobiele data-updates</string>
-    <string name="settings_advanced_updates_allow_metered_description">Hiermee kan Nivqo en patch-updates downloaden via mobiele data</string>
+<string name="settings_advanced_updates_allow_metered_description">Hiermee kan Morphe en patch-updates downloaden via mobiele data</string>
 <string name="settings_advanced_updates_background_notifications">Achtergrondupdate-notificaties</string>
-    <string name="settings_advanced_updates_background_notifications_description">Periodiek controleren op updates in de achtergrond en melden als beschikbaar</string>
+<string name="settings_advanced_updates_background_notifications_description">Periodiek controleren op updates in de achtergrond en melden als beschikbaar</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Push-notificaties voor nieuwe releases, zelfs wanneer de app gesloten is</string>
-    <string name="settings_system_notifications_categories">Meldingcategorieën</string>
+<string name="settings_system_notifications_categories">Meldingcategorieën</string>
     <string name="settings_system_notifications_categories_description">Kies in de systeeminstellingen welke updates je op de hoogte stellen.</string>
-    <string name="settings_advanced_update_interval">Controle frequentie</string>
+<string name="settings_advanced_update_interval">Controle frequentie</string>
     <string name="settings_advanced_update_interval_dialog_title">Controleer op updates</string>
-    <string name="settings_advanced_update_interval_hourly">Eenmaal per uur</string>
+<string name="settings_advanced_update_interval_hourly">Eenmaal per uur</string>
     <string name="settings_advanced_update_interval_daily">Eenmaal per dag</string>
-    <string name="settings_advanced_update_interval_weekly">Eenmaal per week</string>
+<string name="settings_advanced_update_interval_weekly">Eenmaal per week</string>
     <string name="settings_advanced_update_interval_monthly">Eenmaal per maand</string>
-    <string name="settings_advanced_update_interval_chip_subtitle">Achtergrondcontrole frequentie</string>
+<string name="settings_advanced_update_interval_chip_subtitle">Achtergrondcontrole frequentie</string>
     <string name="settings_advanced_update_interval_battery_warning">Achtergrondcontroles werken mogelijk niet betrouwbaar op sommige apparaten. Fabrikanten zoals Xiaomi, Huawei, Samsung en OnePlus beperken achtergrondprocessen vaak sterk om de batterij te sparen</string>
-    <string name="settings_advanced_external_batch_patch">Externe triggers toestaan</string>
+<string name="settings_advanced_external_batch_patch">Externe triggers toestaan</string>
     <string name="settings_advanced_external_batch_patch_description">Laat automatiseringsapps batch-patching starten via een intent</string>
-    <string name="external_batch_patch_title">Batch patchen starten?</string>
+<string name="external_batch_patch_title">Batch patchen starten?</string>
     <string name="external_batch_patch_description">%s wil dat Nivqo apps patched en installeert</string>
 <string name="external_batch_patch_trust_caller">Sta deze app altijd toe</string>
-    <string name="external_batch_patch_unknown_caller">Een onbekende app</string>
+<string name="external_batch_patch_unknown_caller">Een onbekende app</string>
     <!-- Notification content -->
-    <string name="notification_manager_update_title">Nivqo-update beschikbaar</string>
 <string name="notification_bundle_update_title">Nieuwe patches beschikbaar</string>
-    <string name="notification_update_text">Versie %s is klaar om te downloaden</string>
+<string name="notification_update_text">Versie %s is klaar om te downloaden</string>
     <string name="notification_bundle_update_text_unversioned">Tik om Nivqo te openen en bij te werken</string>
 <string name="notification_permission_dialog_title">Meldingen toestaan</string>
-    <string name="notification_permission_dialog_description">Nivqo heeft toestemming nodig voor meldingen om u te waarschuwen wanneer er updates op de achtergrond beschikbaar zijn</string>
-<string name="notification_post_patch_dialog_title">Wilt u een melding ontvangen wanneer er updates beschikbaar zijn?</string>
-    <string name="notification_channel_manager_updates">Nivqo-updates</string>
-    <string name="notification_channel_manager_updates_description">Meldingen over nieuwe Nivqo-releases.</string>
+    <string name="notification_permission_dialog_description">Morphe heeft toestemming nodig voor meldingen om u te waarschuwen wanneer er updates op de achtergrond beschikbaar zijn</string>
+    <string name="notification_post_patch_dialog_title">Wilt u een melding ontvangen wanneer er updates beschikbaar zijn?</string>
+    <string name="notification_channel_manager_updates">Morphe-updates</string>
+    <string name="notification_channel_manager_updates_description">Meldingen over nieuwe Morphe-releases.</string>
 <string name="notification_channel_patch_updates">Patch-updates</string>
-    <string name="notification_channel_patch_updates_description">Meldingen over nieuwe patch-releases.</string>
-    <string name="notification_channel_patcher">Patchen</string>
-    <string name="notification_channel_patcher_description">Wordt weergegeven terwijl Nivqo een app op de achtergrond patched</string>
-<!-- Settings - Advanced Tab - Expert settings Section -->
+<string name="notification_channel_patch_updates_description">Meldingen over nieuwe patch-releases.</string>
+    <string name="notification_channel_patcher_description">Wordt weergegeven terwijl Morphe een app op de achtergrond patched</string>
+    <string name="notification_channel_mounted_apps">Gemounte apps</string>
+    <string name="notification_channel_mounted_apps_description">Wanneer een andere versie een gemounte app heeft vervangen en de patch niet langer van toepassing is</string>
+    <string name="notification_mount_replaced_title">%1$s is niet langer gepatcht</string>
+    <string name="notification_mount_replaced_text">v%1$s heeft de gepatchte v%2$s vervangen. Open Morphe om deze te herstellen</string>
+    <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Expertinstellingen</string>
     <string name="settings_advanced_expert_mode">Expertmodus</string>
     <string name="settings_advanced_expert_mode_description">Activeert complexe Nivqo patch-instellingen en aanpassingsmogelijkheden</string>
 <string name="settings_advanced_expert_mode_dialog_title">Expertmodus inschakelen?</string>
-    <string name="settings_advanced_expert_mode_dialog_message">De expertmodus biedt meer controle over hoe patches worden toegepast, maar een verkeerde configuratie in de expertmodus kan ertoe leiden dat de app niet meer werkt</string>
+<string name="settings_advanced_expert_mode_dialog_message">De expertmodus biedt meer controle over hoe patches worden toegepast, maar een verkeerde configuratie in de expertmodus kan ertoe leiden dat de app niet meer werkt</string>
     <string name="settings_advanced_strip_unused_libs">Optimaliseer voor apparaatarchitectuur</string>
-    <string name="settings_advanced_strip_unused_libs_description">Verwijdert ongebruikte CPU-architectuur-libs en split APK-modules</string>
+<string name="settings_advanced_strip_unused_libs_description">Verwijdert ongebruikte CPU-architectuur-libs en split APK-modules</string>
     <!-- Settings - Advanced Tab - GitHub PAT Settings -->
     <string name="settings_advanced_github_pat_description">Vereist voor pull request-bronnen</string>
     <string name="settings_advanced_github_pat_configured">Token geconfigureerd</string>
@@ -948,59 +992,59 @@ De afbeelddimensionen moeten als volgt zijn:
     <string name="installer_status_shizuku_not_running">Start Shizuku of Sui en probeer het opnieuw</string>
     <string name="installer_status_shizuku_permission">Geef Nivqo toestemming vanuit de Shizuku-app</string>
 <string name="installer_mount_warning_install">Uw primaire installatieprogramma is ingesteld op het rooted mount-installatieprogramma. Deze opgeslagen app is niet geïnstalleerd met behulp van mount</string>
-    <string name="mount_version_mismatch_message">Originele app-versie (%2$s) komt niet overeen met gepatchte app-versie (%1$s). Mount de overeenkomende originele versie, dan probeer het opnieuw</string>
+<string name="mount_version_mismatch_message">Originele app-versie (%2$s) komt niet overeen met gepatchte app-versie (%1$s). Mount de overeenkomende originele versie, dan probeer het opnieuw</string>
     <string name="mount_stock_restore_failed_message">Android heeft de opgeslagen originele APK geweigerd. Installeer de bijpassende stock-versie en probeer Mount dan opnieuw</string>
-    <string name="installer_status_shizuku_unsupported">De geïnstalleerde Shizuku-versie wordt niet ondersteund</string>
+<string name="installer_status_shizuku_unsupported">De geïnstalleerde Shizuku-versie wordt niet ondersteund</string>
     <string name="installer_action_open_shizuku">Shizuku openen</string>
-    <string name="installer_hint_generic">De installatie is mislukt. Probeer het opnieuw of schakel over naar een ander installatieprogramma</string>
+<string name="installer_hint_generic">De installatie is mislukt. Probeer het opnieuw of schakel over naar een ander installatieprogramma</string>
     <string name="installer_hint_conflict">Een andere app met hetzelfde pakketnaam is al geïnstalleerd. Verwijder deze voordat u doorgaat</string>
-    <string name="installer_confirm_notification_title">Bevestig de installatie</string>
+<string name="installer_confirm_notification_title">Bevestig de installatie</string>
     <string name="installer_confirm_notification_text">Tik om de installatie van de gepatchte app te voltooien</string>
-    <string name="installer_external_launched">%s wordt geopend…</string>
+<string name="installer_external_launched">%s wordt geopend…</string>
     <string name="installer_external_timeout">%s heeft de installatie niet bevestigd. Controleer de andere app en probeer het opnieuw</string>
-    <string name="installer_external_success">%s heeft een succesvolle installatie gemeld</string>
+<string name="installer_external_success">%s heeft een succesvolle installatie gemeld</string>
     <string name="installer_unavailable_title">%s niet beschikbaar</string>
-    <string name="installer_unavailable_message">Uw voorkeursinstallatieprogramma (%s) is momenteel niet beschikbaar. U kunt het probleem oplossen en opnieuw proberen of het standaardinstallatieprogramma gebruiken</string>
+<string name="installer_unavailable_message">Uw voorkeursinstallatieprogramma (%s) is momenteel niet beschikbaar. U kunt het probleem oplossen en opnieuw proberen of het standaardinstallatieprogramma gebruiken</string>
     <string name="installer_unavailable_shizuku_hint">Zorg ervoor dat Shizuku draait en dat toestemming is gegeven aan deze app</string>
-    <string name="installer_use_standard">Standaard gebruiken</string>
+<string name="installer_use_standard">Standaard gebruiken</string>
     <string name="installer_play_store_warning_title">Installeren als Play Store?</string>
-    <string name="installer_play_store_warning_message">De gepatchte app wordt geregistreerd als geïnstalleerd vanuit de Google Play Store. Dit kan services zoals Android Auto helpen om het te herkennen als een Play Store-app, maar dit is niet gegarandeerd voor elke app of elk apparaat. Het gedrag kan variëren per Android-versie, ROM, apparaatmerk en app-specifieke controles.</string>
+<string name="installer_play_store_warning_message">De gepatchte app wordt geregistreerd als geïnstalleerd vanuit de Google Play Store. Dit kan services zoals Android Auto helpen om het te herkennen als een Play Store-app, maar dit is niet gegarandeerd voor elke app of elk apparaat. Het gedrag kan variëren per Android-versie, ROM, apparaatmerk en app-specifieke controles.</string>
     <string name="installer_play_store_warning_risk">De Play Store kan updates aanbieden voor de gepatchte app. Het installeren van die update zal de gepatchte APK overschrijven met de originele versie en de patches verwijderen. Als u wordt gevraagd om te updaten, tik op het menu met de drie puntjes op de Play Store-pagina van de app en kies \"Updates uitschakelen\".</string>
-    <string name="installer_play_store_warning_continue">Ik begrijp het, ga verder</string>
+<string name="installer_play_store_warning_continue">Ik begrijp het, ga verder</string>
     <string name="installer_play_store_mode">Installeren als Play Store-app</string>
-    <string name="installer_play_store_mode_description">Registreer de Google Play Store als de installatiebron voor deze installatiemethode</string>
+<string name="installer_play_store_mode_description">Registreer de Google Play Store als de installatiebron voor deze installatiemethode</string>
     <string name="settings_prompt_installer_on_install">Keuze van installer</string>
-    <string name="settings_prompt_installer_on_install_description">Toont het dialoogvenster voor het selecteren van de installer bij elke geïnstalleerde gepatchte app</string>
+<string name="settings_prompt_installer_on_install_description">Toont het dialoogvenster voor het selecteren van de installer bij elke geïnstalleerde gepatchte app</string>
     <string name="settings_auto_install_with_shizuku">Automatisch installeren na patchen</string>
-    <string name="settings_auto_install_with_shizuku_description">Installeert de gepatchte APK zodra het patchen voltooid is</string>
+<string name="settings_auto_install_with_shizuku_description">Installeert de gepatchte APK zodra het patchen voltooid is</string>
     <string name="settings_auto_uninstall_with_shizuku">Automatisch verwijderen bij conflicten</string>
-    <string name="settings_auto_uninstall_with_shizuku_description">Wanneer automatisch installeren met Shizuku, verwijder eerst de bestaande app als Android een signature conflict meldt. Dit kan app-gegevens verwijderen.</string>
+<string name="settings_auto_uninstall_with_shizuku_description">Wanneer automatisch installeren met Shizuku, verwijder eerst de bestaande app als Android een signature conflict meldt. Dit kan app-gegevens verwijderen.</string>
     <string name="settings_auto_uninstall_warning_title">Automatisch verwijderen inschakelen?</string>
-    <string name="settings_auto_uninstall_warning_message">Als Android een signature conflict meldt tijdens de automatische installatie via Shizuku, verwijdert Nivqo de bestaande app voordat de gepatchte APK wordt geïnstalleerd.</string>
+<string name="settings_auto_uninstall_warning_message">Als Android een signature conflict meldt tijdens de automatische installatie via Shizuku, verwijdert Morphe de bestaande app voordat de gepatchte APK wordt geïnstalleerd.</string>
 <string name="settings_auto_uninstall_warning_risk">Dit kan app-gegevens verwijderen. Als de gepatchte APK na het verwijderen niet kan worden geïnstalleerd, is de vorige app mogelijk al verwijderd.</string>
-    <string name="installer_shizuku_status_action">Controleer de Shizuku-status</string>
+<string name="installer_shizuku_status_action">Controleer de Shizuku-status</string>
     <string name="installer_shizuku_status_title">Shizuku-status</string>
-    <string name="installer_shizuku_status_ready">Klaar</string>
+<string name="installer_shizuku_status_ready">Klaar</string>
     <string name="installer_shizuku_status_issue">Aandacht nodig</string>
-    <string name="installer_shizuku_status_supported">Ondersteund</string>
+<string name="installer_shizuku_status_supported">Ondersteund</string>
     <string name="installer_shizuku_status_running">Bezig</string>
-    <string name="installer_shizuku_status_permission">Toestemming</string>
+<string name="installer_shizuku_status_permission">Toestemming</string>
     <string name="installer_shizuku_status_mode">Modus</string>
-    <string name="installer_shizuku_status_provider">Provider</string>
+<string name="installer_shizuku_status_provider">Provider</string>
     <string name="installer_shizuku_status_granted">Verleend</string>
-    <string name="installer_shizuku_status_missing">Ontbreekt</string>
+<string name="installer_shizuku_status_missing">Ontbreekt</string>
     <string name="installer_shizuku_request_permission">Verzoek om toestemming</string>
-    <string name="installer_shizuku_install_fail">Shizuku-installatie mislukt: %s</string>
+<string name="installer_shizuku_install_fail">Shizuku-installatie mislukt: %s</string>
     <string name="installer_shizuku_install_fail_with_details">"Shizuku-installatie mislukt: %1$s
 
 Details: %2$s"</string>
-    <string name="installer_shizuku_error_permission">De Shizuku-toestemming ontbreekt. Verleen toestemming aan Nivqo en probeer het opnieuw.</string>
+<string name="installer_shizuku_error_permission">De Shizuku-toestemming ontbreekt. Verleen toestemming aan Morphe en probeer het opnieuw.</string>
 <string name="installer_shizuku_error_timeout">Shizuku heeft geen installatieresultaat geretourneerd. Zorg ervoor dat het nog steeds actief is en probeer het opnieuw.</string>
-    <string name="installer_shizuku_error_downgrade">Android heeft dit geblokkeerd omdat het de geïnstalleerde app zou downgraden</string>
+<string name="installer_shizuku_error_downgrade">Android heeft dit geblokkeerd omdat het de geïnstalleerde app zou downgraden</string>
     <string name="installer_shizuku_error_signature">Android heeft dit geblokkeerd omdat de geïnstalleerde app een andere handtekening heeft</string>
-    <string name="installer_shizuku_error_invalid_apk">Android kon deze APK niet lezen</string>
+<string name="installer_shizuku_error_invalid_apk">Android kon deze APK niet lezen</string>
     <string name="installer_shizuku_error_user_profile">Het systeem heeft deze installatie geblokkeerd. Op Xiaomi en soortgelijke apparaten, schakel \"Installeren via USB\" in de ontwikkelaarsopties in. Op een werkprofiel kunnen installaties worden beperkt door beleid</string>
-    <!-- Settings - System Tab - Performance Section -->
+<!-- Settings - System Tab - Performance Section -->
     <string name="settings_system_battery_optimization">Batterijoptimalisatie</string>
     <string name="settings_system_battery_optimization_description">Houdt de patcher actief wanneer de app geminimaliseerd is</string>
     <string name="settings_system_background">Achtergrond</string>
@@ -1011,13 +1055,13 @@ Details: %2$s"</string>
     <string name="settings_system_memory_limit_subtitle">Geheugen beschikbaar voor patching</string>
     <string name="settings_system_process_runtime_heap_limit_ignored">Dit apparaat heeft de geheugenlimiet bij de laatste uitvoering genegeerd, dus patchen kan terugvallen op het uitvoeren binnen Nivqo.</string>
 <string name="settings_system_memory_limit_warning">Laag geheugenlimiet kan mislukken bij patching van grotere apps</string>
-    <string name="settings_system_memory_limit_high_warning">Een hoge geheugenlimiet kan patchen op sommige apparaten veel langzamer maken. Verhoog deze alleen als patchen blijft mislukken bij lagere limieten.</string>
+<string name="settings_system_memory_limit_high_warning">Een hoge geheugenlimiet kan patchen op sommige apparaten veel langzamer maken. Verhoog deze alleen als patchen blijft mislukken bij lagere limieten.</string>
     <string name="settings_system_process_runtime_enabled_description">%s MB limiet</string>
-    <string name="settings_system_process_runtime_disabled_description">Klik om te configureren</string>
+<string name="settings_system_process_runtime_disabled_description">Klik om te configureren</string>
     <string name="settings_system_process_runtime_description_not_available">Deze functie vereist Android 11 of hoger</string>
-    <string name="settings_system_patcher_completion_sound">Voltooiingsgeluid</string>
+<string name="settings_system_patcher_completion_sound">Voltooiingsgeluid</string>
     <string name="settings_system_patcher_completion_sound_description">Speelt een specifiek geluid af bij succes of mislukking wanneer het patchen voltooid is</string>
-    <!-- Settings - System Tab - Notifications Section -->
+<!-- Settings - System Tab - Notifications Section -->
     <string name="settings_system_notifications">Meldingen</string>
     <string name="settings_system_notifications_description">Configureer achtergrondwaarschuwingen en voltooiingsgeluiden</string>
     <string name="settings_system_notifications_success_sound">Succesgeluid</string>
@@ -1032,50 +1076,50 @@ Details: %2$s"</string>
     <string name="settings_system_import_export">Importeren en exporteren</string>
     <string name="settings_system_signing_key">Ondertekeningssleutel</string>
     <string name="settings_system_signing_key_description">Maakt een back-up van de sleutel waarmee je gepatchte apps zijn ondertekend en herstelt deze.</string>
-    <string name="settings_system_signing_key_dialog_description">Elke app die Nivqo patcht, wordt met deze sleutel ondertekend. Bewaar een kopie: zonder deze sleutel kunnen gepatchte apps alleen worden bijgewerkt nadat je ze hebt verwijderd.</string>
+    <string name="settings_system_signing_key_dialog_description">Elke app die Morphe patcht, wordt met deze sleutel ondertekend. Bewaar een kopie: zonder deze sleutel kunnen gepatchte apps alleen worden bijgewerkt nadat je ze hebt verwijderd.</string>
 <string name="settings_system_signing_key_missing">Nivqo maakt er een bij je eerste patch.</string>
 <string name="settings_system_signing_key_created">Gemaakt op %s</string>
-    <string name="settings_system_signing_key_fingerprint">SHA-256-vingerafdruk</string>
+<string name="settings_system_signing_key_fingerprint">SHA-256-vingerafdruk</string>
     <string name="settings_system_backup_appearance_description">Thema, kleuren en taal</string>
-    <string name="settings_system_backup_home_description">Groepen, verborgen apps, sorteren en schakelaars</string>
+<string name="settings_system_backup_home_description">Groepen, verborgen apps, sorteren en schakelaars</string>
     <string name="settings_system_backup_patching">Patchen en installeren</string>
-    <string name="settings_system_backup_patching_description">Installatieprogramma, patcher en opgeslagen APK\'s</string>
+<string name="settings_system_backup_patching_description">Installatieprogramma, patcher en opgeslagen APK\'s</string>
     <string name="settings_system_backup_updates_description">Pre-releases en updatecontroles</string>
-    <string name="settings_system_backup_sources_description">Aangepaste bronnen en GitHub-token</string>
+<string name="settings_system_backup_sources_description">Aangepaste bronnen en GitHub-token</string>
     <string name="settings_system_backup_patch_selections_description">Gekozen patches voor elke app</string>
-    <string name="settings_system_backup_signing_key_note">De ondertekeningssleutel wordt apart geback-upt.</string>
+<string name="settings_system_backup_signing_key_note">De ondertekeningssleutel wordt apart geback-upt.</string>
     <string name="settings_system_import_keystore_dialog_title">Voer keystore-gegevens in</string>
-    <string name="settings_system_import_keystore_dialog_description">U moet de referenties van het keystore invoeren om het te importeren</string>
+<string name="settings_system_import_keystore_dialog_description">U moet de referenties van het keystore invoeren om het te importeren</string>
     <string name="settings_system_import_keystore_dialog_alias_field">Gebruikersnaam (alias)</string>
-    <string name="settings_system_import_keystore_dialog_password_field">Wachtwoord</string>
+<string name="settings_system_import_keystore_dialog_password_field">Wachtwoord</string>
     <string name="settings_system_import_keystore_dialog_format_field">Keystore-formaat</string>
-    <string name="settings_system_import_keystore_wrong_credentials">Verkeerde keystore-gegevens</string>
+<string name="settings_system_import_keystore_wrong_credentials">Verkeerde keystore-gegevens</string>
     <string name="settings_system_import_keystore_success">Keystore geïmporteerd</string>
-    <string name="settings_system_import_keystore_failed">Kan keystore niet importeren</string>
+<string name="settings_system_import_keystore_failed">Kan keystore niet importeren</string>
     <string name="settings_system_export_keystore_success">Keystore geëxporteerd</string>
-    <string name="settings_system_export_keystore_failed">Kon de keystore niet exporteren</string>
+<string name="settings_system_export_keystore_failed">Kon de keystore niet exporteren</string>
     <string name="settings_system_show_password_field">Toon wachtwoord</string>
-    <string name="settings_system_hide_password_field">Wachtwoord verbergen</string>
+<string name="settings_system_hide_password_field">Wachtwoord verbergen</string>
     <string name="settings_system_morphe_settings">Nivqo instellingen</string>
-    <string name="settings_system_import_manager_settings_description">Maakt een back-up van en herstelt uw Nivqo-instellingen</string>
+<string name="settings_system_import_manager_settings_description">Maakt een back-up van en herstelt uw Morphe-instellingen</string>
 <string name="settings_system_import_manager_settings_fail">Importeren van Nivqo-instellingen mislukt: %s</string>
-    <string name="settings_system_import_manager_settings_success">Nivqo-instellingen geïmporteerd</string>
+<string name="settings_system_import_manager_settings_success">Morphe-instellingen geïmporteerd</string>
     <string name="settings_system_import_manager_settings_mode_title">Nivqo-instellingen importeren</string>
 <string name="settings_system_import_manager_settings_mode_description">Kies hoe de geïmporteerde instellingen en bronnen moeten worden toegepast</string>
-    <string name="settings_system_import_selections_mode_title">Patch-selecties importeren</string>
+<string name="settings_system_import_selections_mode_title">Patch-selecties importeren</string>
     <string name="settings_system_import_selections_mode_description">Kies hoe de geïmporteerde selecties en patch-opties moeten worden toegepast</string>
     <string name="import_mode_replace_title">Bestaande vervangen</string>
     <string name="import_mode_replace_description">De back-up exact overeenkomen. Items die ontbreken in de back-up worden verwijderd</string>
     <string name="import_mode_merge_title">Samenvoegen met bestaande</string>
     <string name="import_mode_merge_description">Ontbrekende items vanuit de back-up toevoegen. Bestaande items blijven ongewijzigd</string>
-    <string name="settings_system_export_manager_settings_fail">Exporteren van Nivqo-instellingen mislukt: %s</string>
+    <string name="settings_system_export_manager_settings_fail">Exporteren van Morphe-instellingen mislukt: %s</string>
 <string name="settings_system_export_manager_settings_success">Nivqo-instellingen geëxporteerd</string>
 <string name="settings_system_export_debug_logs">Foutopsporingslogboeken exporteren</string>
-    <string name="settings_system_export_debug_logs_description">Slaat systeemlogboeken op voor probleemoplossing</string>
+<string name="settings_system_export_debug_logs_description">Slaat systeemlogboeken op voor probleemoplossing</string>
     <string name="settings_system_export_debug_logs_export_read_failed">Kon logs niet lezen (uitslagcode %s)</string>
-    <string name="settings_system_export_debug_logs_export_failed">Mislukt om logboeken te exporteren</string>
+<string name="settings_system_export_debug_logs_export_failed">Mislukt om logboeken te exporteren</string>
     <string name="settings_system_export_debug_logs_export_success">Logboeken geëxporteerd</string>
-    <!-- Settings - System Tab - Files & Storage Section -->
+<!-- Settings - System Tab - Files & Storage Section -->
     <string name="settings_system_files">Bestanden &amp; opslag</string>
     <string name="settings_system_apks_size">Totaal volume: %s</string>
     <string name="settings_system_apks_delete_all_confirm">Dit verwijdert de opgeslagen APK-bestanden die hier worden weergegeven permanent.</string>
@@ -1105,9 +1149,9 @@ Details: %2$s"</string>
     <string name="settings_system_storage_cleared">%s vrijgemaakt</string>
     <string name="settings_system_storage_nothing_to_clear">Niets om te wissen</string>
     <string name="settings_system_storage_open_app_info_title">Open Android-app opslag</string>
-    <string name="settings_system_storage_open_app_info_description">Beheer of wis alle Nivqo-gegevens via de systeeminstellingen</string>
+    <string name="settings_system_storage_open_app_info_description">Beheer of wis alle Morphe-gegevens via de systeeminstellingen</string>
 <string name="settings_system_save_original_apks_title">Bewaar originele APK\'s</string>
-    <string name="settings_system_save_original_apks_description">Bewaar de APK vóór het patchen, zodat deze opnieuw kan worden gebruikt voor het opnieuw patchen zonder het bestand opnieuw te selecteren</string>
+<string name="settings_system_save_original_apks_description">Bewaar de APK vóór het patchen, zodat deze opnieuw kan worden gebruikt voor het opnieuw patchen zonder het bestand opnieuw te selecteren</string>
     <string name="settings_system_save_patched_apks_title">Bewaar gepatchte APK\'s</string>
     <string name="settings_system_save_patched_apks_description">Bewaar een kopie van de gepatchte APK voor later exporteren of opnieuw installeren vanuit de manager</string>
     <!-- Settings - System Tab - Storage Management - Patched APKs Management -->
@@ -1153,14 +1197,14 @@ Details: %2$s"</string>
     <string name="copy_selection_same_source">Dezelfde bron</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Aangepaste bestandsselector</string>
-    <string name="settings_system_custom_file_picker_description">Gebruik de ingebouwde bestandsselector van Nivqo in plaats van de standaardinstelling van het systeem</string>
-<!-- Settings - System Tab - APK download helper -->
+    <string name="settings_system_custom_file_picker_description">Gebruik de ingebouwde bestandsselector van Morphe in plaats van de standaardinstelling van het systeem</string>
+    <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">APK-downloadhelper</string>
     <string name="settings_system_apk_download_helper_trusted_count">Vertrouwd: %1$d van %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Helper-apps kunnen originele APK\'s voor je downloaden. Alleen de apps die je hier vertrouwt, worden aangeboden in de downloadinstructies.</string>
-    <string name="settings_system_apk_download_helper_warning">De APK komt van de helper-app, dus vertrouw alleen apps die je kent. Nivqo controleert nog steeds het pakket, de versie en de handtekening van elk bestand voordat er gepatcht wordt.</string>
+    <string name="settings_system_apk_download_helper_warning">De APK komt van de helper-app, dus vertrouw alleen apps die je kent. Morphe controleert nog steeds het pakket, de versie en de handtekening van elk bestand voordat er gepatcht wordt.</string>
 <string name="settings_system_apk_download_helper_installed_by">Geïnstalleerd door %s</string>
-    <string name="settings_system_apk_download_helper_installed_by_unknown">Installatieprogramma onbekend</string>
+<string name="settings_system_apk_download_helper_installed_by_unknown">Installatieprogramma onbekend</string>
     <!-- File Picker -->
     <string name="file_picker_no_files">Geen bestanden hier</string>
     <string name="file_picker_read_error">Kan deze map niet lezen</string>
@@ -1246,9 +1290,7 @@ Details: %2$s"</string>
     <string name="selected">Geselecteerd</string>
     <string name="not_selected">Niet geselecteerd</string>
     <string name="select_all">Alles selecteren</string>
-    <string name="select_all_done">Alles geselecteerd</string>
     <string name="deselect_all">Alles deselecteren</string>
-    <string name="deselect_all_done">Alles gedeselecteerd</string>
     <string name="reorder_list">Lijst herordenen</string>
     <string name="reorder_list_hint">Sleep om te herordenen</string>
     <string name="reorder_done">Volgorde opgeslagen</string>
@@ -1284,6 +1326,7 @@ Details: %2$s"</string>
     <string name="unmount">Ontkoppelen</string>
     <string name="unmounted">Niet gemount</string>
     <string name="remount">Herinstalleren</string>
+    <string name="restore">Herstellen</string>
     <string name="share">Delen</string>
     <string name="install">Installeren</string>
     <string name="installed">Geïnstalleerd</string>
@@ -1304,6 +1347,8 @@ Details: %2$s"</string>
     <string name="sources">Bron-URL</string>
     <string name="installing_ellipsis">Installeren…</string>
     <string name="mounting_ellipsis">Koppelen…</string>
+    <string name="mount_stage_restoring_stock">Het origineel herstellen…</string>
+    <string name="mount_stage_copying">Kopiëren…</string>
     <string name="unmounting_ellipsis">Verwijderen…</string>
     <string name="importing_ellipsis">Importeren…</string>
     <string name="imported_successfully">Geïmporteerd succesvol</string>
@@ -1345,13 +1390,12 @@ Details: %2$s"</string>
     <string name="installing_manager_update">Update installeren…</string>
     <string name="installing_manager_update_hint">Nivqo zal sluiten om de update af te ronden</string>
 <string name="downloading_manager_update">Update downloaden…</string>
-    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
+<!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB gedownload</string>
     <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
     <string name="manager_update_progress_size">%1$s / %2$s MB</string>
     <string name="manager_update_not_ready">Deze release wordt nog gepubliceerd. Probeer het over enkele minuten opnieuw</string>
     <string name="update_download_missing">De gedownloade update is niet meer beschikbaar. Download deze opnieuw.</string>
-    <string name="download_manager_failed">Downloaden van update mislukt: %s</string>
     <string name="failed_to_check_updates">Controleren op updates mislukt: %s</string>
     <string name="failed_to_download_update">Download van update mislukt: %s</string>
     <string name="download_confirmation_metered">"U maakt momenteel gebruik van een datalimietverbinding en er kunnen kosten van uw serviceprovider van toepassing zijn.
@@ -1366,11 +1410,11 @@ Wilt u toch doorgaan?"</string>
     <string name="onboarding_swipe_desc">Veeg naar rechts op een app-kaart om de beschikbare patches te bekijken. Veeg naar links om de kaart te verbergen van het startscherm</string>
     <string name="onboarding_settings_desc">Pas Nivqo aan: uiterlijk, geavanceerde opties en systeemtools</string>
 <string name="onboarding_sources_patches_desc">Tik om alle patches te bekijken die beschikbaar zijn vanuit deze bron</string>
-    <string name="onboarding_sources_version_desc">Tik op de versie om de volledige wijzigingslogboek voor deze bron te bekijken</string>
+<string name="onboarding_sources_version_desc">Tik op de versie om de volledige wijzigingslogboek voor deze bron te bekijken</string>
     <string name="onboarding_sources_prerelease_desc">Activeer dit om pre-release patchversies van deze bron te ontvangen</string>
-    <string name="onboarding_appearance_tab_desc">Pas het uiterlijk van de app aan: thema, accentkleur en achtergrond</string>
+<string name="onboarding_appearance_tab_desc">Pas het uiterlijk van de app aan: thema, accentkleur en achtergrond</string>
     <string name="onboarding_appearance_theme_desc">Kies tussen licht, donker of systeemthema. U kunt ook een aangepaste accentkleur kiezen of Dynamic Color inschakelen</string>
-    <string name="onboarding_expert_mode_desc">Schakel Expert Mode in om patchselectie, aangepaste opties en andere geavanceerde functies vrij te geven</string>
+<string name="onboarding_expert_mode_desc">Schakel Expert Mode in om patchselectie, aangepaste opties en andere geavanceerde functies vrij te geven</string>
     <!-- Translate "System" the same way as the System settings tab -->
     <string name="onboarding_system_tab_title">Systeemtabblad</string>
     <string name="onboarding_system_tab_desc">Beheer van sleutelopslag, import-/exporttools en app-informatie</string>
@@ -1379,9 +1423,11 @@ Wilt u toch doorgaan?"</string>
     <string name="onboarding_system_file_picker_desc">Schakel dit in om de ingebouwde bestandsbrowser te gebruiken in plaats van de systeemkiezer wanneer u APK\'s of sleutelopslagen selecteert</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Snelle functietour</string>
-    <string name="tour_prompt_desc">Wilt u een snelle rondleiding door de belangrijkste functies van Nivqo?</string>
-<!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="tour_prompt_desc">Wilt u een snelle rondleiding door de belangrijkste functies van Morphe?</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Laat me rondleiden</string>
     <string name="onboarding_restart_title">Functietour</string>
     <string name="onboarding_restart_desc">Een begeleide rondleiding langs de belangrijkste functies</string>
+    <string name="app_links_badge_disabled">Uitgeschakeld</string>
+    <string name="notification_channel_patcher">Patchen</string>
 </resources>

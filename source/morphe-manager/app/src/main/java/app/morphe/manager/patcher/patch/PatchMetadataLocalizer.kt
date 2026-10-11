@@ -54,6 +54,100 @@ object PatchMetadataLocalizer {
             "將版本代碼設為允許的最大值，避免 Play 商店更新此 App。部分 App 可能出現非預期問題，而且使用 Root Mount 安裝時無效。"
         ),
 
+        "Accent color" to Zh(
+            "自訂強調色",
+            "自訂 Facebook 的連結、按鈕、開關和選取分頁的強調色；在 Hushfacebook「外觀」中選擇顏色後才會生效。"
+        ),
+        "Clean up Facebook's chat list" to Zh(
+            "精簡 Facebook 聊天列表",
+            "隱藏 Facebook 內建聊天室頂端的動態消息與上線中列，以及通知提醒等宣傳橫幅；一般聊天仍會保留。"
+        ),
+        "Comment sheet options" to Zh(
+            "留言區介面選項",
+            "可關閉長按讚的表情反應選單、隱藏 GIF／貼圖按鈕、展開所有留言回覆，並隱藏相關社團推薦。"
+        ),
+        "Download any photo" to Zh(
+            "儲存任何相片",
+            "在 Facebook 相片頁面加入儲存選項，即使原作者關閉下載也會嘗試儲存可取得的最高解析度相片。"
+        ),
+        "Following feed on Home" to Zh(
+            "首頁顯示追蹤內容",
+            "讓首頁依較新的順序顯示朋友、社團與追蹤粉絲專頁的貼文，減少演算法排序內容。"
+        ),
+        "Hide Meta AI comment summaries" to Zh(
+            "隱藏 Meta AI 留言摘要",
+            "移除留言區頂端或貼文下方由 Meta AI 生成的留言摘要，保留原始留言。"
+        ),
+        "Hide Meta upsells" to Zh(
+            "隱藏 Meta 產品推廣",
+            "隱藏 Edits、Threads 跨平台發文、Meta Verified、虛擬人偶貼圖及 Imagine 等 Meta 產品推廣。"
+        ),
+        "Hide seen posts" to Zh(
+            "隱藏已看過的貼文",
+            "暫時從動態消息隱藏先前滑過的貼文，可設定 1、3、7 或 30 天；紀錄只保留在手機上。"
+        ),
+        "Hide tab badges" to Zh(
+            "隱藏分頁通知徽章",
+            "可隱藏指定分頁上的圓點／計數及 Facebook App 圖示徽章，通知本身仍會正常接收。"
+        ),
+        "Keep the progress bar" to Zh(
+            "保留播放進度條",
+            "讓 Reels 進度條保持可見、順暢更新並方便拖曳；全螢幕影片控制列可持續顯示直到再次點按。"
+        ),
+        "Send chat photos and videos at original quality" to Zh(
+            "聊天傳送原始畫質媒體",
+            "在 Facebook 內建聊天傳送相片與影片時盡可能保留原始畫質，極大的檔案仍可能被縮小。"
+        ),
+        "Share sheet items" to Zh(
+            "自訂分享選單項目",
+            "可隱藏 Facebook 分享面板中不常用的項目，例如 WhatsApp、Meta AI 或複製連結。"
+        ),
+        "Turn off auto-translation" to Zh(
+            "關閉自動翻譯",
+            "讓貼文與 Reels 說明顯示原始語言，不由 Facebook 自動翻譯；手動點選查看翻譯仍可使用。"
+        ),
+        "Unlock app icons" to Zh(
+            "解鎖 App 圖示",
+            "可選擇原本限 Facebook Plus 提供的 App 圖示，並從 Facebook 的圖示設定中套用。"
+        ),
+        "Clone install under another package name" to Zh(
+            "使用不同套件名稱複製安裝",
+            "以不同套件名稱安裝另一份 Messenger，可與原版共存；部分推播、Meta App 整合與 Root Mount 不支援。"
+        ),
+        "Custom new-message sound" to Zh(
+            "自訂新訊息音效",
+            "自選 1 MB 以內的 OGG、MP3、M4A 或 WAV 當作新訊息音效；Android 通知設定的個別音效仍可優先套用。"
+        ),
+        "Keep a message log" to Zh(
+            "保留訊息紀錄",
+            "收到訊息通知時把內容加密保留在手機上，即使訊息被收回也可查看；只有產生通知的訊息會記錄。"
+        ),
+        "Keep emoji search on emoji" to Zh(
+            "搜尋時維持 Emoji 模式",
+            "開啟表情符號鍵盤時輸入搜尋字詞，維持 Emoji 搜尋而不自動跳到貼圖搜尋。"
+        ),
+        "Restore old emoji drawer" to Zh(
+            "還原舊版 Emoji 面板",
+            "關閉 Messenger 新版表情符號面板，恢復先前鍵盤排列；變更後請重新啟動 Messenger。"
+        ),
+        "Send videos without re-encoding" to Zh(
+            "傳送影片免重新編碼",
+            "Messenger 支援直接傳送的來源格式可免重新編碼；超過 25 MB、修剪過或不支援的影片仍會壓縮。"
+        ),
+        "Spoof package version" to Zh(
+            "偽裝較高的套件版本",
+            "將 Messenger 的版本代碼設為較高值以避免 Play 商店覆蓋更新；日後想還原較低版本可能需要解除安裝並失去本機資料。"
+        ),
+        "Stop analytics uploads" to Zh(
+            "停止分析資料上傳",
+            "阻止 Messenger 的部分分析紀錄透過背景服務上傳，裝置端仍可能記錄事件，關閉後可能補傳。"
+        ),
+        "Use the phone's camera app" to Zh(
+            "使用手機原生相機",
+            "在 Messenger 聊天中按相機時開啟手機相機 App，拍好的相片會回到聊天編輯器；僅支援相片。"
+        ),
+
+
         // HushFacebook
         "AMOLED black theme" to Zh(
             "AMOLED 純黑主題",
@@ -463,7 +557,13 @@ object PatchMetadataLocalizer {
         ),
     )
 
+    private val facebookZhDescriptions = mapOf(
+        "Hide read receipts" to "在 Facebook 內建聊天隱藏已讀狀態；回覆訊息仍可能讓對方知道你已讀。",
+        "Hide typing indicator" to "在 Facebook 內建聊天與留言框隱藏正在輸入的狀態，訊息與留言仍正常傳送。",
+    )
+
     private val messengerZhDescriptions = mapOf(
+        "Unlock app icons" to "解鎖 Messenger 的所有 App 圖示選項，不需要訂閱。是否提供圖示選項仍取決於 Meta 對帳號的開放情況。",
         "Allow screenshots" to
             "允許截取受保護的聊天媒體，包括僅限查看一次的媒體與 Quicksnap，並停止截圖通知；不會新增重新播放或儲存功能。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。",
         "Material You theme" to
@@ -480,10 +580,17 @@ object PatchMetadataLocalizer {
         if (isMessengerVariant(name, original)) {
             return messengerZhDescriptions[name] ?: zh[name]?.description ?: original
         }
+        if (isFacebookVariant(name, original)) {
+            return facebookZhDescriptions[name] ?: zh[name]?.description ?: original
+        }
         return zh[name]?.description ?: original
     }
 
+    private fun isFacebookVariant(name: String, original: String?): Boolean =
+        name in facebookZhDescriptions && original?.contains("Facebook", ignoreCase = true) == true
+
     private fun isMessengerVariant(name: String, original: String?): Boolean = when (name) {
+        "Unlock app icons" -> original?.contains("Messenger", ignoreCase = true) == true
         "Allow screenshots" -> original?.contains("protected chat media", ignoreCase = true) == true ||
             original?.contains("Quicksnap", ignoreCase = true) == true
         "Material You theme" -> original?.contains("Messenger", ignoreCase = true) == true

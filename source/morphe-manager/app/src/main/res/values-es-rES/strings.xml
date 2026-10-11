@@ -20,68 +20,68 @@
     <string name="android_11_bug_dialog_title">Error de Android 11</string>
     <string name="android_11_bug_dialog_description">El permiso para instalar aplicaciones debe concederse antes para evitar un problema de Android 11 que afecta negativamente a la experiencia de usuario</string>
     <string name="deep_link_add_source_title">Añadir fuente</string>
-    <string name="deep_link_add_source_message">¿Quieres añadir esta fuente de parches a Nivqo?</string>
+    <string name="deep_link_add_source_message">¿Quieres añadir esta fuente de parches a Morphe?</string>
 <string name="deep_link_add_source_warning">Añade solo fuentes en las que confíes</string>
-    <!-- Home Screen - Update Notifications -->
+<!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Actualización de Nivqo disponible</string>
 <string name="home_update_available_subtitle">Nueva versión lista para instalar</string>
-    <string name="home_blocked_source_title">Se detectó una fuente de parches bloqueada</string>
+<string name="home_blocked_source_title">Se detectó una fuente de parches bloqueada</string>
     <string name="home_blocked_source_subtitle">Pulsa para revisar y eliminar</string>
-    <string name="home_metadata_errors_title">Algunas fuentes de parches no están disponibles</string>
+<string name="home_metadata_errors_title">Algunas fuentes de parches no están disponibles</string>
     <string name="home_metadata_errors_subtitle">Pulsa para revisar las fuentes</string>
-    <string name="home_outdated_manager_title">Nivqo está desactualizado</string>
+<string name="home_outdated_manager_title">Morphe está desactualizado</string>
 <string name="home_outdated_manager_subtitle">Algunas fuentes de parches necesitan una versión más reciente</string>
-    <string name="home_held_back_title">Una fuente de parches hizo que Nivqo fallara</string>
+<string name="home_held_back_title">Una fuente de parches hizo que Morphe fallara</string>
 <string name="home_held_back_subtitle">Se omitió para que la aplicación pudiera iniciarse. Pulsa para revisar</string>
-    <string name="home_metered_skipped_title">Actualizaciones pausadas con datos móviles</string>
+<string name="home_metered_skipped_title">Actualizaciones pausadas con datos móviles</string>
     <string name="home_metered_skipped_subtitle">Pulsa para permitir actualizaciones con datos móviles</string>
-    <string name="home_repatch_available_subtitle">Pulsa para ponerlas todas en cola</string>
+<string name="home_repatch_available_subtitle">Pulsa para ponerlas todas en cola</string>
     <string name="home_update_error">La actualización falló</string>
-    <string name="home_update_error_subtitle">Algo salió mal al actualizar las fuentes</string>
+<string name="home_update_error_subtitle">Algo salió mal al actualizar las fuentes</string>
     <string name="home_update_skipped_metered">Actualizaciones omitidas</string>
-    <string name="home_update_skipped_metered_subtitle">Los datos móviles están activos</string>
+<string name="home_update_skipped_metered_subtitle">Los datos móviles están activos</string>
     <string name="home_updating_sources">Actualizando fuentes…</string>
-    <string name="home_update_success">Actualización de fuentes completada</string>
+<string name="home_update_success">Actualización de fuentes completada</string>
     <string name="home_update_success_subtitle">Tus fuentes están al día</string>
-    <string name="home_sources_are_loading">Cargando fuentes, por favor espera…</string>
+<string name="home_sources_are_loading">Cargando fuentes, por favor espera…</string>
     <string name="home_search_apps">Buscar aplicaciones</string>
-    <string name="home_app_list_options_title">Ordenar y filtrar</string>
+<string name="home_app_list_options_title">Ordenar y filtrar</string>
     <string name="home_app_list_options_state_description">Ordenado por %1$s, filtrado por %2$s</string>
-    <string name="home_app_filter_all_description">Todas las aplicaciones de la pantalla de inicio</string>
+<string name="home_app_filter_all_description">Todas las aplicaciones de la pantalla de inicio</string>
     <string name="home_app_filter_patched_description">Aplicaciones que has parcheado o guardado con Nivqo</string>
-    <string name="home_app_filter_not_patched_description">Aplicaciones que aún no has parcheado en Nivqo</string>
+<string name="home_app_filter_not_patched_description">Aplicaciones que aún no has parcheado en Morphe</string>
 <string name="home_app_filter_installed_description">Aplicaciones instaladas actualmente en este dispositivo</string>
-    <string name="home_app_filter_uninstalled_description">Aplicaciones parcheadas con Nivqo que ya no están en este dispositivo</string>
+<string name="home_app_filter_uninstalled_description">Aplicaciones parcheadas con Morphe que ya no están en este dispositivo</string>
 <string name="home_app_filter_clones">Clones</string>
-    <string name="home_app_filter_clones_description">Aplicaciones compiladas con un nombre de paquete propio, instaladas junto a la original</string>
+<string name="home_app_filter_clones_description">Aplicaciones compiladas con un nombre de paquete propio, instaladas junto a la original</string>
     <string name="home_app_sort_manual_description">Mantén pulsada una aplicación, luego pulsa el botón de reordenar</string>
-    <string name="home_app_sort_recommended">Orden recomendado</string>
+<string name="home_app_sort_recommended">Orden recomendado</string>
     <string name="home_app_sort_recommended_description">Aplicaciones instaladas y fijadas primero</string>
-    <string name="home_app_sort_name_asc_description">Alfabético, de la A a la Z</string>
+<string name="home_app_sort_name_asc_description">Alfabético, de la A a la Z</string>
     <string name="home_app_sort_name_desc_description">Alfabético inverso, de la Z a la A</string>
-    <string name="home_app_sort_updates_first">Actualizaciones de parches primero</string>
+<string name="home_app_sort_updates_first">Actualizaciones de parches primero</string>
     <string name="home_app_sort_updates_first_description">Aplicaciones con parches más recientes primero, luego en orden recomendado</string>
-    <string name="home_app_sort_recently_patched">Recientemente parcheadas</string>
+<string name="home_app_sort_recently_patched">Recientemente parcheadas</string>
     <string name="home_app_sort_recently_patched_description">Aplicaciones parcheadas más recientemente primero</string>
-    <string name="home_no_apps_title">No hay aplicaciones disponibles</string>
+<string name="home_no_apps_title">No hay aplicaciones disponibles</string>
     <string name="home_no_apps_subtitle">Añadir una fuente de parches o habilitar una existente en %s</string>
-    <string name="home_no_apps_search_subtitle">No hay aplicaciones que coincidan con \"%s\"</string>
+<string name="home_no_apps_search_subtitle">No hay aplicaciones que coincidan con \"%s\"</string>
     <string name="home_all_apps_hidden_title">Todas las aplicaciones están ocultas</string>
-    <string name="home_all_apps_hidden_subtitle">Has ocultado todas las aplicaciones de la pantalla de inicio</string>
+<string name="home_all_apps_hidden_subtitle">Has ocultado todas las aplicaciones de la pantalla de inicio</string>
     <string name="home_no_apps_filter_title">Ninguna aplicación coincide con este filtro</string>
-    <string name="home_no_apps_filter_subtitle">No hay coincidencias con %s</string>
+<string name="home_no_apps_filter_subtitle">No hay coincidencias con %s</string>
     <string name="home_category_add">Añadir categoría</string>
-    <string name="home_category_all_apps">Todas las aplicaciones</string>
+<string name="home_category_all_apps">Todas las aplicaciones</string>
     <string name="home_category_custom">Personalizado</string>
-    <string name="home_category_uncategorized">Sin categoría</string>
+<string name="home_category_uncategorized">Sin categoría</string>
     <string name="home_category_new_title">Nueva categoría</string>
-    <string name="home_category_rename_title">Renombrar categoría</string>
+<string name="home_category_rename_title">Renombrar categoría</string>
     <string name="home_category_name">Nombre de la categoría</string>
-    <string name="home_category_move_to">Mover a la categoría</string>
+<string name="home_category_move_to">Mover a la categoría</string>
     <string name="home_category_move_selected_title">Mover aplicaciones seleccionadas</string>
-    <string name="home_category_delete_confirm_title">Eliminar categoría</string>
+<string name="home_category_delete_confirm_title">Eliminar categoría</string>
     <string name="home_category_delete_confirm_message">¿Eliminar la categoría &lt;b&gt;%1$s&lt;/b&gt;? Las aplicaciones que contiene volverán a &lt;b&gt;%2$s&lt;/b&gt;</string>
-    <string name="home_category_actions_unavailable">No hay acciones disponibles para esta categoría</string>
+<string name="home_category_actions_unavailable">No hay acciones disponibles para esta categoría</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">¿Qué aplicación quieres parchear?</string>
     <!-- Humorous hype message with light nostalgia -->
@@ -123,6 +123,26 @@
     <string name="home_greeting_super_late_3">A estas alturas, quédate despierto y parchea</string>
     <string name="home_greeting_super_late_4">Tú y los servidores, ambos despiertos</string>
     <string name="home_greeting_super_late_5">Nocturno y productivo</string>
+    <!-- Halloween greetings, shown instead of the ones above around October 31 -->
+    <!-- Pun on "Trick or treat" -->
+    <string name="home_greeting_halloween_1">¿Truco o parche?</string>
+    <string name="home_greeting_halloween_2">No hay fantasmas en estos APK, comprobado</string>
+    <string name="home_greeting_halloween_3">Temporada de miedo, parches nuevos</string>
+    <!-- Pun on "Something wicked this way comes", a line from Shakespeare's Macbeth -->
+    <string name="home_greeting_halloween_4">Algo maligno viene parcheando</string>
+    <!-- Winter holiday greetings, shown instead of the ones above from late December to early January -->
+    <string name="home_greeting_winter_1">Felices fiestas, parches nuevos</string>
+    <!-- Pun on the song "Let It Snow! Let It Snow! Let It Snow!" -->
+    <string name="home_greeting_winter_2">Nieve y parches para todos</string>
+    <string name="home_greeting_winter_3">Año nuevo, parches nuevos</string>
+    <!-- Pun on "Dashing through the snow", the opening line of "Jingle Bells" -->
+    <string name="home_greeting_winter_4">Parcheando por la nieve</string>
+    <!-- New Year greetings, shown instead of the ones above on December 31 and January 1 -->
+    <string name="home_greeting_new_year_1">¡Feliz Año Nuevo!</string>
+    <string name="home_greeting_new_year_2">Haciendo la cuenta atrás para los parches nuevos</string>
+    <string name="home_greeting_new_year_3">Año nuevo, mismas aplicaciones sin anuncios</string>
+    <!-- Pun on the saying "Out with the old, in with the new" -->
+    <string name="home_greeting_new_year_4">Fuera las versiones antiguas, dentro las nuevas</string>
     <!-- Home Screen - Sources Management -->
     <string name="sources_management_title">Fuentes de parches</string>
     <string name="sources_search">Buscar fuentes y parches</string>
@@ -159,11 +179,11 @@
     <string name="sources_management_metadata_unavailable_hint">El archivo de metadatos remoto no está disponible. La aplicación de parches con el paquete instalado sigue funcionando, pero la actualización automática está desactivada para esta fuente</string>
     <string name="sources_management_metadata_unavailable_hint_missing">No se ha podido descargar el paquete de parches. Es posible que la URL de la fuente sea incorrecta o que el archivo no exista</string>
     <string name="sources_management_outdated_manager_badge">Actualizar Nivqo</string>
-    <string name="sources_management_outdated_manager_hint">Esta fuente está creada para el parcheador %1$s, pero Nivqo %2$s incluye el parcheador %3$s. Actualiza Nivqo para usarlo</string>
+<string name="sources_management_outdated_manager_hint">Esta fuente está creada para el parcheador %1$s, pero Morphe %2$s incluye el parcheador %3$s. Actualiza Morphe para usarlo</string>
 <string name="sources_management_held_back_badge">Falló</string>
-    <string name="sources_management_held_back_hint">Esta fuente hizo que Nivqo fallara al cargarse, por lo que se omite. Actualízala o vuelve a importarla para intentarlo de nuevo</string>
+<string name="sources_management_held_back_hint">Esta fuente hizo que Morphe fallara al cargarse, por lo que se omite. Actualízala o vuelve a importarla para intentarlo de nuevo</string>
 <string name="sources_management_source_enabled">Fuente activada</string>
-    <string name="sources_management_source_disabled">Fuente desactivada</string>
+<string name="sources_management_source_disabled">Fuente desactivada</string>
     <string name="sources_management_source_updating">Actualizando fuente</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">Nombre a mostrar</string>
@@ -192,11 +212,11 @@
     <string name="sources_dialog_choose_apps_description">Elige qué aplicaciones conservar una vez cargada la fuente</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Fuentes de parches de terceros</string>
-    <string name="sources_dialog_community_notice_message">"Las fuentes de parches de la comunidad son creadas y mantenidas por sus propios autores. Nivqo no revisa ni verifica los parches de terceros, y no se responsabiliza de su contenido ni de lo que hagan en tu dispositivo.
+    <string name="sources_dialog_community_notice_message">"Las fuentes de parches de la comunidad son creadas y mantenidas por sus propios autores. Morphe no revisa ni verifica los parches de terceros, y no se responsabiliza de su contenido ni de lo que hagan en tu dispositivo.
 
 Todo lo que añadas desde este sitio web lo haces bajo tu propia responsabilidad"</string>
 <string name="sources_update_success">Actualización exitosa</string>
-    <string name="sources_update_unavailable">No hay actualización disponible</string>
+<string name="sources_update_unavailable">No hay actualización disponible</string>
     <string name="sources_download_fail">Error al descargar las fuentes: %s</string>
     <string name="sources_download_fail_named">\"%s\" no se pudo actualizar. Comprueba tu conexión a internet e inténtalo de nuevo</string>
     <string name="sources_download_endpoint_not_found">\"%s\": no se encontraron los metadatos del parche</string>
@@ -214,26 +234,26 @@ Todo lo que añadas desde este sitio web lo haces bajo tu propia responsabilidad
     <string name="home_apk_availability_no">No, ya tengo un APK</string>
     <string name="home_apk_helper_download">Utilizar una aplicación auxiliar</string>
     <string name="home_apk_helper_title">Descargar con una aplicación auxiliar</string>
-    <string name="home_apk_helper_description">Nivqo pedirá a la aplicación auxiliar de abajo que descargue el APK original y le devuelva el archivo</string>
-<!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="home_apk_helper_description">Morphe pedirá a la aplicación auxiliar de abajo que descargue el APK original y le devuelva el archivo</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">Abrir aplicación auxiliar</string>
-    <string name="home_apk_helper_warning">Continúa solo si confías en esta aplicación auxiliar. Nivqo comprueba el paquete, la versión y la firma de todo lo que recibe antes de parchear</string>
+    <string name="home_apk_helper_warning">Continúa solo si confías en esta aplicación auxiliar. Morphe comprueba el paquete, la versión y la firma de todo lo que recibe antes de parchear</string>
 <string name="home_apk_helper_warning_unverified">Continúa solo si confías en esta aplicación auxiliar. Nivqo no puede verificar la firma de este APK, por lo que no detectaría un archivo modificado</string>
 <string name="home_apk_helper_no_result">La aplicación auxiliar no devolvió ningún APK</string>
-    <string name="home_apk_helper_no_access">La aplicación auxiliar no concedió acceso al APK que devolvió</string>
+<string name="home_apk_helper_no_access">La aplicación auxiliar no concedió acceso al APK que devolvió</string>
     <string name="home_apk_helper_no_package">La aplicación auxiliar no especificó qué aplicación instalada usar</string>
-    <string name="home_apk_helper_wrong_package">La aplicación auxiliar devolvió una aplicación diferente a la que se está parcheando</string>
+<string name="home_apk_helper_wrong_package">La aplicación auxiliar devolvió una aplicación diferente a la que se está parcheando</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo no pudo usar la aplicación instalada</string>
 <string name="home_apk_helper_installed_incompatible">La versión instalada no se puede parchear</string>
-    <string name="home_apk_use_saved">Usar APK guardado</string>
+<string name="home_apk_use_saved">Usar APK guardado</string>
     <string name="home_apk_use_installed">Usar APK instalado</string>
     <string name="home_apk_use_saved_unsupported">Los parches no son compatibles con esta copia guardada. Al parchearla, se te pedirá confirmación o que elijas otro APK</string>
     <string name="home_apk_use_installed_unverified">No se pudo verificar la firma de la aplicación instalada, por lo que es posible que ya esté parcheada</string>
     <string name="home_unverified">No verificado</string>
     <string name="home_install_verification_pending">Comprobando instalación…</string>
-    <string name="home_app_info_install_unverified">Nivqo no puede confirmar que la aplicación instalada corresponda a la compilación que parcheó. Vuelve a parchearla o reinstálala desde el APK guardado para restaurar su funcionalidad</string>
+    <string name="home_app_info_install_unverified">Morphe no puede confirmar que la aplicación instalada corresponda a la compilación que parcheó. Vuelve a parchearla o reinstálala desde el APK guardado para restaurar su funcionalidad</string>
 <string name="home_app_info_no_saved_apk">No hay APK guardado. Para parchear será necesario volver a seleccionar el archivo APK</string>
-    <string name="home_version_requires_android">Requiere Android %s o superior</string>
+<string name="home_version_requires_android">Requiere Android %s o superior</string>
     <string name="home_apk_no_compatible_versions_title">Incompatible con este dispositivo</string>
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; no tiene versiones compatibles con Android %2$s (API %3$s). Todas las versiones declaradas requieren una versión de Android superior</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
@@ -244,21 +264,21 @@ Todo lo que añadas desde este sitio web lo haces bajo tu propia responsabilidad
     <string name="home_download_instructions_step2_generic">Desplázate hacia abajo en la página web y pulsa el botón de descarga</string>
     <string name="home_download_instructions_step2_variant">Desplázate hacia abajo en la página web y pulsa el botón de descarga de la &lt;b&gt;variante APK&lt;/b&gt; principal</string>
     <string name="home_download_instructions_step2_search">Abre un resultado de búsqueda de un sitio web de confianza</string>
-    <string name="home_download_instructions_step2_search_note">Nivqo no puede responder por estos sitios web. Evita los que ofrecen su propia tienda de aplicaciones en lugar de un archivo APK</string>
+    <string name="home_download_instructions_step2_search_note">Morphe no puede responder por estos sitios web. Evita los que ofrecen su propia tienda de aplicaciones en lugar de un archivo APK</string>
 <string name="home_download_instructions_step3_search">En ese sitio web, descarga el APK de la versión &lt;b&gt;%s&lt;/b&gt;, no de la más reciente</string>
-    <string name="home_download_instructions_step3_search_any">En ese sitio web, descarga el APK de la aplicación. Se puede parchear &lt;b&gt;cualquier versión&lt;/b&gt;</string>
+<string name="home_download_instructions_step3_search_any">En ese sitio web, descarga el APK de la aplicación. Se puede parchear &lt;b&gt;cualquier versión&lt;/b&gt;</string>
     <string name="home_download_instructions_download_button_toast">Pulsa descargar en el sitio web, no aquí 😊</string>
     <string name="home_download_instructions_download_button_toast_2">¡Genial! Ahora pulsa en Continuar y ve al sitio web 👆</string>
     <string name="home_download_instructions_download_button_toast_3">La práctica hace al maestro y estás en camino 💪</string>
     <string name="home_download_instructions_download_button_toast_4">Aún no llega… aún no llega… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">Muy bien, respeto la dedicación 🫡</string>
-    <string name="home_download_instructions_download_button_toast_6">Ya eres oficialmente probador de botones de Nivqo 🏅</string>
+    <string name="home_download_instructions_download_button_toast_6">Ya eres oficialmente probador de botones de Morphe 🏅</string>
 <string name="home_download_instructions_step3">Espera a que la descarga se complete, y &lt;b&gt;no instales&lt;/b&gt; el APK</string>
-    <string name="home_download_instructions_step3_mount">Espera a que la descarga se complete, luego &lt;b&gt;instala el APK&lt;/b&gt;</string>
+<string name="home_download_instructions_step3_mount">Espera a que la descarga se complete, luego &lt;b&gt;instala el APK&lt;/b&gt;</string>
     <string name="home_download_instructions_step4">Después de que la descarga termine, vuelve a Nivqo</string>
-    <string name="home_download_instructions_step4_mount">Después de instalar el APK original, vuelve a Nivqo</string>
+<string name="home_download_instructions_step4_mount">Después de instalar el APK original, vuelve a Morphe</string>
 <string name="home_download_instructions_continue_to">Continuar a %s</string>
-    <string name="home_download_instructions_destination">la página de descarga</string>
+<string name="home_download_instructions_destination">la página de descarga</string>
     <string name="home_download_instructions_copy_link">Copiar enlace</string>
     <string name="home_download_instructions_link_copied">Enlace copiado</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
@@ -272,7 +292,6 @@ Todo lo que añadas desde este sitio web lo haces bajo tu propia responsabilidad
     <string name="home_use_installed_app">Usar aplicación instalada</string>
     <string name="home_installed_app_picker_title">Aplicaciones instaladas</string>
     <string name="home_installed_app_picker_empty">No se encontraron aplicaciones</string>
-    <string name="home_installed_app_picker_filter_all">Todas las aplicaciones</string>
     <string name="home_installed_app_picker_filter_user">Solo aplicaciones de usuario</string>
     <string name="home_installed_app_picker_filter_system">Solo aplicaciones del sistema</string>
     <string name="home_invalid_apk_unreadable">No se pudo leer el archivo. Verifica que \'Almacenamiento externo\' no esté restringido por la batería</string>
@@ -281,7 +300,6 @@ Todo lo que añadas desde este sitio web lo haces bajo tu propia responsabilidad
     <string name="home_invalid_apk_io_error">Error al abrir el archivo. Inténtalo de nuevo</string>
     <string name="home_external_apk_expert_mode_required">Esta función solo está disponible en el modo Experto</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
-    <string name="expert_mode_title">Modo Experto</string>
     <string name="expert_mode_search">Buscar parches</string>
     <string name="expert_mode_disable_all">Desactivar todo</string>
     <string name="expert_mode_disable_all_done">Todos los parches desactivados</string>
@@ -372,44 +390,43 @@ Para un mejor resultado, esta aplicación te recomienda parchear un &lt;b&gt;APK
     <string name="adaptive_icon_select_image">Seleccionar imagen</string>
     <string name="adaptive_icon_change_image">Cambiar imagen</string>
     <string name="image_load_failed">No se pudo cargar esta imagen</string>
-    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
-    <string name="adaptive_icon_foreground">Imagen de primer plano</string>
-    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
+    <!-- Card of the adaptive icon creator where the picture is placed on the icon -->
     <string name="adaptive_icon_launcher">Icono del lanzador</string>
+    <string name="adaptive_icon_gesture_hint">Arrastra para mover, pellizca para cambiar el tamaño</string>
+    <!-- Card of the adaptive icon creator showing the icons as the device draws them -->
+    <string name="adaptive_icon_preview">Vista previa</string>
+    <!-- Caption under the launcher icon in its own colors -->
+    <string name="adaptive_icon_standard">Estándar</string>
+    <!-- Caption under the launcher icon recolored by the system theme -->
+    <string name="adaptive_icon_themed">Temático</string>
     <string name="adaptive_icon_background_color">Color de fondo</string>
     <string name="adaptive_icon_reset_transform">Restablecer posición y escala</string>
-    <string name="adaptive_icon_safe_zone_inner">Zona segura (siempre visible)</string>
-    <string name="adaptive_icon_safe_zone_outer">Zona de máscara (puede ser recortada)</string>
-    <string name="adaptive_icon_no_transparency_warning">La imagen no tiene píxeles transparentes. El resultado puede tener un aspecto incorrecto</string>
+    <string name="adaptive_icon_no_transparency_warning">Esta imagen no tiene píxeles transparentes, por lo que los iconos temáticos y de notificación conservan el logo de Morphe</string>
     <string name="adaptive_icon_created_success">Icono adaptativo creado con éxito</string>
     <string name="adaptive_icon_creation_failed">Error al crear el icono adaptativo</string>
-    <string name="adaptive_icon_label">Adaptable</string>
-    <string name="adaptive_icon_monochrome_label">Monocromático</string>
     <string name="adaptive_icon_guide">Guía de creación de iconos</string>
     <string name="adaptive_icon_guide_png_title">Usar un PNG con fondo transparente</string>
-    <string name="adaptive_icon_guide_png_body">El primer plano debe ser un archivo PNG con un fondo transparente. Un fondo de color sólido se verá incorrecto: el color de fondo debe provenir del selector de fondo que se encuentra más abajo.</string>
+    <string name="adaptive_icon_guide_png_body">Un logo sobre un fondo transparente funciona mejor, con el color de fondo elegido abajo. En cambio, una imagen sin transparencia rellena todo el icono, y los iconos temáticos y de notificación conservan el logo de Morphe.</string>
     <string name="adaptive_icon_guide_safe_zones_title">Zonas seguras</string>
-    <string name="adaptive_icon_guide_safe_zones_body">"Zona interior (sólida): el contenido siempre queda a la vista en todas las formas del lanzador.
-Zona exterior (discontinua): puede quedar recortada por la máscara del lanzador; mantén los detalles importantes dentro de la zona interior."</string>
+    <string name="adaptive_icon_guide_safe_zones_body">El contorno muestra la forma del icono de tu lanzador, y todo lo que queda fuera se recorta. Otros lanzadores usan otras formas, así que mantén los detalles importantes dentro del círculo discontinuo, que aparece en todas las formas</string>
     <string name="adaptive_icon_guide_notification_title">Icono de notificación</string>
-    <string name="adaptive_icon_guide_notification_body">Generado automáticamente a partir de la imagen en primer plano. Ajusta su tamaño usando el control deslizante de Notificación. Todo el contenido visible aparece en blanco en la barra de estado.</string>
-    <string name="adaptive_icon_guide_monochrome_title">Icono monocromático</string>
-    <string name="adaptive_icon_guide_monochrome_body">Generado automáticamente a partir de la imagen en primer plano utilizando las mismas transformaciones de icono adaptable. Aparece tintado del color de acento del fondo de pantalla en Android 13 y versiones posteriores.</string>
+    <string name="adaptive_icon_guide_notification_body">Recortado de la parte visible de la imagen y ajustado al tamaño de los demás iconos de la barra de estado, independientemente del margen que tenga el archivo. Ajusta su tamaño con el control deslizante bajo la vista previa. Android lo muestra en un solo color.</string>
+    <string name="adaptive_icon_guide_monochrome_title">Icono temático</string>
+    <string name="adaptive_icon_guide_monochrome_body">Recortado de la imagen con la misma posición y tamaño que el icono del lanzador. En Android 13 o posterior, los lanzadores con iconos temáticos activados lo colorean a partir del fondo de pantalla.</string>
     <string name="notification_icon_preview">Notificación</string>
     <!-- Header Creator -->
     <string name="header_creator_create">Crear encabezado personalizado</string>
     <string name="header_creator_light_theme">Encabezado del tema claro</string>
     <string name="header_creator_dark_theme">Encabezado del tema oscuro</string>
-    <string name="header_creator_no_image">No se ha seleccionado ninguna imagen</string>
     <string name="header_creator_success">Encabezado creado con éxito</string>
     <string name="header_creator_failed">Error al crear el encabezado</string>
     <string name="header_creator_guide">Guía de creación de encabezados</string>
     <string name="header_creator_guide_image_title">Requisitos de la imagen</string>
-    <string name="header_creator_guide_image_body">Usa cualquier archivo de imagen (PNG o JPEG). Para mejores resultados, usa una imagen de formato ancho con una relación de aspecto de aprox. 2.7:1. Los archivos PNG con fondos transparentes se integrarán de forma natural con el tema de la aplicación.</string>
+    <string name="header_creator_guide_image_body">Un PNG con fondo transparente se integra en la barra de la aplicación. Los márgenes alrededor del logo en el archivo se ignoran, por lo que empieza con el tamaño y la posición del logo predeterminado.</string>
     <string name="header_creator_guide_themes_title">Temas claros y oscuros</string>
     <string name="header_creator_guide_themes_body">La mayoría de las aplicaciones requieren imágenes separadas para los temas claro y oscuro. Algunas aplicaciones (como YouTube Music) solo utilizan el tema oscuro, por lo que solo se muestra esa sección.</string>
     <string name="header_creator_guide_positioning_title">Posicionamiento y escalado</string>
-    <string name="header_creator_guide_positioning_body">Usa gestos de pellizcar y arrastrar directamente en la vista previa para posicionar y escalar la imagen. Las guías de ajuste aparecen cuando la imagen está cerca del centro. También puedes usar el control deslizante debajo de la vista previa.</string>
+    <string name="header_creator_guide_positioning_body">Arrastra y pellizca la imagen en el editor, o ajusta su tamaño con el control deslizante. El recuadro discontinuo marca dónde está el logo predeterminado, y aparecen guías cuando la imagen se alinea con él.</string>
     <!-- Batch patching -->
     <string name="batch_patch_action">Parchear seleccionados</string>
     <string name="batch_patch_title">Parcheo por lotes</string>
@@ -475,38 +492,39 @@ Zona exterior (discontinua): puede quedar recortada por la máscara del lanzador
     <string name="home_app_info_app_update_available_description">Las fuentes de parches son compatibles con una versión más reciente de esta aplicación. Vuelve a parchearla para pasar a esa versión</string>
     <string name="home_app_info_newest_supported_version">Más reciente compatible</string>
     <string name="home_app_info_version_move">Instalada %1$s, más reciente compatible %2$s</string>
+    <string name="home_app_info_version_restore">Instalada %1$s, parcheada %2$s</string>
     <string name="home_app_info_app_deleted_warning">La aplicación fue desinstalada</string>
-    <string name="home_app_info_app_deleted_description">Esta aplicación fue desinstalada fuera de Nivqo. Vuelve a parchearla para restaurar su funcionalidad</string>
-<string name="home_app_info_not_patched_description">Una versión sin parchear de esta aplicación está instalada. Nivqo aún conserva su registro de parches anterior</string>
+    <string name="home_app_info_app_deleted_description">Esta aplicación fue desinstalada fuera de Morphe. Vuelve a parchearla para restaurar su funcionalidad</string>
+    <string name="home_app_info_not_patched_description">Una versión sin parchear de esta aplicación está instalada. Morphe aún conserva su registro de parches anterior</string>
+    <string name="home_app_info_mount_replaced_description">Otra versión ha reemplazado la aplicación montada, por lo que el parcheo ya no se aplica. La restauración vuelve a colocar la versión parcheada</string>
+    <string name="home_app_info_mount_replaced_by_play_store_description">Google Play ha actualizado la aplicación instalada, por lo que el parcheo ya no se aplica. La restauración vuelve a instalar la versión parcheada. Desactiva la actualización automática de la aplicación en Google Play para que siga parcheada</string>
 <string name="app_links_title">Enlaces web compatibles</string>
-    <string name="app_links_description">En Android 12 o posterior, los enlaces a dominios compatibles se abren en el navegador de forma predeterminada a menos que se aprueben</string>
+<string name="app_links_description">En Android 12 o posterior, los enlaces a dominios compatibles se abren en el navegador de forma predeterminada a menos que se aprueben</string>
     <string name="app_links_unverified_banner_title">Enlaces web no verificados</string>
-    <string name="app_links_unverified_banner_description">Los enlaces web compatibles se abren actualmente en tu navegador en lugar de en esta aplicación</string>
+<string name="app_links_unverified_banner_description">Los enlaces web compatibles se abren actualmente en tu navegador en lugar de en esta aplicación</string>
     <string name="app_links_enable_auto">Activar automáticamente</string>
-    <string name="app_links_enable_auto_in_progress">Activando enlaces…</string>
+<string name="app_links_enable_auto_in_progress">Activando enlaces…</string>
     <string name="app_links_open_settings">Abrir ajustes de enlaces</string>
-    <string name="app_links_repair_success">Enlaces de aplicaciones activados correctamente</string>
+<string name="app_links_repair_success">Enlaces de aplicaciones activados correctamente</string>
     <string name="app_links_repair_failed">Error al activar automáticamente los enlaces de aplicaciones</string>
-    <string name="app_links_badge_enabled">Activado</string>
-    <string name="app_links_badge_disabled">Desactivado</string>
-    <string name="app_links_all_verified">Todos los enlaces compatibles están configurados para abrirse en esta aplicación</string>
+<string name="app_links_all_verified">Todos los enlaces compatibles están configurados para abrirse en esta aplicación</string>
     <string name="app_links_fix">Corregir enlaces</string>
-    <string name="configure">Configurar</string>
+<string name="configure">Configurar</string>
     <string name="patcher_rename_title">Esto instalará un clon</string>
-    <string name="patcher_rename_description">Los parches han compilado esta aplicación con un nombre de paquete propio, por lo que al instalarla se añade un clon junto a &lt;b&gt;%s&lt;/b&gt; en lugar de actualizarla</string>
+<string name="patcher_rename_description">Los parches han compilado esta aplicación con un nombre de paquete propio, por lo que al instalarla se añade un clon junto a &lt;b&gt;%s&lt;/b&gt; en lugar de actualizarla</string>
     <string name="patcher_rename_result_package">Se instalará como</string>
-    <string name="patcher_rename_replaces">Ya hay una aplicación instalada con ese nombre y será reemplazada</string>
+<string name="patcher_rename_replaces">Ya hay una aplicación instalada con ese nombre y será reemplazada</string>
     <string name="home_app_info_apk_size">Tamaño del APK</string>
-    <string name="home_app_info_cpu_arch">Arquitectura de la CPU</string>
+<string name="home_app_info_cpu_arch">Arquitectura de la CPU</string>
     <!-- Home Screen - Root Mode -->
     <string name="root_install_apk_required">El modo root requiere que el APK original esté instalado en tu dispositivo antes de aplicar parches.</string>
     <string name="root_pre_patch_installer_title">Elige el modo de parcheo</string>
     <string name="root_pre_patch_installer_description">Tu dispositivo tiene acceso root. Elige si esta aplicación debe ser parcheada para montaje root o instalación estándar</string>
     <string name="root_pre_patch_installer_mount_title">Modo de montaje root</string>
     <string name="root_pre_patch_installer_mount_description">Parchea para montaje root, luego monta el APK sobre la aplicación original coincidente. No se necesita GmsCore</string>
-    <string name="root_mount_module_unmount_warning">Si KernelSU tiene los módulos Desmontar habilitados de forma predeterminada, abre KernelSU &gt; Superusuario &gt; la aplicación que montaste &gt; Perfil &gt; Personalizado y deshabilita los módulos Desmontar. De lo contrario, el APK parcheado montado podría no tener efecto, incluso si Nivqo muestra que está montado</string>
+    <string name="root_mount_module_unmount_warning">Si KernelSU tiene los módulos Desmontar habilitados de forma predeterminada, abre KernelSU &gt; Superusuario &gt; la aplicación que montaste &gt; Perfil &gt; Personalizado y deshabilita los módulos Desmontar. De lo contrario, el APK parcheado montado podría no tener efecto, incluso si Morphe muestra que está montado</string>
 <string name="root_pre_patch_installer_standard_title">Modo de instalación estándar</string>
-    <string name="root_pre_patch_installer_standard_description">Parchea como un APK normal con soporte para GmsCore. Se utilizará tu configuración del instalador tras aplicar los parches.</string>
+<string name="root_pre_patch_installer_standard_description">Parchea como un APK normal con soporte para GmsCore. Se utilizará tu configuración del instalador tras aplicar los parches.</string>
     <string name="root_pre_patch_installer_hint">Este modo de parcheo es independiente de Ajustes &gt; Sistema &gt; Instalador y no se puede cambiar después de aplicar los parches</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">Error copiado al portapapeles</string>
@@ -519,10 +537,10 @@ Zona exterior (discontinua): puede quedar recortada por la máscara del lanzador
     <!-- Field labels, shown in a column beside their values. Keep them short, a long one is cut off rather than wrapped -->
     <string name="patcher_field_app">Aplicación</string>
     <string name="patcher_field_package">Paquete</string>
+    <string name="patcher_field_failed_patch">Parche fallido</string>
     <string name="patcher_field_source">Fuente</string>
     <string name="patcher_field_split">APK dividido</string>
     <string name="patcher_field_manager">Gestor</string>
-    <string name="patcher_field_patcher">Parcheador</string>
     <string name="patcher_field_runtime">Ejecución</string>
     <!-- Native code libraries (.so files) packed inside the APK -->
     <string name="patcher_field_libraries">Bibliotecas</string>
@@ -553,6 +571,7 @@ Zona exterior (discontinua): puede quedar recortada por la máscara del lanzador
     <string name="patcher_installing_subtitle">¡A punto de despegar! 🚀</string>
     <string name="patcher_success_title">¡Listo! 🎉</string>
     <string name="patcher_success_subtitle">¡Tu aplicación está parcheada e instalada!</string>
+    <string name="patcher_mounted_subtitle">¡Tu aplicación está parcheada y montada!</string>
     <string name="patcher_complete_title">¡Parcheo completado! ✨</string>
     <string name="patcher_failed_title">¡Ups! Algo salió mal</string>
     <string name="patcher_failed_dialog_title">Error al aplicar el parche</string>
@@ -567,49 +586,50 @@ Zona exterior (discontinua): puede quedar recortada por la máscara del lanzador
     <string name="patcher_conflict_subtitle">Debes desinstalar la versión existente</string>
     <string name="patcher_conflict_hint">La aplicación parcheada utiliza un certificado diferente al de la versión instalada. Al desinstalarla, se borrarán todos los datos de la aplicación</string>
     <string name="patcher_installed_conflict_title">Desinstalación necesaria</string>
-    <string name="patcher_installed_conflict_body">"Nivqo firma las aplicaciones parcheadas con su propio certificado, que es diferente del original. Android requiere eliminar la versión existente antes de que se pueda instalar la aplicación parcheada.
+    <string name="patcher_installed_conflict_body">"Morphe firma las aplicaciones parcheadas con su propio certificado, que es diferente del original. Android requiere eliminar la versión existente antes de que se pueda instalar la aplicación parcheada.
 
 Al desinstalarla se borrarán permanentemente todos los datos de la aplicación"</string>
-<string name="patcher_install_error_title">Error de instalación</string>
+    <string name="patcher_install_error_title">Error de instalación</string>
+    <string name="patcher_mount_error_title">Error de montaje</string>
     <string name="patcher_install_error_subtitle">Intenta desinstalar y volver a instalar</string>
     <string name="patcher_ready_to_mount_subtitle">Pulsa el botón más abajo para montar</string>
     <string name="patcher_patches_excluded_for_installer">No disponible para este método de instalación y excluido: %s</string>
     <string name="patcher_back_to_game_hint">Pulsa %1$s para volver a tu juego</string>
     <string name="patcher_storage_permission_dialog_title">No se puede acceder a la ruta de almacenamiento</string>
     <string name="patcher_incompatible_patcher_title">Actualización necesaria</string>
-    <string name="patcher_incompatible_patcher_description">El paquete &lt;b&gt;%1$s&lt;/b&gt; requiere la versión &lt;b&gt;%2$s&lt;/b&gt; o más reciente del parcheador. Por favor, actualiza Nivqo para parchear esta aplicación</string>
+    <string name="patcher_incompatible_patcher_description">La fuente &lt;b&gt;%1$s&lt;/b&gt; requiere el parcheador &lt;b&gt;%2$s&lt;/b&gt; o una versión posterior. Actualiza Morphe para usarla</string>
 <string name="patcher_storage_permission_description_api30">Una o varias opciones de parches apuntan a rutas que Nivqo no puede leer. Concede acceso al almacenamiento y pulsa el botón para que el parcheo empiece automáticamente</string>
 <string name="patcher_storage_permission_description_legacy">Una o varias opciones de parches apuntan a rutas que no se pueden acceder. Actualiza las rutas en las opciones de parches y vuelve a intentarlo</string>
-    <string name="patcher_storage_permission_grant">Conceder permiso de almacenamiento</string>
+<string name="patcher_storage_permission_grant">Conceder permiso de almacenamiento</string>
     <string name="patcher_storage_permission_denied_warning">Permiso de almacenamiento denegado. Concede el permiso para usar esta ruta o mueve los archivos al directorio privado de la aplicación</string>
-    <string name="patcher_storage_permission_open_settings">Abrir ajustes de almacenamiento</string>
+<string name="patcher_storage_permission_open_settings">Abrir ajustes de almacenamiento</string>
     <string name="patcher_storage_badge_denied">Permiso denegado</string>
-    <string name="patcher_storage_badge_missing">No encontrado</string>
+<string name="patcher_storage_badge_missing">No encontrado</string>
     <string name="batch_patch_option_paths_skipped">Faltan archivos de opciones de parches y se omitirán: %1$s</string>
-    <string name="patcher_missing_patches_title">Algunos parches ya no existen</string>
+<string name="patcher_missing_patches_title">Algunos parches ya no existen</string>
     <string name="patcher_missing_patches_description">La selección guardada para esta aplicación incluye parches que ya no ofrece ninguna fuente activada. Si continúas, se parcheará la aplicación sin ellos</string>
-    <string name="patcher_missing_patches_label">Ya no se ofrece</string>
+<string name="patcher_missing_patches_label">Ya no se ofrece</string>
     <string name="patcher_option_paths_gone_title">Faltan archivos de opciones de parches</string>
-    <string name="patcher_option_paths_gone_description">Una o más opciones de parches apuntan a archivos que ya no están. Elimina las rutas para parchear sin ellos, o vuelve a poner los archivos e inténtalo de nuevo</string>
+<string name="patcher_option_paths_gone_description">Una o más opciones de parches apuntan a archivos que ya no están. Elimina las rutas para parchear sin ellos, o vuelve a poner los archivos e inténtalo de nuevo</string>
     <string name="patcher_option_paths_clear">Eliminar las rutas y continuar</string>
-    <string name="patcher_storage_permission_hint">Consejo: Mueve los archivos a /Android/data/app.nivqo.manager/files/ - no se necesitan permisos adicionales</string>
-<!-- Patcher Screen - Patcher Steps -->
+<string name="patcher_storage_permission_hint">Consejo: Mueve los archivos a /Android/data/app.morphe.manager/files/ - no se necesitan permisos adicionales</string>
+    <!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Preparando</string>
     <string name="patcher_step_load_patches">Cargando parches</string>
     <string name="patcher_step_prepare_split_apk">Fusionando APK dividido</string>
     <string name="patcher_step_unpack">Leyendo archivo APK</string>
-    <string name="patcher_step_group_patching">Aplicando parches</string>
     <string name="patcher_step_group_saving">Guardando</string>
     <string name="patcher_step_write_patched">Guardando archivo APK parcheado</string>
     <string name="patcher_step_sign_apk">Firmando archivo APK parcheado</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Protección de parcheo en segundo plano</string>
-    <string name="battery_optimization_dialog_description">Algunos dispositivos pueden detener el parcheador cuando la aplicación se minimiza. Permite que Nivqo se ejecute sin restricciones de batería para garantizar que el parcheo se complete de manera fiable</string>
+    <string name="battery_optimization_dialog_description">Algunos dispositivos pueden detener el parcheador cuando la aplicación se minimiza. Permite que Morphe se ejecute sin restricciones de batería para garantizar que el parcheo se complete de manera fiable</string>
 <string name="battery_optimization_not_now">Ahora no</string>
-    <!-- Memory limit dialog, shown after the patcher process was killed -->
+<!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">No hay suficiente memoria</string>
     <string name="patcher_memory_adjustment_description">El sistema detuvo el parcheador mientras se ejecutaba con un límite de memoria de %1$d MB. Reducir el límite a %2$d MB hace que el parcheador sea un objetivo más pequeño y puede permitir que la ejecución finalice</string>
     <string name="patcher_memory_adjustment_description_at_minimum">El sistema detuvo el parcheador mientras se ejecutaba con un límite de memoria de %1$d MB, que ya es el más bajo disponible. Intenta parchear con menos fuentes de parches o selecciona menos parches</string>
+    <string name="patcher_memory_adjustment_description_finished">El sistema detuvo el parcheador en un límite de memoria de %1$d MB y solo se completó con %2$d MB. Al empezar en %2$d MB, se omite ese intento fallido la próxima vez</string>
     <string name="patcher_memory_adjustment_apply">Reducir a %1$d MB</string>
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">Aplicando parches…</string>
@@ -661,16 +681,16 @@ Al desinstalarla se borrarán permanentemente todos los datos de la aplicación"
     <string name="install_ignore_signature">Instalar de todos modos</string>
     <string name="install_ignore_signature_description">Conserva los datos de la aplicación, pero solo funciona si un módulo root desactiva la verificación de firmas de Android</string>
     <string name="uninstall_app_fail">Error al desinstalar la aplicación: %s</string>
-    <string name="uninstall_app_unverified">Dejada en su lugar: Nivqo no pudo verificar que la aplicación instalada sea la compilación que parcheó</string>
+    <string name="uninstall_app_unverified">Dejada en su lugar: Morphe no pudo verificar que la aplicación instalada sea la compilación que parcheó</string>
 <string name="launch_app_unverified">Nivqo no pudo verificar que la aplicación instalada sea la compilación que parcheó</string>
 <string name="uninstall_timeout">Tiempo de espera de desinstalación agotado</string>
-    <string name="save_apk_success">APK guardado</string>
+<string name="save_apk_success">APK guardado</string>
     <string name="saved_app_export_failed">Error al exportar la aplicación parcheada</string>
-    <string name="saved_app_removed_toast">La aplicación parcheada guardada se ha eliminado</string>
+<string name="saved_app_removed_toast">La aplicación parcheada guardada se ha eliminado</string>
     <string name="saved_app_launch_unavailable">Instala la aplicación antes de abrirla</string>
-    <string name="package_name">Nombre del paquete</string>
+<string name="package_name">Nombre del paquete</string>
     <string name="failed_to_mount">Error al montar: %s</string>
-    <string name="failed_to_unmount">Error al desmontar: %s</string>
+<string name="failed_to_unmount">Error al desmontar: %s</string>
     <!-- Patcher Screen - Mini-games -->
     <string name="mini_game_score">Puntuación: %s</string>
     <string name="mini_game_best">Mejor: %s</string>
@@ -709,6 +729,9 @@ Al desinstalarla se borrarán permanentemente todos los datos de la aplicación"
     <string name="settings_appearance_background_snow">Nieve</string>
     <string name="settings_appearance_background_grid">Cuadrícula</string>
     <string name="settings_appearance_background_particles">Partículas</string>
+    <string name="settings_appearance_background_lava">Lámpara de lava</string>
+    <string name="settings_appearance_background_halloween">Halloween</string>
+    <string name="settings_appearance_background_fireworks">Fuegos artificiales</string>
     <string name="settings_appearance_background_none">Ninguna</string>
     <string name="settings_appearance_background_random">Aleatorio</string>
     <string name="settings_appearance_background_random_interval_launch">Al inicio</string>
@@ -716,6 +739,10 @@ Al desinstalarla se borrarán permanentemente todos los datos de la aplicación"
     <string name="settings_appearance_background_random_interval_3days">Cada 3 días</string>
     <string name="settings_appearance_parallax_effect">Efecto parallax</string>
     <string name="settings_appearance_parallax_effect_description">Desplazamiento suave del fondo al inclinar el dispositivo</string>
+    <string name="settings_appearance_seasonal_themes">Temas de temporada</string>
+    <string name="settings_appearance_seasonal_themes_description">Fondos y saludos festivos durante las fiestas</string>
+    <!-- %1$s is a holiday background name, such as Halloween. %2$s is a date, such as November 1 -->
+    <string name="settings_appearance_seasonal_background_notice">El fondo %1$s está activo hasta el %2$s mientras los temas de temporada estén activados</string>
     <!-- Settings - Appearance Tab - Theme -->
     <string name="settings_appearance_theme">Tema</string>
     <string name="settings_appearance_theme_mode">Modo del tema</string>
@@ -773,13 +800,28 @@ Al desinstalarla se borrarán permanentemente todos los datos de la aplicación"
     <string name="settings_appearance_app_card_colors_bundle_description">Usa el color propio de cada aplicación aquí, sombreado automáticamente para que encaje</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Icono de la aplicación</string>
-    <string name="settings_appearance_app_icon_selector_description">Cómo se ve Nivqo en la pantalla de inicio y en el cajón de aplicaciones</string>
+    <string name="settings_appearance_app_icon_selector_description">Cómo se ve Morphe en la pantalla de inicio y en el cajón de aplicaciones</string>
 <string name="settings_appearance_app_icon_default">Predeterminado</string>
-    <string name="settings_appearance_app_icon_light_2">Cielo</string>
+<string name="settings_appearance_app_icon_light_2">Cielo</string>
     <string name="settings_appearance_app_icon_light_3">Atardecer</string>
-    <string name="settings_appearance_app_icon_dark_1">Océano</string>
+    <string name="settings_appearance_app_icon_light_4">Lavanda</string>
+    <string name="settings_appearance_app_icon_light_5">Glaciar</string>
+    <string name="settings_appearance_app_icon_light_6">Niebla</string>
+    <string name="settings_appearance_app_icon_light_7">Arena</string>
+    <string name="settings_appearance_app_icon_dark_1">Verde azulado</string>
     <string name="settings_appearance_app_icon_dark_2">Vacío</string>
-    <string name="settings_appearance_app_icon_dark_3">Índigo</string>
+    <string name="settings_appearance_app_icon_dark_3">Ciruela</string>
+    <string name="settings_appearance_app_icon_dark_4">Medianoche</string>
+    <string name="settings_appearance_app_icon_dark_5">Pizarra</string>
+    <string name="settings_appearance_app_icon_accent_1">Aurora</string>
+    <string name="settings_appearance_app_icon_accent_2">Tinta</string>
+    <string name="settings_appearance_app_icon_accent_3">Papel</string>
+    <string name="settings_appearance_app_icon_accent_4">Crepúsculo</string>
+    <string name="settings_appearance_app_icon_background">Fondo</string>
+    <string name="settings_appearance_app_icon_mark">Logo</string>
+    <string name="settings_appearance_app_icon_mark_color">Color</string>
+    <string name="settings_appearance_app_icon_mark_white">Blanco</string>
+    <string name="settings_appearance_app_icon_mark_black">Negro</string>
     <string name="settings_appearance_app_icon_change_dialog_title">¿Cambiar el icono de la aplicación?</string>
     <string name="settings_appearance_app_icon_change_dialog_message">¿Cambiar a &lt;b&gt;%s&lt;/b&gt; y reiniciar?</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -791,53 +833,55 @@ Al desinstalarla se borrarán permanentemente todos los datos de la aplicación"
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <string name="settings_advanced_updates_manager_prereleases_description">Acceso anticipado a nuevas versiones de Nivqo</string>
 <string name="settings_advanced_updates_prerelease_warning_title">¿Activar actualizaciones pre-lanzamiento?</string>
-    <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
+<!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
     <string name="settings_advanced_updates_prerelease_warning_message">"Las versiones pre-lanzamiento de Nivqo todavía están en desarrollo y pueden ser inestables.
 
 Los parches no se ven afectados: habilita los parches pre-lanzamiento para cada fuente en la lista de fuentes de parches"</string>
 <string name="settings_advanced_updates_allow_metered">Actualizaciones con datos móviles</string>
-    <string name="settings_advanced_updates_allow_metered_description">Permite que Nivqo y las actualizaciones de los parches se descarguen a través de datos móviles</string>
+<string name="settings_advanced_updates_allow_metered_description">Permite que Morphe y las actualizaciones de los parches se descarguen a través de datos móviles</string>
 <string name="settings_advanced_updates_background_notifications">Notificaciones de actualización en segundo plano</string>
-    <string name="settings_advanced_updates_background_notifications_description">Comprueba periódicamente si hay actualizaciones en segundo plano y notifica cuando estén disponibles</string>
+<string name="settings_advanced_updates_background_notifications_description">Comprueba periódicamente si hay actualizaciones en segundo plano y notifica cuando estén disponibles</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Recibe notificaciones push instantáneas de las nuevas versiones, incluso cuando la aplicación está cerrada</string>
-    <string name="settings_system_notifications_categories">Categorías de notificaciones</string>
+<string name="settings_system_notifications_categories">Categorías de notificaciones</string>
     <string name="settings_system_notifications_categories_description">Elige en los ajustes del sistema de qué actualizaciones quieres recibir notificaciones</string>
-    <string name="settings_advanced_update_interval">Frecuencia de comprobación</string>
+<string name="settings_advanced_update_interval">Frecuencia de comprobación</string>
     <string name="settings_advanced_update_interval_dialog_title">Buscar actualizaciones</string>
-    <string name="settings_advanced_update_interval_hourly">Una vez cada hora</string>
+<string name="settings_advanced_update_interval_hourly">Una vez cada hora</string>
     <string name="settings_advanced_update_interval_daily">Una vez al día</string>
-    <string name="settings_advanced_update_interval_weekly">Una vez a la semana</string>
+<string name="settings_advanced_update_interval_weekly">Una vez a la semana</string>
     <string name="settings_advanced_update_interval_monthly">Una vez al mes</string>
-    <string name="settings_advanced_update_interval_chip_subtitle">Frecuencia de comprobación en segundo plano</string>
+<string name="settings_advanced_update_interval_chip_subtitle">Frecuencia de comprobación en segundo plano</string>
     <string name="settings_advanced_update_interval_battery_warning">Las comprobaciones en segundo plano pueden no funcionar de forma fiable en algunos dispositivos. Fabricantes como Xiaomi, Huawei, Samsung u OnePlus, a menudo restringen agresivamente los procesos en segundo plano para ahorrar batería</string>
-    <string name="settings_advanced_external_batch_patch">Permitir activadores externos</string>
+<string name="settings_advanced_external_batch_patch">Permitir activadores externos</string>
     <string name="settings_advanced_external_batch_patch_description">Permite que las aplicaciones de automatización inicien el parcheo por lotes mediante un intent</string>
-    <string name="external_batch_patch_title">¿Iniciar el parcheo por lotes?</string>
+<string name="external_batch_patch_title">¿Iniciar el parcheo por lotes?</string>
     <string name="external_batch_patch_description">%s solicita a Nivqo que parchee e instale aplicaciones</string>
 <string name="external_batch_patch_trust_caller">Permitir siempre esta aplicación</string>
-    <string name="external_batch_patch_unknown_caller">Una aplicación desconocida</string>
+<string name="external_batch_patch_unknown_caller">Una aplicación desconocida</string>
     <!-- Notification content -->
-    <string name="notification_manager_update_title">Actualización de Nivqo disponible</string>
 <string name="notification_bundle_update_title">Nuevos parches disponibles</string>
-    <string name="notification_update_text">La versión %s está lista para descargarse</string>
+<string name="notification_update_text">La versión %s está lista para descargarse</string>
     <string name="notification_bundle_update_text_unversioned">Pulsa para abrir Nivqo y actualizar</string>
 <string name="notification_permission_dialog_title">Permitir notificaciones</string>
-    <string name="notification_permission_dialog_description">Nivqo necesita el permiso de notificación para avisarte cuando haya actualizaciones disponibles en segundo plano</string>
-<string name="notification_post_patch_dialog_title">¿Quieres ser notificado cuando haya actualizaciones disponibles?</string>
-    <string name="notification_channel_manager_updates">Actualizaciones de Nivqo</string>
-    <string name="notification_channel_manager_updates_description">Notificaciones sobre nuevas versiones de Nivqo</string>
+    <string name="notification_permission_dialog_description">Morphe necesita el permiso de notificación para avisarte cuando haya actualizaciones disponibles en segundo plano</string>
+    <string name="notification_post_patch_dialog_title">¿Quieres ser notificado cuando haya actualizaciones disponibles?</string>
+    <string name="notification_channel_manager_updates">Actualizaciones de Morphe</string>
+    <string name="notification_channel_manager_updates_description">Notificaciones sobre nuevas versiones de Morphe</string>
 <string name="notification_channel_patch_updates">Actualizaciones de parches</string>
-    <string name="notification_channel_patch_updates_description">Notificaciones sobre nuevas versiones de parches</string>
-    <string name="notification_channel_patcher">Parcheando</string>
-    <string name="notification_channel_patcher_description">Se muestra mientras Nivqo está parcheando una aplicación en segundo plano</string>
-<!-- Settings - Advanced Tab - Expert settings Section -->
+<string name="notification_channel_patch_updates_description">Notificaciones sobre nuevas versiones de parches</string>
+    <string name="notification_channel_patcher_description">Se muestra mientras Morphe está parcheando una aplicación en segundo plano</string>
+    <string name="notification_channel_mounted_apps">Apps montadas</string>
+    <string name="notification_channel_mounted_apps_description">Cuando otra versión ha sustituido a una aplicación montada y su parcheo ya no se aplica</string>
+    <string name="notification_mount_replaced_title">%1$s ya no está parcheada</string>
+    <string name="notification_mount_replaced_text">La v%1$s ha reemplazado a la v%2$s parcheada. Abre Morphe para restaurarla</string>
+    <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Ajustes avanzados</string>
     <string name="settings_advanced_expert_mode">Modo Experto</string>
     <string name="settings_advanced_expert_mode_description">Activa ajustes avanzados de parcheo de Nivqo y opciones de personalización</string>
 <string name="settings_advanced_expert_mode_dialog_title">¿Activar el modo Experto?</string>
-    <string name="settings_advanced_expert_mode_dialog_message">El modo Experto ofrece más control sobre cómo se aplican los parches, pero configurar incorrectamente estos ajustes puede resultar en una aplicación no funcional</string>
+<string name="settings_advanced_expert_mode_dialog_message">El modo Experto ofrece más control sobre cómo se aplican los parches, pero configurar incorrectamente estos ajustes puede resultar en una aplicación no funcional</string>
     <string name="settings_advanced_strip_unused_libs">Optimizar para la arquitectura del dispositivo</string>
-    <string name="settings_advanced_strip_unused_libs_description">Elimina las bibliotecas de arquitectura de CPU no utilizadas y los módulos APK divididos</string>
+<string name="settings_advanced_strip_unused_libs_description">Elimina las bibliotecas de arquitectura de CPU no utilizadas y los módulos APK divididos</string>
     <!-- Settings - Advanced Tab - GitHub PAT Settings -->
     <string name="settings_advanced_github_pat_description">Necesario para fuentes de pull request</string>
     <string name="settings_advanced_github_pat_configured">Token configurado</string>
@@ -948,59 +992,59 @@ Las dimensiones de la imagen deben ser las siguientes:
     <string name="installer_status_shizuku_not_running">Inicia Shizuku o Sui y vuelve a intentarlo</string>
     <string name="installer_status_shizuku_permission">Otorgar permiso a Nivqo desde la aplicación Shizuku</string>
 <string name="installer_mount_warning_install">Tu instalador principal está configurado como el instalador de montaje root. Esta aplicación guardada no se instaló con montaje</string>
-    <string name="mount_version_mismatch_message">La versión de la aplicación original (%2$s) no coincide con la versión de la aplicación parcheada (%1$s). Monta la versión original que coincida, luego vuelve a intentarlo</string>
+<string name="mount_version_mismatch_message">La versión de la aplicación original (%2$s) no coincide con la versión de la aplicación parcheada (%1$s). Monta la versión original que coincida, luego vuelve a intentarlo</string>
     <string name="mount_stock_restore_failed_message">Android rechazó el APK original guardado. Instala la versión original correspondiente y luego intenta Montar nuevamente</string>
-    <string name="installer_status_shizuku_unsupported">La versión de Shizuku instalada no es compatible</string>
+<string name="installer_status_shizuku_unsupported">La versión de Shizuku instalada no es compatible</string>
     <string name="installer_action_open_shizuku">Abrir Shizuku</string>
-    <string name="installer_hint_generic">La instalación falló. Vuelve a intentarlo o cambia a un instalador diferente</string>
+<string name="installer_hint_generic">La instalación falló. Vuelve a intentarlo o cambia a un instalador diferente</string>
     <string name="installer_hint_conflict">Ya existe una aplicación instalada con este nombre de paquete. Desinstálala antes de continuar</string>
-    <string name="installer_confirm_notification_title">Confirmar la instalación</string>
+<string name="installer_confirm_notification_title">Confirmar la instalación</string>
     <string name="installer_confirm_notification_text">Pulsa para terminar de instalar la aplicación parcheada</string>
-    <string name="installer_external_launched">Abriendo %s…</string>
+<string name="installer_external_launched">Abriendo %s…</string>
     <string name="installer_external_timeout">%s no confirmó la instalación. Comprueba la otra aplicación e inténtalo de nuevo</string>
-    <string name="installer_external_success">%s informó de una instalación correcta</string>
+<string name="installer_external_success">%s informó de una instalación correcta</string>
     <string name="installer_unavailable_title">%s no disponible</string>
-    <string name="installer_unavailable_message">Tu instalador preferido (%s) no está disponible actualmente. Puedes solucionar el problema y volver a intentarlo o utilizar el instalador estándar en su lugar</string>
+<string name="installer_unavailable_message">Tu instalador preferido (%s) no está disponible actualmente. Puedes solucionar el problema y volver a intentarlo o utilizar el instalador estándar en su lugar</string>
     <string name="installer_unavailable_shizuku_hint">Asegúrate de que Shizuku esté en ejecución y se haya concedido el permiso a esta aplicación</string>
-    <string name="installer_use_standard">Usar estándar</string>
+<string name="installer_use_standard">Usar estándar</string>
     <string name="installer_play_store_warning_title">¿Instalar como Play Store?</string>
-    <string name="installer_play_store_warning_message">La aplicación parcheada se registrará como instalada desde Google Play Store. Esto puede ayudar a servicios como Android Auto a reconocerla como una aplicación de Play Store, pero no está garantizado para cada aplicación o dispositivo. El comportamiento puede variar según la versión de Android, la ROM, la marca del dispositivo y las comprobaciones específicas de la aplicación.</string>
+<string name="installer_play_store_warning_message">La aplicación parcheada se registrará como instalada desde Google Play Store. Esto puede ayudar a servicios como Android Auto a reconocerla como una aplicación de Play Store, pero no está garantizado para cada aplicación o dispositivo. El comportamiento puede variar según la versión de Android, la ROM, la marca del dispositivo y las comprobaciones específicas de la aplicación.</string>
     <string name="installer_play_store_warning_risk">Play Store puede ofrecer actualizaciones para la aplicación parcheada. Instalar esa actualización sobrescribirá el APK parcheado con la versión original y eliminará los parches. Si se solicita que actualices, pulsa el menú de los tres puntos en la página de Play Store de la aplicación y elige \"Desactivar actualizaciones\"</string>
-    <string name="installer_play_store_warning_continue">Entiendo, continuar</string>
+<string name="installer_play_store_warning_continue">Entiendo, continuar</string>
     <string name="installer_play_store_mode">Instalar como Play Store</string>
-    <string name="installer_play_store_mode_description">Registrar Google Play Store como la fuente de instalación para este método de instalación</string>
+<string name="installer_play_store_mode_description">Registrar Google Play Store como la fuente de instalación para este método de instalación</string>
     <string name="settings_prompt_installer_on_install">Solicitud de selección del instalador</string>
-    <string name="settings_prompt_installer_on_install_description">Muestra el diálogo de selección del instalador cada vez que se instala una aplicación parcheada</string>
+<string name="settings_prompt_installer_on_install_description">Muestra el diálogo de selección del instalador cada vez que se instala una aplicación parcheada</string>
     <string name="settings_auto_install_with_shizuku">Instalación automática después del parcheo</string>
-    <string name="settings_auto_install_with_shizuku_description">Instala el APK parcheado tan pronto como se completa el parcheo</string>
+<string name="settings_auto_install_with_shizuku_description">Instala el APK parcheado tan pronto como se completa el parcheo</string>
     <string name="settings_auto_uninstall_with_shizuku">Desinstalación automática en caso de conflicto</string>
-    <string name="settings_auto_uninstall_with_shizuku_description">Cuando se instala automáticamente con Shizuku, desinstala primero la aplicación existente si Android informa de un conflicto de firma. Esto puede eliminar los datos de la aplicación</string>
+<string name="settings_auto_uninstall_with_shizuku_description">Cuando se instala automáticamente con Shizuku, desinstala primero la aplicación existente si Android informa de un conflicto de firma. Esto puede eliminar los datos de la aplicación</string>
     <string name="settings_auto_uninstall_warning_title">¿Activar desinstalación automática?</string>
-    <string name="settings_auto_uninstall_warning_message">Si Android informa de un conflicto de firma durante la instalación automática de Shizuku, Nivqo desinstalará la aplicación existente antes de instalar el APK parcheado</string>
+<string name="settings_auto_uninstall_warning_message">Si Android informa de un conflicto de firma durante la instalación automática de Shizuku, Morphe desinstalará la aplicación existente antes de instalar el APK parcheado</string>
 <string name="settings_auto_uninstall_warning_risk">Esto puede eliminar los datos de la aplicación. Si el APK parcheado falla al instalarse después de la desinstalación, es posible que la aplicación anterior ya no esté disponible</string>
-    <string name="installer_shizuku_status_action">Verificar estado de Shizuku</string>
+<string name="installer_shizuku_status_action">Verificar estado de Shizuku</string>
     <string name="installer_shizuku_status_title">Estado de Shizuku</string>
-    <string name="installer_shizuku_status_ready">Listo</string>
+<string name="installer_shizuku_status_ready">Listo</string>
     <string name="installer_shizuku_status_issue">Requiere atención</string>
-    <string name="installer_shizuku_status_supported">Compatible</string>
+<string name="installer_shizuku_status_supported">Compatible</string>
     <string name="installer_shizuku_status_running">Ejecutándose</string>
-    <string name="installer_shizuku_status_permission">Permiso</string>
+<string name="installer_shizuku_status_permission">Permiso</string>
     <string name="installer_shizuku_status_mode">Modo</string>
-    <string name="installer_shizuku_status_provider">Proveedor</string>
+<string name="installer_shizuku_status_provider">Proveedor</string>
     <string name="installer_shizuku_status_granted">Concedido</string>
-    <string name="installer_shizuku_status_missing">Faltante</string>
+<string name="installer_shizuku_status_missing">Faltante</string>
     <string name="installer_shizuku_request_permission">Solicitar permiso</string>
-    <string name="installer_shizuku_install_fail">Error al instalar Shizuku: %s</string>
+<string name="installer_shizuku_install_fail">Error al instalar Shizuku: %s</string>
     <string name="installer_shizuku_install_fail_with_details">"Error al instalar Shizuku: %1$s
 
 Detalles: %2$s"</string>
-    <string name="installer_shizuku_error_permission">Falta el permiso de Shizuku. Concede permiso a Nivqo e inténtalo de nuevo</string>
+<string name="installer_shizuku_error_permission">Falta el permiso de Shizuku. Concede permiso a Morphe e inténtalo de nuevo</string>
 <string name="installer_shizuku_error_timeout">Shizuku no devolvió un resultado de instalación. Asegúrate de que aún se esté ejecutando e inténtalo de nuevo</string>
-    <string name="installer_shizuku_error_downgrade">Android bloqueó esta acción porque revertiría la aplicación a una versión anterior</string>
+<string name="installer_shizuku_error_downgrade">Android bloqueó esta acción porque revertiría la aplicación a una versión anterior</string>
     <string name="installer_shizuku_error_signature">Android bloqueó esto porque la aplicación instalada tiene una firma diferente</string>
-    <string name="installer_shizuku_error_invalid_apk">Android no pudo leer este APK</string>
+<string name="installer_shizuku_error_invalid_apk">Android no pudo leer este APK</string>
     <string name="installer_shizuku_error_user_profile">El sistema bloqueó esta instalación. En Xiaomi y dispositivos similares, activa \"Instalar vía USB\" en las opciones de desarrollador. En un perfil de trabajo, las instalaciones pueden estar restringidas por la política</string>
-    <!-- Settings - System Tab - Performance Section -->
+<!-- Settings - System Tab - Performance Section -->
     <string name="settings_system_battery_optimization">Optimización de batería</string>
     <string name="settings_system_battery_optimization_description">Mantiene el parcheador en funcionamiento cuando la aplicación está minimizada</string>
     <string name="settings_system_background">Segundo plano</string>
@@ -1011,13 +1055,13 @@ Detalles: %2$s"</string>
     <string name="settings_system_memory_limit_subtitle">Memoria disponible para parches</string>
     <string name="settings_system_process_runtime_heap_limit_ignored">Este dispositivo ignoró el límite de memoria en la última ejecución, así que el parcheo podría acabar ejecutándose dentro de Nivqo</string>
 <string name="settings_system_memory_limit_warning">Un límite de memoria bajo puede causar errores al parchear aplicaciones más grandes</string>
-    <string name="settings_system_memory_limit_high_warning">Un límite de memoria alto puede ralentizar mucho el parcheo en algunos dispositivos. Auméntalo solo si el parcheo sigue fallando con límites más bajos</string>
+<string name="settings_system_memory_limit_high_warning">Un límite de memoria alto puede ralentizar mucho el parcheo en algunos dispositivos. Auméntalo solo si el parcheo sigue fallando con límites más bajos</string>
     <string name="settings_system_process_runtime_enabled_description">Límite de %s MB</string>
-    <string name="settings_system_process_runtime_disabled_description">Pulsa para configurar</string>
+<string name="settings_system_process_runtime_disabled_description">Pulsa para configurar</string>
     <string name="settings_system_process_runtime_description_not_available">Esta función requiere Android 11 o superior</string>
-    <string name="settings_system_patcher_completion_sound">Sonido de finalización</string>
+<string name="settings_system_patcher_completion_sound">Sonido de finalización</string>
     <string name="settings_system_patcher_completion_sound_description">Reproduce un tono distintivo para indicar éxito o fallo al finalizar el parcheo</string>
-    <!-- Settings - System Tab - Notifications Section -->
+<!-- Settings - System Tab - Notifications Section -->
     <string name="settings_system_notifications">Notificaciones</string>
     <string name="settings_system_notifications_description">Configura las alertas en segundo plano y los sonidos de finalización</string>
     <string name="settings_system_notifications_success_sound">Sonido de éxito</string>
@@ -1032,50 +1076,50 @@ Detalles: %2$s"</string>
     <string name="settings_system_import_export">Importar y exportar</string>
     <string name="settings_system_signing_key">Clave de firma</string>
     <string name="settings_system_signing_key_description">Respalda y restaura la clave con la que se firman tus aplicaciones parcheadas</string>
-    <string name="settings_system_signing_key_dialog_description">Todas las aplicaciones que Nivqo parchea se firman con esta clave. Guarda una copia: sin ella, las aplicaciones parcheadas solo se podrán actualizar después de desinstalarlas</string>
+    <string name="settings_system_signing_key_dialog_description">Todas las aplicaciones que Morphe parchea se firman con esta clave. Guarda una copia: sin ella, las aplicaciones parcheadas solo se podrán actualizar después de desinstalarlas</string>
 <string name="settings_system_signing_key_missing">Nivqo crea una con tu primer parcheo</string>
 <string name="settings_system_signing_key_created">Creada %s</string>
-    <string name="settings_system_signing_key_fingerprint">Huella SHA-256</string>
+<string name="settings_system_signing_key_fingerprint">Huella SHA-256</string>
     <string name="settings_system_backup_appearance_description">Tema, colores e idioma</string>
-    <string name="settings_system_backup_home_description">Grupos, aplicaciones ocultas, ordenación e interruptores</string>
+<string name="settings_system_backup_home_description">Grupos, aplicaciones ocultas, ordenación e interruptores</string>
     <string name="settings_system_backup_patching">Parcheo e instalación</string>
-    <string name="settings_system_backup_patching_description">Instalador, parcheador y APKs guardados</string>
+<string name="settings_system_backup_patching_description">Instalador, parcheador y APKs guardados</string>
     <string name="settings_system_backup_updates_description">Versiones pre-lanzamiento y comprobaciones de actualizaciones</string>
-    <string name="settings_system_backup_sources_description">Fuentes personalizadas y token de GitHub</string>
+<string name="settings_system_backup_sources_description">Fuentes personalizadas y token de GitHub</string>
     <string name="settings_system_backup_patch_selections_description">Parches elegidos para cada aplicación</string>
-    <string name="settings_system_backup_signing_key_note">La clave de firma se respalda por separado</string>
+<string name="settings_system_backup_signing_key_note">La clave de firma se respalda por separado</string>
     <string name="settings_system_import_keystore_dialog_title">Introduce las credenciales del almacén de claves</string>
-    <string name="settings_system_import_keystore_dialog_description">Necesitarás introducir las credenciales del almacén de claves para importarlo</string>
+<string name="settings_system_import_keystore_dialog_description">Necesitarás introducir las credenciales del almacén de claves para importarlo</string>
     <string name="settings_system_import_keystore_dialog_alias_field">Nombre de usuario (Alias)</string>
-    <string name="settings_system_import_keystore_dialog_password_field">Contraseña</string>
+<string name="settings_system_import_keystore_dialog_password_field">Contraseña</string>
     <string name="settings_system_import_keystore_dialog_format_field">Formato de almacén de claves</string>
-    <string name="settings_system_import_keystore_wrong_credentials">Credenciales de almacén de claves incorrectas</string>
+<string name="settings_system_import_keystore_wrong_credentials">Credenciales de almacén de claves incorrectas</string>
     <string name="settings_system_import_keystore_success">Almacén de claves importado</string>
-    <string name="settings_system_import_keystore_failed">Error al importar el almacén de claves</string>
+<string name="settings_system_import_keystore_failed">Error al importar el almacén de claves</string>
     <string name="settings_system_export_keystore_success">Almacén de claves exportado</string>
-    <string name="settings_system_export_keystore_failed">Error al exportar el almacén de claves</string>
+<string name="settings_system_export_keystore_failed">Error al exportar el almacén de claves</string>
     <string name="settings_system_show_password_field">Mostrar contraseña</string>
-    <string name="settings_system_hide_password_field">Ocultar contraseña</string>
+<string name="settings_system_hide_password_field">Ocultar contraseña</string>
     <string name="settings_system_morphe_settings">Ajustes de Nivqo</string>
-    <string name="settings_system_import_manager_settings_description">Respalda y restaura tus ajustes de Nivqo</string>
+<string name="settings_system_import_manager_settings_description">Respalda y restaura tus ajustes de Morphe</string>
 <string name="settings_system_import_manager_settings_fail">Error al importar ajustes de Nivqo: %s</string>
-    <string name="settings_system_import_manager_settings_success">Ajustes de Nivqo importados</string>
+<string name="settings_system_import_manager_settings_success">Ajustes de Morphe importados</string>
     <string name="settings_system_import_manager_settings_mode_title">Importar ajustes de Nivqo</string>
 <string name="settings_system_import_manager_settings_mode_description">Elige cómo se deben aplicar los ajustes y las fuentes importadas</string>
-    <string name="settings_system_import_selections_mode_title">Importar selecciones de parches</string>
+<string name="settings_system_import_selections_mode_title">Importar selecciones de parches</string>
     <string name="settings_system_import_selections_mode_description">Elige cómo se deben aplicar las selecciones y opciones de parches importadas</string>
     <string name="import_mode_replace_title">Reemplazar existente</string>
     <string name="import_mode_replace_description">Coincidir exactamente con la copia de seguridad. Los elementos que falten en la copia de seguridad se eliminarán</string>
     <string name="import_mode_merge_title">Combinar con lo existente</string>
     <string name="import_mode_merge_description">Añadir los elementos faltantes de la copia de seguridad. Los elementos existentes se mantienen sin cambios</string>
-    <string name="settings_system_export_manager_settings_fail">Error al exportar ajustes de Nivqo: %s</string>
+    <string name="settings_system_export_manager_settings_fail">Error al exportar ajustes de Morphe: %s</string>
 <string name="settings_system_export_manager_settings_success">Ajustes de Nivqo exportados</string>
 <string name="settings_system_export_debug_logs">Exportar registros de depuración</string>
-    <string name="settings_system_export_debug_logs_description">Guarda registros del sistema para solucionar problemas</string>
+<string name="settings_system_export_debug_logs_description">Guarda registros del sistema para solucionar problemas</string>
     <string name="settings_system_export_debug_logs_export_read_failed">Error al leer los registros (código de salida %s)</string>
-    <string name="settings_system_export_debug_logs_export_failed">Error al exportar registros</string>
+<string name="settings_system_export_debug_logs_export_failed">Error al exportar registros</string>
     <string name="settings_system_export_debug_logs_export_success">Registros exportados</string>
-    <!-- Settings - System Tab - Files & Storage Section -->
+<!-- Settings - System Tab - Files & Storage Section -->
     <string name="settings_system_files">Archivos y almacenamiento</string>
     <string name="settings_system_apks_size">Tamaño total: %s</string>
     <string name="settings_system_apks_delete_all_confirm">Esto eliminará permanentemente los archivos APK guardados que se muestran aquí</string>
@@ -1105,9 +1149,9 @@ Detalles: %2$s"</string>
     <string name="settings_system_storage_cleared">Liberado %s</string>
     <string name="settings_system_storage_nothing_to_clear">Nada que borrar</string>
     <string name="settings_system_storage_open_app_info_title">Abrir almacenamiento de la aplicación Android</string>
-    <string name="settings_system_storage_open_app_info_description">Administra o borra todos los datos de Nivqo a través de los ajustes del sistema</string>
+    <string name="settings_system_storage_open_app_info_description">Administra o borra todos los datos de Morphe a través de los ajustes del sistema</string>
 <string name="settings_system_save_original_apks_title">Conservar los APK originales</string>
-    <string name="settings_system_save_original_apks_description">Guardar el APK previo al parche para reutilizarlo al volver a parchear sin tener que seleccionar el archivo nuevamente</string>
+<string name="settings_system_save_original_apks_description">Guardar el APK previo al parche para reutilizarlo al volver a parchear sin tener que seleccionar el archivo nuevamente</string>
     <string name="settings_system_save_patched_apks_title">Conservar los APK parcheados</string>
     <string name="settings_system_save_patched_apks_description">Guardar una copia del APK parcheado para exportarlo o volver a instalarlo más tarde desde el administrador</string>
     <!-- Settings - System Tab - Storage Management - Patched APKs Management -->
@@ -1153,14 +1197,14 @@ Detalles: %2$s"</string>
     <string name="copy_selection_same_source">Misma fuente</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Selector de archivos personalizado</string>
-    <string name="settings_system_custom_file_picker_description">Explora el almacenamiento con el selector de archivos integrado de Nivqo en lugar del predeterminado del sistema</string>
-<!-- Settings - System Tab - APK download helper -->
+    <string name="settings_system_custom_file_picker_description">Explora el almacenamiento con el selector de archivos integrado de Morphe en lugar del predeterminado del sistema</string>
+    <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">Aplicación auxiliar para descargar APK</string>
     <string name="settings_system_apk_download_helper_trusted_count">De confianza: %1$d de %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Las aplicaciones auxiliares pueden descargar APKs originales por ti. En las instrucciones de descarga solo se ofrecen aquellas en las que confíes aquí</string>
-    <string name="settings_system_apk_download_helper_warning">El APK proviene de la aplicación auxiliar, así que confía solo en aplicaciones que conozcas. Nivqo sigue comprobando el paquete, la versión y la firma de cada archivo antes de parchear</string>
+    <string name="settings_system_apk_download_helper_warning">El APK proviene de la aplicación auxiliar, así que confía solo en aplicaciones que conozcas. Morphe sigue comprobando el paquete, la versión y la firma de cada archivo antes de parchear</string>
 <string name="settings_system_apk_download_helper_installed_by">Instalada por %s</string>
-    <string name="settings_system_apk_download_helper_installed_by_unknown">Instalador desconocido</string>
+<string name="settings_system_apk_download_helper_installed_by_unknown">Instalador desconocido</string>
     <!-- File Picker -->
     <string name="file_picker_no_files">No hay archivos aquí</string>
     <string name="file_picker_read_error">No se puede leer este directorio</string>
@@ -1246,9 +1290,7 @@ Detalles: %2$s"</string>
     <string name="selected">Seleccionado</string>
     <string name="not_selected">No seleccionado</string>
     <string name="select_all">Seleccionar todo</string>
-    <string name="select_all_done">Todo seleccionado</string>
     <string name="deselect_all">Desmarcar todo</string>
-    <string name="deselect_all_done">Todo deseleccionado</string>
     <string name="reorder_list">Reordenar lista</string>
     <string name="reorder_list_hint">Arrastra para reordenar</string>
     <string name="reorder_done">Orden guardado</string>
@@ -1284,6 +1326,7 @@ Detalles: %2$s"</string>
     <string name="unmount">Desmontar</string>
     <string name="unmounted">Desmontado</string>
     <string name="remount">Volver a montar</string>
+    <string name="restore">Restaurar</string>
     <string name="share">Compartir</string>
     <string name="install">Instalar</string>
     <string name="installed">Instalado</string>
@@ -1304,6 +1347,8 @@ Detalles: %2$s"</string>
     <string name="sources">Fuentes</string>
     <string name="installing_ellipsis">Instalando…</string>
     <string name="mounting_ellipsis">Montando…</string>
+    <string name="mount_stage_restoring_stock">Restaurando la original…</string>
+    <string name="mount_stage_copying">Copiando...</string>
     <string name="unmounting_ellipsis">Desmontando…</string>
     <string name="importing_ellipsis">Importando…</string>
     <string name="imported_successfully">Importados correctamente</string>
@@ -1345,13 +1390,12 @@ Detalles: %2$s"</string>
     <string name="installing_manager_update">Instalando actualización…</string>
     <string name="installing_manager_update_hint">Nivqo se cerrará para finalizar la actualización</string>
 <string name="downloading_manager_update">Descargando actualización…</string>
-    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
+<!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB descargados</string>
     <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
     <string name="manager_update_progress_size">%1$s / %2$s MB</string>
     <string name="manager_update_not_ready">Esta versión aún se está publicando. Vuelve a intentarlo en unos minutos</string>
     <string name="update_download_missing">La actualización descargada ya no está disponible. Descárgala de nuevo</string>
-    <string name="download_manager_failed">Error al descargar la actualización: %s</string>
     <string name="failed_to_check_updates">Error al buscar actualizaciones: %s</string>
     <string name="failed_to_download_update">Error al descargar la actualización: %s</string>
     <string name="download_confirmation_metered">"Actualmente estás en una conexión de uso medido y podrían aplicarse cargos por datos de tu proveedor de servicios.
@@ -1366,11 +1410,11 @@ Detalles: %2$s"</string>
     <string name="onboarding_swipe_desc">Desliza el dedo hacia la derecha en una tarjeta de aplicación para ver los parches disponibles. Desliza el dedo hacia la izquierda para ocultar la tarjeta de la pantalla de inicio</string>
     <string name="onboarding_settings_desc">Personaliza Nivqo: apariencia, opciones avanzadas y herramientas del sistema</string>
 <string name="onboarding_sources_patches_desc">Pulsa para ver todos los parches disponibles de esta fuente</string>
-    <string name="onboarding_sources_version_desc">Pulsa la versión para ver el registro de cambios completo de esta fuente</string>
+<string name="onboarding_sources_version_desc">Pulsa la versión para ver el registro de cambios completo de esta fuente</string>
     <string name="onboarding_sources_prerelease_desc">Activa esta opción para recibir versiones pre-lanzamiento de parches de esta fuente</string>
-    <string name="onboarding_appearance_tab_desc">Personaliza el aspecto de la aplicación: tema, color de acento y fondo</string>
+<string name="onboarding_appearance_tab_desc">Personaliza el aspecto de la aplicación: tema, color de acento y fondo</string>
     <string name="onboarding_appearance_theme_desc">Elige entre tema claro, oscuro o del sistema. También puedes elegir un color de acento personalizado o activar Color dinámico</string>
-    <string name="onboarding_expert_mode_desc">Activa el modo Experto para desbloquear la selección de parches, opciones personalizadas y otras funciones avanzadas</string>
+<string name="onboarding_expert_mode_desc">Activa el modo Experto para desbloquear la selección de parches, opciones personalizadas y otras funciones avanzadas</string>
     <!-- Translate "System" the same way as the System settings tab -->
     <string name="onboarding_system_tab_title">Pestaña del sistema</string>
     <string name="onboarding_system_tab_desc">Administración de almacenes de claves, herramientas de importación/exportación e información de la aplicación</string>
@@ -1379,9 +1423,11 @@ Detalles: %2$s"</string>
     <string name="onboarding_system_file_picker_desc">Activa esta opción para usar el explorador de archivos integrado en lugar del selector del sistema al seleccionar archivos APK o almacenes de claves</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Tour rápido de funciones</string>
-    <string name="tour_prompt_desc">¿Quieres un tour rápido de las funciones clave de Nivqo?</string>
-<!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="tour_prompt_desc">¿Quieres un tour rápido de las funciones clave de Morphe?</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Muéstrame</string>
     <string name="onboarding_restart_title">Tour de funciones</string>
     <string name="onboarding_restart_desc">Una visita guiada por las funciones principales</string>
+    <string name="app_links_badge_disabled">Desactivado</string>
+    <string name="notification_channel_patcher">Parcheando</string>
 </resources>

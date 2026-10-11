@@ -11,7 +11,9 @@
     standard input the way git supplies them. Run scripts/install-hooks.ps1 once to wire it up.
 
     Only what changed is checked: runtime tests when extension or patch sources, or the root files
-    those tests read, move, and the release facts when a published file moves. A move counts at
+    those tests read, move, and the release facts when a published file moves. A change to the
+    patch sources also has the bundle applied to each declared Facebook build in
+    HUSHFACEBOOK_FIXTURE_DIR and what it injected held to the dex checks. A move counts at
     both ends, the path it left and the one it took. The one check every push gets is a scan of
     every commit it publishes for tracked files that name the maintainer's machine or a phone.
     Set HUSHFACEBOOK_SKIP_PRE_PUSH=1 to push anyway.
@@ -46,11 +48,12 @@ if ($env:HUSHFACEBOOK_SKIP_PRE_PUSH -eq '1') {
 . (Join-Path $PSScriptRoot 'common.ps1')
 
 # A hook runs with git's own environment. User environment variables set after the shell
-# launched, or set in the user scope only, may be absent. Import the four this script and
+# launched, or set in the user scope only, may be absent. Import the five this script and
 # its suites need from the registry so a gate worktree can find the desktop CLI, the
-# fixture folder, the build governor and the device serial.
+# fixture folder, the build governor, the device serial and the machine's build queue, which
+# the fixture applies wait in (Invoke-HeavyJob).
 foreach ($envName in @('HUSHFACEBOOK_DESKTOP_JAR', 'HUSHFACEBOOK_FIXTURE_DIR',
-        'HUSHFACEBOOK_BUILD_WRAPPER', 'HUSHFACEBOOK_DEVICE_SERIAL')) {
+        'HUSHFACEBOOK_BUILD_WRAPPER', 'HUSHFACEBOOK_DEVICE_SERIAL', 'BUILD_QUEUE_SCRIPT')) {
     if (-not (Test-Path "Env:\$envName")) {
         $regValue = [Environment]::GetEnvironmentVariable($envName, [EnvironmentVariableTarget]::User)
         if ($regValue) { Set-Item -LiteralPath "Env:\$envName" -Value $regValue }
@@ -477,16 +480,31 @@ try {
         $_ -in $runtimeTestInputs -or $_ -in $toolingClasspathInputs
     }).Count -gt 0
     $touchesScripts = @($paths | Where-Object { $_ -like 'scripts/*' }).Count -gt 0
+    # tools/ holds release_text.py, which every text step of release.ps1 runs, and its tests. A
+    # push of only tools/ ran no check at all, so it runs those tests and the release stage
+    # contracts that hold what release.ps1 hands it.
+    $touchesTools = @($paths | Where-Object { $_ -like 'tools/*' }).Count -gt 0
     # The contract tests read two files outside scripts/ that nothing else checks: the catalog,
     # held to the builds, signers and dependencies the release scripts expect, and the Gradle file
     # that writes the release bundle where common.ps1 reads it. A push that moved only one of them
     # never ran the tests, and the break surfaced on the next unrelated script push instead.
     # They also end with the marketing asset check, which holds the artwork's sizes and alpha and
     # the README's hero and links. A push of only artwork or only the README ran no check of them.
-    $touchesContracts = $touchesScripts -or @($paths | Where-Object {
+    $touchesContracts = $touchesScripts -or $touchesTools -or @($paths | Where-Object {
         $_ -eq 'patches-list.json' -or $_ -eq 'patches/build.gradle.kts' -or
         $_ -eq 'gradle/tooling-scopes.txt' -or
         $_ -like 'assets/*' -or $_ -eq 'README.md'
+    }).Count -gt 0
+    $touchesReleaseText = $touchesTools -or @($paths | Where-Object {
+        $_ -like 'scripts/release/*' -or $_ -eq 'scripts/test-release-text.ps1'
+    }).Count -gt 0
+    # The phone smoke check's report reading, which its suite exercises on hand-written reports.
+    $phoneSmokePaths = @(
+        'scripts/phone-smoke.ps1',
+        'scripts/test-phone-smoke.ps1'
+    )
+    $touchesPhoneSmoke = @($paths | Where-Object {
+        $_ -in $phoneSmokePaths
     }).Count -gt 0
     $injectedRegisterVerifierPaths = @(
         'scripts/BadDexFixture.java',
@@ -502,6 +520,20 @@ try {
     $touchesInjectedRegisterVerifier = @($paths | Where-Object {
         $_ -in $injectedRegisterVerifierPaths
     }).Count -gt 0
+    # The patch sources, which decide what the bundle injects into Facebook. Only a patch run on a
+    # real build shows what Morphe's inline compiler made of a patch's smali: given
+    # invoke-static { p2 } in a method of more than 16 registers it drops the call without a word and
+    # keeps the move-result after it, and the app fails verification on a phone (Hide tab badges on
+    # 581's Htc badge writer). The runtime tests run each patch on the classes its own fixture test
+    # picks, and caught that only because the one test happened to read the call back.
+    $touchesInjectedCode = @($paths | Where-Object { $_ -like 'patches/src/main/*' }).Count -gt 0
+    # A release's source commit moves the version, and its push is the last gate before the
+    # bundle is cut from that commit. The fixtures are patched with the release bundle then too,
+    # and each passing run is kept for build-release-receipt.ps1 -AppliedDir, so a release patches
+    # each fixture once rather than once here and again for its receipt.
+    $touchesVersion = @($paths | Where-Object { $_ -eq 'gradle.properties' }).Count -gt 0
+    $appliesFixtures = $touchesInjectedCode -or $touchesVersion
+    $touchesCode = $touchesCode -or $appliesFixtures
     $resourceTableCheckPaths = @(
         'scripts/MergeSplits.java',
         'scripts/ResourceTableCheck.java',
@@ -617,7 +649,7 @@ try {
     $suites = @()
     if ($touchesContracts) {
         $contractsNotice = if ($touchesScripts) { 'scripts changed, running their contract tests' } else {
-            'the catalog, the release bundle''s Gradle file, the README or the artwork changed, running the script contract tests'
+            'the catalog, the release bundle''s Gradle file, the README, the artwork or tools/ changed, running the script contract tests'
         }
         $suites += , @('scripts/test-script-contracts.ps1', $contractsNotice,
             'The script contract tests did not pass.')
@@ -641,6 +673,14 @@ try {
     if ($touchesFacebookSources) {
         $suites += , @('scripts/test-facebook-sources.ps1', 'the Facebook-family source ledger or what it reads changed, running its rules',
             'The Facebook-family source ledger does not keep its rules.')
+    }
+    if ($touchesReleaseText) {
+        $suites += , @('scripts/test-release-text.ps1', 'the release text or the release stages changed, running the tests in tools/',
+            'The release text tests did not pass.')
+    }
+    if ($touchesPhoneSmoke) {
+        $suites += , @('scripts/test-phone-smoke.ps1', 'the phone smoke check changed, running its report reading checks',
+            'The phone smoke report reading checks did not pass.')
     }
     if ($suites.Count -gt 0) {
         $scriptsLock = $null
@@ -694,19 +734,7 @@ try {
         # The Morphe settings plugin resolves from GitHub Packages, which needs a reader token.
         # A hook runs with git's environment, not the shell's, so these are usually absent and
         # the build fails while applying the plugin, long before a test runs.
-        if (-not $env:GITHUB_ACTOR -or -not $env:GITHUB_TOKEN) {
-            if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
-                throw ('Set GITHUB_ACTOR and GITHUB_TOKEN, or install the gh CLI: the patches ' +
-                    'plugin resolves from GitHub Packages and cannot be applied without them.')
-            }
-            $login = (& gh api user --jq .login 2>$null)
-            $token = (& gh auth token 2>$null)
-            if ([string]::IsNullOrWhiteSpace($login) -or [string]::IsNullOrWhiteSpace($token)) {
-                throw 'gh is not signed in, so the patches plugin cannot be resolved. Run gh auth login.'
-            }
-            $env:GITHUB_ACTOR = $login
-            $env:GITHUB_TOKEN = $token
-        }
+        Set-GitHubPackagesCredential
 
         # The lint runs alongside the tests because the tests cannot see this class of defect at
         # all: they run on a desktop JVM, where every java.util method exists whatever the
@@ -723,6 +751,78 @@ try {
         # Dependency overrides need the actual settings and UTP classpaths before the smoke
         # check. Ordinary payload edits retain the smaller test/lint gate.
         if ($touchesToolingClasspaths) { $tasks += ':patches:releaseTooling' }
+        # The bundle the fixtures are patched with below: the release bundle buildAndroid copies to
+        # build/release, the one a release publishes, so the receipt can read the runs kept here.
+        # build/libs is no use for that: :patches:test rewrites it with the plain jar.
+        if ($appliesFixtures) { $tasks += ':patches:buildAndroid' }
+        # Everything but the tests that read the Facebook fixtures runs first, so a slip in a quick
+        # test or a lint stops the push in minutes rather than after the fixture scans. The full
+        # run after it finds those tasks up to date. The selection check waits for the full run,
+        # since it reads both partitions' results and a fresh gate worktree has no fixture results.
+        $quickTasks = @($tasks | Where-Object { $_ -ne ':patches:buildAndroid' }) +
+            @('-x', ':patches:fixtureTest', '-x', ':patches:verifyPatchTestSelection')
+
+        # Each declared Facebook build the fixture folder holds, patched with every patch in the
+        # release bundle the build above left in patches/build/release and put through
+        # verify-all-patches.ps1: the CLI's report, the manifest delta and the resource table, then
+        # the injected code against Meta's, where a move-result that follows no invoke or
+        # filled-new-array fails naming its class and method. Each passing run is kept in
+        # patches/build/fixture-apply/<fixture file> for build-release-receipt.ps1 -AppliedDir, and
+        # the runs an earlier push kept go first: their stamps name another bundle anyway. The
+        # fixtures and the CLI aren't in the repository, so without them this says it didn't run,
+        # as the fixture tests skip.
+        function Invoke-PatchedFixtureCheck([string]$GateRoot) {
+            $kept = Join-Path $GateRoot 'patches/build/fixture-apply'
+            if (Test-Path -LiteralPath $kept) { Remove-GeneratedPath -Path $kept -Root $GateRoot }
+            $fixtureDir = $env:HUSHFACEBOOK_FIXTURE_DIR
+            $desktopJar = Resolve-DesktopCli -Root $GateRoot
+            if (-not $fixtureDir -or -not $desktopJar) {
+                Write-Step ('the patch sources or the version changed, but HUSHFACEBOOK_FIXTURE_DIR or the Morphe ' +
+                    'desktop CLI is not set, so the bundle was not applied to the Facebook fixtures')
+                return
+            }
+            if (-not (Test-Path -LiteralPath $fixtureDir -PathType Container)) {
+                throw "HUSHFACEBOOK_FIXTURE_DIR names $fixtureDir, which is not a folder."
+            }
+            if (-not (Test-Path -LiteralPath (Join-Path $GateRoot 'scripts/verify-all-patches.ps1') -PathType Leaf)) {
+                throw 'scripts/verify-all-patches.ps1 is missing from the commit being pushed. The gate expects it, so the push stops.'
+            }
+            $bundle = Get-ReleaseBundlePath -Root $GateRoot
+            if (-not (Test-Path -LiteralPath $bundle -PathType Leaf)) {
+                throw "The runtime test build left no release bundle at $bundle to apply to the fixtures."
+            }
+            $catalog = Get-Content -LiteralPath (Join-Path $GateRoot 'patches-list.json') -Raw | ConvertFrom-Json
+            $versions = @($catalog.patches | ForEach-Object { $_.compatibility } |
+                Where-Object { $_.packageName -eq 'com.facebook.katana' } | ForEach-Object { $_.targets } |
+                ForEach-Object { [string]$_.version } | Where-Object { $_ } | Sort-Object -Unique)
+            if ($versions.Count -eq 0) { throw 'patches-list.json declares no Facebook build to apply the bundle to.' }
+            $work = Join-Path ([System.IO.Path]::GetTempPath()) ('hushfacebook-patched-fixtures-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
+            $failed = @()
+            foreach ($version in $versions) {
+                # The version's bundles, or its APKs when it has no bundle: 581 has an arm64 and an
+                # armeabi-v7a bundle, both declared. A declared version with no fixture would pass by
+                # not being looked at, and verify-all-patches.ps1 refuses a build the bundle doesn't
+                # declare.
+                $fixtures = @(Select-FixtureBuild -Folder $fixtureDir -Version $version)
+                if ($fixtures.Count -eq 0) {
+                    throw "HUSHFACEBOOK_FIXTURE_DIR holds no fixture of Facebook $version, a build the bundle declares."
+                }
+                foreach ($fixture in $fixtures) {
+                    Write-Step "applying every patch to $($fixture.Name) and checking what it injected"
+                    $global:LASTEXITCODE = 0
+                    Invoke-CommitScript -Script (Join-Path $GateRoot 'scripts/verify-all-patches.ps1') -Arguments @{
+                        Apk = $fixture.FullName; DesktopJar = $desktopJar; WorkDir = (Join-Path $work $fixture.BaseName); Bundle = $bundle
+                        KeepIn = (Join-Path $kept $fixture.Name) }
+                    if ($LASTEXITCODE -ne 0) { $failed += $fixture.Name }
+                }
+            }
+            if ($failed.Count -gt 0) {
+                throw ("The bundle failed on $($failed -join ', '). Read the [verify] and [diff] lines above; a " +
+                    "result finding is a move-result that follows no invoke, as when Morphe drops a plain invoke of a " +
+                    "register past v15, which invoke-static/range fixes. The reports are in $work.")
+            }
+            Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
+        }
         # HUSHFACEBOOK_BUILD_WRAPPER names a PowerShell script that runs Gradle on this machine,
         # called as <wrapper> -ProjectDir <repository> -Tasks <task>...: a machine that shares its
         # CPU and memory between several builds points it at a governor. Unset, the Gradle
@@ -743,18 +843,20 @@ try {
                     Write-Step "building $gateCommit in $gateRoot"
                 }
                 try {
-                $global:LASTEXITCODE = 0
-                Invoke-WithoutGitEnvironment {
-                    if ($wrapper) {
-                        & $wrapper -ProjectDir $gateRoot -Tasks $tasks
-                    } else {
-                        & (Join-Path $gateRoot 'gradlew.bat') -p $gateRoot @tasks
+                foreach ($passTasks in @(, $quickTasks) + @(, $tasks)) {
+                    $global:LASTEXITCODE = 0
+                    Invoke-WithoutGitEnvironment {
+                        if ($wrapper) {
+                            & $wrapper -ProjectDir $gateRoot -Tasks $passTasks
+                        } else {
+                            & (Join-Path $gateRoot 'gradlew.bat') -p $gateRoot @passTasks
+                        }
                     }
-                }
-                if ($LASTEXITCODE -ne 0) {
-                    throw ('The runtime test build did not pass. Read the output above: it says whether a ' +
-                        'test failed, an API level above the payload floor was reached, or the build could ' +
-                        'not start. Push anyway with HUSHFACEBOOK_SKIP_PRE_PUSH=1.')
+                    if ($LASTEXITCODE -ne 0) {
+                        throw ('The runtime test build did not pass. Read the output above: it says whether a ' +
+                            'test failed, an API level above the payload floor was reached, or the build could ' +
+                            'not start. Push anyway with HUSHFACEBOOK_SKIP_PRE_PUSH=1.')
+                    }
                 }
                 if ($touchesToolingClasspaths) {
                     $compatibility = Join-Path $gateRoot 'scripts/test-tooling-classpaths.ps1'
@@ -770,6 +872,7 @@ try {
                     }
                     if ($LASTEXITCODE -ne 0) { throw 'The tooling classpath compatibility check did not pass.' }
                 }
+                if ($appliesFixtures) { Invoke-PatchedFixtureCheck -GateRoot $gateRoot }
                 } finally {
                     if ($gateRoot -eq $Root) { Assert-TreeUnchanged 'the runtime test build' }
                 }

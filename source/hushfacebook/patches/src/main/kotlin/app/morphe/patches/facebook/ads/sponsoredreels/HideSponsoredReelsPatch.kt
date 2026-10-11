@@ -10,6 +10,7 @@ package app.morphe.patches.facebook.ads.sponsoredreels
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
 import app.morphe.patches.facebook.misc.extension.enableStatus
+import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
@@ -45,8 +46,9 @@ private const val PATCH = SPONSORED_REELS_PATCH
 @Suppress("unused")
 val hideSponsoredReelsPatch = bytecodePatch(
     name = "Hide sponsored reels",
-    description = "Removes ads from Reels and Watch, including product banners over a reel and " +
-        "ads inside a video.",
+    description = "Removes ads from Reels and Watch, including product banners over reels and ads in the middle " +
+        "of videos, so you can watch without interruptions. On by default. Turn it off in Hushfacebook settings " +
+        "> Reels and Watch.",
     default = true,
 ) {
     category("Ads")
@@ -65,13 +67,19 @@ val hideSponsoredReelsPatch = bytecodePatch(
         val items = reelItemStory(pages.adBase)
         val adBase = pages.adBase.toBinaryName()
         fillReelItemStubs(items)
-        listOf(pages.insertPage, pages.announcePage).forEach { it.filterPageFirst(adBase) }
+        pages.pageInserts.forEach { it.filterPageFirst(adBase) }
+        pages.announcePage.filterPageFirst(adBase, ANNOUNCED_AD_FILTER)
+        pages.insertItem.dropItemFirst(adBase)
         pages.addPage.filterSectionsFirst(adBase)
 
         // The Reels tab's story loader draws those ads from Facebook's ad pool one slot at a time,
         // and the pool marks each as used before a page holds it. Its vends answer no ad first:
         // see ReelsAdPool.kt.
         reelsAdPoolVends().forEach { it.holdPoolAdFirst() }
+
+        // A profile's or Page's Reels tab fetches its own ads through a query of its own, outside
+        // the pool. It returns before sending it: see ProfileReelAds.kt.
+        profileReelAdFetch().holdProfileReelAdsFirst()
 
         // The client-side insert paths stay blocked. None of them fired in the logging run, but
         // they are what the app would use if a future release went back to inserting on the device,
@@ -119,10 +127,30 @@ val hideSponsoredReelsPatch = bytecodePatch(
             "invoke-static { }, ${failedFutureOn(idleVideoFetch.definingClass)}",
         )
 
+        // An extended break, the longer ad break a video can queue up, runs its own query on the
+        // same shared executor, so its executor call gets the failed future too.
+        val extendedBreak = ExtendedBreakQueryFingerprint.method
+        extendedBreak.replaceInstruction(
+            idleExecutorCallIndex(
+                extendedBreak.instructions(),
+                "${extendedBreak.definingClass}->${extendedBreak.name}",
+                EXTENDED_BREAK_QUERY,
+            ),
+            "invoke-static { }, ${failedFutureOn(extendedBreak.definingClass)}",
+        )
+
         // The ad-break lookup retries a failed fetch each second while the reel plays. Its tick
         // returns -1, the value for a reel with no media, which stops the poller. The lookup then
         // never starts.
         stopDeferredCardPoller()
+
+        // An ad that still reaches a reel or a video opens its comments without the floating ad
+        // button: see AdPills.kt. A build that draws the button another way keeps the rest.
+        try {
+            holdAdPills()
+        } catch (moved: PatchException) {
+            patchLog.warning("${moved.message}. The patch goes on without holding the ad button on comments.")
+        }
 
         enableStatus("sponsoredReels")
     }
@@ -197,6 +225,9 @@ private const val DEFERRED_CARD_STATE = "UnresolvedWithDeferredCardState"
 
 private const val FAILED_FUTURE = "failedAdFetch"
 
+/** Counts each fetch the failed future answers, for the diagnostic report. */
+private const val HELD_AD_BREAK_FETCH = "${REELS_AD_FILTER}->heldAdBreakFetch()V"
+
 /** Adds, once per class, a static method that returns a failed future. */
 private fun BytecodePatchContext.failedFutureOn(classType: String): String {
     val reference = "$classType->$FAILED_FUTURE()$SETTABLE_FUTURE"
@@ -216,6 +247,7 @@ private fun BytecodePatchContext.failedFutureOn(classType: String): String {
         addInstructions(
             0,
             """
+                invoke-static { }, $HELD_AD_BREAK_FETCH
                 new-instance v0, Ljava/io/IOException;
                 const-string v1, "Reels ad fetch blocked"
                 invoke-direct { v0, v1 }, Ljava/io/IOException;-><init>(Ljava/lang/String;)V
@@ -254,26 +286,31 @@ internal fun List<Instruction>.futureCallBefore(log: String): MethodReference {
 }
 
 /**
- * The executor call of the idle state's own video ad query: the first call after the query's name
- * that hands back a SettableFuture. It has to be static with its answer moved straight after,
+ * The executor call of an ad query that runs on the shared GraphQL executor, the idle state's own
+ * video ad query unless [literal] names another: the first call after the query's name that hands
+ * back a SettableFuture. It has to be static with its answer moved straight after,
  * because the replacement is a static call of the same size.
  *
  * The name has to be the whole literal. The fingerprint found the method by a literal that only
  * holds it, since the patcher matches `strings` by containment, so a renamed query such as
  * "FBFetchReelsVideoAdsQueryV2" finds the method and leaves no literal to start from.
  */
-internal fun idleExecutorCallIndex(instructions: List<Instruction>, method: String): Int {
-    val query = instructions.indexOfFirst { it.string == REELS_VIDEO_AD_QUERY }
+internal fun idleExecutorCallIndex(
+    instructions: List<Instruction>,
+    method: String,
+    literal: String = REELS_VIDEO_AD_QUERY,
+): Int {
+    val query = instructions.indexOfFirst { it.string == literal }
     if (query < 0) {
         throw PatchException(
-            "$PATCH: $method holds no \"$REELS_VIDEO_AD_QUERY\" literal, only a longer string the fingerprint " +
+            "$PATCH: $method holds no \"$literal\" literal, only a longer string the fingerprint " +
                 "matched by containment, so it may not build the query this patch replaces",
         )
     }
     val execute = (query until instructions.size).firstOrNull { index ->
         instructions[index].methodReference?.returnType == SETTABLE_FUTURE
     } ?: throw PatchException(
-        "$PATCH: $method makes no call returning SettableFuture after \"$REELS_VIDEO_AD_QUERY\"",
+        "$PATCH: $method makes no call returning SettableFuture after \"$literal\"",
     )
     if (instructions[execute].opcode != Opcode.INVOKE_STATIC) {
         throw PatchException("$PATCH: the executor call at $execute in $method is not invoke-static")

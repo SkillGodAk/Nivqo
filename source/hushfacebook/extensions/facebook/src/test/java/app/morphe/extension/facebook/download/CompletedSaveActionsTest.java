@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import app.morphe.extension.facebook.misc.AppLockForTests;
 import app.morphe.extension.facebook.settings.CompletedEntryForTests;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.facebook.settings.SettingsEntry;
@@ -84,6 +85,9 @@ public class CompletedSaveActionsTest {
         watcher = CompletedEntryForTests.watcher();
         ((Application) context).registerActivityLifecycleCallbacks(watcher);
         LogBufferManager.clearLogBuffer();
+        // Each test starts as a fresh process would, so a key kept in memory from an earlier test's
+        // storage never stands in for this one's.
+        SavedFileActions.forgetKey();
     }
 
     @After public void tearDown() throws Exception {
@@ -382,7 +386,7 @@ public class CompletedSaveActionsTest {
         finish(worker);
         assertTrue(completed().isEmpty());
         assertTrue(gallery.rows.isEmpty());
-        assertEquals("Save cancelled", ShadowToast.getTextOfLatestToast());
+        assertEquals("Save canceled", ShadowToast.getTextOfLatestToast());
     }
 
     @Test public void theCompatibilityAdviceAndFileActionsCoexist() throws Exception {
@@ -400,7 +404,7 @@ public class CompletedSaveActionsTest {
         assertEquals("Open the setting", advice.actions[0].title.toString());
         assertEquals(Settings.DOWNLOAD_COMPATIBLE.key,
                 shadowOf(advice.actions[0].actionIntent).getSavedIntent().getStringExtra(SettingsEntry.EXTRA_SHOW_SETTING));
-        assertEquals("Saved, but WhatsApp and some editors may refuse it", ShadowToast.getTextOfLatestToast());
+        assertEquals("Saved, but WhatsApp and some editors may not accept it", ShadowToast.getTextOfLatestToast());
     }
 
     @Test public void nonMediaAndExpiredTapRequestsDoNotReachAFileHandler() throws Exception {
@@ -416,6 +420,57 @@ public class CompletedSaveActionsTest {
             controller.start().resume();
             settle();
             assertNull(shadowOf(controller.get()).getNextStartedActivity());
+        }
+    }
+
+    /**
+     * Facebook's launcher activity is exported, so any app can send the buttons' action with a
+     * guessed address of a file Facebook saved. Without the button's key nothing opens or shares,
+     * and the intent reaches Facebook as it came. The real button still works after a restart.
+     */
+    @Test public void aRequestFromAnotherAppOpensAndSharesNothing() throws Exception {
+        Notification note = save(true, "video/mp4");
+        for (int action = 0; action < 2; action++) {
+            Intent real = entry(note, action);
+            assertNotNull("the button carries no key", real.getStringExtra(SavedFileActions.KEY));
+            Intent forged = new Intent(real.getAction()).setComponent(real.getComponent())
+                    .setDataAndType(real.getData(), real.getType());
+            Intent guessed = new Intent(forged).putExtra(SavedFileActions.KEY, "00000000000000000000000000000000");
+            for (Intent request : new Intent[]{forged, guessed}) {
+                try (ActivityController<Activity> controller = receive(request)) {
+                    assertNull("another app's request reached a file handler",
+                            shadowOf(controller.get()).getNextStartedActivity());
+                    assertEquals(real.getAction(), controller.get().getIntent().getAction());
+                }
+            }
+            // A process restart reads the same key back, so the notification's own tap still works.
+            SavedFileActions.forgetKey();
+            try (ActivityController<Activity> controller = receive(real)) {
+                Intent launched = shadowOf(controller.get()).getNextStartedActivity();
+                assertNotNull("the notification's own tap stopped working after a restart", launched);
+                Intent target = action == 0 ? launched : launched.getParcelableExtra(Intent.EXTRA_INTENT);
+                assertEquals(gallery.uris.get(0), action == 0 ? target.getData()
+                        : target.getParcelableExtra(Intent.EXTRA_STREAM));
+                assertNull("the key was left for Facebook to read",
+                        controller.get().getIntent().getStringExtra(SavedFileActions.KEY));
+            }
+        }
+    }
+
+    /** A button another Facebook process made carries the key that process kept, which this one never read. */
+    @Test public void aKeyAnotherProcessKeptStillOpens() throws Exception {
+        Notification note = save(true, "video/mp4");
+        Intent real = entry(note, 0);
+        String other = "0123456789abcdef0123456789abcdef";
+        assertNotEquals(other, real.getStringExtra(SavedFileActions.KEY));
+        Files.write(new File(context.getNoBackupFilesDir(), SavedFileActions.KEY_FILE).toPath(),
+                other.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+        Intent fromOther = new Intent(real).putExtra(SavedFileActions.KEY, other);
+        for (Intent tap : new Intent[]{fromOther, real}) {
+            try (ActivityController<Activity> controller = receive(tap)) {
+                assertNotNull("a tap on a button with a kept key opened nothing",
+                        shadowOf(controller.get()).getNextStartedActivity());
+            }
         }
     }
 
@@ -447,6 +502,61 @@ public class CompletedSaveActionsTest {
         assertTrue(completed().isEmpty());
         assertEquals("Saved to " + L10n.isolate("Movies/Facebook"), ShadowToast.getTextOfLatestToast());
         assertEquals(Integer.valueOf(0), gallery.rows.get(1L).getAsInteger(MediaStore.MediaColumns.IS_PENDING));
+    }
+
+    /** A tap on Open or Share while Facebook is locked waits for the check; nothing opens before it. */
+    @Test public void aLockedFacebookOpensAndSharesNothingUntilTheCheckPasses() throws Exception {
+        Notification note = save(true, "video/mp4");
+        Settings.APP_LOCK.save(true);
+        try {
+            for (int action = 0; action < 2; action++) {
+                AppLockForTests.arm();
+                try (ActivityController<Activity> controller =
+                             Robolectric.buildActivity(Activity.class, entry(note, action)).create()) {
+                    SettingsEntry.onActivityCreate(controller.get());
+                    AppLockForTests.started(controller.get());
+                    controller.start().resume();
+                    AppLockForTests.resumed(controller.get());
+                    settle();
+                    assertNull("a locked Facebook opened a saved file",
+                            shadowOf(controller.get()).getNextStartedActivity());
+
+                    AppLockForTests.unlock();
+                    settle();
+                    Intent launched = shadowOf(controller.get()).getNextStartedActivity();
+                    assertNotNull("the tap was lost with the unlock", launched);
+                    Intent target = action == 0 ? launched : launched.getParcelableExtra(Intent.EXTRA_INTENT);
+                    assertEquals(gallery.uris.get(0), action == 0 ? target.getData()
+                            : target.getParcelableExtra(Intent.EXTRA_STREAM));
+                }
+            }
+        } finally {
+            AppLockForTests.disarm();
+            Settings.APP_LOCK.resetToDefault();
+        }
+    }
+
+    @Test public void aTapThatWaitedPastItsTimeOpensNothingAfterTheUnlock() throws Exception {
+        Notification note = save(true, "video/mp4");
+        Settings.APP_LOCK.save(true);
+        try {
+            AppLockForTests.arm();
+            try (ActivityController<Activity> controller =
+                         Robolectric.buildActivity(Activity.class, entry(note, 0)).create()) {
+                SettingsEntry.onActivityCreate(controller.get());
+                AppLockForTests.started(controller.get());
+                controller.start().resume();
+                AppLockForTests.resumed(controller.get());
+                settle();
+                org.robolectric.shadows.ShadowSystemClock.advanceBy(Duration.ofSeconds(31));
+                AppLockForTests.unlock();
+                settle();
+                assertNull(shadowOf(controller.get()).getNextStartedActivity());
+            }
+        } finally {
+            AppLockForTests.disarm();
+            Settings.APP_LOCK.resetToDefault();
+        }
     }
 
     @Test public void aLauncherHandoffDeliversOnTheNextLiveScreen() throws Exception {

@@ -16,6 +16,7 @@ import app.morphe.patches.facebook.feed.hook.feedFilterHookPatch
 import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
+import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -40,16 +41,25 @@ internal const val PATCH = "Hide posts by words"
  * also held to GraphQLStory's own toString, which labels its text "message.text" and reads it as
  * the field `text`; the extension reads the same field through the kept `getCachedString(int)`.
  *
- * The lists live in Hushfacebook's settings on the phone. Nothing here reads the text until the
- * switch is on and the hide list has a phrase in it, and nothing of the text or the phrases goes
- * into a log, the diagnostic report or a request.
+ * The same patch hides posts from the people, Pages and sites the person lists: GraphQLStory's
+ * accessors of its authors and its attachments go into PostSources' two stubs (see
+ * PostSourceAnchors.kt), and a build where they can't be found keeps the words and leaves that list
+ * reading nothing. Its four switches for kinds of post (photo, video, link and colored background
+ * posts) read an attachment's styles and the story's text format through PostTypes' two stubs (see
+ * PostTypeAnchors.kt), which a build without them leaves unfilled in the same way. Its reaction
+ * ceiling reads a story's feedback and the feedback's reactors through PostReactions' two stubs (see
+ * ReactionAnchors.kt), and counts them with the kept `getCachedInt(int)`.
+ *
+ * The lists live in Hushfacebook's settings on the phone. Nothing here reads a post until a
+ * switch is on and its list has something in it, and nothing of the text, the names or the lists
+ * goes into a log, the diagnostic report or a request.
  */
 @Suppress("unused")
 val hidePostsByWordsPatch = bytecodePatch(
     name = "Hide posts by words",
-    description = "Hides feed posts whose text has a word or phrase you list, unless it also has one from " +
-        "your keep list. Hushfacebook never sends your words anywhere. The switch starts off, so turn it on " +
-        "and add words in Hushfacebook's settings.",
+    description = "Hides feed posts with words you list, or from people, Pages or sites you list, so you skip " +
+        "topics you're tired of. Photo, video, link and colored background posts can go too. Starts off. Turn it " +
+        "on in Hushfacebook settings > News feed.",
     default = true,
 ) {
     category("Feed")
@@ -65,6 +75,22 @@ val hidePostsByWordsPatch = bytecodePatch(
                 "as $STORY_TYPE, expected one",
         )
 
+        // Found before anything is filled in. A build without them keeps the rest of the patch.
+        val types = try {
+            findPostTypeAccessors(story)
+        } catch (moved: PatchException) {
+            patchLog.warning("${moved.message}. The patch goes on without the kinds of post.")
+            null
+        }
+
+        // The reaction ceiling is optional in the same way: a build without it keeps everything else.
+        val reactions = try {
+            findReactionAccessors(story)
+        } catch (moved: PatchException) {
+            patchLog.warning("${moved.message}. The patch goes on without the reaction ceiling.")
+            null
+        }
+
         // The extension reads the text and the model's type tag through these, by reflection.
         if (!hasPublicStringReader(classDefBy(BASE_MODEL_WITH_TREE))) {
             throw PatchException("$PATCH: BaseModelWithTree has no public getCachedString(int)")
@@ -75,6 +101,13 @@ val hidePostsByWordsPatch = bytecodePatch(
 
         fillStoryModelStub(POST_TEXT, MESSAGE_STUB, message)
         fillStoryModelStub(POST_TEXT, ATTACHED_STORY_STUB, attached)
+        try {
+            fillPostSourceStubs(story)
+        } catch (moved: PatchException) {
+            patchLog.warning("${moved.message}. The patch goes on without the people, Pages and sites list.")
+        }
+        if (types != null) fillPostTypeStubs(types)
+        if (reactions != null) fillReactionStubs(reactions)
         enableStatus("postWords")
     }
 }

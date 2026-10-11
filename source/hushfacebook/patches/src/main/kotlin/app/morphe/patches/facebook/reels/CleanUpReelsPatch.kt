@@ -12,6 +12,9 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.facebook.ads.sponsoredreels.filterSectionsFirst
+import app.morphe.patches.facebook.ads.sponsoredreels.reelPages
+import app.morphe.patches.facebook.ads.sponsoredreels.toBinaryName
 import app.morphe.patches.facebook.feed.methodsHolding
 import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
@@ -26,6 +29,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val DECLUTTER = "$EXTENSION_PACKAGE/reels/ReelDeclutter;"
 internal const val FILTER_CHIPS = "$DECLUTTER->filterChips(Ljava/lang/Object;)[Ljava/lang/Object;"
@@ -40,31 +44,38 @@ private const val PATCH = "Clean up Reels"
  * Takes three things off the Reels viewer, each behind its own switch, all on once the patch is in:
  * the chips under a reel that prompt you to make something or promote something, the Follow button
  * in the author row (with the Following button an author you already follow gets there), and the
- * comment and friends' reaction previews in the footer.
+ * comment and friends' reaction previews in the footer. A fourth switch, off until it's turned on,
+ * takes the "Threads you might like" card out from between reels (see ReelMidCards.kt), a fifth,
+ * also off, starts reels and videos in Facebook's own Clean mode (see ReelCleanMode.kt), and a
+ * sixth, also off, plays each reel once instead of starting it over at its end (see ReelLoop.kt,
+ * whose hook is reelLoopPatch's).
  *
  * Every anchor is a kept name or literal (see ReelAnchors.kt), and every one of them is required: a
  * build where one can't be found stops the patch with what's missing, rather than shipping a switch
  * that quietly does nothing. The hooks ask the extension, which answers Facebook's own path until
  * the settings are ready, while paused, and whenever it fails.
  *
- * Off by default: nobody has seen it on a signed-in Reels feed yet.
+ * In the default selection, but it changes nothing until it's turned on in Hushfacebook settings:
+ * nobody has seen it on a signed-in Reels feed yet.
  */
 @Suppress("unused")
 val cleanUpReelsPatch = bytecodePatch(
     name = "Clean up Reels",
-    description = "Hides the Follow button on reels and the comment and reaction previews under them. " +
-        "Buttons such as Remix, Use template, Add yours and Stars go too, and each part has its own switch.",
-    default = false,
+    description = "Hides clutter on reels, such as the Follow button, comment previews, Remix and Use template " +
+        "buttons and Threads cards between reels, so more of the video shows, and can play each reel once " +
+        "instead of over and over. Starts off. Turn on the parts you want in Hushfacebook settings > Reels and Watch.",
 ) {
-    category("Interface")
+    category("Reels")
     dependsOn(settingsPatch)
-    dependsOn(facebookExtensionPatch)
+    dependsOn(facebookExtensionPatch, reelLoopPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {
         filterChips()
         hideFollowButtons()
         skipFooterQueries()
+        hideThreadsCards()
+        startReelsInCleanMode()
         enableStatus("reelDeclutter")
     }
 }
@@ -76,8 +87,9 @@ private fun BytecodePatchContext.filterChips() {
     if (!hasCopyOfArray(immutableList)) {
         throw PatchException("$PATCH: ImmutableList has no public static copyOf(Object[]) to rebuild the chip list with")
     }
+    val tables = { call: MethodReference -> classDefByOrNull(call.definingClass)?.let { resolveStatic(it, call) } }
     val builders = classDefByStrings(CHIP_ANCHOR, StringComparisonType.EQUALS)
-        .flatMap { owner -> chipListBuilders(owner).map { owner to it } }
+        .flatMap { owner -> chipListBuilders(owner, tables).map { owner to it } }
     val (owner, builder) = builders.singleOrNull() ?: throw PatchException(
         "$PATCH: expected one ImmutableList builder naming every hidden chip (${HIDDEN_CHIPS.joinToString()}), " +
             "found ${builders.size}",
@@ -205,6 +217,20 @@ internal fun MutableMethod.returnVoidWhen(hook: String) {
         """,
         ExternalLabel("facebooks_query", getInstruction(0)),
     )
+}
+
+/**
+ * The Threads card between reels comes off each page of sections the Reels controller takes, through
+ * the same walk the sponsored reels and GenAI filters use, with the mid-card item's class beside it.
+ * The extension reads each mid-card's type through the stub this fills, and drops the Threads one.
+ */
+private fun BytecodePatchContext.hideThreadsCards() {
+    val scan = MidCardScan()
+    classDefForEach { classDef -> if (!classDef.type.startsWith(EXTENSION_PACKAGE)) scan.visit(classDef) }
+    val resolved = scan.resolve()
+    val card = resolved.found ?: throw PatchException("$PATCH: ${resolved.problem}")
+    fillMidCardTypeStub(card)
+    reelPages(PATCH).addPage.filterSectionsFirst(card.item.toBinaryName(), THREADS_CARD_SECTION_FILTER, PATCH)
 }
 
 private fun MutableMethod.sameSignatureAs(other: Method) =

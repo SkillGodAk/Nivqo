@@ -115,7 +115,7 @@ private fun ContributorSection(
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = LocalDialogSecondaryTextColor.current
+            color = dialogSecondaryTextColor()
         )
         SettingsGroup {
             contributors.forEachIndexed { index, contributor ->

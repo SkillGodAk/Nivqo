@@ -7,6 +7,9 @@ package app.morphe.extension.facebook.chats;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.os.SystemClock;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
@@ -14,6 +17,7 @@ import android.view.ViewConfiguration;
 import androidx.annotation.Nullable;
 
 import java.util.Arrays;
+import java.util.List;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
@@ -181,9 +185,8 @@ public final class MessengerIcon {
 
             if (!openMessenger) return openFacebookChats(context);
 
-            // Null unless Messenger is installed, enabled and has a MAIN/LAUNCHER (or INFO) activity.
-            // The intent comes with FLAG_ACTIVITY_NEW_TASK, so Messenger opens in its own task.
-            Intent launch = context.getPackageManager().getLaunchIntentForPackage(MessengerCard.MESSENGER);
+            // First try Meta Messenger, then any Messenger copy installed under another package name.
+            Intent launch = messengerLaunch(context.getPackageManager(), context.getPackageName());
             if (launch == null) {
                 countDecline(NO_MESSENGER);
                 return false;
@@ -230,5 +233,38 @@ public final class MessengerIcon {
                     () -> "Facebook Chats didn't start (" + kind + "). Facebook handles the tap instead.", null);
             return false;
         }
+    }
+
+    /**
+     * The launcher entry a tap starts, or null when there's no Messenger to open. Messenger's own
+     * comes first: null from Android unless it's installed, enabled and has a MAIN/LAUNCHER (or
+     * INFO) activity, and with FLAG_ACTIVITY_NEW_TASK, so Messenger opens in its own task. Without
+     * it, the first launcher entry of another app whose activity is one of Messenger's classes, in a
+     * task of its own too: HushMessenger installed beside Meta's apps takes another package name
+     * ({@code com.facebook.orca.hush} unless the user picks one) and keeps Messenger's class names.
+     * Facebook sees launcher entries through its manifest's plain launcher query.
+     */
+    @Nullable
+    static Intent messengerLaunch(PackageManager packages, @Nullable String self) {
+        Intent launch = packages.getLaunchIntentForPackage(MessengerCard.MESSENGER);
+        return launch != null ? launch : copyLaunch(packages, self);
+    }
+
+    /**
+     * The launcher entry of a Messenger installed under another package name, or null: the first
+     * one, not [self]'s, whose activity is one of Messenger's classes, in a task of its own.
+     */
+    @Nullable
+    static Intent copyLaunch(PackageManager packages, @Nullable String self) {
+        Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
+        List<ResolveInfo> entries = packages.queryIntentActivities(home, 0);
+        if (entries == null) return null;
+        for (ResolveInfo entry : entries) {
+            ActivityInfo activity = entry == null ? null : entry.activityInfo;
+            if (activity == null || activity.packageName == null || activity.name == null) continue;
+            if (activity.packageName.equals(self) || !activity.name.startsWith(MessengerCard.MESSENGER + ".")) continue;
+            return new Intent(home).setClassName(activity.packageName, activity.name).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        }
+        return null;
     }
 }

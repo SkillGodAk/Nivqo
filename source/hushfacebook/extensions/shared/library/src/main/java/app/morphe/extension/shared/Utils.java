@@ -162,9 +162,9 @@ public class Utils {
     }
 
     /**
-     * The host's version code, such as 475019344 for Facebook 580.0.0.51.74, or -1 when the
-     * package manager can't say. Facebook ships several builds under one version name, and the
-     * code is what tells them apart in a report.
+     * The host's version code, such as 475417104 for Facebook 582.0.0.50.54, or -1 when the package
+     * manager can't say. Facebook ships several builds under one version name, and the code is what
+     * tells them apart in a report.
      */
     @SuppressWarnings("deprecation")
     public static long getAppVersionCode() {
@@ -326,9 +326,13 @@ public class Utils {
         }
     }
 
-    /** Waits until background work submitted before this call has finished. */
+    /**
+     * Waits until background work submitted before this call has finished. The 30 seconds is room for
+     * a loaded machine: five ran out under a full worker queue beside other builds (2026-10-06), and
+     * the wait ends as soon as the pool drains.
+     */
     public static void awaitBackgroundTasksForTests() throws Exception {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
         while (true) {
             long remaining = deadline - System.nanoTime();
             if (remaining <= 0) throw new TimeoutException("Background tasks did not finish");

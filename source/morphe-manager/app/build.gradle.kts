@@ -69,8 +69,6 @@ dependencies {
 
     // LibSU
     implementation(libs.libsu.core)
-    implementation(libs.libsu.service)
-    implementation(libs.libsu.nio)
 
     // Koin
     implementation(libs.koin.android)
@@ -86,7 +84,6 @@ dependencies {
     implementation(libs.ktor.okhttp)
     implementation(libs.ktor.content.negotiation)
     implementation(libs.ktor.serialization)
-
     implementation(libs.play.services.base)
 
     // Fading Edges
@@ -166,7 +163,6 @@ android {
         buildConfigField("String", "PATCHER_VERSION", "\"${libs.versions.morphe.patcher.get()}\"")
 
         buildConfigField("String[]", "TRANSLATIONS", translationTags)
-        // Nivqo release builds update only from the Nivqo-owned GitHub channel.
         buildConfigField("boolean", "ALLOW_MANAGER_SELF_UPDATE", "true")
 
         vectorDrawables.useSupportLibrary = true
@@ -324,3 +320,60 @@ tasks {
     }
 }
 
+/**
+ * Launcher icons on offer, the one place they are defined. Each is a background with a mark over it.
+ * The launcher only shows icons the manifest declares, so the build generates from this an
+ * activity-alias per icon, the adaptive icon it shows and the catalog the app picks from.
+ *
+ * Backgrounds are listed in picker order. A background's drawable is ic_launcher_background_<id>
+ * and its name settings_appearance_app_icon_<id>; a mark's name is
+ * settings_appearance_app_icon_mark_<id>.
+ *
+ * The launcher remembers an icon by its alias, MainActivity_<Background>, plus _<Mark> for any mark
+ * but the background's base one. Released ids and base marks must therefore never change, or users
+ * of that icon would lose it on update. A background's color can change freely.
+ */
+val launcherIconMarks = linkedMapOf(
+    "color" to "ic_launcher_foreground",
+    "white" to "ic_launcher_foreground_white",
+    "black" to "ic_launcher_foreground_black"
+)
+
+val launcherIconBackgrounds = listOf(
+    // id to (base mark, other marks that read on it). A mark reads when it keeps a contrast of
+    // about 2.5:1 against the background, the brand mark about 2:1 at its weaker end
+    "default" to ("color" to listOf("black")),
+    "light_2" to ("color" to listOf("black")),
+    "light_3" to ("color" to listOf("black")),
+    "light_4" to ("color" to listOf("black")),
+    "light_5" to ("color" to listOf("black")),
+    "light_6" to ("color" to listOf("black")),
+    "light_7" to ("color" to listOf("black")),
+    "dark_1" to ("white" to listOf("black")),
+    "accent_1" to ("white" to listOf("black")),
+    "accent_4" to ("white" to listOf("black")),
+    "dark_3" to ("white" to listOf("black")),
+    "dark_4" to ("white" to emptyList()),
+    "dark_5" to ("white" to listOf("black")),
+    "dark_2" to ("color" to listOf("white")),
+    "accent_2" to ("white" to listOf("color")),
+    "accent_3" to ("black" to listOf("color"))
+)
+
+val generateLauncherIcons = tasks.register<GenerateLauncherIconsTask>("generateLauncherIcons") {
+    group = "build"
+    description = "Generates the launcher icon aliases, adaptive icons and app catalog."
+    marks.set(launcherIconMarks)
+    backgrounds.set(launcherIconBackgrounds.map { (id, marks) -> listOf(id, marks.first) + marks.second })
+    resDirectory.set(layout.buildDirectory.dir("generated/launcherIcons/res"))
+    kotlinDirectory.set(layout.buildDirectory.dir("generated/launcherIcons/kotlin"))
+    manifestFile.set(layout.buildDirectory.file("generated/launcherIcons/AndroidManifest.xml"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.res?.addGeneratedSourceDirectory(generateLauncherIcons, GenerateLauncherIconsTask::resDirectory)
+        variant.sources.kotlin?.addGeneratedSourceDirectory(generateLauncherIcons, GenerateLauncherIconsTask::kotlinDirectory)
+        variant.sources.manifests.addGeneratedManifestFile(generateLauncherIcons, GenerateLauncherIconsTask::manifestFile)
+    }
+}

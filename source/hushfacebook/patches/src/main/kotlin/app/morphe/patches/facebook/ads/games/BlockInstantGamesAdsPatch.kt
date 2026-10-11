@@ -22,8 +22,9 @@ import app.morphe.util.findMutableMethodOf
 @Suppress("unused")
 val blockInstantGamesAdsPatch = bytecodePatch(
     name = "Block Instant Games ads",
-    description = "Games you play in Facebook get no ads. A game that asks for one is told there's none to show, " +
-        "so a rewarded ad gives no reward, and the game carries on.",
+    description = "Games you play inside Facebook show no ads, so you can keep playing without breaks. A " +
+        "rewarded ad gives no reward unless you also turn on the switch that counts it as watched. On by " +
+        "default. Turn it off in Hushfacebook settings > Menu.",
     default = true,
 ) {
     category("Ads")
@@ -42,7 +43,14 @@ val blockInstantGamesAdsPatch = bytecodePatch(
             "$PATCH: expected ${bridge.type} to reject a promise through one (String, String, String) method calling " +
                 "the call holding \"$REJECT_LOG\" (${rejects.size} found)",
         )
-        mutableClassDefBy(bridge.type).findMutableMethodOf(bridge.methods.single(::isPostMessage)).answerAdsWithNoAd(reject)
+        val resolves = classDefByStrings(RESOLVE_LOG, StringComparisonType.EQUALS)
+            .flatMap { owner -> owner.methods.filter(::isResolvePromise) }
+        val resolve = resolveOn(bridge, resolves).singleOrNull() ?: throw PatchException(
+            "$PATCH: expected ${bridge.type} to resolve a promise through one (String, Object) method calling " +
+                "the call holding \"$RESOLVE_LOG\" (${resolves.size} found)",
+        )
+        mutableClassDefBy(bridge.type).findMutableMethodOf(bridge.methods.single(::isPostMessage))
+            .answerAdsWithNoAd(reject, resolve)
         enableStatus("gameAds")
     }
 }

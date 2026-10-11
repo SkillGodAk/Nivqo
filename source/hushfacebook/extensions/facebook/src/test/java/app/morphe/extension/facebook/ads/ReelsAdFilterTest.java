@@ -120,6 +120,37 @@ public class ReelsAdFilterTest {
         assertSame(page, ReelsAdFilter.withoutAds(page, AD));
     }
 
+    /**
+     * 581's client-side Reels loader puts a reel in on its own (#47). The patch hands that item over
+     * as a one-item page and skips the insert when the answer is empty, so an ad comes back empty and
+     * a reel comes back as the same list.
+     */
+    @Test
+    public void aOneItemInsertOfAnAdComesBackEmptyAndOfAReelUntouched() {
+        assertTrue(ReelsAdFilter.withoutAds(Collections.singletonList(new VideoAd()), AD).isEmpty());
+
+        List<Object> reel = Collections.singletonList(new Reel());
+        assertSame(reel, ReelsAdFilter.withoutAds(reel, AD));
+    }
+
+    /**
+     * The listener walk after an insert is handed the page as Facebook passed it in, so it sees an ad
+     * the insert already dropped. It still takes the ad out, but counts on its own route, and the
+     * pages route counts the page once.
+     */
+    @Test
+    public void theListenerWalkCountsApartFromTheInsert() {
+        List<Object> page = Arrays.asList(new Reel(), new VideoAd());
+
+        assertEquals(1, ReelsAdFilter.withoutAds(page, AD).size());
+        assertEquals(1, ReelsAdFilter.withoutAnnouncedAds(page, AD).size());
+
+        assertEquals(ReelsAdFilter.PAGES_ROUTE + ": 1 lists, 2 items, 1 removed. Last reason: ad item. "
+                + "Removed: ad item 1. Kinds: ad item 1, not a reel item 1", counterLine(ReelsAdFilter.PAGES_ROUTE));
+        assertEquals(ReelsAdFilter.ANNOUNCED_ROUTE + ": 1 lists, 2 items, 1 removed. Last reason: ad item. "
+                + "Removed: ad item 1. Kinds: ad item 1, not a reel item 1", counterLine(ReelsAdFilter.ANNOUNCED_ROUTE));
+    }
+
     @Test
     public void aSectionLosesItsAdsAndAnEmptiedSectionGoes() {
         Reel reel = new Reel();
@@ -318,6 +349,79 @@ public class ReelsAdFilterTest {
             assertNotNull(String.join("\n", HookStatus.report()), line);
             assertTrue(line, line.contains("invoked 3"));
             assertTrue(line, line.contains(ReelsAdFilter.POOL_HELD + " 2"));
+        } finally {
+            HookStatus.clear();
+        }
+    }
+
+    /**
+     * A profile's Reels tab asks before it sends the query for its own ads. On, each ask is held and
+     * counted; off, the query goes out as Facebook wrote it.
+     */
+    @Test
+    public void aProfilesReelsTabSendsNoAdQueryOnlyWhileTheSwitchIsOn() {
+        HookStatus.clear();
+        try {
+            assertTrue(ReelsAdFilter.holdProfileReelAds());
+            Settings.HIDE_SPONSORED_REELS.save(false);
+            assertFalse(ReelsAdFilter.holdProfileReelAds());
+
+            String line = null;
+            for (String candidate : HookStatus.report()) {
+                if (candidate.startsWith("Hide sponsored reels:")) line = candidate;
+            }
+            assertNotNull(String.join("\n", HookStatus.report()), line);
+            assertTrue(line, line.contains("invoked 2"));
+            assertTrue(line, line.contains(ReelsAdFilter.PROFILE_ADS_HELD + " 1"));
+        } finally {
+            HookStatus.clear();
+        }
+    }
+
+    /**
+     * A reel, Watch or in-stream ad's floating button stays off its comments while the switch is on.
+     * The pill's other plugins, and every plugin with the switch off, are Facebook's call.
+     */
+    @Test
+    public void anAdsFloatingButtonStaysOffItsCommentsOnlyWhileTheSwitchIsOn() {
+        String pills = "com.facebook.feedback.comments.plugins.indicatorpill.";
+        HookStatus.clear();
+        try {
+            for (String plugin : ReelsAdFilter.AD_PILLS) {
+                assertTrue(plugin, ReelsAdFilter.holdsAdPill(plugin));
+            }
+            assertFalse(ReelsAdFilter.holdsAdPill(pills + "organicmessagefloatingcta.OrganicMessageFloatingCtaPlugin"));
+            assertFalse(ReelsAdFilter.holdsAdPill(pills + "permalinkadsfloatingcta.PermalinkAdsFloatingCtaPlugin"));
+            assertFalse(ReelsAdFilter.holdsAdPill(null));
+            Settings.HIDE_SPONSORED_REELS.save(false);
+            assertFalse(ReelsAdFilter.holdsAdPill(pills + "reelsadsfloatingcta.ReelsAdsFloatingCtaPlugin"));
+
+            String line = null;
+            for (String candidate : HookStatus.report()) {
+                if (candidate.startsWith("Hide sponsored reels:")) line = candidate;
+            }
+            assertNotNull(String.join("\n", HookStatus.report()), line);
+            assertTrue(line, line.contains(ReelsAdFilter.AD_PILL_HELD + " 3"));
+        } finally {
+            HookStatus.clear();
+        }
+    }
+
+    /** Each ad-break fetch the patch fails is counted, switch on or off, since it stays held either way. */
+    @Test
+    public void eachHeldAdBreakFetchIsCounted() {
+        HookStatus.clear();
+        try {
+            ReelsAdFilter.heldAdBreakFetch();
+            Settings.HIDE_SPONSORED_REELS.save(false);
+            ReelsAdFilter.heldAdBreakFetch();
+
+            String line = null;
+            for (String candidate : HookStatus.report()) {
+                if (candidate.startsWith("Hide sponsored reels:")) line = candidate;
+            }
+            assertNotNull(String.join("\n", HookStatus.report()), line);
+            assertTrue(line, line.contains(ReelsAdFilter.AD_BREAK_FETCH_HELD + " 2"));
         } finally {
             HookStatus.clear();
         }
