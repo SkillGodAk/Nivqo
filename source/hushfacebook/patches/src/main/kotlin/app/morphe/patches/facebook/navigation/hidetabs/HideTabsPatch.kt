@@ -19,6 +19,16 @@ internal val HIDEABLE_TABS = mapOf(
     "Groups" to listOf("Lcom/facebook/groups/targetedtab/groupstabtag/GroupsTargetedTab;"),
     "Gaming" to listOf("Lcom/facebook/games/tab/GamesTab;", "Lcom/facebook/games/tab/GamesTabWithSNESControllerIcon;"),
     "Events" to listOf("Lcom/facebook/events/targetedtab/EventsTab;"),
+    "Dating" to listOf("Lcom/facebook/gemstone/tab/GemstoneTab;"),
+    "Professional dashboard" to listOf(
+        "Lcom/facebook/professionaldashboard/tab/ProfessionalDashboardTab;",
+        "Lcom/facebook/professionaldashboard/tab/ProfessionalDashboardTabWithoutComponentHelper;",
+    ),
+    "Saved" to listOf("Lcom/facebook/saved2/tab/SavedTab;"),
+    "Ad Center" to listOf("Lcom/facebook/adinterfaces/adcenter/AdCenterTab;"),
+    "Create" to listOf("Lcom/facebook/creator/tab/CreatorToolComposerTab;"),
+    "Explore" to listOf("Lcom/facebook/notifications/discoverhub/tab/DiscoverHubTab;"),
+    "Jobs" to listOf("Lcom/facebook/jobsv2/tab/JobsV2Tab;"),
 )
 
 /**
@@ -35,11 +45,12 @@ internal val HIDEABLE_TABS = mapOf(
 @Suppress("unused")
 val hideTabsPatch = bytecodePatch(
     name = "Hide tabs",
-    description = "Takes the tabs you pick off the tab bar: Feeds, Friends, Marketplace, Groups, Gaming or Events. " +
-        "Each page stays in the Menu. Every switch starts off, and a change shows once Facebook restarts.",
+    description = "Takes the tabs you pick off the tab bar, such as Friends, Marketplace, Groups, Gaming or " +
+        "Events, so the bar only has what you use. Each page stays in the Menu. Starts off. Turn on the ones you " +
+        "want in Hushfacebook settings > Appearance, then restart Facebook.",
     default = true,
 ) {
-    category("Interface")
+    category("Navigation")
     dependsOn(settingsPatch, tabBarFilterPatch, tabLinksPatch)
     compatibleWith(*AppCompatibilities.facebook())
 

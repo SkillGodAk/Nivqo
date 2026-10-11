@@ -33,42 +33,33 @@ internal object AppCompatibilities {
     /**
      * SHA-256 of Meta's newer signing certificate (CN=Meta Platforms Inc). Builds from 573 on carry
      * an APK Signature Scheme v3.1 rotation: the original key signs for Android 12L and older, this
-     * one for Android 13 and newer, and its lineage is authorized by the original. 577.0.0.50.72's
-     * arm64 build is signed with the original key only.
+     * one for Android 13 and newer, and its lineage is authorized by the original.
      */
     const val META_ROTATED_SIGNER_SHA256 = "911d604446084ca7f4760b775bfc160fa8702441240a7258645d7a72c4312d27"
 
-    /** The newest Facebook build every patch here was applied to and read against. */
-    const val FACEBOOK_TARGET_VERSION = "581.0.0.45.58"
+    /**
+     * The one Facebook build every patch here declares, was applied to and read against: the newest
+     * stable release. A newer stable build replaces it in the same release, and the one before
+     * goes.
+     */
+    const val FACEBOOK_TARGET_VERSION = "582.0.0.50.54"
 
     /**
      * The version code of the arm64-v8a build of [FACEBOOK_TARGET_VERSION] (APKMirror's
      * 320-640dpi, Android 11+ variant). Each APKMirror variant of a Facebook release is its own
      * build with different DEX, not a split of one bundle, so the code of the tested variant is
-     * pinned. 581 has seven arm64 Android 11+ builds, with codes from 475215267 to 475408263.
+     * pinned. 582 has five arm64 Android 11+ builds, with codes from 475417031 to 475417129.
      */
-    const val FACEBOOK_TARGET_VERSION_CODE = 475215365
+    const val FACEBOOK_TARGET_VERSION_CODE = 475417104
 
     /**
      * The version code of the armeabi-v7a build of [FACEBOOK_TARGET_VERSION] (APKMirror's 320dpi,
-     * Android 11+ variant). 581 is the first release whose 32-bit Android 11+ builds ship their
-     * code as plain root DEX (20 files) rather than a compressed Superpack store, so every patch
-     * applies to it. Its DEX differs from the arm64 build's, so it is a fixture of its own. The
-     * Android 8 armeabi-v7a builds still pack their code and stay out.
+     * Android 11+ variant). From 581 on, the 32-bit Android 11+ builds ship their code as plain
+     * root DEX (21 files in 582) rather than a compressed Superpack store, so every patch applies
+     * to them. Its DEX differs from the arm64 build's, so it is a fixture of its own. The Android 8
+     * armeabi-v7a builds still pack their code and stay out.
      */
-    const val FACEBOOK_TARGET_ARMV7_VERSION_CODE = 475215364
-
-    /** The build before [FACEBOOK_TARGET_VERSION], still applied to on every change. */
-    const val FACEBOOK_PREVIOUS_VERSION = "580.0.0.51.74"
-
-    /** The version code of the arm64-v8a build of [FACEBOOK_PREVIOUS_VERSION] (240-640dpi, Android 11+). */
-    const val FACEBOOK_PREVIOUS_VERSION_CODE = 475019344
-
-    /** The build Andrew Liang's patches were written against, still applied to on every change. */
-    const val FACEBOOK_ORIGINAL_VERSION = "577.0.0.50.72"
-
-    /** The version code of the arm64-v8a build of [FACEBOOK_ORIGINAL_VERSION] (360-480dpi). */
-    const val FACEBOOK_ORIGINAL_VERSION_CODE = 474426275
+    const val FACEBOOK_TARGET_ARMV7_VERSION_CODE = 475417036
 
     /** Facebook's own floor on every declared build, Android 11. */
     const val FACEBOOK_TARGET_MIN_SDK = 30
@@ -87,16 +78,6 @@ internal object AppCompatibilities {
                         SupportedAbi.ARM64_V8A to FACEBOOK_TARGET_VERSION_CODE,
                         SupportedAbi.ARMEABI_V7A to FACEBOOK_TARGET_ARMV7_VERSION_CODE,
                     ),
-                    minSdk = FACEBOOK_TARGET_MIN_SDK,
-                ),
-                AppTarget(
-                    version = FACEBOOK_PREVIOUS_VERSION,
-                    versionCodes = mapOf(SupportedAbi.ARM64_V8A to FACEBOOK_PREVIOUS_VERSION_CODE),
-                    minSdk = FACEBOOK_TARGET_MIN_SDK,
-                ),
-                AppTarget(
-                    version = FACEBOOK_ORIGINAL_VERSION,
-                    versionCodes = mapOf(SupportedAbi.ARM64_V8A to FACEBOOK_ORIGINAL_VERSION_CODE),
                     minSdk = FACEBOOK_TARGET_MIN_SDK,
                 ),
             ),

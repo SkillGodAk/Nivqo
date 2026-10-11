@@ -6,12 +6,14 @@ package app.morphe.patches.facebook.media.quality
 
 import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -32,19 +34,18 @@ internal const val PATCH = "Default playback quality"
  * QualityAnchors.kt for how Facebook's player applies a quality, and the extension's QualityChoice
  * for when it keeps Facebook's own.
  *
- * Off in the default selection. Picked, its switch starts on and the quality starts as Facebook's
- * own, so nothing changes until a quality is chosen.
+ * In the default selection with its switch off and the quality as Facebook's own, so nothing
+ * changes until the switch is turned on and a quality is chosen.
  */
 @Suppress("unused")
 val defaultPlaybackQualityPatch = bytecodePatch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Default playback quality",
-    description = "Plays videos, reels and video stories at the quality you choose in Hushfacebook's settings, " +
-        "such as Data saver or up to 720p, instead of the one Facebook picks as it plays. A quality you pick in a " +
-        "video's own menu still wins for that video.",
-    default = false,
+    description = "Plays videos, reels and video stories at the quality you choose, such as Data saver or up to " +
+        "720p, instead of what Facebook picks. Lower saves data, higher looks sharper. Starts off. Turn it on " +
+        "and pick a quality in Hushfacebook settings > Playback.",
 ) {
-    category("Interface")
+    category("Playback")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
@@ -65,6 +66,10 @@ internal class QualityAnchors(
     val formats: FieldReference,
     val labelOf: MethodReference,
     val label: FieldReference,
+    val configuration: FieldReference,
+    val preferences: FieldReference,
+    val origin: FieldReference,
+    val subOrigin: FieldReference,
 )
 
 /**
@@ -123,7 +128,55 @@ internal fun BytecodePatchContext.findQualityAnchors(): QualityAnchors {
     listOf(preselected.toString(), formats.toString(), label.toString(), labelOf.toString()).zip(members).forEach { (name, flags) ->
         if (flags == null || !AccessFlags.PUBLIC.isSet(flags)) refuse("$name isn't public, so the extension can't reach it")
     }
-    return QualityAnchors(evaluator, constructor, setter, preselected, formats, labelOf, label)
+    val (configuration, preferences, origin, subOrigin) = findOriginAnchors(evaluator, constructor)
+    return QualityAnchors(evaluator, constructor, setter, preselected, formats, labelOf, label,
+        configuration, preferences, origin, subOrigin)
+}
+
+/**
+ * Where the extension reads a video's player origin and sub-origin: the evaluator's one
+ * AbrContextAwareConfiguration field, which its constructor fills in, that configuration's
+ * playbackPreferences, and the two String fields of those the configuration compares with
+ * "fb_stories" and "fb_shorts_viewer". Changes nothing.
+ */
+private fun BytecodePatchContext.findOriginAnchors(evaluator: ClassDef, constructor: Method): List<FieldReference> {
+    val configurations = evaluator.fields.filter { it.type == ABR_CONFIGURATION && !AccessFlags.STATIC.isSet(it.accessFlags) }
+    val configuration = configurations.singleOrNull()
+        ?: refuse("expected one $ABR_CONFIGURATION field in ${evaluator.type}, found ${configurations.size}")
+    val stored = constructor.implementation?.instructions?.any {
+        it.opcode == Opcode.IPUT_OBJECT && ((it as? ReferenceInstruction)?.reference as? FieldReference)?.let { field ->
+            field.definingClass == evaluator.type && field.name == configuration.name && field.type == configuration.type
+        } == true
+    } == true
+    if (!stored) refuse("${evaluator.type}'s constructor doesn't fill in ${configuration.name}")
+
+    val config = classDefByOrNull(ABR_CONFIGURATION) ?: refuse("this build has no $ABR_CONFIGURATION")
+    val preferences = config.fields.singleOrNull { it.name == PLAYBACK_PREFERENCES && !AccessFlags.STATIC.isSet(it.accessFlags) }
+        ?: refuse("$ABR_CONFIGURATION has no $PLAYBACK_PREFERENCES")
+    val tables = { call: MethodReference -> classDefByOrNull(call.definingClass)?.let { resolveStatic(it, call) } }
+    val origins = originReads(config, preferences.type, STORIES_ORIGIN, tables)
+    val origin = origins.singleOrNull()
+        ?: refuse("expected one origin $ABR_CONFIGURATION compares with \"$STORIES_ORIGIN\", found ${origins.size}")
+    val subOrigins = originReads(config, preferences.type, REELS_SUB_ORIGIN, tables)
+    val subOrigin = subOrigins.singleOrNull()
+        ?: refuse("expected one sub-origin $ABR_CONFIGURATION compares with \"$REELS_SUB_ORIGIN\", found ${subOrigins.size}")
+    if (origin.name == subOrigin.name) refuse("the origin and the sub-origin are both ${origin.name}")
+
+    // The stubs read these from outside Facebook's package.
+    val preferencesClass = classDefByOrNull(preferences.type) ?: refuse("this build has no ${preferences.type}")
+    listOf(config, preferencesClass).forEach {
+        if (!AccessFlags.PUBLIC.isSet(it.accessFlags)) refuse("${it.type} isn't public, so the extension can't reach it")
+    }
+    val members = listOf(
+        configuration.toString() to configuration.accessFlags,
+        "${config.type}->${preferences.name}" to preferences.accessFlags,
+        origin.toString() to preferencesClass.fields.singleOrNull { it.name == origin.name && it.type == origin.type }?.accessFlags,
+        subOrigin.toString() to preferencesClass.fields.singleOrNull { it.name == subOrigin.name && it.type == subOrigin.type }?.accessFlags,
+    )
+    members.forEach { (name, flags) ->
+        if (flags == null || !AccessFlags.PUBLIC.isSet(flags)) refuse("$name isn't public, so the extension can't reach it")
+    }
+    return listOf(configuration, preferences, origin, subOrigin)
 }
 
 /**
@@ -186,6 +239,8 @@ private fun BytecodePatchContext.fillStubs(anchors: QualityAnchors) {
             return-object p0
         """,
     )
+    stub(ORIGIN_STUB, listOf(objectType), string).addInstructionsWithLabels(0, originRead(anchors, anchors.origin))
+    stub(SUB_ORIGIN_STUB, listOf(objectType), string).addInstructionsWithLabels(0, originRead(anchors, anchors.subOrigin))
     stub(LABEL_STUB, listOf(objectType), string).addInstructions(
         0,
         """
@@ -197,3 +252,21 @@ private fun BytecodePatchContext.fillStubs(anchors: QualityAnchors) {
         """,
     )
 }
+
+/**
+ * An origin stub's body: the evaluator's configuration, its playback preferences, then [field].
+ * A missing link answers null, a fresh constant so the answer is a String whichever read stopped.
+ */
+internal fun originRead(anchors: QualityAnchors, field: FieldReference) =
+    """
+        check-cast p0, ${anchors.evaluator.type}
+        iget-object p0, p0, ${anchors.configuration}
+        if-eqz p0, :no_origin
+        iget-object p0, p0, ${anchors.preferences}
+        if-eqz p0, :no_origin
+        iget-object p0, p0, $field
+        return-object p0
+        :no_origin
+        const/4 p0, 0x0
+        return-object p0
+    """

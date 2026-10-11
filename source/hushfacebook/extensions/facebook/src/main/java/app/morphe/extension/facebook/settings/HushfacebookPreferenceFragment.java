@@ -47,33 +47,53 @@ import app.morphe.extension.facebook.download.SaveControl;
 import app.morphe.extension.facebook.download.SaveFolder;
 import app.morphe.extension.facebook.download.SaveTo;
 import app.morphe.extension.facebook.download.SendLink;
+import app.morphe.extension.facebook.feed.PostSources;
 import app.morphe.extension.facebook.feed.PostWords;
+import app.morphe.extension.facebook.feed.ReactionCeiling;
+import app.morphe.extension.facebook.feed.TopicPacks;
+import app.morphe.extension.facebook.feed.SeenPosts;
 import app.morphe.extension.facebook.media.PlaybackQuality;
+import app.morphe.extension.facebook.media.SurfaceQuality;
+import app.morphe.extension.facebook.misc.AppLock;
+import app.morphe.extension.facebook.misc.ShareSheetItems;
+import app.morphe.extension.facebook.misc.TextSize;
+import app.morphe.extension.facebook.theme.AccentColor;
 import app.morphe.extension.facebook.navigation.HiddenTabs;
 import app.morphe.extension.facebook.navigation.FeedsSubtab;
 import app.morphe.extension.facebook.navigation.StartTab;
 import app.morphe.extension.facebook.navigation.MarketplaceOnly;
+import app.morphe.extension.facebook.notifications.QuietHour;
 import app.morphe.extension.facebook.settings.SettingsRows.Heading;
 import app.morphe.extension.facebook.settings.SettingsRows.Row;
 import app.morphe.extension.facebook.settings.SettingsRows.SaveRow;
 import app.morphe.extension.facebook.settings.SettingsRows.Toggle;
 import app.morphe.extension.facebook.settings.ValueRows.CommentOrderRow;
+import app.morphe.extension.facebook.settings.ValueRows.LockAfterRow;
+import app.morphe.extension.facebook.settings.ValueRows.SeenKeepRow;
+import app.morphe.extension.facebook.settings.ValueRows.AccentRow;
+import app.morphe.extension.facebook.settings.ValueRows.ReactionCeilingRow;
+import app.morphe.extension.facebook.settings.ValueRows.TextSizeRow;
 import app.morphe.extension.facebook.settings.ValueRows.DownloadActionRow;
 import app.morphe.extension.facebook.settings.ValueRows.FeedsSubtabRow;
 import app.morphe.extension.facebook.settings.ValueRows.FileNameRow;
 import app.morphe.extension.facebook.settings.ValueRows.FolderRow;
 import app.morphe.extension.facebook.settings.ValueRows.LanguageRow;
 import app.morphe.extension.facebook.settings.ValueRows.PlaybackQualityRow;
+import app.morphe.extension.facebook.settings.ValueRows.QuietHourRow;
 import app.morphe.extension.facebook.settings.ValueRows.QualityRow;
 import app.morphe.extension.facebook.settings.ValueRows.SaveToRow;
 import app.morphe.extension.facebook.settings.ValueRows.SendAppRow;
 import app.morphe.extension.facebook.settings.ValueRows.StartTabRow;
+import app.morphe.extension.facebook.settings.ValueRows.SubfolderRow;
+import app.morphe.extension.facebook.settings.ValueRows.SurfaceQualityRow;
+import app.morphe.extension.facebook.settings.ValueRows.SourcesRow;
 import app.morphe.extension.facebook.settings.ValueRows.WordsRow;
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.BooleanSetting;
+import app.morphe.extension.shared.settings.EnumSetting;
 import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.Setting;
 import app.morphe.extension.shared.settings.StringSetting;
@@ -108,6 +128,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     static final String MISSING_RESTORE_TRUST = "action_missing_restore_trust";
     /** The key of the row naming the default patches this build lacks. It stores nothing either. */
     static final String MISSING_DEFAULTS = "action_missing_default_patches";
+    /** How many of the missing patches that row names before it counts the rest. */
+    static final int MISSING_NAMES_SHOWN = 8;
 
     /** Thrown by the next initialize() and then cleared: how a test reaches the recovery page. */
     static volatile RuntimeException failNextInitialization;
@@ -278,11 +300,14 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         setPreferenceScreen(screen);
 
         screen.addPreference(statusCard(context));
-        screen.addPreference(jumpRow(context));
         // The export row below reads these; registering twice keeps one.
         PatchFamily.registerDiagnostics();
         LogBufferManager.registerReportSection(ReleaseCheck.REPORT);
         Set<PatchFamily> build = PatchFamily.inThisBuild();
+        // Right under the card, once, for someone a default change turned switches off for.
+        Preference startsOff = StartsOffNote.row(context, build);
+        if (startsOff != null) screen.addPreference(startsOff);
+        screen.addPreference(jumpRow(context));
 
         // The sections in the order they come on the page, each in its category page's class.
         FeedPages.opening(this, screen, context, build);
@@ -465,8 +490,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     /**
      * Under the card when this build lacks a patch Morphe Manager selects by default, or null when
      * it has them all. A patch left out is the usual answer to "ads still show" (#29, #35). A tap
-     * opens and closes the list of names, which runs to thirty for a build patched with one
-     * patch picked.
+     * opens and closes the list of names, which would run past eighty for a build patched with one
+     * patch picked, so it names {@link #MISSING_NAMES_SHOWN} and counts the rest.
      */
     @Nullable
     private static Preference missingDefaultsRow(Context context, Set<PatchFamily> build) {
@@ -475,6 +500,14 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         if (missing.isEmpty()) return null;
         List<String> names = new ArrayList<>();
         for (String name : missing) names.add(L10n.isolate(name));
+        // A build patched with a selection saved before 32 patches joined the default one lacks all
+        // of them, and the names ran on for a screen. Past a few the rest are a count: Manager's
+        // default selection brings them all, and the diagnostic report names every one.
+        if (names.size() > MISSING_NAMES_SHOWN + 1) {
+            int more = names.size() - MISSING_NAMES_SHOWN;
+            names = new ArrayList<>(names.subList(0, MISSING_NAMES_SHOWN));
+            names.add(L10n.f("%1$d more", more));
+        }
         String closed = L10n.t("Tap to see which.");
         String open = L10n.quantity(missing.size(),
                 "Not in this build: %1$s. Morphe Manager selects it by default. Patch again with it selected to "
@@ -498,17 +531,17 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     }
 
     /**
-     * A missing Restore screens patch breaks profiles on ordinary re-signed installs. Pull it out of
-     * the generic missing-defaults list so the overview says exactly what fails (#68). Root Mount
-     * installs still carry Meta's key and do not need this patch.
+     * A missing Restore screens patch breaks profiles, photos and posts on ordinary re-signed
+     * installs (#68, #97). Pull it out of the generic missing-defaults list so the overview says
+     * exactly what fails. Root Mount installs still carry Meta's key and do not need this patch.
      */
     @Nullable
     private static Preference missingRestoreTrustRow(Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.RESTORE_TRUST)) return null;
         if (FamilySignatureTrust.thisBuildCarriesMetaKey(context)) return null;
-        Preference row = info(context, L10n.t("Profiles and some Settings pages won't open"),
-                L10n.f("Patch again with %1$s selected. Re-signed builds need it for profiles and some Facebook "
-                        + "Settings pages.", L10n.isolate(FamilyNames.RESTORE_TRUST)));
+        Preference row = info(context, L10n.t("Profiles, photos and posts won't open"),
+                L10n.f("Patch again with %1$s selected. A patched Facebook needs it to open profiles, photos, posts and "
+                        + "some of Facebook's Settings pages.", L10n.isolate(FamilyNames.RESTORE_TRUST)));
         row.setKey(MISSING_RESTORE_TRUST);
         return row;
     }
@@ -710,6 +743,14 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         super.updateUIToSettingValues();
         showMarketplaceSettings();
         showSaveFolder();
+        showShareItemsSummary();
+    }
+
+    /** No setting is behind the share sheet row's key, so its summary is redone here after an import. */
+    private void showShareItemsSummary() {
+        if (getPreferenceScreen() == null) return;
+        Preference row = findPreference(AppPages.SHARE_ITEMS_ROW);
+        if (row != null) row.setSummary(AppPages.shareItemsSummary(ShareSheetItems.hidden()));
     }
 
     /**
@@ -723,6 +764,10 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         FolderRow row = (FolderRow) folder;
         row.setSummary(folderSummary(SaveFolder.sanitize(row.getText())));
         row.setDialogMessage(folderDialogMessage(Settings.SAVE_TO.savedValue()));
+        for (String key : new String[]{Settings.VIDEO_SUBFOLDER.key, Settings.PHOTO_SUBFOLDER.key}) {
+            Preference subfolder = findPreference(key);
+            if (subfolder instanceof SubfolderRow) ((SubfolderRow) subfolder).showSummary();
+        }
     }
 
     /**
@@ -766,10 +811,10 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     /** The AMOLED row under Patched: black, or the Background colour the patch was given (issue #34). */
     static String amoledSummary(int background) {
         if (background == Color.BLACK) {
-            return L10n.t("Dark mode draws black instead of dark grey. Turn on dark mode in Facebook to see it.");
+            return L10n.t("Dark mode uses black instead of dark gray. Turn on dark mode in Facebook to see it.");
         }
         String colour = String.format(Locale.ROOT, "#%06X", background & 0xFFFFFF);
-        return L10n.f("Dark mode draws %1$s instead of dark grey. Turn on dark mode in Facebook to see it.",
+        return L10n.f("Dark mode uses %1$s instead of dark gray. Turn on dark mode in Facebook to see it.",
                 L10n.isolate(colour));
     }
 
@@ -816,8 +861,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 why = L10n.t("You paused Hushfacebook.");
                 break;
         }
-        return why + " " + L10n.t("Every switch but Debug logging acts as if it were off, and what was set when you "
-                + "patched stays in. Your settings stay as they are.");
+        return why + " " + L10n.t("Every switch but Debug logging and Lock Facebook acts as if it were off, and "
+                + "what was set when you patched stays in. Your settings stay as they are.");
     }
 
     /**
@@ -992,16 +1037,21 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
      * What a start does with [tab], for the row's summary. Facebook opens Home for a tab the
      * account's tab bar hasn't got, so the summary says so rather than promise the tab. A Reels tab
      * Hide the Reels tab keeps off the bar is asked for as Home, and the summary says that instead.
+     * Feeds is the exception: off the bar, for either reason, its own page opens over Home
+     * (StartTabRoute's openFeedsPage).
      */
     static String startTabSummary(StartTab tab) {
+        if (tab == StartTab.FEEDS) {
+            return L10n.t("Facebook opens on Feeds. If your tab bar doesn't have it, the Feeds page opens over Home.");
+        }
         if (tab == StartTab.VIDEO && Settings.HIDE_REELS_TAB.savedValue() && PatchFamily.REELS_TAB.inBuild()) {
             return L10n.t("Facebook opens on Home while Hide the Reels tab is on, since Video is off the tab bar. "
                     + "Your choice stays saved.");
         }
         HiddenTabs.Tab hidden = HiddenTabs.Tab.forStart(tab);
         if (hidden != null && hidden.setting().savedValue() && PatchFamily.HIDDEN_TABS.inBuild()) {
-            return L10n.f("Facebook opens on Home while Hide tabs keeps %1$s off the tab bar. Your choice stays saved.",
-                    tabLabel(tab));
+            return L10n.f("Facebook opens on Home while %1$s is on, since %2$s is off the tab bar. Your choice stays saved.",
+                    SwitchLabels.title(hidden.setting()), tabLabel(tab));
         }
         return L10n.f("Facebook opens on %1$s. If your tab bar doesn't have it, Facebook opens on Home.",
                 tabLabel(tab));
@@ -1080,7 +1130,21 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         row.setEntries(entries);
         row.setEntryValues(values);
         row.setValue(Settings.COMMENT_ORDER.savedValue().name());
+        pickTurnsOn(row, Settings.COMMENT_ORDER, Settings.DEFAULT_COMMENT_ORDER);
         return row;
+    }
+
+    /**
+     * A pick in [row] other than [list]'s default turns on [toggle], the switch the list works
+     * under. The switch starts off, so a pick on its own used to change nothing until the switch
+     * was found too. The switch's own row shows it on through the page's usual sync. Turning the
+     * switch off afterwards keeps the pick, and a pick while it's on changes only the list.
+     */
+    static void pickTurnsOn(ListPreference row, EnumSetting<?> list, BooleanSetting toggle) {
+        row.setOnPreferenceChangeListener((preference, value) -> {
+            if (!toggle.savedValue() && !list.defaultValue.name().equals(String.valueOf(value))) toggle.save(true);
+            return true;
+        });
     }
 
     /** What the list and its summary call [order]: the name Facebook's own sort menu gives it. */
@@ -1111,6 +1175,233 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     }
 
     /**
+     * How long Facebook may be away before Lock Facebook asks again. Like the comment order row,
+     * its values are the setting's own names and its summary says what the choice does.
+     */
+    static LockAfterRow lockAfterRow(Context context) {
+        LockAfterRow row = new LockAfterRow(context);
+        row.setKey(Settings.APP_LOCK_AFTER.key);
+        row.setTitle(L10n.t("Lock after"));
+        row.setDialogTitle(L10n.t("Lock after"));
+        // Android's own Cancel follows the activity's language, as the other lists' did.
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        AppLock.After[] choices = AppLock.After.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = lockAfterLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.APP_LOCK_AFTER.savedValue().name());
+        return row;
+    }
+
+    /** What the list and the sentences about it call [after]. */
+    static String lockAfterLabel(AppLock.After after) {
+        switch (after) {
+            case IMMEDIATELY:
+                return L10n.t("As soon as you leave");
+            case FIVE_MINUTES:
+                return L10n.t("5 minutes");
+            case FIFTEEN_MINUTES:
+                return L10n.t("15 minutes");
+            case ONE_HOUR:
+                return L10n.t("1 hour");
+            default:
+                return L10n.t("1 minute");
+        }
+    }
+
+    /** What a return does with [after], for the row's summary. */
+    static String lockAfterSummary(AppLock.After after) {
+        if (after == AppLock.After.IMMEDIATELY) return L10n.t("Facebook locks as soon as you leave it.");
+        return L10n.f("Facebook locks once you've been away for %1$s.", lockAfterLabel(after));
+    }
+
+    /**
+     * How long a seen post stays hidden. Like the lock row, its values are the setting's own names
+     * and its summary says what the choice does.
+     */
+    static SeenKeepRow seenKeepRow(Context context) {
+        SeenKeepRow row = new SeenKeepRow(context);
+        row.setKey(Settings.SEEN_POSTS_KEEP.key);
+        row.setTitle(L10n.t("Keep them hidden for"));
+        row.setDialogTitle(L10n.t("Keep them hidden for"));
+        // Android's own Cancel follows the activity's language, as the other lists' did.
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        SeenPosts.Keep[] choices = SeenPosts.Keep.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = seenKeepLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.SEEN_POSTS_KEEP.savedValue().name());
+        return row;
+    }
+
+    /** What the list and the sentences about it call [keep]. */
+    static String seenKeepLabel(SeenPosts.Keep keep) {
+        switch (keep) {
+            case ONE_DAY:
+                return L10n.t("1 day");
+            case THREE_DAYS:
+                return L10n.t("3 days");
+            case THIRTY_DAYS:
+                return L10n.t("30 days");
+            default:
+                return L10n.t("7 days");
+        }
+    }
+
+    /** What the choice does, for the row's summary. */
+    static String seenKeepSummary(SeenPosts.Keep keep) {
+        return L10n.f("A post you've scrolled past stays out of the feed for %1$s.", seenKeepLabel(keep));
+    }
+
+    /**
+     * How large Facebook's text is. Like the comment order row, its values are the setting's own
+     * names and its summary says what the choice does.
+     */
+    static TextSizeRow textSizeRow(Context context) {
+        TextSizeRow row = new TextSizeRow(context);
+        row.setKey(Settings.TEXT_SIZE.key);
+        row.setTitle(L10n.t("Text size"));
+        row.setDialogTitle(L10n.t("Text size"));
+        // Android's own Cancel follows the activity's language, as the other lists' did.
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        TextSize.Scale[] choices = TextSize.Scale.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = textSizeLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.TEXT_SIZE.savedValue().name());
+        return row;
+    }
+
+    /** What the list and the sentences about it call [scale]. */
+    static String textSizeLabel(TextSize.Scale scale) {
+        return scale == TextSize.Scale.P100 ? L10n.t("As Facebook has it") : scale.label();
+    }
+
+    /** What a choice does, for the row's summary. */
+    static String textSizeSummary(TextSize.Scale scale) {
+        if (scale == TextSize.Scale.P100) {
+            return L10n.t("Facebook's text is the size your phone's font size setting gives it.");
+        }
+        return L10n.f("Facebook's text is %1$s of the size your phone's font size setting gives it. Restart Facebook to "
+                + "see the change.", scale.label());
+    }
+
+    /**
+     * The reaction ceiling, with Hide posts by words in the build. Like the accent row, its values
+     * are the setting's own names and its summary says what the choice does.
+     */
+    static ReactionCeilingRow reactionCeilingRow(Context context) {
+        ReactionCeilingRow row = new ReactionCeilingRow(context);
+        row.setKey(Settings.HIDE_POSTS_OVER_REACTIONS.key);
+        row.setTitle(L10n.t("Hide posts with more reactions than"));
+        row.setDialogTitle(L10n.t("Hide posts with more reactions than"));
+        // Android's own Cancel follows the activity's language, as the other lists' did.
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        ReactionCeiling[] choices = ReactionCeiling.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = ceilingLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.HIDE_POSTS_OVER_REACTIONS.savedValue().name());
+        return row;
+    }
+
+    /** A ceiling as a number with its thousands separator, for the sentences about it. */
+    static String ceilingNumber(ReactionCeiling ceiling) {
+        return java.text.NumberFormat.getIntegerInstance().format(ceiling.limit);
+    }
+
+    /** What the list calls [ceiling]. */
+    static String ceilingLabel(ReactionCeiling ceiling) {
+        if (ceiling == ReactionCeiling.OFF) return L10n.t("Off");
+        return L10n.f("%1$s reactions", ceilingNumber(ceiling));
+    }
+
+    /** What a choice does, for the row's summary. */
+    static String ceilingSummary(ReactionCeiling ceiling) {
+        if (ceiling == ReactionCeiling.OFF) return L10n.t("Posts stay however many reactions they have.");
+        return L10n.f("Hides posts with more than %1$s reactions, read from the count Facebook shows under a post.",
+                ceilingNumber(ceiling));
+    }
+
+    /**
+     * The accent color, with the Accent color patch in the build. Like the text size row, its values
+     * are the setting's own names and its summary says what the choice does.
+     */
+    static AccentRow accentRow(Context context, boolean materialYou) {
+        AccentRow row = new AccentRow(context, materialYou);
+        row.setKey(Settings.ACCENT_COLOR.key);
+        row.setTitle(L10n.t("Accent color"));
+        row.setDialogTitle(L10n.t("Accent color"));
+        // Android's own Cancel follows the activity's language, as the other lists' did.
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        AccentColor.Preset[] choices = AccentColor.Preset.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = accentLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.ACCENT_COLOR.savedValue().name());
+        return row;
+    }
+
+    /** What the list and the sentences about it call [accent]. */
+    static String accentLabel(AccentColor.Preset accent) {
+        switch (accent) {
+            case TEAL:
+                return L10n.t("Teal");
+            case GREEN:
+                return L10n.t("Green");
+            case PURPLE:
+                return L10n.t("Purple");
+            case PINK:
+                return L10n.t("Pink");
+            case ORANGE:
+                return L10n.t("Orange");
+            case RED:
+                return L10n.t("Red");
+            case INDIGO:
+                return L10n.t("Indigo");
+            case AMBER:
+                return L10n.t("Amber");
+            default:
+                return L10n.t("Facebook blue");
+        }
+    }
+
+    /** What a choice does, for the row's summary. */
+    static String accentSummary(AccentColor.Preset accent) {
+        if (accent == AccentColor.Preset.FACEBOOK) {
+            return L10n.t("Links, buttons, switches and the selected tab keep Facebook's blue.");
+        }
+        return L10n.f("Links, buttons, switches and the selected tab use %1$s instead of Facebook's blue. Restart Facebook "
+                + "to see the change. If the Material You theme is added, it takes over.",
+                accentLabel(accent));
+    }
+
+    /**
      * The quality videos play at. Like the comment order row, its values are the setting's own
      * names and its summary says what the choice does.
      */
@@ -1131,7 +1422,43 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         row.setEntries(entries);
         row.setEntryValues(values);
         row.setValue(Settings.PLAYBACK_QUALITY.savedValue().name());
+        pickTurnsOn(row, Settings.PLAYBACK_QUALITY, Settings.DEFAULT_PLAYBACK_QUALITY);
         return row;
+    }
+
+    /**
+     * The quality reels ([reels]) or video stories play at: the same as every other video, the
+     * default, or one of the playback qualities, Auto included. Its values are the setting's own
+     * names, as the playback quality's are.
+     */
+    static SurfaceQualityRow surfaceQualityRow(Context context, boolean reels) {
+        EnumSetting<SurfaceQuality> setting = reels ? Settings.REELS_PLAYBACK_QUALITY : Settings.STORIES_PLAYBACK_QUALITY;
+        SurfaceQualityRow row = new SurfaceQualityRow(context, reels);
+        row.setKey(setting.key);
+        String title = reels ? L10n.t("Reels quality") : L10n.t("Stories quality");
+        row.setTitle(title);
+        row.setDialogTitle(title);
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        SurfaceQuality[] choices = SurfaceQuality.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            PlaybackQuality quality = choices[i].quality;
+            entries[i] = quality == null ? L10n.t("Same as videos") : playbackQualityLabel(quality);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(setting.savedValue().name());
+        pickTurnsOn(row, setting, Settings.DEFAULT_PLAYBACK_QUALITY);
+        return row;
+    }
+
+    /** What the Reels ([reels]) or Stories quality row says [choice] does. A quality of their own is named as the list names it. */
+    static String surfaceQualitySummary(SurfaceQuality choice, boolean reels) {
+        if (choice.quality != null) return playbackQualityLabel(choice.quality);
+        return reels ? L10n.t("Reels play at the playback quality above.")
+                : L10n.t("Video stories play at the playback quality above.");
     }
 
     /** What the list calls [quality]: Auto, as Facebook's own quality menu calls it, and a ceiling by its label. */
@@ -1169,6 +1496,39 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     }
 
     /**
+     * The hour quiet hours start ([from]) or end. Its values are the setting's own names, as the
+     * comment order's are, and each hour reads the way the phone's language writes a time.
+     */
+    static QuietHourRow quietHourRow(Context context, boolean from) {
+        EnumSetting<QuietHour> setting = from ? Settings.QUIET_HOURS_FROM : Settings.QUIET_HOURS_UNTIL;
+        QuietHourRow row = new QuietHourRow(context);
+        row.setKey(setting.key);
+        String title = from ? L10n.t("Quiet hours start") : L10n.t("Quiet hours end");
+        row.setTitle(title);
+        row.setDialogTitle(title);
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        QuietHour[] hours = QuietHour.values();
+        CharSequence[] entries = new CharSequence[hours.length];
+        CharSequence[] values = new CharSequence[hours.length];
+        for (int i = 0; i < hours.length; i++) {
+            entries[i] = quietHourLabel(hours[i]);
+            values[i] = hours[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(setting.savedValue().name());
+        return row;
+    }
+
+    /**
+     * What the list, its summary and an import call [hour]: the time as the phone's language writes
+     * it. It comes from the platform, not the catalog, so it's isolated like a folder name.
+     */
+    static String quietHourLabel(QuietHour hour) {
+        return L10n.isolate(hour.label(L10n.locale()));
+    }
+
+    /**
      * The quality, download action, start tab, Feeds filter, comment order and playback quality
      * rows' summaries are sentences of their own rather than the chosen entry.
      */
@@ -1186,8 +1546,22 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             ((FeedsSubtabRow) listPreference).showSummary();
         } else if (listPreference instanceof CommentOrderRow) {
             ((CommentOrderRow) listPreference).showSummary();
+        } else if (listPreference instanceof LockAfterRow) {
+            ((LockAfterRow) listPreference).showSummary();
+        } else if (listPreference instanceof SeenKeepRow) {
+            ((SeenKeepRow) listPreference).showSummary();
+        } else if (listPreference instanceof TextSizeRow) {
+            ((TextSizeRow) listPreference).showSummary();
+        } else if (listPreference instanceof AccentRow) {
+            ((AccentRow) listPreference).showSummary();
+        } else if (listPreference instanceof ReactionCeilingRow) {
+            ((ReactionCeilingRow) listPreference).showSummary();
         } else if (listPreference instanceof PlaybackQualityRow) {
             ((PlaybackQualityRow) listPreference).showSummary();
+        } else if (listPreference instanceof SurfaceQualityRow) {
+            ((SurfaceQualityRow) listPreference).showSummary();
+        } else if (listPreference instanceof QuietHourRow) {
+            ((QuietHourRow) listPreference).showSummary();
         } else {
             super.updateListPreferenceSummary(listPreference, setting);
         }
@@ -1222,6 +1596,47 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             return false;
         });
         return row;
+    }
+
+    /**
+     * The subfolder of the save folder that videos ([video]) or photos go in. What's typed is
+     * cleaned before it's kept, as the save folder is, and nothing left means no subfolder.
+     */
+    static SubfolderRow subfolderRow(Context context, boolean video) {
+        StringSetting setting = video ? Settings.VIDEO_SUBFOLDER : Settings.PHOTO_SUBFOLDER;
+        SubfolderRow row = new SubfolderRow(context, video);
+        row.setKey(setting.key);
+        String title = video ? L10n.t("Video subfolder") : L10n.t("Photo subfolder");
+        row.setTitle(title);
+        row.setDialogTitle(title);
+        row.setDialogMessage(video
+                ? L10n.t("Choose a folder for videos inside the save folder. Invalid characters become underscores. "
+                        + "Leave it blank to keep videos in the save folder itself.")
+                : L10n.t("Choose a folder for photos inside the save folder. Invalid characters become underscores. "
+                        + "Leave it blank to keep photos in the save folder itself."));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        field.setSingleLine(true);
+        field.setHint(L10n.t("Folder name"));
+        row.setText(setting.savedValue());
+        row.setOnPreferenceChangeListener((preference, typed) -> {
+            String raw = typed == null ? "" : typed.toString();
+            String clean = SaveFolder.cleanSubfolder(raw);
+            if (clean.equals(raw)) return true;
+            // Keeps the clean name in place of what was typed, as the save folder's row does.
+            ((SubfolderRow) preference).setText(clean);
+            if (!clean.isEmpty()) Utils.showToastShort(L10n.f("Folder set to %1$s.", L10n.isolate(clean)));
+            return false;
+        });
+        return row;
+    }
+
+    /** "Videos go to Movies/Facebook/Clips." for the [subfolder] videos ([video]) or photos go in, or none. */
+    static String subfolderSummary(boolean video, String subfolder) {
+        String path = Settings.SAVE_TO.savedValue().directory(video) + "/"
+                + SaveFolder.within(SaveFolder.sanitize(Settings.SAVE_FOLDER.savedValue()), subfolder);
+        return video ? L10n.f("Videos go to %1$s.", L10n.isolate(path)) : L10n.f("Photos go to %1$s.", L10n.isolate(path));
     }
 
     /** What the folder row's dialog says, naming the top folder [to] puts the folder under. */
@@ -1276,10 +1691,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
      * save all show the one template the save will use.
      */
     static FileNameRow fileNameRow(Context context) {
-        FileNameRow row = new FileNameRow(context);
-        row.setKey(Settings.FILENAME_TEMPLATE.key);
-        row.setTitle(L10n.t("Video file name"));
-        row.setDialogTitle(L10n.t("Video file name"));
+        FileNameRow row = nameRow(context, false, Settings.FILENAME_TEMPLATE, L10n.t("Video file name"));
         row.setDialogMessage(L10n.f("%1$s becomes the date and time of the save, %2$s the video's number on "
                         + "Facebook, %3$s who posted it, %4$s their profile's number on Facebook and %5$s the day it "
                         + "was posted. What a save doesn't know is left out, and a name with none of these gets the "
@@ -1288,16 +1700,38 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 L10n.isolate(FileNameTemplate.DATE), L10n.isolate(FileNameTemplate.VIDEO_ID),
                 L10n.isolate(FileNameTemplate.OWNER), L10n.isolate(FileNameTemplate.OWNER_ID),
                 L10n.isolate(FileNameTemplate.POSTED), L10n.isolate(FileNameTemplate.DEFAULT)));
+        return row;
+    }
+
+    /** The name every photo Save any photo keeps gets, the same way, under the video's. */
+    static FileNameRow photoNameRow(Context context) {
+        FileNameRow row = nameRow(context, true, Settings.PHOTO_FILENAME_TEMPLATE, L10n.t("Photo file name"));
+        row.setDialogMessage(L10n.f("%1$s becomes the date and time of the save, %2$s the photo's number on "
+                        + "Facebook, %3$s who posted it, %4$s their profile's number on Facebook and %5$s the day it "
+                        + "was posted. What a save doesn't know is left out, and a name with none of these gets the "
+                        + "date added. When the name is already in the folder, the time of the save goes on the end. "
+                        + "Invalid characters become underscores. Leave it blank to use the default, %6$s.",
+                L10n.isolate(FileNameTemplate.DATE), L10n.isolate(FileNameTemplate.PHOTO_ID),
+                L10n.isolate(FileNameTemplate.OWNER), L10n.isolate(FileNameTemplate.OWNER_ID),
+                L10n.isolate(FileNameTemplate.POSTED), L10n.isolate(FileNameTemplate.PHOTO_DEFAULT)));
+        return row;
+    }
+
+    private static FileNameRow nameRow(Context context, boolean photo, StringSetting setting, String title) {
+        FileNameRow row = new FileNameRow(context, photo);
+        row.setKey(setting.key);
+        row.setTitle(title);
+        row.setDialogTitle(title);
         row.setPositiveButtonText(L10n.t("Save"));
         // Android's own Cancel follows the activity's language, as the folder row's did.
         row.setNegativeButtonText(L10n.t("Cancel"));
         EditText field = row.getEditText();
         field.setSingleLine(true);
         field.setHint(L10n.t("File name"));
-        row.setText(Settings.FILENAME_TEMPLATE.savedValue());
+        row.setText(setting.savedValue());
         row.setOnPreferenceChangeListener((preference, typed) -> {
             String raw = typed == null ? "" : typed.toString();
-            String clean = FileNameTemplate.sanitize(raw);
+            String clean = photo ? FileNameTemplate.sanitizePhoto(raw) : FileNameTemplate.sanitize(raw);
             if (clean.equals(raw)) return true;
             // Keeps the clean template in place of what was typed, as the folder row does.
             ((FileNameRow) preference).setText(clean);
@@ -1307,10 +1741,14 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         return row;
     }
 
-    /** "Videos are named FB_VID_{date}. Photos keep Facebook's own FB_IMG_ names." for [template]. */
+    /** "Videos are named FB_VID_{date}." for [template]. */
     static String fileNameSummary(String template) {
-        return L10n.f("Videos are named %1$s. Photos keep Facebook's own %2$s names.",
-                L10n.isolate(template), L10n.isolate(FileNameTemplate.PHOTO_PREFIX));
+        return L10n.f("Videos are named %1$s.", L10n.isolate(template));
+    }
+
+    /** "Photos are named FB_IMG_{date}." for [template]. */
+    static String photoNameSummary(String template) {
+        return L10n.f("Photos are named %1$s.", L10n.isolate(template));
     }
 
     /**
@@ -1348,20 +1786,20 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         row.setKey(Settings.SEND_TO_APP.key);
         row.setTitle(L10n.t("App to send to"));
         row.setDialogTitle(L10n.t("App to send to"));
-        row.setDialogMessage(L10n.f("The package name of the app that gets the links, such as %1$s for YTDLnis or "
-                + "%2$s for Seal. Leave it blank to pick an app each time.",
+        row.setDialogMessage(L10n.f("The ID of the app that gets the links, such as %1$s for YTDLnis or %2$s for Seal. Leave it blank to "
+                + "pick an app each time.",
                 L10n.isolate(SendLink.YTDLNIS), L10n.isolate(SendLink.SEAL)));
         row.setPositiveButtonText(L10n.t("Save"));
         row.setNegativeButtonText(L10n.t("Cancel"));
         EditText field = row.getEditText();
         field.setSingleLine(true);
-        field.setHint(L10n.t("Package name"));
+        field.setHint(L10n.t("App ID"));
         row.setText(Settings.SEND_TO_APP.savedValue());
         row.setOnPreferenceChangeListener((preference, typed) -> {
             String raw = typed == null ? "" : typed.toString();
             String clean = raw.trim();
             if (!clean.isEmpty() && SendLink.targetPackage(clean) == null) {
-                Utils.showToastShort(L10n.f("%1$s isn't a package name, so the app stays as it was.",
+                Utils.showToastShort(L10n.f("%1$s isn't a valid app ID, so the app stays as it was.",
                         L10n.isolate(clean)));
                 return false;
             }
@@ -1388,11 +1826,12 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
 
     /**
      * "Videos go to Movies/Clips and photos to Pictures/Clips." for the folder [leaf] under
-     * [to], or "Videos and photos go to Download/Clips." when both go to one top folder.
+     * [to], or "Videos and photos go to Download/Clips." when both go to one folder. A kind with a
+     * subfolder of its own has it on the end.
      */
     static String folderSummary(String leaf, SaveTo to) {
-        String videos = to.directory(true) + "/" + leaf;
-        String photos = to.directory(false) + "/" + leaf;
+        String videos = to.directory(true) + "/" + SaveFolder.within(leaf, SaveFolder.cleanSubfolder(Settings.VIDEO_SUBFOLDER.savedValue()));
+        String photos = to.directory(false) + "/" + SaveFolder.within(leaf, SaveFolder.cleanSubfolder(Settings.PHOTO_SUBFOLDER.savedValue()));
         if (videos.equals(photos)) return L10n.f("Videos and photos go to %1$s.", L10n.isolate(videos));
         return L10n.f("Videos go to %1$s and photos to %2$s.", L10n.isolate(videos), L10n.isolate(photos));
     }
@@ -1409,15 +1848,15 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         String title = hides ? L10n.t("Words to hide") : L10n.t("Words that keep a post");
         row.setTitle(title);
         row.setDialogTitle(title);
-        row.setDialogMessage(hides
-                ? L10n.f("One word or phrase per line, up to %1$d, each %2$d to %3$d characters long, or just "
-                        + "one for an emoji, a Chinese character, a kana or a Hangul syllable. Capital letters "
-                        + "don't matter, and a phrase matches anywhere in a post's text, inside longer words too.",
+        row.setDialogMessage((hides
+                ? L10n.f("One word or phrase per line, up to %1$d lines, each %2$d to %3$d characters long. A single emoji or "
+                        + "Chinese, Japanese or Korean character is enough on its own. Capital letters don't matter, and a "
+                        + "phrase matches anywhere in a post's text, even inside longer words.",
                         PostWords.MAX_PHRASES, PostWords.MIN_LENGTH, PostWords.MAX_LENGTH)
-                : L10n.f("A post with any of these stays, even when it also has a word to hide. One per line, up "
-                        + "to %1$d, each %2$d to %3$d characters long, or just one for an emoji, a Chinese "
-                        + "character, a kana or a Hangul syllable.", PostWords.MAX_PHRASES, PostWords.MIN_LENGTH,
-                        PostWords.MAX_LENGTH));
+                : L10n.f("A post with any of these stays, even when it also has a word to hide. One per line, up to %1$d "
+                        + "lines, each %2$d to %3$d characters long. A single emoji or Chinese, Japanese or Korean character "
+                        + "is enough on its own.", PostWords.MAX_PHRASES, PostWords.MIN_LENGTH,
+                        PostWords.MAX_LENGTH)) + " " + patternHelp());
         row.setPositiveButtonText(L10n.t("Save"));
         // Android's own Cancel follows the activity's language, as the folder row's did.
         row.setNegativeButtonText(L10n.t("Cancel"));
@@ -1432,6 +1871,17 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         field.setMinLines(3);
         field.setHint(L10n.t("One word or phrase per line"));
         row.setText(setting.savedValue());
+        if (hides) {
+            row.choosePack = () -> {
+                TopicPacks.Pack[] packs = TopicPacks.Pack.values();
+                CharSequence[] names = new CharSequence[packs.length];
+                for (int i = 0; i < packs.length; i++) names[i] = packLabel(packs[i]);
+                show(new AlertDialog.Builder(row.getContext())
+                        .setTitle(L10n.t("Add a topic pack"))
+                        .setItems(names, (dialog, which) -> row.addPack(packs[which]))
+                        .setNegativeButton(L10n.t("Cancel"), null));
+            };
+        }
         row.refused = why -> show(new AlertDialog.Builder(row.getContext())
                 .setTitle(title)
                 .setMessage(why)
@@ -1448,11 +1898,10 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 // reasons run past that, most of all at a large text size.
                 // Too many phrases never get here: Save refuses those with the dialog still open.
                 String why = L10n.quantity(leftOut,
-                        "%1$d line was left out. A phrase needs %2$d to %3$d characters, or just one for an emoji, "
-                                + "a Chinese character, a kana or a Hangul syllable. One given twice counts once.",
-                        "%1$d lines were left out. A phrase needs %2$d to %3$d characters, or just one for an "
-                                + "emoji, a Chinese character, a kana or a Hangul syllable. One given twice counts "
-                                + "once.",
+                        "%1$d line was left out. A phrase needs %2$d to %3$d characters, but a single emoji or Chinese, "
+                                + "Japanese or Korean character is enough. One given twice counts once.",
+                        "%1$d lines were left out. A phrase needs %2$d to %3$d characters, but a single emoji or Chinese, "
+                                + "Japanese or Korean character is enough. One given twice counts once.",
                         leftOut, PostWords.MIN_LENGTH, PostWords.MAX_LENGTH);
                 show(new AlertDialog.Builder(preference.getContext())
                         .setTitle(title)
@@ -1462,6 +1911,64 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             return false;
         });
         return row;
+    }
+
+    /**
+     * The list Hide posts from people, Pages and sites reads. What's typed is cleaned before it's
+     * kept, one rule per line within the bounds {@link PostSources} holds the list to, so the row,
+     * the setting and the filter all read the same rules. A dialog says how many lines were left
+     * out, never which.
+     */
+    SourcesRow sourcesRow(Context context) {
+        SourcesRow row = new SourcesRow(context);
+        row.setKey(Settings.HIDDEN_SOURCES.key);
+        String title = L10n.t("People, Pages and sites to hide");
+        row.setTitle(title);
+        row.setDialogTitle(title);
+        row.setDialogMessage(L10n.f("One per line, up to %1$d: a name as Facebook shows it, a profile or Page ID, or a site like "
+                + "example.com, which also covers addresses like m.example.com. Capital letters don't matter. A "
+                + "Facebook link works when it has the ID in it.",
+                PostSources.MAX_RULES));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        field.setSingleLine(false);
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        // A landscape IME's extracted editor replaces the dialog and hides Save and Cancel.
+        field.setImeOptions(field.getImeOptions() | EditorInfo.IME_FLAG_NO_FULLSCREEN
+                | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+        field.setMinLines(3);
+        field.setHint(L10n.t("One name, id or site per line"));
+        row.setText(Settings.HIDDEN_SOURCES.savedValue());
+        row.setOnPreferenceChangeListener((preference, typed) -> {
+            String raw = typed == null ? "" : typed.toString();
+            String clean = PostSources.clean(raw);
+            if (clean.equals(raw)) return true;
+            // Keeps the clean list in place of what was typed, as the word lists do.
+            int leftOut = PostSources.leftOut(raw);
+            ((SourcesRow) preference).setText(clean);
+            if (leftOut > 0) {
+                String why = L10n.quantity(leftOut,
+                        "%1$d line was left out. A line holds up to %2$d characters, the list up to %3$d lines, "
+                                + "and one given twice counts once.",
+                        "%1$d lines were left out. A line holds up to %2$d characters, the list up to %3$d lines, "
+                                + "and one given twice counts once.",
+                        leftOut, PostSources.MAX_LENGTH, PostSources.MAX_RULES);
+                show(new AlertDialog.Builder(preference.getContext())
+                        .setTitle(title)
+                        .setMessage(why)
+                        .setPositiveButton(L10n.t("OK"), null));
+            }
+            return false;
+        });
+        return row;
+    }
+
+    /** What the people, Pages and sites row says: how many it holds. Counts only, never a name. */
+    static String sourcesSummary(String stored) {
+        int rules = PostSources.count(stored);
+        if (rules == 0) return L10n.t("Nobody listed yet, so no post is hidden.");
+        return L10n.quantity(rules, "%1$d person, Page or site.", "%1$d people, Pages or sites.", rules);
     }
 
     /**
@@ -1495,12 +2002,69 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 : L10n.f("Both lists together fill %1$d%% of the room they share.", size.percent()));
     }
 
+    /** What the topic pack list calls [pack]. */
+    static String packLabel(TopicPacks.Pack pack) {
+        switch (pack) {
+            case POLITICS:
+                return L10n.t("Politics");
+            case ELECTIONS:
+                return L10n.t("Elections");
+            case CRYPTO:
+                return L10n.t("Crypto");
+            case SPORTS:
+                return L10n.t("Sports");
+            case CELEBRITY_GOSSIP:
+                return L10n.t("Celebrity gossip");
+            case WEIGHT_LOSS_ADS:
+                return L10n.t("Weight loss ads");
+            default:
+                return L10n.t("Giveaways and engagement bait");
+        }
+    }
+
+    /** What the toast says after a pack was added: how many words went in, and why any didn't. */
+    static String packResult(TopicPacks.Pack pack, TopicPacks.Result result) {
+        String label = packLabel(pack);
+        String line;
+        if (result.added > 0) {
+            line = L10n.quantity(result.added, "Added %1$d word from %2$s.", "Added %1$d words from %2$s.",
+                    result.added, label);
+            if (result.duplicates > 0) {
+                line += " " + L10n.quantity(result.duplicates, "%1$d was already in the list.",
+                        "%1$d were already in the list.", result.duplicates);
+            }
+            if (result.full) line += " " + L10n.t("The list is full, so the rest weren't added.");
+        } else if (result.full) {
+            line = L10n.t("The list is full, so nothing was added.");
+        } else {
+            line = L10n.f("Every word from %1$s is already in the list.", label);
+        }
+        return line + " " + L10n.t("Tap Save to keep the list.");
+    }
+
+    /**
+     * The word lists' second paragraph: a line between slashes is a pattern, and how many a list
+     * holds. Both dialogs end with it.
+     */
+    static String patternHelp() {
+        return L10n.f("A line between slashes, like /gr[ae]y/, is a pattern that can match several spellings (a regular "
+                + "expression). A list holds up to %1$d, each up to %2$d characters.", PostWords.MAX_PATTERNS, PostWords.MAX_PATTERN_LENGTH);
+    }
+
     /** Why a typed list can't be saved, the same in its dialog and when Save is tapped, or null when it can be. */
     @Nullable
     static String wordsRefusal(PostWords.Size size) {
         if (size.tooMany()) {
             return L10n.f("A list holds up to %1$d phrases, and this one has more. Remove some, then save again.",
                     PostWords.MAX_PHRASES);
+        }
+        if (size.badLine > 0) {
+            return L10n.f("Line %1$d isn't a pattern Hushfacebook can read. Fix it or remove it, then save again.",
+                    size.badLine);
+        }
+        if (size.tooManyPatterns()) {
+            return L10n.f("A list holds up to %1$d patterns, and this one has more. Remove some, then save again.",
+                    PostWords.MAX_PATTERNS);
         }
         if (size.fits()) return null;
         return L10n.f("Both lists together would fill %1$d%% of the room they share. Remove or shorten some "

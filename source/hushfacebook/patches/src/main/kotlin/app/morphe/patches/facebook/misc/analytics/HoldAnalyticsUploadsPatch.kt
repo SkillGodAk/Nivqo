@@ -17,21 +17,23 @@ import com.android.tools.smali.dexlib2.iface.Method
 
 /**
  * Holds back Facebook's own analytics uploads: the XAnalytics event uploader and the Papaya
- * on-device learning jobs. See AnalyticsUploadAnchors.kt for where each hook goes.
+ * on-device learning jobs. See AnalyticsUploadAnchors.kt for where each hook goes. A second switch
+ * holds back the camera roll cloud processing and its media count reports (CameraRollAnchors.kt).
  *
  * Every anchor has to be found once: a half-applied patch would leave one sender running while the
  * switch says it's held, so a missing one stops the patch naming all of them.
  *
- * Off in the default selection: it trades Facebook's record of how the app is used for less
- * background traffic, which is a choice to make, not a fix. Picked, its switch starts on.
+ * In the default selection with its switch off: it trades Facebook's record of how the app is used
+ * for less background traffic, which is a choice to make, not a fix.
  */
 @Suppress("unused")
 val holdAnalyticsUploadsPatch = bytecodePatch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Hold back analytics uploads",
-    description = "Stops Facebook uploading its app analytics in the background and skips its on-device " +
-        "learning jobs. Its switch starts on, under Privacy. Restart Facebook after changing it.",
-    default = false,
+    description = "Stops Facebook sending its usage reports in the background and skips the learning jobs it " +
+        "runs on your phone, so less about how you use the app leaves it. A second switch holds back the camera " +
+        "roll processing that uploads your photos and details about them for sharing suggestions. Both start off. " +
+        "Turn them on in Hushfacebook settings > Privacy, then restart Facebook.",
 ) {
     category("Privacy")
     dependsOn(settingsPatch, facebookExtensionPatch)
@@ -49,13 +51,25 @@ val holdAnalyticsUploadsPatch = bytecodePatch(
             superclassChain(PAPAYA_SERVICE).mapNotNull { classDefByOrNull(it) }
                 .flatMap { it.methods.filter(::isJobStart) }.take(1).toList(),
         )
-        val gate = jobStart?.let(::papayaGate)
+        val gate = jobStart?.let { papayaGate(it) { type -> classDefByOrNull(type) } }
         if (jobStart != null && gate == null) missing += "the Papaya gate in ${jobStart.definingClass}->onStartJob"
         val kickOff = one(
             "XAnalytics' foreground upload",
             classDefByOrNull(APP_JOB_HANDLER)?.let { kickOffUploads(it) { type -> classDefByOrNull(type) } }.orEmpty(),
         )
         val resume = one("XAnalytics' uploader resume", classDefByOrNull(LOW_PRIORITY_INIT)?.let(::resumeUploads).orEmpty())
+        val processing = one(
+            "the camera roll processing check",
+            classDefByOrNull(RUN_PIPELINE)?.let(::processingCheck)?.let { call ->
+                classDefByOrNull(call.definingClass)?.methods?.filter { isProcessingCheck(it, call) }
+            }.orEmpty(),
+        )
+        val mediaCount = one(
+            "the media count job's kill switch",
+            classDefByOrNull(MEDIA_COUNT_JOB)?.methods?.mapNotNull { method ->
+                mediaCountSwitch(method) { type -> classDefByOrNull(type) }?.let { method to it }
+            }.orEmpty(),
+        )
         if (missing.isNotEmpty()) {
             throw PatchException(
                 "$PATCH: could not find " + missing.joinToString("; ") +
@@ -65,6 +79,8 @@ val holdAnalyticsUploadsPatch = bytecodePatch(
         mutable(jobStart!!).passPapayaGate(gate!!)
         mutable(kickOff!!.first).skipUploadWhenHeld(kickOff.second, KICK_OFF_UPLOAD)
         mutable(resume!!.first).skipUploadWhenHeld(resume.second, RESUME_UPLOADING)
+        mutable(processing!!).holdProcessingFirst()
+        mutable(mediaCount!!.first).passMediaCountSwitch(mediaCount.second)
         enableStatus("analyticsUploads")
     }
 }

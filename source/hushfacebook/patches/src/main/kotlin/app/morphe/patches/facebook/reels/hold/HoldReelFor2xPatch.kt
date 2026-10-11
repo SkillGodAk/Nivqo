@@ -67,15 +67,17 @@ internal val reelLiftGuardPatch = bytecodePatch {
  *
  * The long-press handlers' speed-up flag, the overlay's check of it before it gives a reel its
  * release listener, the release listeners' two flags and the edge check each hand their answer to
- * the extension on its way out, and so does the read of the hold speed. Each handler tells the
+ * the extension on its way out, and so does the read of the hold speed. The edge check also hands
+ * the extension its press and the reel's view first thing, for the switch that keeps the hold to a
+ * reel's right third. Each handler tells the
  * extension when it takes the speed-up path, every touch on a Facebook screen when a gesture starts
  * and ends, so the release listener puts the speed back only after a hold, and FbGrootPlayer's
  * speed setter each player and speed it gets, going on with the speed the extension answers: a
  * hold's lift gets the speed the reel played at before the hold, which the extension reads through
  * the player's speed getter, filled into its stub.
  *
- * Off in the default selection: while its switch is on, a hold on a reel speeds it up instead of
- * opening Facebook's long-press menu, which is a choice to make. Picked, its switch starts on.
+ * In the default selection with its switch off: while it's on, a hold on a reel speeds it up
+ * instead of opening Facebook's long-press menu, which is a choice to make.
  *
  * The touch dispatch, the speed-up paths, the release listeners' flags and the speed setter come
  * from [reelLiftGuardPatch], which Keep the reel speed brings too; this patch adds the rest.
@@ -84,11 +86,11 @@ internal val reelLiftGuardPatch = bytecodePatch {
 val holdReelFor2xPatch = bytecodePatch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Hold a reel for 2x",
-    description = "Holding a reel plays it at double speed until you let go. The hold takes the place of " +
-        "Facebook's long-press menu, which the reel's more button still opens.",
-    default = false,
+    description = "Hold a reel to play it at double speed, and let go to go back to normal. Handy for skimming. " +
+        "The reel's more button still opens Facebook's long-press menu. Starts off. Turn it on in Hushfacebook " +
+        "settings > Reels and Watch.",
 ) {
-    category("Interface")
+    category("Playback")
     dependsOn(settingsPatch, reelLiftGuardPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
@@ -223,7 +225,8 @@ internal fun BytecodePatchContext.findReelHoldAnchors(): ReelHoldAnchors {
  * After each flag call's move-result, the extension's answer in its place, in the same register,
  * which the range form names whatever its number; the branch that follows reads it as Facebook's.
  * Here for the long-press handlers' and the overlay's flags, and before each of the edge check's
- * returns, the same, and before each of the hold speed's, for its register pair. The release
+ * returns, the same, and before each of the hold speed's, for its register pair. First in the edge
+ * check, its press and view, the two parameters it starts with, through the range form. The release
  * listeners' flags and the rest are [applyReelLiftGuard]'s.
  */
 internal fun BytecodePatchContext.applyReelHoldAnchors(anchors: ReelHoldAnchors) {
@@ -240,6 +243,8 @@ internal fun BytecodePatchContext.applyReelHoldAnchors(anchors: ReelHoldAnchors)
                 """,
             )
         }
+    // The press and the view are the edge check's first two parameters, in neighbouring registers.
+    edge.addInstruction(0, "invoke-static/range { ${edge.parameterRegister(0)} .. ${edge.parameterRegister(1)} }, $EDGE_TOUCH")
     val speed = mutableClassDefBy(anchors.holdSpeed.definingClass).findMutableMethodOf(anchors.holdSpeed)
     speed.implementation!!.instructions.withIndex().filter { it.value.opcode == Opcode.RETURN_WIDE }.map { it.index }
         .asReversed().forEach { index ->

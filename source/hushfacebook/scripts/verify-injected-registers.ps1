@@ -21,7 +21,7 @@
     scripts/injected-mutation-contracts.txt: one feed guard, in addNewEdgeToCollection, each
     story-flag stub calling GraphQLStory's accessor before it returns, the showcase stub calling
     the accessor of the one class answering ShowcaseFeedUnit, one Stories tray count in each of the
-    two tray adapter classes, the reels hook first in the pre-EOF injector, the swap guard once in
+    two tray adapter classes and Home's composer row, the reels hook first in the pre-EOF injector, the swap guard once in
     the runnable that swaps an edge into the feed, and one tab link call in each of the three places
     Facebook looks a link's tab up in its configured tabs, each in the one method its rule's strings
     and shape pick out.
@@ -114,15 +114,20 @@ function Get-SignerDigests {
 
 # DexDiff over the pair, with Continue only in here, as in Get-SignerDigests. Called inside the try
 # below, a java that can't start throws out of here into the script's Stop. Called outside one, it
-# wouldn't, and this would read the exit code apksigner left, so the code starts at -1.
+# wouldn't, and this would read the exit code apksigner left, so the code starts at -1. The run
+# waits for a slot of the machine's build queue when there is one (Invoke-HeavyJob), or runs at once
+# inside the slot verify-all-patches.ps1 already holds, and its lines come back in a table.
 function Invoke-DexDiff {
-    $ErrorActionPreference = 'Continue'
-    $global:LASTEXITCODE = -1
-    $output = @(& $Java '-Xmx8g' '-cp' $DesktopJar (Join-Path $PSScriptRoot 'DexDiff.java') `
-        $CleanMerged $PatchedApk $ReportPath `
-        (Join-Path $PSScriptRoot 'injected-register-removal-allowlist.txt') `
-        (Join-Path $PSScriptRoot 'injected-mutation-contracts.txt') $cleanBase 2>&1 | ForEach-Object { "$_" })
-    [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $output }
+    $diffRun = @{ Output = @() }
+    Invoke-HeavyJob -Label 'register check' -ScriptBlock {
+        $ErrorActionPreference = 'Continue'
+        $global:LASTEXITCODE = -1
+        $diffRun.Output = @(& $Java '-Xmx8g' '-cp' $DesktopJar (Join-Path $PSScriptRoot 'DexDiff.java') `
+            $CleanMerged $PatchedApk $ReportPath `
+            (Join-Path $PSScriptRoot 'injected-register-removal-allowlist.txt') `
+            (Join-Path $PSScriptRoot 'injected-mutation-contracts.txt') $cleanBase 2>&1 | ForEach-Object { "$_" })
+    }
+    [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $diffRun.Output }
 }
 
 $work = Join-Path ([System.IO.Path]::GetTempPath()) ("hushfacebook-regs-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
@@ -185,9 +190,14 @@ $cleanBase = Get-BaseApk -Apk $CleanApk -Destination (Join-Path $work 'clean-bas
 # The clean side has to be Meta's own build of the version that was patched, not a patched build
 # or another version: two patched files differ from each other, both halves report differences,
 # and the run would pass while comparing nothing against a clean baseline.
+# Disable Play Store updates gives the patched manifest the highest version code Android takes, so
+# the Play Store never offers Meta's next build over it. That one code stands for the clean build's
+# own; the package and version name still have to match, and DexDiff still holds the clean side to
+# Meta's signed base.apk.
+$raisedVersionCode = [string][int]::MaxValue
 $clean = Get-ApkManifestFacts -Apk $cleanBase -Aapt2 $Aapt2
 if ($clean.package -ne $patched.package -or $clean.versionName -ne $patched.versionName -or
-        $clean.versionCode -ne $patched.versionCode) {
+        ($clean.versionCode -ne $patched.versionCode -and [string]$patched.versionCode -ne $raisedVersionCode)) {
     throw ("The clean APK is $($clean.package) $($clean.versionName) ($($clean.versionCode)) and the " +
         "patched one $($patched.package) $($patched.versionName) ($($patched.versionCode)); they have to be the same build.")
 }
@@ -202,9 +212,14 @@ if (@($cleanSigners | Where-Object { $_ -in $metaSigners }).Count -eq 0) {
 }
 # The dex comparison's clean side: the whole bundle, merged as the CLI merged it before patching,
 # so a split's dex (580's in-app browser) is on both sides. DexDiff holds it to the signed base.apk's
-# classes*.dex. A plain APK is its own merge.
+# classes*.dex. A plain APK is its own merge. The merge is a job of the machine's build queue when
+# there is one (Invoke-HeavyJob), and its path comes back in a table.
 if (-not $CleanMerged) {
-    $CleanMerged = Get-MergedApk -Apk $CleanApk -Destination (Join-Path $work 'clean-merged.apk') -Java $Java -DesktopJar $DesktopJar
+    $cleanMerge = @{ Path = $null }
+    Invoke-HeavyJob -Label 'merge clean bundle' -ScriptBlock {
+        $cleanMerge.Path = Get-MergedApk -Apk $CleanApk -Destination (Join-Path $work 'clean-merged.apk') -Java $Java -DesktopJar $DesktopJar
+    }
+    $CleanMerged = $cleanMerge.Path
 }
 if (-not (Test-Path -LiteralPath $CleanMerged -PathType Leaf)) { throw "No merged clean APK at $CleanMerged." }
 

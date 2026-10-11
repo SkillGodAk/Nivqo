@@ -109,6 +109,17 @@ class PatchMetadataLocalizerTest {
                 "Opens other people's stories without adding you to their viewer list. Stories you open this way are marked as seen on your side. Long-press Messenger > Patch controls. Starts off."
             )
         )
+        assertEquals("解鎖 App 圖示", PatchMetadataLocalizer.name("Unlock app icons"))
+        assertEquals(
+            "解鎖 Messenger 的所有 App 圖示選項，不需要訂閱。是否提供圖示選項仍取決於 Meta 對帳號的開放情況。",
+            PatchMetadataLocalizer.description("Unlock app icons",
+                "Makes every icon in Messenger's App icon setting selectable without a subscription.")
+        )
+        assertEquals(
+            "可選擇原本限 Facebook Plus 提供的 App 圖示，並從 Facebook 的圖示設定中套用。",
+            PatchMetadataLocalizer.description("Unlock app icons",
+                "Lets you pick the app icons Facebook keeps for Facebook Plus.")
+        )
         assertEquals("儲存任何限時動態", PatchMetadataLocalizer.name("Save any story"))
         assertEquals("聊天滑入滑出動畫", PatchMetadataLocalizer.name("Slide chats in and out"))
     }

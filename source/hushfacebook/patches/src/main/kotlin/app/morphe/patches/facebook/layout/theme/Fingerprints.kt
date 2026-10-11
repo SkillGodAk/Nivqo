@@ -50,6 +50,28 @@ internal object DarkModeFingerprint : Fingerprint(
     filters = listOf(fieldAccess(type = THEME_PREFERENCES_STATE)),
 )
 
+internal const val BOX_DECORATION_BORDER_ERROR = "Error parsing border color in BoxDecoration"
+
+/**
+ * Bloks' BoxDecoration border reader (582 `LX/4Nl;->A00`): the one method that logs a border
+ * colour it can't parse. Its class also builds each box, and the Accent color patch finds the
+ * builder there ([isBoxBuilder]).
+ */
+internal object BoxDecorationBorderFingerprint : Fingerprint(
+    returnType = "I",
+    parameters = listOf("L", "L"),
+    strings = listOf(BOX_DECORATION_BORDER_ERROR),
+)
+
+/**
+ * The Data mode banner of Facebook Flex, issue #86: the one method that logs both of its own steps,
+ * as it starts and when the banner's wrapper isn't there. It paints the wrapper with a card's token.
+ */
+internal object FlexBannerFingerprint : Fingerprint(
+    returnType = "V",
+    strings = listOf("start_redesigned_freemium_banner", "banner_wrapper_is_null"),
+)
+
 /**
  * The navigation bar's painter: SystemNavigationBarUtil's static (Activity, Window, int) method that
  * calls `Window.setNavigationBarColor`, and on Android 15 and newer paints Facebook's own navigation

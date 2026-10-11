@@ -54,7 +54,7 @@ class ChangelogSectionsTest {
             ChangelogParser.hasChangesFor(
                 entries = entries,
                 installedVersion = "0.7.1-nivqo.1",
-                appNames = listOf("Facebook"),
+                subject = ChangelogSubject(appNames = setOf("Facebook")),
             )
         )
     }
@@ -78,7 +78,7 @@ class ChangelogSectionsTest {
             ChangelogParser.hasChangesFor(
                 entries = entries,
                 installedVersion = "0.6.0",
-                appNames = listOf("Facebook"),
+                subject = ChangelogSubject(appNames = setOf("Facebook")),
             )
         )
     }

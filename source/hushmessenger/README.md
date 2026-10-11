@@ -1,34 +1,49 @@
 ![HushMessenger. Keep the conversation. Cut the friction.](assets/readme-hero.png)
 
 <p align="center">
-  <a href="https://github.com/SysAdminDoc/HushMessenger/releases/tag/v0.21.0"><img src="https://img.shields.io/badge/version-0.21.0-0084FF" alt="Version 0.21.0"></a>
+  <a href="https://github.com/SysAdminDoc/HushMessenger/releases/tag/v0.22.0"><img src="https://img.shields.io/badge/version-0.22.0-0084FF" alt="Version 0.22.0"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License GPL-3.0"></a>
   <img src="https://img.shields.io/badge/platform-Android%209%2B%20arm64-3DDC84" alt="Platform Android 9 or newer, arm64">
   <img src="https://img.shields.io/badge/Messenger-580%20and%20581-0084FF" alt="Messenger 580.0.0.49.91 and 581.0.0.49.91">
-  <img src="https://img.shields.io/badge/status-preview-8A2BE2" alt="Preview release">
+</p>
+
+<p align="center">
+  <a href="https://ko-fi.com/X8K126YVER">
+    <img height="42" src="https://storage.ko-fi.com/cdn/kofi2.png?v=3" alt="Buy me a coffee on Ko-fi" />
+  </a>
+</p>
+
+<p align="center">
+  <sub><em>If HushMessenger makes Messenger better for you, a coffee helps me keep testing patches and maintaining them as Messenger changes.</em></sub>
 </p>
 
 # HushMessenger
 
-HushMessenger is a Morphe patch source for Facebook Messenger. It offers 33 patches. 30 of them are optional controls with searchable settings and long-press shortcuts, and the other three help a re-signed build install, open and reach those settings. You bring the original Messenger APK. This repository provides the patch code and a `.mpp` bundle.
+HushMessenger is a Morphe patch source for Facebook Messenger. It offers 43 patches. 37 of them are optional controls with searchable settings and long-press shortcuts. Three help a re-signed build install, open and reach those settings. The other three start unselected and change the app package itself: one installs a second copy under another package name, **Spoof package version** stops Play Store update offers, and **Custom new-message sound** swaps in a sound file you choose. You bring the original Messenger APK. This repository provides the patch code and a `.mpp` bundle.
 
-v0.21.0 adds Messenger 581.0.0.49.91, every arm64 build APKMirror lists under that name ([#29](https://github.com/SysAdminDoc/HushMessenger/issues/29)). It also brings **Hide joined community chats**, a new switch that starts off and removes joined channels and announcements from the main Chats list on its next render. **Hide AI sticker tools** now covers the Generate buttons in the sticker keyboard, and **Allow screenshots** covers view-once media and Quicksnap. Settings give each control's full row one accessible touch target.
+v0.22.0 fixes three reports. With **Hide People You May Know** on, the chat list no longer keeps a loading circle under your chats after Messenger restarts ([#30](https://github.com/SysAdminDoc/HushMessenger/issues/30)). With **Use system emoji** on, a Like in the chat list shows Messenger's thumbs-up again instead of an empty box ([#34](https://github.com/SysAdminDoc/HushMessenger/issues/34)). With **View stories anonymously** on, a story you've opened no longer keeps its new-story ring in the chat list ([#35](https://github.com/SysAdminDoc/HushMessenger/issues/35)).
+
+Eight new switches start off. **Unlock app icons** lets you pick any of Messenger's built-in app icons without a subscription ([#33](https://github.com/SysAdminDoc/HushMessenger/issues/33)). **Restore old emoji drawer** keeps the emoji keyboard's earlier layout, and **Keep emoji search on emoji** stops typing from flipping that keyboard to sticker search. **Stop analytics uploads** stops the background services Messenger's analytics logger uploads through. **Send videos without re-encoding** lets a video up to 25 MB go out as it is. **Keep a message log** saves each message that raised a notification on your phone, so an unsend can't take it back. **Use the phone's camera app** opens your own camera from a chat's camera button. **Pure black dark mode** turns the darkest Material You backgrounds black.
+
+Three new patches start unselected and change the package itself. **Clone install under another package name** puts a second Messenger beside the first, **Spoof package version** gives Messenger a very high version code so the Play Store stops offering updates, and **Custom new-message sound** plays your own file ([#32](https://github.com/SysAdminDoc/HushMessenger/issues/32)).
+
+v0.21.0 added Messenger 581.0.0.49.91, every arm64 build APKMirror lists under that name ([#29](https://github.com/SysAdminDoc/HushMessenger/issues/29)). It also brought **Hide joined community chats**, a new switch that starts off and removes joined channels and announcements from the main Chats list on its next render. **Hide AI sticker tools** now covers the Generate buttons in the sticker keyboard, and **Allow screenshots** covers view-once media and Quicksnap. Settings give each control's full row one accessible touch target.
 
 v0.14.0 added **Native Bubbles** to **Allow chat bubbles** ([#19](https://github.com/SysAdminDoc/HushMessenger/issues/19)) and **Slide chats in and out**, an optional slide for chats you open from the chat list or search ([#28](https://github.com/SysAdminDoc/HushMessenger/issues/28)). Settings now open from Messenger's side menu as well as its Menu tab ([#26](https://github.com/SysAdminDoc/HushMessenger/issues/26)), and **Use system emoji** draws your phone's own emoji on Android 12 and newer ([#25](https://github.com/SysAdminDoc/HushMessenger/issues/25)). On Root Mount installs, HushMessenger adds the **Patch controls** and **Restart Messenger** shortcuts itself, because Android never reads the patched ones there ([#27](https://github.com/SysAdminDoc/HushMessenger/issues/27)). The [changelog](CHANGELOG.md) has the rest.
 
 **[Add HushMessenger to Morphe Manager](https://morphe.software/add-source?github=SysAdminDoc%2FHushMessenger)**
 
-> [!WARNING]
-> **Preview release.** Signed-in Samsung installations take in-place updates with their existing Morphe keys. Calls, notifications and chats have passed hardware checks. A signed-in Facebook SSO read passed on 2026-09-29. Fresh password sign-in had succeeded by 2026-10-03. **Continue as** and encrypted-history recovery still need separate checks. Keep your signing key and recovery material. See [Morphe's backup and keystore guide](https://github.com/MorpheApp/morphe-manager/blob/main/docs/backup-and-keystore.md).
+> [!IMPORTANT]
+> Keep your signing key and recovery material. A patched update installs over your copy only when it's signed with the same key, and signed-in test phones have kept their sign-in and chats through each update. See [Morphe's backup and keystore guide](https://github.com/MorpheApp/morphe-manager/blob/main/docs/backup-and-keystore.md).
 
-## Get the preview
+## Get HushMessenger
 
-1. **Check the APK.** This patch targets arm64 Messenger 580.0.0.49.91, and all 21 arm64 builds APKMirror lists under that name work. The version name alone isn't enough, though, because the 32-bit builds share it and aren't supported. Check the version code on the download page against the [supported builds](#supported-messenger-builds) before you patch. [Build 346013440](https://www.apkmirror.com/apk/facebook-2/messenger/facebook-messenger-580-0-0-49-91-release/facebook-messenger-580-0-0-49-91-5-android-apk-download/) and [build 346013387](https://www.apkmirror.com/apk/facebook-2/messenger/facebook-messenger-580-0-0-49-91-release/facebook-messenger-580-0-0-49-91-11-android-apk-download/) are direct links. Build 346013370 is what Morphe's download link handed two people who reported it, and build 346013442 also comes from APKPure.
+1. **Check the APK.** This patch targets arm64 Messenger 580.0.0.49.91 and 581.0.0.49.91, and all 37 arm64 builds APKMirror lists under those names work. The version name alone isn't enough, though, because the 32-bit builds share it and aren't supported. Check the version code on the download page against the [supported builds](#supported-messenger-builds) before you patch. [Build 346013440](https://www.apkmirror.com/apk/facebook-2/messenger/facebook-messenger-580-0-0-49-91-release/facebook-messenger-580-0-0-49-91-5-android-apk-download/) and [build 346013387](https://www.apkmirror.com/apk/facebook-2/messenger/facebook-messenger-580-0-0-49-91-release/facebook-messenger-580-0-0-49-91-11-android-apk-download/) are direct links. Build 346013370 is what Morphe's download link handed two people who reported it, and build 346013442 also comes from APKPure.
 2. **Add the source.** Open the link above on Android with Morphe Manager installed. You can also open **Sources**, tap **+**, choose **Remote**, and enter `github.com/SysAdminDoc/HushMessenger`.
-3. **Check the source.** The HushMessenger card should show **33 patches**. Open **Patches** to browse the catalog. **Material You theme** starts unselected when patching. Use **Choose patches** to include it or leave other controls out. Tap the card's refresh button if it stays on an old version.
+3. **Check the source.** The HushMessenger card should show **43 patches**. Open **Patches** to browse the catalog. **Material You theme** starts unselected when patching. Use **Choose patches** to include it or leave other controls out. Tap the card's refresh button if it stays on an old version.
 4. **Choose one source.** Use the remote or local HushMessenger source. Adding both creates two cards with the same name, which can point to different versions. If other sources offer Messenger patches, choose the one you intend. Mixing independent patches can cause conflicts.
 
-For a local source, download [`patches-0.21.0.mpp`](https://github.com/SysAdminDoc/HushMessenger/releases/tag/v0.21.0) and add it through **Sources > + > Local**. A local source won't update itself. The `.mpp` file is a patch bundle, not an installable Messenger APK. These source steps follow [Morphe's source guide](https://github.com/MorpheApp/morphe-manager/blob/main/docs/patch-sources.md). Morphe Desktop can load the same source URL, and the command below lists its 33 entries. Source refreshes download patches. They don't modify an installed Messenger app. Test phones have taken patched updates in place with their sign-in kept.
+For a local source, download [`patches-0.22.0.mpp`](https://github.com/SysAdminDoc/HushMessenger/releases/tag/v0.22.0) and add it through **Sources > + > Local**. A local source won't update itself. The `.mpp` file is a patch bundle, not an installable Messenger APK. These source steps follow [Morphe's source guide](https://github.com/MorpheApp/morphe-manager/blob/main/docs/patch-sources.md). Morphe Desktop can load the same source URL, and the command below lists its 43 entries. Source refreshes download patches. They don't modify an installed Messenger app. Test phones have taken patched updates in place with their sign-in kept.
 
 ### If something doesn't work
 
@@ -36,8 +51,8 @@ The **HushMessenger settings** icon belongs to the same installed app as Messeng
 
 - **Can't find the settings:** Long-press Messenger's icon on your home screen (not the Messenger title inside the app) and tap **Patch controls**. Bundles with a settings launcher alias also offer **HushMessenger settings** in the app drawer. The Menu tab or side menu has a **HushMessenger** row when that patch is included. **Hide app drawer icon** appears in App only when both the alias and Menu route are available. Root Mount has no separate icon. App explains missing routes, and searching for "drawer icon" links to that explanation or toggle. If none of the entry routes appear, refresh the source and patch Messenger again.
 - **Switches have no effect:** The settings must be embedded in the patched Messenger APK. A separate settings preview cannot change stock Messenger. Both test phones run patched builds with the embedded controls. Refreshing a Morphe source only downloads patches. Use **Restart Messenger** after changing inbox options or the Meta AI tab, which only changes on a restart, even when you pause.
-- **Patch missing:** Refresh the HushMessenger source, check that it shows v0.21.0 and open its **Patches** list. This public release doesn't require the pre-release switch.
-- **APK rejected:** Use an unmodified arm64 Messenger 580.0.0.49.91 APK. Every arm64 variant APKMirror has for that version works, and the version codes are listed under [Supported Messenger builds](#supported-messenger-builds). If a permission or instruction check fails, the error names the tested builds.
+- **Patch missing:** Refresh the HushMessenger source, check that it shows v0.22.0 and open its **Patches** list. This public release doesn't require the pre-release switch.
+- **APK rejected:** Use an unmodified arm64 Messenger 580.0.0.49.91 or 581.0.0.49.91 APK. Every arm64 variant APKMirror has for those versions works, and the version codes are listed under [Supported Messenger builds](#supported-messenger-builds). If a permission or instruction check fails, the error names the tested builds.
 - **Android rejects installation over stock Messenger:** A re-signed APK can't replace Meta's signed copy. Keep your local data intact while you plan a backup. Future updates of your patched copy must reuse your key. See [Morphe's keystore guide](https://github.com/MorpheApp/morphe-manager/blob/main/docs/backup-and-keystore.md).
 - **Local source still old:** Download the latest `.mpp` and replace the local source yourself.
 - **"INSTALL_FAILED_VERSION_DOWNGRADE ... older than current 2147483647":** Another patch set may have raised Messenger's version code to Android's maximum. Android can retain that code even after an installation was removed with its data kept. Preserve the retained data and signing key. An in-place update needs the same key and a code at least as high as the retained one, with a supported Messenger build underneath. HushMessenger doesn't provide a migration for this case yet. Don't uninstall or clear data to make the installation check pass.
@@ -90,22 +105,29 @@ The **Controls** tab has **All**, **Inbox**, **Chats** and **More** filters. Use
 | Hide Reels badge | Hides the Reels notification badge. |
 | Hide AI sticker tools | Hides the generated-sticker tab and AI sticker suggestions. It also hides the Generate buttons in the sticker keyboard. |
 | Hide avatar stickers | Hides the avatar tab in the sticker keyboard, including Messenger's newer keyboard. |
+| Restore old emoji drawer | Starts off. Turns off Meta's redesigned emoji drawer, so the emoji keyboard keeps its earlier layout. It takes effect after **Restart Messenger**, and accounts Meta never moved to the redesign see no difference. |
+| Keep emoji search on emoji | Starts off. Typing while the emoji keyboard is open no longer switches it to sticker search, so the keyboard stays on emoji. It takes effect right away. |
 | Hide chat promotions | Hides quick-promotion banners inside conversations. |
 | Hide business reply suggestions | Hides suggested replies in business chats. |
 | Hide business typing suggestions | Hides business suggestions as you type. |
 | Hide event prompts | Hides event quick-promotion prompts inside chats. |
 | Hide typing indicator | Stops others from seeing that you're typing, including in end-to-end encrypted chats. |
+| Stop analytics uploads | Starts off. Stops the background services Messenger's analytics logger uploads through. Messenger still records those events on your phone, and they can upload after you turn this off. Other logging keeps going. |
+| Keep a message log | Starts off. Keeps a copy of each message as its notification arrives, so an unsend can't take it back. This is the only switch that reaches end-to-end encrypted chats. The log holds only messages that raised a notification, stays on your phone, and is encrypted with a key that never leaves it. View log opens it, newest first. Clear log deletes it and throws the key away. |
 | Hide read receipts | Stops sending read receipts. Opened encrypted chats can stay unread on this phone. Replying or switching this off may notify the sender. Group coverage isn't verified. |
-| View stories anonymously | Opens other people's stories without adding you to their viewer list. Stories you open this way still show as seen on the People tab and in the story viewer, so new ones stay easy to spot. The ring in your chat list still shows them as new. |
+| View stories anonymously | Opens other people's stories without adding you to their viewer list. Stories you open this way still show as seen on the People tab, in the story viewer and in your chat list, so new ones stay easy to spot. |
 | Save any story | Adds **Save** to the **More options** menu on other people's stories, the same item Messenger only shows on your own. The photo or video downloads to your phone the way your own stories do. A saved video lands in Movies/Messenger. |
 | Keep unsent messages | Keeps messages on verified legacy unsend routes and marks them "[unsent]". End-to-end encrypted chats aren't supported, and group coverage isn't verified. Your own unsend may be limited while it's on. |
 | Allow screenshots | Lets you screenshot photos, media and video that Messenger protects in a chat, and stops screenshot notices. It also covers view-once media and Quicksnap. |
-| Use system emoji | Draws emoji with your phone's own emoji set instead of Messenger's on Android 12 and newer. Android 9 to 11 get Android's standard emoji. Messenger's set stays if the phone has no emoji font. |
+| Use system emoji | Draws emoji with your phone's own emoji set instead of Messenger's on Android 12 and newer. Android 9 to 11 get Android's standard emoji. Messenger's set stays if the phone has no emoji font. On Android 10 and newer, characters the phone's set doesn't have, like Messenger's own Like, still come from Messenger's font. |
 | Send photos at original quality | With HD on, a JPEG photo goes out with its own image data instead of Messenger's smaller re-encoded copy. Its metadata, such as location and camera details, is left out, as it is from Messenger's copy. Only the tag that turns a sideways photo upright stays. Photos over 20 MB and videos still get Messenger's compression. |
+| Send videos without re-encoding | Starts off. Messenger already sends a video untouched when it's close to the size a re-encode would give. With this on, a video up to 25 MB takes that same route instead of being re-encoded. Videos over 25 MB still get Messenger's compression. So do trimmed or edited videos and formats Messenger won't pass through. |
+| Use the phone's camera app | Starts off. The camera button in a chat opens your phone's own camera app instead of Messenger's camera. The photo you take comes back into Messenger's photo editor for that chat, the same one a photo picked from another app opens in, and you send it from there. It takes photos only, so videos still need Messenger's camera. If Messenger doesn't have camera access yet, it asks first. A Root Mount install keeps Messenger's camera, since Android doesn't know the screen this adds there. |
 | Open web links externally | Uses the stock external-browser branch for HTTP and HTTPS. |
 | Slide chats in and out | Slides a chat in from the side when you open it from the chat list or search, and back out when you go back, while the screen underneath holds still. Right-to-left languages slide from the left. Chat heads and bubbles keep their own animations, and Android's **Remove animations** setting turns this off too. |
 | Allow chat bubbles | Settings offer Stock, Chat Heads and Native Bubbles on Android 11 or newer when the host routes are verified. Native mode uses Messenger's conversation notifications and keeps its account eligibility check. Android permissions still apply. |
-| Material You theme | In dark mode on Android 12 and newer, Messenger's blue takes the accent color Android picks from your wallpaper and its grays get a matching tint, with the same contrast as before. Android 11 gets a fixed blue palette. Black backgrounds and chat themes stay as they are, and so does light mode. Turn on dark mode in Messenger first. |
+| Unlock app icons | Starts off. Every icon in Messenger's App icon setting becomes selectable without a subscription, and Messenger applies it with the same launcher switch it uses for a free icon. The icons are already in the APK. Messenger still decides whether the App icon setting shows on your account, and after you turn this off it may put its default icon back the next time it closes. Your launcher can take a moment to show a new icon. |
+| Material You theme | In dark mode on Android 12 and newer, Messenger's blue takes the accent color Android picks from your wallpaper and its grays get a matching tint, with the same contrast as before. Android 11 gets a fixed blue palette. Chat themes stay as they are, and so does light mode. Settings has a **Pure black dark mode** switch under Appearance, off by default, that turns Messenger's darkest backgrounds pure black while this patch is on. Turn on dark mode in Messenger first. |
 
 **Keep unsent activity:** **No unsend activity observed since restart** means that no legacy unsend with a message identifier has been intercepted in this process. The switch stays on across restarts. Reading an ordinary message or an older retained message doesn't advance the counter. A use timestamp records an interception, not proof that an encrypted or group chat is supported. Restarting alone does not generate an unsend event.
 
@@ -170,13 +192,13 @@ The closed [issue #22](https://github.com/SysAdminDoc/HushMessenger/issues/22) c
 
 ## What the patches change
 
-The [patch catalog](patches-list.json) lists all 33 patches with their categories, default selections, dependency identities and supported-build details. It's generated locally from the built bundle and retains dependencies of hidden dependencies. Settings switches still start off, even when a patch is selected by default in Morphe.
+The [patch catalog](patches-list.json) lists all 43 patches with their categories, default selections, options, dependency identities and supported-build details. It's generated locally from the built bundle and retains dependencies of hidden dependencies. Settings switches still start off, even when a patch is selected by default in Morphe.
 
 ### Independent optional controls
 
 Each control is a separate patch. They share one settings extension, and manifest metadata records which controls were installed. Selecting one control only edits its hooks, and omitted controls have no active switches. Saved preferences remain available if you select the feature again later.
 
-v0.21.0 checks 100 hook methods in each supported APK. Plugin gates must retain their expected enable/disable branch and return constants. The tab, browser, ad-filter, keyboard and typing edits check their specific instruction sites. Each control validates every target before editing its first method, and its settings entry is recorded only after success. A missing or ambiguous target stops that control. Changed media-viewer or community code leaves unrelated controls available. The settings provider is private, and its launcher accepts no external commands to change preferences. Since v0.5.0, Restart Messenger is private too, so only Messenger and its own launcher shortcuts can start it. v0.4.2 and earlier let other apps start it.
+v0.22.0 checks 119 hook methods in each supported 580 APK and 125 in each 581 APK, where v0.21.0 checked 100. Messenger 581 reads the redesigned emoji drawer flag in eight places that 580 reaches through one helper, which is why the two counts differ. Plugin gates must retain their expected enable/disable branch and return constants. The tab, browser, ad-filter, keyboard and typing edits check their specific instruction sites. Each control validates every target before editing its first method, and its settings entry is recorded only after success. A missing or ambiguous target stops that control. Changed media-viewer or community code leaves unrelated controls available. The settings provider is private, and its launcher accepts no external commands to change preferences. Since v0.5.0, Restart Messenger is private too, so only Messenger and its own launcher shortcuts can start it. v0.4.2 and earlier let other apps start it.
 
 ### Install beside Meta apps
 
@@ -196,6 +218,26 @@ It makes one more exception. When a Facebook signed with your same key calls int
 
 Always on. It adds a **HushMessenger** row right under Settings in Messenger's **Menu** tab, and Settings still opens Messenger's own settings. Accounts that get Messenger's folder grid instead of the list use a separate path that no test account has shown yet.
 
+### Clone install under another package name
+
+Off unless you select it. It installs a second Messenger beside the first, under its own package name and app name. The defaults are `com.facebook.orca.hush` and **Messenger Clone**, and Morphe lets you change both. It needs **Install beside Meta apps** and selects it for you.
+
+The patch moves Messenger's own permissions, provider authorities, task affinities and push categories to the new name. If any of them would still clash with Messenger, it stops before changing the manifest. Class names stay as they are, so Messenger's code and its app icon switch still find their screens. Messenger picks its encrypted chat backup settings by its own package name and crashes under any other, so at that one spot the copy still reads Messenger's name. That fix is adapted from [Doom's patches](https://github.com/rushiranpise/morphe-patches). Messenger's check of its attachment provider accepts the copy's own provider instead. HushMessenger's settings, launcher shortcuts and **Restore screens on re-signed builds** follow the new name, and the copy vouches only for itself, never for the Messenger installed beside it.
+
+Some things stay tied to Messenger's original name. Push notifications from Facebook's service may not reach the copy. Facebook's **Continue as** sign-in and other Meta apps won't see its account, and about a hundred spots in Messenger's code still name the original package. A Root Mount install keeps the original package, so it can't use this patch. Sign the copy with the same key as your other patched Meta apps, because they all declare the same two shared permissions.
+
+### Spoof package version
+
+Starts unselected, and it has no switch in settings. It changes the version code in Messenger's manifest to the number in its **Version code** option, 2147483647 unless you pick another one from 1 up. The Play Store compares that number with its own Messenger and stops offering Meta's updates when yours is higher. The version name stays 581.0.0.49.91 or 580.0.0.49.91, and the patch checks that the manifest still holds the code it was built from before it changes anything.
+
+Messenger reads its own version code in several places, so it may report this number to Meta, for example in crash reports. Android won't install a lower version code over a higher one. Keep the patch selected with the same number when you patch a later build. Going back to Meta's number means uninstalling first, which deletes Messenger's data on your phone.
+
+### Custom new-message sound
+
+Starts unselected, and it has no switch in settings. Pick a sound in its **Sound file** option when you patch: an .ogg, .mp3, .m4a or .wav file of 1 MB (1,048,576 bytes) or less. The patch puts that file's bytes in place of Messenger's `new_message` sound and keeps the resource's name and path, so everything in Messenger that plays that sound plays yours, including the default sound of its message notifications ([#32](https://github.com/SysAdminDoc/HushMessenger/issues/32)). Messenger's other sounds, such as `in_app_notification` and the sent and typing sounds, stay as they are.
+
+With no file picked the patch changes nothing. It refuses a file that's missing, empty, too large, of another type or not shaped like its extension. It finds Messenger's sound by its exact bytes, which are the same in every supported build, and stops if it finds no copy or more than one. If you've already picked a sound for Messenger's notifications in Android's settings, Android keeps playing that one.
+
 ## Supported Messenger builds
 
 | Field | Value |
@@ -210,12 +252,12 @@ Always on. It adds a **HushMessenger** row right under Settings in Messenger's *
 
 APKMirror's 580.0.0.49.91 release has 25 variants, and all 21 arm64 ones are supported. Six are "nodpi" builds: `346013354` (a bundle), `346013370`, `346013387`, `346013394`, `346013423` and `346013440`. The other 15 are each made for one screen density, and `346013442` is also on APKPure. The four 32-bit (armeabi-v7a) variants aren't supported. Meta's build tooling gives the same code different internal names from one build to the next, so the patch keeps a checked list per naming. One list covers eight builds, and four more cover the other 13. A build that isn't listed here is rejected before anything changes. Builds `346013354` ([issue 3](https://github.com/SysAdminDoc/HushMessenger/issues/3)) and `346013370` ([issue 1](https://github.com/SysAdminDoc/HushMessenger/issues/1), [issue 8](https://github.com/SysAdminDoc/HushMessenger/issues/8)) were the first ones people ran into.
 
-v0.21.0 adds Messenger 581.0.0.49.91. APKMirror lists 20 variants of it, and all 16 arm64 ones are supported, including `346213583`, which it labels a bundle. All 16 share one internal naming. The four 32-bit (armeabi-v7a) variants aren't supported.
+v0.21.0 added Messenger 581.0.0.49.91. APKMirror lists 20 variants of it, and all 16 arm64 ones are supported, including `346213583`, which it labels a bundle. All 16 share one internal naming. The four 32-bit (armeabi-v7a) variants aren't supported.
 
 SHA-256 of the stock base APKs used for the off-device checks:
 
 ```text
-346013387  128ec75e836f24328d2b28777091c03b20abba0adc536e7ee911ee5fe52e70bc
+346013387  6a935ff4f2befef821291365c3105830f314ee6f570bfa702511bae7a30909a4
 346013440  e7d3c64227a7d9a26adda4e89321a87a49c85ee9e9f28f2fa7ed7fa79ae15cf6
 346013442  55636f34a49173f5607011a6dfdf635597f435047a8c105cb7fe420665a38c24
 346013354  4f061acd57cbeb640fb547cb7191b18f0fea36df77a0f9ee01e8267ab6264c9d
@@ -265,7 +307,9 @@ On Windows, compare your file with `Get-FileHash -Algorithm SHA256 .\messenger.a
 
 The Galaxy S25 took each update in place with the same signing key as its installed Messenger and Facebook apps, keeping its original install date, its sign-in and 19 enabled controls. With the v0.5.0 patch code it passed voice calls, one-to-one notifications, silence for muted chats, facebook.com links opening the Facebook app, and a same-key update and rollback that kept all data. Turning switches on and off showed the expected change for Facebook shortcuts, stories and notes, the Meta AI button, the "Ask Meta AI" search button, People You May Know on the Notifications tab, external links, system emoji and the avatar sticker tab. A two-phone check in an end-to-end encrypted chat showed no typing indicator with the switch on and the usual one while paused, and messages still arrived. Restart Messenger refuses requests from other apps, while the long-press shortcut and the App tab button still restart into the signed-in chat list. At Android's largest font size the chat list, chats and settings stayed usable. The Galaxy S22 now runs a patched build as well.
 
-v0.21.0 passed all 183 Kotlin and 676 Android unit cases on 2026-10-05, with no failures or skips. The Kotlin run includes native-media and joined-community replays against all 37 exact APKs, the 21 from 580 and the 16 from 581. All 69 Python checks passed. Coverage includes partial patch selection, changed control flow, safe-mode recovery, file ownership and cancellation, and release-cache policy. Release builds run locally. Android lint reports no errors, ten warnings and one hint, including two package-visibility notices for queries restricted to this app.
+v0.22.0 passed all 255 Kotlin and 767 Android unit cases on 2026-10-08, with no failures or skips. The Kotlin run includes the native-media, joined-community and story-preview replays against all 37 exact APKs, the 21 from 580 and the 16 from 581. All 69 Python checks passed. Coverage includes partial patch selection, changed control flow, safe-mode recovery, file ownership and cancellation, and release-cache policy. Release builds run locally. Android lint reports no errors and 12 warnings, including two package-visibility notices for queries restricted to this app.
+
+For v0.22.0, Morphe Desktop 1.18.1 applied the final bundle with a 1024 MB Java heap to one build from each of the six naming groups (`346013440`, `346013372`, `346013423`, `346013357`, `346013374` and `346213494`), and each build's hook record matched the committed one. On a Galaxy S22 with Android 16, the release build for 581 build `346213494` updated in place over the earlier one with the same signing key, and the sign-in and chats stayed. With **Use system emoji** on, a Like in the chat list showed Messenger's thumbs-up on the first start after two updates and after cold starts. A second build patched with **Custom new-message sound** carried the picked file as Messenger's `new_message` sound, the one the phone's Chats notification channel plays.
 
 For v0.21.0, Morphe Desktop 1.18.1 applied all 33 patches, Material You included, to private copies of all 37 supported builds with a 1024 MB Java heap, and `scripts/verify_patch_heap.py` passed every output. That run used the same patch code just before the version bump. The final bundle was then applied to one build from each of the six naming groups (`346013440`, `346013372`, `346013423`, `346013357`, `346013374` and `346213494`), and apksigner verified each signed result. A fresh checkout rebuilt the same bundle checksum. On a Galaxy S22 with Android 16, v0.14.0 on Messenger 580 updated in place to this code on 581 build `346213494` with the same signing key. The sign-in and chats stayed, and the inbox, an open chat, the Menu tab entry, settings, Pause and **Restart Messenger** all worked.
 
@@ -302,16 +346,16 @@ $env:GITHUB_TOKEN = gh auth token
 python -m unittest discover -s scripts/tests -v
 ```
 
-The native-media and joined-community replay tests use private APK inputs. Set `HUSH_NATIVE_FIXTURES` to the folder of exact stock APKs for every supported build before running `:patches:check`, with the file names described below. The full check fails without them and verifies every supported code and checksum. For unit-only work, `:patches:test` still runs without the private inputs and reports the two replay tests as skipped. Fixture paths, APK bytes and profile records are tracked as test inputs. Finish the tests before the final `:patches:buildAndroid` invocation. A later Gradle task can replace the intermediate archive with a Java-only bundle.
+The native-media, joined-community and chat list refresh replay tests use private APK inputs. Set `HUSH_NATIVE_FIXTURES` to the folder of exact stock APKs for every supported build before running `:patches:check`, with the file names described below. The full check fails without them and verifies every supported code and checksum. For unit-only work, `:patches:test` still runs without the private inputs and reports the three replay tests as skipped. Fixture paths, APK bytes and profile records are tracked as test inputs. Finish the tests before the final `:patches:buildAndroid` invocation. A later Gradle task can replace the intermediate archive with a Java-only bundle.
 
 While the public source is held, validate development separately and freeze its Android-ready bytes in a new folder outside Gradle's outputs. Record the feed hash before making changes. The command below reloads the actual bundle, checks its exact catalog and control definitions, and walks both DEX files. It checks DEX checksums and section bounds, then reads and rebuilds the class data in memory. This is a structural check. Running inside Android remains a separate check.
 
 ```powershell
 $heldHash = (Get-FileHash .\patches-bundle.json -Algorithm SHA256).Hash.ToLowerInvariant()
-$freeze = Join-Path $env:TEMP "hushmessenger-0.21.0"
+$freeze = Join-Path $env:TEMP "hushmessenger-0.22.0"
 .\gradlew.bat :patches:buildAndroid --no-daemon
 python scripts/check_release.py --development --held-index-sha256 $heldHash --freeze $freeze
-$bundle = Join-Path $freeze "patches-0.21.0.mpp"
+$bundle = Join-Path $freeze "patches-0.22.0.mpp"
 $bundleHash = (Get-FileHash $bundle -Algorithm SHA256).Hash.ToLowerInvariant()
 ```
 
@@ -327,20 +371,20 @@ python scripts/verify_patch_heap.py --stock-dir .\private-apks --bundle $bundle 
 
 The check runs at most two builds at once. Each Java process has a 1024 MB heap and uses two processors. Each build runs in its own temporary folder with all patches selected. The check rechecks the frozen bundle's checksum, verifies the stock checksum before and after patching, inspects the output APK and compares the theme's class, surface and color-call counts with `CompatReport.java`. Failures include the subprocess exit code. It removes its temporary APKs and leaves the stock files unchanged. Use `--codes 346013440` to check one build.
 
-The output from main is `patches/build/libs/patches-0.21.0.mpp`. Dependency locks and SHA-256 checks are committed. Review both when changing a dependency. Clean builds from the same source produce the same bundle checksum.
+The output from main is `patches/build/libs/patches-0.22.0.mpp`. Dependency locks and SHA-256 checks are committed. Review both when changing a dependency. Clean builds from the same source produce the same bundle checksum.
 
 Recording a compatibility profile requires a real patch run. Run `:patches:test` first to compile the local validation tool. With Python 3.11 or newer on PATH and Android Build Tools available, run `CompatReport <apk> --save <profiles directory> <desktop.jar> <bundle.mpp>`. The reporter first checks discovery, then uses Desktop to apply every patch, including Material You, and rebuild a temporary unsigned APK at a 1024 MB heap. It parses the rebuilt manifest and resource table with `aapt2` and structurally validates every DEX. Failed or incomplete results leave the profile directory unchanged. A discovery-only PASS doesn't prove that the patcher can apply the bundle. For a new mapping, use the printed Kotlin to update the source and build the candidate bundle before recording it.
 
-After changing patch metadata, run `:patches:generatePatchCatalog` and review `patches-list.json`. The normal `:patches:check` task checks the committed catalog against the built bundle and checks all 30 control keys against the extension and manifest. It fails on drift instead of rewriting the catalog.
+After changing patch metadata, run `:patches:generatePatchCatalog` and review `patches-list.json`. The normal `:patches:check` task checks the committed catalog against the built bundle and checks all 37 control keys against the extension and manifest. It fails on drift instead of rewriting the catalog.
 
-Before publishing, synchronize the release version, source index, changelog and README checksum, then run `:patches:verifyReleaseMetadata`. This loads fresh bundle metadata and checks its checksum against the release files. To check a proposed tag and checksum asset too, run `python scripts/check_release.py --release-tag v0.21.0 --checksums SHA256SUMS.txt` after the Gradle check. Catalog evidence is bound to the exact bundle hash. Then sign the checksum file with `ssh-keygen -Y sign -f <release key> -n hushmessenger-release SHA256SUMS.txt`, attach `SHA256SUMS.txt.sig` next to it, and run the same command with `--verify-signature` added. That checks the signature against `scripts/release_signers`.
+Before publishing, synchronize the release version, source index, changelog and README checksum, then run `:patches:verifyReleaseMetadata`. This loads fresh bundle metadata and checks its checksum against the release files. To check a proposed tag and checksum asset too, run `python scripts/check_release.py --release-tag v0.22.0 --checksums SHA256SUMS.txt` after the Gradle check. Catalog evidence is bound to the exact bundle hash. Then sign the checksum file with `ssh-keygen -Y sign -f <release key> -n hushmessenger-release SHA256SUMS.txt`, attach `SHA256SUMS.txt.sig` next to it, and run the same command with `--verify-signature` added. That checks the signature against `scripts/release_signers`.
 
 ### Check the bundle
 
-The [v0.21.0 release](https://github.com/SysAdminDoc/HushMessenger/releases/tag/v0.21.0) includes a `SHA256SUMS.txt` file. Compare its `.mpp` hash with your download. You can also build the tagged source locally and compare the output. Bundles up to v0.4.2 copied LICENSE and NOTICE with the line endings of the checkout they were built from, so a fresh clone of those tags can differ in those two files. Newer source normalizes them. The checksum and bundle are hosted under the same GitHub account, so this check cannot independently rule out an account compromise.
+The [v0.22.0 release](https://github.com/SysAdminDoc/HushMessenger/releases/tag/v0.22.0) includes a `SHA256SUMS.txt` file. Compare its `.mpp` hash with your download. You can also build the tagged source locally and compare the output. Bundles up to v0.4.2 copied LICENSE and NOTICE with the line endings of the checkout they were built from, so a fresh clone of those tags can differ in those two files. Newer source normalizes them. The checksum and bundle are hosted under the same GitHub account, so this check cannot independently rule out an account compromise.
 
 ```text
-a5f860f4f083f27817a1da7a4ede59b62f7eab03b580a91512ef207964a61d08  patches-0.21.0.mpp
+1898c011f32786793e12bcb1286c03a651d2ab61689aef01264bdd106700d3fb  patches-0.22.0.mpp
 ```
 
 Morphe Manager 1.34.0 and Desktop 1.18.1 don't verify detached patch-bundle signatures on import. Manager downloads the bundle directly, and Desktop's source model drops the signature URL. An `.asc` link in the source index doesn't add automatic protection. See the [Manager download path](https://github.com/MorpheApp/morphe-manager/blob/v1.34.0/app/src/main/java/app/morphe/manager/domain/bundles/RemotePatchBundle.kt) and [Desktop source model](https://github.com/MorpheApp/morphe-desktop/blob/v1.18.1/src/main/kotlin/app/morphe/engine/model/PatchesBundle.kt). Verify the signed checksum manually before importing.
@@ -355,19 +399,6 @@ An untouched file prints `Good "hushmessenger-release" signature for SysAdminDoc
 
 ## Research and credits
 
-The [research snapshot](https://github.com/SysAdminDoc/HushMessenger/blob/015654380957d775f95b9f1c7871e91452d6216a/RESEARCH.md) compares Messenger patches in Morphe, ReVanced, De-Vanced and other projects. The remaining checks are summarized below. [Hushfeed](https://github.com/SysAdminDoc/hushfeed) is another Hush patch project.
+The [research snapshot](https://github.com/SysAdminDoc/HushMessenger/blob/015654380957d775f95b9f1c7871e91452d6216a/RESEARCH.md) compares Messenger patches in Morphe, ReVanced, De-Vanced and other projects. [Hushfeed](https://github.com/SysAdminDoc/hushfeed) is another Hush patch project.
 
-HushMessenger starts from the [Morphe patches template](https://github.com/MorpheApp/morphe-patches-template). Messenger hook definitions come from [De-Vanced](https://github.com/RookieEnough/De-Vanced), including its ReVanced contributions, and [Doom's patches](https://github.com/rushiranpise/morphe-patches). The typed ad-filter approach follows [Messenger Cleaner](https://github.com/N01-r0/messenger-cleaner-lsposed), with its MIT notice retained. The bubble eligibility anchor originated in [ChatHeadEnabler](https://github.com/NeonOrbit/ChatHeadEnabler). The permission approach is adapted from [Hushfacebook's shared-permission patch](https://github.com/SysAdminDoc/Hushfacebook/blob/15b8e9ed9315464a3e2d1a821b4e26ad47bbc28c/patches/src/main/kotlin/app/morphe/patches/facebook/coexist/SharedPermissions.kt). Source is under [GPL-3.0](LICENSE), and [NOTICE](NOTICE) has the details. HushMessenger is independent of Meta and Morphe.
-
-## Remaining checks
-
-- By 2026-10-03, fresh sign-in had succeeded in a separate test profile while the original account's data stayed intact. Encrypted-history recovery still needs the existing secure-storage PIN. Signed-in Samsung installations pass in-place updates and restarts with their existing keys.
-- The signed-in Facebook SSO read passed on 2026-09-29. Fresh **Continue as** sign-in remains unverified and requires an interactive account login. That read doesn't establish recovery of encrypted history.
-- Builds `346013354`, `346013370`, `346013394` and `346013423` patch cleanly with every patch, but neither test phone could install them, because both run newer Messenger builds. They haven't been tried on a phone yet.
-- Inbox tabs, low-memory bubbles, group notifications and encrypted-group typing still need eligible account or device checks. Live screenshot notices need an owned protected-media fixture and a hardware capture.
-- The Generate-button, protected-viewer and joined-community routes pass native discovery checks. Their live layout, playback, cleanup and inbox checks inside a signed-in account remain open. Settings preview speech passed, but Messenger inbox speech and a physical keyboard still need separate checks.
-- Keep unsent messages can't cover end-to-end encrypted chats. Messenger removes those messages below the part of the app HushMessenger can change.
-
-<p align="center">
-  <a href="https://ko-fi.com/X8K126YVER"><img height="42" src="https://storage.ko-fi.com/cdn/kofi2.png?v=3" alt="Buy me a coffee on Ko-fi"></a>
-</p>
+HushMessenger starts from the [Morphe patches template](https://github.com/MorpheApp/morphe-patches-template). Messenger hook definitions come from [De-Vanced](https://github.com/RookieEnough/De-Vanced), including its ReVanced contributions, and [Doom's patches](https://github.com/rushiranpise/morphe-patches). The typed ad-filter approach follows [Messenger Cleaner](https://github.com/N01-r0/messenger-cleaner-lsposed), with its MIT notice retained. The bubble eligibility anchor originated in [ChatHeadEnabler](https://github.com/NeonOrbit/ChatHeadEnabler). The emoji drawer anchor comes from ReVanced patches merge request !6833. The analytics upload services follow [MessengerEx](https://github.com/C10udburst/MessengerEx), with its MIT notice retained. The idea of keeping a message log from the notification follows [Messenger-Z](https://github.com/hyowonbernabe/Messenger-Z), with its own code written here. The permission approach is adapted from [Hushfacebook's shared-permission patch](https://github.com/SysAdminDoc/Hushfacebook/blob/15b8e9ed9315464a3e2d1a821b4e26ad47bbc28c/patches/src/main/kotlin/app/morphe/patches/facebook/coexist/SharedPermissions.kt). Source is under [GPL-3.0](LICENSE), and [NOTICE](NOTICE) has the details. HushMessenger is independent of Meta and Morphe.

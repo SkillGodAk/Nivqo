@@ -82,6 +82,54 @@ public final class FeedFilter {
     static final String GROUPS_YOU_SHOULD_JOIN_TYPE = "GroupsYouShouldJoinFeedUnit";
 
     /**
+     * The GraphQL type names of Memories between posts: "On this day" and its section header, a
+     * memory shown as its own post, and friendship anniversaries. Each is only a name in Facebook's
+     * type tables on 577, 580 and 581, with no model class of its own, so a unit of one answers
+     * {@code getTypeName()} from the shared model it's built on.
+     */
+    static final String[] MEMORIES_TYPES = {
+            "ThrowbackPromotionFeedUnit", "ThrowbackSectionHeaderFeedUnit", "ThrowbackPermalinkStoryFeedUnit",
+            "GoodwillThrowbackFeedUnit",
+    };
+
+    /** The row of friend requests between posts, on the model People you may know shares. */
+    static final String FRIEND_REQUESTS_TYPE = "FriendRequestsFeedUnit";
+
+    /** The card of where your friends are, between posts. */
+    static final String FRIENDS_LOCATIONS_TYPE = "FriendsLocationsFeedUnit";
+
+    /**
+     * Facebook's own promotions and prompts between posts that have no model class on every build,
+     * found by the GraphQL type name instead of by class like {@link #SUGGESTED_UNITS}: two more
+     * kinds of Quick Promotion (the Vibes one has a class on 580 and 581 only), the social list
+     * prompt, people to invite to a group, and a row of suggested shows. They go with the suggested
+     * posts switch. The shows row is only a name in the type tables of 577, 580 and 581, and no feed
+     * has served one yet, so it's an extra until a diagnostic report shows one.
+     */
+    static final String[] SUGGESTED_TYPES = {
+            "ClientTriggeredQPFeedUnit", "VibesRifuQuickPromotionFeedUnit", "SocialListPromptFeedUnit",
+            "PaginatedGroupsPeopleYouMayInviteFeedUnit", "SuggestedShowsFeedUnit",
+    };
+
+    /**
+     * Story categories Facebook can file a post it picked for you under: one it adds to the feed
+     * from outside what you follow, and a trending one. They go with the "Suggested for you" switch,
+     * whatever the post's recommendation flag reads. Neither has reached the feed guard on the
+     * accounts this was tested with, where recommended posts came as ENGAGEMENT, so they're extras
+     * until a diagnostic report shows one. Every build since 577 builds both constants, and no app
+     * code names either (577 keeps a field for each that nothing reads, 580 and 581 keep none), so
+     * an edge under one only comes from Facebook's servers. The feed edge log names each category.
+     */
+    static final String[] SUGGESTED_CATEGORIES = {"INJECTED_STORY", "TRENDING"};
+
+    /**
+     * A carousel of several ads in one unit. Facebook draws it from the same ad pool as every other
+     * ad (581's AdValidator.checkValidity vets it), so it goes with the sponsored posts switch by its
+     * type name, whatever category the edge carries.
+     */
+    static final String MULTI_ADS_TYPE = "FBMultiAdsFeedUnit";
+
+    /**
      * The GraphQL type of the feed's rows of Stories between posts, a literal of the shared showcase
      * model's {@code getTypeName()} in 577 and 580. Facebook draws one with its DiscoverUnitComponent,
      * which reads {@link #UNCONNECTED_STORIES_FLAG} to tell a row of Stories from people you aren't
@@ -106,6 +154,14 @@ public final class FeedFilter {
      * under {@link Settings#HIDE_META_AI_FEED_UNITS}.
      */
     static final String META_AI_UNIT_TYPE = "XFBFBImplicitMetaAIFeedUnit";
+
+    /**
+     * The type name of the card promoting Vibes, Meta AI's app of AI-made videos, that Facebook can
+     * put between posts. Its model, GraphQLVibesRifuQuickPromotionFeedUnit, answers it from
+     * getTypeName() in 580 and 581; 577 has no such unit. It goes under the same switch as the Meta
+     * AI card.
+     */
+    static final String VIBES_PROMOTION_UNIT_TYPE = "VibesRifuQuickPromotionFeedUnit";
 
     /**
      * The other two kinds of Stories between posts the same model answers in 577 and 580, through
@@ -154,11 +210,25 @@ public final class FeedFilter {
     /** The kind a post counts under while the hide list is empty, when nothing of it is read. */
     static final String NO_WORDS = "no words listed";
     /**
+     * The stories the people, Pages and sites rule read, counted only while its switch is on, with
+     * whether a rule matched or why nothing was read as the kind. Never a name, an id or a link.
+     */
+    static final String SOURCES_ROUTE = "Your people, Pages and sites";
+    /** What a post that rule hid counts under, followed by the number of the line that matched. */
+    static final String SOURCES_REASON = "source rule";
+    /** The kind a post counts under while the list is empty, when nothing of it is read. */
+    static final String NO_SOURCES = "nobody listed";
+    /** The kind a post counts under when it was read and no line matched. */
+    static final String NO_SOURCE_MATCH = "no line matched";
+    /**
      * The Stories tray adapters the feed asked for, each call counted with its adapter as the kind,
      * and a skipped one as a removal. The tray is never a feed edge: the feed's adapter list adds it
      * as an adapter of its own, so it never reaches the edge guard.
      */
     static final String TRAY_ROUTE = "Stories tray adapters";
+
+    /** The composer row's adapter, counted the same way as the tray's under a route of its own. */
+    static final String COMPOSER_ROUTE = "Composer row adapter";
 
     /**
      * The story categories Facebook files the feed's rows of reels under: the "Reels" carousels
@@ -177,18 +247,23 @@ public final class FeedFilter {
     /** The kind and the removal reason a pre-EOF injector call counts under. */
     static final String PRE_EOF_UNIT = "pre-EOF unit";
 
-    /** The adapter the patch passes: the classic tray, or the unified one a server gate turns on. */
+    /**
+     * The adapter the patch passes: the classic tray, the unified one a server gate turns on, or the
+     * "What's on your mind?" composer row above them.
+     */
     public static final int LEGACY_TRAY = 0;
     public static final int UNIFIED_TRAY = 1;
+    public static final int HOME_COMPOSER = 2;
 
     /**
      * Units Facebook injects into the feed that are not posts from anyone you follow. Every one
      * keeps its real name through Meta's obfuscator, so the check needs no obfuscated identifier.
      *
-     * <p>Left out on purpose: {@code GraphQLFriendsLocationsFeedUnit}, a real feature. People You
-     * May Know and suggested groups aren't here either: their unit class is Redex-renamed and
-     * shared with other rows, so their own rules read the GraphQL type name the unit answers
-     * ({@link #PEOPLE_YOU_MAY_KNOW_TYPE}, {@link #GROUPS_YOU_SHOULD_JOIN_TYPE}).
+     * <p>Left out on purpose: friends' locations, a real feature, which has a switch of its own that
+     * starts off ({@link #FRIENDS_LOCATIONS_TYPE}). People You May Know and suggested groups aren't
+     * here either: their unit class is Redex-renamed and shared with other rows, so their own rules
+     * read the GraphQL type name the unit answers ({@link #PEOPLE_YOU_MAY_KNOW_TYPE},
+     * {@link #GROUPS_YOU_SHOULD_JOIN_TYPE}).
      */
     private static final String[] SUGGESTED_UNITS = {
             // "Pages you may like" and its variants.
@@ -239,7 +314,7 @@ public final class FeedFilter {
                 RecommendationLabel.PATCHED, SettingsStatus.aiDetectedPosts(), GenAiLabel.PATCHED,
                 SettingsStatus.feedReels(), ShowcaseType.PATCHED, SettingsStatus.postWords(), PostText.MESSAGE,
                 PostText.ATTACHED, GenAiLabel.SELF_LABEL_PATCHED, AiCharacterPosts.ATTACHMENTS,
-                AiCharacterPosts.STYLES);
+                AiCharacterPosts.STYLES, PostTypes.READERS);
     }
 
     /** The guard with the sponsored and suggested patch-time flags passed in, and no GenAI rule. */
@@ -331,6 +406,23 @@ public final class FeedFilter {
             StoryFlag.Accessor messageAccessor, StoryFlag.Accessor attachedAccessor,
             StoryFlag.Accessor aiLabelAccessor, @Nullable StoryFlag.Accessor attachmentsAccessor,
             @Nullable AiCharacterPosts.Finder styleFinder) {
+        return hideEdge(category, feedUnit, sponsoredPatched, suggestedPatched, recommendationAccessor, aiPatched,
+                aiAccessor, reelsPatched, showcaseAccessor, wordsPatched, messageAccessor, attachedAccessor,
+                aiLabelAccessor, attachmentsAccessor, styleFinder, null);
+    }
+
+    /**
+     * The guard with the readers of the word filter's kinds of post passed in too, so a test can
+     * stand in for the stubs Hide posts by words fills: the story's attachments, an attachment's
+     * styles and the story's text format. Null readers leave those switches out, as the overloads
+     * above do.
+     */
+    static boolean hideEdge(Object category, Object feedUnit, boolean sponsoredPatched, boolean suggestedPatched,
+            StoryFlag.Accessor recommendationAccessor, boolean aiPatched, StoryFlag.Accessor aiAccessor,
+            boolean reelsPatched, StoryFlag.Accessor showcaseAccessor, boolean wordsPatched,
+            StoryFlag.Accessor messageAccessor, StoryFlag.Accessor attachedAccessor,
+            StoryFlag.Accessor aiLabelAccessor, @Nullable StoryFlag.Accessor attachmentsAccessor,
+            @Nullable AiCharacterPosts.Finder styleFinder, @Nullable PostTypes.Readers typeReaders) {
         boolean trayPatched = storiesTrayInBuild();
         try {
             if (sponsoredPatched) HookStatus.invoked(FamilyNames.SPONSORED_POSTS);
@@ -370,6 +462,9 @@ public final class FeedFilter {
             String reason = null;
             if (sponsoredPatched && hiddenCategory(category)) {
                 reason = categoryName;
+            } else if (sponsoredPatched && Settings.HIDE_SPONSORED_POSTS.get()
+                    && MULTI_ADS_TYPE.equals(typeName(feedUnit))) {
+                reason = MULTI_ADS_TYPE;
             }
             if (reason == null && reelsPatched && Settings.HIDE_FEED_REELS.get()) {
                 reason = isReelsCategory(categoryName) ? categoryName : showcaseReason(feedUnit, showcaseAccessor);
@@ -385,11 +480,15 @@ public final class FeedFilter {
                     }
                 }
                 if (reason == null && Settings.HIDE_SUGGESTED_FOR_YOU.get()) {
-                    reason = flagReason(RecommendationLabel.FLAG, RECOMMENDATION_ROUTE, feedUnit, recommendationAccessor);
+                    reason = suggestedCategory(categoryName);
+                    if (reason == null) {
+                        reason = flagReason(RecommendationLabel.FLAG, RECOMMENDATION_ROUTE, feedUnit, recommendationAccessor);
+                    }
                 }
                 boolean storiesYouMightLike = Settings.HIDE_STORIES_YOU_MIGHT_LIKE.get();
-                if (reason == null && (Settings.HIDE_PEOPLE_YOU_MAY_KNOW.get() || Settings.HIDE_SUGGESTED_GROUPS.get()
-                        || storiesYouMightLike)) {
+                if (reason == null && (Settings.HIDE_SUGGESTED_POSTS.get() || Settings.HIDE_PEOPLE_YOU_MAY_KNOW.get()
+                        || Settings.HIDE_SUGGESTED_GROUPS.get() || storiesYouMightLike || Settings.HIDE_FEED_MEMORIES.get()
+                        || Settings.HIDE_FEED_FRIEND_REQUESTS.get() || Settings.HIDE_FRIENDS_LOCATIONS.get())) {
                     String type = typeName(feedUnit);
                     reason = suggestedTypeReason(type);
                     if (reason == null && storiesYouMightLike && DISCOVER_UNIT_TYPE.equals(type)) {
@@ -401,8 +500,9 @@ public final class FeedFilter {
                 reason = storiesRowReason(typeName(feedUnit));
             }
             boolean metaAi = aiPatched && Settings.HIDE_META_AI_FEED_UNITS.get();
-            if (reason == null && metaAi && META_AI_UNIT_TYPE.equals(typeName(feedUnit))) {
-                reason = META_AI_UNIT_TYPE;
+            if (reason == null && metaAi) {
+                String type = typeName(feedUnit);
+                if (META_AI_UNIT_TYPE.equals(type) || VIBES_PROMOTION_UNIT_TYPE.equals(type)) reason = type;
             }
             if (reason == null && aiPatched && attachmentsAccessor != null && styleFinder != null
                     && Settings.HIDE_AI_CHARACTER_POSTS.get()) {
@@ -418,6 +518,17 @@ public final class FeedFilter {
             if (reason == null && wordsPatched && Settings.HIDE_POSTS_WITH_WORDS.get()) {
                 reason = wordsReason(feedUnit, messageAccessor, attachedAccessor);
             }
+            if (reason == null && wordsPatched) {
+                reason = sourcesReason(feedUnit, PostSources.ACTORS, PostSources.ATTACHMENTS, attachedAccessor);
+            }
+            if (reason == null && wordsPatched && typeReaders != null) {
+                reason = typesReason(feedUnit, typeReaders, attachedAccessor);
+            }
+            if (reason == null && wordsPatched && typeReaders != null) {
+                reason = reactionsReason(feedUnit, typeReaders);
+            }
+            // The seen rule goes last so a post another rule would hide is counted under that rule.
+            if (reason == null) reason = SeenPosts.hideReason(feedUnit);
             if (reason == null) return false;
 
             FeedFilterCounters.removed(FEED_ROUTE, 1, reason);
@@ -493,16 +604,32 @@ public final class FeedFilter {
     }
 
     /**
-     * The rules built on a unit's GraphQL type name: the name, when it's People you may know or
-     * suggested groups and that row's switch is on, otherwise null. A name that couldn't be read
-     * is null, so the unit stays.
+     * The rules built on a unit's GraphQL type name: the name, when it's People you may know,
+     * suggested groups, a Memory, friend requests, friends' locations or one of
+     * {@link #SUGGESTED_TYPES} and that kind's switch is on, otherwise null. A name that couldn't be
+     * read is null, so the unit stays.
      */
     private static String suggestedTypeReason(String type) {
+        if (type == null) return null;
+        if (Settings.HIDE_SUGGESTED_POSTS.get()) {
+            for (String kind : SUGGESTED_TYPES) {
+                if (kind.equals(type)) return kind;
+            }
+        }
         if (PEOPLE_YOU_MAY_KNOW_TYPE.equals(type)) {
             return Settings.HIDE_PEOPLE_YOU_MAY_KNOW.get() ? PEOPLE_YOU_MAY_KNOW_TYPE : null;
         }
         if (GROUPS_YOU_SHOULD_JOIN_TYPE.equals(type)) {
             return Settings.HIDE_SUGGESTED_GROUPS.get() ? GROUPS_YOU_SHOULD_JOIN_TYPE : null;
+        }
+        if (FRIEND_REQUESTS_TYPE.equals(type)) {
+            return Settings.HIDE_FEED_FRIEND_REQUESTS.get() ? FRIEND_REQUESTS_TYPE : null;
+        }
+        if (FRIENDS_LOCATIONS_TYPE.equals(type)) {
+            return Settings.HIDE_FRIENDS_LOCATIONS.get() ? FRIENDS_LOCATIONS_TYPE : null;
+        }
+        for (String memory : MEMORIES_TYPES) {
+            if (memory.equals(type)) return Settings.HIDE_FEED_MEMORIES.get() ? memory : null;
         }
         return null;
     }
@@ -575,6 +702,37 @@ public final class FeedFilter {
     }
 
     /**
+     * The people, Pages and sites rule: {@link #SOURCES_REASON} and the matching line's number when
+     * one of the post's authors or links, or those of the post it shares, is on the list, otherwise
+     * null. Nothing is read while the switch is off or the list is empty, and a post whose authors
+     * and links can't be read is kept. Each story it reads is counted on its route by outcome.
+     */
+    static String sourcesReason(Object feedUnit, StoryFlag.Accessor actors, StoryFlag.Accessor attachments,
+            StoryFlag.Accessor attached) {
+        if (!Settings.HIDE_POSTS_FROM_SOURCES.get()) return null;
+        FeedFilterCounters.sawList(SOURCES_ROUTE, 1);
+        java.util.List<PostSources.Rule> rules = PostSources.cachedRules(Settings.HIDDEN_SOURCES.get());
+        if (rules.isEmpty()) {
+            FeedFilterCounters.sawKind(SOURCES_ROUTE, NO_SOURCES);
+            return null;
+        }
+        PostSources.Found found = PostSources.read(feedUnit, actors, attachments, attached);
+        if (found.outcome != PostSources.Outcome.READ) {
+            FeedFilterCounters.sawKind(SOURCES_ROUTE, found.outcome.reason);
+            return null;
+        }
+        int line = PostSources.match(rules, found);
+        if (line == 0) {
+            FeedFilterCounters.sawKind(SOURCES_ROUTE, NO_SOURCE_MATCH);
+            return null;
+        }
+        String reason = SOURCES_REASON + " " + line;
+        FeedFilterCounters.sawKind(SOURCES_ROUTE, reason);
+        FeedFilterCounters.removed(SOURCES_ROUTE, 1, reason);
+        return reason;
+    }
+
+    /**
      * The word filter: {@link #WORDS_REASON} when the post's own words, or those of the post it
      * shares, hold a phrase from the hide list and none from the keep list, otherwise null. Every
      * story it's asked about is counted on its route under which list matched or why nothing was
@@ -596,10 +754,46 @@ public final class FeedFilter {
         }
         PostWords.Verdict verdict = rules.judge(read.texts);
         FeedFilterCounters.sawKind(WORDS_ROUTE, verdict.reason);
-        if (verdict != PostWords.Verdict.HIDE) return null;
+        if (!verdict.hides()) return null;
         FeedFilterCounters.removed(WORDS_ROUTE, 1, verdict.reason);
         PostWords.HIDDEN.incrementAndGet();
         return WORDS_REASON;
+    }
+
+    /**
+     * The reaction ceiling: {@link PostReactions#ABOVE} when the post has more reactions than the
+     * ceiling the person set, otherwise null. Nothing is read while the ceiling is off, and a post
+     * whose count can't be read stays. Each post it reads is counted on its route by what the read
+     * found.
+     */
+    static String reactionsReason(Object feedUnit, PostTypes.Readers readers) {
+        ReactionCeiling ceiling = Settings.HIDE_POSTS_OVER_REACTIONS.get();
+        if (ceiling == ReactionCeiling.OFF) return null;
+        FeedFilterCounters.sawList(PostReactions.ROUTE, 1);
+        PostReactions.Read read = PostReactions.read(feedUnit, readers.feedback, readers.reactors);
+        boolean above = ceiling.exceeds(read.count);
+        FeedFilterCounters.sawKind(PostReactions.ROUTE, above ? PostReactions.ABOVE : read.reason);
+        if (!above) return null;
+        FeedFilterCounters.removed(PostReactions.ROUTE, 1, PostReactions.ABOVE);
+        return PostReactions.ABOVE;
+    }
+
+    /**
+     * The kinds of post rule: the kind's name, such as {@link PostTypes#PHOTO}, when the post or
+     * the one it shares is a kind a switch hides, otherwise null. Nothing is read while every one of
+     * the four switches is off, and a post that can't be read stays. Each story it reads is counted
+     * on its route by what the read found.
+     */
+    static String typesReason(Object feedUnit, PostTypes.Readers readers, StoryFlag.Accessor attached) {
+        PostTypes.Wanted wanted = new PostTypes.Wanted(Settings.HIDE_PHOTO_POSTS.get(), Settings.HIDE_VIDEO_POSTS.get(),
+                Settings.HIDE_LINK_POSTS.get(), Settings.HIDE_BACKGROUND_POSTS.get());
+        if (!wanted.any()) return null;
+        FeedFilterCounters.sawList(PostTypes.ROUTE, 1);
+        String kind = PostTypes.read(feedUnit, readers, attached, wanted);
+        FeedFilterCounters.sawKind(PostTypes.ROUTE, kind);
+        if (!wanted.hides(kind)) return null;
+        FeedFilterCounters.removed(PostTypes.ROUTE, 1, kind);
+        return kind;
     }
 
     /**
@@ -680,6 +874,15 @@ public final class FeedFilter {
             if (reels.equals(categoryName)) return true;
         }
         return false;
+    }
+
+    /** The category's name when it's one of {@link #SUGGESTED_CATEGORIES}, otherwise null. */
+    static String suggestedCategory(String categoryName) {
+        if (categoryName == null) return null;
+        for (String suggested : SUGGESTED_CATEGORIES) {
+            if (suggested.equals(categoryName)) return suggested;
+        }
+        return null;
     }
 
     /** Whether the feed unit is one of the injected suggestion or upsell units. */
@@ -791,7 +994,7 @@ public final class FeedFilter {
      * Injection point, the item count of a Stories tray adapter: the patch gives the classic and
      * the unified tray adapter a getItemCount() that asks here with Facebook's own count. It answers
      * 0 while the tray is hidden, which leaves the tray built but out of the feed, and
-     * {@code count} otherwise.
+     * {@code count} otherwise. The composer row's adapter asks here too, under its own switch.
      *
      * <p>Facebook's feed adapter reads its children's counts again whenever one of them changes,
      * and tells the list only what that child said changed. So an adapter's answer changes only
@@ -803,7 +1006,8 @@ public final class FeedFilter {
      *
      * <p>Until the settings are ready, and while Hushfacebook is paused, the tray is shown.
      *
-     * @param kind {@link #LEGACY_TRAY} or {@link #UNIFIED_TRAY}, the adapter the patch hooked.
+     * @param kind {@link #LEGACY_TRAY}, {@link #UNIFIED_TRAY} or {@link #HOME_COMPOSER}, the adapter
+     *             the patch hooked.
      */
     public static int storiesTrayCount(Object adapter, int kind, int count) {
         try {
@@ -811,7 +1015,7 @@ public final class FeedFilter {
             if (hidden == null) {
                 hidden = hideStoriesTray(kind);
                 TRAY_HIDDEN.put(adapter, hidden);
-            } else if (hidden != trayHidden() && !TRAY_STUCK.containsKey(adapter)
+            } else if (hidden != trayHidden(kind) && !TRAY_STUCK.containsKey(adapter)
                     && TRAY_PENDING.put(adapter, Boolean.TRUE) == null) {
                 Utils.runOnMainThread(() -> flipTray(adapter, kind));
             }
@@ -832,8 +1036,9 @@ public final class FeedFilter {
     /** Tray adapters whose notifyDataSetChanged failed: they keep their answer until Facebook restarts. */
     private static final Map<Object, Boolean> TRAY_STUCK = Collections.synchronizedMap(new WeakHashMap<>());
 
-    private static boolean trayHidden() {
-        return Utils.settingsReady() && Settings.HIDE_TOP_STORIES_TRAY.get();
+    private static boolean trayHidden(int kind) {
+        if (!Utils.settingsReady()) return false;
+        return (kind == HOME_COMPOSER ? Settings.HIDE_HOME_COMPOSER : Settings.HIDE_TOP_STORIES_TRAY).get();
     }
 
     /**
@@ -845,7 +1050,7 @@ public final class FeedFilter {
     static void flipTray(Object adapter, int kind) {
         TRAY_PENDING.remove(adapter);
         Boolean was = TRAY_HIDDEN.get(adapter);
-        if (was == null || was == trayHidden()) return;
+        if (was == null || was == trayHidden(kind)) return;
         boolean hide = hideStoriesTray(kind);
         TRAY_HIDDEN.put(adapter, hide);
         try {
@@ -870,16 +1075,17 @@ public final class FeedFilter {
      * count, and each time its answer changes. The report counts each as a list of one, under the
      * adapter's kind, and a hidden one as removed.
      *
-     * @param adapter {@link #LEGACY_TRAY} or {@link #UNIFIED_TRAY}.
+     * @param adapter {@link #LEGACY_TRAY}, {@link #UNIFIED_TRAY} or {@link #HOME_COMPOSER}.
      */
     static boolean hideStoriesTray(int adapter) {
         try {
             HookStatus.invoked(FamilyNames.STORIES_TRAY);
-            String kind = adapter == UNIFIED_TRAY ? "unified" : "legacy";
-            FeedFilterCounters.sawList(TRAY_ROUTE, 1);
-            FeedFilterCounters.sawKind(TRAY_ROUTE, kind);
-            boolean hide = trayHidden();
-            if (hide) FeedFilterCounters.removed(TRAY_ROUTE, 1, kind + " adapter hidden");
+            String kind = adapter == HOME_COMPOSER ? "composer" : adapter == UNIFIED_TRAY ? "unified" : "legacy";
+            String route = adapter == HOME_COMPOSER ? COMPOSER_ROUTE : TRAY_ROUTE;
+            FeedFilterCounters.sawList(route, 1);
+            FeedFilterCounters.sawKind(route, kind);
+            boolean hide = trayHidden(adapter);
+            if (hide) FeedFilterCounters.removed(route, 1, kind + " adapter hidden");
             logTrayOnce(adapter, kind, hide);
             return hide;
         } catch (Throwable failure) {
@@ -899,9 +1105,10 @@ public final class FeedFilter {
      */
     private static void logTrayOnce(int adapter, String kind, boolean hide) {
         if (!Utils.settingsReady() || !BaseSettings.DEBUG.get()) return;
-        int bit = 1 << ((adapter == UNIFIED_TRAY ? 2 : 0) + (hide ? 1 : 0));
+        int bit = 1 << (adapter * 2 + (hide ? 1 : 0));
         if ((TRAY_LOGGED.getAndUpdate(logged -> logged | bit) & bit) != 0) return;
-        Logger.printDebug(() -> "Stories tray: " + (hide ? "hid" : "kept") + " the " + kind + " adapter");
+        String what = adapter == HOME_COMPOSER ? "Composer row" : "Stories tray";
+        Logger.printDebug(() -> what + ": " + (hide ? "hid" : "kept") + " the " + kind + " adapter");
     }
 
     /**

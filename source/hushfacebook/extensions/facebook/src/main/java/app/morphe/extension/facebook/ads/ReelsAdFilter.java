@@ -10,10 +10,13 @@ package app.morphe.extension.facebook.ads;
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import app.morphe.extension.facebook.reels.ReelSections;
 import app.morphe.extension.facebook.settings.FamilyNames;
@@ -58,6 +61,16 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * here, so by then the pool had already marked the ad as used and logged its position.
  * {@link #holdPoolAd} answers before the pool hands anything out, the same no-ad answer the pool gives
  * itself when no slot is free.
+ *
+ * <p>That report's drop came too late, though. The pool was never asked, and the same phone showed a
+ * reel ad 8 seconds after logging it. 581's client-side loader (VideoFeedUnitFeedCSRDataLoaderAdapter)
+ * puts reels into the collection's backing list one at a time, or appends a page through a static
+ * helper, and only then walks the page to tell the collection's listeners. The filter sat on that walk,
+ * so it took the ad out of the announcement while the ad stayed in the list the viewer reads. The patch
+ * now drops an ad item at the one-item insert itself and filters the append as it filters the positioned
+ * insert. The walk keeps its filter, counted apart ({@link #ANNOUNCED_ROUTE}), because it is always handed
+ * the page as Facebook passed it in: a removal there matches one the insert already made, and a report
+ * that counts more removed on the walk than on the pages has an ad that came in some other way.
  */
 public final class ReelsAdFilter {
 
@@ -69,9 +82,34 @@ public final class ReelsAdFilter {
     /** The diagnostic counter routes, one per level the patch filters. */
     static final String SECTIONS_ROUTE = "Reels sections";
     static final String PAGES_ROUTE = "Reels pages";
+    /** The listener walk after each insert, which sees the page before the insert's own filter. */
+    static final String ANNOUNCED_ROUTE = "Reels announcements";
 
     /** What the diagnostic report counts each time the ad pool is held to no ad. */
     static final String POOL_HELD = "Reels ad pool held to no ad";
+
+    /** What the diagnostic report counts each time a profile's Reels tab is kept from fetching its ads. */
+    static final String PROFILE_ADS_HELD = "Profile Reels ad query held";
+
+    /** What the diagnostic report counts each time an ad-break fetch is answered with a failure. */
+    static final String AD_BREAK_FETCH_HELD = "Ad-break fetch held";
+
+    /**
+     * What the diagnostic report counts each time the comment pill asks about an ad's button and
+     * hears no. The pill asks about every plugin it has on each draw, before Facebook's own check of
+     * whether the ad has a button, so this counts the answers, not buttons that would have shown.
+     */
+    static final String AD_PILL_HELD = "Ad button checks answered no";
+
+    /**
+     * The comment sheet's floating buttons for a reel, Watch or in-stream ad, by the class name of
+     * the pill plugin that draws each. The pill's other plugins stay: a message button, affiliate
+     * links and visual search aren't ads, and the Permalink and Flyout ad buttons belong to feed ads.
+     */
+    static final Set<String> AD_PILLS = new HashSet<>(Arrays.asList(
+            "com.facebook.feedback.comments.plugins.indicatorpill.reelsadsfloatingcta.ReelsAdsFloatingCtaPlugin",
+            "com.facebook.feedback.comments.plugins.indicatorpill.watchadsfloatingcta.WatchAdsFloatingCtaPlugin",
+            "com.facebook.feedback.comments.plugins.indicatorpill.instreamadsfloatingcta.InstreamAdsFloatingCtaPlugin"));
 
     /** Whether the first hold of this process has been logged. */
     private static volatile boolean poolHoldLogged;
@@ -181,21 +219,36 @@ public final class ReelsAdFilter {
      * <p>Returning the original untouched matters: the caller's collection may be immutable, and
      * most pages contain no ad at all, so the common case allocates nothing and changes no type.
      *
+     * <p>The patch also hands it a one-item list from the collection's one-item insert, and skips the
+     * insert when the answer comes back empty.
+     *
      * @param items       the page about to be added to the Reels collection.
      * @param adClassName binary name of the ad item base class, for example {@code X.B89}.
      */
     public static Collection<?> withoutAds(Collection<?> items, String adClassName) {
-        return withoutAds(items, adClassName, PATCHED);
+        return withoutAds(items, adClassName, PATCHED, PAGES_ROUTE);
+    }
+
+    /**
+     * {@link #withoutAds(Collection, String)} for the collection's listener walk after an insert, counted
+     * on {@link #ANNOUNCED_ROUTE} so the pages route counts each page once.
+     */
+    public static Collection<?> withoutAnnouncedAds(Collection<?> items, String adClassName) {
+        return withoutAds(items, adClassName, PATCHED, ANNOUNCED_ROUTE);
     }
 
     /** {@link #withoutAds(Collection, String)} with the item reads passed in, so a test can stand in for the stubs. */
     static Collection<?> withoutAds(Collection<?> items, String adClassName, Items access) {
+        return withoutAds(items, adClassName, access, PAGES_ROUTE);
+    }
+
+    static Collection<?> withoutAds(Collection<?> items, String adClassName, Items access, String route) {
         HookStatus.invoked(FamilyNames.SPONSORED_REELS);
-        FeedFilterCounters.sawList(PAGES_ROUTE, items == null ? 0 : items.size());
+        FeedFilterCounters.sawList(route, items == null ? 0 : items.size());
         if (items == null || items.isEmpty() || !switchedOn()) return items;
 
         try {
-            return filtered(items, adClassName, access);
+            return filtered(items, adClassName, access, route);
         } catch (Throwable failure) {
             // Anything thrown here would go on into Facebook's Reels page insert.
             HookStatus.threw(FamilyNames.SPONSORED_REELS, "page filter", failure);
@@ -205,13 +258,13 @@ public final class ReelsAdFilter {
         }
     }
 
-    private static Collection<?> filtered(Collection<?> items, String adClassName, Items access) {
+    private static Collection<?> filtered(Collection<?> items, String adClassName, Items access, String route) {
         // Each item is read once: the kinds are kept in the page's order for the second pass.
         List<String> kinds = new ArrayList<>(items.size());
         boolean found = false;
         for (Object item : items) {
             String kind = kindOf(item, adClassName, access);
-            FeedFilterCounters.sawKind(PAGES_ROUTE, kind);
+            FeedFilterCounters.sawKind(route, kind);
             kinds.add(kind);
             if (isAd(kind)) found = true;
         }
@@ -232,10 +285,11 @@ public final class ReelsAdFilter {
         // Only when something was actually dropped, so this stays silent on an ordinary page while
         // still confirming on a device that the filter is reached and doing its job.
         for (Map.Entry<String, Integer> kind : dropped.entrySet()) {
-            FeedFilterCounters.removed(PAGES_ROUTE, kind.getValue(), kind.getKey());
+            FeedFilterCounters.removed(route, kind.getValue(), kind.getKey());
         }
+        String where = ANNOUNCED_ROUTE.equals(route) ? "announcement dropped " : "dropped ";
         Logger.diagnosticDebug(DiagnosticCategory.FEED_AND_NAVIGATION, SOURCE,
-                () -> "dropped " + (items.size() - kept.size()) + " of " + items.size() + kinds(dropped));
+                () -> where + (items.size() - kept.size()) + " of " + items.size() + kinds(dropped));
 
         return kept;
     }
@@ -266,6 +320,44 @@ public final class ReelsAdFilter {
             Logger.diagnosticDebug(DiagnosticCategory.FEED_AND_NAVIGATION, SOURCE,
                     () -> "the Reels ad pool was asked for an ad and held to none");
         }
+        return true;
+    }
+
+    /**
+     * Injection point, asked first thing in the method that sends a profile's or Page's Reels tab
+     * query for its ads (ProfileReelsAsyncAdsQuery): true makes it return before the query goes
+     * out, as it does when the ads it holds already fill the tab, so the tab shows that profile's
+     * own reels. Off, or asked before the settings are ready, Facebook fetches them. Never throws.
+     */
+    public static boolean holdProfileReelAds() {
+        HookStatus.invoked(FamilyNames.SPONSORED_REELS);
+        if (!switchedOn()) return false;
+
+        HookStatus.counted(FamilyNames.SPONSORED_REELS, PROFILE_ADS_HELD);
+        return true;
+    }
+
+    /**
+     * Injection point, run by each ad-break fetch the patch answers with a failed future: a banner
+     * over a reel, a video's ad break, the Reels idle query or an extended break. Those stay held
+     * while Hushfacebook is paused, so this only counts them for the diagnostic report.
+     */
+    public static void heldAdBreakFetch() {
+        HookStatus.invoked(FamilyNames.SPONSORED_REELS);
+        HookStatus.counted(FamilyNames.SPONSORED_REELS, AD_BREAK_FETCH_HELD);
+    }
+
+    /**
+     * Injection point, first in the comment pill's check of whether a plugin's button shows, with
+     * that plugin's class name: true answers no. An ad that still reaches a reel or a video then
+     * opens its comments without the floating button. Any other plugin, off, or asked before the
+     * settings are ready, and Facebook decides. Never throws.
+     */
+    public static boolean holdsAdPill(String plugin) {
+        HookStatus.invoked(FamilyNames.SPONSORED_REELS);
+        if (!AD_PILLS.contains(plugin) || !switchedOn()) return false;
+
+        HookStatus.counted(FamilyNames.SPONSORED_REELS, AD_PILL_HELD);
         return true;
     }
 

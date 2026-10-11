@@ -20,68 +20,68 @@
     <string name="android_11_bug_dialog_title">Android 11 səhvi</string>
     <string name="android_11_bug_dialog_description">Tətbiq quraşdırılması icazəsi istifadəçi təcrübəsinə mənfi təsir edəcək Android 11 sistemindəki səhvə mane olmaq üçün əvvəlcədən qəbul edilməlidir</string>
     <string name="deep_link_add_source_title">Mənbə əlavə et</string>
-    <string name="deep_link_add_source_message">Bu yamaq mənbəyin Nivqo-yə əlavə etmək istəyirsiniz?</string>
+    <string name="deep_link_add_source_message">Bu yamaq mənbəyin Morphe-yə əlavə etmək istəyirsiniz?</string>
 <string name="deep_link_add_source_warning">Yalnız etibar etdiyiniz mənbələri əlavə edin</string>
-    <!-- Home Screen - Update Notifications -->
+<!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Əlçatan Nivqo yenilənməsi</string>
 <string name="home_update_available_subtitle">Yeni versiya quraşdırılmağa hazırdır</string>
-    <string name="home_blocked_source_title">Əngəllənmiş yamaq mənbəyi aşkarlandı</string>
+<string name="home_blocked_source_title">Əngəllənmiş yamaq mənbəyi aşkarlandı</string>
     <string name="home_blocked_source_subtitle">Gözdən keçirmək və silmək üçün toxun</string>
-    <string name="home_metadata_errors_title">Bəzi yamaq mənbələri əlçatmazdır</string>
+<string name="home_metadata_errors_title">Bəzi yamaq mənbələri əlçatmazdır</string>
     <string name="home_metadata_errors_subtitle">Mənbələri gözdən keçirmək üçün toxun</string>
-    <string name="home_outdated_manager_title">Nivqo köhnəlib</string>
+<string name="home_outdated_manager_title">Morphe köhnəlib</string>
 <string name="home_outdated_manager_subtitle">Bəzi yamaq mənbələrinin daha yeni versiyaya ehtiyacı var</string>
-    <string name="home_held_back_title">Yamaq mənbəyi Nivqo-ni xətaya saldı</string>
+<string name="home_held_back_title">Yamaq mənbəyi Morphe-ni xətaya saldı</string>
 <string name="home_held_back_subtitle">Tətbiqin başladıla bilməsi üçün bu ötürüldü. Baxmaq üçün toxun</string>
-    <string name="home_metered_skipped_title">Mobil datada yeniləmələr dayandırıldı</string>
+<string name="home_metered_skipped_title">Mobil datada yeniləmələr dayandırıldı</string>
     <string name="home_metered_skipped_subtitle">Mobil datada yeniləmələri qəbul etmək üçün toxun</string>
-    <string name="home_repatch_available_subtitle">Hamısını növbəyə qoymaq üçün toxun</string>
+<string name="home_repatch_available_subtitle">Hamısını növbəyə qoymaq üçün toxun</string>
     <string name="home_update_error">Yenilənmə uğursuz oldu</string>
-    <string name="home_update_error_subtitle">Mənbələri yeniləyərkən nəsə səhv oldu</string>
+<string name="home_update_error_subtitle">Mənbələri yeniləyərkən nəsə səhv oldu</string>
     <string name="home_update_skipped_metered">Yenilənmələr ötürüldü</string>
-    <string name="home_update_skipped_metered_subtitle">Mobil data işləkdir</string>
+<string name="home_update_skipped_metered_subtitle">Mobil data işləkdir</string>
     <string name="home_updating_sources">Mənbələr yenilənir…</string>
-    <string name="home_update_success">Mənbələri yeniləmə tamamlandı</string>
+<string name="home_update_success">Mənbələri yeniləmə tamamlandı</string>
     <string name="home_update_success_subtitle">Mənbələriniz yenilənib</string>
-    <string name="home_sources_are_loading">Mənbələr yüklənilir, xahiş olunur gözləyin...</string>
+<string name="home_sources_are_loading">Mənbələr yüklənilir, xahiş olunur gözləyin...</string>
     <string name="home_search_apps">Tətbiqləri axtar</string>
-    <string name="home_app_list_options_title">Sırala və filtrlə</string>
+<string name="home_app_list_options_title">Sırala və filtrlə</string>
     <string name="home_app_list_options_state_description">%1$s üzrə sıralanıb, %2$s üzrə filtrlənib</string>
-    <string name="home_app_filter_all_description">Əsas ekrandakı hər bir tətbiq</string>
+<string name="home_app_filter_all_description">Əsas ekrandakı hər bir tətbiq</string>
     <string name="home_app_filter_patched_description">Nivqo ilə yamaqladığınız və ya saxladığınız tətbiqlər</string>
-    <string name="home_app_filter_not_patched_description">Nivqo-də hələ yamaqlamadığınız tətbiqlər</string>
+<string name="home_app_filter_not_patched_description">Morphe-də hələ yamaqlamadığınız tətbiqlər</string>
 <string name="home_app_filter_installed_description">Hazırda bu cihazda quraşdırılmış tətbiqlər</string>
-    <string name="home_app_filter_uninstalled_description">Nivqo ilə yamaqlanmış, artıq bu cihazda olmayan tətbiqlər</string>
+<string name="home_app_filter_uninstalled_description">Morphe ilə yamaqlanmış, artıq bu cihazda olmayan tətbiqlər</string>
 <string name="home_app_filter_clones">Dublikatlar</string>
-    <string name="home_app_filter_clones_description">Öz paket adı altında qurulmuş, orijinalı ilə birlikdə quraşdırılmış tətbiqlər</string>
+<string name="home_app_filter_clones_description">Öz paket adı altında qurulmuş, orijinalı ilə birlikdə quraşdırılmış tətbiqlər</string>
     <string name="home_app_sort_manual_description">Tətbiqə uzun bas, sonra yenidən sıralama düyməsinə toxun</string>
-    <string name="home_app_sort_recommended">Tövsiyə olunan düzülüş</string>
+<string name="home_app_sort_recommended">Tövsiyə olunan düzülüş</string>
     <string name="home_app_sort_recommended_description">Əvvəlcə quraşdırılmış və nişanlanmış tətbiqlər</string>
-    <string name="home_app_sort_name_asc_description">Əlifbaya uyğun, A-dan Z-yə</string>
+<string name="home_app_sort_name_asc_description">Əlifbaya uyğun, A-dan Z-yə</string>
     <string name="home_app_sort_name_desc_description">Əlifbanın əksinə uyğun, Z-dən A-ya</string>
-    <string name="home_app_sort_updates_first">Əvvəlcə yamaq yeniləmələri olan</string>
+<string name="home_app_sort_updates_first">Əvvəlcə yamaq yeniləmələri olan</string>
     <string name="home_app_sort_updates_first_description">Əvvəlcə daha yeni yamaqlar, sonra tövsiyə olunan düzülüşü olan tətbiqlər</string>
-    <string name="home_app_sort_recently_patched">Təzəlikcə yamaqlandı</string>
+<string name="home_app_sort_recently_patched">Təzəlikcə yamaqlandı</string>
     <string name="home_app_sort_recently_patched_description">Əvvəlcə təzəlikcə yamaqlanmış tətbiqlər</string>
-    <string name="home_no_apps_title">Mövcud tətbiq yoxdur</string>
+<string name="home_no_apps_title">Mövcud tətbiq yoxdur</string>
     <string name="home_no_apps_subtitle">%s bölməsində yamaq mənbəyi əlavə edin və ya mövcud olanı aktivləşdir</string>
-    <string name="home_no_apps_search_subtitle">\"%s\" ilə uyuşan tətbiq yoxdur</string>
+<string name="home_no_apps_search_subtitle">\"%s\" ilə uyuşan tətbiq yoxdur</string>
     <string name="home_all_apps_hidden_title">Bütün tətbiqlər gizlidir</string>
-    <string name="home_all_apps_hidden_subtitle">Bütün tətbiqləri əsas ekrandan gizlətmisiniz</string>
+<string name="home_all_apps_hidden_subtitle">Bütün tətbiqləri əsas ekrandan gizlətmisiniz</string>
     <string name="home_no_apps_filter_title">Bu filtrə uyğun tətbiq tapılmadı</string>
-    <string name="home_no_apps_filter_subtitle">%s üçün heç nə uyğun gəlmədi</string>
+<string name="home_no_apps_filter_subtitle">%s üçün heç nə uyğun gəlmədi</string>
     <string name="home_category_add">Kateqoriya əlavə et</string>
-    <string name="home_category_all_apps">Bütün tətbiqlər</string>
+<string name="home_category_all_apps">Bütün tətbiqlər</string>
     <string name="home_category_custom">Fərdi</string>
-    <string name="home_category_uncategorized">Kateqoriyasız</string>
+<string name="home_category_uncategorized">Kateqoriyasız</string>
     <string name="home_category_new_title">Yeni kateqoriya</string>
-    <string name="home_category_rename_title">Kateqoriyanı yenidən adlandır</string>
+<string name="home_category_rename_title">Kateqoriyanı yenidən adlandır</string>
     <string name="home_category_name">Kateqoriya adı</string>
-    <string name="home_category_move_to">Kateqoriyaya köçür</string>
+<string name="home_category_move_to">Kateqoriyaya köçür</string>
     <string name="home_category_move_selected_title">Seçilmiş tətbiqləri köçür</string>
-    <string name="home_category_delete_confirm_title">Kateqoriyanı sil</string>
+<string name="home_category_delete_confirm_title">Kateqoriyanı sil</string>
     <string name="home_category_delete_confirm_message">&lt;b&gt;%1$s&lt;/b&gt; kateqoriyası silinsin? İçindəki tətbiqlər &lt;b&gt;%2$s&lt;/b&gt; bölməsinə geri köçürüləcək</string>
-    <string name="home_category_actions_unavailable">Bu kateqoriya üçün əlçatmaz fəaliyyətlər</string>
+<string name="home_category_actions_unavailable">Bu kateqoriya üçün əlçatmaz fəaliyyətlər</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">Hansı tətbiqi yamaqlamaq istəyirsiniz?</string>
     <!-- Humorous hype message with light nostalgia -->
@@ -123,6 +123,26 @@
     <string name="home_greeting_super_late_3">Artıq bu yerdə, oyaq qal və yamaqla</string>
     <string name="home_greeting_super_late_4">Sən və serverlər, ikiniz də oyaqsınız</string>
     <string name="home_greeting_super_late_5">Gecəcil və səmərəli</string>
+    <!-- Halloween greetings, shown instead of the ones above around October 31 -->
+    <!-- Pun on "Trick or treat" -->
+    <string name="home_greeting_halloween_1">Hiylə yaxud yamaq?</string>
+    <string name="home_greeting_halloween_2">Bu APK-larda heç bir cin yoxdur, yoxladıq</string>
+    <string name="home_greeting_halloween_3">Sehrli mövsüm, yeni yamaqlar</string>
+    <!-- Pun on "Something wicked this way comes", a line from Shakespeare's Macbeth -->
+    <string name="home_greeting_halloween_4">Buralara dəhşətli yamaqlar gəlir</string>
+    <!-- Winter holiday greetings, shown instead of the ones above from late December to early January -->
+    <string name="home_greeting_winter_1">Bayramınız mübarək, təzə yamaqlar</string>
+    <!-- Pun on the song "Let It Snow! Let It Snow! Let It Snow!" -->
+    <string name="home_greeting_winter_2">Qar yağsın, yamaqlansın</string>
+    <string name="home_greeting_winter_3">Yeni il, yeni yamaqlar</string>
+    <!-- Pun on "Dashing through the snow", the opening line of "Jingle Bells" -->
+    <string name="home_greeting_winter_4">Qarların arasından yamaqlayaraq</string>
+    <!-- New Year greetings, shown instead of the ones above on December 31 and January 1 -->
+    <string name="home_greeting_new_year_1">Yeni İliniz Mübarək!</string>
+    <string name="home_greeting_new_year_2">Təzə yamaqlar üçün geri sayım</string>
+    <string name="home_greeting_new_year_3">Yeni il, eyni reklamsız tətbiqlər</string>
+    <!-- Pun on the saying "Out with the old, in with the new" -->
+    <string name="home_greeting_new_year_4">Köhnə versiyalara əlvida, yenilərə salam</string>
     <!-- Home Screen - Sources Management -->
     <string name="sources_management_title">Yamaq mənbələri</string>
     <string name="sources_search">Mənbələri və yamaqları axtar</string>
@@ -159,11 +179,11 @@
     <string name="sources_management_metadata_unavailable_hint">Uzaq üst məlumatı faylı mövcud deyil. Quraşdırılan paketlə yamaqlanma hələ də işləyir, lakin bu mənbə üçün birbaşa yenilənmə qapadılıb</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Yamaq paketin yükləmək olmadı. Mənbə URL-si səhv ola bilər və ya fayl mövcud deyil</string>
     <string name="sources_management_outdated_manager_badge">Nivqo-ni Yenilə</string>
-    <string name="sources_management_outdated_manager_hint">Bu mənbə %1$s yamaqlayıcısı üçün qurulmuşdur, lakin Nivqo %2$s versiyası %3$s yamaqlayıcısını ehtiva edir. İstifadə etmək üçün Nivqo-ni yenilə</string>
+<string name="sources_management_outdated_manager_hint">Bu mənbə %1$s yamaqlayıcısı üçün qurulmuşdur, lakin Morphe %2$s versiyası %3$s yamaqlayıcısını ehtiva edir. İstifadə etmək üçün Morphe-ni yenilə</string>
 <string name="sources_management_held_back_badge">Çökdü</string>
-    <string name="sources_management_held_back_hint">Bu mənbə yüklənərkən Nivqo-nin çökməsinə səbəb oldu, buna görə də ötürülür. Təkrar cəhd etmək üçün onu yenilə və ya təkrar idxal et</string>
+<string name="sources_management_held_back_hint">Bu mənbə yüklənərkən Morphe-nin çökməsinə səbəb oldu, buna görə də ötürülür. Təkrar cəhd etmək üçün onu yenilə və ya təkrar idxal et</string>
 <string name="sources_management_source_enabled">Mənbə işləkdir</string>
-    <string name="sources_management_source_disabled">Mənbə qapalıdır</string>
+<string name="sources_management_source_disabled">Mənbə qapalıdır</string>
     <string name="sources_management_source_updating">Mənbə yenilənir</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">Görünmə adı</string>
@@ -192,11 +212,11 @@
     <string name="sources_dialog_choose_apps_description">Mənbə yükləndikdən sonra hansı tətbiqləri saxlayacağınızı seçin</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Üçüncü tərəf yamaq mənbələri</string>
-    <string name="sources_dialog_community_notice_message">"İcma yamaq mənbələri öz müəllifləri tərəfindən yaradılır və saxlanılır. Nivqo üçüncü tərəf yamaqlarını nəzərdən keçirmir, yoxlamır və onların məzmununa və ya cihazınızda etdiklərinə görə məsuliyyət daşımır.
+    <string name="sources_dialog_community_notice_message">"İcma yamaq mənbələri öz müəllifləri tərəfindən yaradılır və saxlanılır. Morphe üçüncü tərəf yamaqlarını nəzərdən keçirmir, yoxlamır və onların məzmununa və ya cihazınızda etdiklərinə görə məsuliyyət daşımır.
 
 Bu veb saytdan əlavə etdiyiniz hər şey öz riskinizlə istifadə olunur"</string>
 <string name="sources_update_success">Uğurlu yeniləmə</string>
-    <string name="sources_update_unavailable">Yenilənmə əlçatan deyil</string>
+<string name="sources_update_unavailable">Yenilənmə əlçatan deyil</string>
     <string name="sources_download_fail">Mənbələri yükləmək olmadı: %s</string>
     <string name="sources_download_fail_named">\'%s\' yenilənə bilmədi. İnternet bağlantınızı yoxlayın və təkrar cəhd edin</string>
     <string name="sources_download_endpoint_not_found">\'%s\': yamaq üst məlumatı tapılmadı</string>
@@ -214,26 +234,26 @@ Bu veb saytdan əlavə etdiyiniz hər şey öz riskinizlə istifadə olunur"</st
     <string name="home_apk_availability_no">Xeyr, Mənim artıq APK-m var</string>
     <string name="home_apk_helper_download">Köməkçi tətbiq istifadə et</string>
     <string name="home_apk_helper_title">Köməkçi tətbiq ilə yüklə</string>
-    <string name="home_apk_helper_description">Nivqo orijinal APK-nı yükləmək və faylı geri vermək üçün aşağıdakı köməkçi tətbiqə sorğu göndərəcək</string>
-<!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="home_apk_helper_description">Morphe orijinal APK-nı yükləmək və faylı geri vermək üçün aşağıdakı köməkçi tətbiqə sorğu göndərəcək</string>
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_continue">Köməkçini aç</string>
-    <string name="home_apk_helper_warning">Yalnız bu köməkçi tətbiqə etibar edirsinizsə davam edin. Nivqo yamaqlamazdan əvvəl qəbul etdiyi hər şeyin paketini, versiyasını və imzasını yoxlayır</string>
+    <string name="home_apk_helper_warning">Yalnız bu köməkçi tətbiqə etibar edirsinizsə davam edin. Morphe yamaqlamazdan əvvəl qəbul etdiyi hər şeyin paketini, versiyasını və imzasını yoxlayır</string>
 <string name="home_apk_helper_warning_unverified">Yalnız bu köməkçi tətbiqə etibar edirsinizsə davam edin. Nivqo bu APK-nın imzasını təsdiqləyə bilmir, buna görə də dəyişdirilmiş fayl aşkarlanmayacaq</string>
 <string name="home_apk_helper_no_result">Köməkçi tətbiq APK-nı qaytarmadı</string>
-    <string name="home_apk_helper_no_access">Köməkçi tətbiq qaytardığı APK-ya giriş icazəsi vermədi</string>
+<string name="home_apk_helper_no_access">Köməkçi tətbiq qaytardığı APK-ya giriş icazəsi vermədi</string>
     <string name="home_apk_helper_no_package">Köməkçi tətbiq hansı quraşdırılmış tətbiqi istifadə edəcəyini bildirmədi</string>
-    <string name="home_apk_helper_wrong_package">Köməkçi tətbiq yamaqlanan tətbiqdən fərqli tətbiq qaytardı</string>
+<string name="home_apk_helper_wrong_package">Köməkçi tətbiq yamaqlanan tətbiqdən fərqli tətbiq qaytardı</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo quraşdırılmış tətbiqi istifadə edə bilmədi</string>
 <string name="home_apk_helper_installed_incompatible">Quraşdırılmış versiya yamaqlana bilməz</string>
-    <string name="home_apk_use_saved">Saxlanılan APK-nı istifadə et</string>
+<string name="home_apk_use_saved">Saxlanılan APK-nı istifadə et</string>
     <string name="home_apk_use_installed">Quraşdırılan APK-nı istifadə et</string>
     <string name="home_apk_use_saved_unsupported">Yamaqlar bu saxlanılan nüsxəni dəstəkləmir. Yamaqlama sizdən təsdiq istəyəcək və ya başqa APK seçməyi təklif edəcək</string>
     <string name="home_apk_use_installed_unverified">Quraşdırılmış tətbiqin imzasını təsdiqləmək olmadı, mümkündür ki, artıq yamaqlanmış ola bilər</string>
     <string name="home_unverified">Təsdiqlənməmiş</string>
     <string name="home_install_verification_pending">Quraşdırmanı yoxlayır...</string>
-    <string name="home_app_info_install_unverified">Nivqo quraşdırılmış tətbiqin öz yamaqladığı qurulma olduğunu təsdiqləyə bilmir. Fəaliyyətlərini bərpa etmək üçün onu saxlanılan APK-dan yenidən yamaqla yaxud quraşdır</string>
+    <string name="home_app_info_install_unverified">Morphe quraşdırılmış tətbiqin öz yamaqladığı qurulma olduğunu təsdiqləyə bilmir. Fəaliyyətlərini bərpa etmək üçün onu saxlanılan APK-dan yenidən yamaqla yaxud quraşdır</string>
 <string name="home_app_info_no_saved_apk">Saxlanılan APK yoxdur. Yamaqlanma APK faylını təkrar seçmək istəyəcək</string>
-    <string name="home_version_requires_android">Android %s+ tələb olunur</string>
+<string name="home_version_requires_android">Android %s+ tələb olunur</string>
     <string name="home_apk_no_compatible_versions_title">Bu cihazda dəstəklənmir</string>
     <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; tətbiqinin Android %2$s (API %3$s) üçün dəstəklənən versiyaları yoxdur. Bütün elan olunan versiyalar daha yüksək Android versiyası tələb edir</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
@@ -244,21 +264,21 @@ Bu veb saytdan əlavə etdiyiniz hər şey öz riskinizlə istifadə olunur"</st
     <string name="home_download_instructions_step2_generic">Veb səhifəni aşağı sürüşdür və yükləmə düyməsini bas</string>
     <string name="home_download_instructions_step2_variant">Veb səhifəni aşağı sürüşdür və ən yuxarıdakı &lt;b&gt;APK variantının&lt;/b&gt; yükləmə düyməsini bas</string>
     <string name="home_download_instructions_step2_search">Etibar etdiyiniz veb saytdan axtarış nəticəsini açın</string>
-    <string name="home_download_instructions_step2_search_note">Nivqo bu veb saytlara zəmanət verə bilməz. APK faylı əvəzinə öz tətbiq mağazasını təklif edənləri ötür</string>
+    <string name="home_download_instructions_step2_search_note">Morphe bu veb saytlara zəmanət verə bilməz. APK faylı əvəzinə öz tətbiq mağazasını təklif edənləri ötür</string>
 <string name="home_download_instructions_step3_search">Həmin veb-saytda ən yenisini deyil, &lt;b&gt;%s&lt;/b&gt; versiyasının APK-sını yüklə</string>
-    <string name="home_download_instructions_step3_search_any">Həmin veb-saytda tətbiqin APK-sını yüklə. &lt;b&gt;İstənilən versiya&lt;/b&gt; yamaqlana bilər</string>
+<string name="home_download_instructions_step3_search_any">Həmin veb-saytda tətbiqin APK-sını yüklə. &lt;b&gt;İstənilən versiya&lt;/b&gt; yamaqlana bilər</string>
     <string name="home_download_instructions_download_button_toast">Burada deyil, vebsaytdakı yükləməyə toxun 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Əla! İndi davam et-ə kliklə və veb sayta keç 👆</string>
     <string name="home_download_instructions_download_button_toast_3">Təcrübə mükəmməlləşdirir və siz hədəfə yaxınlaşırsınız 💪</string>
     <string name="home_download_instructions_download_button_toast_4">Hələ burada deyil... hələ burada deyil... 🙈 </string>
     <string name="home_download_instructions_download_button_toast_5">Yaxşı, inadkarlığa hörmət edirəm 🫡 </string>
-    <string name="home_download_instructions_download_button_toast_6">Artıq rəsmi Nivqo düyməsi sınaqçısısınız 🏅</string>
+    <string name="home_download_instructions_download_button_toast_6">Artıq rəsmi Morphe düyməsi sınaqçısısınız 🏅</string>
 <string name="home_download_instructions_step3">Endirmənin tamamlanmasını gözləyin və &lt;/b&gt;APK quraşdırmayın&lt;/b&gt;</string>
-    <string name="home_download_instructions_step3_mount">Endirmənin tamamlanmasını gözləyin, sonra &lt;b&gt;APK quraşdırın&lt;/b&gt;</string>
+<string name="home_download_instructions_step3_mount">Endirmənin tamamlanmasını gözləyin, sonra &lt;b&gt;APK quraşdırın&lt;/b&gt;</string>
     <string name="home_download_instructions_step4">Yükləmə bitəndən sonra Nivqo-yə qayıt</string>
-    <string name="home_download_instructions_step4_mount">Əsil APK-nı quraşdırandan sonra, Nivqo-yə qayıt</string>
+<string name="home_download_instructions_step4_mount">Əsil APK-nı quraşdırandan sonra, Morphe-yə qayıt</string>
 <string name="home_download_instructions_continue_to">%s ilə davam et</string>
-    <string name="home_download_instructions_destination">yükləmə səhifəsi</string>
+<string name="home_download_instructions_destination">yükləmə səhifəsi</string>
     <string name="home_download_instructions_copy_link">Linki köçür</string>
     <string name="home_download_instructions_link_copied">Link köçürüldü</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
@@ -272,7 +292,6 @@ Bu veb saytdan əlavə etdiyiniz hər şey öz riskinizlə istifadə olunur"</st
     <string name="home_use_installed_app">Quraşdırılan tətbiqi istifadə et</string>
     <string name="home_installed_app_picker_title">Quraşdırılmış tətbiqlər</string>
     <string name="home_installed_app_picker_empty">Tətbiq tapılmadı</string>
-    <string name="home_installed_app_picker_filter_all">Bütün tətbiqlər</string>
     <string name="home_installed_app_picker_filter_user">Ancaq istifadəçi tətbiqləri</string>
     <string name="home_installed_app_picker_filter_system">Ancaq sistem tətbiqləri</string>
     <string name="home_invalid_apk_unreadable">Faylı oxumaq mümkün olmadı. \'Xarici Saxlancın\' batareya məhdudiyyətli olmadığını yoxlayın</string>
@@ -281,7 +300,6 @@ Bu veb saytdan əlavə etdiyiniz hər şey öz riskinizlə istifadə olunur"</st
     <string name="home_invalid_apk_io_error">Faylı açmaq olmadı. Xahiş olunur, təkrar cəhd et</string>
     <string name="home_external_apk_expert_mode_required">Bu xüsusiyyət yalnız mütəxəssis rejimində əlçatandır</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
-    <string name="expert_mode_title">Mütəxəssis rejimi</string>
     <string name="expert_mode_search">Yamaqları axtar</string>
     <string name="expert_mode_disable_all">Hamısını qapa</string>
     <string name="expert_mode_disable_all_done">Bütün yamaqlar qapadılıb</string>
@@ -372,44 +390,43 @@ Davam etmək istədiyinizə əminsiniz?"</string>
     <string name="adaptive_icon_select_image">Şəkil seçin</string>
     <string name="adaptive_icon_change_image">Şəkli dəyişdir</string>
     <string name="image_load_failed">Bu şəkli yükləmək olmadı</string>
-    <!-- Card of the adaptive icon creator holding the picture every icon is made from -->
-    <string name="adaptive_icon_foreground">Ön plan şəkli</string>
-    <!-- Card of the adaptive icon creator previewing the icon on the home screen -->
+    <!-- Card of the adaptive icon creator where the picture is placed on the icon -->
     <string name="adaptive_icon_launcher">Başlanğıc simvolu</string>
+    <string name="adaptive_icon_gesture_hint">Köçürmək üçün sürüklə, ölçüləndirmək üçün çimdiklə</string>
+    <!-- Card of the adaptive icon creator showing the icons as the device draws them -->
+    <string name="adaptive_icon_preview">Önizləmə</string>
+    <!-- Caption under the launcher icon in its own colors -->
+    <string name="adaptive_icon_standard">Standart</string>
+    <!-- Caption under the launcher icon recolored by the system theme -->
+    <string name="adaptive_icon_themed">Koloritə uyğun</string>
     <string name="adaptive_icon_background_color">Fon rəngi</string>
     <string name="adaptive_icon_reset_transform">Mövqeyi və miqyası standarta qaytar</string>
-    <string name="adaptive_icon_safe_zone_inner">Etibarlı yer (həmişə görünən)</string>
-    <string name="adaptive_icon_safe_zone_outer">Örtük yeri (kəsilmiş ola bilər)</string>
-    <string name="adaptive_icon_no_transparency_warning">Şəklin pikselləri şəffaf deyil. Nəticə səhv görünə bilər</string>
+    <string name="adaptive_icon_no_transparency_warning">Bu şəkilin şəffaf pikselləri yoxdur, buna görə də koloritə uyğun simvollar və bildiriş nişanları Morphe simvolunu saxlayır</string>
     <string name="adaptive_icon_created_success">Uyğun simvol uğurla yaradıldı</string>
     <string name="adaptive_icon_creation_failed">Uyğun simvol yaratmaq olmadı</string>
-    <string name="adaptive_icon_label">Uyuşan</string>
-    <string name="adaptive_icon_monochrome_label">Saya</string>
     <string name="adaptive_icon_guide">Simvol yaratma bələdçisi</string>
     <string name="adaptive_icon_guide_png_title">Şəffaf fonu olan PNG istifadə et</string>
-    <string name="adaptive_icon_guide_png_body">Ön plan şəffaf fonu olan PNG faylı olmalıdır. Bütöv rəngli fon səhv görünəcək - fon rəngi aşağıdakı fon seçicisindən gəlməlidir.</string>
+    <string name="adaptive_icon_guide_png_body">Ən yaxşı nəticə üçün şəffaf fonda simvol, fon rəngi aşağıda seçilir. Şəffaflığı olmayan şəkil isə bütün simvolu doldurur, bu halda koloritə uyğun simvollar və bildiriş simvolları Morphe simvolunu saxlayır.</string>
     <string name="adaptive_icon_guide_safe_zones_title">Etibarlı sahələr</string>
-    <string name="adaptive_icon_guide_safe_zones_body">"Daxili sahə (bütöv): məzmun həmişə bütün başladıcı formalarında tam görünür.
-Xarici sahə (ştrixli): başladıcı örtüyündən kəsilə bilər - mühüm hissələri daxili zonanın içərisində saxla."</string>
+    <string name="adaptive_icon_guide_safe_zones_body">Çərçivə başladıcınızın simvol formasını göstərir və ondan kənar hər şey kəsilib atılır. Digər başladıcılar fərqli formalar istifadə edir, buna görə də vacib detalları hər bir formanın göstərdiyi kəsik xətli dairənin daxilində saxla.</string>
     <string name="adaptive_icon_guide_notification_title">Bildiriş simvolu</string>
-    <string name="adaptive_icon_guide_notification_body">Ön plan şəklindən birbaşa olaraq yaradılır. Bildiriş sürüşdürməsi istifadə edərək ölçüsünü tənzimlə. Bütün görünən məzmun status tabelində ağ görünür.</string>
-    <string name="adaptive_icon_guide_monochrome_title">Saya simvol</string>
-    <string name="adaptive_icon_guide_monochrome_body">Eynilə uyuşan simvol dəyişmələrin istifadə edərək ön plan şəklindən birbaşa olaraq yaradılır. Bu, Android 13 və daha sonrakılarda divar kağızının cila rəngi ilə azca rənglənmiş görünür.</string>
+    <string name="adaptive_icon_guide_notification_body">Faylın kənarından asılı olmayaraq, şəklin görünən hissəsindən kəsilir və digər status cərgəsi simvolları ilə eyni ölçüyə gətirilir. Sürüşdürücü vasitəsilə önizləmənin altından onu tənzimləyin. Android bunu tək rəngdə göstərir.</string>
+    <string name="adaptive_icon_guide_monochrome_title">Koloritə uyğun simvol</string>
+    <string name="adaptive_icon_guide_monochrome_body">Başladıcı simvolu ilə eyni mövqe və ölçüdə olmaqla şəkildən kəsilir. Android 13 və daha yuxarılarda koloritə uyğun simvolları aktiv olan başladıcılar onu divar kağızından rəngləyir.</string>
     <string name="notification_icon_preview">Bildiriş</string>
     <!-- Header Creator -->
     <string name="header_creator_create">Xüsusi sərlövhə yarat</string>
     <string name="header_creator_light_theme">İşıqlı kolorit sərlövhəsi</string>
     <string name="header_creator_dark_theme">Qaranlıq kolorit sərlövhəsi</string>
-    <string name="header_creator_no_image">Seçilən şəkil yoxdur</string>
     <string name="header_creator_success">Sərlövhə uğurla yaradıldı</string>
     <string name="header_creator_failed">Sərlövhə yaratmaq olmadı</string>
     <string name="header_creator_guide">Sərlövhə yaratma bələdçisi</string>
     <string name="header_creator_guide_image_title">Şəkil tələbləri</string>
-    <string name="header_creator_guide_image_body">İstənilən şəkil faylın (PNG və ya JPEG) istifadə et. Ən yaxşı nəticələr üçün təqribən 2.7:1 tərəf nisbətinə malik geniş format şəklini istifadə edin. Şəffaf fonları olan PNG faylları tətbiq koloriti ilə təbii şəkildə qarışacaq.</string>
+    <string name="header_creator_guide_image_body">Şəffaf fonlu PNG tətbiq paneli ilə qarışır. Fayldakı simvolun ətrafındakı kənarlar nəzərə alınmır, buna görə də o, standart simvolun ölçüsündən və yerindən başlayır.</string>
     <string name="header_creator_guide_themes_title">İşıqlı və qaranlıq koloritlər</string>
     <string name="header_creator_guide_themes_body">Əksər tətbiqlər işıqlı və qaranlıq koloritlər üçün ayrı şəkillər tələb edir. Bəzi tətbiqlər (məsələn, YouTube Music) yalnız qaranlıq kolorit istifadə edir, belə ki yalnız həmin bölmə görünür.</string>
     <string name="header_creator_guide_positioning_title">Yerləşdirmə və ölçüləndirmə</string>
-    <string name="header_creator_guide_positioning_body">Şəklinizi yerləşdirmək və ölçüləndirmək məqsədilə önizləmədəki birbaşa yaxınlaşdırmaq üçün çimdikləmək və sürükləmək jestlərin istifadə edin. Şəkil mərkəzə yaxındırsa, dartma göstəriciləri görünür. Önizləmənin aşağısındakı sürüşdürməni də istifadə edə bilərsiniz.</string>
+    <string name="header_creator_guide_positioning_body">Şəkli redaktorda sürüklə və çimdiklə, yaxud sürüşdürücü vasitəsilə ölçüsünü dəyişin. Kəsik xətli qutu standart simvolun yerləşdiyi yeri göstərir və şəkil onunla eyni xəttə düşdükdə bələdçilər görünür.</string>
     <!-- Batch patching -->
     <string name="batch_patch_action">Seçiləni yamaqla</string>
     <string name="batch_patch_title">Toplu yamaqlama</string>
@@ -475,38 +492,39 @@ Xarici sahə (ştrixli): başladıcı örtüyündən kəsilə bilər - mühüm h
     <string name="home_app_info_app_update_available_description">Yamaq mənbələri bu tətbiqin daha yeni versiyasını dəstəkləyir. Həmin versiyaya keçmək üçün onu təkrar yamaqla</string>
     <string name="home_app_info_newest_supported_version">Ən yeni dəstəklənən</string>
     <string name="home_app_info_version_move">%1$s quraşdırılıb, ən yeni dəstəklənən %2$s</string>
+    <string name="home_app_info_version_restore">%1$s quraşdırıldı, %2$s yamaqlandı</string>
     <string name="home_app_info_app_deleted_warning">Tətbiq quraşdırması silindi</string>
-    <string name="home_app_info_app_deleted_description">Bu tətbiq Nivqo xarici silindi. Funksionallığı qaytarmaq üçün onu təkrar quraşdır</string>
-<string name="home_app_info_not_patched_description">Bu tətbiqin yamaqlanmamış versiyası quraşdırılıb. Nivqo-də hələ də əvvəlki yamaq qeydi qalır</string>
+    <string name="home_app_info_app_deleted_description">Bu tətbiq Morphe xarici silindi. Funksionallığı qaytarmaq üçün onu təkrar quraşdır</string>
+    <string name="home_app_info_not_patched_description">Bu tətbiqin yamaqlanmamış versiyası quraşdırılıb. Morphe-də hələ də əvvəlki yamaq qeydi qalır</string>
+    <string name="home_app_info_mount_replaced_description">Başqa versiya quraşdırılmış tətbiqi əvəzlədi, buna görə də yamaq artıq tətbiq olunmur. Bərpa yamaqlanmış versiyanı geri qaytarır</string>
+    <string name="home_app_info_mount_replaced_by_play_store_description">Google Play quraşdırılmış tətbiqi yenilədi, buna görə də yamaq artıq tətbiq olunmur. Bərpa yamaqlanmış versiyanı geri qaytarır. Yamaqlanmış qalması üçün Google Play-də onun avtomatik yenilənməsini qapat</string>
 <string name="app_links_title">Dəstəklənən veb linklər</string>
-    <string name="app_links_description">Android 12+\'da, dəstəklənən domenlərin keçidləri təsdiqlənmədiyi təqdirdə standarta görə brauzerinizdə açılır</string>
+<string name="app_links_description">Android 12+\'da, dəstəklənən domenlərin keçidləri təsdiqlənmədiyi təqdirdə standarta görə brauzerinizdə açılır</string>
     <string name="app_links_unverified_banner_title">Veb linklər təsdiqlənməyib</string>
-    <string name="app_links_unverified_banner_description">Dəstəklənən veb keçidlər hazırda bu tətbiq əvəzinə brauzerinizdə açılır</string>
+<string name="app_links_unverified_banner_description">Dəstəklənən veb keçidlər hazırda bu tətbiq əvəzinə brauzerinizdə açılır</string>
     <string name="app_links_enable_auto">Avtomatik olaraq aktivləşdir</string>
-    <string name="app_links_enable_auto_in_progress">Linklər aktivləşdirilir…</string>
+<string name="app_links_enable_auto_in_progress">Linklər aktivləşdirilir…</string>
     <string name="app_links_open_settings">Link tənzimləmələrini aç</string>
-    <string name="app_links_repair_success">Tətbiq linkləri uğurla aktivləşdirildi</string>
+<string name="app_links_repair_success">Tətbiq linkləri uğurla aktivləşdirildi</string>
     <string name="app_links_repair_failed">Tətbiq linklərini avtomatik aktivləşdirmək olmadı</string>
-    <string name="app_links_badge_enabled">Aktivdir</string>
-    <string name="app_links_badge_disabled">Qapalıdı</string>
-    <string name="app_links_all_verified">Bütün dəstəklənən keçidlər bu tətbiqdə açılmaq üçün tənzimlənib</string>
+<string name="app_links_all_verified">Bütün dəstəklənən keçidlər bu tətbiqdə açılmaq üçün tənzimlənib</string>
     <string name="app_links_fix">Linkləri düzəlt</string>
-    <string name="configure">Tənzimlə</string>
+<string name="configure">Tənzimlə</string>
     <string name="patcher_rename_title">Bu dublikatı quraşdıracaq</string>
-    <string name="patcher_rename_description">Yamaqlar bu tətbiqi öz paket adı altında qurdu, bu səbəbdən quraşdırmaq onu yeniləmək əvəzinə &lt;b&gt;%s&lt;/b&gt; ilə birlikdə dublikatını əlavə edir</string>
+<string name="patcher_rename_description">Yamaqlar bu tətbiqi öz paket adı altında qurdu, bu səbəbdən quraşdırmaq onu yeniləmək əvəzinə &lt;b&gt;%s&lt;/b&gt; ilə birlikdə dublikatını əlavə edir</string>
     <string name="patcher_rename_result_package">Bu adla quraşdırılacaq</string>
-    <string name="patcher_rename_replaces">Bu ad altında artıq bir tətbiq quraşdırılıb və əvəzlənəcək</string>
+<string name="patcher_rename_replaces">Bu ad altında artıq bir tətbiq quraşdırılıb və əvəzlənəcək</string>
     <string name="home_app_info_apk_size">APK həcmi</string>
-    <string name="home_app_info_cpu_arch">CPU quruluşu</string>
+<string name="home_app_info_cpu_arch">CPU quruluşu</string>
     <!-- Home Screen - Root Mode -->
     <string name="root_install_apk_required">Root rejimi yamaqdan əvvəl orijinal APK-nın cihazınızda quraşdırılmasını tələb edir</string>
     <string name="root_pre_patch_installer_title">Yamaqlama rejimini seç</string>
     <string name="root_pre_patch_installer_description">Cihazınızın root girişi var. Bu tətbiqin root montajı yoxsa standart quraşdırma məqsədilə yamaqlanmalı olub-olmadığını seçin</string>
     <string name="root_pre_patch_installer_mount_title">Root montajı rejimi</string>
     <string name="root_pre_patch_installer_mount_description">Root montajı üçün yamaqlayır, sonra APK-nı uyğun əsas tətbiqin üzərinə montaj edir. GmsCore tələb olunmur</string>
-    <string name="root_mount_module_unmount_warning">KernelSU-nun modullarını ilkin olaraq çıxarmaq aktivdirsə, KernelSU &gt; Superuser &gt; montaj etdiyiniz tətbiq &gt; Profil &gt; Fərdi bölməsini açın və modulların çıxarılmasını qapadın. Əks halda, Nivqo onu montajlanmış kimi göstərsə belə, montajlanmış yamaqlı APK işləməyə bilər</string>
+    <string name="root_mount_module_unmount_warning">KernelSU-nun modullarını ilkin olaraq çıxarmaq aktivdirsə, KernelSU &gt; Superuser &gt; montaj etdiyiniz tətbiq &gt; Profil &gt; Fərdi bölməsini açın və modulların çıxarılmasını qapadın. Əks halda, Morphe onu montajlanmış kimi göstərsə belə, montajlanmış yamaqlı APK işləməyə bilər</string>
 <string name="root_pre_patch_installer_standard_title">Standart quraşdırma rejimi</string>
-    <string name="root_pre_patch_installer_standard_description">GmsCore dəstəyi ilə adi APK kimi yamaqlayır. Quraşdırıcı tənzimləməniz yamaqlanmadan sonra istifadə olunur</string>
+<string name="root_pre_patch_installer_standard_description">GmsCore dəstəyi ilə adi APK kimi yamaqlayır. Quraşdırıcı tənzimləməniz yamaqlanmadan sonra istifadə olunur</string>
     <string name="root_pre_patch_installer_hint">Bu yamaqlama rejimi Tənzimləmələr &gt; Sistem &gt; Quraşdırıcıdan ayrıdır və yamaqlanmadan sonra dəyişdirmək olmur</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">Xəta buferə köçürüldü</string>
@@ -522,7 +540,6 @@ Xarici sahə (ştrixli): başladıcı örtüyündən kəsilə bilər - mühüm h
     <string name="patcher_field_source">Mənbə</string>
     <string name="patcher_field_split">Ayrılmış APK</string>
     <string name="patcher_field_manager">İdarəedici</string>
-    <string name="patcher_field_patcher">Yamaqlayıcı</string>
     <string name="patcher_field_runtime">İcra vaxtı</string>
     <!-- Native code libraries (.so files) packed inside the APK -->
     <string name="patcher_field_libraries">Kitabxanalar</string>
@@ -553,10 +570,12 @@ Xarici sahə (ştrixli): başladıcı örtüyündən kəsilə bilər - mühüm h
     <string name="patcher_installing_subtitle">Təqribən rok-a hazırdır! 🎸</string>
     <string name="patcher_success_title">Hamısı bitdi! 🎉</string>
     <string name="patcher_success_subtitle">Tətbiqiniz yamaqlanıb və quraşdırılıb!</string>
+    <string name="patcher_mounted_subtitle">Tətbiqiniz yamaqlanıb və montajlanıb!</string>
     <string name="patcher_complete_title">Yamaqlanma tamamlandı! ✨</string>
     <string name="patcher_failed_title">Vay! Nəsə səhv baş verdi</string>
     <string name="patcher_failed_dialog_title">Yamaqlanma uğursuz oldu</string>
     <string name="patcher_error_details">Xəta təfərrüatları</string>
+    <string name="patcher_change_patches">Yamaqları dəyişdir</string>
     <string name="patcher_unknown_error">Bilinməyən xəta baş verdi</string>
     <string name="patcher_split_step_extracting">Ayrılmış APK-lar çıxarılır</string>
     <string name="patcher_split_step_merging">%s birləşdirilir</string>
@@ -570,13 +589,14 @@ Xarici sahə (ştrixli): başladıcı örtüyündən kəsilə bilər - mühüm h
 
 Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
 <string name="patcher_install_error_title">Quraşdırma xətası</string>
+<string name="patcher_mount_error_title">Montajlama xətası</string>
     <string name="patcher_install_error_subtitle">Silməyə və təkrar quraşdırmağa çalış</string>
     <string name="patcher_ready_to_mount_subtitle">Montajlamaq üçün aşağıdakı düyməyə toxun</string>
-    <string name="patcher_patches_excluded_for_installer">Bu quraşdırma üsulu üçün əlçatan deyil və xaric edilib: %s</string>
+<string name="patcher_patches_excluded_for_installer">Bu quraşdırma üsulu üçün əlçatan deyil və xaric edilib: %s</string>
     <string name="patcher_back_to_game_hint">Oyununuza qayıtmaq üçün %1$s kliklə</string>
-    <string name="patcher_storage_permission_dialog_title">Saxlanc keçidinə keçmək olmur</string>
+<string name="patcher_storage_permission_dialog_title">Saxlanc keçidinə keçmək olmur</string>
     <string name="patcher_incompatible_patcher_title">Yenilənmə tələb olundu</string>
-    <string name="patcher_incompatible_patcher_description">&lt;b&gt;%1$s&lt;/b&gt; paketi &lt;b&gt;%2$s&lt;/b&gt; və ya daha yeni versiya yamaqlayıcı tələb edir. Xahiş olunur, bu tətbiqi yamaqlamaq üçün Nivqo-ni yenilə</string>
+<string name="patcher_incompatible_patcher_description">&lt;b&gt;%1$s&lt;/b&gt; mənbəsi &lt;b&gt;%2$s&lt;/b&gt; və ya daha yeni yamaqlayıcı tələb edir. Onu istifadə etmək üçün Morphe-ni yenilə</string>
 <string name="patcher_storage_permission_description_api30">Bir və ya daha çox yamaq seçimi Nivqo-nin oxuya bilmədiyi yolları işarə edir. Saxlanc girişin qəbul et və düyməyə toxun, sonra yamaqlanma birbaşa başlayacaq</string>
 <string name="patcher_storage_permission_description_legacy">Bir və ya daha çox yamaq seçimi giriş olmayan yolları göstərir. Yamaq seçimlərindəki yolları yeniləyin və təkrar cəhd edin</string>
     <string name="patcher_storage_permission_grant">Saxlanc icazəsin qəbul et</string>
@@ -591,24 +611,24 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="patcher_option_paths_gone_title">Yamaq seçim faylları çatışmır</string>
     <string name="patcher_option_paths_gone_description">Bir və ya bir neçə yamaq seçimi artıq yerində olmayan fayllara istinad edir. Onlar olmadan yamaqlamaq üçün keçidləri sil və ya faylları geri qaytarıb təkrar cəhd et</string>
     <string name="patcher_option_paths_clear">Fayl yollarını sil və davam et</string>
-    <string name="patcher_storage_permission_hint">İpucu: Faylları /Android/data/app.nivqo.manager/files/ -a köçür - əlavə icazələrə ehtiyac yoxdur</string>
-<!-- Patcher Screen - Patcher Steps -->
+    <string name="patcher_storage_permission_hint">İpucu: Faylları /Android/data/app.morphe.manager/files/ -a köçür - əlavə icazələrə ehtiyac yoxdur</string>
+    <!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">Hazırlanır</string>
     <string name="patcher_step_load_patches">Yamaqlar yüklənilir</string>
     <string name="patcher_step_prepare_split_apk">Ayrılan APK-nı birləşdirir</string>
     <string name="patcher_step_unpack">APK faylını oxuyur</string>
-    <string name="patcher_step_group_patching">Yamaqlanır</string>
     <string name="patcher_step_group_saving">Saxlanılır</string>
     <string name="patcher_step_write_patched">Yamaqlanan APK faylı qeyd olunur</string>
     <string name="patcher_step_sign_apk">Yamaqlanan APK faylı imzalanır</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Fon yamaqlanma müdafiəsi</string>
-    <string name="battery_optimization_dialog_description">Bəzi cihazlar tətbiqi qısanda yamaqlayıcını dayandıra bilər. Etibarlı tamamlanan yamaqlanmaya əmin olmaq üçün Nivqo-ni batareya məhdudiyyətləri olmadan işlətməyə icazə ver</string>
+    <string name="battery_optimization_dialog_description">Bəzi cihazlar tətbiqi qısanda yamaqlayıcını dayandıra bilər. Etibarlı tamamlanan yamaqlanmaya əmin olmaq üçün Morphe-ni batareya məhdudiyyətləri olmadan işlətməyə icazə ver</string>
 <string name="battery_optimization_not_now">İndi deyil</string>
-    <!-- Memory limit dialog, shown after the patcher process was killed -->
+<!-- Memory limit dialog, shown after the patcher process was killed -->
     <string name="patcher_memory_adjustment_title">Kifayət qədər yaddaş yoxdur</string>
     <string name="patcher_memory_adjustment_description">Yamaqlayıcı %1$d MB yaddaş həddi ilə işləyərkən sistem tərəfindən dayandırıldı. Həddin %2$d MB-a endirilməsi yamaqlayıcını daha kiçik hədəfə çevirir və icranı tamamlamağa imkan verə bilər</string>
     <string name="patcher_memory_adjustment_description_at_minimum">Yamaqlayıcı %1$d MB yaddaş həddi ilə işləyərkən sistem tərəfindən dayandırıldı ki, bu da artıq mövcud olan ən aşağı limitdir. Daha az yamaq mənbəyi ilə yamaqlamağa çalışın və ya daha az yamaq seç</string>
+    <string name="patcher_memory_adjustment_description_finished">Sistem yamaqlayıcını %1$d MB yaddaş həddində dayandırdı və o yalnız %2$d MB-da bitdi. %2$d MB-dan başlayaraq növbəti dəfə uğursuz cəhdi ötürür</string>
     <string name="patcher_memory_adjustment_apply">%1$d MB-a endir</string>
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">Yamaqlanma irəliləyişdədir...</string>
@@ -660,16 +680,16 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="install_ignore_signature">Yenə də quraşdır</string>
     <string name="install_ignore_signature_description">Tətbiq məlumatlarını saxlayır, lakin yalnız root modulu Android-in imza təsdiqləməsini qapatdıqda işləyir</string>
     <string name="uninstall_app_fail">Tətbiqi silmək olmadı: %s</string>
-    <string name="uninstall_app_unverified">Yerində saxlanıldı: Nivqo quraşdırılmış tətbiqin öz yamaqladığı qurulma olduğunu təsdiqləyə bilmədi</string>
+    <string name="uninstall_app_unverified">Yerində saxlanıldı: Morphe quraşdırılmış tətbiqin öz yamaqladığı qurulma olduğunu təsdiqləyə bilmədi</string>
 <string name="launch_app_unverified">Nivqo quraşdırılmış tətbiqin öz yamaqladığı qurulma olduğunu təsdiqləyə bilmədi</string>
 <string name="uninstall_timeout">Silinmə vaxtı bitdi</string>
-    <string name="save_apk_success">APK Saxlanıldı</string>
+<string name="save_apk_success">APK Saxlanıldı</string>
     <string name="saved_app_export_failed">Yamaqlanan tətbiqi ixrac etmək olmadı</string>
-    <string name="saved_app_removed_toast">Yamaqlanıb saxlanılan tətbiq silindi</string>
+<string name="saved_app_removed_toast">Yamaqlanıb saxlanılan tətbiq silindi</string>
     <string name="saved_app_launch_unavailable">Açmazdan əvvəl tətbiqi quraşdır</string>
-    <string name="package_name">Paket adı</string>
+<string name="package_name">Paket adı</string>
     <string name="failed_to_mount">Montajlama uğursuzdu: %s</string>
-    <string name="failed_to_unmount">Montajı silmək olmadı: %s</string>
+<string name="failed_to_unmount">Montajı silmək olmadı: %s</string>
     <!-- Patcher Screen - Mini-games -->
     <string name="mini_game_score">Hesab %s</string>
     <string name="mini_game_best">Ən yaxşı %s</string>
@@ -708,6 +728,9 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="settings_appearance_background_snow">Qar</string>
     <string name="settings_appearance_background_grid">Şəbəkə</string>
     <string name="settings_appearance_background_particles">Zərrəciklər</string>
+    <string name="settings_appearance_background_lava">Lava çırağı</string>
+    <string name="settings_appearance_background_halloween">Cadugərlər bayramı</string>
+    <string name="settings_appearance_background_fireworks">Fişənglər</string>
     <string name="settings_appearance_background_none">Heç biri</string>
     <string name="settings_appearance_background_random">Təsadüfi</string>
     <string name="settings_appearance_background_random_interval_launch">Açılışda</string>
@@ -715,6 +738,10 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="settings_appearance_background_random_interval_3days">3 gün arası</string>
     <string name="settings_appearance_parallax_effect">Parallaks effekti</string>
     <string name="settings_appearance_parallax_effect_description">Cihazı çevirərkən fonu rəvan şəkildə tərpətmək</string>
+    <string name="settings_appearance_seasonal_themes">Mövsümi mövzular</string>
+    <string name="settings_appearance_seasonal_themes_description">Bayramlar zamanı şənlik fonları və təbrikləri</string>
+    <!-- %1$s is a holiday background name, such as Halloween. %2$s is a date, such as November 1 -->
+    <string name="settings_appearance_seasonal_background_notice">Mövsümi mövzular aktiv olduğu halda %1$s fonu %2$s-ə qədər aktivdir</string>
     <!-- Settings - Appearance Tab - Theme -->
     <string name="settings_appearance_theme">Kolorit</string>
     <string name="settings_appearance_theme_mode">Kolorit rejimi</string>
@@ -771,13 +798,28 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="settings_appearance_app_card_colors_bundle_description">Bura hər tətbiqin öz rəngini istifadə et, uyğunlaşdırmaq üçün avtomatik kölgələndir</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Tətbiq simvolu</string>
-    <string name="settings_appearance_app_icon_selector_description">Nivqo-nin əsas ekranınızda və tətbiq bölməsində necə göründüyü</string>
+    <string name="settings_appearance_app_icon_selector_description">Morphe-nin əsas ekranınızda və tətbiq bölməsində necə göründüyü</string>
 <string name="settings_appearance_app_icon_default">İlkin</string>
-    <string name="settings_appearance_app_icon_light_2">Səma</string>
+<string name="settings_appearance_app_icon_light_2">Səma</string>
     <string name="settings_appearance_app_icon_light_3">Qürub</string>
-    <string name="settings_appearance_app_icon_dark_1">Okean</string>
+    <string name="settings_appearance_app_icon_light_4">Lavanda</string>
+    <string name="settings_appearance_app_icon_light_5">Buzlaq</string>
+    <string name="settings_appearance_app_icon_light_6">Duman</string>
+    <string name="settings_appearance_app_icon_light_7">Qum</string>
+    <string name="settings_appearance_app_icon_dark_1">Tünd-firuzəyi</string>
     <string name="settings_appearance_app_icon_dark_2">Sırf qara</string>
-    <string name="settings_appearance_app_icon_dark_3">Tünd göy</string>
+    <string name="settings_appearance_app_icon_dark_3">Gavalı</string>
+    <string name="settings_appearance_app_icon_dark_4">Gecəyarısı</string>
+    <string name="settings_appearance_app_icon_dark_5">Şifer</string>
+    <string name="settings_appearance_app_icon_accent_1">Şəfəq</string>
+    <string name="settings_appearance_app_icon_accent_2">Mürəkkəb</string>
+    <string name="settings_appearance_app_icon_accent_3">Kağız</string>
+    <string name="settings_appearance_app_icon_accent_4">Alaqaranlıq</string>
+    <string name="settings_appearance_app_icon_background">Arxa plan</string>
+    <string name="settings_appearance_app_icon_mark">Simvol</string>
+    <string name="settings_appearance_app_icon_mark_color">Rəng</string>
+    <string name="settings_appearance_app_icon_mark_white">Ağ</string>
+    <string name="settings_appearance_app_icon_mark_black">Qara</string>
     <string name="settings_appearance_app_icon_change_dialog_title">Tətbiq simvolu dəyişdirilsin?</string>
     <string name="settings_appearance_app_icon_change_dialog_message">&lt;b&gt;%s&lt;/b&gt; olaraq dəyişdirilib yenidən başladılsın?</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -789,53 +831,55 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <string name="settings_advanced_updates_manager_prereleases_description">Yeni Nivqo versiyalarına erkən keçid</string>
 <string name="settings_advanced_updates_prerelease_warning_title">İlkin buraxılış yeniləmələrini aktivləşdirsin?</string>
-    <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
+<!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
     <string name="settings_advanced_updates_prerelease_warning_message">"Nivqo-nin ilkin buraxılış versiyaları hələ inkişaf mərhələsindədir və qeyri-sabit ola bilər.
 
 ​Yamaqlar təsirlənmir: yamaq mənbələri siyahısındakı hər bir mənbə üçün ilkin buraxılış yamaqlarını aktivləşdir"</string>
 <string name="settings_advanced_updates_allow_metered">Mobil data yenilənmələri</string>
-    <string name="settings_advanced_updates_allow_metered_description">Nivqo və yamaq yeniləmələrini mobil məlumat üzərindən yükləməyə icazə verilir</string>
+<string name="settings_advanced_updates_allow_metered_description">Morphe və yamaq yeniləmələrini mobil məlumat üzərindən yükləməyə icazə verilir</string>
 <string name="settings_advanced_updates_background_notifications">Fon yenilənmə bildirişləri</string>
-    <string name="settings_advanced_updates_background_notifications_description">Fonda yeniləmələri dövri yoxla və əlçatandırsa elan et</string>
+<string name="settings_advanced_updates_background_notifications_description">Fonda yeniləmələri dövri yoxla və əlçatandırsa elan et</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Hətta tətbiq bağlandıqda, yeni buraxılışlar üçün təkan bildirişləri</string>
-    <string name="settings_system_notifications_categories">Bildiriş kateqoriyaları</string>
+<string name="settings_system_notifications_categories">Bildiriş kateqoriyaları</string>
     <string name="settings_system_notifications_categories_description">Hansı yenilənmələrin sizə bildiriş göndərəcəyini sistem tənzimləmələrində seçin</string>
-    <string name="settings_advanced_update_interval">Yoxlanılma tezliyi</string>
+<string name="settings_advanced_update_interval">Yoxlanılma tezliyi</string>
     <string name="settings_advanced_update_interval_dialog_title">Yeniləmələri yoxla</string>
-    <string name="settings_advanced_update_interval_hourly">Saatda bir dəfə</string>
+<string name="settings_advanced_update_interval_hourly">Saatda bir dəfə</string>
     <string name="settings_advanced_update_interval_daily">Gündə bir dəfə</string>
-    <string name="settings_advanced_update_interval_weekly">Həftədə bir dəfə</string>
+<string name="settings_advanced_update_interval_weekly">Həftədə bir dəfə</string>
     <string name="settings_advanced_update_interval_monthly">Ayda bir dəfə</string>
-    <string name="settings_advanced_update_interval_chip_subtitle">Fon yoxlanma tezliyi</string>
+<string name="settings_advanced_update_interval_chip_subtitle">Fon yoxlanma tezliyi</string>
     <string name="settings_advanced_update_interval_battery_warning">Fon yoxlamaları bəzi cihazlarda davamlı işləməyə bilər. Xiaomi, Huawei, Samsung və OnePlus kimi istehsalçılar batareyanı qorumaq üçün dəfələrlə fon proseslərini ciddi şəkildə məhdudlaşdırırlar</string>
-    <string name="settings_advanced_external_batch_patch">Xarici tətikləyicilərə icazə ver</string>
+<string name="settings_advanced_external_batch_patch">Xarici tətikləyicilərə icazə ver</string>
     <string name="settings_advanced_external_batch_patch_description">Avtomatlaşdırma tətbiqlərinə intent vasitəsilə toplu yamaqlamağa başlamağa icazə verir</string>
-    <string name="external_batch_patch_title">Toplu yamaqlamaya başlanılsın?</string>
+<string name="external_batch_patch_title">Toplu yamaqlamaya başlanılsın?</string>
     <string name="external_batch_patch_description">%s Nivqo-nin tətbiqləri yamaqlamasını və quraşdırmasını istəyir</string>
 <string name="external_batch_patch_trust_caller">Bu tətbiqə həmişə icazə ver</string>
-    <string name="external_batch_patch_unknown_caller">Bilinməyən tətbiq</string>
+<string name="external_batch_patch_unknown_caller">Bilinməyən tətbiq</string>
     <!-- Notification content -->
-    <string name="notification_manager_update_title">Əlçatan Nivqo yenilənməsi</string>
 <string name="notification_bundle_update_title">Yeni yamaqlar var</string>
-    <string name="notification_update_text">%s versiyası yüklənilməyə hazırdır</string>
+<string name="notification_update_text">%s versiyası yüklənilməyə hazırdır</string>
     <string name="notification_bundle_update_text_unversioned">Nivqo-ni açmaq və yeniləmək üçün toxun</string>
 <string name="notification_permission_dialog_title">Bildirişləri qəbul et</string>
-    <string name="notification_permission_dialog_description">Nivqo fonda yeniləmələr əlçatan olduqda sizə bildirmək üçün bildiriş icazəsi istəyir</string>
-<string name="notification_post_patch_dialog_title">Yeniləmələr əlçatandırsa bildiriş almaq istərdiniz?</string>
-    <string name="notification_channel_manager_updates">Nivqo yenilənmələri</string>
-    <string name="notification_channel_manager_updates_description">Yeni Nivqo buraxılışları haqqında bildirişlər</string>
+    <string name="notification_permission_dialog_description">Morphe fonda yeniləmələr əlçatan olduqda sizə bildirmək üçün bildiriş icazəsi istəyir</string>
+    <string name="notification_post_patch_dialog_title">Yeniləmələr əlçatandırsa bildiriş almaq istərdiniz?</string>
+    <string name="notification_channel_manager_updates">Morphe yenilənmələri</string>
+    <string name="notification_channel_manager_updates_description">Yeni Morphe buraxılışları haqqında bildirişlər</string>
 <string name="notification_channel_patch_updates">Yamaq yeniləmələri</string>
-    <string name="notification_channel_patch_updates_description">Yeni yamaq buraxılışları haqqında bildirişlər</string>
-    <string name="notification_channel_patcher">Yamaqlanır</string>
-    <string name="notification_channel_patcher_description">Nivqo tətbiqi fonda yamaqlayarkən görünür</string>
-<!-- Settings - Advanced Tab - Expert settings Section -->
+<string name="notification_channel_patch_updates_description">Yeni yamaq buraxılışları haqqında bildirişlər</string>
+    <string name="notification_channel_patcher_description">Morphe tətbiqi fonda yamaqlayarkən görünür</string>
+    <string name="notification_channel_mounted_apps">Quraşdırılmış tətbiqlər</string>
+    <string name="notification_channel_mounted_apps_description">Başqa versiya quraşdırılmış tətbiqi əvəzlədikdə və onun yamağı artıq tətbiq olunmadıqda</string>
+    <string name="notification_mount_replaced_title">%1$s artıq yamaqlanmayıb</string>
+    <string name="notification_mount_replaced_text">v%1$s yamaqlanmış v%2$s ilə əvəzləndi. Onu bərpa etmək üçün Morphe-ni aç</string>
+    <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert">Mütəxəssis tənzimləmələri</string>
     <string name="settings_advanced_expert_mode">Mütəxəssis rejimi</string>
     <string name="settings_advanced_expert_mode_description">Qəliz Nivqo yamaqlanma tənzimləmələrin və fərdiləşdirmə seçimlərin aktivləşdirir</string>
 <string name="settings_advanced_expert_mode_dialog_title">Mütəxəssis rejimi aktivləşdirilsin?</string>
-    <string name="settings_advanced_expert_mode_dialog_message">Mütəxəssis rejimi yamaqların necə tətbiq olunduğuna daha çox nəzarət verir, lakin mütəxəssis rejimindəki tənzimləmələri səhv qurma tətbiqi funksional pozuntuya sala bilər</string>
+<string name="settings_advanced_expert_mode_dialog_message">Mütəxəssis rejimi yamaqların necə tətbiq olunduğuna daha çox nəzarət verir, lakin mütəxəssis rejimindəki tənzimləmələri səhv qurma tətbiqi funksional pozuntuya sala bilər</string>
     <string name="settings_advanced_strip_unused_libs">Cihaz quruluşu üçün optimallaşdır</string>
-    <string name="settings_advanced_strip_unused_libs_description">İstifadə olunmayan CPU quruluşu kitabxanalarını və bölünən APK modullarını silir</string>
+<string name="settings_advanced_strip_unused_libs_description">İstifadə olunmayan CPU quruluşu kitabxanalarını və bölünən APK modullarını silir</string>
     <!-- Settings - Advanced Tab - GitHub PAT Settings -->
     <string name="settings_advanced_github_pat_description">Pull request mənbələri üçün tələb olunur</string>
     <string name="settings_advanced_github_pat_configured">Token quruldu</string>
@@ -944,59 +988,59 @@ morphe_header_custom_light.png morphe_header_custom_dark.png
     <string name="installer_status_shizuku_not_running">Shizuku yaxud Sui-ni başlat və təkrar sına</string>
     <string name="installer_status_shizuku_permission">Shizuku tətbiqindən Nivqo üçün icazəni qəbul et</string>
 <string name="installer_mount_warning_install">İlkin quraşdırıcınız rootlu montaj quraşdırıcısına tənzimlənib. Saxlanılan bu tətbiq montaj istifadə edilərək quraşdırılan deyil</string>
-    <string name="mount_version_mismatch_message">Əsas tətbiq versiyası (%2$s) yamaqlanan tətbiq versiyasına (%1$s) uyğun deyil. Uyuşan əsas versiyanı montajla, sonra təkrar sına</string>
+<string name="mount_version_mismatch_message">Əsas tətbiq versiyası (%2$s) yamaqlanan tətbiq versiyasına (%1$s) uyğun deyil. Uyuşan əsas versiyanı montajla, sonra təkrar sına</string>
     <string name="mount_stock_restore_failed_message">Android saxlanılan orijinal APK-nı qəbul etmədi. Uyğun əsas versiyanı quraşdır, sonra təkrar montaj etməyə çalış</string>
-    <string name="installer_status_shizuku_unsupported">Quraşdırılan Shizuku versiyası dəstəklənmir</string>
+<string name="installer_status_shizuku_unsupported">Quraşdırılan Shizuku versiyası dəstəklənmir</string>
     <string name="installer_action_open_shizuku">Shizuku-nu Aç</string>
-    <string name="installer_hint_generic">Quraşdırma uğursuz oldu. Təkrar sına yaxud fərqli quraşdırıcıya keç</string>
+<string name="installer_hint_generic">Quraşdırma uğursuz oldu. Təkrar sına yaxud fərqli quraşdırıcıya keç</string>
     <string name="installer_hint_conflict">Başqa tətbiq bu paket adıyla artıq quraşdırılıb. Davam etməzdən əvvəl onu sil</string>
-    <string name="installer_confirm_notification_title">Quraşdırmanı təsdiqlə</string>
+<string name="installer_confirm_notification_title">Quraşdırmanı təsdiqlə</string>
     <string name="installer_confirm_notification_text">Yamaqlanmış tətbiqin quraşdırılmasını tamamlamaq üçün toxun</string>
-    <string name="installer_external_launched">%s açılır…</string>
+<string name="installer_external_launched">%s açılır…</string>
     <string name="installer_external_timeout">%s quraşdırmanı təsdiqləmədi. Digər tətbiqi yoxla və təkrar sına</string>
-    <string name="installer_external_success">%s uğurlu quraşdırmanı bildirdi</string>
+<string name="installer_external_success">%s uğurlu quraşdırmanı bildirdi</string>
     <string name="installer_unavailable_title">%s əlçatmaz</string>
-    <string name="installer_unavailable_message">Üstünlük verdiyiniz quraşdırıcı (%s) hazırda əlçatan deyil. Problemi təyin edə və təkrar sınaya yaxud əvəzinə standart quraşdırıcı istifadə edə bilərsiniz</string>
+<string name="installer_unavailable_message">Üstünlük verdiyiniz quraşdırıcı (%s) hazırda əlçatan deyil. Problemi təyin edə və təkrar sınaya yaxud əvəzinə standart quraşdırıcı istifadə edə bilərsiniz</string>
     <string name="installer_unavailable_shizuku_hint">Shizuku-nun işlədiyinə və bu tətbiqə icazə verildiyinə əmin olun</string>
-    <string name="installer_use_standard">İlkin olanı istifadə et</string>
+<string name="installer_use_standard">İlkin olanı istifadə et</string>
     <string name="installer_play_store_warning_title">Play Store mənbəli quraşdırılsın?</string>
-    <string name="installer_play_store_warning_message">Yamaqlanmış tətbiq Google Play Store-dan quraşdırılmış kimi qeyd olunacaq. Bu, Android Auto kimi xidmətlərin onu Play Store tətbiqi olaraq tanımasına kömək edə bilər, lakin hər tətbiq və ya cihaz üçün zəmanət verilmir. Davranış Android versiyasına, ROM-a, cihaz markasına və tətbiqə xas yoxlamalara görə dəyişə bilər</string>
+<string name="installer_play_store_warning_message">Yamaqlanmış tətbiq Google Play Store-dan quraşdırılmış kimi qeyd olunacaq. Bu, Android Auto kimi xidmətlərin onu Play Store tətbiqi olaraq tanımasına kömək edə bilər, lakin hər tətbiq və ya cihaz üçün zəmanət verilmir. Davranış Android versiyasına, ROM-a, cihaz markasına və tətbiqə xas yoxlamalara görə dəyişə bilər</string>
     <string name="installer_play_store_warning_risk">Play Store yamaqlanmış tətbiq üçün yeniləmələr təklif edə bilər. Həmin yeniləməni quraşdırma yamaqlanmış APK-nı orijinal versiya ilə əvəzləyəcək və yamaqlar silinəcək. Yenilənməyə sövq edildikdə, tətbiqin Play Store səhifəsindəki üç nöqtəli menyuya toxunun və \"Yenilənmələri qapa\" seçimini edin</string>
-    <string name="installer_play_store_warning_continue">Başa düşdüm, davam et</string>
+<string name="installer_play_store_warning_continue">Başa düşdüm, davam et</string>
     <string name="installer_play_store_mode">Play Store mənbəli quraşdır</string>
-    <string name="installer_play_store_mode_description">Bu quraşdırma üsulu üçün Google Play Store-u quraşdırma mənbəyi kimi qeyd et</string>
+<string name="installer_play_store_mode_description">Bu quraşdırma üsulu üçün Google Play Store-u quraşdırma mənbəyi kimi qeyd et</string>
     <string name="settings_prompt_installer_on_install">Quraşdırıcı seçimi müraciəti</string>
-    <string name="settings_prompt_installer_on_install_description">Yamaqlanan tətbiqi quraşdırdığınız hər vaxt quraşdırıcı seçimi dialoqunu göstərir</string>
+<string name="settings_prompt_installer_on_install_description">Yamaqlanan tətbiqi quraşdırdığınız hər vaxt quraşdırıcı seçimi dialoqunu göstərir</string>
     <string name="settings_auto_install_with_shizuku">Yamaqlamadan sonra birbaşa quraşdır</string>
-    <string name="settings_auto_install_with_shizuku_description">Yamaqlama tamamlanan kimi yamaqlanmış APK-nı quraşdırır</string>
+<string name="settings_auto_install_with_shizuku_description">Yamaqlama tamamlanan kimi yamaqlanmış APK-nı quraşdırır</string>
     <string name="settings_auto_uninstall_with_shizuku">Ziddiyyət zamanı avtomatik sil</string>
-    <string name="settings_auto_uninstall_with_shizuku_description">Shizuku ilə avtomatik quraşdırarkən, Android imza ziddiyyəti bildirərsə, əvvəlcə mövcud tətbiqi sil. Bu, tətbiq məlumatlarını təmizləyə bilər</string>
+<string name="settings_auto_uninstall_with_shizuku_description">Shizuku ilə avtomatik quraşdırarkən, Android imza ziddiyyəti bildirərsə, əvvəlcə mövcud tətbiqi sil. Bu, tətbiq məlumatlarını təmizləyə bilər</string>
     <string name="settings_auto_uninstall_warning_title">Avtomatik silmə aktivləşdirilsin?</string>
-    <string name="settings_auto_uninstall_warning_message">Android Shizuku avtomatik quraşdırılması zamanı imza münaqişəsini bildirərsə, Nivqo yamaqlanmış APK-nı quraşdırmadan əvvəl mövcud tətbiqi siləcək</string>
+<string name="settings_auto_uninstall_warning_message">Android Shizuku avtomatik quraşdırılması zamanı imza münaqişəsini bildirərsə, Morphe yamaqlanmış APK-nı quraşdırmadan əvvəl mövcud tətbiqi siləcək</string>
 <string name="settings_auto_uninstall_warning_risk">Bu, tətbiq məlumatlarını silə bilər. Silinmədən sonra yamaqlanmış APK-nı quraşdırmaq mümkün olmasa, əvvəlki tətbiq artıq itirilmiş ola bilər</string>
-    <string name="installer_shizuku_status_action">Shizuku vəziyyətini yoxla</string>
+<string name="installer_shizuku_status_action">Shizuku vəziyyətini yoxla</string>
     <string name="installer_shizuku_status_title">Shizuku vəziyyəti</string>
-    <string name="installer_shizuku_status_ready">Hazır</string>
+<string name="installer_shizuku_status_ready">Hazır</string>
     <string name="installer_shizuku_status_issue">Diqqət tələb edir</string>
-    <string name="installer_shizuku_status_supported">Dəstəklənir</string>
+<string name="installer_shizuku_status_supported">Dəstəklənir</string>
     <string name="installer_shizuku_status_running">İşləyir</string>
-    <string name="installer_shizuku_status_permission">İcazə</string>
+<string name="installer_shizuku_status_permission">İcazə</string>
     <string name="installer_shizuku_status_mode">Rejim</string>
-    <string name="installer_shizuku_status_provider">Təminatçı</string>
+<string name="installer_shizuku_status_provider">Təminatçı</string>
     <string name="installer_shizuku_status_granted">Qəbul edildi</string>
-    <string name="installer_shizuku_status_missing">Çatışmır</string>
+<string name="installer_shizuku_status_missing">Çatışmır</string>
     <string name="installer_shizuku_request_permission">İcazə istə</string>
-    <string name="installer_shizuku_install_fail">Shizuku quraşdırmaq olmadı: %s</string>
+<string name="installer_shizuku_install_fail">Shizuku quraşdırmaq olmadı: %s</string>
     <string name="installer_shizuku_install_fail_with_details">"Shizuku quraşdırmaq olmadı: %1$s
 
 Təfərrüatlar: %2$s"</string>
-    <string name="installer_shizuku_error_permission">Shizuku icazəsi yoxdur. Nivqo üçün icazəni qəbul et və təkrar cəhd et</string>
+<string name="installer_shizuku_error_permission">Shizuku icazəsi yoxdur. Morphe üçün icazəni qəbul et və təkrar cəhd et</string>
 <string name="installer_shizuku_error_timeout">Shizuku quraşdırma nəticəsi qaytarmadı. Onun hələ də işlədiyinə əmin ol və təkrar cəhd et</string>
-    <string name="installer_shizuku_error_downgrade">Android bunu blokladı, çünki quraşdırılmış tətbiqin versiyasını aşağı salacaqdı</string>
+<string name="installer_shizuku_error_downgrade">Android bunu blokladı, çünki quraşdırılmış tətbiqin versiyasını aşağı salacaqdı</string>
     <string name="installer_shizuku_error_signature">Android bunu blokladı, çünki quraşdırılmış tətbiqin imzası fərqlidir</string>
-    <string name="installer_shizuku_error_invalid_apk">Android bu APK-nı oxuya bilmədi</string>
+<string name="installer_shizuku_error_invalid_apk">Android bu APK-nı oxuya bilmədi</string>
     <string name="installer_shizuku_error_user_profile">Sistem bu quraşdırmanı blokladı. Xiaomi və oxşar cihazlardakı tərtibatçı seçimlərində \"USB Vasitəsilə Quraşdırı\" aktivləşdir. İş profilində quraşdırmalar siyasətlə məhdudlaşdırıla bilər</string>
-    <!-- Settings - System Tab - Performance Section -->
+<!-- Settings - System Tab - Performance Section -->
     <string name="settings_system_battery_optimization">Batareya yaxşılaşdırma</string>
     <string name="settings_system_battery_optimization_description">Tətbiq qısılanda yamaqlayıcını işlək saxlayır</string>
     <string name="settings_system_background">Arxa plan</string>
@@ -1007,13 +1051,13 @@ Təfərrüatlar: %2$s"</string>
     <string name="settings_system_memory_limit_subtitle">Yamaqlanma üçün əlçatan yaddaş</string>
     <string name="settings_system_process_runtime_heap_limit_ignored">Bu cihaz sonuncu icra zamanı yaddaş məhdudiyyətinə məhəl qoymadı, buna görə də yamaqlama Nivqo daxilində icraya keçə bilər</string>
 <string name="settings_system_memory_limit_warning">Daha həcmli tətbiqlər yamaqlananda aşağı yaddaş həddi, uğursuzluqlara səbəb ola bilər</string>
-    <string name="settings_system_memory_limit_high_warning">Yüksək yaddaş həddi bəzi cihazlarda yamaqlamanı xeyli ləngidə bilər. Limiti yalnız daha aşağı hədlərdə yamaqlama uğursuz olduqda artır</string>
+<string name="settings_system_memory_limit_high_warning">Yüksək yaddaş həddi bəzi cihazlarda yamaqlamanı xeyli ləngidə bilər. Limiti yalnız daha aşağı hədlərdə yamaqlama uğursuz olduqda artır</string>
     <string name="settings_system_process_runtime_enabled_description">%s MB hədd</string>
-    <string name="settings_system_process_runtime_disabled_description">Qurmaq üçün kliklə</string>
+<string name="settings_system_process_runtime_disabled_description">Qurmaq üçün kliklə</string>
     <string name="settings_system_process_runtime_description_not_available">Bu xüsusiyyət Android 11 yaxud daha böyük istəyir</string>
-    <string name="settings_system_patcher_completion_sound">Tamamlanma səsi</string>
+<string name="settings_system_patcher_completion_sound">Tamamlanma səsi</string>
     <string name="settings_system_patcher_completion_sound_description">Yamaqlama bitdikdə uğur və ya uğursuzluq üçün fərqli ton səsləndirir</string>
-    <!-- Settings - System Tab - Notifications Section -->
+<!-- Settings - System Tab - Notifications Section -->
     <string name="settings_system_notifications">Bildirişlər</string>
     <string name="settings_system_notifications_description">Fon xəbərdarlıqlarını və tamamlama səslərini tənzimlə</string>
     <string name="settings_system_notifications_success_sound">Uğur səsi</string>
@@ -1028,50 +1072,50 @@ Təfərrüatlar: %2$s"</string>
     <string name="settings_system_import_export">İdxal &amp; ixrac</string>
     <string name="settings_system_signing_key">İmzalama açarı</string>
     <string name="settings_system_signing_key_description">Yamaqladığınız tətbiqlərin imzalandığı açarı nüsxələyir və bərpa edir</string>
-    <string name="settings_system_signing_key_dialog_description">Nivqo yamaqları üzrə hər bir tətbiq bu açarla imzalanır. Bir nüsxəsini saxla: onsuz, yamaqlanmış tətbiqlər yalnız silindikdən sonra yenilənə bilər</string>
+    <string name="settings_system_signing_key_dialog_description">Morphe yamaqları üzrə hər bir tətbiq bu açarla imzalanır. Bir nüsxəsini saxla: onsuz, yamaqlanmış tətbiqlər yalnız silindikdən sonra yenilənə bilər</string>
 <string name="settings_system_signing_key_missing">Nivqo ilk yamaqla birini yaradır</string>
 <string name="settings_system_signing_key_created">%s yaradıldı</string>
-    <string name="settings_system_signing_key_fingerprint">SHA-256 barmaq izi</string>
+<string name="settings_system_signing_key_fingerprint">SHA-256 barmaq izi</string>
     <string name="settings_system_backup_appearance_description">Kolorit, rənglər və dil</string>
-    <string name="settings_system_backup_home_description">Qruplar, gizli tətbiqlər, çeşidləmə və keçiricilər</string>
+<string name="settings_system_backup_home_description">Qruplar, gizli tətbiqlər, çeşidləmə və keçiricilər</string>
     <string name="settings_system_backup_patching">Yamaqlama və quraşdırma</string>
-    <string name="settings_system_backup_patching_description">Quraşdırıcı, yamaqlayıcı və saxlanılan APK-lar</string>
+<string name="settings_system_backup_patching_description">Quraşdırıcı, yamaqlayıcı və saxlanılan APK-lar</string>
     <string name="settings_system_backup_updates_description">İlkin buraxılışlar və yeniləmə yoxlamaları</string>
-    <string name="settings_system_backup_sources_description">Fərdi mənbələr və GitHub token</string>
+<string name="settings_system_backup_sources_description">Fərdi mənbələr və GitHub token</string>
     <string name="settings_system_backup_patch_selections_description">Hər tətbiq üçün seçilmiş yamaqlar</string>
-    <string name="settings_system_backup_signing_key_note">İmzalama açarı ayrıca nüsxələnir</string>
+<string name="settings_system_backup_signing_key_note">İmzalama açarı ayrıca nüsxələnir</string>
     <string name="settings_system_import_keystore_dialog_title">Keystore etimadnaməsini qeyd et</string>
-    <string name="settings_system_import_keystore_dialog_description">Bunu idxal etmək üçün keystore etimadnaməsini qeyd etməlisiniz</string>
+<string name="settings_system_import_keystore_dialog_description">Bunu idxal etmək üçün keystore etimadnaməsini qeyd etməlisiniz</string>
     <string name="settings_system_import_keystore_dialog_alias_field">İstifadəçi adı (Ləqəb)</string>
-    <string name="settings_system_import_keystore_dialog_password_field">Parol</string>
+<string name="settings_system_import_keystore_dialog_password_field">Parol</string>
     <string name="settings_system_import_keystore_dialog_format_field">Keystore formatı</string>
-    <string name="settings_system_import_keystore_wrong_credentials">Səhv keystore etimadnaməsi</string>
+<string name="settings_system_import_keystore_wrong_credentials">Səhv keystore etimadnaməsi</string>
     <string name="settings_system_import_keystore_success">Keystore idxal edildi</string>
-    <string name="settings_system_import_keystore_failed">Keystore-u idxal etmək olmadı</string>
+<string name="settings_system_import_keystore_failed">Keystore-u idxal etmək olmadı</string>
     <string name="settings_system_export_keystore_success">Keystore ixrac edildi</string>
-    <string name="settings_system_export_keystore_failed">Keystore-u ixrac etmək olmadı</string>
+<string name="settings_system_export_keystore_failed">Keystore-u ixrac etmək olmadı</string>
     <string name="settings_system_show_password_field">Parolu göstər</string>
-    <string name="settings_system_hide_password_field">Parolu gizlət</string>
+<string name="settings_system_hide_password_field">Parolu gizlət</string>
     <string name="settings_system_morphe_settings">Nivqo tənzimləmələri</string>
-    <string name="settings_system_import_manager_settings_description">Nivqo tənzimləmələrinizi nüsxələyir və bərpa edir</string>
+<string name="settings_system_import_manager_settings_description">Morphe tənzimləmələrinizi nüsxələyir və bərpa edir</string>
 <string name="settings_system_import_manager_settings_fail">Nivqo tənzimləmələrin idxal etmək olmadı: %s</string>
-    <string name="settings_system_import_manager_settings_success">Nivqo tənzimləmələri idxal edildi</string>
+<string name="settings_system_import_manager_settings_success">Morphe tənzimləmələri idxal edildi</string>
     <string name="settings_system_import_manager_settings_mode_title">Nivqo tənzimləmələrin idxal et</string>
 <string name="settings_system_import_manager_settings_mode_description">İdxal olunmuş tənzimləmələrin və mənbələrin necə tətbiq olunacağını seç</string>
-    <string name="settings_system_import_selections_mode_title">Yamaq seçimlərini idxal et</string>
+<string name="settings_system_import_selections_mode_title">Yamaq seçimlərini idxal et</string>
     <string name="settings_system_import_selections_mode_description">İdxal olunmuş seçimlərin və yamaq üstünlüklərinin necə tətbiq olunacağını seç</string>
     <string name="import_mode_replace_title">Mövcud olanı əvəzlə</string>
     <string name="import_mode_replace_description">Nüsxələməni tam olaraq uyğunlaşdır. Nüsxələmədən çatışmayan elementlər silinəcək</string>
     <string name="import_mode_merge_title">Mövcud olanla birləşdir</string>
     <string name="import_mode_merge_description">Nüsxələmədən çatışmayan elementləri əlavə et. Mövcud elementlər dəyişməz saxlanılır</string>
-    <string name="settings_system_export_manager_settings_fail">Nivqo tənzimləmələrin ixrac etmək olmadı: %s</string>
+    <string name="settings_system_export_manager_settings_fail">Morphe tənzimləmələrin ixrac etmək olmadı: %s</string>
 <string name="settings_system_export_manager_settings_success">Nivqo tənzimləmələri ixrac olundu</string>
 <string name="settings_system_export_debug_logs">Sazlanma jurnalların köçür</string>
-    <string name="settings_system_export_debug_logs_description">Problemlərin düzəldilməsi üçün sistem jurnalların saxlayır</string>
+<string name="settings_system_export_debug_logs_description">Problemlərin düzəldilməsi üçün sistem jurnalların saxlayır</string>
     <string name="settings_system_export_debug_logs_export_read_failed">Jurnalları oxumaq olmadı (çıxış şifrəsi %s)</string>
-    <string name="settings_system_export_debug_logs_export_failed">Jurnalları ixrac etmək olmadı</string>
+<string name="settings_system_export_debug_logs_export_failed">Jurnalları ixrac etmək olmadı</string>
     <string name="settings_system_export_debug_logs_export_success">Jurnallar ixrac olundu</string>
-    <!-- Settings - System Tab - Files & Storage Section -->
+<!-- Settings - System Tab - Files & Storage Section -->
     <string name="settings_system_files">Fayllar &amp; saxlanc</string>
     <string name="settings_system_apks_size">Tam həcm: %s</string>
     <string name="settings_system_apks_delete_all_confirm">Bu, burada görünən saxlanılmış APK fayllarını həmişəlik siləcək</string>
@@ -1101,9 +1145,9 @@ Təfərrüatlar: %2$s"</string>
     <string name="settings_system_storage_cleared">%s boşaldıldı</string>
     <string name="settings_system_storage_nothing_to_clear">Təmizlənəcək bir şey yoxdur</string>
     <string name="settings_system_storage_open_app_info_title">Android tətbiq saxlama yerini aç</string>
-    <string name="settings_system_storage_open_app_info_description">Bütün Nivqo məlumatlarını sistem tənzimləmələri vasitəsilə idarə et və ya təmizlə</string>
+    <string name="settings_system_storage_open_app_info_description">Bütün Morphe məlumatlarını sistem tənzimləmələri vasitəsilə idarə et və ya təmizlə</string>
 <string name="settings_system_save_original_apks_title">Orijinal APK-ları saxla</string>
-    <string name="settings_system_save_original_apks_description">Fayl təkrar seçilmədən yenidən yamaqlamaq üçün istifadə oluna bilsin deyə yamaq öncəsi APK-nı saxla</string>
+<string name="settings_system_save_original_apks_description">Fayl təkrar seçilmədən yenidən yamaqlamaq üçün istifadə oluna bilsin deyə yamaq öncəsi APK-nı saxla</string>
     <string name="settings_system_save_patched_apks_title">Yamaqlanmış APK-ları saxla</string>
     <string name="settings_system_save_patched_apks_description">İdarəedicidən daha sonra ixrac etmək və ya yenidən quraşdırmaq üçün yamaqlanmış APK-nın nüsxəsini saxla</string>
     <!-- Settings - System Tab - Storage Management - Patched APKs Management -->
@@ -1149,14 +1193,14 @@ Təfərrüatlar: %2$s"</string>
     <string name="copy_selection_same_source">Eyni mənbə</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Fərdi fayl seçici</string>
-    <string name="settings_system_custom_file_picker_description">Sistem standartı əvəzinə Nivqo-nin qurulu fayl seçicisi ilə saxlama yerini araşdır</string>
-<!-- Settings - System Tab - APK download helper -->
+    <string name="settings_system_custom_file_picker_description">Sistem standartı əvəzinə Morphe-nin qurulu fayl seçicisi ilə saxlama yerini araşdır</string>
+    <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">APK yükləmə köməkçisi</string>
     <string name="settings_system_apk_download_helper_trusted_count">Etibarlı: %2$d-dən %1$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Köməkçi tətbiqlər sizin üçün orijinal APK-ları yükləyə bilər. Yükləmə təlimatlarında yalnız burada etibar etdiyin tətbiqlər təklif olunur</string>
-    <string name="settings_system_apk_download_helper_warning">APK köməkçi tətbiqdən əldə edilir, buna görə də yalnız tanıdığınız tətbiqlərə etibar edin. Nivqo yamaqlamadan əvvəl hər bir faylın paketini, versiyasını və imzasını yoxlayır</string>
+    <string name="settings_system_apk_download_helper_warning">APK köməkçi tətbiqdən əldə edilir, buna görə də yalnız tanıdığınız tətbiqlərə etibar edin. Morphe yamaqlamadan əvvəl hər bir faylın paketini, versiyasını və imzasını yoxlayır</string>
 <string name="settings_system_apk_download_helper_installed_by">%s tərəfindən quraşdırılıb</string>
-    <string name="settings_system_apk_download_helper_installed_by_unknown">Bilinməyən quraşdırıcı</string>
+<string name="settings_system_apk_download_helper_installed_by_unknown">Bilinməyən quraşdırıcı</string>
     <!-- File Picker -->
     <string name="file_picker_no_files">Burada fayl yoxdur</string>
     <string name="file_picker_read_error">Bu kataloqu oxumaq olmur</string>
@@ -1242,9 +1286,7 @@ Təfərrüatlar: %2$s"</string>
     <string name="selected">Seçildi</string>
     <string name="not_selected">Seçilməyib</string>
     <string name="select_all">Hamısını seç</string>
-    <string name="select_all_done">Hamısı seçilib</string>
     <string name="deselect_all">Hamısın seçməyin</string>
-    <string name="deselect_all_done">Hamısı seçilməyib</string>
     <string name="reorder_list">Siyahını yenidən sırala</string>
     <string name="reorder_list_hint">Yenidən sıralamaq üçün sürüklə</string>
     <string name="reorder_done">Düzülüş saxlanıldı</string>
@@ -1280,6 +1322,7 @@ Təfərrüatlar: %2$s"</string>
     <string name="unmount">Montajı sil</string>
     <string name="unmounted">Montaj silinib</string>
     <string name="remount">Təkrar montajla</string>
+    <string name="restore">Bərpa et</string>
     <string name="share">Paylaş</string>
     <string name="install">Quraşdır</string>
     <string name="installed">Quraşdırılıb</string>
@@ -1300,6 +1343,8 @@ Təfərrüatlar: %2$s"</string>
     <string name="sources">Mənbələr</string>
     <string name="installing_ellipsis">Quraşdırılır…</string>
     <string name="mounting_ellipsis">Montajlanır...</string>
+    <string name="mount_stage_restoring_stock">Orijinalı bərpa edir…</string>
+    <string name="mount_stage_copying">Köçürülür...</string>
     <string name="unmounting_ellipsis">Montaj silinir…</string>
     <string name="importing_ellipsis">İdxal olunur…</string>
     <string name="imported_successfully">Uğurla idxal olundu</string>
@@ -1341,13 +1386,12 @@ Təfərrüatlar: %2$s"</string>
     <string name="installing_manager_update">Yeniləmə quraşdırılır…</string>
     <string name="installing_manager_update_hint">Nivqo yeniləməni tamamlamaq üçün qapanacaq</string>
 <string name="downloading_manager_update">Yenilənmə yüklənilir…</string>
-    <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
+<!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
     <string name="manager_update_progress_downloaded">%1$s MB yüklənildi</string>
     <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
     <string name="manager_update_progress_size">%1$s / %2$s MB</string>
     <string name="manager_update_not_ready">Bu buraxılış hələ də dərc olunur. Bir neçə dəqiqə sonra təkrar cəhd et</string>
     <string name="update_download_missing">Yüklənilmiş yeniləmə artıq əlçatan deyil. Onu təkrar yüklə</string>
-    <string name="download_manager_failed">Yeniləməni yükləmək olmadı: %s</string>
     <string name="failed_to_check_updates">Yeniləmələri yoxlamaq uğursuzdu: %s</string>
     <string name="failed_to_download_update">Yeniləməni yükləmək olmadı: %s</string>
     <string name="download_confirmation_metered">"Hazırda ölçülən əlaqədəsiniz və xidmət təminatçınızdan məlumat ödənişləri tətbiq oluna bilər.
@@ -1362,11 +1406,11 @@ Hələ də davam etmək istəyirsiniz?"</string>
     <string name="onboarding_swipe_desc">Mövcud yamaqlara baxmaq üçün tətbiq kartında sağa sürüşdür. Kartı əsas ekrandan gizlətmək üçün sola sürüşdür</string>
     <string name="onboarding_settings_desc">Nivqo-ni fərdiləşdir: görünüş, qabaqcıl seçimlər və sistem alətləri</string>
 <string name="onboarding_sources_patches_desc">Bu mənbədən əlçatan bütün yamaqlara baxmaq üçün toxun</string>
-    <string name="onboarding_sources_version_desc">Bu mənbə üçün tam dəyişiklik jurnalına baxmaq məqsədilə versiyaya toxun</string>
+<string name="onboarding_sources_version_desc">Bu mənbə üçün tam dəyişiklik jurnalına baxmaq məqsədilə versiyaya toxun</string>
     <string name="onboarding_sources_prerelease_desc">Bu mənbədən ilkin buraxılış yamaq versiyalarını almaq üçün bunu aktivləşdir</string>
-    <string name="onboarding_appearance_tab_desc">Tətbiq görünüşünü fərdiləşdir: kolorit, cila rəngi və fon</string>
+<string name="onboarding_appearance_tab_desc">Tətbiq görünüşünü fərdiləşdir: kolorit, cila rəngi və fon</string>
     <string name="onboarding_appearance_theme_desc">İşıqlı, qaranlıq və ya sistem koloriti arasında seç. Həmçinin fərdi cila rəngi seçə və ya Dinamik Rəngi aktivləşdirə bilərsiniz</string>
-    <string name="onboarding_expert_mode_desc">Yamaq seçimini, fərdi seçimləri və digər qabaqcıl xüsusiyyətləri açmaq üçün Mütəxəssis Rejimin aktivləşdir</string>
+<string name="onboarding_expert_mode_desc">Yamaq seçimini, fərdi seçimləri və digər qabaqcıl xüsusiyyətləri açmaq üçün Mütəxəssis Rejimin aktivləşdir</string>
     <!-- Translate "System" the same way as the System settings tab -->
     <string name="onboarding_system_tab_title">Sistem tabeli</string>
     <string name="onboarding_system_tab_desc">Açar ehtiyatının idarə olunması, idxal/ixrac alətləri və tətbiq məlumatı</string>
@@ -1375,9 +1419,11 @@ Hələ də davam etmək istəyirsiniz?"</string>
     <string name="onboarding_system_file_picker_desc">APK və ya açar ehtiyatları seçəndə sistem seçicisi əvəzinə qurulu fayl tədqiqin istifadə etmək məqsədilə aktivləşdir</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
     <string name="tour_prompt_title">Sürətli xüsusiyyət tanışlığı</string>
-    <string name="tour_prompt_desc">Nivqo-nin əsas xüsusiyyətlərinə qısa baxış istəyirsiniz?</string>
-<!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="tour_prompt_desc">Morphe-nin əsas xüsusiyyətlərinə qısa baxış istəyirsiniz?</string>
+    <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="tour_prompt_confirm">Mənə göstər</string>
     <string name="onboarding_restart_title">Xüsusiyyət tanışlığı</string>
     <string name="onboarding_restart_desc">Əsas xüsusiyyətlərin bələdçi turu</string>
+    <string name="app_links_badge_disabled">Qapalıdı</string>
+    <string name="notification_channel_patcher">Yamaqlanır</string>
 </resources>

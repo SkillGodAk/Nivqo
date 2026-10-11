@@ -1,5 +1,5 @@
 Build %1$s	Derleme %1$s
-"Pages you may like" cards and the cards Facebook uses to push its own features. In-feed surveys go too.	“Beğenebileceğin Sayfalar” kartları ve Facebook'un kendi özelliklerini öne çıkardığı kartlar. Akıştaki anketler de kalkar.
+Hides "Pages you may like" cards, cards promoting Facebook's own features, and surveys in the feed.	“Beğenebileceğin Sayfalar” kartlarını, Facebook'un kendi özelliklerini tanıtan kartları ve akıştaki anketleri gizler.
 %1$d item in that file isn't a setting this version of Hushfacebook knows, so it'll be left out.	O dosyadaki %1$d öğe, Hushfacebook'un bu sürümünün tanıdığı ayarlardan değil, bu yüzden atlanacak.
 %1$d items in that file aren't settings this version of Hushfacebook knows, so they'll be left out.	O dosyadaki %1$d öğe, Hushfacebook'un bu sürümünün tanıdığı ayarlardan değil, bu yüzden atlanacak.
 %1$d switch will change.	%1$d anahtar değişecek.
@@ -13,23 +13,23 @@ A diagnostic report is already being saved.	Bir tanılama raporu zaten kaydedili
 Add a Download button to reels, using your download quality. Off or paused, Facebook's own buttons return.	Reels'e indirme kalitenizle İndir düğmesi ekler. Kapalı veya duraklatılmışken Facebook'un kendi düğmeleri geri gelir.
 A file named %1$s in %2$s paused Hushfacebook.	%2$s içindeki %1$s adlı bir dosya Hushfacebook'u duraklattı.
 About	Hakkında
-Ad cards between the stories people posted.	İnsanların paylaştığı hikayeler arasındaki reklam kartları.
-Ad telemetry blocked	Reklam telemetrisi engellendi
+Hides ad cards between people's stories.	İnsanların hikayeleri arasındaki reklam kartlarını gizler.
+Ad tracking blocked	Reklam takibi engellendi
 Add Download to phone to feed and Watch video menus. Uses the quality below. Off or paused, Facebook's menu returns.	Akış ve Watch video menülerine Telefona indir ekler. Aşağıdaki kaliteyi kullanır. Kapalı veya duraklatılmışken Facebook menüsü geri gelir.
 Add Save to every story menu, using your download quality. Off or paused, Facebook only saves your own stories.	Her hikaye menüsüne indirme kalitenizle Kaydet ekler. Kapalı veya duraklatılmışken Facebook yalnızca kendi hikayelerinizi kaydeder.
-Ads inside Reels, starting with the next batch Facebook loads. Banners, mid-rolls and app-inserted ads stay blocked even while paused.	Reels içindeki reklamlar, Facebook'un yüklediği bir sonraki gruptan itibaren. Banner'lar, video ortası reklamlar ve uygulamanın eklediği reklamlar duraklatıldığında da engellenir.
+Hides ads in Reels, starting with the next batch Facebook loads. Banner ads, mid-video ads and other ads added by the app stay blocked even while paused.	Facebook'un yükleyeceği bir sonraki gruptan başlayarak Reels içindeki reklamları gizler. Banner reklamlar, video ortası reklamlar ve uygulamanın eklediği diğer reklamlar duraklatılmışken bile engelli kalır.
 AMOLED black theme	AMOLED siyah tema
 Appearance	Görünüm
 Audience Network off	Audience Network kapalı
 Back	Geri
-Background ad prefetch blocked	Arka planda reklam indirme engellendi
+Ads aren't downloaded in advance	Reklamlar önceden indirilmez
 Cancel	İptal
 Cancel saving this photo	Bu fotoğrafın kaydedilmesini iptal et
 Cancel saving this video	Bu videonun kaydedilmesini iptal et
 Changing these	Bunları değiştirmek
-Choose a settings file. Before anything is imported, you'll see how many switches it changes and any new download settings.	Bir ayar dosyası seç. İçe aktarmadan önce kaç anahtarın değişeceğini ve yeni indirme ayarlarını görürsün.
+Choose a settings file you saved earlier. You'll see how many switches it changes before anything is applied.	Daha önce kaydettiğiniz bir ayar dosyasını seçin. Hiçbir şey uygulanmadan önce kaç anahtarı değiştireceğini görürsünüz.
 Clear diagnostic data	Tanılama verilerini temizle
-Copy a quick report or save the full one to Download/Morphe. Links, IDs, cookies and sign-in tokens are left out. Check it for other private text before you share it.	Kısa raporu kopyala veya tam raporu Download/Morphe konumuna kaydet. Bağlantılar, kimlikler, çerezler ve oturum belirteçleri çıkarılır. Paylaşmadan önce başka özel bilgi olup olmadığına bak.
+Copy or save a report to send with a bug report. Links, IDs, cookies and sign-in details are left out. Check it before sharing.	Hata bildirimiyle göndermek için bir rapor kopyalayın veya kaydedin. Bağlantılar, kimlikler, çerezler ve oturum bilgileri dışarıda bırakılır. Paylaşmadan önce kontrol edin.
 Copy quick report	Hızlı raporu kopyala
 Copying to the gallery	Galeriye kopyalanıyor
 Couldn't import the settings, and couldn't put back the ones you had. Check the switches on this screen.	Ayarlar içe aktarılamadı ve önceki ayarların geri yüklenemedi. Bu ekrandaki anahtarları kontrol et.
@@ -43,66 +43,70 @@ Couldn't save this video. Play it for a moment, then try again.	Bu video kaydedi
 Couldn't start that. Try again in a moment.	Bu işlem başlatılamadı. Birazdan tekrar dene.
 Couldn't start the report export. Try again shortly.	Rapor dışa aktarımı başlatılamadı. Birazdan tekrar dene.
 Couldn't turn Hushfacebook back on. Try again.	Hushfacebook yeniden açılamadı. Tekrar dene.
-Dark mode draws black instead of dark grey. Turn on dark mode in Facebook to see it.	Karanlık mod koyu gri yerine siyah görünür. Görmek için Facebook'ta karanlık modu aç.
-Dark mode draws %1$s instead of dark grey. Turn on dark mode in Facebook to see it.	Karanlık mod koyu gri yerine %1$s rengiyle görünür. Görmek için Facebook'ta karanlık modu aç.
+Dark mode uses black instead of dark gray. Turn on dark mode in Facebook to see it.	Karanlık mod koyu gri yerine siyah kullanır. Görmek için Facebook'ta karanlık modu açın.
+Dark mode uses %1$s instead of dark gray. Turn on dark mode in Facebook to see it.	Karanlık mod koyu gri yerine %1$s kullanır. Görmek için Facebook'ta karanlık modu açın.
 Debug logging	Hata ayıklama günlüğü
 Diagnostic data cleared. Tap again to put it back.	Tanılama verileri temizlendi. Geri getirmek için tekrar dokun.
 Diagnostic data put back.	Tanılama verileri geri getirildi.
 Diagnostic report copied to the clipboard.	Tanılama raporu panoya kopyalandı.
 Download	İndir
 Download button on reels	Reels'teki İndir düğmesi
-Download failed	İndirme başarısız oldu
+Download failed. Try again in a moment.	İndirme başarısız oldu. Biraz sonra yeniden deneyin.
 Download feed and Watch videos	Akış ve Watch videolarını indir
+Save any photo	Her fotoğrafı kaydet
+Shows Save photo on every photo you open, even where saving is turned off, and saves the biggest size. Off or paused, Facebook decides again.	Açtığınız her fotoğrafta, kaydetme kapatılmış olsa bile Fotoğrafı kaydet seçeneğini gösterir ve en büyük boyutu kaydeder. Kapalıyken veya duraklatılmışken karar yine Facebook'a aittir.
 Download to phone	Telefona indir
 Downloading	İndiriliyor
 Downloads	İndirmeler
-Empties the log and the filter counts a report would include.	Bir raporun içereceği günlüğü ve filtre sayaçlarını boşaltır.
-Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır, yamaladığında ayarlananlar ise devrede kalır. Ayarların olduğu gibi kalır.
+Erases the activity log and the counts of hidden items that a report would include.	Bir raporda yer alacak etkinlik günlüğünü ve gizlenen öğe sayılarını siler.
+Every switch but Debug logging and Lock Facebook acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Hata ayıklama günlüğü ve “Facebook'u kilitle” dışındaki her anahtar kapalıymış gibi davranır, yamaladığında ayarlananlar ise devrede kalır. Ayarların olduğu gibi kalır.
 Export diagnostic report	Tanılama raporunu dışa aktar
 Export settings	Ayarları dışa aktar
 Facebook crashed or froze within a minute of starting three times in a row, so Hushfacebook paused itself.	Facebook açıldıktan sonraki bir dakika içinde üst üste üç kez çöktü veya dondu, bu yüzden Hushfacebook kendini duraklattı.
-Facebook doesn't download ads or its ad model in the background.	Facebook reklamları veya reklam modelini arka planda indirmez.
-Facebook doesn't serve ads to other apps on this phone.	Facebook bu telefondaki diğer uygulamalara reklam sunmaz.
-Facebook dark mode and this screen use your wallpaper colours. Android 11 uses blue instead. Turn on Facebook dark mode to see it.	Facebook karanlık modu ve bu ekran duvar kâğıdının renklerini kullanır. Android 11 bunun yerine mavi kullanır. Görmek için Facebook karanlık modunu aç.
+Facebook no longer downloads ads, or the data it uses to pick them, in the background.	Facebook artık arka planda reklamları veya reklam seçmekte kullandığı verileri indirmez.
+Facebook doesn't show its ads inside other apps on this phone.	Facebook, bu telefondaki diğer uygulamaların içinde reklamlarını göstermez.
+Dark mode and this screen use colors from your wallpaper (blue on Android 11). Turn on dark mode in Facebook to see it.	Karanlık mod ve bu ekran duvar kağıdınızın renklerini kullanır (Android 11'de mavi). Görmek için Facebook'ta karanlık modu açın.
 Hide Stories between posts	Gönderiler arasındaki Hikayeleri gizle
 Joining the picture and sound	Görüntü ve ses birleştiriliyor
-From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Sonraki açılıştan itibaren Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır. Yamaladığında ayarlananlar devrede kalır ve tercihlerin kayıtlı kalır.
-Rows, large tiles and viewers of Stories between posts, starting with the next feed Facebook loads. The top Stories tray has its own switch.	Gönderiler arasındaki Hikaye sıraları, büyük kutucuklar ve görüntüleyiciler. Facebook'un yükleyeceği sonraki akıştan itibaren geçerlidir. Üstteki Hikaye tepsisinin ayrı bir anahtarı vardır.
+Try Facebook without Hushfacebook. From the next start, switches act as if off, except Debug logging and Lock Facebook. Your choices stay saved.	Facebook'u Hushfacebook olmadan deneyin. Bir sonraki açılıştan itibaren, Hata ayıklama günlüğü ve Facebook'u kilitle dışındaki anahtarlar kapalıymış gibi davranır. Seçimleriniz kayıtlı kalır.
+Hides Stories shown between posts, from the next time the feed loads. The Stories tray at the top has its own switch.	Gönderilerin arasında görünen hikayeleri, feed bir sonraki yüklenişinden itibaren gizler. Üstteki Hikayeler çubuğunun kendi anahtarı var.
 Open	Aç
 Photo saved	Fotoğraf kaydedildi
-Settings exported. The app holding the file wouldn't let Hushfacebook read it back, so it wasn't checked.	Ayarlar dışa aktarıldı. Dosyayı tutan uygulama Hushfacebook'un onu geri okumasına izin vermedi, bu yüzden kontrol edilmedi.
+Settings exported. Hushfacebook couldn't read the file back to check it.	Ayarlar dışa aktarıldı. Hushfacebook dosyayı kontrol etmek için geri okuyamadı.
 Share	Paylaş
 That saved file is no longer available.	Kaydedilen dosya artık kullanılamıyor.
 The app holding that file is taking too long, so Hushfacebook stopped waiting. Nothing was changed.	O dosyayı tutan uygulama çok uzun sürüyor, bu yüzden Hushfacebook beklemeyi bıraktı. Hiçbir şey değiştirilmedi.
 The app holding the last settings file still hasn't answered. Try again later.	Son ayar dosyasını tutan uygulama hâlâ yanıt vermedi. Daha sonra tekrar dene.
 The app holding the settings file is taking too long, so Hushfacebook stopped waiting. That app may still finish saving it, so check the file before you rely on it.	Ayar dosyasını tutan uygulama çok uzun sürüyor, bu yüzden Hushfacebook beklemeyi bıraktı. O uygulama kaydetmeyi yine de bitirebilir, bu yüzden dosyaya güvenmeden önce onu kontrol et.
 The file %1$s couldn't be removed. Delete it from %2$s, then tap Resume again.	%1$s dosyası kaldırılamadı. Onu %2$s içinden sil, sonra yeniden Devam et'e dokun.
-The settings file was saved, but it doesn't read back as what was written. Save it again as a new file.	Ayar dosyası kaydedildi, ancak geri okunduğunda yazılanla aynı değil. Yeni bir dosya olarak tekrar kaydet.
+The settings file was saved, but it doesn't match what Hushfacebook wrote. Save it again as a new file.	Ayar dosyası kaydedildi ama Hushfacebook'un yazdığıyla eşleşmiyor. Yeni bir dosya olarak yeniden kaydedin.
 There's no app here that can open or share this saved file.	Bu kaydedilen dosyayı açabilecek veya paylaşabilecek bir uygulama yok.
-Until you resume, every switch but Debug logging acts as if it were off. Changes made when you patched stay in.	Devam ettirene kadar Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır. Yamaladığında ayarlananlar devrede kalır.
-Use your phone's emoji. Reactions and stickers stay the same. Restart Facebook after changing it.	Telefonunuzun emojilerini kullanır. İfadeler ve çıkartmalar aynı kalır. Değiştirdikten sonra Facebook'u yeniden başlatın.
+Until you resume, every switch but Debug logging and Lock Facebook acts as if it were off. Changes made when you patched stay in.	Devam ettirene kadar Hata ayıklama günlüğü ve “Facebook'u kilitle” dışındaki her anahtar kapalıymış gibi davranır. Yamaladığında ayarlananlar devrede kalır.
+Shows your phone's own emoji instead of Facebook's. Reactions and stickers don't change. Restart Facebook to see the change.	Facebook'unkiler yerine telefonunuzun kendi emojilerini gösterir. Tepkiler ve çıkartmalar değişmez. Değişikliği görmek için Facebook'u yeniden başlatın.
 Tab bar at the bottom	Sekme çubuğu altta
-Put Facebook's tab bar at the bottom of the screen on accounts that have it at the top. Restart Facebook after changing it.	Facebook'un sekme çubuğunu, onu üstte gösteren hesaplarda ekranın altına taşır. Değiştirdikten sonra Facebook'u yeniden başlatın.
+Moves Facebook's tab bar to the bottom, within thumb reach, on accounts that show it at the top. Restart Facebook to see the change.	Sekme çubuğunu üstte gösteren hesaplarda Facebook'un sekme çubuğunu başparmağınızın erişeceği alt kısma taşır. Değişikliği görmek için Facebook'u yeniden başlatın.
+Hide the tab bar while scrolling	Kaydırırken sekme çubuğunu gizle
+The bottom tab bar hides as you scroll down and returns when you scroll up, for more room. Restart Facebook to see the change.	Alttaki sekme çubuğu aşağı kaydırdığınızda gizlenir, yukarı kaydırdığınızda geri gelir. Böylece daha çok yer kalır. Değişikliği görmek için Facebook'u yeniden başlatın.
 Force dark mode	Karanlık modu zorla
-Keep Facebook in dark mode whatever its own setting says, for tablets where Facebook's settings have no Dark mode. Restart Facebook after changing it.	Kendi ayarı ne olursa olsun Facebook'u karanlık modda tutar. Facebook ayarlarında Karanlık mod bulunmayan tabletler içindir. Değiştirdikten sonra Facebook'u yeniden başlatın.
-Use your phone's font or a file chosen below. Restart Facebook after changing it.	Telefonunuzun yazı tipini veya aşağıdan seçilen dosyayı kullanır. Değiştirdikten sonra Facebook'u yeniden başlatın.
+Keeps Facebook dark no matter its own setting. Meant for tablets where Facebook has no Dark mode switch. Restart Facebook to see the change.	Facebook'un kendi ayarı ne olursa olsun karanlık kalmasını sağlar. Facebook'ta Karanlık mod anahtarı olmayan tabletler için. Değişikliği görmek için Facebook'u yeniden başlatın.
+Draws Facebook's text in your phone's font, or in a font file you choose below. Restart Facebook to see the change.	Facebook'un yazılarını telefonunuzun yazı tipiyle veya aşağıdan seçtiğiniz bir yazı tipi dosyasıyla gösterir. Değişikliği görmek için Facebook'u yeniden başlatın.
 Font file	Yazı tipi dosyası
 Use your phone's font	Telefonun yazı tipini kullan
 Stops using the font file and goes back to your phone's font.	Yazı tipi dosyasını bırakır ve telefonunun yazı tipine geri döner.
-None chosen, so your phone's font is used. Choose a TrueType or OpenType file of up to %1$d MB.	Hiçbiri seçilmedi, bu yüzden telefonunun yazı tipi kullanılıyor. En fazla %1$d MB boyutunda bir TrueType veya OpenType dosyası seç.
+None chosen, so your phone's font is used. Choose a .ttf or .otf font file of up to %1$d MB.	Hiçbiri seçilmedi, bu yüzden telefonunuzun yazı tipi kullanılır. En fazla %1$d MB boyutunda bir .ttf veya .otf yazı tipi dosyası seçin.
 Hushfacebook's copy of %1$s is gone, so your phone's font is used. Choose the file again.	Hushfacebook'un %1$s kopyası yok, bu yüzden telefonunun yazı tipi kullanılıyor. Dosyayı yeniden seç.
 Using %1$s. Choose another file to replace it.	%1$s kullanılıyor. Değiştirmek için başka bir dosya seç.
 Copying the font file	Yazı tipi dosyası kopyalanıyor
 Font set to %1$s. Restart Facebook to see it.	Yazı tipi %1$s olarak ayarlandı. Görmek için Facebook'u yeniden başlat.
-That isn't a TrueType or OpenType font file. Your font didn't change.	Bu bir TrueType veya OpenType yazı tipi dosyası değil. Yazı tipin değişmedi.
+That isn't a .ttf or .otf font file. Your font didn't change.	Bu bir .ttf veya .otf yazı tipi dosyası değil. Yazı tipiniz değişmedi.
 That font file is over %1$d MB. Your font didn't change.	Bu yazı tipi dosyası %1$d MB'tan büyük. Yazı tipin değişmedi.
-Android couldn't draw with that font file. Your font didn't change.	Android bu yazı tipi dosyasıyla çizim yapamadı. Yazı tipin değişmedi.
+Android couldn't use that font file. Your font didn't change.	Android bu yazı tipi dosyasını kullanamadı. Yazı tipiniz değişmedi.
 Couldn't save a copy of that font. Check that the phone has room, then try again.	Bu yazı tipinin kopyası kaydedilemedi. Telefonda yer olup olmadığını kontrol et, sonra tekrar dene.
 Couldn't open that file. Your font didn't change.	Bu dosya açılamadı. Yazı tipin değişmedi.
 Back to your phone's font. Restart Facebook to see it.	Telefonunun yazı tipine geri dönüldü. Görmek için Facebook'u yeniden başlat.
 Couldn't go back to your phone's font. Try again.	Telefonunun yazı tipine geri dönülemedi. Tekrar dene.
 Full report saved to %1$s	Tam rapor şuraya kaydedildi: %1$s
-GPL-3.0, with the notices of the projects this is built on	GPL-3.0, üzerine kurulduğu projelerin lisans bildirimleriyle
+The GPL-3.0 license, plus notices for the projects this is built on	GPL-3.0 lisansı ve bu çalışmanın dayandığı projelerin bildirimleri
 Hide "People you may know"	“Tanıyor olabileceğin kişiler” bölümünü gizle
 Hide "Suggested for you" posts	“Senin için önerilenler” gönderilerini gizle
 Hide AI-detected posts	Yapay zekâ ile üretildiği tespit edilen gönderileri gizle
@@ -125,26 +129,26 @@ Import	İçe aktar
 Import settings	Ayarları içe aktar
 Importing settings	Ayarlar içe aktarılıyor
 Licenses	Lisanslar
-Link expired. Reopen the item and try again	Bağlantının süresi doldu. Öğeyi yeniden açıp tekrar dene
+Link expired. Reopen the item and try again.	Bağlantının süresi doldu. Öğeyi yeniden açıp tekrar dene.
 Links	Bağlantılar
 Privacy	Gizlilik
 Material You theme	Material You teması
 News feed	Akış
-No screenshot watching for ads, and no reports of which apps you install.	Reklamlarda ekran görüntüsü takibi yok, hangi uygulamaları yüklediğine dair rapor da yok.
+Facebook doesn't watch for screenshots to target ads, and doesn't report which apps you install.	Facebook reklam hedeflemek için ekran görüntülerini izlemez ve hangi uygulamaları yüklediğinizi bildirmez.
 Not saved: that isn't a Facebook photo or video	Kaydedilmedi: Bu bir Facebook fotoğrafı veya videosu değil
 Not saved: the file is over 512 MB	Kaydedilmedi: Dosya 512 MB'tan büyük
 OK	Tamam
 Choose a folder name under Movies and Pictures. Invalid characters become underscores. Leave it blank to use the default folder, %1$s.	Movies ve Pictures altında bir klasör adı seç. Geçersiz karakterler alt çizgiye dönüşür. Varsayılan %1$s klasörünü kullanmak için boş bırak.
 Open links in your browser	Bağlantıları tarayıcında aç
-Paid ads in the feed. They're dropped before Facebook adds them, so no gap is left.	Akıştaki ücretli reklamlar. Facebook eklemeden önce çıkarıldıkları için yerlerinde boşluk kalmaz.
+Hides paid ads in the feed. They're removed before they appear, so no gap is left.	Akıştaki ücretli reklamları gizler. Reklamlar görünmeden önce kaldırılır, bu yüzden boşluk kalmaz.
 Pause Hushfacebook	Hushfacebook'u duraklat
-Posts Facebook files as promotions rather than as ads.	Facebook'un reklam yerine tanıtım olarak saydığı gönderiler.
-Posts Facebook slips into your feed from people and pages you don't follow and groups you haven't joined.	Takip etmediğin kişi ve sayfalardan ve katılmadığın gruplardan Facebook'un akışına kattığı gönderiler.
-Posts that Facebook's own detection marks as made with AI. A post that only its creator labelled as AI stays. It's off by default because it hasn't been tested on a real feed yet.	Facebook'un kendi tespitinin yapay zekâ ile üretildiğini işaretlediği gönderiler. Yalnızca oluşturan kişinin yapay zekâ olarak etiketlediği bir gönderi kalır. Bu anahtar henüz gerçek bir akışta test edilmediği için varsayılan olarak kapalıdır.
-Profiles and some Settings pages open again on this re-signed build.	Profiller ve bazı Ayarlar sayfaları bu yeniden imzalanmış sürümde tekrar açılır.
-Profiles and some Settings pages won't open	Profiller ve bazı Ayarlar sayfaları açılmayacak
-Patch again with %1$s selected. Re-signed builds need it for profiles and some Facebook Settings pages.	%1$s seçiliyken yeniden yamala. Yeniden imzalanmış sürümler profiller ve bazı Facebook Ayarları sayfaları için buna ihtiyaç duyar.
-Re-signed build fix	Yeniden imzalanmış sürüm düzeltmesi
+Hides posts Facebook labels as promotions rather than ads.	Facebook'un reklam yerine tanıtım olarak sınıflandırdığı gönderileri gizler.
+Hides posts Facebook adds from people and Pages you don't follow and groups you haven't joined.	Facebook'un takip etmediğiniz kişilerden ve Sayfalardan, katılmadığınız gruplardan eklediği gönderileri gizler.
+Hides posts that Facebook's own detection marks as made with AI. Posts only their creator labeled stay. Untested on a real feed, so it starts off.	Facebook'un kendi tespitinin yapay zekayla üretildi olarak işaretlediği gönderileri gizler. Yalnızca yaratıcısının işaretlediği gönderiler kalır. Gerçek bir akışta henüz denenmedi, bu yüzden kapalı başlar.
+On a patched Facebook, profiles, photos, posts and some Settings pages wouldn't open. This fixes that.	Yamalı bir Facebook'ta profiller, fotoğraflar, gönderiler ve bazı Ayarlar sayfaları açılmazdı. Bu, sorunu giderir.
+Profiles, photos and posts won't open	Profiller, fotoğraflar ve gönderiler açılmayacak
+Patch again with %1$s selected. A patched Facebook needs it to open profiles, photos, posts and some of Facebook's Settings pages.	%1$s seçiliyken yeniden yamalayın. Yamalı bir Facebook'un profilleri, fotoğrafları, gönderileri ve bazı Facebook Ayarları sayfalarını açabilmesi için buna ihtiyacı var.
+Profiles and posts work again	Profiller ve gönderiler yeniden çalışır
 Reading the settings file	Ayar dosyası okunuyor
 Reels and Watch	Reels ve Watch
 How to block Reels	Reels nasıl engellenir
@@ -157,7 +161,7 @@ The Reels tab	Reels sekmesi
 Facebook's own setting blocks it. Open Settings, Tab bar, Customize the bar and choose Hide next to Reels, which some accounts call Video. If neither is listed, choose the %1$s patch in Morphe Manager and patch again.	Bunu Facebook'un kendi ayarı engeller. Ayarlar, Sekme çubuğu, Çubuğu özelleştir bölümünü aç ve Reels'in yanındaki Gizle'yi seç. Bazı hesaplarda Reels'in adı Video'dur. İkisi de listede yoksa Morphe Manager'da %1$s yamasını seç ve yeniden yamala.
 In Reels and Watch, Hide the Reels tab blocks it after a restart.	“Reels ve Watch” bölümündeki “Reels sekmesini gizle”, yeniden başlatmadan sonra onu engeller.
 Hide the Reels tab	Reels sekmesini gizle
-Take the Reels tab, called Video on some accounts, off the tab bar. Reel links and reels in the feed still open. Changes show after Facebook restarts.	Bazı hesaplarda Video adını taşıyan Reels sekmesini sekme çubuğundan kaldırır. Reels bağlantıları ve akıştaki Reels videoları açılmaya devam eder. Değişiklikler Facebook yeniden başlatılınca görünür.
+Removes the Reels tab, called Video on some accounts, from the tab bar. Reels in the feed and reel links still open. Restart Facebook to see the change.	Reels sekmesini, bazı hesaplarda Video olarak geçer, sekme çubuğundan kaldırır. Akıştaki reeller ve reel bağlantıları yine açılır. Değişikliği görmek için Facebook'u yeniden başlatın.
 Facebook opens on Home while Hide the Reels tab is on, since Video is off the tab bar. Your choice stays saved.	“Reels sekmesini gizle” açıkken Facebook Ana Sayfa'da açılır, çünkü Video sekme çubuğunda yoktur. Seçiminiz kayıtlı kalır.
 Everything except Marketplace	Marketplace dışındaki her şey
 In Opening Facebook, Marketplace only blocks the feed, the Reels tab and the other social tabs after a restart.	“Facebook açılırken” bölümündeki “Yalnızca Marketplace”, yeniden başlatmadan sonra akışı, Reels sekmesini ve diğer sosyal sekmeleri engeller.
@@ -165,17 +169,17 @@ Not in this build. To block this, choose the %1$s patch in Morphe Manager and pa
 Remove tracking from shared links	Paylaşılan bağlantılardan izlemeyi kaldır
 Retry	Yeniden dene
 Save any story	Herhangi bir hikayeyi kaydet
-Save cancelled	Kaydetme iptal edildi
+Save canceled	Kaydetme iptal edildi
 Save folder	Kayıt klasörü
 Save full report	Tam raporu kaydet
 Saved to %1$s	Şuraya kaydedildi: %1$s
 Saved to the gallery	Galeriye kaydedildi
 Saved to %1$s in lower quality than on Facebook	Şuraya Facebook'takinden düşük kalitede kaydedildi: %1$s
 Saved to the gallery in lower quality than on Facebook	Galeriye Facebook'takinden düşük kalitede kaydedildi
-Saved. Restart Facebook to apply this change.	Kaydedildi. Bu değişikliği uygulamak için Facebook'u yeniden başlat.
-Save your switches and download settings to a file. Pause and Debug logging aren't included, and neither is the release check.	Anahtarlarını ve indirme ayarlarını bir dosyaya kaydet. Duraklatma ve Hata ayıklama günlüğü dahil edilmez, sürüm denetimi de edilmez.
+Saved. Restart Facebook to see the change.	Kaydedildi. Değişikliği görmek için Facebook'u yeniden başlatın.
+Saves your switches and download choices to a file, to back up or copy to another phone. Pause, Debug logging and the update check aren't included.	Anahtarlarınızı ve indirme seçimlerinizi bir dosyaya kaydeder; yedeklemek veya başka bir telefona taşımak için. Duraklat, Hata ayıklama günlüğü ve güncelleme denetimi dahil değildir.
 Check for new Hushfacebook releases	Yeni Hushfacebook sürümlerini denetle
-Ask GitHub once a day at startup and show newer releases on the overview. Off by default. Nothing is downloaded.	Başlangıçta günde bir kez GitHub'ı kontrol eder ve yeni sürümleri genel bakışta gösterir. Varsayılan olarak kapalıdır. Hiçbir şey indirilmez.
+Once a day, when Facebook starts, checks GitHub for a newer Hushfacebook and tells you at the top of this page. Nothing downloads on its own.	Facebook açılırken günde bir kez GitHub'da daha yeni bir Hushfacebook olup olmadığına bakar ve bunu bu sayfanın en üstünde gösterir. Kendiliğinden hiçbir şey indirilmez.
 Check now	Şimdi denetle
 Asks GitHub for the newest release right now, even with the switch above off.	Yukarıdaki anahtar kapalı olsa bile GitHub'a en yeni sürümü hemen sorar.
 Checking GitHub now.	GitHub şu anda denetleniyor.
@@ -186,8 +190,8 @@ Video saved	Video kaydedildi
 You have the newest Hushfacebook release.	En yeni Hushfacebook sürümünü kullanıyorsun.
 The newest Hushfacebook release is %1$s.	En yeni Hushfacebook sürümü %1$s.
 Couldn't reach GitHub. Try again later.	GitHub'a ulaşılamadı. Daha sonra tekrar dene.
-GitHub is turning away checks from this network for now. Try again later.	GitHub şu an bu ağdan gelen sorguları geri çeviriyor. Daha sonra tekrar dene.
-GitHub's answer couldn't be used. Try again later.	GitHub'ın yanıtı kullanılamadı. Daha sonra tekrar dene.
+GitHub is limiting requests from this network right now. Try again later.	GitHub şu anda bu ağdan gelen istekleri sınırlıyor. Daha sonra yeniden deneyin.
+GitHub sent a reply Hushfacebook couldn't understand. Try again later.	GitHub, Hushfacebook'un anlayamadığı bir yanıt gönderdi. Daha sonra yeniden deneyin.
 Saves will go to a folder named %1$s.	Kaydettiklerin %1$s adlı bir klasöre gidecek.
 Saving a photo	Fotoğraf kaydediliyor
 Saving a video	Video kaydediliyor
@@ -203,11 +207,11 @@ Settings imported. Saves will go to a folder named %1$s.	Ayarlar içe aktarıld�
 Source code and issues	Kaynak kodu ve sorunlar
 Stays in while paused	Duraklatılsa da devrede kalır
 Stories	Hikayeler
-Takes tracking tags such as mibextid off the links you share or copy. A facebook.com/share/ link is made for one share, so Facebook can still trace it back to you.	Paylaştığın veya kopyaladığın bağlantılardan mibextid gibi izleme etiketlerini kaldırır. Bir facebook.com/share/ bağlantısı tek bir paylaşım için oluşturulur, bu yüzden Facebook onu yine de seninle ilişkilendirebilir.
+Removes tracking tags like mibextid from links you share or copy. A facebook.com/share/ link is unique to each share, so Facebook can still trace it.	Paylaştığınız veya kopyaladığınız bağlantılardan mibextid gibi izleme etiketlerini kaldırır. facebook.com/share/ bağlantısı her paylaşıma özeldir, bu yüzden Facebook yine de izini sürebilir.
 Tap to turn it back on.	Yeniden açmak için dokun.
 That file is too large to be a settings file. Nothing was changed.	Bu dosya bir ayar dosyası olamayacak kadar büyük. Hiçbir şey değiştirilmedi.
 That file isn't readable text, so it may have been damaged on the way. Nothing was changed.	Bu dosya okunabilir bir metin değil, aktarım sırasında hasar görmüş olabilir. Hiçbir şey değiştirilmedi.
-That file lists a setting twice, so there's no telling which value to use. Nothing was changed.	Bu dosyada bir ayar iki kez geçiyor, bu yüzden hangi değerin kullanılacağı belli değil. Hiçbir şey değiştirilmedi.
+That file lists a setting twice, so Hushfacebook can't tell which value to use. Nothing was changed.	Bu dosya bir ayarı iki kez listeliyor, bu yüzden Hushfacebook hangi değerin kullanılacağını bilemez. Hiçbir şey değiştirilmedi.
 That isn't a Hushfacebook settings file. Nothing was changed.	Bu bir Hushfacebook ayar dosyası değil. Hiçbir şey değiştirilmedi.
 That settings file holds a value Hushfacebook can't read. Nothing was changed.	Bu ayar dosyasında Hushfacebook'un okuyamadığı bir değer var. Hiçbir şey değiştirilmedi.
 The word lists in that file are longer than the two lists have room for. Nothing was changed.	Bu dosyadaki kelime listeleri iki listenin alanına sığmıyor. Hiçbir şey değiştirilmedi.
@@ -220,13 +224,13 @@ the block on reports of ad screenshots and app installs	reklam ekran görüntül
 The diagnostic report couldn't be saved yet. Try again in a moment.	Tanılama raporu henüz kaydedilemedi. Birazdan tekrar dene.
 The diagnostic report couldn't be saved. Try again.	Tanılama raporu kaydedilemedi. Tekrar dene.
 The file %1$s couldn't be removed. Delete it from %2$s to turn Hushfacebook back on.	%1$s dosyası kaldırılamadı. Hushfacebook'u yeniden açmak için onu %2$s içinden sil.
-the part of the Reels ad block patched into the app	Reels reklam engelinin uygulamaya yamalanan kısmı
+the part of the Reels ad blocking built in when you patched	Reels reklam engellemenin yama sırasında eklenen kısmı
 the re-signed build fix	yeniden imzalanmış sürüm düzeltmesi
 the start-up fix for x86 devices	x86 cihazlar için açılış düzeltmesi
-the recoloured dark mode	yeniden renklendirilmiş karanlık mod
-The row of friend suggestions between posts, and the one on your own profile.	Gönderilerin arasındaki arkadaş önerileri satırı ve kendi profilindeki satır.
-The row of stories at the top of the feed, Create story included.	Akışın üstündeki hikaye sırası, Hikaye oluştur dahil.
-The rows of reels between posts, and the reels Facebook adds where your feed ends.	Gönderilerin arasındaki Reels sıraları ve Facebook'un akışının bittiği yere eklediği Reels videoları.
+the recolored dark mode	yeniden renklendirilmiş karanlık mod
+Hides friend suggestions between posts and on your own profile.	Gönderilerin arasındaki ve kendi profilinizdeki arkadaş önerilerini gizler.
+Hides the row of stories at the top of the feed, including Create story.	Akışın üstündeki hikaye satırını, Hikaye oluştur dahil, gizler.
+Hides rows of reels between posts, and the reels Facebook adds where your feed ends.	Gönderilerin arasındaki reel satırlarını ve Facebook'un akışınızın sonuna eklediği reelleri gizler.
 The setting couldn't finish updating. Its saved value is shown.	Ayarın güncellenmesi tamamlanamadı. Kayıtlı değeri gösteriliyor.
 There's no diagnostic data to clear.	Temizlenecek tanılama verisi yok.
 There's no diagnostic data to put back.	Geri getirilecek tanılama verisi yok.
@@ -239,11 +243,11 @@ Use the phone's emoji	Telefonun emojilerini kullan
 Version	Sürüm
 Videos go to %1$s and photos to %2$s.	Videolar %1$s klasörüne, fotoğraflar %2$s klasörüne kaydedilir.
 Open web links in your browser. Facebook's own pages stay in the app.	Web bağlantılarını tarayıcınızda açar. Facebook sayfaları uygulamada kalır.
-Record patch activity and show errors for a bug report. Leave off during normal use.	Hata raporu için yama etkinliğini kaydeder ve hataları gösterir. Normal kullanımda kapalı bırakın.
+Records what the patches do and shows error messages, to help with a bug report. Leave it off for everyday use.	Yamaların ne yaptığını kaydeder ve hata mesajlarını gösterir; hata bildirimi için işe yarar. Günlük kullanımda kapalı tutun.
 You paused Hushfacebook.	Hushfacebook'u duraklattın.
 Your switches already match that file, so nothing will change.	Anahtarların zaten o dosyayla aynı, bu yüzden hiçbir şey değişmeyecek.
 Keep feed position on return	Geri dönünce akış konumunu koru
-Returning to Facebook within ten minutes keeps your place. Pull to refresh still works.	Facebook'a on dakika içinde dönersen kaldığın yer korunur. Yenilemek için aşağı çekmeye devam edebilirsin.
+Returning to Facebook within ten minutes, or switching back to Home, keeps your place. Pull to refresh still works.	Facebook'a on dakika içinde dönersen ya da Ana Sayfa'ya geri geçersen kaldığın yer korunur. Yenilemek için aşağı çekmeye devam edebilirsin.
 No time limit	Süre sınırı yok
 With the switch above on, your place stays however long you're away. Pull to refresh and a fresh start still load new posts.	Yukarıdaki anahtar açıkken ne kadar uzun süre uzakta kalırsan kal yerin korunur. Yenilemek için çekmek ve uygulamayı yeniden başlatmak yine yeni gönderileri yükler.
 A finished story stays on screen until you tap or swipe. Turn this off for Facebook's timing.	Biten bir hikaye, dokunana veya kaydırana kadar ekranda kalır. Facebook'un zamanlamasını kullanmak için bunu kapat.
@@ -256,11 +260,13 @@ Folder set to %1$s.	Klasör %1$s olarak ayarlandı.
 Save	Kaydet
 Folder name	Klasör adı
 Hide prompts and promos under reels	Reels videolarının altındaki davetleri ve tanıtımları gizle
-Remix, Use template, Add yours and Edits buttons, plus Stars, games, partner apps and outside links. The song and other labels stay.	Remix, şablon kullanma, kendi videonu ekleme ve Edits düğmeleri ile yıldız, oyun, iş ortağı uygulaması ve dış bağlantı düğmeleri. Şarkı ve diğer etiketler kalır.
+Hides prompts and promos under reels, like Remix, Use template, Add yours, Edits, Stars, games, partner apps and outside links. The song label stays.	Reellerin altındaki Remix, Şablonu kullan, Add yours, Edits, Stars, oyunlar, ortak uygulamalar ve dış bağlantılar gibi önerileri ve tanıtımları gizler. Şarkı etiketi kalır.
 Hide the Follow button on reels	Reels videolarındaki Takip Et düğmesini gizle
 The Follow button next to the reel's author. You can still follow them from their profile.	Reels videosunu paylaşan kişinin adının yanındaki Takip Et düğmesi. Onu profilinden yine takip edebilirsin.
 Hide comment and reaction previews	Yorum ve tepki önizlemelerini gizle
 The comment Facebook previews under a reel and the bubbles of friends who reacted. Open the comments to see them all.	Facebook'un bir Reels videosunun altında önizleme olarak gösterdiği yorum ve tepki veren arkadaşlarının baloncukları. Hepsini görmek için yorumları aç.
+Hide Threads cards between reels	Reels arasındaki Threads kartlarını gizle
+Hides the "Threads you might like" card between reels. Untested on a real account, so it starts off.	Reeller arasındaki “Beğenebileceğin Threads” kartını gizler. Gerçek bir hesapta henüz denenmedi, bu yüzden kapalı başlar.
 Download quality	İndirme kalitesi
 Best	En iyi
 Smallest	En küçük
@@ -273,8 +279,12 @@ Videos will save at %1$s or the closest quality below it. A video with nothing t
 Settings imported.	Ayarlar içe aktarıldı.
 Video file name	Video dosya adı
 %1$s becomes the date and time of the save, %2$s the video's number on Facebook, %3$s who posted it, %4$s their profile's number on Facebook and %5$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %6$s.	%1$s kaydetme tarihine ve saatine, %2$s videonun Facebook'taki numarasına, %3$s paylaşan kişinin adına, %4$s paylaşanın Facebook'taki profil numarasına, %5$s ise paylaşıldığı güne dönüşür. Kaydederken bilinmeyenler dışarıda bırakılır ve bunların hiçbirini içermeyen bir ada tarih eklenir. Ad klasörde zaten varsa sonuna kaydetme saati eklenir. Geçersiz karakterler alt çizgiye dönüşür. Varsayılan %6$s adını kullanmak için boş bırak.
-Videos are named %1$s. Photos keep Facebook's own %2$s names.	Videoların adı %1$s olur. Fotoğraflar Facebook'un kendi %2$s adlarını korur.
+Photo file name	Fotoğraf dosya adı
+%1$s becomes the date and time of the save, %2$s the photo's number on Facebook, %3$s who posted it, %4$s their profile's number on Facebook and %5$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %6$s.	%1$s kaydetme tarihine ve saatine, %2$s fotoğrafın Facebook'taki numarasına, %3$s paylaşan kişinin adına, %4$s paylaşanın Facebook'taki profil numarasına, %5$s ise paylaşıldığı güne dönüşür. Kaydederken bilinmeyenler dışarıda bırakılır ve bunların hiçbirini içermeyen bir ada tarih eklenir. Ad klasörde zaten varsa sonuna kaydetme saati eklenir. Geçersiz karakterler alt çizgiye dönüşür. Varsayılan %6$s adını kullanmak için boş bırak.
+Videos are named %1$s.	Videoların adı %1$s olur.
+Photos are named %1$s.	Fotoğrafların adı %1$s olur.
 Saved videos will be named %1$s.	Kaydedilen videoların adı %1$s olacak.
+Saved photos will be named %1$s.	Kaydedilen fotoğrafların adı %1$s olacak.
 File name	Dosya adı
 File name set to %1$s.	Dosya adı %1$s olarak ayarlandı.
 Hide AI-detected reels and videos	Yapay zekâ ile üretildiği tespit edilen reels ve videoları gizle
@@ -283,19 +293,30 @@ Hushfacebook pauses when Facebook restarts.	Hushfacebook, Facebook yeniden başl
 Pause, backup and diagnostics	Duraklatma, yedekleme ve tanılama
 Updates	Güncellemeler
 Stop update prompts	Güncelleme uyarılarını durdur
-Facebook stops asking you to update through Meta App Manager and stops having it look for one. Chat promotions aimed at older versions go too. A patched build can't install Meta's updates anyway.	Facebook, Meta App Manager üzerinden güncelleme istemeyi ve ona güncelleme aratmayı bırakır. Eski sürümlere yönelik sohbet tanıtımları da kalkar. Yamalı bir sürüm zaten Meta'nın güncellemelerini yükleyemez.
-Reels and Watch videos that Facebook's own detection marks as made with AI, starting with the next batch Facebook loads. One that only its creator labelled as AI stays. It's off by default because it hasn't been tested on a real account yet.	Facebook'un kendi tespitinin yapay zekâ ile üretildiğini işaretlediği reels ve Watch videoları, Facebook'un yüklediği bir sonraki gruptan itibaren. Yalnızca oluşturan kişinin yapay zekâ olarak etiketlediği bir video kalır. Bu anahtar henüz gerçek bir hesapla test edilmediği için varsayılan olarak kapalıdır.
+Stops update nagging through Meta App Manager and hides chat promotions for older versions. A patched Facebook can't use Meta's updates anyway.	Meta App Manager üzerinden gelen güncelleme uyarılarını durdurur ve eski sürümlere yönelik sohbet tanıtımlarını gizler. Yamalı Facebook, Meta'nın güncellemelerini zaten kullanamaz.
+Hides reels and Watch videos that Facebook marks as made with AI. Ones only their creator labeled stay. Untested on a real account, so it starts off.	Facebook'un yapay zekayla üretildi olarak işaretlediği reelleri ve Watch videolarını gizler. Yalnızca yaratıcısının işaretlediği içerikler kalır. Gerçek bir hesapta henüz denenmedi, bu yüzden kapalı başlar.
 Don't send reel watch history	Reels izleme geçmişini gönderme
 Hold back analytics uploads	Analiz yüklemelerini beklet
-Facebook stops uploading its app analytics in the background and skips its on-device learning jobs. Restart Facebook after changing it.	Facebook uygulama analizlerini arka planda yüklemeyi bırakır ve cihaz üzerindeki öğrenme görevlerini atlar. Değiştirdikten sonra Facebook'u yeniden başlatın.
+Stops Facebook sending usage statistics in the background and running its on-phone learning tasks. Restart Facebook to see the change.	Facebook arka planda kullanım istatistiklerini göndermeyi ve telefonda öğrenme görevlerini çalıştırmayı bırakır. Değişikliği görmek için Facebook'u yeniden başlatın.
+Hold back camera roll processing	Film rulosu işlemeyi beklet
+Stops the camera roll processing behind sharing suggestions, which goes through your photos and videos and uploads photos and details about them, and stops the report of how many you have. Restart Facebook to see the change.	Paylaşım önerileri için film rulosu işlemeyi durdurur. Bu işlem fotoğraflarınızı ve videolarınızı tarar, fotoğrafları ve onlarla ilgili ayrıntıları yükler. Kaç tane olduğunu bildiren rapor da durur. Değişikliği görmek için Facebook'u yeniden başlatın.
+Stop link history in Facebook's browser	Facebook tarayıcısında bağlantı geçmişini durdur
+Links that open in Facebook's own browser aren't recorded for your link history or sent to Facebook as pages you visited. Applies to the next link you open.	Facebook'un kendi tarayıcısında açılan bağlantılar bağlantı geçmişinize kaydedilmez ve Facebook'a ziyaret ettiğiniz sayfalar olarak gönderilmez. Açtığınız bir sonraki bağlantıdan itibaren geçerlidir.
 Allow screenshots	Ekran görüntülerine izin ver
-Screenshots and screen recordings show the pages Facebook blocks them on. A page that's already open changes when you open it again.	Ekran görüntüleri ve ekran kayıtları, Facebook'un bunları engellediği sayfaları da gösterir. Zaten açık olan bir sayfa, onu yeniden açtığında değişir.
+Lets you take screenshots and screen recordings on pages where Facebook blocks them. Reopen a page that's already open.	Facebook'un engellediği sayfalarda ekran görüntüsü ve ekran kaydı almanızı sağlar. Zaten açık olan bir sayfayı yeniden açın.
 Block screenshot detection	Ekran görüntüsü algılamayı engelle
-Facebook doesn't notice when you take a screenshot or record the screen, so nothing it does in response happens.	Facebook ekran görüntüsü aldığını veya ekranı kaydettiğini fark etmez, bu yüzden buna karşılık yapacağı hiçbir şey olmaz.
-Stop sending watched-reel lists to Facebook. It uses them to rank your feed, so watched reels may return.	İzlenen Reels listelerini Facebook'a göndermeyi durdurur. Listeler akışı sıraladığından izlenen Reels tekrar görünebilir.
-the rename of the shared permissions	paylaşılan izinlerin yeniden adlandırılması
-Room for Meta's apps	Meta uygulamalarına yer
-Messenger, Facebook Lite, Business Suite and Workplace install beside this Facebook. It gives the two permissions they share with it names of its own.	Messenger, Facebook Lite, Business Suite ve Workplace bu Facebook'un yanına yüklenebilir. Onlarla paylaştığı iki izne kendi adlarını verir.
+Hide typing in chats	Sohbetlerde yazıyor bilgisini gizle
+Hide typing in comments	Yorum yazıyor bilgisini gizle
+People you chat with in Facebook's own chats can't see when you're typing. Messages send as usual.	Facebook'un kendi sohbetlerinde konuştuğunuz kişiler yazdığınızı göremez. Mesajlar her zamanki gibi gider.
+People looking at a post don't see that you're writing a comment.	Bir gönderiye bakanlar yorum yazdığını görmez.
+Hide read receipts	Okundu bilgisini gizle
+People you chat with in Facebook's own chats can't see that you've read their messages. The chat can stay unread on this phone.	Facebook'un kendi sohbetlerinde konuştuğunuz kişiler mesajlarını okuduğunuzu göremez. Sohbet bu telefonda okunmamış kalabilir.
+Facebook can't tell when you take a screenshot or record your screen, so it can't react.	Facebook ekran görüntüsü aldığınızı veya ekranı kaydettiğinizi fark etmez, bu yüzden tepki veremez.
+Stops sending Facebook your list of watched reels. It uses the list to rank your feed, so reels you've watched may come back.	Facebook'a izlediğiniz reellerin listesini göndermeyi bırakır. Facebook bu listeyi akışınızı sıralamak için kullanır, bu yüzden izlediğiniz reeller geri gelebilir.
+the new names for shared permissions	ortak izinlerin yeni adları
+the version number Google Play sees	Google Play'in gördüğü sürüm numarası
+Meta's apps can install beside this one	Meta uygulamaları bunun yanına kurulabilir
+Messenger, Facebook Lite, Business Suite and Workplace can install next to this Facebook. Their shared permissions no longer clash.	Messenger, Facebook Lite, Business Suite ve Workplace bu Facebook'un yanına kurulabilir. Ortak izinleri artık çakışmaz.
 Opening Facebook	Facebook açılırken
 Open on a chosen tab	Seçilen sekmede aç
 Choose where Facebook opens from its icon. Notifications and links still open their destination.	Facebook simgesinden açılacak sekmeyi seçin. Bildirimler ve bağlantılar yine kendi hedeflerini açar.
@@ -308,29 +329,52 @@ Marketplace	Marketplace
 Notifications	Bildirimler
 Menu	Menü
 Facebook opens on %1$s. If your tab bar doesn't have it, Facebook opens on Home.	Facebook %1$s sekmesinde açılır. Sekme çubuğunda bu sekme yoksa Facebook Ana Sayfa'da açılır.
+Facebook opens on Feeds. If your tab bar doesn't have it, the Feeds page opens over Home.	Facebook Akışlar sekmesinde açılır. Sekme çubuğunda bu sekme yoksa Akışlar sayfası Ana Sayfa'nın üzerinde açılır.
 Facebook will open on %1$s.	Facebook %1$s sekmesinde açılacak.
+Following feed on Home	Ana Sayfa'da Takip Edilenler akışı
+Home shows the newest posts from friends, groups and Pages you follow, like All in the Feeds tab. The Feeds tab's filters don't change.	Ana Sayfa, takip ettiğiniz arkadaşların, grupların ve Sayfaların en yeni gönderilerini gösterir; Feeds sekmesindeki Tümü gibi. Feeds sekmesinin filtreleri değişmez.
 Jump to a section	Bir bölüme git
 Go straight to one group of settings. Back returns to where you were.	Doğrudan bir ayar grubuna git. Geri, bulunduğun yere döndürür.
 Save videos other apps can open	Videoları diğer uygulamaların açabileceği biçimde kaydet
-For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves without sound. May lower quality.	WhatsApp, CapCut ve InShot gibi video düzenleyiciler ya da kaydedilen videoları sessiz oynatan bir galeri veya oynatıcı için. Kaliteyi düşürebilir.
+Fixes saved videos that play without sound in WhatsApp, video editors such as CapCut and InShot, or some galleries and players. May lower quality.	WhatsApp'ta, CapCut ve InShot gibi video düzenleyicilerde veya bazı galeri ve oynatıcılarda sessiz çalan kayıtlı videoları düzeltir. Kaliteyi düşürebilir.
 Chats	Sohbetler
 Hide the Get Messenger card	Messenger'ı Edin kartını gizle
-The card at the top of Chats that asks you to get the Messenger app goes while Messenger is installed. Without Messenger it stays, so you can still install it from there.	Sohbetler'in en üstünde Messenger uygulamasını edinmeni isteyen kart, Messenger yüklü olduğu sürece kaybolur. Messenger yoksa kart kalır, böylece onu yine oradan yükleyebilirsin.
+Hides the card at the top of Chats that asks you to get Messenger, once Messenger is installed. Without Messenger, the card stays.	Messenger kuruluysa Sohbetler'in üstündeki, Messenger'ı edinmenizi isteyen kartı gizler. Messenger yoksa kart kalır.
+Hide the notes and active now row	Not ve etkin satırını gizle
+Removes the row above your chats that shows friends' notes and who's active. Your own note tile may go too. Your chats stay.	Sohbetlerin üstündeki, arkadaşlarınızın notlarını ve kimlerin aktif olduğunu gösteren satırı kaldırır. Kendi not kutunuz da kaybolabilir. Sohbetleriniz kalır.
+Hide chat list promotions	Sohbet listesindeki tanıtımları gizle
+Hides the banners at the top of Chats, like the one asking you to turn on notifications.	Sohbetler'in üstündeki, bildirimleri açmanızı isteyen gibi bannerları gizler.
 Open the Messenger app	Messenger uygulamasını aç
+Tapping the Messenger icon at the top of Facebook opens the Messenger app instead of Chats. Without Messenger, Chats opens as before.	Facebook'un üstündeki Messenger simgesine dokunmak Sohbetler yerine Messenger uygulamasını açar. Messenger yoksa Sohbetler eskisi gibi açılır.
 Playback	Oynatma
 Tap to play	Oynatmak için dokun
-Videos, reels, stories and music wait for your tap. Facebook's Autoplay setting temporarily reads Off.	Videolar, Reels, hikayeler ve müzik dokunmanızı bekler. Facebook'un Otomatik Oynatma ayarı geçici olarak Kapalı görünür.
+Videos, reels, stories and music wait for your tap instead of playing by themselves. Facebook's own Autoplay setting shows Off while this is on.	Videolar, reeller, hikayeler ve müzik kendiliğinden oynamak yerine dokunuşunuzu bekler. Bu açıkken Facebook'un kendi Otomatik oynat ayarı Kapalı görünür.
 Marketplace only	Yalnızca Marketplace
 Hide Upgrades	“Yükseltmeler” bölümünü gizle
 The Upgrades section and its offers leave Facebook's Menu. Settings, Help and support and the rest of the Menu stay.	“Yükseltmeler” bölümü ve teklifleri Facebook menüsünden kalkar. Ayarlar, Yardım ve destek ve menünün geri kalanı yerinde kalır.
 Hide Also from Meta	“Meta'dan diğerleri” bölümünü gizle
+Hide the Muse card	Muse kartını gizle
+The Muse card, Meta's ad for its AI agent app, leaves the top of Facebook's Menu.	Muse kartı, Meta'nın yapay zekâ asistanı uygulamasının reklamı, Facebook menüsünün üstünden kalkar.
 The Also from Meta section leaves Facebook's Menu, with its links to Meta's other apps and its ads for Meta's devices. Your own shortcuts stay.	“Meta'dan diğerleri” bölümü, Meta'nın diğer uygulamalarına giden bağlantıları ve Meta cihazlarının reklamlarıyla birlikte Facebook menüsünden kalkar. Kendi kısayolların yerinde kalır.
 Search	Arama
 Hide Meta AI in search	Aramada Meta AI'ı gizle
-Search results lose the Meta AI answer and the Ask Meta AI prompts, and a suggestion no longer sends your search to Meta AI. People, groups, pages and posts stay, and the Meta AI button still opens Meta AI.	Arama sonuçlarında artık Meta AI yanıtı ve Meta AI'a sor önerileri görünmez, bir öneri de aramanı artık Meta AI'a göndermez. Kişiler, gruplar, sayfalar ve gönderiler kalır ve Meta AI düğmesi yine Meta AI'ı açar.
+Search no longer shows Meta AI answers or Ask Meta AI prompts, or sends your search to Meta AI. Results for people, groups, pages and posts stay.	Arama artık Meta AI yanıtlarını veya Ask Meta AI önerilerini göstermez, aramanızı Meta AI'a da göndermez. Kişi, grup, sayfa ve gönderi sonuçları kalır.
 Comments	Yorumlar
 Default comment order	Varsayılan yorum sırası
 Use the order below. A choice made on a post lasts until restart. Links to comments keep Facebook's order.	Aşağıdaki sırayı kullanır. Gönderide seçilen sıra yeniden başlatmaya kadar geçerlidir. Yorum bağlantıları Facebook sırasını korur.
+Hide Meta AI comment summaries	Meta AI yorum özetlerini gizle
+Hides Meta AI's summary at the top of comments and the comment summary under a post's buttons. The comments themselves stay.	Yorumların üstündeki Meta AI özetini ve bir gönderinin düğmelerinin altındaki yorum özetini gizler. Yorumların kendisi kalır.
+Like only	Yalnızca Beğen
+A long press on Like doesn't open the reactions. A tap still likes.	Beğen'e uzun basmak artık tepkileri açmaz. Bir dokunuş yine beğenir.
+Hide GIF and sticker buttons	GIF ve çıkartma düğmelerini gizle
+The comment box loses its GIF and sticker buttons. Typing, photos and posting work as before.	Yorum kutusu GIF ve çıkartma düğmelerini kaybeder. Yazmak, fotoğraf eklemek ve paylaşmak eskisi gibi çalışır.
+Open every reply thread	Tüm yanıt dizilerini aç
+Comments show their replies right away, so there's no View replies to tap.	Yorumlar yanıtlarını hemen gösterir, Yanıtları gör'e dokunman gerekmez.
+Hide related groups	İlgili grupları gizle
+A group post's comments end without the Related groups list and its Join buttons.	Bir grup gönderisinin yorumları, İlgili gruplar listesi ve Katıl düğmeleri olmadan biter.
+Hide reaction counts	Tepki sayılarını gizle
+Facebook has its own setting for this. Open Facebook's settings, then Preferences and Reaction preferences.	Facebook'un bunun için kendi ayarı var. Facebook ayarlarını aç, ardından Tercihler ve Tepki tercihleri'ne git.
+Facebook's settings didn't open. You'll find Reaction preferences in its Settings, under Preferences.	Facebook ayarları açılmadı. Tepki tercihleri, Facebook Ayarları'nda Tercihler altında.
 Comment order	Yorum sırası
 Facebook's choice	Facebook'un seçimi
 Most relevant	En alakalı
@@ -341,15 +385,21 @@ A post's comments open with %1$s picked in their sort menu, where the post offer
 Comments will open in the order Facebook picks.	Yorumlar Facebook'un seçtiği sırayla açılacak.
 Comments will open with %1$s picked in their sort menu.	Yorumlar, sıralama menüsünde %1$s seçili olarak açılacak.
 Hide sponsored search results	Sponsorlu arama sonuçlarını gizle
-Ads between the results when you search Facebook. What you searched for stays.	Facebook'ta arama yaptığında sonuçların arasındaki reklamlar. Aradığın şey kalır.
+Hides ads between your search results. The results you searched for stay.	Arama sonuçlarınız arasındaki reklamları gizler. Aradığınız sonuçlar kalır.
 Hide sponsored profile posts	Profillerdeki sponsorlu gönderileri gizle
-Ads between the posts on someone's profile or a Page. Their own posts stay.	Birinin profilindeki ya da bir Sayfadaki gönderilerin arasındaki reklamlar. Kendi gönderileri kalır.
+Hides ads between posts on someone's profile or a Page. Their own posts stay.	Birinin profilindeki veya bir Sayfadaki gönderilerin arasındaki reklamları gizler. Kendi gönderileri kalır.
 the settings row in Facebook's Menu	Facebook menüsündeki ayarlar satırı
 Hushfacebook settings can't open here. Long-press the Facebook logo instead.	Hushfacebook ayarları burada açılamıyor. Bunun yerine Facebook logosuna basılı tut.
 Hide suggested groups	Önerilen grupları gizle
-The row of groups to join between posts, with its Discover more groups button. Posts from groups you're in stay.	Gönderilerin arasındaki katılabileceğin gruplar satırı ve Daha fazla grup keşfet düğmesi. Üyesi olduğun grupların gönderileri kalır.
+Hides the row of groups to join between posts. Posts from groups you're in stay.	Gönderilerin arasındaki katılabileceğiniz gruplar satırını gizler. Üyesi olduğunuz grupların gönderileri kalır.
 Hide "Stories you might like"	“Beğenebileceğin hikayeler” bölümünü gizle
-The row of Stories from people you aren't connected to that Facebook puts between posts. Your friends' Stories and the Stories tray stay.	Facebook'un gönderilerin arasına koyduğu, bağlantın olmayan kişilerin hikayelerinden oluşan satır. Arkadaşlarının hikayeleri ve hikaye şeridi kalır.
+Hide Memories in the feed	Akıştaki anıları gizle
+Hide friend requests in the feed	Akıştaki arkadaşlık isteklerini gizle
+Hide friends' locations	Arkadaşların konumlarını gizle
+Hides Memories between posts, like "On this day" and friendship anniversaries. Your Memories page stays.	Gönderilerin arasındaki “Bu gün” gibi anıları ve arkadaşlık yıl dönümlerini gizler. Anılar sayfanız kalır.
+Hides friend requests shown between posts. Your requests stay under Friends.	Gönderilerin arasında görünen arkadaşlık isteklerini gizler. İstekleriniz Arkadaşlar bölümünde kalır.
+Hides the card between posts that shows where your friends are.	Gönderilerin arasında arkadaşlarınızın nerede olduğunu gösteren kartı gizler.
+Hides the row of Stories from people you aren't connected to, between posts. Your friends' Stories and the Stories tray stay.	Gönderilerin arasında, bağlantınız olmayan kişilerin Hikayeler satırını gizler. Arkadaşlarınızın hikayeleri ve Hikayeler çubuğu kalır.
 Block trending video notifications	Trend video bildirimlerini engelle
 Trending videos and the reels Facebook picked for you stop showing up in your notifications.	Trend videolar ve Facebook'un senin için seçtiği reels videoları artık bildirimlerinde görünmez.
 Block memory notifications	Anı bildirimlerini engelle
@@ -364,23 +414,48 @@ Block nearby and weather notifications	Yakındaki yerler ve hava durumu bildirim
 Alerts about places near you and about the weather stop.	Yakınındaki yerler ve hava durumuyla ilgili uyarılar gelmez.
 Block account setup reminders	Hesap kurulumu hatırlatıcılarını engelle
 Reminders to finish setting up a Facebook account stop. Login and security alerts still come through.	Bir Facebook hesabının kurulumunu tamamlama hatırlatıcıları gelmez. Giriş ve güvenlik uyarıları gelmeye devam eder.
+Block group activity notifications	Grup etkinliği bildirimlerini engelle
+Notifications about new activity in your groups stop. Comments, replies and mentions in groups still come through.	Gruplarındaki yeni etkinliklerle ilgili bildirimler gelmez. Gruplardaki yorumlar, yanıtlar ve bahsetmeler gelmeye devam eder.
+Block event invites	Etkinlik davetlerini engelle
+Invites to events stop showing up in your notifications.	Etkinlik davetleri artık bildirimlerinde görünmez.
+Block live video notifications	Canlı video bildirimlerini engelle
+Notifications that someone is live stop, including the ones you asked Facebook for.	Birinin canlı yayında olduğuna dair bildirimler gelmez, Facebook'tan istediklerin de dahil.
+Block reaction notifications	Tepki bildirimlerini engelle
+Likes and reactions to your posts and comments stop showing up in your notifications. Comments still come through.	Gönderilerine ve yorumlarına gelen beğeniler ve tepkiler artık bildirimlerinde görünmez. Yorumlar gelmeye devam eder.
+Quiet hours	Sessiz saatler
+The switches above block their kinds only between the two times below. The rest of the day those kinds come through.	Yukarıdaki anahtarlar türlerini yalnızca aşağıdaki iki saat arasında engeller. Günün geri kalanında bu türler gelmeye devam eder.
+Quiet hours start	Sessiz saatlerin başlangıcı
+Quiet hours end	Sessiz saatlerin bitişi
 What always comes through	Her zaman gelenler
-Messages, friend requests, comments, mentions, calls and login alerts, and any kind Hushfacebook doesn't know. Android's own settings for Facebook's notification categories work too, since Facebook drops a notification whose category you turned off. Facebook's server decides which categories you get, though, so they may not split these kinds out.	Mesajlar, arkadaşlık istekleri, yorumlar, bahsetmeler, aramalar ve giriş uyarıları, bir de Hushfacebook'un tanımadığı her tür. Android'in Facebook bildirim kategorileri için kendi ayarları da işe yarar, çünkü Facebook kategorisini kapattığın bir bildirimi göstermez. Yine de hangi kategorileri alacağına Facebook'un sunucusu karar verir, bu yüzden bu türleri ayırmayabilirler.
+Messages, friend requests, comments, mentions, calls, login alerts and any kind not listed above always arrive. Android's notification settings for Facebook can block more.	Mesajlar, arkadaşlık istekleri, yorumlar, bahsetmeler, aramalar, giriş uyarıları ve yukarıda listelenmeyen her tür her zaman gelir. Android'in Facebook için bildirim ayarları daha fazlasını engelleyebilir.
 Hide suggested stories	Önerilen hikayeleri gizle
-Keep friends and followed Pages in the Stories tray. Applies when Facebook next loads the tray.	Hikaye tepsisinde arkadaşlar ve takip edilen Sayfalar kalır. Facebook tepsiyi yeniden yüklediğinde uygulanır.
+Shows only friends and followed Pages in the Stories tray. Applies when Facebook next loads the tray.	Hikayeler çubuğunda yalnızca arkadaşları ve takip edilen Sayfaları gösterir. Facebook çubuğu bir sonraki yüklediğinde geçerli olur.
 Hide sponsored Marketplace listings	Marketplace'teki sponsorlu ilanları gizle
 Block Instant Games ads	Instant Games reklamlarını engelle
-Games you play in Facebook get no ads. A game asking for one hears there's none to show, so rewarded ads give no reward.	Facebook'ta oynadığın oyunlar reklam almaz. Reklam isteyen bir oyuna gösterilecek reklam olmadığı söylenir, bu yüzden ödüllü reklamlar ödül vermez.
-Ads and boosted listings in Marketplace's feed and search results. The other listings stay.	Marketplace akışındaki ve arama sonuçlarındaki reklamlar ve öne çıkarılan ilanlar. Diğer ilanlar kalır.
+Games you play in Facebook show no ads. A game that asks for one is told there's none, so rewarded ads give no reward.	Facebook'ta oynadığınız oyunlar reklam göstermez. Reklam isteyen bir oyuna hiç reklam olmadığı söylenir, bu yüzden ödüllü reklamlar ödül vermez.
+Hides ads and boosted listings in Marketplace's feed and search results. Regular listings stay.	Marketplace akışındaki ve aramasındaki reklamları ve öne çıkarılan ilanları gizler. Normal ilanlar kalır.
 Hide posts with words you choose	Seçtiğin kelimeleri içeren gönderileri gizle
-Posts whose text has a word or phrase from your list below. A post with a word from your keep list stays, and so does a post with no text. Your words only leave the phone in a settings file you export.	Metninde aşağıdaki listenden bir kelime veya ifade geçen gönderiler. Tutma listendeki bir kelimeyi içeren gönderi kalır, metni olmayan gönderi de kalır. Kelimelerin telefondan yalnızca dışa aktardığın bir ayar dosyasıyla çıkar.
+Hide posts from people, Pages and sites	Kişilerden, sayfalardan ve sitelerden gelen gönderileri gizle
+Hides posts by people or Pages on your list below, or linking to sites on it, including shares. Your list stays on this phone unless you export it.	Aşağıdaki listenizdeki kişilerin veya Sayfaların gönderilerini ve listedeki sitelere bağlantı veren gönderileri, paylaşımlar dahil, gizler. Listeniz dışa aktarmadıkça bu telefonda kalır.
+People, Pages and sites to hide	Gizlenecek kişiler, sayfalar ve siteler
+One per line, up to %1$d: a name as Facebook shows it, a profile or Page ID, or a site like example.com, which also covers addresses like m.example.com. Capital letters don't matter. A Facebook link works when it has the ID in it.	Her satıra bir tane, en fazla %1$d: Facebook'un gösterdiği şekliyle bir ad, bir profil veya Sayfa kimliği ya da m.example.com gibi adresleri de kapsayan example.com gibi bir site. Büyük harfler önemli değildir. Kimliği içeren bir Facebook bağlantısı çalışır.
+One name, id or site per line	Her satıra bir ad, kimlik veya site
+%1$d line was left out. A line holds up to %2$d characters, the list up to %3$d lines, and one given twice counts once.	%1$d satır dışarıda bırakıldı. Bir satır en fazla %2$d karakter, liste en fazla %3$d satır alır ve iki kez yazılan bir kez sayılır.
+%1$d lines were left out. A line holds up to %2$d characters, the list up to %3$d lines, and one given twice counts once.	%1$d satır dışarıda bırakıldı. Bir satır en fazla %2$d karakter, liste en fazla %3$d satır alır ve iki kez yazılan bir kez sayılır.
+Nobody listed yet, so no post is hidden.	Henüz kimse eklenmedi, bu yüzden hiçbir gönderi gizlenmiyor.
+%1$d person, Page or site.	%1$d kişi, sayfa veya site.
+%1$d people, Pages or sites.	%1$d kişi, sayfa veya site.
+Your list of people, Pages and sites to hide will be empty.	Gizlenecek kişiler, sayfalar ve siteler listen boş olacak.
+Your list of people, Pages and sites to hide will hold %1$d entry.	Gizlenecek kişiler, sayfalar ve siteler listende %1$d kayıt olacak.
+Your list of people, Pages and sites to hide will hold %1$d entries.	Gizlenecek kişiler, sayfalar ve siteler listende %1$d kayıt olacak.
+Hides posts containing a word or phrase from your list below. Words that keep a post win over it. Your words stay on this phone unless you export them.	Aşağıdaki listenizdeki bir sözcük veya ifade içeren gönderileri gizler. Bir gönderiyi tutan sözcükler bunun önüne geçer. Sözcükleriniz dışa aktarmadıkça bu telefonda kalır.
 Words to hide	Gizlenecek kelimeler
 Words that keep a post	Gönderiyi tutan kelimeler
-One word or phrase per line, up to %1$d, each %2$d to %3$d characters long, or just one for an emoji, a Chinese character, a kana or a Hangul syllable. Capital letters don't matter, and a phrase matches anywhere in a post's text, inside longer words too.	Her satıra bir kelime veya ifade, en fazla %1$d tane, her biri %2$d ile %3$d karakter arası. Emoji, Çince karakter, kana veya Hangul hecesi için tek karakter yeter. Büyük küçük harf fark etmez ve bir ifade, gönderi metninin herhangi bir yerinde, daha uzun kelimelerin içinde bile eşleşir.
-A post with any of these stays, even when it also has a word to hide. One per line, up to %1$d, each %2$d to %3$d characters long, or just one for an emoji, a Chinese character, a kana or a Hangul syllable.	Bunlardan birini içeren gönderi, gizlenecek bir kelime de içerse kalır. Her satıra bir tane, en fazla %1$d tane, her biri %2$d ile %3$d karakter arası. Emoji, Çince karakter, kana veya Hangul hecesi için tek karakter yeter.
+One word or phrase per line, up to %1$d lines, each %2$d to %3$d characters long. A single emoji or Chinese, Japanese or Korean character is enough on its own. Capital letters don't matter, and a phrase matches anywhere in a post's text, even inside longer words.	Her satıra bir sözcük veya ifade, en fazla %1$d satır, her biri %2$d ile %3$d karakter uzunluğunda. Tek bir emoji veya Çince, Japonca ya da Korece karakter tek başına yeterlidir. Büyük harfler önemli değildir ve bir ifade gönderi metninin her yerinde, daha uzun sözcüklerin içinde bile eşleşir.
+A post with any of these stays, even when it also has a word to hide. One per line, up to %1$d lines, each %2$d to %3$d characters long. A single emoji or Chinese, Japanese or Korean character is enough on its own.	Bunlardan birini içeren gönderi, gizlenecek bir sözcük de içerse kalır. Her satıra bir tane, en fazla %1$d satır, her biri %2$d ile %3$d karakter uzunluğunda. Tek bir emoji veya Çince, Japonca ya da Korece karakter tek başına yeterlidir.
 One word or phrase per line	Her satıra bir kelime veya ifade
-%1$d line was left out. A phrase needs %2$d to %3$d characters, or just one for an emoji, a Chinese character, a kana or a Hangul syllable. One given twice counts once.	%1$d satır dışarıda bırakıldı. Bir ifade %2$d ile %3$d karakter arası olmalı. Emoji, Çince karakter, kana veya Hangul hecesi için tek karakter yeter. İki kez yazılan bir kez sayılır.
-%1$d lines were left out. A phrase needs %2$d to %3$d characters, or just one for an emoji, a Chinese character, a kana or a Hangul syllable. One given twice counts once.	%1$d satır dışarıda bırakıldı. Bir ifade %2$d ile %3$d karakter arası olmalı. Emoji, Çince karakter, kana veya Hangul hecesi için tek karakter yeter. İki kez yazılan bir kez sayılır.
+%1$d line was left out. A phrase needs %2$d to %3$d characters, but a single emoji or Chinese, Japanese or Korean character is enough. One given twice counts once.	%1$d satır dışarıda bırakıldı. Bir ifade %2$d ile %3$d karakter olmalı, ama tek bir emoji veya Çince, Japonca ya da Korece karakter yeterlidir. İki kez verilen bir kez sayılır.
+%1$d lines were left out. A phrase needs %2$d to %3$d characters, but a single emoji or Chinese, Japanese or Korean character is enough. One given twice counts once.	%1$d satır dışarıda bırakıldı. Bir ifade %2$d ile %3$d karakter olmalı, ama tek bir emoji veya Çince, Japonca ya da Korece karakter yeterlidir. İki kez verilen bir kez sayılır.
 No words yet, so no post is hidden.	Henüz kelime yok, bu yüzden hiçbir gönderi gizlenmiyor.
 No words yet.	Henüz kelime yok.
 %1$d word or phrase.	%1$d kelime veya ifade.
@@ -400,13 +475,13 @@ Writing	Yazma
 Tag suggestions only after @	Etiket önerileri yalnızca @ sonrasında
 Type @ before Facebook suggests someone to tag in posts or comments. Your text stays unchanged.	Facebook'un gönderi ve yorumlarda etiketlenecek kişi önermesi için @ yazın. Metniniz değişmez.
 Resume long videos	Uzun videolara kaldığın yerden devam et
-Resume videos over two minutes where you left off, in the feed or full screen. Seek to start elsewhere. Short reels, live videos and ads start as usual.	İki dakikadan uzun videolar akışta veya tam ekranda kaldığı yerden devam eder. Başka bir yerden başlatmak için çubuğu kaydırın. Kısa Reels, canlı videolar ve reklamlar normal başlar.
-Also hide posts labelled as AI	Yapay zekâ olarak etiketlenen gönderileri de gizle
+Videos over two minutes pick up where you left off. Drag the bar to start elsewhere. Short reels, live videos and ads start as usual.	İki dakikadan uzun videolar kaldığınız yerden devam eder. Başka bir yerden başlamak için çubuğu sürükleyin. Kısa reeller, canlı videolar ve reklamlar her zamanki gibi başlar.
+Also hide posts labeled as AI	Yapay zekâ olarak etiketlenen gönderileri de gizle
 Hide Meta AI in the feed	Akışta Meta AI'ı gizle
-The Meta AI cards Facebook adds to the feed between posts. People's posts stay, whatever they say about AI.	Facebook'un akışta gönderilerin arasına eklediği Meta AI kartları. İnsanların gönderileri, yapay zekâ hakkında ne derlerse desinler kalır.
+Hides Meta AI cards between posts and cards promoting the Vibes app. People's posts stay, whatever they say about AI.	Gönderilerin arasındaki Meta AI kartlarını ve Vibes uygulamasını tanıtan kartları gizler. İnsanların gönderileri, yapay zeka hakkında ne derse desin kalır.
 Hide AI character posts	Yapay zekâ karakteri gönderilerini gizle
-Posts featuring one of Meta's AI characters, the chatbots people and creators make with Meta AI Studio. It's off by default because it hasn't been tested on a real feed yet.	Meta'nın yapay zekâ karakterlerinden birini içeren gönderiler, yani insanların ve içerik üreticilerin Meta AI Studio ile yaptığı sohbet botları. Bu anahtar henüz gerçek bir akışta test edilmediği için varsayılan olarak kapalıdır.
-Posts whose creator marked them as made with AI. Facebook puts its AI label next to the name on these as well as on the posts its detection found, and with this on, both kinds go. It's off by default because it hasn't been tested on a real feed yet.	Oluşturan kişinin yapay zekâ ile üretildiğini belirttiği gönderiler. Facebook, yapay zekâ etiketini hem bunlarda hem de kendi tespitinin bulduğu gönderilerde adın yanına koyar ve bu anahtar açıkken ikisi de gizlenir. Henüz gerçek bir akışta test edilmediği için varsayılan olarak kapalıdır.
+Hides posts featuring Meta's AI characters, the chatbots people make with Meta AI Studio. Untested on a real feed, so it starts off.	Meta'nın yapay zeka karakterlerini, yani insanların Meta AI Studio ile yaptığı sohbet botlarını içeren gönderileri gizler. Gerçek bir akışta henüz denenmedi, bu yüzden kapalı başlar.
+Also hides posts their creator labeled as made with AI, not just the ones Facebook detects itself. Untested on a real feed, so it starts off.	Yalnızca Facebook'un kendi tespit ettiklerini değil, yaratıcısının yapay zekayla üretildi olarak işaretlediği gönderileri de gizler. Gerçek bir akışta henüz denenmedi, bu yüzden kapalı başlar.
 Return to regular Facebook	Normal Facebook'a dön
 Restore the normal tabs at the next restart. Your other settings stay saved.	Bir sonraki yeniden başlatmada normal sekmeleri geri getirir. Diğer ayarlarınız kayıtlı kalır.
 Marketplace mode is off. Restart Facebook to restore its normal tabs.	Marketplace modu kapalı. Normal sekmeleri geri getirmek için Facebook'u yeniden başlatın.
@@ -423,8 +498,8 @@ Quiet social notifications	Sosyal bildirimleri sustur
 Skip feed preloading	Akış ön yüklemesini atla
 Marketplace mode is off.	Marketplace modu kapalı.
 Paused with Hushfacebook. Your Marketplace choice stays saved. Tabs already hidden return after a restart while paused.	Hushfacebook ile duraklatıldı. Marketplace seçiminiz kayıtlı kalır. Gizlenen sekmeler, duraklatma sürerken yeniden başlattığınızda geri gelir.
-Silence video suggestions, memories, birthdays and friend suggestions while this mode is on. Messages and trading updates stay. Your other notification choices stay saved.	Bu mod açıkken video önerilerini, anıları, doğum günlerini ve arkadaş önerilerini susturur. Mesajlar ve alım satım güncellemeleri gelmeye devam eder. Diğer bildirim tercihleriniz kayıtlı kalır.
-Reduce background feed loading while Marketplace mode is active. Some loading can still happen during startup.	Marketplace modu etkinken arka planda akış yüklemesini azaltır. Başlangıçta bazı veriler yine yüklenebilir.
+While Marketplace mode is on, silences video suggestions, memories, birthdays and friend suggestions. Messages and trading updates still arrive.	Marketplace modu açıkken video önerilerini, anıları, doğum günlerini ve arkadaş önerilerini sessize alır. Mesajlar ve alım satım bildirimleri yine gelir.
+While Marketplace mode is on, loads less of the feed in the background. Some loading still happens at startup.	Marketplace modu açıkken akışın arka planda daha az yüklenmesini sağlar. Açılışta yine de biraz yükleme olur.
 Active. Marketplace, Notifications and Profile/Menu stay. Find Hushfacebook settings in Menu, under Settings and privacy.	Etkin. Marketplace, Bildirimler ve Profil/Menü kalır. Hushfacebook ayarları Menü içindeki Ayarlar ve gizlilik bölümündedir.
 Marketplace mode and your start tab	Marketplace modu ve başlangıç sekmesi
 Ads, suggestions and word filters	Reklamlar, öneriler ve kelime filtreleri
@@ -454,28 +529,30 @@ None of Facebook's web addresses are selected for this app, so their links open 
 Opening supported links is off for this app in Android's settings. Tap to turn it on.	“Desteklenen bağlantıları aç” Android ayarlarında bu uygulama için kapalı. Açmak için dokunun.
 Android didn't say which links open here. Tap to check in Android's settings.	Android burada hangi bağlantıların açıldığını bildirmedi. Android ayarlarında kontrol etmek için dokunun.
 Android 11 doesn't say which links open here. Tap to open this app's settings, then Open by default.	Android 11 burada hangi bağlantıların açıldığını bildirmez. Bu uygulamanın ayarlarını açmak için dokunun, ardından Varsayılan olarak aç'a gidin.
-Selecting links by hand	Bağlantıları elle seçme
-Android checks Facebook's links against Meta's signing key, which a re-signed build doesn't have. Selecting the addresses sends their links here again. It doesn't restore Meta's verification, and your other link settings stay as they are.	Android, Facebook'un bağlantılarını Meta'nın imzalama anahtarıyla denetler ve yeniden imzalanmış bir sürümde bu anahtar yoktur. Adresleri seçmek bağlantılarını yeniden buraya gönderir. Bu, Meta'nın doğrulamasını geri getirmez ve diğer bağlantı ayarlarınız olduğu gibi kalır.
+Choose which links open here	Burada hangi bağlantıların açılacağını seçin
+Android can't verify a patched Facebook for Facebook links. Selecting the addresses yourself sends those links here. Your other link settings stay.	Android, yamalı bir Facebook'u Facebook bağlantıları için doğrulayamaz. Adresleri kendiniz seçerseniz bu bağlantılar burada açılır. Diğer bağlantı ayarlarınız kalır.
 Android's settings for this app didn't open. Open App info from Facebook's icon, then Open by default.	Bu uygulamanın Android ayarları açılamadı. Facebook simgesinden Uygulama bilgileri'ni, ardından Varsayılan olarak aç'ı açın.
 Meta App Manager	Meta App Manager
 Facebook's web addresses open here now.	Facebook'un web adresleri artık burada açılıyor.
-Meta App Manager can keep Facebook's web addresses for itself, so their links skip this app. Tap and turn off Open supported links there, then check Supported links above.	Meta App Manager, Facebook'un web adreslerini kendine alabilir ve bu durumda bağlantılar bu uygulamayı atlar. Dokunup oradaki “Desteklenen bağlantıları aç” seçeneğini kapatın, ardından yukarıdaki Desteklenen bağlantılar'ı kontrol edin.
+Meta App Manager can claim Facebook's web addresses for itself, so their links skip this app. Tap, turn off Open supported links there, then recheck Supported links above.	Meta App Manager Facebook'un web adreslerini kendine alabilir, bu yüzden bağlantıları bu uygulamayı atlar. Dokunun, orada Desteklenen bağlantıları aç seçeneğini kapatın, sonra yukarıdaki Desteklenen bağlantılar'ı yeniden kontrol edin.
 Meta App Manager's settings didn't open. Find it in Android's app list with system apps shown, then Open by default.	Meta App Manager ayarları açılamadı. Sistem uygulamaları gösterilirken Android'in uygulama listesinde bulun, ardından Varsayılan olarak aç'ı açın.
 Messenger	Messenger
 Instagram	Instagram
-Messenger can keep facebook.com and m.me links for itself, so their switches for this app turn themselves back off. Tap and turn off Open supported links there, then check Supported links above.	Messenger, facebook.com ve m.me bağlantılarını kendine alabilir ve bu durumda bu uygulama için anahtarları kendiliğinden yeniden kapanır. Dokunup oradaki “Desteklenen bağlantıları aç” seçeneğini kapatın, ardından yukarıdaki Desteklenen bağlantılar'ı kontrol edin.
-Instagram can keep facebook.com links for itself, so their switches for this app turn themselves back off. Tap and turn off Open supported links there, then check Supported links above.	Instagram, facebook.com bağlantılarını kendine alabilir ve bu durumda bu uygulama için anahtarları kendiliğinden yeniden kapanır. Dokunup oradaki “Desteklenen bağlantıları aç” seçeneğini kapatın, ardından yukarıdaki Desteklenen bağlantılar'ı kontrol edin.
+Messenger can claim facebook.com and m.me links for itself, which turns this app's link switches back off. Tap, turn off Open supported links there (on newer Android, pick In your browser), then recheck Supported links above.	Messenger facebook.com ve m.me bağlantılarını kendine alabilir, bu da bu uygulamanın bağlantı anahtarlarını yeniden kapatır. Dokunun, orada Desteklenen bağlantıları aç seçeneğini kapatın (yeni Android sürümlerinde Tarayıcınızda seçeneğini seçin), sonra yukarıdaki Desteklenen bağlantılar'ı yeniden kontrol edin.
+Instagram can claim facebook.com links for itself, which turns this app's link switches back off. Tap, turn off Open supported links there (on newer Android, pick In your browser), then recheck Supported links above.	Instagram facebook.com bağlantılarını kendine alabilir, bu da bu uygulamanın bağlantı anahtarlarını yeniden kapatır. Dokunun, orada Desteklenen bağlantıları aç seçeneğini kapatın (yeni Android sürümlerinde Tarayıcınızda seçeneğini seçin), sonra yukarıdaki Desteklenen bağlantılar'ı yeniden kontrol edin.
 Messenger's settings didn't open. Open App info from Messenger's icon, then Open by default.	Messenger ayarları açılamadı. Messenger simgesinden Uygulama bilgileri'ni, ardından Varsayılan olarak aç'ı açın.
 Instagram's settings didn't open. Open App info from Instagram's icon, then Open by default.	Instagram ayarları açılamadı. Instagram simgesinden Uygulama bilgileri'ni, ardından Varsayılan olarak aç'ı açın.
 facebook.com and m.me links open here now.	facebook.com ve m.me bağlantıları artık burada açılıyor.
 facebook.com links open here now.	facebook.com bağlantıları artık burada açılıyor.
-Saving... Cancel: Downloads in Hushfacebook.	Kaydediliyor... İptal: Hushfacebook'ta İndirmeler.
+Saving... To cancel, open Downloads in Hushfacebook settings.	Kaydediliyor… İptal etmek için Hushfacebook ayarlarında İndirmeler'i açın.
 Turn off double tap to like	Beğenmek için çift dokunmayı kapat
 A double tap on a reel or video no longer likes it or shows a heart. A single tap and the Like button work as before.	Bir reel'e veya videoya çift dokunmak artık onu beğenmez ve kalp göstermez. Tek dokunuş ve Beğen düğmesi eskisi gibi çalışır.
 Keep the reel speed	Reel hızını koru
 A playback speed you pick in a reel's menu stays for the next reels until you pick another or Facebook restarts. Off, every reel starts at normal speed.	Bir reel'in menüsünde seçtiğin oynatma hızı, başka bir hız seçene veya Facebook yeniden başlayana kadar sonraki reel'lerde kalır. Kapalıyken her reel normal hızda başlar.
 Hold a reel for 2x	2x için reel'e basılı tut
 Holding a reel plays it at double speed until you let go, in place of Facebook's long-press menu. The reel's more button still opens that menu.	Bir reel'e basılı tutmak, bırakana kadar onu iki kat hızda oynatır ve Facebook'un uzun basma menüsünün yerini alır. Reel'in daha fazla düğmesi bu menüyü açmaya devam eder.
+Only on the right edge	Yalnızca sağ kenarda
+With the switch above on, only a hold on the right third of a reel plays it at double speed. Hold anywhere else and Facebook's long-press menu opens.	Yukarıdaki anahtar açıkken bir reel yalnızca sağdaki üçte birine basılı tutarsan iki kat hızda oynar. Başka bir yere basılı tutarsan Facebook'un uzun basma menüsü açılır.
 Default playback quality	Varsayılan oynatma kalitesi
 Play videos, reels and stories at the quality below. A quality picked in a video's own menu still wins.	Videoları, Reels'i ve hikayeleri aşağıdaki kalitede oynatın. Bir videonun kendi menüsünde seçilen kalite yine önceliklidir.
 Playback quality	Oynatma kalitesi
@@ -489,6 +566,16 @@ Videos play at the best quality up to %1$s that Facebook offers for each, or the
 Videos play at the highest quality Facebook offers for each.	Videolar, Facebook'un her biri için sunduğu en yüksek kalitede oynatılır.
 Facebook will pick the quality videos play at.	Videoların oynatma kalitesini Facebook seçecek.
 Playback quality will be set to %1$s.	Oynatma kalitesi %1$s olarak ayarlanacak.
+Reels will play at the same quality as other videos.	Reels, diğer videolarla aynı kalitede oynatılacak.
+Reels quality will be set to %1$s.	Reels kalitesi %1$s olarak ayarlanacak.
+Video stories will play at the same quality as other videos.	Video hikayeler, diğer videolarla aynı kalitede oynatılacak.
+Stories quality will be set to %1$s.	Hikaye kalitesi %1$s olarak ayarlanacak.
+Quiet hours will start at %1$s.	Sessiz saatler %1$s itibarıyla başlayacak.
+Quiet hours will end at %1$s.	Sessiz saatler %1$s itibarıyla bitecek.
+Videos will go in a subfolder named %1$s.	Videolar %1$s adlı bir alt klasöre kaydedilecek.
+Videos will go in the save folder itself.	Videolar doğrudan kayıt klasörüne kaydedilecek.
+Photos will go in a subfolder named %1$s.	Fotoğraflar %1$s adlı bir alt klasöre kaydedilecek.
+Photos will go in the save folder itself.	Fotoğraflar doğrudan kayıt klasörüne kaydedilecek.
 Reels and videos will save to this phone when you tap Download.	İndir'e dokunduğunuzda reel'ler ve videolar bu telefona kaydedilecek.
 Tapping Download on a reel or video will send its link to an app.	Bir reel'de veya videoda İndir'e dokunmak bağlantısını bir uygulamaya gönderecek.
 Android will ask which app gets the links each time.	Android bağlantıları hangi uygulamanın alacağını her seferinde soracak.
@@ -503,10 +590,10 @@ Videos and photos go to %1$s.	Videolar ve fotoğraflar %1$s klasörüne kaydedil
 Videos will go to %1$s and photos to %2$s.	Videolar %1$s klasörüne, fotoğraflar %2$s klasörüne gidecek.
 Videos and photos will go to %1$s.	Videolar ve fotoğraflar %1$s klasörüne gidecek.
 Test the Messenger link	Messenger bağlantısını test et
-Runs the two reads Facebook makes of Messenger at startup, now, and shows whether each one answered. Shown while Debug logging is on.	Facebook'un açılışta Messenger'dan yaptığı iki okumayı şimdi yapar ve her birinin yanıt verip vermediğini gösterir. Hata ayıklama günlüğü açıkken görünür.
-The Messenger link test couldn't start.	Messenger bağlantı testi başlatılamadı.
+Checks now whether Facebook can reach Messenger, the way it does at startup, and shows each result. Appears while Debug logging is on.	Facebook'un açılışta yaptığı gibi Messenger'a ulaşıp ulaşamadığını şimdi denetler ve her sonucu gösterir. Hata ayıklama günlüğü açıkken görünür.
+The Messenger link test couldn't start. Try again.	Messenger bağlantı testi başlatılamadı. Yeniden deneyin.
 This build can't run the Messenger link test.	Bu sürüm Messenger bağlantı testini çalıştıramaz.
-No signed-in account to test with.	Test için oturum açmış hesap yok.
+No signed-in account to test with. Sign in to Facebook and try again.	Test için oturum açmış hesap yok. Facebook'ta oturum açıp yeniden deneyin.
 Opt-out read: %1$s. Triggered read: %2$s.	Vazgeçme okuması: %1$s. Tetikleme okuması: %2$s.
 no answer	yanıt yok
 answered	yanıt verdi
@@ -518,31 +605,40 @@ Hide the Marketplace tab	Marketplace sekmesini gizle
 Hide the Groups tab	Gruplar sekmesini gizle
 Hide the Gaming tab	Oyun sekmesini gizle
 Hide the Events tab	Etkinlikler sekmesini gizle
-Takes the tab off the tab bar. Its page stays in the Menu. Restart Facebook after changing it.	Sekmeyi sekme çubuğundan kaldırır. Sayfası Menü'de kalır. Değiştirdikten sonra Facebook'u yeniden başlat.
-Facebook opens on Home while Hide tabs keeps %1$s off the tab bar. Your choice stays saved.	Sekmeleri gizle %1$s sekmesini çubuğun dışında tuttuğu sürece Facebook Ana Sayfa'da açılır. Seçimin kayıtlı kalır.
+Hide the Dating tab	Flört sekmesini gizle
+Hide the Professional dashboard tab	Profesyonel panel sekmesini gizle
+Hide the Saved tab	Kaydedilenler sekmesini gizle
+Hide the Ad Center tab	Reklam Merkezi sekmesini gizle
+Hide the Create tab	Oluştur sekmesini gizle
+Hide the Explore tab	Keşfet sekmesini gizle
+Hide the Jobs tab	İş İlanları sekmesini gizle
+Removes this tab from the tab bar. Its page is still in the Menu. Restart Facebook to see the change.	Bu sekmeyi sekme çubuğundan kaldırır. Sayfası Menü'de durur. Değişikliği görmek için Facebook'u yeniden başlatın.
+Facebook opens on Home while %1$s is on, since %2$s is off the tab bar. Your choice stays saved.	“%1$s” açıkken Facebook Ana Sayfa'da açılır, çünkü %2$s sekme çubuğunda yoktur. Seçiminiz kayıtlı kalır.
 No dot or new count on the Reels tab, called Video on some accounts. Other tabs keep theirs.	Bazı hesaplarda Video adıyla görünen Reels sekmesinde nokta ya da yeni sayısı olmaz. Diğer sekmeler kendilerininkini korur.
 %1$d default patch isn't in this build	%1$d varsayılan yama bu sürümde yok
 %1$d default patches aren't in this build	%1$d varsayılan yama bu sürümde yok
 Tap to see which.	Hangileri olduğunu görmek için dokun.
 Not in this build: %1$s. Morphe Manager selects it by default. Patch again with it selected to get what it does.	Bu sürümde yok: %1$s. Morphe Manager bunu varsayılan olarak seçer. Yaptığı işi almak için onu seçip yeniden yamala.
 Not in this build: %1$s. Morphe Manager selects them by default. Patch again with them selected to get what they do.	Bu sürümde yok: %1$s. Morphe Manager bunları varsayılan olarak seçer. Yaptıkları işi almak için onları seçip yeniden yamala.
-Saved, but WhatsApp and some editors may refuse it	Kaydedildi, ancak WhatsApp ve bazı düzenleyiciler reddedebilir
-Saved, but WhatsApp may refuse it. Fix: Downloads in Hushfacebook.	Kaydedildi, ancak WhatsApp reddedebilir. Çözüm: Hushfacebook'ta İndirmeler.
-Turn on %1$s to save videos they all play.	Hepsinin oynatabileceği videolar kaydetmek için %1$s ayarını aç.
-WhatsApp and some editors may refuse this video	WhatsApp ve bazı düzenleyiciler bu videoyu reddedebilir
+Saved, but WhatsApp and some editors may not accept it	Kaydedildi ama WhatsApp ve bazı düzenleyiciler kabul etmeyebilir
+Saved, but WhatsApp may not accept it. Open Downloads in Hushfacebook settings to fix that.	Kaydedildi ama WhatsApp kabul etmeyebilir. Düzeltmek için Hushfacebook ayarlarında İndirmeler'i aç.
+Turn on %1$s to save videos that WhatsApp and these editors accept.	WhatsApp ve bu düzenleyicilerin kabul ettiği videoları kaydetmek için %1$s seçeneğini açın.
+WhatsApp and some editors may not accept this video	WhatsApp ve bazı düzenleyiciler bu videoyu kabul etmeyebilir
 Open the setting	Ayarı aç
 Hide post prompts	Gönderi altındaki soruları gizle
-The strip on some posts, like "Are you interested in this post?", "Show less" or who recently commented, and the follow and chat suggestions in the same place. The post stays.	Bazı gönderilerdeki şerit, örneğin “Bu gönderiyle ilgileniyor musun?”, “Daha az göster” veya kimin az önce yorum yaptığı, ve aynı yerdeki takip ve sohbet önerileri. Gönderi kalır.
+Hides the strip on some posts, like "Are you interested in this post?" or who recently commented, plus follow and chat suggestions there. The post stays.	Bazı gönderilerdeki “Bu gönderiyle ilgileniyor musun?” veya yakın zamanda kimin yorum yaptığı gibi şeridi ve oradaki takip ve sohbet önerilerini gizler. Gönderi kalır.
+Hide the Follow link on posts	Gönderilerdeki Takip Et bağlantısını gizle
+Hides the "Follow" link next to the name on posts from Pages and people you don't follow. Tapping the name still opens the profile. A change shows on the posts drawn after it.	Takip etmediğiniz Sayfaların ve kişilerin gönderilerinde adın yanındaki "Takip Et" bağlantısını gizler. Ada dokunmak yine profili açar. Değişiklik, sonrasında yüklenen gönderilerde görünür.
 Hide Meta AI questions under posts	Gönderilerin altındaki Meta AI sorularını gizle
-The row of Meta AI questions under some posts. The post, its link card and its buttons stay.	Bazı gönderilerin altındaki Meta AI soruları satırı. Gönderi, bağlantı kartı ve düğmeleri kalır.
+Hides the row of Meta AI questions under some posts. The post, its link card and its buttons stay.	Bazı gönderilerin altındaki Meta AI soruları satırını gizler. Gönderi, bağlantı kartı ve düğmeleri kalır.
 Keep post dates	Gönderi tarihlerini koru
-The line under the poster's name keeps the post's date instead of Facebook's rotating details, which go blank on some phones.	Paylaşan kişinin adının altındaki satır, Facebook'un sırayla gösterdiği ayrıntılar yerine gönderinin tarihini gösterir. Bu ayrıntılar bazı telefonlarda boş kalır.
+Shows the post's date under the poster's name instead of Facebook's rotating details, which can go blank on some phones.	Gönderi sahibinin adının altında, bazı telefonlarda boş kalabilen Facebook'un değişen ayrıntıları yerine gönderi tarihini gösterir.
 Hide the Feeds header	Akışlar başlığını gizle
-Open the Feeds tab on its posts, without the title row or the filters under it. Restart Facebook after changing it.	Akışlar sekmesini başlık satırı ve altındaki filtreler olmadan, doğrudan gönderilerle açar. Değiştirdikten sonra Facebook'u yeniden başlatın.
+Shows the Feeds tab straight on its posts, without the title row or the filters. Restart Facebook to see the change.	Feeds sekmesini başlık satırı ve filtreler olmadan doğrudan gönderileriyle gösterir. Değişikliği görmek için Facebook'u yeniden başlatın.
 Hide reel interest prompts	Reels'teki ilgi sorusunu gizle
 No "Are you interested in this reel?" prompt on reels. The reel plays as usual.	Reels'te “Bu reel ile ilgileniyor musun?” sorusu çıkmaz. Reel her zamanki gibi oynar.
 Hide affiliate product links	Satış ortaklığı ürün bağlantılarını gizle
-The product cards of shop links creators add to posts, on reels, under feed posts and in the comments. The "Commission eligible" label stays.	İçerik üreticilerinin gönderilere eklediği mağaza bağlantılarının ürün kartları, reels'te, akıştaki gönderilerin altında ve yorumlarda. “Komisyona uygun” etiketi kalır.
+Hides product cards from shopping links that creators add to posts, reels and comments. The "Commission eligible" label stays.	İçerik üreticilerin gönderilere, reellere ve yorumlara eklediği alışveriş bağlantılarının ürün kartlarını gizler. “Komisyona uygun” etiketi kalır.
 Send to app	Uygulamaya gönder
 Send the link to	Bağlantıyı gönder:
 Couldn't open an app for this link	Bu bağlantı için bir uygulama açılamadı
@@ -556,16 +652,16 @@ Send the link to an app	Bağlantıyı bir uygulamaya gönder
 Reels and videos go to the app below as a facebook.com link. Hold the reel Download button to copy the link instead. Stories still save to this phone.	Reel'ler ve videolar aşağıdaki uygulamaya facebook.com bağlantısı olarak gider. Bağlantıyı kopyalamak için reel'in İndir düğmesini basılı tutun. Hikayeler bu telefona kaydedilmeye devam eder.
 Reels, videos and stories save to this phone.	Reel'ler, videolar ve hikayeler bu telefona kaydedilir.
 App to send to	Gönderilecek uygulama
-The package name of the app that gets the links, such as %1$s for YTDLnis or %2$s for Seal. Leave it blank to pick an app each time.	Bağlantıları alacak uygulamanın paket adı, örneğin YTDLnis için %1$s veya Seal için %2$s. Her seferinde bir uygulama seçmek için boş bırakın.
-Package name	Paket adı
-%1$s isn't a package name, so the app stays as it was.	%1$s bir paket adı değil, uygulama olduğu gibi kaldı.
+The ID of the app that gets the links, such as %1$s for YTDLnis or %2$s for Seal. Leave it blank to pick an app each time.	Bağlantıları alacak uygulamanın kimliği; YTDLnis için %1$s, Seal için %2$s gibi. Her seferinde uygulama seçmek için boş bırakın.
+App ID	Uygulama kimliği
+%1$s isn't a valid app ID, so the app stays as it was.	%1$s geçerli bir uygulama kimliği değil, bu yüzden uygulama eskisi gibi kalır.
 Android asks which app each time.	Android her seferinde hangi uygulamanın kullanılacağını sorar.
 Links go to %1$s. When it isn't installed, Android asks which app.	Bağlantılar %1$s uygulamasına gider. Yüklü değilse Android hangi uygulamanın kullanılacağını sorar.
 Hide "Find friends from contacts"	“Kişilerinden arkadaş bul” kartını gizle
-The Stories tray card asking to upload your contacts. Applies when Facebook next loads the tray.	Hikaye tepsisinde kişilerini yüklemeni isteyen kart. Facebook tepsiyi yeniden yüklediğinde uygulanır.
+Hides the Stories tray card that asks to upload your contacts. Applies when Facebook next loads the tray.	Hikayeler çubuğundaki kişilerinizi yüklemenizi isteyen kartı gizler. Facebook çubuğu bir sonraki yüklediğinde geçerli olur.
 Hide story prompts	Hikaye fikirlerini gizle
-The cards beside Create story that suggest a story to make, like Share music you love. Applies when Facebook next loads the tray.	Hikaye oluştur'un yanında sana bir hikaye öneren kartlar, örneğin sevdiğin müziği paylaşma kartı. Facebook tepsiyi yeniden yüklediğinde uygulanır.
-The row of friend suggestions between posts, the one on your own profile, and the cards with an Add button in the Stories tray.	Gönderilerin arasındaki arkadaş önerileri satırı, kendi profilindeki satır ve hikaye tepsisindeki Ekle düğmeli kartlar.
+Hides cards beside Create story that suggest a story to make, like Share music you love. Applies when Facebook next loads the tray.	Hikaye oluştur'un yanındaki, Sevdiğin müziği paylaş gibi hikaye önerilerini gizler. Facebook çubuğu bir sonraki yüklediğinde geçerli olur.
+Hides friend suggestions between posts, on your own profile, and as cards with an Add button in the Stories tray.	Gönderilerin arasındaki, kendi profilinizdeki ve Hikayeler çubuğunda Ekle düğmeli kartlar olarak görünen arkadaş önerilerini gizler.
 Feeds opens on	Akışlar şurada açılır
 All	Tümü
 Favorites	Favoriler
@@ -577,12 +673,17 @@ The Feeds tab will open on the filter Facebook picks.	Akışlar sekmesi Facebook
 The Feeds tab will open on %1$s.	Akışlar sekmesi %1$s filtresinde açılacak.
 Saved	Kaydedilenler
 Saved shortcut	Kaydedilenler kısayolu
-Adds Saved to Facebook's icon menu when there's room. Existing shortcuts stay.	Yer varsa Kaydedilenler seçeneğini Facebook simge menüsüne ekler. Mevcut kısayollar kalır.
-Adds Saved to Facebook's icon menu when there's room, and a Saved row at the end of Settings and privacy in the Menu. Existing shortcuts stay.	Yer varsa Kaydedilenler seçeneğini Facebook simge menüsüne, Menü içindeki Ayarlar ve gizlilik bölümünün sonuna da bir Kaydedilenler satırı ekler. Mevcut kısayollar kalır.
+Adds Saved to the menu you get by holding Facebook's icon, if there's room. Existing shortcuts stay.	Facebook simgesine basılı tutunca açılan menüye, yer varsa Kaydedilenler seçeneğini ekler. Mevcut kısayollar kalır.
+Adds Saved to the menu you get by holding Facebook's icon, if there's room, and a Saved row in Settings and privacy. Existing shortcuts stay.	Facebook simgesine basılı tutunca açılan menüye, yer varsa Kaydedilenler seçeneğini ve Ayarlar ve gizlilik içine bir Kaydedilenler satırı ekler. Mevcut kısayollar kalır.
 Your launcher has no room for another shortcut.	Başlatıcınızda başka bir kısayol için yer yok.
 Saved isn't available in this build.	Kaydedilenler bu sürümde kullanılamıyor.
+Watch history	İzleme geçmişi
+Watch history shortcut	İzleme geçmişi kısayolu
+Watch history isn't available in this build.	İzleme geçmişi bu sürümde kullanılamıyor.
+Adds Watch history, the videos and reels you've watched, to the menu you get by holding Facebook's icon, if there's room, and a Watch history row in Settings and privacy. Existing shortcuts stay.	Facebook simgesine basılı tutunca açılan menüye, yer varsa İzleme geçmişi seçeneğini (izlediğin videolar ve reels) ve Ayarlar ve gizlilik içine bir İzleme geçmişi satırı ekler. Mevcut kısayollar kalır.
+Adds Watch history, the videos and reels you've watched, to the menu you get by holding Facebook's icon, if there's room. Existing shortcuts stay.	Facebook simgesine basılı tutunca açılan menüye, yer varsa İzleme geçmişi seçeneğini (izlediğin videolar ve reels) ekler. Mevcut kısayollar kalır.
 Match whole words	Tam sözcükleri eşleştir
-Apply whole-word matching to both lists. For example, hat matches hat! but not what or hats.	Her iki listede de tam sözcükleri eşleştirir. Örneğin, hat sözcüğü hat! ile eşleşir, what veya hats ile eşleşmez.
+Matches whole words only, in both lists. For example, hat matches hat! but not what or hats.	Her iki listede de yalnızca tam sözcükleri eşleştirir. Örneğin hat, hat! ile eşleşir ama what veya hats ile eşleşmez.
 Off	Kapalı
 On	Açık
 Saved now %1$s. After import %2$s.	Şu an kayıtlı %1$s. İçe aktarma sonrası %2$s.
@@ -592,18 +693,234 @@ Build %1$s (source known)	Derleme %1$s (kaynak biliniyor)
 Build %1$s (source unknown)	Derleme %1$s (kaynak bilinmiyor)
 Tap Resume, then restart Facebook.	Devam et'e dokunun, ardından Facebook'u yeniden başlatın.
 Turn off haptics	Dokunsal titreşimi kapat
-No short vibrations on Facebook's own taps and gestures. The keyboard and your phone's own haptics stay.	Facebook'un kendi dokunuşlarında ve hareketlerinde kısa titreşim olmaz. Klavye ve telefonunun kendi dokunsal titreşimi kalır.
+Stops the small vibrations Facebook makes when you tap or swipe. Your keyboard and phone vibrations aren't affected.	Facebook'un dokunma veya kaydırma sırasında yaptığı küçük titreşimleri durdurur. Klavyenizin ve telefonunuzun titreşimleri etkilenmez.
 Turn off screen transitions	Ekran geçişlerini kapat
-Tabs, the Menu and screens that open over Facebook show at once, without the slide between them. Swiping between tabs stays.	Sekmeler, Menü ve Facebook'un üzerinde açılan ekranlar, aralarındaki kayma olmadan hemen görünür. Sekmeler arasında kaydırma kalır.
+Tabs, the Menu and screens that open over Facebook appear at once instead of sliding in. Swiping between tabs still works.	Sekmeler, Menü ve Facebook'un üzerinde açılan ekranlar kayarak gelmek yerine hemen görünür. Sekmeler arasında kaydırma yine çalışır.
+Unlock app icons	Uygulama simgelerinin kilidini aç
+Lets you pick the app icons Facebook keeps for Facebook Plus on its App icon page. Your pick stays if you turn this off, so pick the blue one first to go back.	Facebook'un Uygulama simgesi sayfasında Facebook Plus'a ayırdığı simgeleri seçmenizi sağlar. Bunu kapatsanız da seçiminiz kalır, geri dönmek için önce mavi olanı seçin.
 Picture-in-picture	Pencere içinde pencere
-A playing reel keeps going in a small window when you leave Facebook. Android 12 or later.	Oynatılan bir reel, Facebook'tan çıktığında küçük bir pencerede devam eder. Android 12 veya üstü.
+A playing reel or full-screen video keeps going in a small window when you leave Facebook. Android 12 or later.	Oynatılan bir reel ya da tam ekran video, Facebook'tan çıktığında küçük bir pencerede devam eder. Android 12 veya üstü.
 Turn off HDR brightness	HDR parlaklığını kapat
 HDR videos and photos stay at your screen's usual brightness instead of turning it up to full. They keep their resolution.	HDR videolar ve fotoğraflar, ekranı tam parlaklığa çıkarmak yerine ekranın her zamanki parlaklığında kalır. Çözünürlükleri değişmez.
+Keep the progress bar	İlerleme çubuğunu koru
+A reel's progress bar stays full size, ready to drag. A full-screen video's controls stay until you tap.	Bir reel'in ilerleme çubuğu tam boyutta kalır ve sürüklemeye hazırdır. Tam ekran bir videonun kontrolleri siz dokunana kadar kalır.
+Show a reel's time	Reel'in süresini göster
+With Keep the progress bar on, a reel's elapsed and total time stay above the bar. Off, they show only while you drag it.	İlerleme çubuğunu koru açıkken bir reel'in geçen ve toplam süresi çubuğun üstünde kalır. Kapalıyken yalnızca çubuğu sürüklerken görünür.
 Show View profile on Marketplace sellers	Marketplace satıcılarında Profili gör'ü göster
-A seller's Marketplace page always has View profile, which opens their regular Facebook profile. Facebook shows it to only some accounts.	Bir satıcının Marketplace sayfasında her zaman Profili gör bulunur ve satıcının normal Facebook profilini açar. Facebook bunu yalnızca bazı hesaplara gösterir.
-English	English
-Follow Facebook	Follow Facebook
-Follow system	Follow system
+Adds a View profile button to every seller's Marketplace page, opening their Facebook profile. Facebook only shows it to some accounts.	Her Marketplace satıcı sayfasına, Facebook profilini açan bir Profili gör düğmesi ekler. Facebook bunu yalnızca bazı hesaplara gösterir.
+Save Facebook's notification sound	Facebook'un bildirim sesini kaydet
+Adds Facebook's chime to your phone's notification sounds, for categories set to None. Then pick it in Android's notification settings for Facebook, under Sound.	Facebook'un bildirim sesini telefonunuzun bildirim seslerine ekler; sesi Hiçbiri olan kategoriler için. Sonra Android'in Facebook bildirim ayarlarında Ses bölümünden seçin.
+Saved as %1$s in the Notifications folder. Pick it under Sound in Android's notification settings for Facebook.	Notifications klasörüne %1$s olarak kaydedildi. Android'in Facebook bildirim ayarlarında Ses altından seç.
+%1$s is already in your notification sounds.	%1$s zaten bildirim seslerinde.
+This build has no notification sound to save.	Bu derlemede kaydedilecek bir bildirim sesi yok.
+Couldn't save the sound. Try again.	Ses kaydedilemedi. Tekrar dene.
+Hide the composer row	Gönderi oluşturma satırını gizle
+Hides the "What's on your mind?" row at the top of Home. The create button in the top bar still starts a post.	Ana Sayfa'nın üstündeki “Aklında ne var?” satırını gizler. Üst çubuktaki oluştur düğmesi yine gönderi başlatır.
+Always use Clean mode	Her zaman temiz modu kullan
+Opens reels and videos in Facebook's Clean mode, which hides the buttons down the side. You can still leave Clean mode as usual. Untested on a real account, so it starts off.	Reelleri ve videoları Facebook'un Temiz modunda açar; bu mod yandaki düğmeleri gizler. Temiz moddan yine her zamanki gibi çıkabilirsiniz. Gerçek bir hesapta henüz denenmedi, bu yüzden kapalı başlar.
+Play reels once	Reelleri bir kez oynat
+A reel stops on its last frame instead of starting over. Tap it to watch again, or swipe to the next one. Feed videos and stories aren't changed. Untested on a real account, so it starts off.	Bir reel baştan başlamak yerine son karesinde durur. Yeniden izlemek için dokunun ya da sonrakine kaydırın. Akıştaki videolar ve hikayeler değişmez. Gerçek bir hesapta henüz denenmedi, bu yüzden kapalı başlar.
+Meta's other products	Meta'nın diğer ürünleri
+Hide Edits promotions	Edits tanıtımlarını gizle
+Hide Threads cross-posting prompts	Threads'de paylaşma önerilerini gizle
+Hide Threads in the share sheet	Paylaşım menüsünde Threads'i gizle
+Hide Meta Verified offers	Meta Verified tekliflerini gizle
+Hide avatar sticker promotions	Avatar çıkartması tanıtımlarını gizle
+Hides the Edits button in the Reels composer and the Edits pill under videos. You can still make reels in Facebook.	Reels oluşturucudaki Edits düğmesini ve videoların altındaki Edits etiketini gizler. Facebook'ta yine reel yapabilirsiniz.
+Facebook stops asking whether to share your post to Threads too. Posting to Facebook works as before.	Facebook, gönderinizi Threads'te de paylaşmak isteyip istemediğinizi sormayı bırakır. Facebook'ta paylaşım eskisi gibi çalışır.
+Removes the Threads button when you share something. All other ways to share stay, in the same order.	Bir şey paylaşırken Threads düğmesini kaldırır. Diğer paylaşım yolları aynı sırayla kalır.
+No Meta Verified offer after you post, and no Meta Verified label under the names on posts. Posting works as usual.	Paylaşım yaptıktan sonra Meta Verified teklifi çıkmaz, gönderilerdeki isimlerin altında Meta Verified etiketi de görünmez. Paylaşım her zamanki gibi çalışır.
+Hides avatar sticker promotions in comments and elsewhere, and the prompt to make an avatar. Stickers still send.	Yorumlarda ve diğer yerlerde avatar çıkartması tanıtımlarını ve avatar oluşturma önerisini gizler. Çıkartmalar yine gönderilir.
+Hide Meta AI's Imagine	Meta AI'ın Imagine özelliğini gizle
+Hide other Meta AI buttons under posts	Gönderilerin altındaki diğer Meta AI düğmelerini gizle
+Hides the Imagine me button on posts and the Imagine option when you write a post or create a story. Everything else works as before.	Gönderilerdeki Imagine me düğmesini ve gönderi yazarken ya da hikaye oluştururken görünen Imagine seçeneğini gizler. Geri kalan her şey eskisi gibi çalışır.
+Hides the other Meta AI buttons Facebook puts under posts. The post's next button shows instead, if it has one.	Facebook'un gönderilerin altına koyduğu diğer Meta AI düğmelerini gizler. Varsa gönderinin sonraki düğmesi onun yerine görünür.
+Loop stories	Hikayeleri tekrarla
+With Stop Story auto-advance on, a finished story plays again from the start instead of waiting on its last frame. Tap or swipe to move on.	Hikayelerin otomatik ilerlemesini durdur açıkken, biten bir hikaye son karesinde beklemek yerine baştan yeniden oynar. Devam etmek için dokun veya kaydır.
+Save photo in post menus	Gönderi menülerinde fotoğrafı kaydet
+With Save any photo on, a post with photos gets Save photo in its three-dot menu too. A post with several saves each one, one after another.	Her fotoğrafı kaydet açıkken, fotoğraflı bir gönderinin üç nokta menüsünde de Fotoğrafı kaydet çıkar. Birden çok fotoğraf varsa her biri sırayla kaydedilir.
+Save photo	Fotoğrafı kaydet
+Save all photos	Tüm fotoğrafları kaydet
+Couldn't save this post's photos. Try again in a moment.	Bu gönderinin fotoğrafları kaydedilemedi. Birazdan tekrar dene.
+Answer rewarded game ads as watched	Ödüllü oyun reklamlarını izlenmiş say
+With Block Instant Games ads on, a game's rewarded ad counts as watched. No ad plays and the game still gives its reward.	“Instant Games reklamlarını engelle” açıkken oyunun ödüllü reklamı izlenmiş sayılır. Reklam oynatılmaz ve oyun ödülünü yine de verir.
+Reels quality	Reels kalitesi
+Stories quality	Hikaye kalitesi
+Same as videos	Videolarla aynı
+Reels play at the playback quality above.	Reels yukarıdaki oynatma kalitesinde oynatılır.
+Video stories play at the playback quality above.	Video hikayeler yukarıdaki oynatma kalitesinde oynatılır.
+Video subfolder	Video alt klasörü
+Photo subfolder	Fotoğraf alt klasörü
+Choose a folder for videos inside the save folder. Invalid characters become underscores. Leave it blank to keep videos in the save folder itself.	Kayıt klasörünün içinde videolar için bir klasör seç. Geçersiz karakterler alt çizgiye dönüşür. Videoların doğrudan kayıt klasöründe kalması için boş bırak.
+Choose a folder for photos inside the save folder. Invalid characters become underscores. Leave it blank to keep photos in the save folder itself.	Kayıt klasörünün içinde fotoğraflar için bir klasör seç. Geçersiz karakterler alt çizgiye dönüşür. Fotoğrafların doğrudan kayıt klasöründe kalması için boş bırak.
+Videos go to %1$s.	Videolar %1$s klasörüne kaydedilir.
+Photos go to %1$s.	Fotoğraflar %1$s klasörüne kaydedilir.
+Hide the Home tab badge	Ana Sayfa sekmesindeki rozeti gizle
+Hide the Friends tab badge	Arkadaşlar sekmesindeki rozeti gizle
+Hide the Marketplace tab badge	Marketplace sekmesindeki rozeti gizle
+Hide the Notifications tab badge	Bildirimler sekmesindeki rozeti gizle
+Hide the Menu tab badge	Menü sekmesindeki rozeti gizle
+Hide the Groups tab badge	Gruplar sekmesindeki rozeti gizle
+Hide other tabs' badges	Diğer sekmelerdeki rozetleri gizle
+Hide the app icon count	Uygulama simgesindeki sayıyı gizle
+No dot or count on Feeds, Gaming, Events and the other tabs not listed here. The Reels tab has its own switch.	Akışlar, Oyun, Etkinlikler ve burada listelenmeyen diğer sekmelerde nokta ya da sayı olmaz. Reels sekmesinin kendi anahtarı var.
+No dot or count on this tab. Its page still shows what's new when you open it.	Bu sekmede nokta ya da sayı olmaz. Sayfası açtığında yenilikleri göstermeye devam eder.
+No number on Facebook's app icon. Notifications still arrive. Some launchers add their own count, which this can't remove.	Facebook uygulama simgesinde sayı görünmez. Bildirimler yine gelir. Bazı başlatıcılar kendi sayacını ekler, bunu buradan kaldıramayız.
+Turn off auto-translation	Otomatik çeviriyi kapat
+Posts and reel captions stay in the language they were written in. Facebook's See translation link stays under them.	Gönderiler ve reels açıklamaları yazıldıkları dilde kalır. Facebook'un Çevirisini gör bağlantısı altlarında durur.
+Keep the video speed	Video hızını koru
+The speed you pick in a feed or Watch video's menu carries over to the next videos. Reels keep their own speed. Untested on a real account, so it starts off.	Akıştaki veya Watch'taki bir videonun menüsünden seçtiğiniz hız sonraki videolara da geçer. Reeller kendi hızını korur. Gerçek bir hesapta henüz denenmedi, bu yüzden kapalı başlar.
+Offer to download copied links	Kopyalanan bağlantılar için indirme öner
+With Download feed and Watch videos on, coming back to Facebook with a reel or video link copied offers to download it, once per link. Off, Facebook doesn't look at what you copied.	Akış ve Watch videolarını indir açıkken, kopyalanmış bir reel veya video bağlantısıyla Facebook'a döndüğünde onu indirmen önerilir, her bağlantı için bir kez. Kapalıyken Facebook kopyaladığın şeye bakmaz.
+Download the video you copied?	Kopyaladığın video indirilsin mi?
+No thanks	Hayır, teşekkürler
+Couldn't find the video in that link, so it opened in Facebook instead.	Bu bağlantıda video bulunamadı, bu yüzden Facebook'ta açıldı.
+Opening the video to save it	Video kaydetmek için açılıyor
+Mark as seen button	Görüldü olarak işaretle düğmesi
+Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	Anonim izlerken her hikayenin üstüne bir göz düğmesi ekler. O hikayenin izleyici listesinde görünmek için düğmeye dokun. Diğer hikayeler gizli kalır.
+Mark as seen	Görüldü olarak işaretle
+Marked as seen. Tap again to undo.	Görüldü olarak işaretlendi. Geri almak için tekrar dokun.
+Marked as seen and sent	Görüldü olarak işaretlendi ve gönderildi
+A line between slashes, like /gr[ae]y/, is a pattern that can match several spellings (a regular expression). A list holds up to %1$d, each up to %2$d characters.	Eğik çizgiler arasındaki bir satır, örneğin /gr[ae]y/, birkaç yazımla eşleşebilen bir kalıptır (düzenli ifade). Bir liste en fazla %1$d tane tutar, her biri en fazla %2$d karakter.
+Line %1$d isn't a pattern Hushfacebook can read. Fix it or remove it, then save again.	%1$d. satır Hushfacebook'un okuyabildiği bir kalıp değil. Düzelt ya da sil, sonra yeniden kaydet.
+A list holds up to %1$d patterns, and this one has more. Remove some, then save again.	Bir liste en fazla %1$d kalıp alır ve bu listede daha fazlası var. Birkaçını silip yeniden kaydet.
+Hide photo posts	Fotoğraf gönderilerini gizle
+Hide video posts	Video gönderilerini gizle
+Hide link posts	Bağlantı gönderilerini gizle
+Hide posts on a colored background	Renkli arka planlı gönderileri gizle
+Hides posts with a photo or album, including shares.	Fotoğraf veya albüm içeren gönderileri, paylaşımlar dahil, gizler.
+Hides posts with a video, including shares. Reels in the feed have their own switch.	Video içeren gönderileri, paylaşımlar dahil, gizler. Akıştaki reellerin kendi anahtarı var.
+Hides posts that share a link to a website, with its preview card.	Bir web sitesine bağlantı paylaşan gönderileri, önizleme kartıyla birlikte gizler.
+Hides short posts shown as big text on a colored background.	Renkli bir arka planda büyük yazı olarak görünen kısa gönderileri gizler.
+Lock Facebook	Facebook'u kilitle
+Facebook asks for your fingerprint, face or screen lock at startup and when you return after the time below. Your phone needs a screen lock.	Facebook, açılırken ve aşağıdaki süreden sonra geri döndüğünüzde parmak izi, yüz veya ekran kilidi ister. Telefonunuzda ekran kilidi olmalı.
+Set a screen lock in your phone's settings first, so Facebook has something to ask for.	Facebook'un isteyebileceği bir şey olsun diye önce telefonunun ayarlarından bir ekran kilidi ayarla.
+Lock after	Kilitleme süresi
+As soon as you leave	Ayrılır ayrılmaz
+1 minute	1 dakika
+5 minutes	5 dakika
+15 minutes	15 dakika
+1 hour	1 saat
+Facebook locks as soon as you leave it.	Facebook, ayrılır ayrılmaz kilitlenir.
+Facebook locks once you've been away for %1$s.	Facebook, %1$s uzak kaldığında kilitlenir.
+With Lock Facebook on, it will lock as soon as you leave it.	Facebook'u kilitle açıkken, ayrılır ayrılmaz kilitlenecek.
+With Lock Facebook on, it will lock once you've been away for %1$s.	Facebook'u kilitle açıkken, %1$s uzak kaldığında kilitlenecek.
+Unlock Facebook	Facebook'un kilidini aç
+Facebook is locked	Facebook kilitli
+Use your fingerprint, face or screen lock to open it.	Açmak için parmak izini, yüzünü ya da ekran kilidini kullan.
+Unlock	Kilidi aç
+Text size	Metin boyutu
+As Facebook has it	Facebook'ta olduğu gibi
+Facebook's text is the size your phone's font size setting gives it.	Facebook'taki metin, telefonunun yazı tipi boyutu ayarının verdiği boyutta.
+Facebook's text is %1$s of the size your phone's font size setting gives it. Restart Facebook to see the change.	Facebook'un yazısı, telefonunuzun yazı boyutu ayarının verdiği boyutun %1$s kadarıdır. Değişikliği görmek için Facebook'u yeniden başlatın.
+Facebook's text will be the size your phone's font size setting gives it.	Facebook'taki metin, telefonunun yazı tipi boyutu ayarının verdiği boyutta olacak.
+Facebook's text will be %1$s of the size your phone's font size setting gives it.	Facebook'taki metin, telefonunun yazı tipi boyutu ayarının verdiği boyutun %1$s kadarı olacak.
+Accent color	Vurgu rengi
+Facebook blue	Facebook mavisi
+Teal	Turkuaz
+Green	Yeşil
+Purple	Mor
+Pink	Pembe
+Orange	Turuncu
+Red	Kırmızı
+Indigo	Çivit
+Amber	Kehribar
+Material You theme is in this build and picks Facebook's colors, so this has no effect.	Material You teması bu sürümde var ve Facebook'un renklerini seçiyor, bu yüzden bunun bir etkisi yok.
+Links, buttons, switches and the selected tab keep Facebook's blue.	Bağlantılar, düğmeler, anahtarlar ve seçili sekme Facebook'un mavisini korur.
+Links, buttons, switches and the selected tab use %1$s instead of Facebook's blue. Restart Facebook to see the change. If the Material You theme is added, it takes over.	Bağlantılar, düğmeler, anahtarlar ve seçili sekme Facebook'un mavisi yerine %1$s kullanır. Değişikliği görmek için Facebook'u yeniden başlatın. Material You teması eklenmişse o geçerli olur.
+Facebook will keep its own blue.	Facebook kendi mavisini koruyacak.
+If your patched Facebook includes Accent color, Facebook's blue will be %1$s.	Yamalı Facebook'unuz Vurgu rengini içeriyorsa Facebook'un mavisi %1$s olacak.
+Send photos and videos at original quality	Fotoğrafları ve videoları orijinal kalitede gönder
+Sends photos and videos in Facebook chats at full quality. Photos lose location and camera details. Big files and videos with a location tag are still shrunk.	Facebook sohbetlerinde fotoğrafları ve videoları tam kalitede gönderir. Fotoğraflar konum ve kamera bilgisini kaybeder. Büyük dosyalar ve konum etiketli videolar yine küçültülür.
+Add a topic pack	Konu paketi ekle
+Politics	Siyaset
+Elections	Seçimler
+Crypto	Kripto
+Sports	Spor
+Celebrity gossip	Ünlü dedikodusu
+Weight loss ads	Kilo verme reklamları
+Giveaways and engagement bait	Çekilişler ve etkileşim tuzakları
+Added %1$d word from %2$s.	%2$s paketinden %1$d kelime eklendi.
+Added %1$d words from %2$s.	%2$s paketinden %1$d kelime eklendi.
+%1$d was already in the list.	%1$d zaten listedeydi.
+%1$d were already in the list.	%1$d zaten listedeydi.
+The list is full, so the rest weren't added.	Liste dolu, bu yüzden kalanlar eklenmedi.
+The list is full, so nothing was added.	Liste dolu, bu yüzden hiçbir şey eklenmedi.
+Every word from %1$s is already in the list.	%1$s paketindeki tüm kelimeler zaten listede.
+Tap Save to keep the list.	Listeyi tutmak için Kaydet'e dokun.
+Hide posts with more reactions than	Şundan fazla tepki alan gönderileri gizle
+%1$s reactions	%1$s tepki
+Posts stay however many reactions they have.	Gönderiler kaç tepki alırsa alsın kalır.
+Hides posts with more than %1$s reactions, read from the count Facebook shows under a post.	%1$s tepkiden fazlası olan gönderileri gizler. Sayı, Facebook'un gönderinin altında gösterdiği sayıdan okunur.
+The feed won't hide posts for how many reactions they have.	Akış, gönderileri tepki sayısına göre gizlemeyecek.
+The feed will hide posts with more than %1$s reactions.	Akış, %1$s tepkiden fazlası olan gönderileri gizleyecek.
+Hide posts you've already seen	Daha önce gördüğün gönderileri gizle
+Posts you've scrolled past stay out of the feed when it loads again. The list stays on this phone. Turning this off empties it.	Üzerinden kaydırdığınız gönderiler akış yeniden yüklendiğinde görünmez. Liste bu telefonda kalır. Bunu kapatmak listeyi boşaltır.
+Keep them hidden for	Gizli kalma süresi
+1 day	1 gün
+3 days	3 gün
+7 days	7 gün
+30 days	30 gün
+A post you've scrolled past stays out of the feed for %1$s.	Üzerinden geçtiğin bir gönderi %1$s boyunca akışın dışında kalır.
+Forget seen posts	Görülen gönderileri unut
+Empties the list of posts you've seen, so they can show up again.	Görülen gönderilerin listesini boşaltır, böylece gönderiler yeniden görünebilir.
+Seen posts forgotten.	Görülen gönderiler unutuldu.
+Posts you've seen will stay hidden for %1$s.	Gördüğün gönderiler %1$s boyunca gizli kalacak.
+Facebook's Whitehat settings	Facebook'un Whitehat ayarları
+Facebook's own screen for security testing. It can make Facebook trust security certificates you installed, or send its data through a proxy (a go-between server). Hushfacebook doesn't change anything there.	Facebook'un güvenlik testleri için kendi ekranı. Facebook'un yüklediğiniz güvenlik sertifikalarına güvenmesini veya verilerini bir proxy (aracı sunucu) üzerinden göndermesini sağlayabilir. Hushfacebook orada hiçbir şeyi değiştirmez.
+Facebook hasn't downloaded this screen to this phone, so a tap opens the Whitehat page on the web instead.	Facebook bu ekranı bu telefona indirmedi, bu yüzden dokunduğunda web'deki Whitehat sayfası açılır.
+This Facebook build has no Whitehat settings screen.	Bu Facebook sürümünde Whitehat ayarları ekranı yok.
+Only the first reel waits	Yalnızca ilk reel bekler
+With the switch above on, after you play one reel, the reels you swipe to play on their own. The feed, Watch and stories always wait.	Yukarıdaki anahtar açıkken bir reel oynattıktan sonra kaydırdığınız reeller kendiliğinden oynar. Akış, Watch ve hikayeler her zaman bekler.
+Slower speeds	Daha yavaş hızlar
+Adds 0.1x and 0.25x to the speed menu of reels and of feed and Watch videos, for slowing down a fast moment.	Reellerin ve akış ile Watch videolarının hız menüsüne 0,1x ve 0,25x seçeneklerini ekler; hızlı geçen bir anı yavaşlatmak için.
+Share now	Şimdi paylaş
+Send in Messenger	Messenger'da gönder
+Share to your story	Hikayenizde paylaş
+Share to a group	Bir grupta paylaş
+Share to a Page	Bir Sayfada paylaş
+Copy link	Bağlantıyı kopyala
+Share sheet items to hide	Paylaşırken gizlenecek öğeler
+None. The share sheet shows everything Facebook offers.	Hiçbiri. Paylaşım menüsü Facebook'un sunduğu her şeyi gösterir.
+Hidden: %s	Gizlenenler: %s
+Hide from the share sheet	Paylaşım menüsünden gizle
+%1$d more	%1$d tane daha
+%1$d switch starts off now	%1$d anahtar artık kapalı başlıyor
+%1$d switches start off now	%1$d anahtar artık kapalı başlıyor
+After this update, a switch you had on may be off now. Tap to see which.	Bu güncellemeden sonra açık tuttuğun bir anahtar artık kapalı olabilir. Hangileri olduğunu görmek için dokun.
+Now off: %1$s. Turn it back on in its section if you want it. Tap again to hide this note.	Artık kapalı: %1$s. İstersen bölümünden yeniden aç. Bu notu gizlemek için yeniden dokun.
+Now off: %1$s. Turn back on the ones you want in their sections. Tap again to hide this note.	Artık kapalı: %1$s. İstediklerini bölümlerinden yeniden aç. Bu notu gizlemek için yeniden dokun.
+Your list of share sheet items to hide will be empty.	Paylaşırken gizlenecek öğeler listen boş olacak.
+Your list of share sheet items to hide will hold %1$d item.	Paylaşırken gizlenecek öğeler listende %1$d öğe olacak.
+Your list of share sheet items to hide will hold %1$d items.	Paylaşırken gizlenecek öğeler listende %1$d öğe olacak.
+Support Hushfacebook	Hushfacebook'u destekle
+Buy me a coffee on Ko-fi	Ko-fi'de bana bir kahve ısmarla
+Where ads and tracking are blocked	Reklamların ve takibin engellendiği yerler
+The places Facebook shows ads or reports what you do, and what this build does about each. A line with a switch takes you to it.	Facebook'un reklam gösterdiği ya da ne yaptığınızı bildirdiği yerler ve bu sürümün her biri için yaptıkları. Anahtarı olan bir satır sizi o anahtara götürür.
+Ads in the feed	Akıştaki reklamlar
+Ads on profiles	Profillerdeki reklamlar
+Ads in Stories	Hikayelerdeki reklamlar
+Ads in Reels	Reels videolarındaki reklamlar
+Ads in search results	Arama sonuçlarındaki reklamlar
+Ads in Marketplace	Marketplace'teki reklamlar
+Ads in Instant Games	Instant Games reklamları
+Ads downloaded in advance	Önceden indirilen reklamlar
+Ad tracking	Reklam takibi
+Facebook's ads in other apps	Diğer uygulamalardaki Facebook reklamları
+Those apps show their own ads or none, and their rewarded ads may fail.	Bu uygulamalar kendi reklamlarını gösterir ya da hiç göstermez, ödüllü reklamları da çalışmayabilir.
+Usage statistics uploads	Kullanım istatistiği yüklemeleri
+Facebook's on-phone learning jobs stop too, and a change applies after Facebook restarts.	Facebook'un telefondaki öğrenme görevleri de durur ve bir değişiklik Facebook yeniden başladıktan sonra geçerli olur.
+Reel watch history	Reels izleme geçmişi
+Reels you've already seen may come back.	Daha önce izlediğiniz reeller geri gelebilir.
+Blocked since you patched. There's no switch for it.	Yamaladığından beri engelli. Bunun için anahtar yok.
+Its switch is %1$s, in %2$s.	Anahtarı %1$s, %2$s bölümünde.
+Hide group buttons in the share sheet	Paylaşırken grup düğmelerini gizle
+Takes away Send to group when you pick two or more people, and the share sheet's own ways to start a new group, so nothing you share makes a group chat by accident. Send separately stays.	İki veya daha fazla kişi seçtiğinde “Gruba gönder” seçeneğini ve paylaşırken yeni grup başlatma yollarını kaldırır, böylece paylaştığın hiçbir şey yanlışlıkla grup sohbeti oluşturmaz. “Ayrı ayrı gönder” kalır.
+Share the post's own link	Gönderinin kendi bağlantısını paylaş
+Copy link and the share sheet's other link shares give the post's own facebook.com address instead of a facebook.com/share/ link made for that one share.	“Bağlantıyı kopyala” ve paylaşım menüsündeki diğer bağlantı paylaşma yolları, yalnızca o paylaşım için oluşturulan bir facebook.com/share/ bağlantısı yerine gönderinin kendi facebook.com adresini verir.
 Interface language	Interface language
+Follow system	Follow system
+Follow Facebook	Follow Facebook
 Traditional Chinese	Traditional Chinese
+English	English
 Turn this on to open the Messenger app from Facebook's top Messenger icon. Turn it off to open Facebook's built-in Chats directly instead of Meta's Messenger redirect prompt. A long press keeps Facebook's own behavior.	Facebook'un üst kısmındaki Messenger simgesinden Messenger uygulamasını açmak için bunu etkinleştirin. Kapatıldığında Meta'nın Messenger yönlendirme istemi yerine Facebook'un yerleşik Sohbetleri doğrudan açılır. Uzun basma Facebook'un kendi davranışını korur.

@@ -4,13 +4,26 @@
  */
 package app.morphe.extension.facebook.theme;
 
+import android.app.Activity;
+import android.app.Application;
 import android.content.ComponentCallbacks;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.InsetDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.os.Bundle;
+import android.util.TypedValue;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.view.Window;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -21,13 +34,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
+import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
+import app.morphe.extension.facebook.misc.WindowsAbove;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.SettingsStatus;
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
+import app.morphe.extension.shared.diagnostics.DiagnosticCategory;
 import app.morphe.extension.shared.diagnostics.HookStatus;
+import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.preference.LogBufferManager;
 
 /**
@@ -172,11 +191,35 @@ public final class MaterialYouTheme {
         HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
         if (!(token instanceof Enum) || !DarkMode.on()) return color;
         String name = ((Enum<?>) token).name();
-        if (listed(FDS.get(name), color) || tintedByAmoled(FDS.get(name), color, name)
+        if (listed(FDS.get(name), color) || madeByAmoled(FDS.get(name), color, name)
                 || (listed(SHARED.get(name), color) && DarkMode.saidOn())) {
-            return recolour(palette(), color);
+            return AmoledTheme.foreground(recolour(palette(), color), name);
         }
+        if (isSurface(color)) noteUnlisted(name, color);
         return color;
+    }
+
+    /** The tokens {@link #noteUnlisted} has written to the log. */
+    private static final Set<String> UNLISTED = Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+    /** The most tokens written, so a screen full of them can't fill the log. */
+    private static final int MAX_UNLISTED = 40;
+
+    /**
+     * With Debug logging on, writes each token that came with one of the {@link #SURFACES} and was
+     * left alone, once per token: a token Facebook gives the same dark grey in both themes isn't in
+     * {@link #FDS_DARK}, so a report names the token behind a gray the theme missed (#37). Only the
+     * token's name and colour are written.
+     */
+    private static void noteUnlisted(String token, int color) {
+        if (UNLISTED.size() >= MAX_UNLISTED || UNLISTED.contains(token)) return;
+        if (!Utils.settingsReady() || !BaseSettings.DEBUG.get() || !UNLISTED.add(token)) return;
+        Logger.diagnosticDebug(DiagnosticCategory.OTHER, "Material You theme",
+                () -> String.format(Locale.ROOT, "Material You left token %s at #%06X", token, color & 0xFFFFFF));
+    }
+
+    static void forgetUnlistedForTests() {
+        UNLISTED.clear();
     }
 
     private static boolean listed(@Nullable int[] colours, int color) {
@@ -188,14 +231,19 @@ public final class MaterialYouTheme {
     }
 
     /**
-     * Whether {@code color} is AMOLED's stronger tint of one of {@code colours}: with AMOLED in the
-     * build its hook goes first, so an unread notification's row reaches this one at
-     * {@link AmoledTheme#NEW_NOTIFICATION_ALPHA}, issue #72. The palette's accent keeps that alpha.
+     * Whether {@code color} is what AMOLED made of one of {@code colours}: with AMOLED in the build
+     * its hook goes first. An unread notification's row reaches this one at
+     * {@link AmoledTheme#NEW_NOTIFICATION_ALPHA}, issue #72, and the palette's accent keeps that
+     * alpha. On a lighter Background colour a text role reaches it lifted
+     * ({@link AmoledTheme#foreground}, issue #34), and takes the palette at the lifted lightness.
      */
-    private static boolean tintedByAmoled(@Nullable int[] colours, int color, String token) {
+    private static boolean madeByAmoled(@Nullable int[] colours, int color, String token) {
         if (colours == null) return false;
         for (int value : colours) {
-            if (value != color && AmoledTheme.unreadRow(value, token) == color) return true;
+            if (value != color && (AmoledTheme.unreadRow(value, token) == color
+                    || AmoledTheme.foreground(value, token) == color)) {
+                return true;
+            }
         }
         return false;
     }
@@ -203,10 +251,15 @@ public final class MaterialYouTheme {
     /**
      * Route one, for Mig: a colour the Mig dark scheme returns. That scheme only answers for a dark
      * surface, so its greys and blues are recoloured whatever the token, in Facebook's dark mode.
+     * The palette's colour keeps the lightness it came with, and on a lighter AMOLED Background
+     * colour a text role is held to AMOLED's contrast again ({@link AmoledTheme#foreground}), since
+     * the palette's steps are only as close as its table.
      */
     public static int mig(int color, Object token) {
         HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
-        return (color >>> 24) == 0xFF && DarkMode.on() ? recolour(palette(), color) : color;
+        if ((color >>> 24) != 0xFF || !DarkMode.on()) return color;
+        int themed = recolour(palette(), color);
+        return token instanceof Enum ? AmoledTheme.foreground(themed, ((Enum<?>) token).name()) : themed;
     }
 
     /**
@@ -218,6 +271,20 @@ public final class MaterialYouTheme {
     public static int parseColor(String text) {
         HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
         return withoutToken(SettingsStatus.amoledTheme() ? AmoledTheme.parseColor(text) : Color.parseColor(text));
+    }
+
+    /**
+     * Route four for the box under a link post's picture, its site and title (issue #37). In
+     * Facebook's dark mode each kind of link attachment picks that colour by parsing one MobileConfig
+     * sends before it looks at a token, and the box came out #333334, CARD_BACKGROUND's dark grey.
+     * That grey is no {@link #SURFACES} colour, light mode drawing it too, so {@link #parseColor}
+     * alone leaves it. The patch sends only those parses here, and the box is a background like a
+     * React card's ({@link #reactBackground}): once Facebook has said dark mode is on, a grey
+     * {@link #FDS_DARK} lists takes the palette's neutral at the same lightness. With AMOLED in the
+     * build its near black stays.
+     */
+    public static int parseLinkBox(String text) {
+        return darkBackground(parseColor(text));
     }
 
     /**
@@ -261,26 +328,76 @@ public final class MaterialYouTheme {
     }
 
     /**
-     * A colour resource read as a drawable with {@code Context.getDrawable}. Litho resolves a token's
-     * theme attribute to the resource it points at and asks for its drawable (581 {@code LX/2b3;->A05},
-     * 580 {@code LX/2Z3;->A05}, 577 {@code LX/23p;->A05}), so the feed's composer row is a plain
-     * drawable of SURFACE_BACKGROUND's #252728 (issue #37). Facebook keeps that colour only in its
-     * default configuration, and the night style can't move a token some code reads as a plain colour
-     * when no system tone sits close to it. A colour drawable of one of the {@link #SURFACES} takes
-     * the palette here, as a colour read with {@code getColor} does; any other drawable comes back as
-     * it was.
+     * The same for {@code TypedArray.getColor}, how Litho reads a token's colour from the theme (581
+     * {@code LX/1Mx;->A04}: obtainStyledAttributes, then getColor). Some code reads SURFACE_BACKGROUND
+     * as a plain colour, so its night style item keeps #252728 when no system tone sits close, and
+     * the comment list's rows drew it (issue #37).
+     */
+    public static int getColor(TypedArray array, int index, int fallback) {
+        return getColor(array, index, fallback, SettingsStatus.amoledTheme());
+    }
+
+    static int getColor(TypedArray array, int index, int fallback, boolean amoled) {
+        return withoutToken(amoled ? AmoledTheme.getColor(array, index, fallback) : array.getColor(index, fallback));
+    }
+
+    /**
+     * A colour resource read as a drawable with {@code Context.getDrawable}. Litho resolves a
+     * token's theme attribute to the resource it points at and asks for its drawable (581 {@code
+     * LX/2b3;->A05}), so the feed's composer row is a plain drawable of SURFACE_BACKGROUND's
+     * #252728 (issue #37). Facebook keeps that colour only in its default configuration, and the
+     * night style can't move a token some code reads as a plain colour when no system tone sits
+     * close to it. A colour drawable of one of the {@link #SURFACES} takes the palette here, as a
+     * colour read with {@code getColor} does, and so does a shape's flat fill ({@link #recolour});
+     * any other drawable comes back as it was.
      */
     public static Drawable getDrawable(Context context, int id) {
         return recolour(context.getDrawable(id));
     }
 
     /**
+     * The same read through {@code Resources}: androidx's {@code ResourcesCompat} and a Litho lookup
+     * that holds no {@code Context} ask a resource for its drawable this way, and a colour resource
+     * comes back as a ColorDrawable of its colour. Same answer as {@link #getDrawable(Context, int)}.
+     */
+    @SuppressWarnings("deprecation")
+    public static Drawable getDrawable(Resources resources, int id) {
+        return recolour(resources.getDrawable(id));
+    }
+
+    /** The same for {@code Resources.getDrawable(int, Theme)}. */
+    public static Drawable getDrawable(Resources resources, int id, @Nullable Resources.Theme theme) {
+        return recolour(resources.getDrawable(id, theme));
+    }
+
+    /**
+     * A theme attribute read as {@code TypedValue.data}, after {@code Theme.resolveAttribute}. Some
+     * code takes the colour that way (581's {@code LX/2pM;->A00}, which the comment sheet's action
+     * text and, it seems, its rows ask), and a night style item for a token can't move when no system
+     * tone sits close to it: SURFACE_BACKGROUND keeps #252728 (issue #37). The patch sends each read
+     * here with the whole value. Only a colour moves, so a dimension, a flag or a reference comes
+     * back as it was, and the colour goes the way {@link #withoutToken} sends any other.
+     */
+    public static int colourData(TypedValue value) {
+        int data = value.data;
+        if (value.type < TypedValue.TYPE_FIRST_COLOR_INT || value.type > TypedValue.TYPE_LAST_COLOR_INT) return data;
+        return withoutToken(data);
+    }
+
+    /**
      * The drawable with its colour from {@link #withoutToken}, on a copy of its state: drawables of
-     * one resource share it, and light mode reads the same resource.
+     * one resource share it, and light mode reads the same resource. A shape's flat fill, alone or as
+     * a layer, takes the palette as a sheet's does ({@link #recolourShapes}), without AMOLED: on 582
+     * each comment row loads a rectangle of SURFACE_BACKGROUND's #252728 this way, and a #313238 one
+     * for a pressed row, and keeps them inside a drawable of its own, where no view's background walk
+     * sees them (#37).
      */
     @Nullable
     static Drawable recolour(@Nullable Drawable drawable) {
-        if (!(drawable instanceof ColorDrawable)) return drawable;
+        if (!(drawable instanceof ColorDrawable)) {
+            if (!SettingsStatus.amoledTheme()) recolourShapes(drawable);
+            return drawable;
+        }
         ColorDrawable plain = (ColorDrawable) drawable;
         int color = plain.getColor();
         int themed = withoutToken(color);
@@ -288,6 +405,234 @@ public final class MaterialYouTheme {
         plain.mutate();
         plain.setColor(themed);
         return plain;
+    }
+
+    /** Whether {@link #watchWindows} has registered its callbacks. */
+    private static boolean windowsWatched;
+
+    /**
+     * The page under the feed's last unit in dark mode. It's the window's own background, which the
+     * framework draws from the activity theme's {@code android:windowBackground}: Facebook's main
+     * theme points it at {@code ?attr/WASH} (581 attribute 0x7f040633), and the dark FDS style
+     * gives WASH its #101011 colour resource, which has no night value. The framework reads it, so
+     * no hook sees it, and some code reads WASH as a plain colour too, so the night style can't
+     * move it when no system tone sits that close. Called once the application is created, with the
+     * theme in the build: from then on each activity's window background takes the palette when the
+     * activity is created, as it resumes and before each frame ({@link #recolourWindow}, {@link
+     * #recolourBeforeEachFrame}).
+     */
+    public static synchronized void watchWindows(Context context) {
+        if (windowsWatched || !(context instanceof Application)) return;
+        ((Application) context).registerActivityLifecycleCallbacks(new WindowBackgrounds());
+        windowsWatched = true;
+    }
+
+    /**
+     * Gives a window background of one of the {@link #SURFACES} the palette's neutral at the same
+     * lightness in dark mode, the colour route three gives the rest of the page. Another colour, a
+     * background that is no plain colour, light mode and a window with no view yet keep theirs, and so
+     * does AMOLED's, whose route two made it the background colour already.
+     *
+     * @return whether it changed the background
+     */
+    static boolean recolourWindow(@Nullable Window window, boolean amoled) {
+        if (window == null || amoled) return false;
+        View decor = window.peekDecorView();
+        if (decor == null) return false;
+        Drawable background = decor.getBackground();
+        if (background instanceof InsetDrawable) background = ((InsetDrawable) background).getDrawable();
+        if (!(background instanceof ColorDrawable)) return false;
+        int color = ((ColorDrawable) background).getColor();
+        if (!isSurface(color) || !DarkMode.on()) return false;
+        window.setBackgroundDrawable(new ColorDrawable(palette().sameLightness(TonePalette.NEUTRAL, color)));
+        return true;
+    }
+
+    /** The decor views that already run {@link #recolourWindow} before each frame. Main thread only. */
+    private static final Set<View> FRAMED = Collections.newSetFromMap(new WeakHashMap<>());
+
+    /**
+     * Runs {@link #recolourWindow} before each frame the window's decor draws, from the first one on.
+     * On a cold start the feed's window kept #101011 after both callbacks ran (four of four on 581),
+     * and only a later resume moved it: its background arrives after the activity resumes, and some
+     * of Facebook's screens set a window's background again later. Until a dark surface shows up
+     * again, each frame costs a type test and a colour compare.
+     *
+     * @return whether the window had a decor to watch
+     */
+    static boolean recolourBeforeEachFrame(Activity activity, Window window) {
+        View decor = window.peekDecorView();
+        if (decor == null) return false;
+        if (FRAMED.add(decor)) {
+            ViewTreeObserver observer = decor.getViewTreeObserver();
+            observer.addOnPreDrawListener(() -> {
+                recolourWindow(window, SettingsStatus.amoledTheme());
+                return true;
+            });
+            // A sheet or dialog the screen opens takes the focus from its window.
+            observer.addOnWindowFocusChangeListener(focused -> {
+                if (!focused) Utils.runOnMainThread(() -> watchWindowsAbove(activity, decor));
+            });
+        }
+        return true;
+    }
+
+    /** The windows of sheets and dialogs that already have {@link #recolourBackgrounds} after each layout. */
+    private static final Set<View> SHEETS = Collections.newSetFromMap(new WeakHashMap<>());
+
+    /**
+     * The comment sheet is a dialog fragment, a window of its own over the screen's, and its comment
+     * list sits on a view whose plain #252728 background no colour hook sees (#37, 581
+     * SimpleUFIPopoverFragment: the list's container under {@code X.9z3}). Each window the activity
+     * has open above its own gets {@link #recolourBackgrounds} now and after each of its layouts.
+     */
+    static void watchWindowsAbove(Activity activity, View decor) {
+        for (View root : WindowsAbove.of(activity, decor, 3)) {
+            if (!SHEETS.add(root)) continue;
+            recolourBackgrounds(root);
+            root.getViewTreeObserver().addOnGlobalLayoutListener(() -> recolourBackgrounds(root));
+        }
+    }
+
+    /**
+     * Gives each view under [root] whose background is a plain colour of the {@link #SURFACES} the
+     * palette's neutral at the same lightness, in dark mode and without AMOLED, as
+     * {@link #recolourWindow} does for a window. Litho's hosts are walked too: on 581 the comment
+     * rows draw #252728 with no FDS token reaching {@link #fds}. A shape's flat fill, alone or as a
+     * layer, takes the palette too ({@link #recolourShapes}).
+     *
+     * @return how many views it recoloured
+     */
+    static int recolourBackgrounds(View root) {
+        if (SettingsStatus.amoledTheme() || !DarkMode.on()) return 0;
+        return recolourBackgrounds(root, 0);
+    }
+
+    private static int recolourBackgrounds(View view, int depth) {
+        int recoloured = 0;
+        Drawable background = view.getBackground();
+        if (background instanceof ColorDrawable && isSurface(((ColorDrawable) background).getColor())) {
+            recolour(background);
+            recoloured++;
+        } else if (recolourShapes(background)) {
+            recoloured++;
+        }
+        if (view instanceof ViewGroup && depth < MAX_SHEET_DEPTH) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View child = group.getChildAt(i);
+                if (child != null) recoloured += recolourBackgrounds(child, depth + 1);
+            }
+        }
+        return recoloured;
+    }
+
+    /** Deeper than the comment sheet's views go, so a broken tree can't hold a layout up. */
+    private static final int MAX_SHEET_DEPTH = 40;
+
+    /**
+     * Gives a shape's flat fill, or each such fill of a layer list, the palette as a React background
+     * takes it ({@link #darkBackground}): the sheet's comment bar is a 581
+     * SingleLineCommentComposerView whose background is the drawable sutro_top_border, a DIVIDER
+     * #65686C layer under a SURFACE_BACKGROUND #252728 one inset 1dp at the top (#37). The framework
+     * reads both from the theme, so no hook sees them. A gradient or a fill that changes with the
+     * view's state keeps its colours. The drawable's state is copied first, since every view drawn
+     * from the resource shares it.
+     *
+     * @return whether a fill changed
+     */
+    private static boolean recolourShapes(@Nullable Drawable background) {
+        if (background instanceof GradientDrawable) {
+            GradientDrawable shape = (GradientDrawable) background;
+            Integer themed = themedFill(shape);
+            if (themed == null) return false;
+            shape.mutate();
+            shape.setColor(themed);
+            return true;
+        }
+        if (!(background instanceof LayerDrawable)) return false;
+        LayerDrawable layers = (LayerDrawable) background;
+        if (!hasThemedFill(layers)) return false;
+        layers.mutate();
+        for (int i = 0; i < layers.getNumberOfLayers(); i++) {
+            Drawable layer = layers.getDrawable(i);
+            if (!(layer instanceof GradientDrawable)) continue;
+            Integer themed = themedFill((GradientDrawable) layer);
+            if (themed != null) ((GradientDrawable) layer).setColor(themed);
+        }
+        return true;
+    }
+
+    private static boolean hasThemedFill(LayerDrawable layers) {
+        for (int i = 0; i < layers.getNumberOfLayers(); i++) {
+            Drawable layer = layers.getDrawable(i);
+            if (layer instanceof GradientDrawable && themedFill((GradientDrawable) layer) != null) return true;
+        }
+        return false;
+    }
+
+    /** The palette's colour for a shape's flat fill, or null when it keeps its own. */
+    @Nullable
+    private static Integer themedFill(GradientDrawable shape) {
+        ColorStateList fill = shape.getColor();
+        if (fill == null || fill.isStateful()) return null;
+        int color = fill.getDefaultColor();
+        int themed = darkBackground(color);
+        return themed == color ? null : themed;
+    }
+
+    /**
+     * Runs {@link #recolourWindow} for each activity once it's created and each time it resumes, and
+     * from then on before each frame ({@link #recolourBeforeEachFrame}). A window that has no decor
+     * yet as it resumes gets one from the framework right after, so the watch waits a turn for it.
+     */
+    static final class WindowBackgrounds implements Application.ActivityLifecycleCallbacks {
+        @Override
+        public void onActivityPostCreated(@NonNull Activity activity, @Nullable Bundle state) {
+            recolour(activity, false);
+        }
+
+        @Override
+        public void onActivityResumed(@NonNull Activity activity) {
+            recolour(activity, true);
+        }
+
+        private static void recolour(Activity activity, boolean resumed) {
+            HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
+            try {
+                Window window = activity.getWindow();
+                recolourWindow(window, SettingsStatus.amoledTheme());
+                if (window != null && !recolourBeforeEachFrame(activity, window) && resumed) {
+                    Utils.runOnMainThread(() -> recolourBeforeEachFrame(activity, window));
+                }
+            } catch (RuntimeException failure) {
+                Logger.printException(() -> "Material You theme: could not recolour the window", failure);
+            }
+        }
+
+        @Override
+        public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle state) {
+        }
+
+        @Override
+        public void onActivityStarted(@NonNull Activity activity) {
+        }
+
+        @Override
+        public void onActivityPaused(@NonNull Activity activity) {
+        }
+
+        @Override
+        public void onActivityStopped(@NonNull Activity activity) {
+        }
+
+        @Override
+        public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle state) {
+        }
+
+        @Override
+        public void onActivityDestroyed(@NonNull Activity activity) {
+        }
     }
 
     /**
@@ -313,6 +658,14 @@ public final class MaterialYouTheme {
      */
     static int reactBackground(int color) {
         HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
+        return darkBackground(color);
+    }
+
+    /**
+     * {@link #withoutToken}, and once Facebook has said dark mode is on, the palette's neutral at the
+     * same lightness for any grey {@link #FDS_DARK} lists.
+     */
+    private static int darkBackground(int color) {
         int themed = withoutToken(color);
         if (themed != color || !DarkMode.saidOn() || Arrays.binarySearch(DARK_GREYS, color) < 0) return themed;
         return palette().sameLightness(TonePalette.NEUTRAL, color);
@@ -373,6 +726,43 @@ public final class MaterialYouTheme {
         if (amoled) color = AmoledTheme.navigationBar(color, dark);
         if (!dark || !AmoledTheme.isDarkNeutral(color, AmoledTheme.MAX_CHANNEL)) return color;
         return palette().sameLightness(TonePalette.NEUTRAL, color);
+    }
+
+    /**
+     * The tone of the palette's accent the selected tab takes in the dark theme: Material 3's
+     * primary for a dark surface, the role HushMessenger's selected tab has.
+     */
+    static final int SELECTED_TAB_TONE = 80;
+
+    /**
+     * How light a selected tab's colour has to be to say the tab bar is dark. Facebook's dark theme
+     * gives the selected tab near white (TAB_BAR_ACTIVE_ICON and PRIMARY_ICON, L* 96), and its light
+     * theme near black or its blue (L* 3 and 48), so a light mode answer never passes, even before
+     * Facebook has said which theme is on.
+     */
+    static final double MIN_DARK_BAR_SELECTED_LIGHTNESS = 60;
+
+    /**
+     * Facebook's tab bar asks one method for the selected tab's colour, which tints the selected
+     * tab's icon and repaints the line over it when the theme is set (#65). The line's Paint first
+     * gets its colour from a colour token as the bar inflates, before that method runs, so the patch
+     * hands that colour here too. The patch hands each answer here. In Facebook's
+     * dark mode a light answer becomes the palette's accent at {@link #SELECTED_TAB_TONE}, so the
+     * selected tab stands out in the wallpaper's colour as HushMessenger's does, while the other tabs,
+     * the bar and the badges keep the colours route one gives them. A selected tab Facebook already
+     * draws in its blue takes the accent through route one. Light mode, and anything this doesn't
+     * know, is left as Facebook sent it.
+     *
+     * @return the palette's accent for the selected tab in the dark theme, otherwise {@code color}
+     */
+    public static int tabBarSelected(int color) {
+        HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
+        return tabBarSelected(palette(), color, DarkMode.on());
+    }
+
+    static int tabBarSelected(TonePalette palette, int color, boolean dark) {
+        if (!dark || (color >>> 24) == 0 || TonePalette.lstar(color) < MIN_DARK_BAR_SELECTED_LIGHTNESS) return color;
+        return (color & 0xFF000000) | (palette.tone(TonePalette.ACCENT, SELECTED_TAB_TONE) & 0x00FFFFFF);
     }
 
     /** A grey becomes the palette's neutral, a Facebook blue its accent, both at the same lightness. */

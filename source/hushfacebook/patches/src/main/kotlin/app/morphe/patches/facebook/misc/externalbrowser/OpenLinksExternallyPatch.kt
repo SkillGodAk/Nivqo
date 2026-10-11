@@ -55,9 +55,10 @@ internal val IN_APP_BROWSERS = listOf(
 @Suppress("unused")
 val openLinksExternallyPatch = bytecodePatch(
     name = "Open links in external browser",
-    description = "Opens web links in your default browser instead of Facebook's in-app " +
-        "browser, without Facebook's click tracker or the fbclid tag it adds. Facebook pages still " +
-        "open in the app.",
+    description = "Opens web links in your own browser instead of Facebook's built-in one, without Facebook " +
+        "tracking the click. Facebook pages still open in the app. On by default. Turn it off in Hushfacebook " +
+        "settings > Links. A second switch, on by default under Privacy, stops Facebook's browser keeping a " +
+        "history of the links you open in it.",
     default = true,
 ) {
     category("Interface")
@@ -87,6 +88,10 @@ val openLinksExternallyPatch = bytecodePatch(
         check(hooked > 0) {
             "No in-app browser activity. The com.facebook.browser packages have new names."
         }
+
+        // A link that stays in Facebook's browser still feeds its link history. The second switch
+        // stops both writers before they exist (see LinkHistoryWriters.kt).
+        linkHistoryFactories().forEach { mutableFactory(it).holdLinkHistory() }
 
         enableStatus("externalBrowser")
     }

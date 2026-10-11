@@ -156,6 +156,8 @@ final class SettingsText {
         ENGLISH.put("choice_on", "%s on");
         ENGLISH.put("choice_off", "%s off");
         ENGLISH.put("appearance", "APPEARANCE");
+        ENGLISH.put("material_you_black", "Pure black dark mode");
+        ENGLISH.put("material_you_black_help", "With Material You theme on, Messenger's darkest backgrounds become pure black. Light mode doesn't change.");
         ENGLISH.put("light", "Light theme");
         ENGLISH.put("light_help", "Use a light background in settings.");
         ENGLISH.put("theme_help", "Dark by default. Your choice stays saved.");
@@ -250,6 +252,16 @@ final class SettingsText {
         ENGLISH.put("language_zh_tw", "繁體中文");
         ENGLISH.put("language_en", "English");
         ENGLISH.put("language_help", "Choose the language used by HushMessenger. Tap the button to choose Follow system, 繁體中文 or English.");
+        ENGLISH.put("message_log_view", "View log");
+        ENGLISH.put("message_log_clear", "Clear log");
+        ENGLISH.put("message_log_close", "Close");
+        ENGLISH.put("message_log_title", "Message log");
+        ENGLISH.put("message_log_hint", "Newest first. This stays on your phone.");
+        ENGLISH.put("message_log_loading", "Loading...");
+        ENGLISH.put("message_log_empty", "No messages kept yet.");
+        ENGLISH.put("message_log_unknown_thread", "Unknown thread");
+        ENGLISH.put("message_log_no_text", "(no text)");
+        ENGLISH.put("message_log_cleared", "Message log cleared");
     }
 
     static String english(String id) {

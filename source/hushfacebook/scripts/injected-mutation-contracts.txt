@@ -26,15 +26,19 @@ once-call Lapp/morphe/extension/facebook/feed/FeedFilter;->hideSwappedEdge(Ljava
 first-call Lapp/morphe/extension/facebook/feed/GenAiLabel;->detectedInfo(Ljava/lang/Object;)Ljava/lang/Object; on Lcom/facebook/graphql/model/GraphQLStory;
 first-call Lapp/morphe/extension/facebook/feed/GenAiLabel;->selfDisclosureInfo(Ljava/lang/Object;)Ljava/lang/Object; on Lcom/facebook/graphql/model/GraphQLStory;
 first-call Lapp/morphe/extension/facebook/feed/RecommendationLabel;->recommendationContext(Ljava/lang/Object;)Ljava/lang/Object; on Lcom/facebook/graphql/model/GraphQLStory;
+first-call Lapp/morphe/extension/facebook/feed/PostText;->message(Ljava/lang/Object;)Ljava/lang/Object; on Lcom/facebook/graphql/model/GraphQLStory;
+first-call Lapp/morphe/extension/facebook/feed/PostText;->attachedStory(Ljava/lang/Object;)Ljava/lang/Object; on Lcom/facebook/graphql/model/GraphQLStory;
+first-call Lapp/morphe/extension/facebook/feed/PostSources;->actors(Ljava/lang/Object;)Ljava/lang/Object; on Lcom/facebook/graphql/model/GraphQLStory;
+first-call Lapp/morphe/extension/facebook/feed/PostSources;->attachments(Ljava/lang/Object;)Ljava/lang/Object; on Lcom/facebook/graphql/model/GraphQLStory;
 # The GenAI reel stub has to call Facebook's attribution finder before it returns. The finder's
 # class and name are Redex's and it answers no type name, so the rule asks only that the stub's
 # first call leaves the extension. Left unfilled it answers its marker, and the Reels rule keeps
 # every reel with nothing but a Hook status line to say why.
 first-call Lapp/morphe/extension/facebook/feed/GenAiReelFilter;->transparencyAttribution(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object; outside Lapp/morphe/extension/
-# The Stories tray patch gives each of the feed's two tray adapter classes, the classic and the
-# unified one, a getItemCount() of its own that asks the extension with Facebook's count. No other
-# method calls it, and neither class gets two.
-count-call Lapp/morphe/extension/facebook/feed/FeedFilter;->storiesTrayCount(Ljava/lang/Object;II)I in getItemCount 2
+# The Stories tray patch gives three of the feed's adapter classes, the classic tray, the unified
+# tray and Home's composer row, a getItemCount() of its own that asks the extension with Facebook's
+# count. No other method calls it, and no class gets two.
+count-call Lapp/morphe/extension/facebook/feed/FeedFilter;->storiesTrayCount(Ljava/lang/Object;II)I in getItemCount 3
 # The reels patch fills the showcase stub with the story type accessor of the one class whose
 # getTypeName() answers ShowcaseFeedUnit, a class Redex renames, so the rule names it by that type.
 first-call Lapp/morphe/extension/facebook/feed/ShowcaseType;->storyType(Ljava/lang/Object;)Ljava/lang/Object; on-type-named ShowcaseFeedUnit
@@ -51,6 +55,11 @@ start-call Lapp/morphe/extension/facebook/feed/ReturnRefresh;->skip()Z holding F
 # author you don't follow, the Reels tab's among them. Nineteen methods name both surfaces; the check
 # is the one that's static, takes the session first and answers a boolean.
 start-call Lapp/morphe/extension/facebook/reels/ReelDeclutter;->hideFollowButton()Z in static (Lcom/facebook/auth/usersession/FbUserSession;*)Z holding friendly_feed friends_tab_ifu
+# Its Threads card filter reads each mid-card's type through a stub the patch fills with the mid-card
+# item's reads, whose classes are Redex names that no type name answers, so the rule asks only that
+# the stub's first call leaves the extension. Left unfilled it answers its marker, and every Threads
+# card stays with nothing but a Hook status line to say why.
+first-call Lapp/morphe/extension/facebook/reels/ReelMidCards;->midCardType(Ljava/lang/Object;)Ljava/lang/Object; outside Lapp/morphe/extension/
 # Use the phone's emoji asks the extension first thing in Facebook's emoji typeface provider, the one
 # method holding the end-to-end flag for the phone's emoji font and the provider's log tag. Left out
 # or put later, the provider hands out Meta's emoji font whatever the switch says. A string table
@@ -67,6 +76,14 @@ start-call Lapp/morphe/extension/facebook/emoji/SystemEmoji;->skipRemoteEmoji()Z
 # put later, the icon opens Facebook's Chats whatever the switch says.
 start-call Lapp/morphe/extension/facebook/chats/MessengerIcon;->open(Landroid/content/Context;Z)Z in static (Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;*)V holding entry_point_navbar_global_icon_ entry_point_navbar_global_icon_reels_tab
 start-call Lapp/morphe/extension/facebook/chats/MessengerIcon;->open(Landroid/content/Context;Z)Z in static (Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;ZZ)V holding long_press
+# Hide typing indicator hands Mailbox's typing setter flag to the extension first thing, in the one
+# method holding the setter's name (its answer is a Redex class, so no shape). Left out or put later,
+# a chat that opens inside Facebook shows the other side you're typing whatever the switch says.
+start-call Lapp/morphe/extension/facebook/chats/TypingIndicator;->chatTyping(Z)Z holding setTypingIndicatorForThreadWithThreadIdentifier
+# Hide read receipts asks the extension once in Mailbox's mark-read, the one method holding its API
+# name, after the future is made and before the call is posted. Left out, a chat that opens inside
+# Facebook tells the sender you've read it whatever the switch says.
+once-call Lapp/morphe/extension/facebook/chats/ReadReceipts;->holdsChatRead()Z holding markAsReadThreadWithThreadIdentifier
 # Turn off double tap to like asks the extension first thing in the reel like helper's like, the
 # one method in 580 and 577 holding FbShortsMutationUtil's trace, an instance method taking the
 # session first and the like's source last. Left out or put later, the players whose own double-tap
@@ -112,10 +129,14 @@ sole-call Lapp/morphe/extension/facebook/reels/ReelWatchHistory;->send(Ljava/uti
 start-call Lapp/morphe/extension/facebook/navigation/ReelsTabDot;->clear(Ljava/lang/Object;)Z in static (Lcom/facebook/auth/usersession/FbUserSession;*Lcom/facebook/navigation/tabbar/state/model/TabTag;I)I holding FbMainTabActivityJewelController.getTrackedCountWithLogging
 # Hide tabs and Hide the Reels tab leave a tab a switch took off the bar still configured, and three
 # places Facebook decides a link is a tab look in the configured tabs. The startActivity lookup is
-# the one static method that takes an Intent and an FbUserSession, returns a TabTag and loads the
-# launch URI's extra; the Friends link's switch and the target_tab_id check are each the one method
-# of a kept helper loading their string. Each asks the extension once, so a hidden tab's page opens
-# on its own screen. Left out, the Menu shortcut or link switches to the missing tab and nothing opens.
-once-call Lapp/morphe/extension/facebook/navigation/TabBarFilter;->launchedTab(Ljava/lang/Object;)Ljava/lang/Object; in static (Landroid/content/Intent;Lcom/facebook/auth/usersession/FbUserSession;)Lcom/facebook/navigation/tabbar/state/model/TabTag; holding extra_launch_uri
+# the one method of a Redex singleton (582: LX/8Lx; on arm64, LX/8Ol; on armeabi-v7a) that takes an
+# Intent and an FbUserSession, returns a TabTag and loads the launch URI's extra; up to 581 it was
+# static. The Friends link's switch is the one link helper method loading its string. The
+# target_tab_id check is FbMainTabActivityUriHelper's one link method, which arm64 582 has read
+# "target_tab_id" through a string table, so the rule names two strings only that method loads on
+# both builds: the link's key_uri extra and the /menu/bookmarks path it routes. Each asks the
+# extension once, so a hidden tab's page opens on its own screen. Left out, the Menu shortcut or
+# link switches to the missing tab and nothing opens.
+once-call Lapp/morphe/extension/facebook/navigation/TabBarFilter;->launchedTab(Ljava/lang/Object;)Ljava/lang/Object; in instance (Landroid/content/Intent;Lcom/facebook/auth/usersession/FbUserSession;)Lcom/facebook/navigation/tabbar/state/model/TabTag; holding extra_launch_uri
 once-call Lapp/morphe/extension/facebook/navigation/TabBarFilter;->friendsTab(Ljava/lang/Object;)Ljava/lang/Object; in instance (Landroid/content/Context;Landroid/content/Intent;*)Landroid/content/Intent; holding DEEPLINK
-once-call Lapp/morphe/extension/facebook/navigation/TabBarFilter;->configuresTab(ZLjava/lang/Object;)Z in instance (Landroid/content/Context;Landroid/content/Intent;*)Landroid/content/Intent; holding target_tab_id
+once-call Lapp/morphe/extension/facebook/navigation/TabBarFilter;->configuresTab(ZLjava/lang/Object;)Z in instance (Landroid/content/Context;Landroid/content/Intent;*)Landroid/content/Intent; holding key_uri /menu/bookmarks

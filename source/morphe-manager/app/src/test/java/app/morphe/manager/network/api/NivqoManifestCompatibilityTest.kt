@@ -6,6 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import app.morphe.manager.util.ChangelogParser
+import app.morphe.manager.util.ChangelogSubject
 
 class NivqoManifestCompatibilityTest {
     private val json = Json { ignoreUnknownKeys = true }
@@ -60,7 +61,7 @@ class NivqoManifestCompatibilityTest {
         )
         assertEquals(1, entries.size)
         assertEquals("0.1.0", entries.single().version)
-        assertTrue(ChangelogParser.hasChangesFor(entries, null, listOf("Facebook")))
-        assertTrue(ChangelogParser.hasChangesFor(entries, null, listOf("Messenger")))
+        assertTrue(ChangelogParser.hasChangesFor(entries, null, ChangelogSubject(setOf("Facebook"))))
+        assertTrue(ChangelogParser.hasChangesFor(entries, null, ChangelogSubject(setOf("Messenger"))))
     }
 }
