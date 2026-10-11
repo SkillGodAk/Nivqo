@@ -1,3 +1,8 @@
+# 0.22.0-nivqo.1 (2026-10-11)
+
+* **Messenger:** 繁體中文：同步上游正式 HushMessenger v0.22.0（commit 4d54f76ff19d9a5d7ab4bd5fe96059b301cea68a），由 33 增至 43 個 Patch、37 個可切換控制項。新增純黑深色模式、加密訊息通知紀錄、原生相機、合格影片免重新編碼、解除 App 圖示限制、Emoji 面板選項及阻止分析上傳；修正系統 Emoji 造成讚圖示空白方框。保留 Nivqo 跟隨系統／繁中／English 選擇，Manager metadata 43 / 43。
+* **Messenger:** English: Syncs formal upstream v0.22.0, increasing from 33 to 43 patches with 37 controls. Adds pure black dark mode, encrypted local notification message log, system camera, video passthrough, app icons and emoji drawer options, and analytics controls; fixes the system emoji Like-square regression. Preserves the Nivqo interface language selector and localized metadata.
+
 # 0.21.0-nivqo.1 (2026-10-06)
 
 * **Messenger:** 繁體中文：同步正式 HushMessenger v0.21.0（commit d5b196f45f400c3d97eff888ea0464b270731323），不納入發版後的 main commit。核心由 32 個 patch 更新為 33 個、30 個可切換控制項；新增 Messenger 581.0.0.49.91 支援，與既有 580.0.0.49.91 合計涵蓋 37 個 arm64 builds。新增「隱藏已加入的社群聊天」，「隱藏 AI 貼圖工具」擴充到新版貼圖鍵盤的 Generate 按鈕，「允許截圖」擴充到僅限查看一次的媒體與 Quicksnap。工具鏈同步 Morphe Patcher 1.15.1 與 MorpheApp ARSCLib。Nivqo 保留「跟隨系統／繁體中文／English」語言選擇，並補齊 0.21.0 新增與改寫文字，核心設定繁中覆蓋 213 / 213，Manager patch metadata 33 / 33。

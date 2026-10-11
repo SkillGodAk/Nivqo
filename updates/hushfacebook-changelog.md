@@ -1,3 +1,8 @@
+# 0.10.0-nivqo.1 (2026-10-11)
+
+* **Facebook:** 繁體中文：同步上游正式 HushFacebook v0.10.0（commit 365b1ba6362169ae2825bc2064cbb6126ab72c4c），從前版 70 增至 87 個 Patch。整合 Facebook 582 支援、內建聊天隱藏已讀與輸入狀態、分享面板自訂、Reels 進度條、相片下載、首頁追蹤內容、隱藏已看過貼文與 Meta AI 推廣等。保留繁體中文／English 介面、語言選擇及頂部 Messenger 圖示雙向路由；核心繁中設定 926 筆，Manager Facebook metadata 87 / 87。
+* **Facebook:** English: Syncs formal upstream v0.10.0, growing from 70 to 87 patches, including Facebook 582 support, Facebook Chats read/typing privacy, share panel and Reels controls, photo downloads, feed filtering, and Meta AI clutter reduction. Preserves the Nivqo language selector and two-way Messenger icon routing. Traditional Chinese settings have 926 entries and Manager metadata covers 87/87.
+
 # 0.7.2-nivqo.1 (2026-10-08)
 
 * **Facebook:** 繁體中文：同步上游正式 HushFacebook v0.7.2（4c102f39fd80e41c9f14b346885e8d7959d0b930），不納入發布後 main commit。核心由 60 增至 70 個 patch，新增允許截圖、阻擋截圖偵測、Instant Games 去廣告、隱藏指定分頁、阻止分析資料上傳、Reels 子母畫面、Marketplace 賣家「查看個人檔案」、關閉 HDR 自動增亮、關閉觸覺回饋與關閉畫面轉場；並整合 v0.7.2 的 AI 內容、Marketplace / Reels 廣告、下載與轉碼、導航、設定及相容性修正。Nivqo 保留繁體中文／English 介面、語言選擇，以及 Facebook 頂部 Messenger 圖示雙向路由。核心繁中 609 / 609，Manager Facebook patch metadata 70 / 70。

@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-10-08T02:10:08",
-  "description": "Nivqo Patches 0.5.0: one standard Morphe patch bundle for Facebook and Messenger, combining HushFacebook 0.7.2-nivqo.1 (70 patches) and HushMessenger 0.21.0-nivqo.1 (33 patches) with Nivqo Traditional Chinese support. Total: 103 patches.",
-  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/1d49a8224be6895070fc08a6ff5a90c93ffc0706/updates/bundles/nivqo-patches.mpp",
+  "created_at": "2026-10-11T18:58:05",
+  "description": "Nivqo Patches 0.6.0: formal HushFacebook 0.10.0-nivqo.1 (87 patches) + HushMessenger 0.22.0-nivqo.1 (43 patches), total 130 patch entries with Nivqo Traditional Chinese support.",
+  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/d119cddf3cef56883619ee15278a8602ec3260d7/updates/bundles/nivqo-patches.mpp",
   "signature_download_url": "",
-  "version": "0.5.0"
+  "version": "0.6.0"
 }

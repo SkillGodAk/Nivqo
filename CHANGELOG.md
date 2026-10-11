@@ -1,3 +1,11 @@
+## [0.6.0](https://github.com/SkillGodAk/Nivqo/commit/d119cddf3cef56883619ee15278a8602ec3260d7) (2026-10-11)
+
+### New Features
+
+* **Facebook:** Sync formal HushFacebook v0.10.0 with 87 patches (previously 70), including 582 support, internal Chats privacy controls, downloads, Reels, share panel and feed filtering. Core Traditional Chinese settings 926; Manager metadata 87 / 87.
+* **Messenger:** Sync formal HushMessenger v0.22.0 with 43 patches and 37 controls (previously 33 patches), including message log, pure black dark theme, system camera, eligible original-video passthrough, icon unlocking and emoji fixes. Manager metadata 43 / 43.
+* **General:** Nivqo Patches 0.6.0 combines 130 patch entries, namespacing seven shared Facebook/Messenger patch names without altering standalone core naming. Nivqo Manager updates to 1.35.0; Morphe Patcher remains 1.15.1.
+
 ## [0.5.0](https://github.com/SkillGodAk/Nivqo/commit/1d49a8224be6895070fc08a6ff5a90c93ffc0706) (2026-10-08)
 
 ### New Features
