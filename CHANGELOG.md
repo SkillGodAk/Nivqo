@@ -48,6 +48,19 @@
 
 # Changelog
 
+## 2026-10-11 — Nivqo Manager 1.35.0 / Facebook 0.10.0 / Messenger 0.22.0
+
+### Manager 正式更新
+
+- 同步 Morphe Manager 正式 `v1.35.0`；維持 Nivqo 獨立名稱、Logo、`app.nivqo.manager`、自有簽章、自動更新通道及繁體中文。Morphe Patcher 維持 `1.15.1`。
+- Facebook 正式 HushFacebook `0.10.0-nivqo.1`，`87 patches`、繁中設定 926 筆，保留 Messenger 雙向路由。
+- Messenger 正式 HushMessenger `0.22.0-nivqo.1`，`43 patches`、`37 controls`，保留繁中／English／跟隨系統。
+- Nivqo Patches `0.6.0`，共 `130 patches`，combined 七組重名已各自命名空間化。
+- 保留先前的 stable `-nivqo.N` changelog／`trackingVersion` 首頁「更新／重新修補」規則；Manager 35 項精準回歸測試通過。
+- Manager release versionName：`1.35.0`；versionCode：`39872057`。
+- APK SHA-256：`91ADD536FE2728F28167D8D0DEF62151583122DD23740F35B87EE5BF56AF662A`。
+- 既有簽章憑證 SHA-256：`FDEC7E04562314AB6CB90981AA7C88F5AFC145F65264D2D359E331F7A22E9D29`。
+
 ## 2026-10-08 — v1.34.0 replacement / stable core 更新提示修正
 
 ### Manager replacement
