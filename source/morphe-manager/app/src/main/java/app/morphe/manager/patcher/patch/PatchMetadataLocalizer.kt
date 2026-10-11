@@ -572,11 +572,23 @@ object PatchMetadataLocalizer {
             "開啟其他人的限時動態時，不會把你加入對方的觀看名單；在你這一端仍會標記為已看。長按主畫面的 Messenger 圖示 → Patch controls 可設定。預設關閉。",
     )
 
-    fun name(original: String): String =
-        if (isTraditionalChinese()) zh[original]?.name ?: original else original
+    private const val MESSENGER_COMBINED_PREFIX = "Messenger · "
+
+    fun name(original: String): String {
+        if (!isTraditionalChinese()) return original
+        if (original.startsWith(MESSENGER_COMBINED_PREFIX)) {
+            val plainName = original.removePrefix(MESSENGER_COMBINED_PREFIX)
+            return "Messenger・" + (zh[plainName]?.name ?: plainName)
+        }
+        return zh[original]?.name ?: original
+    }
 
     fun description(name: String, original: String?): String? {
         if (!isTraditionalChinese()) return original
+        if (name.startsWith(MESSENGER_COMBINED_PREFIX)) {
+            val plainName = name.removePrefix(MESSENGER_COMBINED_PREFIX)
+            return messengerZhDescriptions[plainName] ?: zh[plainName]?.description ?: original
+        }
         if (isMessengerVariant(name, original)) {
             return messengerZhDescriptions[name] ?: zh[name]?.description ?: original
         }
@@ -604,7 +616,11 @@ object PatchMetadataLocalizer {
 
     /** True when [text] is one of Nivqo's already-localized Traditional Chinese descriptions. */
     fun isPrelocalized(text: String): Boolean =
-        isTraditionalChinese() && zh.values.any { it.description == text }
+        isTraditionalChinese() && (
+            zh.values.any { it.description == text } ||
+            messengerZhDescriptions.values.any { it == text } ||
+            facebookZhDescriptions.values.any { it == text }
+        )
 
     private fun isTraditionalChinese(): Boolean {
         val selected = AppLocale.selected.value

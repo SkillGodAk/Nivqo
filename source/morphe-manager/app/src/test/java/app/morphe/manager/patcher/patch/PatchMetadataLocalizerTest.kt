@@ -125,6 +125,18 @@ class PatchMetadataLocalizerTest {
     }
 
     @Test
+    fun `combined messenger patch names stay localized without dropping disambiguation`() {
+        Locale.setDefault(Locale.forLanguageTag("zh-TW"))
+        assertEquals("Messenger・允許截圖", PatchMetadataLocalizer.name("Messenger · Allow screenshots"))
+        assertEquals("Messenger・解鎖 App 圖示", PatchMetadataLocalizer.name("Messenger · Unlock app icons"))
+        assertEquals(
+            "解鎖 Messenger 的所有 App 圖示選項，不需要訂閱。是否提供圖示選項仍取決於 Meta 對帳號的開放情況。",
+            PatchMetadataLocalizer.description("Messenger · Unlock app icons", "Messenger account setting")
+        )
+        assertEquals("Messenger・Unknown future patch", PatchMetadataLocalizer.name("Messenger · Unknown future patch"))
+    }
+
+    @Test
     fun `english keeps bundle metadata untouched`() {
         Locale.setDefault(Locale.US)
         assertEquals("Hide sponsored posts", PatchMetadataLocalizer.name("Hide sponsored posts"))
