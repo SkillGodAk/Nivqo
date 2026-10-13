@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-10-11T18:58:05",
-  "description": "Nivqo Patches 0.6.0: formal HushFacebook 0.10.0-nivqo.1 (87 patches) + HushMessenger 0.22.0-nivqo.1 (43 patches), total 130 patch entries with Nivqo Traditional Chinese support.",
-  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/d119cddf3cef56883619ee15278a8602ec3260d7/updates/bundles/nivqo-patches.mpp",
+  "created_at": "2026-10-14T07:49:16",
+  "description": "Nivqo Patches 0.7.0：合併正式 HushFacebook 0.12.0-nivqo.1（88 個 Patch）與 HushMessenger 0.23.0-nivqo.1（50 個 Patch），共 138 個 Patch；保留 7 個跨核心同名 Patch 的辨識命名及繁體中文支援。Manager 1.35.0、Morphe Patcher 1.15.1；Messenger 新版只支援 582.0.0.61.92。",
+  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/1c18ea3f2f29d2915af52f70a0d87c6e8b41ac55/updates/bundles/nivqo-patches.mpp",
   "signature_download_url": "",
-  "version": "0.6.0"
+  "version": "0.7.0"
 }

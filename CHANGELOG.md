@@ -1,3 +1,14 @@
+## 0.7.0 (2026-10-14)
+
+### New Features
+
+* **Facebook:** 繁體中文：更新至正式 HushFacebook 0.12.0-nivqo.1，共 88 個 Patch；加入逐格播放、Reels 進度條與跳轉、導覽列固定和 Messenger 通知控制。補足 89 條新的繁中設定文字，保留 Nivqo 雙向 Messenger 按鈕及既有設定；Manager 繁中 Patch 說明涵蓋 88／88。
+* **Messenger:** 繁體中文：更新至正式 HushMessenger 0.23.0-nivqo.1，共 50 個 Patch、44 個控制項識別鍵；新增自動回覆、字型、消失訊息上滑防誤觸、廣告追蹤控制與音訊相容性修正。新增 48 條設定繁中譯文及 7 個新控制項譯文；**僅相容 Messenger 582.0.0.61.92**，已移除 580／581。
+* **General:** 繁體中文：Nivqo Patches 0.7.0 整合 Facebook 88 ＋ Messenger 50，共 138 個 Patch，保留跨核心同名補丁區分；Nivqo Manager 維持 1.35.0，Morphe Patcher 維持正式版 1.15.1，不包含上游開發預覽版。
+* **Facebook:** English: Syncs formal HushFacebook 0.12.0-nivqo.1 (88 patches), including frame stepping, Reels seek/progress controls, pinned bars, and Messenger notifications. Preserves Nivqo's two-way Messenger routing and completes all 88 Traditional Chinese Manager metadata entries.
+* **Messenger:** English: Syncs formal HushMessenger 0.23.0-nivqo.1 (50 patches, 44 control keys). Adds auto-replies, custom fonts, swipe-up disappearing-message protection, ad-tracking controls, audio sharing fixes, and Traditional Chinese control descriptions. Supports only Messenger 582.0.0.61.92 (not 580/581).
+* **General:** English: Nivqo Patches 0.7.0 combines 138 patches (Facebook 88 + Messenger 50), with duplicate names namespaced only in the combined bundle. Retains Manager 1.35.0 and formal Morphe Patcher 1.15.1.
+
 ## [0.6.0](https://github.com/SkillGodAk/Nivqo/commit/d119cddf3cef56883619ee15278a8602ec3260d7) (2026-10-11)
 
 ### New Features

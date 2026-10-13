@@ -1,3 +1,8 @@
+# 0.23.0-nivqo.1 (2026-10-14)
+
+* **Messenger:** 繁體中文：同步上游正式 HushMessenger v0.23.0（f5384dd62cc332dda82906d36c8a83f57f3e7906），由 43 增為 50 個 Patch、44 個控制項識別鍵。新增自動回覆、自訂字型、停止上滑誤啟動消失訊息、商家聊天廣告橫幅隱藏、廣告歸因與收件匣紀錄控制、xHE-AAC 影片分享修復；包含已讀隱藏與相機修正。保留 Nivqo「跟隨系統／繁體中文／English」語言選擇，補齊 48 條新增介面文字及 7 組新控制項的繁中名稱／說明，Manager Patch 中繼資料涵蓋 50／50。**相容性變更：只支援 Messenger 582.0.0.61.92，不再支援 580／581；更新後應以對應版本重新修補 APK。**
+* **Messenger:** English: Syncs the formal HushMessenger v0.23.0 release (f5384dd), growing from 43 to 50 patches with 44 control keys. Adds auto replies, custom fonts, swipe-up disappearing-message protection, business-chat banner and ad-event controls, xHE-AAC sharing fixes, and camera/read-receipt improvements. Preserves Nivqo's system/Traditional Chinese/English selector, translates 48 new UI strings and the seven new controls, and covers all 50 Manager patch entries. Compatibility is **Messenger 582.0.0.61.92 only**; 580/581 builds are no longer supported.
+
 # 0.22.0-nivqo.1 (2026-10-11)
 
 * **Messenger:** 繁體中文：同步上游正式 HushMessenger v0.22.0（commit 4d54f76ff19d9a5d7ab4bd5fe96059b301cea68a），由 33 增至 43 個 Patch、37 個可切換控制項。新增純黑深色模式、加密訊息通知紀錄、原生相機、合格影片免重新編碼、解除 App 圖示限制、Emoji 面板選項及阻止分析上傳；修正系統 Emoji 造成讚圖示空白方框。保留 Nivqo 跟隨系統／繁中／English 選擇，Manager metadata 43 / 43。

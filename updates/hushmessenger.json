@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-11T18:58:05",
-  "description": "Nivqo HushMessenger 0.22.0 正式核心（上游 v0.22.0、43 個 Patch／37 個可切換控制項）。新增純黑深色模式、訊息通知紀錄、手機原生相機、影片免重新編碼、解鎖圖示及分析資料上傳控制，並修正系統 Emoji 讚圖示空白問題。保留 Nivqo 跟隨系統／繁體中文／English 設定。",
+  "created_at": "2026-10-14T07:49:16",
+  "description": "Nivqo HushMessenger 0.23.0 正式核心（上游 v0.23.0，50 個 Patch／44 個控制項識別鍵）。新增自動回覆、自訂字型、消失訊息上滑防誤觸、廣告歸因與收件匣紀錄控制，並修正相機、已讀及 xHE-AAC 影片分享。保留 Nivqo 跟隨系統／繁中／English 語言選擇與完整繁中控制項描述。**僅支援 Messenger 582.0.0.61.92，不支援 580／581，需使用相容版本重新修補。**",
   "changelog_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushmessenger-changelog.md",
   "signature_download_url": "",
-  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/d119cddf3cef56883619ee15278a8602ec3260d7/updates/bundles/hushmessenger.mpp",
-  "version": "0.22.0-nivqo.1"
+  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/1c18ea3f2f29d2915af52f70a0d87c6e8b41ac55/updates/bundles/hushmessenger.mpp",
+  "version": "0.23.0-nivqo.1"
 }
