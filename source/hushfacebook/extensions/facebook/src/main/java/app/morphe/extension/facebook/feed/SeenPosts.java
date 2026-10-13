@@ -20,6 +20,8 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -113,6 +115,12 @@ public final class SeenPosts {
     /** How far ahead of the clock a time may be and still count as now. */
     static final long CLOCK_SLACK_MS = DAY_MS;
     private static final long WRITE_DELAY_MS = 5_000;
+    /**
+     * Writes in a row that didn't land, each tried again after {@link #WRITE_DELAY_MS}. Past this
+     * many the store stays marked for a write, and the next post remembered tries again. A Forget
+     * starts the count over.
+     */
+    static final int MAX_RETRIES = 5;
 
     /** Id to the time it was seen, oldest first. Guarded by itself. */
     private static final LinkedHashMap<String, Long> STORE = new LinkedHashMap<>();
@@ -121,6 +129,8 @@ public final class SeenPosts {
     private static boolean loaded;
     private static boolean dirty;
     private static boolean writeScheduled;
+    /** Writes that didn't land since the last one that did. Guarded by STORE. */
+    private static int failedWrites;
 
     /**
      * Whether the list was emptied and nothing has been remembered since, so a hook that finds the
@@ -319,7 +329,9 @@ public final class SeenPosts {
 
     /**
      * Forget seen posts, and the switch going off: empties the store now and deletes its file on a
-     * background thread. Safe to call on the main thread.
+     * background thread. When the workers are all busy, the delete is tried again after a delay
+     * rather than dropped, which left the file to bring the posts back on the next start. It gets
+     * every retry even when writes before it used them up. Safe to call on the main thread.
      */
     public static void clear() {
         synchronized (STORE) {
@@ -327,10 +339,20 @@ public final class SeenPosts {
             STORE.clear();
             dirty = true;
             forgotten = true;
+            failedWrites = 0;
         }
+        if (background(SeenPosts::writeNow)) return;
+        synchronized (STORE) {
+            retryLocked();
+        }
+    }
+
+    /** Hands [write] to a background thread. False when the shared workers refused it. */
+    private static boolean background(Runnable write) {
         Executor forTests = backgroundForTests;
-        if (forTests != null) forTests.execute(SeenPosts::writeNow);
-        else Utils.runOnBackgroundThread(SeenPosts::writeNow);
+        if (forTests == null) return Utils.runOnBackgroundThread(write);
+        forTests.execute(write);
+        return true;
     }
 
     /**
@@ -352,7 +374,8 @@ public final class SeenPosts {
 
     /**
      * Writes the store now, on this thread, which is never the main one: posts past their days are
-     * dropped first, and an empty store deletes the file.
+     * dropped first, and an empty store deletes the file. A write the disk doesn't take leaves the
+     * last good file as it was and the store marked for another try.
      */
     static void writeNow() {
         synchronized (WRITE) {
@@ -364,31 +387,55 @@ public final class SeenPosts {
                 dirty = false;
                 for (Map.Entry<String, Long> entry : STORE.entrySet()) lines.add(entry.getValue() + " " + entry.getKey());
             }
-            File file = file();
-            if (file == null) return;
-            File temporary = new File(file.getPath() + ".tmp");
-            if (lines.isEmpty()) {
-                // Nothing to keep, so nothing is left on the phone, a half-written copy included.
-                //noinspection ResultOfMethodCallIgnored
-                temporary.delete();
-                if (file.exists() && !file.delete()) {
-                    Logger.printDebug(() -> "Seen posts: could not delete the store");
+            boolean stored = store(lines);
+            synchronized (STORE) {
+                if (stored) {
+                    failedWrites = 0;
+                    return;
                 }
-                return;
-            }
-            try (Writer out = new OutputStreamWriter(new FileOutputStream(temporary), StandardCharsets.UTF_8)) {
-                for (String line : lines) out.write(line + "\n");
-            } catch (IOException failure) {
-                Logger.printDebug(() -> "Seen posts: could not write the store: " + failure.getClass().getSimpleName());
-                return;
-            }
-            if (!temporary.renameTo(file)) {
-                //noinspection ResultOfMethodCallIgnored
-                file.delete();
-                //noinspection ResultOfMethodCallIgnored
-                temporary.renameTo(file);
+                // What changed since the list was taken is in the store too, so one more write covers both.
+                dirty = true;
+                retryLocked();
             }
         }
+    }
+
+    /** Puts [lines] on disk in place of the store, or deletes it when there are none. False when the disk didn't take it. */
+    private static boolean store(List<String> lines) {
+        File file = file();
+        if (file == null) return false;
+        File temporary = new File(file.getPath() + ".tmp");
+        if (lines.isEmpty()) {
+            // Nothing to keep, so nothing is left on the phone, a half-written copy included.
+            //noinspection ResultOfMethodCallIgnored
+            temporary.delete();
+            if (file.exists() && !file.delete()) {
+                Logger.printDebug(() -> "Seen posts: could not delete the store");
+                return false;
+            }
+            return true;
+        }
+        try {
+            try (Writer out = new OutputStreamWriter(new FileOutputStream(temporary), StandardCharsets.UTF_8)) {
+                for (String line : lines) out.write(line + "\n");
+            }
+            // One step that replaces the old file or leaves it whole: deleting it first and then
+            // renaming could lose both copies.
+            Files.move(temporary.toPath(), file.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            return true;
+        } catch (IOException | RuntimeException failure) {
+            Logger.printDebug(() -> "Seen posts: could not write the store: " + failure.getClass().getSimpleName());
+            //noinspection ResultOfMethodCallIgnored
+            temporary.delete();
+            return false;
+        }
+    }
+
+    /** A write didn't land or never started: tries it again after the delay, up to {@link #MAX_RETRIES} in a row. */
+    private static void retryLocked() {
+        if (!dirty || ++failedWrites > MAX_RETRIES) return;
+        scheduleWriteLocked();
     }
 
     private static void scheduleWriteLocked() {
@@ -399,8 +446,20 @@ public final class SeenPosts {
             later.run();
             return;
         }
-        new Handler(Looper.getMainLooper()).postDelayed(
-                () -> Utils.runOnBackgroundThread(SeenPosts::writeNow), WRITE_DELAY_MS);
+        new Handler(Looper.getMainLooper()).postDelayed(SeenPosts::startWrite, WRITE_DELAY_MS);
+    }
+
+    /**
+     * The delayed write's start, on the main thread: hands the write to a worker. When the workers
+     * are all busy it schedules another try, where it used to stay marked as scheduled, so no later
+     * post wrote anything and the store was lost at the next start.
+     */
+    static void startWrite() {
+        if (background(SeenPosts::writeNow)) return;
+        synchronized (STORE) {
+            writeScheduled = false;
+            retryLocked();
+        }
     }
 
     private static void loadLocked() {
@@ -444,6 +503,7 @@ public final class SeenPosts {
             loaded = false;
             dirty = false;
             writeScheduled = false;
+            failedWrites = 0;
         }
         forgotten = false;
         inBuildForTests = null;

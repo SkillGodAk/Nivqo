@@ -9,6 +9,7 @@ package app.morphe.extension.facebook.settings;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.category;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.commentOrderRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.feedsSubtabRow;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.homeFeedRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.mark;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.reactionCeilingRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.seenKeepRow;
@@ -51,7 +52,7 @@ final class FeedPages {
                 // Facebook builds the tab bar once, and the hook is asked then and not again.
                 opening.addPreference(toggle(context, Settings.MARKETPLACE_ONLY, ""));
                 opening.addPreference(toggle(context, Settings.MARKETPLACE_QUIET_NOTIFICATIONS,
-                        L10n.t("While Marketplace mode is on, silences video suggestions, memories, birthdays and friend "
+                        L10n.t("While Marketplace only is on, silences video suggestions, memories, birthdays and friend "
                                 + "suggestions. Messages and trading updates still arrive.")));
                 Row regular = new Row(context);
                 regular.actsAtOnce = true;
@@ -62,8 +63,8 @@ final class FeedPages {
                     if (Settings.MARKETPLACE_ONLY.save(false)) {
                         page.refreshSwitches();
                         Utils.showToastLong(MarketplaceOnly.state() == MarketplaceOnly.State.RESTART_NEEDED
-                                ? L10n.t("Marketplace mode is off. Restart Facebook to restore its normal tabs.")
-                                : L10n.t("Marketplace mode is off."));
+                                ? L10n.t("Marketplace only is off. Restart Facebook to restore its normal tabs.")
+                                : L10n.t("Marketplace only is off."));
                     } else {
                         Utils.showToastLong(L10n.t("Couldn't save the change. Try again."));
                     }
@@ -71,7 +72,7 @@ final class FeedPages {
                 });
                 opening.addPreference(regular);
                 opening.addPreference(toggle(context, Settings.MARKETPLACE_SKIP_FEED_PREFETCH,
-                        L10n.t("While Marketplace mode is on, loads less of the feed in the background. Some loading still happens "
+                        L10n.t("While Marketplace only is on, loads less of the feed in the background. Some loading still happens "
                                 + "at startup.")));
             }
             if (build.contains(PatchFamily.START_TAB)) {
@@ -82,9 +83,18 @@ final class FeedPages {
             }
             if (build.contains(PatchFamily.FOLLOWING_HOME)) {
                 // Home asks for its feed each time it loads one, so no restart is needed.
-                opening.addPreference(toggle(context, Settings.FOLLOWING_FEED_HOME,
-                        L10n.t("Home shows the newest posts from friends, groups and Pages you follow, like All in the Feeds tab. "
-                                + "The Feeds tab's filters don't change.")));
+                SwitchPreference following = toggle(context, Settings.FOLLOWING_FEED_HOME,
+                        L10n.t("Home shows the newest posts from friends, groups and Pages you follow, like All in the Feeds tab, "
+                                + "or the filter you pick below. The Feeds tab's filters don't change."));
+                // The feed choice follows the switch and is greyed out until it's on, as the seen posts time is.
+                Preference homeFeed = homeFeedRow(context);
+                homeFeed.setEnabled(Settings.FOLLOWING_FEED_HOME.savedValue());
+                following.setOnPreferenceChangeListener((preference, value) -> {
+                    homeFeed.setEnabled(Boolean.TRUE.equals(value));
+                    return true;
+                });
+                opening.addPreference(following);
+                opening.addPreference(homeFeed);
             }
         }
     }
@@ -204,7 +214,8 @@ final class FeedPages {
                         L10n.t("Returning to Facebook within ten minutes, or switching back to Home, keeps your place. "
                                 + "Pull to refresh still works.")));
                 feed.addPreference(toggle(context, Settings.RETURN_REFRESH_NO_LIMIT,
-                        L10n.t("With the switch above on, your place stays however long you're away. Pull to refresh and a fresh start still load new posts.")));
+                        L10n.t("With the switch above on, your place stays however long you're away. Pull to refresh and a fresh start still load new posts."))
+                        .needs(Settings.BLOCK_RETURN_REFRESH));
             }
             if (build.contains(PatchFamily.AI_DETECTED_POSTS)) {
                 feed.addPreference(toggle(context, Settings.HIDE_AI_DETECTED_POSTS,
@@ -358,6 +369,15 @@ final class FeedPages {
                     L10n.t("Comments show their replies right away, so there's no View replies to tap.")));
             comments.addPreference(toggle(context, Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS,
                     L10n.t("A group post's comments end without the Related groups list and its Join buttons.")));
+            comments.addPreference(toggle(context, Settings.HIDE_SHOP_LINK_COMMENTS,
+                    L10n.t("Hides comments that link to a shop like Shopee, Lazada or Amazon, along with their replies.")));
+            // The words are the feed's own lists, edited on the Feed page, so the switch shows
+            // only in a build that has them.
+            if (build.contains(PatchFamily.POST_WORDS)) {
+                comments.addPreference(toggle(context, Settings.HIDE_COMMENTS_WITH_WORDS,
+                        L10n.t("Hides comments containing a word from your Words to hide list in News feed, along with their "
+                                + "replies. Words that keep a post keep a comment too.")));
+            }
             comments.addPreference(reactionCountsRow(context));
         }
     }

@@ -199,6 +199,23 @@ public class MessengerSignatureTest {
         assertEquals(1, count(MessengerSignature.ERROR));
     }
 
+    /** FBNS hashes this build's one signer: it gets the original certificate, every other package keeps the system's array. */
+    @Test public void fbnsReadsTheOriginalCertificateForThisBuildOnly() throws Exception {
+        MessengerSignature.ownPackage = "com.facebook.orca.hush";
+        Signature[] reported = {MANAGER_KEY};
+        PackageInfo self = new PackageInfo();
+        self.packageName = "com.facebook.orca.hush";
+        Signature[] own = MessengerSignature.fbnsSigners(self, reported);
+        assertMetaCertificate(java.util.Arrays.asList(own));
+        assertSame("the system's array is left as it was", MANAGER_KEY, reported[0]);
+
+        assertSame(reported, MessengerSignature.fbnsSigners(namedMessenger(), reported));
+        assertSame(reported, MessengerSignature.fbnsSigners(callingFacebook(MANAGER_KEY), reported));
+        assertSame(reported, MessengerSignature.fbnsSigners(null, reported));
+        assertNull(MessengerSignature.fbnsSigners(namedMessenger(), null));
+        for (int i = 0; i < MessengerSignature.CALLER_OUTCOMES.length; i++) assertEquals(0, MessengerSignature.callerCounts.get(i));
+    }
+
     @Test public void currentSignersLeaveOutRotationHistory() throws Exception {
         PackageInfo info = install("com.example.rotated", 10_777, MANAGER_KEY);
         shadowOf(info.signingInfo).setPastSigningCertificates(new Signature[] {OTHER_KEY, MANAGER_KEY});

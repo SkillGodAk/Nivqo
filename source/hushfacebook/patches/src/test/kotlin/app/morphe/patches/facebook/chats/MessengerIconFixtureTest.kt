@@ -86,9 +86,10 @@ class MessengerIconFixtureTest {
     }
 
     /**
-     * The patch itself, run on each build's own tap, handler and screen classes. The tap and the
-     * handler ask the extension first, and every touch on a Facebook screen goes to the extension
-     * before Facebook sees it. Where the icon's long-click listener is off (MobileConfig builds it
+     * The patch itself, run on each build's own tap, handler and screen classes and the classes
+     * Leave calls and chats to Messenger hooks. The tap and the handler ask the extension first,
+     * every touch on a Facebook screen goes to the extension before Facebook sees it, and the call
+     * pushes, the ring parse and the chat dispatcher ask before Facebook rings or notifies. Where the icon's long-click listener is off (MobileConfig builds it
      * behind a flag, the same flag that gives the top bar's touch listener its long-press detector),
      * a press held on the icon reaches the tap as a plain click when the finger lifts, with 0 for
      * the long press, and only the touch tells the extension it was held.
@@ -104,9 +105,10 @@ class MessengerIconFixtureTest {
                 val tap = tapClass.methods.single(::isIconTap)
                 val handlerType = buttonHandlerCalls(tap).map { it.definingClass }.distinct().single()
                 val classes = FixtureDex.classes(bundle, setOf(handlerType, FRAGMENT_ACTIVITY))
+                val handoffClasses = HandoffFixture.classes(bundle)
                 val context = PatchContexts.of(
-                    listOf(tapClass, classes.getValue(handlerType), classes.getValue(FRAGMENT_ACTIVITY),
-                        ExtensionDex.classDef(SETTINGS_STATUS)),
+                    (listOf(tapClass, classes.getValue(handlerType), classes.getValue(FRAGMENT_ACTIVITY),
+                        ExtensionDex.classDef(SETTINGS_STATUS)) + handoffClasses).distinctBy { it.type },
                 )
                 openMessengerFromTopBarPatch.execute(context)
 
@@ -124,6 +126,27 @@ class MessengerIconFixtureTest {
                     code[first].registers())
                 assertTrue("$name: dispatchTouchEvent no longer hands the event on",
                     code.drop(1).any { it.call?.name == "dispatchTouchEvent" })
+
+                // Leave calls and chats to Messenger: both VOIP handlers ask the extension before
+                // they take a call push, the ring parse before it takes its lock, and the chat
+                // dispatcher, once the notification is in its local, before the notifiers see it.
+                fun firstCall(method: Method, wanted: String) =
+                    method.implementation!!.instructions.indexOfFirst { it.call?.toString() == wanted }
+                val voip = voipConstant(handoffClasses.single { it.type == NOTIFICATION_TYPE })!!
+                val handles = handoffClasses.filter { claimsVoip(it, voip) }.map { handler ->
+                    context.mutableClassDefBy(handler.type).methods.single(::isPushHandle)
+                }
+                assertEquals("$name: VOIP handlers", 2, handles.size)
+                for (handle in handles) {
+                    assertEquals("$name: ${handle.definingClass} doesn't ask before taking a call push", 0,
+                        firstCall(handle, DROP_CALL_PUSH))
+                }
+                val parse = context.mutableClassDefBy(handoffClasses.single(::isRingParser).type).methods.single(::isRingParse)
+                assertEquals("$name: the ring parse doesn't ask first", 0, firstCall(parse, DROP_RING))
+                assertEquals("$name: the ring parse's lock moved", Opcode.MONITOR_ENTER,
+                    parse.implementation!!.instructions.toList()[6].opcode)
+                val chatDispatch = context.mutableClassDefBy(MESSAGES_NOTIFICATION_MANAGER).methods.single(::isChatDispatch)
+                assertEquals("$name: the chat dispatcher doesn't ask first", 1, firstCall(chatDispatch, DROP_CHAT))
                 checked += version
             }
         }

@@ -174,8 +174,9 @@ public class ImportPreviewTest {
 
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
     public void aMatchingFileKeepsTheExistingOkOnlyFlow() throws Exception {
-        AlertDialog preview = preview(file(Settings.HIDE_SPONSORED_POSTS.key, true));
-        assertEquals("Your switches already match that file, so nothing will change.",
+        AlertDialog preview = preview(file(Settings.HIDE_SPONSORED_POSTS.key, true,
+                Settings.SAVE_FOLDER.key, Settings.SAVE_FOLDER.savedValue()));
+        assertEquals("Your settings already match that file, so nothing will change.",
                 String.valueOf(shadowOf(preview).getMessage()));
         assertNull(find(preview.getWindow().getDecorView(), Settings.HIDE_SPONSORED_POSTS));
         assertEquals("OK", preview.getButton(AlertDialog.BUTTON_POSITIVE).getText().toString());

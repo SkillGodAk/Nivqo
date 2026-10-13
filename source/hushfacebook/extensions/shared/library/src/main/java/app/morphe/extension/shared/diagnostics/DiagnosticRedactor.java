@@ -12,10 +12,14 @@ import java.util.regex.Pattern;
 
 /** Removes request addresses, credentials and device identifiers from exported text. */
 public final class DiagnosticRedactor {
-    /** Facebook's own hosts, its CDN and short-link domains, and Messenger's. */
+    /**
+     * Facebook's own hosts, its CDN and short-link domains, Messenger's, and the other Meta sites a
+     * report's screen list can name, where a path is a person's handle or id.
+     */
     private static final String HOST_SUFFIXES =
             "(?:facebook\\.com|facebook\\.net|fbcdn\\.net|fbsbx\\.com|fb\\.com|fb\\.me|fb\\.watch"
-                    + "|fb\\.gg|messenger\\.com|meta\\.com|meta\\.ai)";
+                    + "|fb\\.gg|messenger\\.com|m\\.me|meta\\.com|meta\\.ai|instagram\\.com|threads\\.net"
+                    + "|threads\\.com|whatsapp\\.com)";
     /**
      * A word edge, between an ASCII letter, digit or underscore and anything else, written out for
      * the rules to use in place of \b. Android runs them on ICU, whose \b takes a letter such as é,

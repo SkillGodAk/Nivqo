@@ -9,6 +9,7 @@ import shutil
 import struct
 import subprocess
 import sys
+import time
 import tempfile
 import unittest
 import zipfile
@@ -27,6 +28,15 @@ GIT = shutil.which("git")
 REPO = Path(__file__).parents[2]
 # Fixtures replace the git lookup; keep the real one for the test that builds a repository.
 TAGGED_PUBLIC_FEED = release.tagged_public_feed
+
+
+def setUpModule():
+    # These tests check the plain command lines, so keep this PC's build queue out of them.
+    queue_off = patch.dict(
+        os.environ, {"HUSHMESSENGER_BUILD_WRAPPER": "", "BUILD_QUEUE_SCRIPT": ""}
+    )
+    queue_off.start()
+    unittest.addModuleCleanup(queue_off.stop)
 
 
 class FakeGradle:
@@ -506,6 +516,20 @@ class ReleaseChecks(unittest.TestCase):
         self.assertEqual([release.CATALOG_TIMEOUT], gradle.waits)
         self.assertFalse(gradle.killed)
 
+    def test_bounded_run_stops_a_grandchild_that_holds_the_pipes(self):
+        # A queued job is PowerShell starting java, and java keeps the output pipes open.
+        child = (
+            "import subprocess, sys, time; "
+            "subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(120)'], "
+            "stdout=sys.stdout, stderr=sys.stderr); time.sleep(120)"
+        )
+        started = time.monotonic()
+        with self.assertRaises(subprocess.TimeoutExpired):
+            release.run_bounded(
+                [sys.executable, "-c", child], timeout=2, capture_output=True, text=True
+            )
+        self.assertLess(time.monotonic() - started, 60)
+
     def test_catalog_timeout_stops_the_gradle_tree_without_an_unbounded_wait(self):
         for stuck in (False, True):
             gradle = FakeGradle(0, "partial Gradle output", 2 if stuck else 1)
@@ -640,6 +664,17 @@ class ReleaseChecks(unittest.TestCase):
         self.assertIn(
             f"`{fingerprint}`", (REPO / "README.md").read_text(encoding="utf-8")
         )
+
+    def test_a_signer_line_with_no_key_is_named_instead_of_crashing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            signers = Path(folder, "no_key_signers")
+            for text in ('release namespaces="file"\n', "release ssh-ed25519\n"):
+                signers.write_text(text, encoding="utf-8")
+                with (
+                    self.subTest(text=text),
+                    self.assertRaisesRegex(ValueError, "no_key_signers has a signer line with no key"),
+                ):
+                    release.signer_fingerprints(signers)
 
     def test_changed_catalog_metadata_and_stale_artifact_evidence_fail(self):
         for key, value in [

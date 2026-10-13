@@ -158,6 +158,7 @@ final class VideoPages {
     static void playback(HushfacebookPreferenceFragment page, PreferenceScreen screen, Context context,
             Set<PatchFamily> build) {
         if (build.contains(PatchFamily.TAP_TO_PLAY) || build.contains(PatchFamily.RESUME_LONG_VIDEOS)
+                || build.contains(PatchFamily.FRAME_STEP)
                 || build.contains(PatchFamily.PLAYBACK_QUALITY) || build.contains(PatchFamily.PICTURE_IN_PICTURE)
                 || build.contains(PatchFamily.HDR_BRIGHTNESS) || build.contains(PatchFamily.PROGRESS_BAR)) {
             PreferenceCategory playback = category(screen, L10n.t("Playback"));
@@ -173,6 +174,12 @@ final class VideoPages {
                 playback.addPreference(toggle(context, Settings.RESUME_LONG_VIDEOS,
                         L10n.t("Videos over two minutes pick up where you left off. Drag the bar to start elsewhere. Short reels, "
                                 + "live videos and ads start as usual.")));
+            }
+            if (build.contains(PatchFamily.FRAME_STEP)) {
+                // Asked on each tap, so a change shows from the next one.
+                playback.addPreference(toggle(context, Settings.FRAME_STEP,
+                        L10n.t("With a reel or video paused, tap its right side to step one frame forward and its left "
+                                + "side to step one frame back. Tap the middle to play.")));
             }
             if (build.contains(PatchFamily.PLAYBACK_QUALITY)) {
                 playback.addPreference(toggle(context, Settings.DEFAULT_PLAYBACK_QUALITY,
@@ -198,6 +205,10 @@ final class VideoPages {
                 playback.addPreference(toggle(context, Settings.KEEP_PROGRESS_BAR_TIME,
                         L10n.t("With Keep the progress bar on, a reel's elapsed and total time stay above the bar. "
                                 + "Off, they show only while you drag it.")));
+                // Asked on every press of the bar, so it works from the next tap.
+                playback.addPreference(toggle(context, Settings.TAP_TO_SEEK,
+                        L10n.t("Tap anywhere on a reel's or video's progress bar to jump there, instead of dragging "
+                                + "the dot.")));
             }
         }
     }

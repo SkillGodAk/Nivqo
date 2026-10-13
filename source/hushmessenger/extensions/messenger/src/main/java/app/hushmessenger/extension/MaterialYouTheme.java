@@ -57,13 +57,13 @@ public final class MaterialYouTheme {
     /**
      * The dark surfaces Messenger writes into its code (route 3) and sends as text (route 4).
      * These are the grey and near-grey values that appear on dark mode backgrounds. The most
-     * common ones from a DEX scan of Messenger 580.0.0.49.91 build 346013387:
+     * common const values in Messenger 582.0.0.61.92 build 346415686:
      *
      * 0xFF080809 (count=32) - very dark, near-black (background)
      * 0xFF1C2B33 (count=26) - dark blue-tinted (Messenger's signature blue-dark)
      * 0xFF1C1C1D (count=9) - neutral dark grey (shared with Facebook)
      * 0xFF252728 (count=8) - card/surface grey (shared with Facebook)
-     * 0xFF333334 (count=8) - elevated surface: the search bar, message box and note bubbles
+     * 0xFF333334 (count=7) - elevated surface: the search bar, message box and note bubbles
      * 0xFF5C5E62 (count=11) - border/divider grey
      * 0xFF323339 (count=2) - dark grey of three tokens in the DSP ColorData resolver
      */

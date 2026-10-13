@@ -15,6 +15,7 @@ import java.util.Set;
 
 import app.morphe.extension.facebook.feed.SeenPosts;
 import app.morphe.extension.facebook.misc.AppLock;
+import app.morphe.extension.facebook.notifications.PushDiagnostics;
 import app.morphe.extension.facebook.theme.MaterialYouTheme;
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Logger;
@@ -111,13 +112,16 @@ public enum PatchFamily {
             Settings.HIDE_META_AI_SUMMARIES),
     COMMENT_SHEET_OPTIONS(FamilyNames.COMMENT_SHEET_OPTIONS, "commentSheetOptions", null,
             Settings.LIKE_ONLY, Settings.HIDE_COMMENT_GIF_STICKER_BUTTONS, Settings.OPEN_REPLY_THREADS,
-            Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS),
+            Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS, Settings.HIDE_SHOP_LINK_COMMENTS,
+            Settings.HIDE_COMMENTS_WITH_WORDS),
     TAG_SUGGESTIONS(FamilyNames.TAG_SUGGESTIONS, "tagSuggestions", null,
             Settings.TAG_SUGGESTIONS_ONLY_AFTER_AT),
     TAP_TO_PLAY(FamilyNames.TAP_TO_PLAY, "tapToPlay", null,
             Settings.TAP_TO_PLAY, Settings.TAP_TO_PLAY_REELS_AFTER_FIRST),
     RESUME_LONG_VIDEOS(FamilyNames.RESUME_LONG_VIDEOS, "resumeLongVideos", null,
             Settings.RESUME_LONG_VIDEOS),
+    FRAME_STEP(FamilyNames.FRAME_STEP, "frameStep", null,
+            Settings.FRAME_STEP),
     PLAYBACK_QUALITY(FamilyNames.PLAYBACK_QUALITY, "defaultPlaybackQuality", null,
             Settings.DEFAULT_PLAYBACK_QUALITY),
     PICTURE_IN_PICTURE(FamilyNames.PICTURE_IN_PICTURE, "pictureInPicture", null,
@@ -125,7 +129,7 @@ public enum PatchFamily {
     HDR_BRIGHTNESS(FamilyNames.HDR_BRIGHTNESS, "turnOffHdrBrightness", null,
             Settings.TURN_OFF_HDR_BRIGHTNESS),
     PROGRESS_BAR(FamilyNames.PROGRESS_BAR, "keepProgressBar", null,
-            Settings.KEEP_PROGRESS_BAR, Settings.KEEP_PROGRESS_BAR_TIME),
+            Settings.KEEP_PROGRESS_BAR, Settings.KEEP_PROGRESS_BAR_TIME, Settings.TAP_TO_SEEK),
     SYSTEM_FONT(FamilyNames.SYSTEM_FONT, "systemFont", null,
             Settings.USE_SYSTEM_FONT),
     SYSTEM_EMOJI(FamilyNames.SYSTEM_EMOJI, "systemEmoji", null,
@@ -172,7 +176,7 @@ public enum PatchFamily {
             Settings.HIDE_PROFESSIONAL_DASHBOARD_TAB, Settings.HIDE_SAVED_TAB, Settings.HIDE_AD_CENTER_TAB,
             Settings.HIDE_CREATE_TAB, Settings.HIDE_EXPLORE_TAB, Settings.HIDE_JOBS_TAB),
     BOTTOM_TAB_BAR(FamilyNames.BOTTOM_TAB_BAR, "bottomTabBar", null,
-            Settings.BOTTOM_TAB_BAR, Settings.TAB_BAR_SCROLL_AWAY),
+            Settings.BOTTOM_TAB_BAR, Settings.TAB_BAR_SCROLL_AWAY, Settings.KEEP_TAB_BAR, Settings.KEEP_TOP_BAR),
     FORCE_DARK_MODE(FamilyNames.FORCE_DARK_MODE, "forceDarkMode", null,
             Settings.FORCE_DARK_MODE),
     MESSENGER_CARD(FamilyNames.MESSENGER_CARD, "messengerCard", null,
@@ -180,12 +184,12 @@ public enum PatchFamily {
     CHAT_LIST(FamilyNames.CHAT_LIST, "chatListCleanup", null,
             Settings.HIDE_CHAT_NOTES_TRAY, Settings.HIDE_CHAT_PROMOTIONS),
     MESSENGER_ICON(FamilyNames.MESSENGER_ICON, "messengerIcon", null,
-            Settings.OPEN_MESSENGER_APP),
+            Settings.OPEN_MESSENGER_APP, Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER),
     MENU_PROMOTIONS(FamilyNames.MENU_PROMOTIONS, "menuPromotions", null,
             Settings.HIDE_MENU_UPGRADES, Settings.HIDE_MENU_ALSO_FROM_META, Settings.HIDE_MENU_MUSE),
     META_UPSELLS(FamilyNames.META_UPSELLS, "metaUpsells", null,
             Settings.HIDE_EDITS_UPSELLS, Settings.HIDE_THREADS_CROSS_POSTING, Settings.HIDE_THREADS_SHARE_BUTTON,
-            Settings.HIDE_META_VERIFIED_UPSELLS, Settings.HIDE_AVATAR_UPSELLS, Settings.HIDE_META_AI_IMAGINE,
+            Settings.HIDE_MUSE_SHARE_BUTTON, Settings.HIDE_META_VERIFIED_UPSELLS, Settings.HIDE_AVATAR_UPSELLS, Settings.HIDE_META_AI_IMAGINE,
             Settings.HIDE_META_AI_POST_BUTTONS),
     SHARE_SHEET_ITEMS(FamilyNames.SHARE_SHEET_ITEMS, "shareSheetItems", Settings.HIDDEN_SHARE_ITEMS,
             new BooleanSetting[]{Settings.HIDE_SHARE_GROUP_BUTTONS}),
@@ -266,7 +270,7 @@ public enum PatchFamily {
      */
     static final List<BooleanSetting> ENTRY_SWITCHES = Collections.unmodifiableList(
             java.util.Arrays.asList(Settings.CHECK_FOR_RELEASES, Settings.SAVED_SHORTCUT,
-                    Settings.WATCH_HISTORY_SHORTCUT, Settings.APP_LOCK));
+                    Settings.WATCH_HISTORY_SHORTCUT, Settings.APP_LOCK, Settings.SAVE_CRASH_FILE));
 
     /**
      * The switches the download patches share and none of them owns: each shapes what every
@@ -442,7 +446,8 @@ public enum PatchFamily {
         if (this == MARKETPLACE_ONLY) anyOn = Settings.MARKETPLACE_ONLY.savedValue();
         if (this == VIDEO_DOWNLOAD) anyOn = Settings.DOWNLOAD_VIDEOS.savedValue();
         if (this == TAP_TO_PLAY) anyOn = Settings.TAP_TO_PLAY.savedValue();
-        if (this == PROGRESS_BAR) anyOn = Settings.KEEP_PROGRESS_BAR.savedValue();
+        // The time switch starts on, and does nothing without the bar kept; Tap the bar to seek works alone.
+        if (this == PROGRESS_BAR) anyOn = Settings.KEEP_PROGRESS_BAR.savedValue() || Settings.TAP_TO_SEEK.savedValue();
         if (this == PROMO_NOTIFICATIONS) {
             anyOn = false;
             for (BooleanSetting setting : switches) {
@@ -477,6 +482,8 @@ public enum PatchFamily {
         LogBufferManager.registerReportSection(MaterialYouTheme.REPORT);
         LogBufferManager.registerReportSection(SeenPosts.REPORT);
         LogBufferManager.registerReportSection(AppLock.REPORT);
+        LogBufferManager.registerReportSection(PushDiagnostics.REPORT);
+        LogBufferManager.registerReportSection(NetworkUsage.REPORT);
         for (PatchFamily family : values()) {
             if (family.switches.isEmpty() && family.choice == null) HookStatus.runsWhilePaused(family.patchName);
         }

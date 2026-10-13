@@ -498,10 +498,12 @@ final class DashManifest {
         return null;
     }
 
+    /** A size or bitrate, 0 when it's missing or no number, and a negative one is no size either. */
     private static int number(String text) {
         if (text == null) return 0;
         try {
             long value = Long.parseLong(text.trim());
+            if (value < 0) return 0;
             return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
         } catch (NumberFormatException e) {
             return 0;

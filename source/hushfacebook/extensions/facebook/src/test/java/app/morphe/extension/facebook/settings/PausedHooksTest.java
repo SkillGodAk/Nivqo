@@ -18,6 +18,7 @@ import android.os.SystemClock;
 import android.widget.FrameLayout;
 
 import com.facebook.common.util.TriState;
+import com.facebook.graphql.model.GraphQLComment;
 import com.facebook.graphql.model.GraphQLPagesYouMayLikeFeedUnit;
 import com.facebook.graphql.model.GraphQLStory;
 
@@ -52,6 +53,7 @@ import app.morphe.extension.facebook.ads.ReelsAdFilter;
 import app.morphe.extension.facebook.ads.SearchAdFilterForTests;
 import app.morphe.extension.facebook.chats.ChatListForTests;
 import app.morphe.extension.facebook.chats.MessengerCardForTests;
+import app.morphe.extension.facebook.chats.MessengerHandoffForTests;
 import app.morphe.extension.facebook.chats.MessengerIconForTests;
 import app.morphe.extension.facebook.chats.OriginalChatMediaForTests;
 import app.morphe.extension.facebook.chats.ReadReceipts;
@@ -85,12 +87,14 @@ import app.morphe.extension.facebook.comments.MetaAiSummaries;
 import app.morphe.extension.facebook.composer.TagSuggestionsForTests;
 import app.morphe.extension.facebook.media.HdrBrightnessForTests;
 import app.morphe.extension.facebook.media.PictureInPictureForTests;
+import app.morphe.extension.facebook.media.FrameStepForTests;
 import app.morphe.extension.facebook.media.ProgressBar;
 import app.morphe.extension.facebook.media.QualityChoiceForTests;
 import app.morphe.extension.facebook.media.ReelSpeedForTests;
 import app.morphe.extension.facebook.media.ResumePlaybackForTests;
 import app.morphe.extension.facebook.media.TapToPlay;
 import app.morphe.extension.facebook.media.TapToPlayForTests;
+import app.morphe.extension.facebook.media.TapToSeek;
 import app.morphe.extension.facebook.menu.MenuSectionsForTests;
 import app.morphe.extension.facebook.misc.MetaUpsells;
 import app.morphe.extension.facebook.misc.AnalyticsUploads;
@@ -141,9 +145,11 @@ import app.morphe.extension.shared.settings.PauseForTests;
  * <p>Each probe is one hook with its switch on. It must change Facebook's behaviour while
  * Hushfacebook runs, which is the control, and leave it alone while paused. A family that gains a
  * switch without a probe here fails the first test.
+ *
+ * <p>Also at sdk 37, Android 17, which reaches Samsung phones from One UI 9.
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = 30)
+@Config(sdk = {30, 37})
 public class PausedHooksTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
@@ -202,7 +208,7 @@ public class PausedHooksTest {
     private enum StoryTool { TEXT_BASE, IMAGINE }
 
     /** Stands in for Facebook's enum of share sheet items, named the same way. */
-    private enum ShareItem { SHARE_NOW, SHARE_TO_THREADS }
+    private enum ShareItem { SHARE_NOW, SHARE_TO_HATCH, SHARE_TO_THREADS }
 
     @After
     public void restore() {
@@ -229,6 +235,8 @@ public class PausedHooksTest {
         probes.put(Settings.WATCH_HISTORY_SHORTCUT, WatchHistoryShortcutTest::aStartPublishes);
         // A cold start on a phone with a screen lock covers Facebook and asks for it.
         probes.put(Settings.APP_LOCK, AppLockForTests::aStartLocks);
+        // A crash that ends the app writes its file to Downloads.
+        probes.put(Settings.SAVE_CRASH_FILE, app.morphe.extension.shared.settings.preference.CrashFileForTests::aCrashWritesAFile);
         return probes;
     }
 
@@ -488,6 +496,8 @@ public class PausedHooksTest {
                 () -> TapToPlay.showReelPlayButton(false)));
         // A long video left at 5:00 is saved, and its next start seeks back there.
         probes.put(PatchFamily.RESUME_LONG_VIDEOS, Collections.singletonList(ResumePlaybackForTests::resumesALongVideo));
+        // A tap on the right third of a video you paused steps it a frame.
+        probes.put(PatchFamily.FRAME_STEP, Collections.singletonList(FrameStepForTests::stepsAPausedVideo));
         // A new video's first choice plays the chosen quality rather than Facebook's.
         probes.put(PatchFamily.PLAYBACK_QUALITY, Collections.singletonList(QualityChoiceForTests::playsTheChosenQuality));
         // The repository's answer for one of Meta's families, a variable-font builder's, and React
@@ -561,28 +571,36 @@ public class PausedHooksTest {
         // The Friends tab comes off the bar.
         probes.put(PatchFamily.HIDDEN_TABS, Collections.singletonList(HiddenTabsForTests::hidesTheTab));
         // Facebook's own override of where the tab bar goes reads YES, for the bottom, where it read NO.
-        // With the bar at the bottom, Facebook's check of whether it slides away answers yes.
+        // With the bar at the bottom, Facebook's check of whether it slides away answers yes. The top
+        // bar's entry is told to move 0. (A kept bottom bar has its own test: with every switch on,
+        // the slide wins over it.)
         probes.put(PatchFamily.BOTTOM_TAB_BAR, Arrays.asList(
                 () -> BottomTabBar.override(TriState.NO.ordinal()) == TriState.YES.ordinal(),
-                TabBarScrollAway::slidesAway));
+                TabBarScrollAway::slidesAway,
+                () -> TabBarScrollAway.topBarOffset("app_header_container", -120) == 0));
         // Facebook's dark mode controller answers dark where it answered light.
         probes.put(PatchFamily.FORCE_DARK_MODE, Collections.singletonList(ForceDarkModeForTests::forcesDark));
-        // A request for a post's comments that names no order asks for the chosen one.
-        probes.put(PatchFamily.DEFAULT_COMMENT_ORDER,
-                Collections.singletonList(DefaultCommentOrderForTests::asksForTheChosenOrder));
+        // A request for a post's comments that names no order asks for the chosen one, and with
+        // All comments chosen, the menu its answer draws is picked in.
+        probes.put(PatchFamily.DEFAULT_COMMENT_ORDER, Arrays.asList(
+                DefaultCommentOrderForTests::asksForTheChosenOrder,
+                DefaultCommentOrderForTests::picksInTheMenu));
         // A comment sheet's summary and the one under a post get a no from their sockets' checks.
         probes.put(PatchFamily.META_AI_SUMMARIES, Arrays.asList(
                 () -> MetaAiSummaries.holds(MetaAiSummaries.SHEET_SUMMARY),
                 () -> MetaAiSummaries.holds(MetaAiSummaries.POST_SUMMARY)));
         // The comment box's check answers no for its GIF and sticker buttons, a long press on Like
         // returns before the reaction picker opens, a comment starts with its replies open, and the
-        // check under a post's comments answers no for Related groups.
+        // check under a post's comments answers no for Related groups. A comment linking to a shop,
+        // and one holding a phrase from the hide list, are left out of the comment section.
         probes.put(PatchFamily.COMMENT_SHEET_OPTIONS, Arrays.asList(
                 () -> CommentSheetOptions.holdsButton(CommentSheetOptions.GIF_BUTTON),
                 () -> CommentSheetOptions.holdsButton(CommentSheetOptions.STICKER_BUTTON),
                 CommentSheetOptions::skipReactionPicker,
                 () -> CommentSheetOptions.openReplyThreads(false),
-                () -> CommentSheetOptions.holdsBottomContent(CommentSheetOptions.RELATED_GROUPS)));
+                () -> CommentSheetOptions.holdsBottomContent(CommentSheetOptions.RELATED_GROUPS),
+                () -> CommentSheetOptions.hidesComment(new GraphQLComment("https://s.shopee.vn/9zKs")),
+                () -> CommentSheetOptions.hidesComment(new GraphQLComment("Big SPOILER inside"))));
         // A word without @ in a post or comment box looks nobody up, and a list of people left open
         // by an earlier @ is closed.
         probes.put(PatchFamily.TAG_SUGGESTIONS, Arrays.asList(
@@ -594,8 +612,13 @@ public class PausedHooksTest {
         probes.put(PatchFamily.CHAT_LIST, Arrays.asList(
                 ChatListForTests::dropsTheNotesTiles,
                 ChatListForTests::hidesAPromotion));
-        // With Messenger installed, a tap on the top bar's Messenger icon opens Messenger instead of Chats.
-        probes.put(PatchFamily.MESSENGER_ICON, Collections.singletonList(MessengerIconForTests::opensMessenger));
+        // With Messenger installed, a tap on the top bar's Messenger icon opens Messenger instead of
+        // Chats, and an incoming call's push, its ring and a new message are left to Messenger.
+        probes.put(PatchFamily.MESSENGER_ICON, Arrays.asList(
+                MessengerIconForTests::opensMessenger,
+                MessengerHandoffForTests::dropsACallPush,
+                MessengerHandoffForTests::dropsARing,
+                MessengerHandoffForTests::dropsAMessage));
         // The Menu's Upgrades and Also from Meta groups build nothing, in the section Facebook
         // draws and in the one carrying what the server sends.
         probes.put(PatchFamily.MENU_PROMOTIONS, Arrays.asList(
@@ -604,7 +627,7 @@ public class PausedHooksTest {
                 MenuSectionsForTests::hidesServerUpgrades,
                 MenuSectionsForTests::hidesServerAlsoFromMeta));
         // Edits' header flag and both shapes of its pill request, the Threads cross-posting
-        // onboarding and the share sheet's Threads item, the Meta Verified sheet and label, an avatar
+        // onboarding and the share sheet's Threads and Muse items, the Meta Verified sheet and label, an avatar
         // sticker upsell, Imagine's post button, composer capability and Create story tile, and the
         // other Meta AI post buttons, with the deep dive under a caption.
         probes.put(PatchFamily.META_UPSELLS, Arrays.asList(
@@ -654,8 +677,10 @@ public class PausedHooksTest {
         probes.put(PatchFamily.HDR_BRIGHTNESS, Arrays.asList(
                 HdrBrightnessForTests::keepsAnHdrWindowInTheUsualRange, HdrBrightnessForTests::holdsTheHeadroom,
                 HdrBrightnessForTests::answersTheScreenAsShowingNoHdr));
-        // A reel's bar is kept full size, and a full-screen video sets no fade timer.
-        probes.put(PatchFamily.PROGRESS_BAR, Arrays.asList(ProgressBar::keepsReelBar, ProgressBar::keepsControls));
+        // A reel's bar is kept full size, a full-screen video sets no fade timer, and a press off the
+        // bar's thumb is held as a tap to seek.
+        probes.put(PatchFamily.PROGRESS_BAR, Arrays.asList(ProgressBar::keepsReelBar, ProgressBar::keepsControls,
+                ProgressBar::liftsFooter, ProgressBar::noFadedBar, PausedHooksTest::holdsATapOnTheBar));
         // A tab asked for shows without its slide.
         probes.put(PatchFamily.SCREEN_TRANSITIONS, Collections.singletonList(() -> !ScreenTransitionsForTests.slides()));
         // The app icon benefit is answered yes, at the provider's check and at the picker's own look,
@@ -730,6 +755,29 @@ public class PausedHooksTest {
             if (!family.switches.isEmpty()) switched.add(family);
         }
         return switched;
+    }
+
+    /** A press at the far end of a bar whose thumb sits at its start, then a cancel to end it. */
+    private static boolean holdsATapOnTheBar() {
+        android.widget.SeekBar bar = new android.widget.SeekBar(RuntimeEnvironment.getApplication());
+        android.graphics.drawable.ShapeDrawable thumb = new android.graphics.drawable.ShapeDrawable();
+        thumb.setIntrinsicWidth(40);
+        thumb.setIntrinsicHeight(40);
+        bar.setThumb(thumb);
+        bar.setMax(1000);
+        bar.measure(android.view.View.MeasureSpec.makeMeasureSpec(1000, android.view.View.MeasureSpec.EXACTLY),
+                android.view.View.MeasureSpec.makeMeasureSpec(60, android.view.View.MeasureSpec.EXACTLY));
+        bar.layout(0, 0, 1000, 60);
+        android.view.MotionEvent down = android.view.MotionEvent.obtain(0, 0, android.view.MotionEvent.ACTION_DOWN, 900, 30, 0);
+        android.view.MotionEvent cancel = android.view.MotionEvent.obtain(0, 10, android.view.MotionEvent.ACTION_CANCEL, 900, 30, 0);
+        try {
+            boolean held = TapToSeek.takesTouch(bar, down);
+            TapToSeek.takesTouch(bar, cancel);
+            return held;
+        } finally {
+            down.recycle();
+            cancel.recycle();
+        }
     }
 
     /** Adds a line to [wrong] for every probe that didn't answer [changes]. */

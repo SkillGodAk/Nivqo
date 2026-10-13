@@ -12,6 +12,7 @@ import androidx.annotation.Nullable;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -61,16 +62,27 @@ final class PhotoFormat {
      * Rewrites [file], an image of type [mime], as a JPEG when it's an AVIF, and answers the type it
      * holds afterwards. Anything else, or a conversion that fails, leaves the file as it was and
      * answers [mime]. Blocking. Never throws.
+     *
+     * <p>The JPEG is a work file of its own beside [file] ({@link DashSave#reserve}), given room for
+     * the picture's own pixels at most and never more than [maxBytes], the cap the photo was fetched
+     * under. It stops at that room, and takes the AVIF's place only once it's whole and inside it. A
+     * JPEG that doesn't fit leaves the AVIF, which did.
      */
-    static String jpegFromAvif(File file, @Nullable String mime) {
+    static String jpegFromAvif(File file, @Nullable String mime, long maxBytes) {
         if (!AVIF.equals(mime)) return mime;
         File jpeg = new File(file.getPath() + ".jpg");
         Bitmap bitmap = null;
         try {
             bitmap = decode(file);
-            try (OutputStream out = new FileOutputStream(jpeg)) {
+            // A JPEG at this quality comes out well under the pixels' own bytes.
+            long room = DashSave.reserve(jpeg, Math.min(maxBytes, bitmap.getAllocationByteCount() + OutputAllowance.BOXES));
+            if (room <= 0) throw new IOException("no free space for the JPEG");
+            try (OutputStream out = new Capped(new FileOutputStream(jpeg), room)) {
                 if (!bitmap.compress(Bitmap.CompressFormat.JPEG, QUALITY, out)) throw new IOException("compress said no");
             }
+            // Checked again whole, as the file it replaces was when it was fetched.
+            long made = jpeg.length();
+            if (made > room || made > maxBytes) throw new IOException("the JPEG is " + made + " bytes, more than the " + room + " kept for it");
             Files.move(jpeg.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
             int width = bitmap.getWidth();
             int height = bitmap.getHeight();
@@ -79,13 +91,41 @@ final class PhotoFormat {
             return JPEG;
         } catch (Throwable t) {
             // An out-of-memory error lands here too; the AVIF is still whole and goes as it came.
-            //noinspection ResultOfMethodCallIgnored
-            jpeg.delete();
             Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, PhotoSave.SOURCE,
                 () -> "the photo came as AVIF and couldn't be made a JPEG, so it's saved as AVIF: " + t.getClass().getSimpleName());
             return mime;
         } finally {
             if (bitmap != null) bitmap.recycle();
+            // Its room goes back, and the JPEG with it when it never took the AVIF's place.
+            DashSave.discard(jpeg);
+        }
+    }
+
+    /** Passes bytes on until [room] of them have gone, and throws rather than pass one more. */
+    private static final class Capped extends FilterOutputStream {
+        private long left;
+
+        Capped(OutputStream out, long room) {
+            super(out);
+            left = room;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            if (left < 1) throw over();
+            out.write(b);
+            left--;
+        }
+
+        @Override
+        public void write(byte[] bytes, int offset, int length) throws IOException {
+            if (length > left) throw over();
+            out.write(bytes, offset, length);
+            left -= length;
+        }
+
+        private static IOException over() {
+            return new OutputAllowance.Exceeded("the JPEG would pass the room kept for it");
         }
     }
 

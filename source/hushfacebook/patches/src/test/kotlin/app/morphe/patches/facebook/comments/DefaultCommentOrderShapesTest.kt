@@ -21,21 +21,24 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Default comment order over a stand-in request builder, params class and comment sheet: which
- * methods count as the builder, the params' constructor and the pick handler, what the patch
- * refuses, and the calls it puts first in the constructor and the handler. Each rule has a control
- * that must fail it.
+ * Default comment order over a stand-in request builder, params class, comment sheet and section
+ * renderer: which methods count as the builder, the params' constructor, the pick handler and the
+ * sort menu's header, what the patch refuses, and the calls it puts first in the constructor, the
+ * handler and the header. Each rule has a control that must fail it.
  */
 class DefaultCommentOrderShapesTest {
     private val builderOwner = "Lfixture/RequestBuilder;"
@@ -159,14 +162,75 @@ class DefaultCommentOrderShapesTest {
         else -> emptyList()
     }
 
+    private val renderer = "Lfixture/CommentSection;"
+    private val keyOwner = "Lfixture/SectionKeys;"
+    private val header = "Lfixture/SortHeader;"
+    private val feedback = "Lfixture/Feedback;"
+    private val function1 = "Lkotlin/jvm/functions/Function1;"
+    private val headerParameters = listOf(USER_SESSION, feedback, string, function1)
+    private val keyMap = "$keyOwner->A00:Ljava/util/Map;"
+
+    /** The sort menu's header: the session, the feedback, a string and the pick, five registers like 582's. */
+    private fun sortHeader(): MutableMethod = method(
+        header, "<init>", headerParameters, "V", 5, constructor = true, smali = """
+            invoke-direct { p0 }, Ljava/lang/Object;-><init>()V
+            iput-object p2, p0, $header->A01:$feedback
+            iput-object p4, p0, $header->A03:$function1
+            return-void
+        """,
+    )
+
+    /** The class whose static map holds the key the header is filed under. */
+    private fun keys(key: String = SELECTOR_KEY): ClassDef = ImmutableClassDef(
+        keyOwner, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null,
+        listOf(ImmutableField(keyOwner, "A00", "Ljava/util/Map;",
+            AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value, null, null, null)),
+        listOf(method(keyOwner, "<clinit>", emptyList(), "V", 1, static = true, constructor = true, smali = """
+            const-string v0, "$key"
+            invoke-static { v0 }, Lfixture/Maps;->of(Ljava/lang/Object;)Ljava/util/Map;
+            move-result-object v0
+            sput-object v0, $keyMap
+            return-void
+        """)),
+    )
+
+    /**
+     * The comment sheet's section renderer: both strings, the header built from its parameters,
+     * then the key's map read right after, as 582 does. Parts can change.
+     */
+    private fun render(
+        name: String = "render",
+        interranked: Boolean = true,
+        keyRead: String? = keyMap,
+        keyGap: Int = 0,
+        built: String = header,
+        builtWith: List<String> = headerParameters,
+    ): MutableMethod = method(
+        renderer, name, listOf("Ljava/lang/Object;", feedback, USER_SESSION, function1), "Ljava/lang/Object;", 8,
+        smali = """
+            const-string v0, "$INTENT_FLAG"
+            ${if (interranked) "const-string v0, \"$INTERRANKED\"" else ""}
+            new-instance v1, $built
+            const-string v0, "title"
+            invoke-direct { v1, p3, p2, v0, p4 }, $built-><init>(${builtWith.joinToString("")})V
+            ${"nop\n".repeat(keyGap)}
+            ${if (keyRead != null) "sget-object v2, $keyRead" else ""}
+            return-object v1
+        """,
+    )
+
     private fun build(
         builder: Method = builder(),
         constructor: Method = constructor(),
         handlers: List<Method> = listOf(handler(), refresh()),
+        renders: List<Method> = listOf(render()),
     ): List<ClassDef> = listOf(
         classOf(builderOwner, builder),
         classOf(FETCH_FEEDBACK_PARAMS, constructor),
         classOf(sheet, *handlers.toTypedArray()),
+        classOf(renderer, *renders.toTypedArray()),
+        keys(),
+        classOf(header, sortHeader()),
         ExtensionDex.classDef(SETTINGS_STATUS),
     )
 
@@ -231,6 +295,14 @@ class DefaultCommentOrderShapesTest {
         assertEquals("the refetch is left alone", listOf(Opcode.CONST_STRING, Opcode.RETURN_VOID),
             methods.single { it.name == "refresh" }.body().map { it.opcode })
 
+        val menu = context.mutableClassDefBy(header).methods.single().body()
+        assertEquals(Opcode.INVOKE_STATIC, menu[0].opcode)
+        assertEquals(SORT_MENU, menu[0].reference)
+        assertEquals("the feedback and the pick, p2 and p4 of five registers", listOf(2, 4), menu[0].callRegisters())
+        assertEquals(sortHeader().body().map { it.opcode }, menu.drop(1).map { it.opcode })
+        assertEquals("the renderer is left alone", render().body().map { it.opcode },
+            context.mutableClassDefBy(renderer).methods.single().body().map { it.opcode })
+
         val status = context.mutableClassDefBy(SETTINGS_STATUS).methods.single { it.name == "defaultCommentOrder" }
         val answer = status.body().first { it is NarrowLiteralInstruction }
         assertEquals("the settings screen isn't told the patch is in", 1, (answer as NarrowLiteralInstruction).narrowLiteral)
@@ -251,5 +323,33 @@ class DefaultCommentOrderShapesTest {
             noConstructor.contains("found 0"))
         val noHandler = refusal(build(handlers = listOf(refresh())))
         assertTrue(noHandler, noHandler.contains("pick handler") && noHandler.contains("found 0"))
+        val noMenu = refusal(build(renders = listOf(render(keyRead = null))))
+        assertTrue(noMenu, noMenu.contains("comment sort menu header") && noMenu.contains("found 0"))
+        val twoMenus = refusal(build(renders = listOf(render(), render(name = "renderAgain", built = "Lfixture/OtherHeader;"))))
+        assertTrue(twoMenus, twoMenus.contains("comment sort menu header") && twoMenus.contains("found 2"))
+    }
+
+    @Test
+    fun `the sort menu's header is the one the renderer builds right before filing it under the key`() {
+        val maps = selectorKeyMaps(listOf(keys(), classOf("Lfixture/NoMap;")))
+        assertEquals(setOf(keyMap), maps)
+        assertTrue("a class without the key has no map here", selectorKeyMaps(listOf(classOf("Lfixture/NoMap;"))).isEmpty())
+
+        assertEquals("$header-><init>(${headerParameters.joinToString("")})V", sortHeaderIn(render(), maps).toString())
+        assertNull("without the pagination string", sortHeaderIn(render(interranked = false), maps))
+        assertNull("no key read", sortHeaderIn(render(keyRead = null), maps))
+        assertNull("another map read", sortHeaderIn(render(keyRead = "Lfixture/Other;->A00:Ljava/util/Map;"), maps))
+        assertNotNull("the key read eight below", sortHeaderIn(render(keyGap = 7), maps))
+        assertNull("the key read too far below", sortHeaderIn(render(keyGap = 8), maps))
+        assertNull("a header without the pick",
+            sortHeaderIn(render(builtWith = listOf(USER_SESSION, feedback, string, string)), maps))
+        assertNull("a header without the session",
+            sortHeaderIn(render(builtWith = listOf(string, feedback, string, function1)), maps))
+
+        val reference = { parameters: List<String> -> ImmutableMethodReference(header, "<init>", parameters, "V") }
+        assertTrue(isSortHeaderConstructor(reference(headerParameters)))
+        assertFalse("three parameters", isSortHeaderConstructor(reference(headerParameters.dropLast(1))))
+        assertFalse("not a constructor", isSortHeaderConstructor(
+            ImmutableMethodReference(header, "make", headerParameters, "V")))
     }
 }

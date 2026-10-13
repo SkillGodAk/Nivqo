@@ -18,8 +18,14 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x;
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction12x;
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c;
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21s;
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t;
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31i;
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31t;
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c;
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutablePackedSwitchPayload;
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableSparseSwitchPayload;
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableSwitchElement;
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference;
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference;
 import com.android.tools.smali.dexlib2.writer.pool.DexPool;
@@ -51,6 +57,13 @@ import java.util.Map;
  * five instance getters answering a boolean, each with a caller like the old one's, that score under
  * the crowd until their callers count and above it after: a calibration naming a getter of the crowd
  * as the known method must not rank it second.
+ *
+ * <p>In "outlined" the moved target no longer loads its marker: it asks a Redex string table,
+ * LX/000;->A00(I), for case 7, and a twin beside it asks for case 8. Read as they are, the two tie;
+ * with the table read back, the real one stands out. Five callers of the table must read nothing
+ * back: one asks for a case the table lacks, one passes its own argument, one is reached by a branch
+ * that loads another index, one asks for case 9, which calls the table again, and one calls a helper
+ * of the same shape that isn't a table.
  *
  *   java -cp &lt;cli jar&gt; FingerprintFixture.java &lt;outDir&gt;
  */
@@ -157,6 +170,148 @@ public class FingerprintFixture {
         return out;
     }
 
+    static final ImmutableMethodReference TABLE = new ImmutableMethodReference("LX/000;", "A00",
+            Collections.singletonList("I"), STRING);
+    static final ImmutableMethodReference NOT_A_TABLE = new ImmutableMethodReference("LX/001;", "A00",
+            Collections.singletonList("I"), STRING);
+
+    /** Case 8's string, longer than the report prints one, so the report has to keep its case. */
+    static final String OTHER = "fingerprint_fixture_other_" + "x".repeat(90);
+
+    static Instruction index(int register, int value) {
+        return new ImmutableInstruction21s(Opcode.CONST_16, register, value);
+    }
+
+    /**
+     * Redex's string table: a switch on the argument, each case a string returned at once, except
+     * case 9, which asks the table again. The payload sits at code unit 18, an even address.
+     */
+    static ClassDef table() {
+        return type("LX/000;", method("LX/000;", "A00", STRING, Collections.singletonList("I"), 2,
+                new ImmutableInstruction31t(Opcode.PACKED_SWITCH, 1, 18),       // 0
+                new ImmutableInstruction11n(Opcode.CONST_4, 0, 0),               // 3
+                new ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),            // 4
+                string(0, "fingerprint_fixture_marker"),                         // 5: case 7
+                new ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),            // 7
+                string(0, OTHER),                                                // 8: case 8
+                new ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),            // 10
+                index(1, 9),                                                     // 11: case 9
+                invoke(TABLE, 1),                                                // 13
+                new ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),       // 16
+                new ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),            // 17
+                new ImmutablePackedSwitchPayload(Arrays.asList(                  // 18
+                        new ImmutableSwitchElement(7, 5), new ImmutableSwitchElement(8, 8), new ImmutableSwitchElement(9, 11)))));
+    }
+
+    static final ImmutableMethodReference HIGH_TABLE = new ImmutableMethodReference("LX/002;", "A00",
+            Collections.singletonList("I"), STRING);
+
+    /** A sparse string table with one case past 255, an index that would count as a literal. */
+    static ClassDef highTable() {
+        return type("LX/002;", method("LX/002;", "A00", STRING, Collections.singletonList("I"), 2,
+                new ImmutableInstruction31t(Opcode.SPARSE_SWITCH, 1, 8),        // 0
+                new ImmutableInstruction11n(Opcode.CONST_4, 0, 0),               // 3
+                new ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),            // 4
+                string(0, "fingerprint_fixture_high"),                           // 5: case 4660
+                new ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),            // 7
+                new ImmutableSparseSwitchPayload(Collections.singletonList(      // 8
+                        new ImmutableSwitchElement(4660, 5)))));
+    }
+
+    /** Asks the sparse table for case 4660, and loads 4660 once more as a plain literal. */
+    static ClassDef highCaller() {
+        return type("LX/Zz5;", method("LX/Zz5;", "A00", "V", Collections.emptyList(), 2,
+                index(0, 4660),
+                invoke(HIGH_TABLE, 0),
+                new ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+                index(1, 4661),
+                op(Opcode.RETURN_VOID)));
+    }
+
+    static final ImmutableMethodReference FULL_TABLE = new ImmutableMethodReference("LX/003;", "A00",
+            Collections.singletonList("I"), STRING);
+
+    /** How many cases the full table has: one more than a signature keeps outlined strings. */
+    static final int FULL_CASES = 65;
+
+    /** A sparse string table with cases 5000 to 5064, each three code units after the last. */
+    static ClassDef fullTable() {
+        List<Instruction> body = new ArrayList<>();
+        List<ImmutableSwitchElement> cases = new ArrayList<>();
+        int payload = 5 + 3 * FULL_CASES;
+        body.add(new ImmutableInstruction31t(Opcode.SPARSE_SWITCH, 1, payload));
+        body.add(new ImmutableInstruction11n(Opcode.CONST_4, 0, 0));
+        body.add(new ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0));
+        for (int k = 0; k < FULL_CASES; k++) {
+            cases.add(new ImmutableSwitchElement(5000 + k, 5 + 3 * k));
+            body.add(string(0, "fingerprint_fixture_full_" + k));
+            body.add(new ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0));
+        }
+        body.add(new ImmutableSparseSwitchPayload(cases));
+        return type("LX/003;", method("LX/003;", "A00", STRING, Collections.singletonList("I"), 2,
+                body.toArray(new Instruction[0])));
+    }
+
+    /** Asks the full table for every case, so the last one's string is past the limit. */
+    static ClassDef fullCaller() {
+        List<Instruction> body = new ArrayList<>();
+        for (int k = 0; k < FULL_CASES; k++) {
+            body.add(index(0, 5000 + k));
+            body.add(invoke(FULL_TABLE, 0));
+            body.add(new ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0));
+        }
+        body.add(op(Opcode.RETURN_VOID));
+        return type("LX/Zz4;", method("LX/Zz4;", "A00", "V", Collections.emptyList(), 1, body.toArray(new Instruction[0])));
+    }
+
+    /** A helper of the table's prototype that answers its int as text: no switch, so no table. */
+    static ClassDef notATable() {
+        return type("LX/001;", method("LX/001;", "A00", STRING, Collections.singletonList("I"), 1,
+                invoke(INT_TO_STRING, 0),
+                new ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+                new ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)));
+    }
+
+    /** The target with its marker asked of the table as case [index] instead of loaded. */
+    static Method outlinedTarget(String owner, int index) {
+        return method(owner, "B1c", STRING, Arrays.asList(STRING, "I"), 4,
+                index(0, index),
+                invoke(TABLE, 0),
+                new ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+                invoke(LOG_D, 0, 2),
+                new ImmutableInstruction31i(Opcode.CONST, 1, 0x12345),
+                new ImmutableInstruction12x(Opcode.ADD_INT_2ADDR, 1, 3),
+                invoke(INT_TO_STRING, 1),
+                new ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+                new ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0));
+    }
+
+    /** Callers of the table that prove no string, each LX/Ng<k>;->A00(I)V with its int in v1. */
+    static List<ClassDef> unprovable() {
+        Instruction result = new ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0);
+        Instruction done = op(Opcode.RETURN_VOID);
+        return Arrays.asList(
+                // A case the table doesn't have.
+                type("LX/Ng1;", method("LX/Ng1;", "A00", "V", Collections.singletonList("I"), 2,
+                        index(0, 99), invoke(TABLE, 0), result, done)),
+                // Its own argument, with case 7 loaded into another register straight before.
+                type("LX/Ng2;", method("LX/Ng2;", "A00", "V", Collections.singletonList("I"), 2,
+                        index(0, 7), invoke(TABLE, 1), result, done)),
+                // Case 7 loaded straight before, but a branch from case 8 lands on the call.
+                type("LX/Ng3;", method("LX/Ng3;", "A00", "V", Collections.singletonList("I"), 2,
+                        index(0, 8),                                             // 0
+                        new ImmutableInstruction21t(Opcode.IF_EQZ, 1, 4),        // 2: to 6
+                        index(0, 7),                                             // 4
+                        invoke(TABLE, 0),                                        // 6
+                        result, done)),
+                // Case 9, which asks the table again rather than answer.
+                type("LX/Ng4;", method("LX/Ng4;", "A00", "V", Collections.singletonList("I"), 2,
+                        index(0, 9), invoke(TABLE, 0), result, done)),
+                // Case 7 of a helper that isn't a table.
+                type("LX/Ng5;", method("LX/Ng5;", "A00", "V", Collections.singletonList("I"), 2,
+                        index(0, 7), invoke(NOT_A_TABLE, 0), result, done)));
+    }
+
     /** Methods that share nothing but a prototype with the target, or nothing at all. */
     static List<ClassDef> decoys() {
         return Arrays.asList(
@@ -226,6 +381,27 @@ public class FingerprintFixture {
             star.add(type("LX/Zy" + k + ";", getterCaller("LX/Zy" + k + ";", "LX/Zz" + k + ";", "Z", false, MARKERS)));
         }
         dexes.put("crowd-star", star);
+
+        List<ClassDef> outlined = new ArrayList<>(decoys());
+        outlined.add(table());
+        outlined.add(notATable());
+        outlined.add(type("LX/Zz9;", outlinedTarget("LX/Zz9;", 7)));
+        outlined.add(type("LX/Zz7;", outlinedTarget("LX/Zz7;", 8)));
+        outlined.add(type("LX/Zz8;", caller("LX/Zz8;", "A00", "LX/Zz9;->B1c", "LX/Zz7;->B1c")));
+        outlined.addAll(unprovable());
+        dexes.put("outlined", outlined);
+
+        // The outlined target with no twin: it stands out, until its table is left unread.
+        List<ClassDef> alone = new ArrayList<>(decoys());
+        alone.add(table());
+        alone.add(type("LX/Zz9;", outlinedTarget("LX/Zz9;", 7)));
+        alone.add(type("LX/Zz8;", caller("LX/Zz8;", "A00", "LX/Zz9;->B1c")));
+        alone.add(highTable());
+        alone.add(highCaller());
+        dexes.put("outlined-alone", alone);
+
+        // A caller asking for more strings than a signature keeps: the one past the limit keeps its number.
+        dexes.put("outlined-full", Arrays.asList(fullTable(), fullCaller()));
 
         for (Map.Entry<String, List<ClassDef>> e : dexes.entrySet()) {
             DexPool.writeTo(new File(out, e.getKey() + ".dex").getPath(), new ImmutableDexFile(Opcodes.forApi(30), e.getValue()));

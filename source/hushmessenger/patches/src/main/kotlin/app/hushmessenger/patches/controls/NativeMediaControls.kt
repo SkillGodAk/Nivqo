@@ -15,11 +15,10 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 internal const val EPHEMERAL_VIEWER = "Lcom/facebook/messaging/media/ephemeralmedia/viewer/EphemeralMediaViewerFragment;"
 internal const val QUICKSNAP_VIEWER = "Lcom/facebook/messaging/quicksnap/consumption/viewer/MsgrQuicksnapViewerFragment;"
-internal const val GENERATE_AI_LABEL = 0x7f1404fe
-/** "Generate AI stickers" in Messenger 581's string pack; 580 keeps it at GENERATE_AI_LABEL. */
-internal const val GENERATE_AI_LABEL_581 = 0x7f140511
-/** The viewer's onCreateDialog override: A1A or A1C in the 580 mappings, A1E in 581. */
-internal val EPHEMERAL_DIALOGS = setOf("A1A", "A1C", "A1E")
+/** "Generate AI stickers" in Messenger's string pack. */
+internal const val GENERATE_AI_LABEL = 0x7f14051c
+/** The viewer's onCreateDialog override: A1D, or A1F in builds 346415706 and 346415707. */
+internal val EPHEMERAL_DIALOGS = setOf("A1D", "A1F")
 private const val WINDOW = "Landroid/view/Window;"
 private const val SET_FLAGS = "$WINDOW->setFlags(II)V"
 private const val ADD_FLAGS = "$WINDOW->addFlags(I)V"
@@ -71,22 +70,20 @@ internal fun Method.screenshotViewerSites(): List<Int> {
                 literal(8, 0) && call(9, SET_FLAGS, listOf(1, 0, 0))
         }
         definingClass == EPHEMERAL_VIEWER && name == "onResume" && parameterTypes.isEmpty() && returnType == "V" -> {
-            // 581 casts the provider's Object result in v0 before asking it for the Activity, one instruction later.
-            val d = if (code.size == 49 && op(7, Opcode.CHECK_CAST) && reg(7) == 0) 1 else 0
-            sites = listOf(14 + d, 21 + d); allowedJumps = setOf(15 + d); jumpSources = setOf(10 + d, 13 + d)
-            implementation!!.registerCount == 5 && code.size == 48 + d && result(8 + d, "Landroid/app/Activity;", 0) && literal(9 + d, 1) &&
-                nullCheck(10 + d, 0, 15 + d) && window(11 + d, "Landroid/app/Activity;", 0, 0, 15 + d) && call(14 + d, SET_FLAGS, listOf(0, 1, 1)) &&
-                op(15 + d, Opcode.INVOKE_VIRTUAL) && code[15 + d].mediaArgs() == listOf(4) &&
-                ((code[15 + d] as? ReferenceInstruction)?.reference as? MethodReference)?.returnType == "Landroid/app/Dialog;" &&
-                op(16 + d, Opcode.MOVE_RESULT_OBJECT) && reg(16 + d) == 0 && nullCheck(17 + d, 0, 22 + d) &&
-                window(18 + d, "Landroid/app/Dialog;", 0, 0, 22 + d) && call(21 + d, SET_FLAGS, listOf(0, 1, 1)) &&
-                (10 + d..21 + d).none { code[it].writes(1) }
+            sites = listOf(14, 21); allowedJumps = setOf(15); jumpSources = setOf(10, 13)
+            implementation!!.registerCount == 5 && code.size == 46 && result(8, "Landroid/app/Activity;", 0) && literal(9, 1) &&
+                nullCheck(10, 0, 15) && window(11, "Landroid/app/Activity;", 0, 0, 15) && call(14, SET_FLAGS, listOf(0, 1, 1)) &&
+                op(15, Opcode.INVOKE_VIRTUAL) && code[15].mediaArgs() == listOf(4) &&
+                ((code[15] as? ReferenceInstruction)?.reference as? MethodReference)?.returnType == "Landroid/app/Dialog;" &&
+                op(16, Opcode.MOVE_RESULT_OBJECT) && reg(16) == 0 && nullCheck(17, 0, 22) &&
+                window(18, "Landroid/app/Dialog;", 0, 0, 22) && call(21, SET_FLAGS, listOf(0, 1, 1)) &&
+                (10..21).none { code[it].writes(1) }
         }
         definingClass == QUICKSNAP_VIEWER && name == "onCreateView" &&
             parameterTypes.map { it.toString() } == listOf("Landroid/view/LayoutInflater;", "Landroid/view/ViewGroup;", "Landroid/os/Bundle;") &&
             returnType == "Landroid/view/View;" -> {
             sites = listOf(32); allowedJumps = emptySet()
-            implementation!!.registerCount == 23 && code.size in setOf(438, 439, 441, 442, 444, 448) &&
+            implementation!!.registerCount == 23 && code.size in setOf(438, 441) &&
                 result(26, "Landroid/app/Dialog;", 0) && nullCheck(27, 0, 33) && window(28, "Landroid/app/Dialog;", 0, 1, 33) &&
                 literal(31, 0) && call(32, ADD_FLAGS, listOf(1, 0))
         }
@@ -114,22 +111,17 @@ internal fun MutableMethod.injectScreenshotViewer() {
     }
 }
 
-private data class AiCell(
-    val type: String, val superclass: String, val scope: String, val component: String, val size: Int = 104,
-    val registers: Int = 23, val label: Int = GENERATE_AI_LABEL, val sources: Int = 4,
-) {
+/** The cell under each build's names. Its render has 105 instructions and 24 registers, and five renders offer the label. */
+internal data class AiCell(val type: String, val superclass: String, val scope: String, val component: String) {
     val render = "$type->render($scope)$component"
 }
-private val aiCells = listOf(
-    AiCell("LX/FXP;", "LX/1Hx;", "LX/2MZ;", "LX/1GG;"),
-    AiCell("LX/FWm;", "LX/1Hx;", "LX/2MZ;", "LX/1GG;"),
-    AiCell("LX/FTy;", "LX/1Hw;", "LX/2MY;", "LX/1GF;"),
-    AiCell("LX/FfQ;", "LX/1Hw;", "LX/2MY;", "LX/1GF;", 106),
-    AiCell("LX/FSU;", "LX/1IL;", "LX/2Nf;", "LX/1Gf;"),
-    // 581's render passes its child one more argument (105 instructions, 24 registers), and the generator row now
-    // offers this label too, which makes a fifth render source.
-    AiCell("LX/Ez5;", "LX/1IO;", "LX/2AL;", "LX/1Gd;", 105, registers = 24, label = GENERATE_AI_LABEL_581, sources = 5),
+internal val aiCells = listOf(
+    AiCell("LX/CoQ;", "LX/1N9;", "LX/2Cg;", "LX/1GU;"),
+    AiCell("LX/EyW;", "LX/1N8;", "LX/2Cf;", "LX/1GT;"),
 )
+internal const val AI_CELL_SIZE = 105
+internal const val AI_CELL_REGISTERS = 24
+internal const val AI_CELL_SOURCES = 5
 
 /** This is a single icon/click prefix cell, not the result grid. A00 is its label resource. */
 internal fun findAiStickerCells(classes: Iterable<ClassDef>): List<Method> {
@@ -154,27 +146,27 @@ internal fun findAiStickerCells(classes: Iterable<ClassDef>): List<Method> {
                 if (code[at].opcode !in setOf(Opcode.INVOKE_DIRECT, Opcode.INVOKE_DIRECT_RANGE) || code[at].mediaRef() != ctor.hookId()) continue
                 val arg = code[at].mediaArgs().lastOrNull() ?: continue
                 val literal = (at - 1 downTo maxOf(0, at - 24)).firstOrNull { code[it].writes(arg) } ?: continue
-                if ((code[literal] as? NarrowLiteralInstruction)?.narrowLiteral == shape.label &&
+                if ((code[literal] as? NarrowLiteralInstruction)?.narrowLiteral == GENERATE_AI_LABEL &&
                     (literal + 1 until at).none { code[it] is OffsetInstruction } && source.jumpTargets().none { it in literal + 1..at }) sources++
             }
         }
-        if (sources != shape.sources) continue
+        if (sources != AI_CELL_SOURCES) continue
         val render = cls.methods.singleOrNull { it.hookId() == shape.render } ?: continue
-        if (!AccessFlags.STATIC.isSet(render.accessFlags) && render.implementation?.registerCount == shape.registers &&
-            render.mediaCode().size == shape.size && render.implementation!!.tryBlocks.size == 4) found.add(render)
+        if (!AccessFlags.STATIC.isSet(render.accessFlags) && render.implementation?.registerCount == AI_CELL_REGISTERS &&
+            render.mediaCode().size == AI_CELL_SIZE && render.implementation!!.tryBlocks.size == 4) found.add(render)
     }
     return found
 }
 
 internal fun MutableMethod.validateAiStickerCell() {
-    val shape = aiCells.singleOrNull { it.render == hookId() } ?: mediaFailure(this)
-    if (hookId() !in activeProfile.hooks.getValue("ai_sticker_cell") || AccessFlags.STATIC.isSet(accessFlags) ||
-        implementation?.registerCount != shape.registers || mediaCode().size != shape.size || implementation!!.tryBlocks.size != 4) mediaFailure(this)
+    if (aiCells.none { it.render == hookId() } || hookId() !in activeProfile.hooks.getValue("ai_sticker_cell") ||
+        AccessFlags.STATIC.isSet(accessFlags) || implementation?.registerCount != AI_CELL_REGISTERS || mediaCode().size != AI_CELL_SIZE ||
+        implementation!!.tryBlocks.size != 4) mediaFailure(this)
 }
 
 internal fun MutableMethod.injectAiStickerCell() {
     validateAiStickerCell()
-    val label = aiCells.single { it.render == hookId() }.label
+    val label = GENERATE_AI_LABEL
     addInstructionsWithLabels(0, """
         move-object/from16 v0, p0
         iget v0, v0, $definingClass->A00:I

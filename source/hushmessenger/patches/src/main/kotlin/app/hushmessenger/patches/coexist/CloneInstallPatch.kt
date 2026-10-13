@@ -7,11 +7,7 @@ package app.hushmessenger.patches.coexist
 
 import app.hushmessenger.patches.MessengerTarget
 import app.hushmessenger.patches.controls.BASE_PROFILE
-import app.hushmessenger.patches.controls.PROFILE_346013357
-import app.hushmessenger.patches.controls.PROFILE_346013370
-import app.hushmessenger.patches.controls.PROFILE_346013374
-import app.hushmessenger.patches.controls.PROFILE_346013423
-import app.hushmessenger.patches.controls.PROFILE_346213494
+import app.hushmessenger.patches.controls.PROFILE_346415706
 import app.hushmessenger.patches.controls.controlProfileFor
 import app.hushmessenger.patches.controls.hookId
 import app.hushmessenger.patches.controls.resolveShortcutsPath
@@ -293,23 +289,15 @@ private const val CLICK = "->onClick(Landroid/view/View;)V"
 /**
  * Each build family's backup lookup and attachment check, then every setPackage call that sends Messenger to itself:
  * the in-app broadcast sender, the push notification's click and link intents, the bulk delete link in the inbox and
- * the story link button. The native test checks them on all 37 builds.
+ * the story link button. The native test checks them on all 14 builds.
  */
 internal fun expectedCloneSitesFor(versionCode: String): Set<String> {
     validateVersionCode(versionCode)
     return when (controlProfileFor(versionCode)) {
-        BASE_PROFILE -> setOf("LX/E6y;-><init>()V", "LX/4M6;$ATTACHMENT_CHECK", "LX/38C;$BROADCAST@1", "LX/6dH;${NOTIFICATION}LX/9KW;@229",
-            "LX/6dH;${NOTIFICATION}LX/9KW;@325", "LX/BCT;$CLICK@82", "LX/JgF;$CLICK@164")
-        PROFILE_346013370 -> setOf("LX/VLY;-><init>()V", "LX/4MB;$ATTACHMENT_CHECK", "LX/38E;$BROADCAST@1", "LX/6bn;${NOTIFICATION}LX/9Iv;@229",
-            "LX/6bn;${NOTIFICATION}LX/9Iv;@325", "LX/BAG;$CLICK@82", "LX/PZK;$CLICK@67")
-        PROFILE_346013423 -> setOf("LX/JJK;-><init>()V", "LX/4PA;$ATTACHMENT_CHECK", "LX/39i;$BROADCAST@1", "LX/6dK;${NOTIFICATION}LX/9LJ;@229",
-            "LX/6dK;${NOTIFICATION}LX/9LJ;@327", "LX/BE9;$CLICK@82", "LX/ED8;$CLICK@166")
-        PROFILE_346013357 -> setOf("LX/E6T;-><init>()V", "LX/4M0;$ATTACHMENT_CHECK", "LX/38E;$BROADCAST@1", "LX/6cr;${NOTIFICATION}LX/9K6;@229",
-            "LX/6cr;${NOTIFICATION}LX/9K6;@325", "LX/BC3;$CLICK@82", "LX/Jfb;$CLICK@164")
-        PROFILE_346013374 -> setOf("LX/VFG;-><init>()V", "LX/4Ny;$ATTACHMENT_CHECK", "LX/38F;$BROADCAST@1", "LX/6do;${NOTIFICATION}LX/9L0;@229",
-            "LX/6do;${NOTIFICATION}LX/9L0;@327", "LX/BCM;$CLICK@82", "LX/PLK;$CLICK@63")
-        PROFILE_346213494 -> setOf("LX/E9W;-><init>()V", "LX/4Di;$ATTACHMENT_CHECK", "LX/38G;$BROADCAST@1", "LX/8fw;${NOTIFICATION}LX/9Op;@228",
-            "LX/8fw;${NOTIFICATION}LX/9Op;@324", "LX/BCY;$CLICK@81", "LX/JTZ;$CLICK@168")
+        BASE_PROFILE -> setOf("LX/J7q;-><init>()V", "LX/4KQ;$ATTACHMENT_CHECK", "LX/391;$BROADCAST@1", "LX/Q85;${NOTIFICATION}LX/RZC;@228",
+            "LX/Q85;${NOTIFICATION}LX/RZC;@321", "LX/C9t;$CLICK@81", "LX/MH9;$CLICK@160")
+        PROFILE_346415706 -> setOf("LX/Umq;-><init>()V", "LX/4Is;$ATTACHMENT_CHECK", "LX/38v;$BROADCAST@1", "LX/Q2n;${NOTIFICATION}LX/RWk;@225",
+            "LX/Q2n;${NOTIFICATION}LX/RWk;@318", "LX/C98;$CLICK@81", "LX/JL0;$CLICK@104")
         else -> fail("version code $versionCode has no checked clone sites")
     }
 }
@@ -462,11 +450,7 @@ internal val cloneResources = resourcePatch(description = "Move Messenger's mani
 @Suppress("unused")
 val cloneInstallPatch = bytecodePatch(
     name = CLONE_PATCH_NAME,
-    description = "Installs a second copy of Messenger beside the first, under its own package name and app name. " +
-        "Messenger's own permissions, providers, task affinities and push categories move to the new name, and encrypted " +
-        "chat backups still find their settings. Push notifications may not reach the copy. Facebook's sign-in shortcut " +
-        "and other Meta apps won't see its account, and a Root Mount install can't use it. Sign it with the same key as " +
-        "your other patched Meta apps.",
+    description = "Installs a second copy of Messenger beside the first, with its own app name. Push notifications may not reach the copy. Pick it in Morphe Manager's Expert mode. Works as soon as you patch it in, with no switch.",
     default = false,
 ) {
     category("Fixes")
@@ -477,7 +461,7 @@ val cloneInstallPatch = bytecodePatch(
         key = "clonePackageName",
         default = CLONE_DEFAULT_PACKAGE,
         title = "Package name",
-        description = "The copy's package name, such as com.facebook.orca.hush. It can't be Messenger's own or another Meta app's.",
+        description = "The copy's unique app ID, like com.facebook.orca.hush. Use words joined by dots, each starting with a letter. It can't match Messenger or another Meta app.",
         required = true,
     ) { isClonePackage(it) }
 
@@ -485,7 +469,7 @@ val cloneInstallPatch = bytecodePatch(
         key = "cloneAppName",
         default = CLONE_DEFAULT_LABEL,
         title = "App name",
-        description = "The name under the copy's home screen icon. Up to 40 letters, numbers, spaces and simple punctuation.",
+        description = "The name shown under the copy's home screen icon. Up to 40 characters, starting with a letter or number.",
         required = true,
     ) { isCloneLabel(it) }
 

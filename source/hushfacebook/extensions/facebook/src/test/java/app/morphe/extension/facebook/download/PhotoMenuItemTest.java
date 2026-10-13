@@ -11,6 +11,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.os.Looper;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -26,7 +27,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowToast;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -148,6 +151,25 @@ public class PhotoMenuItemTest {
         Settings.POST_MENU_PHOTO_SAVE.save(false);
         assertNull("a tap after the switch went off saved", PhotoMenuItem.tap(context, photos));
         assertEquals(3, saved.size());
+    }
+
+    /** A tap while saves hold every slot says so and starts none of the photos. */
+    @Test
+    public void aTapWhileEverySlotIsTakenSaysWhy() throws Exception {
+        List<PhotoMenuItem.Photo> photos = PhotoMenuItem.photosOf(album(2), ATTACHMENTS, MEDIA, ATTACHED_STORY, SUBATTACHMENTS);
+        try (SaveSlotsForTests ignored = SaveSlotsForTests.holdAll(context)) {
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+            ShadowToast.reset();
+            // The saves holding the slots are counted too.
+            int before = saved.size();
+
+            assertNull("a tap with every slot taken started saves", PhotoMenuItem.tap(context, photos));
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+            assertEquals("Too many saves at once. Try again when one finishes.", ShadowToast.getTextOfLatestToast());
+            assertEquals("the tap took a slot", SaveSlotsForTests.SLOTS, MediaDownload.savesInFlight());
+            assertEquals("a photo went to the downloader", before, saved.size());
+        }
     }
 
     @Test

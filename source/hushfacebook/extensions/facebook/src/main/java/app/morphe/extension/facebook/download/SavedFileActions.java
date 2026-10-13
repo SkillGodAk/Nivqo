@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 
+import app.morphe.extension.facebook.misc.AppIcons;
 import app.morphe.extension.facebook.misc.AppLock;
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Logger;
@@ -63,8 +64,9 @@ public final class SavedFileActions {
     private SavedFileActions() { }
 
     static PendingIntent button(Context application, Uri uri, String mime, boolean share) {
+        // The launcher entry that's on now: a picked app icon turns the default one off (#119).
         Intent entry = new Intent(share ? SHARE : OPEN)
-                .setClassName(application.getPackageName(), "com.facebook.katana.LoginActivity")
+                .setComponent(AppIcons.launcher(application))
                 .setDataAndType(uri, mime)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         // Facebook's launcher activity is open to every app, so a tap proves it came from this

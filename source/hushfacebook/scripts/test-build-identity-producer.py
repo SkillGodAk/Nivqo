@@ -1,7 +1,8 @@
 """Exercise buildAndroid's real source snapshot in a private Git fixture.
 
 Run with the build's JAVA_HOME and registry credentials. --work-dir retains logs and
-the fixture for diagnosis; without it, scratch files stay in the system temp directory.
+the fixture for diagnosis; without it, a passing run deletes its scratch copy from the system
+temp directory and a failing one leaves it there.
 """
 
 import argparse
@@ -152,6 +153,9 @@ def main():
     if failures:
         raise AssertionError("\n".join(failures))
     print(f"All {len(records)} actual producer cases passed.", flush=True)
+    if not args.work_dir:
+        # A copy of the checkout and its build is hundreds of MB.
+        shutil.rmtree(work, ignore_errors=True)
 
 
 if __name__ == "__main__":

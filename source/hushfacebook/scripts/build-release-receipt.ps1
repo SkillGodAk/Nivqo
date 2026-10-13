@@ -30,9 +30,10 @@
     -AppliedDir names the runs the pre-push gate kept (patches/build/fixture-apply, one folder per
     fixture file, written by verify-all-patches.ps1 -KeepIn). A fixture whose kept stamp names
     this bundle, this APK, this patch list and this CLI by SHA-256, and the same version, version
-    code and forced flag, is read from there: its CLI report, patched APK and merge go through the
-    same checks a fresh run's do, and only the patching is skipped. Any other fixture is patched
-    here as before, and kept runs are read, never changed.
+    code and forced flag, is read from there: its CLI report, patched APK and merge are copied into
+    the run's own folder, hashed there and go through the same checks a fresh run's do, and only
+    the patching is skipped. Any other fixture is patched here as before, and kept runs are read,
+    never changed.
 
     The bundle has to be a build of HEAD from a clean tree, and a clean tree when the receipt is
     cut doesn't show that. So its stamp has to be HEAD's commit time (the build writes 0 when the
@@ -164,6 +165,12 @@ if ($newerSources.Count -gt 0) {
         "$($newerSources[0].FullName). The bundle may not hold what they hold now, so build it again. " +
         'Nothing was patched.')
 }
+# File times miss an input deleted, renamed or put back behind an older time. A bundle that carries
+# the digest of its inputs is held to the checkout's; a legacy one with no record keeps the checks above.
+if ((Get-BundleIdentityFacts -BundlePath $Bundle).Present) {
+    $staleBundle = Get-BundleInputMismatch -Root $Root -BundlePath $Bundle
+    if ($staleBundle) { throw "The bundle doesn't match this checkout: $staleBundle. Build it again. Nothing was patched." }
+}
 
 # The SBOM, read with the bundle and for the same reason, and held to it: an SBOM left from another
 # build would put another bundle's libraries in front of OSV. Then the advisory gate, before any
@@ -189,50 +196,6 @@ $toolingBound = Test-ReleaseTooling -Tooling $toolingDocument -BundlePath $Bundl
 if (-not $toolingBound.Valid) { throw "The tooling report does not describe the release: $($toolingBound.Reason)" }
 $toolingAuditStatus = Invoke-ToolingAdvisoryGate -Tooling $toolingDocument `
     -ExceptionsPath (Join-Path $PSScriptRoot 'tooling-advisory-exceptions.txt') -SkipAdvisoryCheck:$SkipAdvisoryCheck
-
-function Get-ExtensionPayloads {
-    <#
-    .SYNOPSIS
-        The extension DEX each bundle carries, by name, size and hash.
-    .DESCRIPTION
-        An .mpe is a bare Android DEX, checked here by its magic rather than by its extension,
-        so a bundle that shipped something else in that slot cannot pass as an extension.
-    #>
-    param([string]$BundlePath)
-
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    $payloads = New-Object System.Collections.Generic.List[object]
-    $archive = [System.IO.Compression.ZipFile]::OpenRead($BundlePath)
-    try {
-        foreach ($entry in @($archive.Entries | Where-Object { $_.FullName -like 'extensions/*.mpe' } |
-                Sort-Object FullName)) {
-            $stream = $entry.Open()
-            try {
-                $memory = New-Object System.IO.MemoryStream
-                $stream.CopyTo($memory)
-                $bytes = $memory.ToArray()
-                $memory.Dispose()
-            } finally { $stream.Dispose() }
-
-            $magic = [System.Text.Encoding]::ASCII.GetString($bytes, 0, [Math]::Min(4, $bytes.Length))
-            if ($magic -ne "dex`n") {
-                throw "$($entry.FullName) in $BundlePath is not an Android DEX payload."
-            }
-            $sha = [System.Security.Cryptography.SHA256]::Create()
-            try { $hash = ($sha.ComputeHash($bytes) | ForEach-Object { '{0:X2}' -f $_ }) -join '' }
-            finally { $sha.Dispose() }
-
-            $payloads.Add([ordered]@{
-                name      = $entry.FullName
-                sizeBytes = [long]$bytes.Length
-                sha256    = $hash
-            })
-        }
-    } finally { $archive.Dispose() }
-
-    if ($payloads.Count -eq 0) { throw "The bundle carries no extension payload: $BundlePath" }
-    return ,$payloads.ToArray()
-}
 
 function Get-PatchVerdicts {
     <#
@@ -327,10 +290,20 @@ function Get-KeptRun {
     .DESCRIPTION
         It counts only when its stamp names the bundle, APK, patch list and CLI this receipt is cut
         from by SHA-256, the same version name, version code and forced flag, and a merge exactly
-        when the fixture is a split bundle, and when every file the stamp stands for is there.
-        Anything less and the fixture is patched here, as it would be with no kept runs at all.
+        when the fixture is a split bundle, and when every file the stamp stands for is there with
+        the SHA-256 the stamp gives it (stamp schema 2). Anything less and the fixture is patched
+        here, as it would be with no kept runs at all.
+
+        The answer is a copy of the kept run in -Into, hashed there: a file hashed in the kept
+        folder could be changed before the checks below read it, and the copy is this run's own.
+        The copy's folder, and then each file in it before it's hashed, is held (Open-HeldFile) and
+        added to -Held, which the caller closes once its checks are done: the folder can't be renamed
+        or swapped for a link, a file can't be written, replaced or deleted, and each hold is proved
+        to be the path's own file rather than one a link there led to. So the checks read what was
+        hashed. A copy that can't be held that way, or that holds a link, isn't used.
     #>
-    param([string]$Apk, [object]$Stock, [bool]$Forced)
+    param([string]$Apk, [object]$Stock, [bool]$Forced, [string]$Into,
+        [System.Collections.Generic.List[System.IDisposable]]$Held)
 
     if (-not $AppliedDir) { return $null }
     $label = Split-Path -Leaf $Apk
@@ -359,7 +332,47 @@ function Get-KeptRun {
         Write-Host "[receipt] the gate's run of $label was made with another bundle, APK, patch list or CLI, so it's patched here"
         return $null
     }
-    return $dir
+    # The checks below repeat only some of the gate's: its resource table and register checks ran on
+    # the outputs it kept, and the stamp names those by hash. A stamp from before it did, or an
+    # output changed since, can't vouch for them.
+    if ([string]$stamp.schema -cne '2') {
+        Write-Host "[receipt] the gate's run of $label has an older stamp that doesn't name its outputs, so it's patched here"
+        return $null
+    }
+    $hashes = @{ 'patched.apk' = 'patchedSha256'; 'result.json' = 'resultSha256'; 'stock-merged.apk' = 'mergedSha256' }
+    New-Item -ItemType Directory -Force -Path $Into | Out-Null
+    $mark = $Held.Count
+    $refused = $null
+    try { $Held.Add((Open-HeldFile -Path $Into -Directory)) }
+    catch { $refused = "has a copy whose folder can't be held as itself" }
+    if (-not $refused) {
+        Get-ChildItem -LiteralPath $dir -File | Copy-Item -Destination $Into -Force
+        # The caller takes a merge in the copy as what the CLI patched, so one the stamp doesn't
+        # vouch for, beside a plain APK's run, goes.
+        if (-not $splitBundle) { Remove-Item -LiteralPath (Join-Path $Into 'stock-merged.apk') -Force -ErrorAction SilentlyContinue }
+        foreach ($file in $files) {
+            $path = Join-Path $Into $file
+            try { $Held.Add((Open-HeldFile -Path $path)) }
+            catch { $refused = "has a copy whose $file can't be held as itself"; break }
+            $want = [string]$stamp.($hashes[$file])
+            if (-not $want -or $want -cne (Get-Sha256Hex -Path $path)) {
+                $refused = "no longer holds the $file it checked"
+                break
+            }
+        }
+    }
+    if (-not $refused) {
+        foreach ($item in @(Get-ChildItem -LiteralPath $Into -Force)) {
+            if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) { $refused = "has a link in its copy, $($item.Name)"; break }
+        }
+    }
+    if ($refused) {
+        Write-Host "[receipt] the gate's run of $label $refused, so it's patched here"
+        while ($Held.Count -gt $mark) { $Held[$Held.Count - 1].Dispose(); $Held.RemoveAt($Held.Count - 1) }
+        Remove-TreeWithoutFollowingLinks -Path $Into
+        return $null
+    }
+    return $Into
 }
 
 # Every fixture in one slot of the machine's build queue when there is one (Invoke-HeavyJob):
@@ -372,6 +385,7 @@ Invoke-HeavyJob -Label 'receipt' -ScriptBlock {
         $runId = [guid]::NewGuid().ToString('N')
         $runDir = Resolve-WithinRoot -Path (Join-Path $workRoot "receipt-$runId") -Root $workRoot
         New-Item -ItemType Directory -Force -Path $runDir | Out-Null
+        $held = [System.Collections.Generic.List[System.IDisposable]]::new()
         try {
             $stock = $stockFacts[$apk]
 
@@ -387,8 +401,9 @@ Invoke-HeavyJob -Label 'receipt' -ScriptBlock {
 
             # The gate's run of this very fixture with this very bundle, when it kept one: its
             # report, patched APK and merge go through every check below, and only the patching is
-            # skipped. The kept folder is read, never written.
-            $keptRun = Get-KeptRun -Apk $apk -Stock $stock -Forced $forced
+            # skipped. The kept folder is read, never written, and what's read is this run's copy.
+            $keptRun = Get-KeptRun -Apk $apk -Stock $stock -Forced $forced `
+                -Into (Resolve-WithinRoot -Path (Join-Path $runDir 'kept') -Root $workRoot) -Held $held
             if ($keptRun) {
                 Write-Host "[receipt] reading the gate's run of ${label}: same bundle, APK, patch list and CLI"
                 $out = Join-Path $keptRun 'patched.apk'
@@ -434,6 +449,36 @@ Invoke-HeavyJob -Label 'receipt' -ScriptBlock {
             if (-not $validation.Valid) { throw "$label did not patch cleanly: $($validation.Reason)" }
             if ($cliExitCode -ne 0) { throw "The desktop CLI exited with $cliExitCode on $label." }
 
+            # A phone with 16 KB pages maps a stored native library straight out of the APK only
+            # from a 16 KB boundary, and Android 17's linker stops there instead of falling back.
+            # The patcher aligns them on repack (1.15.1); this checks it did, every stored library
+            # and every other stored entry's 4 bytes. A release doesn't go out on a miss.
+            $zipalign = Join-Path (Split-Path -Parent $Aapt2) ('zipalign' + [IO.Path]::GetExtension($Aapt2))
+            if (-not (Test-Path -LiteralPath $zipalign -PathType Leaf)) {
+                throw "No zipalign beside $Aapt2 for the 16 KB alignment check."
+            }
+            $preference = $ErrorActionPreference
+            try {
+                $ErrorActionPreference = 'Continue'
+                $global:LASTEXITCODE = -1
+                $alignment = @(& $zipalign '-c' '-P' '16' '-v' '4' $out 2>&1 | ForEach-Object { "$_" })
+                $alignExitCode = $LASTEXITCODE
+            } finally {
+                $ErrorActionPreference = $preference
+            }
+            $libraries = @($alignment | Where-Object { $_ -match '\.so\b' }).Count
+            if ($alignExitCode -ne 0) {
+                $misses = @($alignment | Where-Object { $_ -match '\(BAD' } | Select-Object -First 5)
+                if ($misses.Count -eq 0) {
+                    # No entry was named, so zipalign itself refused the run. One older than build-tools 35
+                    # doesn't know -P, and its own words are the only clue.
+                    throw ("zipalign exited $alignExitCode on $label without naming an entry, so the 16 KB check " +
+                        "didn't run. It said: " + (@($alignment | Select-Object -Last 5) -join '; '))
+                }
+                throw "$label is not 16 KB aligned (zipalign exit $alignExitCode): $($misses -join '; ')"
+            }
+            Write-Host "[receipt] $label`: $libraries native libraries checked, 16 KB aligned"
+
             $patched = Get-ApkManifestFacts -Apk $out -Aapt2 $Aapt2
             # The manifest the patches started from is the APK the CLI patched, the merge for a split
             # bundle, not the base APK's: the merge rewrites the manifest itself, and a delta against
@@ -456,6 +501,7 @@ Invoke-HeavyJob -Label 'receipt' -ScriptBlock {
                     forced      = $forced
                 }
                 patches       = $verdicts
+                nativeAlignment = [ordered]@{ pageSizeKb = 16; libraries = $libraries; aligned = $true }
                 manifestDelta = [ordered]@{
                     permissionsAdded          = @($delta.permissionsAdded)
                     permissionsRemoved        = @($delta.permissionsRemoved)
@@ -464,9 +510,10 @@ Invoke-HeavyJob -Label 'receipt' -ScriptBlock {
                 }
             })
         } finally {
-            if ($runDir.StartsWith($workRoot, [System.StringComparison]::OrdinalIgnoreCase) -and
-                (Test-Path -LiteralPath $runDir)) {
-                Remove-Item -LiteralPath $runDir -Recurse -Force -ErrorAction SilentlyContinue
+            foreach ($handle in $held) { $handle.Dispose() }
+            # Links go as links: Windows PowerShell's recursive removal follows a junction.
+            if ($runDir.StartsWith($workRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+                Remove-TreeWithoutFollowingLinks -Path $runDir
             }
         }
     }

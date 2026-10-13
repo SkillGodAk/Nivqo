@@ -51,6 +51,9 @@ class ControlFailureTest {
         val feature = hidePeoplePatch.dependencies.filterIsInstance<ResourcePatch>().single()
         val discovery = hidePeoplePatch.dependencies.filterIsInstance<BytecodePatch>().single()
         for (broken in listOf("none", "gate", "route")) withResourceContext(temporary.resolve("run-$broken")) { resources, config ->
+            // The fixtures carry the synthetic names, and discovery picks the profile by the APK's version code. The
+            // extension's resource APK stands in for Messenger here, so its code gets the synthetic profile.
+            controlProfilesInUse = controlProfiles + (resources.packageMetadata.versionCode!!.toInt() to SYNTHETIC_PROFILE)
             val anchor = pluginGates.getValue("people").anchors.single()
             val listEnd = pluginGates.getValue("people_list_end").anchors.single()
             // A supported APK supplies all six suggestion placements the control selects, and the chat list supplier.
@@ -118,7 +121,7 @@ class ControlFailureTest {
         val record = menuSettingsPatch.dependencies.filterIsInstance<ResourcePatch>().single()
         val discovery = menuSettingsPatch.dependencies.filterIsInstance<BytecodePatch>().single()
         try {
-            assertEquals(6, controlProfiles.values.distinct().size)
+            assertEquals(2, controlProfiles.values.distinct().size)
             for ((group, profile) in controlProfiles.values.distinct().withIndex()) {
                 activeProfile = profile
                 val ids = profile.hooks.getValue("menu_settings")

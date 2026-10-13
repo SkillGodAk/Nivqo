@@ -462,7 +462,7 @@ public final class ClipboardLink {
      */
     static void save(Context application, WeakReference<Activity> screen, Found found) {
         String videoId = found.videoId;
-        if (videoId == null) return;
+        if (videoId == null || MediaDownload.busy(application)) return;
         if (PlayerSources.byId(videoId) != null) {
             MediaDownload.saveFeedVideo(application, PostDetails.of(videoId), null, null);
             return;
@@ -486,7 +486,9 @@ public final class ClipboardLink {
             if (!pending.compareAndSet(waiting, null) || waiting.expired()) return;
             Context application = Utils.getContext();
             if (application == null) return;
-            Utils.runOnMainThread(() -> MediaDownload.saveFeedVideo(application, PostDetails.of(videoId), null, null));
+            Utils.runOnMainThread(() -> {
+                if (!MediaDownload.busy(application)) MediaDownload.saveFeedVideo(application, PostDetails.of(videoId), null, null);
+            });
         } catch (Throwable failure) {
             try {
                 HookStatus.threw(FAMILY, "copied link save", failure);

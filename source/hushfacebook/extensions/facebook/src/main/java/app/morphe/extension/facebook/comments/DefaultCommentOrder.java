@@ -8,11 +8,17 @@ import android.os.SystemClock;
 
 import androidx.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import kotlin.jvm.functions.Function1;
+
+import app.morphe.extension.facebook.download.PostDetails;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.facebook.settings.SettingsStatus;
@@ -40,8 +46,14 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * </ul>
  *
  * <p>Facebook's answer names the order it used, which is what the sheet's menu then shows. Its own
- * links to a post can name an order the same way. What its servers answer for a post that doesn't
- * offer the order named hasn't been seen on a phone yet.
+ * links to a post can name an order the same way.
+ *
+ * <p>All comments is the exception (#110). Asked for up front on a friend's post whose sheet has no
+ * sort menu, Facebook's answer drew no comment at all, while Newest and Most relevant drew them.
+ * So a request for All comments goes out with Facebook's own choice, and when the answer's sort
+ * menu offers All comments, {@link #sortMenu} picks it there the way a tap on that row does, by
+ * whichever token that menu names the row by ({@link CommentOrder#rowIn}). A post whose menu
+ * doesn't offer it, or that has no menu, stays in Facebook's order.
  *
  * <p>It fails open: with the patch not in the build, the switch off, Hushfacebook paused, the
  * settings not ready yet, Facebook's order chosen, or a failure in here, the request is Facebook's
@@ -65,6 +77,32 @@ public final class DefaultCommentOrder {
 
     /** After those, one line per this many requests. */
     static final int SUMMED_UP_BY = 50;
+
+    /** How long after a request was left for the menu its sheet may draw that menu. */
+    static final long AWAIT_WINDOW_MS = 60_000;
+
+    /** Counted each time a request for All comments goes out with Facebook's order, for its menu to offer. */
+    static final String LEFT_FOR_MENU = "All comments left for the menu";
+
+    /** Counted each time a sheet's menu offered All comments and it was picked there. */
+    static final String PICKED_IN_MENU = "All comments picked in the menu";
+
+    /** Counted each time Facebook's answer was already All comments. */
+    static final String ANSWERED = "Answer already All comments";
+
+    /** Counted each time a sheet's menu didn't offer All comments, so Facebook's order stayed. */
+    static final String NOT_OFFERED = "Menu without All comments";
+
+    // Facebook's trees are read by the hash of each field's GraphQL name.
+    private static final int ID = "id".hashCode();
+    private static final int RENDERING = "comment_rendering_instance".hashCode();
+    private static final int SELECTED = "selected_intent".hashCode();
+    private static final int OFFERED = "selectable_intents".hashCode();
+    private static final int TOKEN = "intent_token".hashCode();
+
+    /** Runs a test's picks instead of the main thread. */
+    @Nullable
+    static volatile Executor mainForTests;
 
     /** Whether the patch is in this build, when a test says so instead of {@link SettingsStatus}. */
     @Nullable
@@ -103,6 +141,18 @@ public final class DefaultCommentOrder {
                     return size() > REMEMBERED_POSTS;
                 }
             });
+
+    /** Feedback id to when its request was left for the menu, least recently used first. */
+    private static final Map<String, Long> awaiting = Collections.synchronizedMap(
+            new LinkedHashMap<String, Long>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Long> eldest) {
+                    return size() > REMEMBERED_POSTS;
+                }
+            });
+
+    /** Set while a pick this class made in a menu runs, so the line it writes says so. */
+    private static final ThreadLocal<Boolean> picking = new ThreadLocal<>();
 
     /** How many requests this changed or left alone for a reason worth a line. */
     private static final AtomicInteger decisions = new AtomicInteger();
@@ -176,6 +226,12 @@ public final class DefaultCommentOrder {
                 log("asked for the order picked for this post, " + describe(picked) + ".");
                 return picked;
             }
+            if (deferred(order)) {
+                awaiting.put(feedbackId, now());
+                HookStatus.counted(FamilyNames.DEFAULT_COMMENT_ORDER, LEFT_FOR_MENU);
+                log("left " + describe(order.token) + " for the post's menu to offer.");
+                return token;
+            }
             log("asked for " + describe(order.token) + ".");
             return order.token;
         } catch (Throwable failure) {
@@ -213,7 +269,111 @@ public final class DefaultCommentOrder {
         if (isEmpty(feedbackId) || !pick.token.equals(token) || now() - pick.at > PICK_WINDOW_MS) return;
         String before = picks.put(feedbackId, token);
         if (!token.equals(before)) {
-            log("kept " + describe(token) + ", picked in a post's comments, for that post until Facebook restarts.");
+            String how = Boolean.TRUE.equals(picking.get()) ? "which its menu offered" : "picked in a post's comments";
+            log("kept " + describe(token) + ", " + how + ", for that post until Facebook restarts.");
+        }
+    }
+
+    /** Whether [order] waits for a sheet's menu to offer it rather than being asked for up front. */
+    static boolean deferred(CommentOrder order) {
+        return order == CommentOrder.ALL_COMMENTS;
+    }
+
+    /**
+     * Injection point, first thing in the constructor of a comment sheet's sort menu, which Facebook
+     * builds only when its answer offers more than one order. [feedback] is the post's feedback
+     * tree, [pick] what a tap on one of the menu's rows calls with that row's token. When the
+     * request for this post was left for the menu and the menu offers the chosen order, that order
+     * is picked here, on the main thread, as a tap would. Never throws.
+     */
+    public static void sortMenu(@Nullable Object feedback, @Nullable Object pick) {
+        try {
+            if (!inBuild()) return;
+            HookStatus.invoked(FamilyNames.DEFAULT_COMMENT_ORDER);
+            if (feedback == null || !(pick instanceof Function1)) return;
+            HookStatus.bound(FamilyNames.DEFAULT_COMMENT_ORDER, "comment sort menu");
+            CommentOrder order = chosen();
+            if (order == null || !deferred(order)) return;
+            String feedbackId = string(feedback, ID);
+            Long asked = isEmpty(feedbackId) ? null : awaiting.remove(feedbackId);
+            if (asked == null || now() - asked > AWAIT_WINDOW_MS) return;
+            Object rendering = tree(feedback, RENDERING);
+            if (rendering == null) {
+                HookStatus.missingMember(FamilyNames.DEFAULT_COMMENT_ORDER, "comment sort menu",
+                        feedback.getClass().getName(), "comment_rendering_instance");
+                return;
+            }
+            String selected = string(tree(rendering, SELECTED), TOKEN);
+            List<String> offered = tokens(rendering);
+            String token = order.rowIn(offered);
+            // Answered when Facebook is on the row this menu would be picked at. On another of the
+            // order's rows while the usual one is offered, the usual one is picked.
+            if (token != null ? token.equals(selected) : order.isNamedBy(selected)) {
+                HookStatus.counted(FamilyNames.DEFAULT_COMMENT_ORDER, ANSWERED);
+                log("Facebook answered " + describe(selected) + " already.");
+                return;
+            }
+            if (token == null) {
+                HookStatus.counted(FamilyNames.DEFAULT_COMMENT_ORDER, NOT_OFFERED);
+                log("left a post whose menu offers " + offered + " in Facebook's order.");
+                return;
+            }
+            HookStatus.counted(FamilyNames.DEFAULT_COMMENT_ORDER, PICKED_IN_MENU);
+            log("picked " + describe(token) + " in the post's menu.");
+            @SuppressWarnings("unchecked")
+            Function1<Object, Object> menu = (Function1<Object, Object>) pick;
+            Runnable tap = () -> {
+                picking.set(Boolean.TRUE);
+                try {
+                    menu.invoke(token);
+                } catch (Throwable failure) {
+                    HookStatus.threw(FamilyNames.DEFAULT_COMMENT_ORDER, "comment sort menu pick", failure);
+                } finally {
+                    picking.remove();
+                }
+            };
+            Executor forced = mainForTests;
+            if (forced != null) forced.execute(tap);
+            else Utils.runOnMainThread(tap);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.DEFAULT_COMMENT_ORDER, "comment sort menu", failure);
+        }
+    }
+
+    /** The tokens of the orders the answer's menu offers, in its order. */
+    private static List<String> tokens(Object rendering) {
+        List<String> tokens = new ArrayList<>();
+        Object list = call(rendering, "getTreeList", OFFERED);
+        if (!(list instanceof List)) return tokens;
+        for (Object option : (List<?>) list) {
+            String token = string(option, TOKEN);
+            if (!isEmpty(token)) tokens.add(token);
+        }
+        return tokens;
+    }
+
+    @Nullable
+    private static Object tree(@Nullable Object model, int field) {
+        return call(model, "getTree", field);
+    }
+
+    @Nullable
+    private static String string(@Nullable Object model, int field) {
+        Object value = call(model, "getString", field);
+        return value instanceof String ? (String) value : null;
+    }
+
+    /**
+     * Facebook's kept reader [name] of [model] for [field], or null when there's none or it fails.
+     * A released tree isn't read, since that read goes to native code no try block catches.
+     */
+    @Nullable
+    private static Object call(@Nullable Object model, String name, int field) {
+        if (!PostDetails.isLiveTree(model)) return null;
+        try {
+            return model.getClass().getMethod(name, int.class).invoke(model, field);
+        } catch (Throwable failure) {
+            return null;
         }
     }
 
@@ -234,10 +394,11 @@ public final class DefaultCommentOrder {
         }
     }
 
-    /** Forgets the picks, the pending one and the line count, as a new process would. */
+    /** Forgets the picks, the pending one, the posts left for their menus and the line count, as a new process would. */
     static void forget() {
         picks.clear();
         pending.remove();
+        awaiting.clear();
         decisions.set(0);
     }
 }

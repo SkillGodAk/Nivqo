@@ -119,6 +119,7 @@ public class SupportReportTest {
         assertTrue("Debug logging's state is missing: " + report, report.contains("\ndebug_logging: off\n"));
         assertTrue("no patch list: " + report, report.contains("\n[PATCHES]\n"));
         assertTrue("no supported-link state: " + report, report.contains("\n[SUPPORTED LINKS]\n"));
+        assertTrue("no network use: " + report, report.contains("\n[NETWORK]\n"));
         if (Build.VERSION.SDK_INT == 30) assertTrue(report, report.contains("availability: not_reported (API below 31)"));
         assertTrue(report, report.contains("\nDownload any reel: on (hushfacebook_download_reels=on)\n"));
         assertFalse("events without Debug logging: " + report, report.contains("[SELECTED EVENTS]"));

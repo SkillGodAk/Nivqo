@@ -224,6 +224,7 @@ public class LogBufferManagerClipboardTest {
         ClipboardManager clipboard = clipboard();
         clipboard.setPrimaryClip(ClipData.newPlainText("test", text));
         LogBufferManager.copiedMessage = null;
+        LogBufferManager.copyFailedMessage = null;
         LogBufferManager.exportFailedMessage = null;
         LogBufferManager.couldNotStartMessage = null;
         ShadowToast.reset();
@@ -253,14 +254,20 @@ public class LogBufferManagerClipboardTest {
         LogBufferManager.appendEvent(DiagnosticCategory.OTHER, "Probe", "INFO",
                 "opened www.facebook.com/dana.q.1987");
         ClipboardManager clipboard = clipboardHolding("before");
+        List<Boolean> results = new CopyOnWriteArrayList<>();
+        List<Boolean> completedOnMain = new CopyOnWriteArrayList<>();
 
-        LogBufferManager.exportToClipboard();
+        LogBufferManager.exportToClipboard(copied -> {
+            completedOnMain.add(Looper.getMainLooper().isCurrentThread());
+            results.add(copied);
+        });
         Utils.awaitBackgroundTasksForTests();
 
         assertEquals("the report was built " + builtOnMain.size() + " times", 1, builtOnMain.size());
         assertFalse("the report was built on the main thread", builtOnMain.get(0));
         assertEquals("the copy didn't wait for the main thread", "before", clipText(clipboard));
         assertNull(ShadowToast.getTextOfLatestToast());
+        assertTrue("the result preceded the actual clipboard copy", results.isEmpty());
 
         ShadowLooper.idleMainLooper();
         String copied = clipText(clipboard);
@@ -268,6 +275,8 @@ public class LogBufferManagerClipboardTest {
         assertTrue(copied, copied.contains("[PROBE]\nprobe line"));
         assertFalse("the copy wasn't redacted: " + copied, copied.contains("dana.q.1987"));
         assertEquals("Diagnostic report copied to the clipboard.", ShadowToast.getTextOfLatestToast());
+        assertEquals(Collections.singletonList(true), results);
+        assertEquals(Collections.singletonList(true), completedOnMain);
     }
 
     /**
@@ -313,7 +322,7 @@ public class LogBufferManagerClipboardTest {
         Utils.awaitBackgroundTasksForTests();
         ShadowLooper.idleMainLooper();
 
-        assertEquals("The diagnostic report couldn't be saved. Try again.", ShadowToast.getTextOfLatestToast());
+        assertEquals("The diagnostic report couldn't be copied. Try again.", ShadowToast.getTextOfLatestToast());
         assertEquals("before", clipText(clipboard));
     }
 

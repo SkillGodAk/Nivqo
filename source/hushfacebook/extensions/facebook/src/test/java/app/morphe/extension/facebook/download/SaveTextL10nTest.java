@@ -55,6 +55,9 @@ public class SaveTextL10nTest {
         }
         said.add(SaveControl.progressText(5_000_000, 50_000_000));
         said.add(SaveControl.progressText(5_000_000, -1));
+        said.add(SaveControl.rateText(1_500_000));
+        said.add(SaveControl.rateText(800_000));
+        said.add(SaveControl.elapsedText(42_000));
         for (String text : said) {
             assertTrue("not from the catalog: " + text, text.startsWith("[") && text.endsWith("]"));
         }
@@ -93,6 +96,10 @@ public class SaveTextL10nTest {
         long mib = 1024L * 1024L;
         String german = L10nTablesForTests.of("de").get("%1$s of %2$s");
         assertEquals(String.format(german, "4,2 MB", "100 MB"), SaveControl.progressText((long) (4.2 * mib), 100 * mib));
+        assertEquals(String.format(L10nTablesForTests.of("de").get("%1$s a second"), "1,3 MB"),
+                SaveControl.rateText((long) (1.3 * mib)));
+        assertEquals(String.format(L10nTablesForTests.of("de").get("%1$s elapsed"), "1:02:03"),
+                SaveControl.elapsedText(3_723_000));
     }
 
     /** A French phone has no French table: an English sentence, French numbers. */

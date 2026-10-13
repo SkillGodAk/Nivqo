@@ -162,6 +162,9 @@ $verdict = @{ ExitCode = 1 }
 $keepStamp = $null
 if ($KeepIn) {
     $keepStamp = [ordered]@{
+        # 2: the stamp also names the kept outputs by SHA-256 (patchedSha256, resultSha256 and,
+        # for a merge, mergedSha256). A receipt reads no stamp without them.
+        schema           = 2
         bundleSha256     = Get-Sha256Hex -Path $Bundle
         apkSha256        = Get-Sha256Hex -Path $Apk
         patchListSha256  = Get-Sha256Hex -Path $PatchList
@@ -288,10 +291,17 @@ try {
                         'are all approved, whose resource table holds every stock resource and whose injected code ' +
                         'passes the structural checks.')
                     if ($KeepIn) {
+                        # The files every check above passed on, by hash, taken before they move: a
+                        # receipt reads the kept run only while it still holds these very files. A
+                        # patched APK changed since, with the same manifest and alignment but other
+                        # code, would otherwise inherit this run's resource and register checks.
+                        $keepStamp.patchedSha256 = Get-Sha256Hex -Path $out
+                        $keepStamp.resultSha256 = Get-Sha256Hex -Path $result
                         New-Item -ItemType Directory -Force -Path $KeepIn | Out-Null
                         Move-Item -LiteralPath $out -Destination (Join-Path $KeepIn 'patched.apk') -Force
                         Copy-Item -LiteralPath $result -Destination (Join-Path $KeepIn 'result.json') -Force
                         if ($patchInput -eq $mergedApk) {
+                            $keepStamp.mergedSha256 = Get-Sha256Hex -Path $mergedApk
                             Move-Item -LiteralPath $mergedApk -Destination (Join-Path $KeepIn 'stock-merged.apk') -Force
                             $keepStamp.merged = $true
                         }

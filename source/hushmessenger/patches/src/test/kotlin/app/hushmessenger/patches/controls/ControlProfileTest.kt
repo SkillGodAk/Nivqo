@@ -14,74 +14,72 @@ import kotlin.test.assertSame
 
 class ControlProfileTest {
     @AfterTest fun reset() {
-        activeProfile = BASE_PROFILE
+        activeProfile = SYNTHETIC_PROFILE
     }
 
     @Test fun eachBuildListsTheSameControlsWithTheSameNumberOfHooks() {
         for (profile in controlProfiles.values) {
             assertEquals(BASE_PROFILE.hooks.keys, profile.hooks.keys)
-            for (key in BASE_PROFILE.hooks.keys - EMOJI_DRAWER) {
+            for (key in BASE_PROFILE.hooks.keys) {
                 assertEquals(BASE_PROFILE.hooks.getValue(key).size, profile.hooks.getValue(key).size, key)
             }
+            assertEquals(ExpectedTotals.HOOKS_582, profile.hooks.values.sumOf { it.size })
         }
-        // 581 inlined 580's one emoji drawer flag helper into each drawer component, so only that count follows the release.
-        for ((version, codes) in MessengerTarget.VERSIONS) {
-            assertEquals(1, codes.map { controlProfileFor(it.toString()).hooks.getValue(EMOJI_DRAWER).size }.toSet().size, version)
-        }
-        assertEquals(2, BASE_PROFILE.hooks.getValue(EMOJI_DRAWER).size)
-        assertEquals(8, PROFILE_346213494.hooks.getValue(EMOJI_DRAWER).size)
-        assertEquals(ExpectedTotals.HOOKS_580, PROFILE_346013370.hooks.values.sumOf { it.size })
-        assertEquals(ExpectedTotals.HOOKS_580, PROFILE_346013423.hooks.values.sumOf { it.size })
-        assertEquals(ExpectedTotals.HOOKS_581, PROFILE_346213494.hooks.values.sumOf { it.size })
+        assertEquals(9, BASE_PROFILE.hooks.getValue(EMOJI_DRAWER).size)
     }
 
     @Test fun theVersionCodePicksTheProfile() {
         assertEquals(MessengerTarget.VERSION_CODES.toSet(), controlProfiles.keys)
-        assertSame(PROFILE_346013370, controlProfileFor("346013370"))
-        assertSame(PROFILE_346013423, controlProfileFor("346013423"))
-        for (code in listOf("346013387", "346013440", "346013442", "346013354", "346013394", null)) {
+        assertSame(PROFILE_346415706, controlProfileFor("346415706"))
+        assertSame(PROFILE_346415706, controlProfileFor("346415707"))
+        for (code in listOf("346415686", "346415687", "346415690", "346415720", "346415777", null)) {
             assertSame(BASE_PROFILE, controlProfileFor(code))
         }
     }
 
     @Test fun aSecondVersionNameUsesItsOwnBuildsProfile() {
-        val versions = MessengerTarget.VERSIONS + ("582.0.0.1.91" to listOf(347000001))
-        val profiles = controlProfiles + (347000001 to PROFILE_346013370)
-        assertSame(PROFILE_346013370, controlProfileFor("347000001", profiles))
-        assertSame(BASE_PROFILE, controlProfileFor("346013387", profiles))
-        val found = mapOf("people" to PROFILE_346013370.hooks.getValue("people").map { id ->
+        val versions = MessengerTarget.VERSIONS + ("583.0.0.1.91" to listOf(347000001))
+        val profiles = controlProfiles + (347000001 to PROFILE_346415706)
+        assertSame(PROFILE_346415706, controlProfileFor("347000001", profiles))
+        assertSame(BASE_PROFILE, controlProfileFor("346415686", profiles))
+        val found = mapOf("people" to PROFILE_346415706.hooks.getValue("people").map { id ->
             fixtureMethod(id, "const/4 v0, 0x0\nreturn v0")
         })
         activeProfile = controlProfileFor("347000001", profiles)
         validateControls(found, setOf("people"), versions)
-        activeProfile = controlProfileFor("346013387", profiles)
+        activeProfile = controlProfileFor("346415686", profiles)
         val failure = assertFailsWith<PatchException> { validateControls(found, setOf("people"), versions) }
         assertContains(failure.message.orEmpty(),
-            "Use an unmodified arm64 Messenger ${MessengerTarget.supportedApks()} or 582.0.0.1.91 APK (version code 347000001).")
+            "Use an unmodified arm64 Messenger ${MessengerTarget.supportedApks()} or 583.0.0.1.91 APK (version code 347000001).")
     }
 
     @Test fun validationFollowsTheActiveBuild() {
         fun found(ids: Set<String>) = mapOf("people" to ids.map { id ->
             fixtureMethod(id, "const/4 v0, 0x0\nreturn v0")
         })
+        activeProfile = BASE_PROFILE
         val base = found(BASE_PROFILE.hooks.getValue("people"))
-        val other = found(PROFILE_346013370.hooks.getValue("people"))
+        val other = found(PROFILE_346415706.hooks.getValue("people"))
         validateControls(base, setOf("people"))
         assertFailsWith<PatchException> { validateControls(other, setOf("people")) }
-        activeProfile = PROFILE_346013370
+        activeProfile = PROFILE_346415706
         validateControls(other, setOf("people"))
         assertFailsWith<PatchException> { validateControls(base, setOf("people")) }
     }
 
     private val builder = "Lcom/google/common/collect/ImmutableList${'$'}Builder;"
-    private val copy = "LX/CS3;->A0j($builder Ljava/lang/Iterable;)Lcom/google/common/collect/ImmutableList;".replace(" ", "")
+    private val copy = "$builder->addAll(Ljava/lang/Iterable;)$builder"
+    private val build = "LX/34B;->A01($builder)Lcom/google/common/collect/ImmutableList;"
 
+    // Shaped like 582's BaseXappComposerConfigurationFactory.A6X: addAll the local list, then build.
     private fun inlineTabs(
         extraCopy: Boolean = false,
         branchIntoCopy: Boolean = false,
         switchIntoCopy: Boolean = false,
         catchIntoCopy: Boolean = false,
-    ) = fixtureMethod("$COMPOSER_FACTORY->A6U(LX/5n3;)V", """
+        buildsAnotherBuilder: Boolean = false,
+        noBuild: Boolean = false,
+    ) = fixtureMethod("$COMPOSER_FACTORY->A6X(LX/5vA;)V", """
             new-instance v12, Ljava/util/ArrayList;
             invoke-direct {v12}, Ljava/util/ArrayList;-><init>()V
             invoke-static {}, Lcom/google/common/collect/ImmutableList;->builder()$builder
@@ -90,9 +88,10 @@ class ControlProfileTest {
             const/4 v4, 0x0
             ${if (switchIntoCopy) "packed-switch v4, :cases" else "nop"}
             :copy
-            invoke-static {v2, v12}, $copy
+            invoke-virtual {v2, v12}, $copy
+            ${if (noBuild) "nop" else "invoke-static {${if (buildsAnotherBuilder) "v5" else "v2"}}, $build"}
             move-result-object v3
-            ${if (extraCopy) "invoke-static {v2, v12}, $copy" else "nop"}
+            ${if (extraCopy) "invoke-virtual {v2, v12}, $copy" else "nop"}
             return-void
             ${if (switchIntoCopy) ":cases\n.packed-switch 0x1\n:copy\n.end packed-switch" else ""}
         """.trimIndent(), registers = 16).apply {
@@ -117,6 +116,7 @@ class ControlProfileTest {
         assertEquals(12, range.startRegister)
         assertEquals(1, range.registerCount)
         assertEquals(copy, (method.getInstruction(copyIndex + 1) as ReferenceInstruction).reference.toString())
+        assertEquals(build, (method.getInstruction(copyIndex + 2) as ReferenceInstruction).reference.toString())
     }
 
     @Test fun anInlineTabListWithTwoCopiesOrABranchIntoTheCopyIsRefused() {
@@ -124,5 +124,7 @@ class ControlProfileTest {
         assertFailsWith<PatchException> { inlineTabs(branchIntoCopy = true).injectKeyboardTabsInline() }
         assertFailsWith<PatchException> { inlineTabs(switchIntoCopy = true).injectKeyboardTabsInline() }
         assertFailsWith<PatchException> { inlineTabs(catchIntoCopy = true).injectKeyboardTabsInline() }
+        assertFailsWith<PatchException> { inlineTabs(buildsAnotherBuilder = true).injectKeyboardTabsInline() }
+        assertFailsWith<PatchException> { inlineTabs(noBuild = true).injectKeyboardTabsInline() }
     }
 }

@@ -163,11 +163,22 @@ final class VideoTranscode {
     }
 
     /**
-     * Writes the picture of [in] to [out] as H.264 at its own size and frame times. Answers false
-     * when [progress] was cancelled first; throws when a codec can't be had, stalls, drops frames
-     * or fails, and [out] is then the caller's to discard.
+     * Writes the picture of [in] to [out] as H.264 at its own size and frame times, in at most
+     * [room] bytes. Answers false when [progress] was cancelled first; throws when a codec can't be
+     * had, stalls, drops frames or fails, or when the file would pass [room]
+     * ({@link OutputAllowance.Exceeded}), and [out] is then the caller's to discard.
      */
-    static boolean transcode(File in, File out, long sourceBitRate, Downloader.Progress progress) throws IOException {
+    static boolean transcode(File in, File out, long sourceBitRate, long room, Downloader.Progress progress)
+            throws IOException {
+        OutputAllowance allowance = new OutputAllowance(room);
+        if (!transcode(in, out, sourceBitRate, allowance, progress)) return false;
+        // The muxer's tables went in when it stopped, after the last frame was counted.
+        allowance.check(out);
+        return true;
+    }
+
+    private static boolean transcode(File in, File out, long sourceBitRate, OutputAllowance allowance,
+            Downloader.Progress progress) throws IOException {
         MediaExtractor source = null;
         MediaCodec decoder = null;
         MediaCodec encoder = null;
@@ -278,6 +289,8 @@ final class VideoTranscode {
                     boolean config = (info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0;
                     if (encoded != null && info.size > 0 && !config) {
                         if (!muxing) throw new IOException("the encoder gave a frame before its format");
+                        // Counted before the muxer has it, so a frame that won't fit is never written.
+                        allowance.take(info.size);
                         encoded.position(info.offset);
                         encoded.limit(info.offset + info.size);
                         muxer.writeSampleData(track, encoded, info);

@@ -19,9 +19,12 @@
     bundle     From the pushed, clean source commit: the bundle with its SBOM and tooling list,
                the receipt over every declared build (reading the runs the gate kept in
                patches/build/fixture-apply) and SHA256SUMS.txt, into build/release-assets/<version>.
-    publish    Notes from the whole CHANGELOG section with -Checked as What was checked, a
-               lightweight tag, the GitHub release with the five assets, each downloaded back and
-               compared.
+    publish    A copy of the five assets, held to SHA256SUMS.txt and the receipt (the bundle, SBOM
+               and tooling report it names, at the source commit) before anything else runs. Then
+               notes from the whole CHANGELOG section with -Checked as What was checked, a
+               lightweight tag, and the GitHub release with that checked copy, each file downloaded
+               back and compared. -Checked must say "applied ... to Facebook <version>" with
+               "Facebook" right after "to": the app's update check reads the target from that phrase.
     index      patches-bundle.json, the README's latest-release sentence and the bug form, from the
                published release and the gate's test results, and the repository description. Then
                commit "chore(release): point Manager to the verified X.Y.Z bundle" and push.
@@ -57,6 +60,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 . (Join-Path $root 'scripts/common.ps1')
 . (Join-Path $root 'scripts/patch-target.ps1')
+. (Join-Path $root 'scripts/release-receipt.ps1')
 
 $tag = "v$Version"
 $assets = Join-Path $root "build/release-assets/$Version"
@@ -252,14 +256,15 @@ try {
                 })
 
             Step "receipt over $($fixtures.Count) fixtures of $($versions -join ', ')"
-            $work = Join-Path ([IO.Path]::GetTempPath()) "hushfacebook-receipt-$Version"
-            New-Item -ItemType Directory -Force -Path $work | Out-Null
+            # A fresh name each run, made here and not found, so nothing can be waiting in it.
+            $work = Join-Path ([IO.Path]::GetTempPath()) "hushfacebook-receipt-$Version-$([guid]::NewGuid().ToString('N'))"
+            New-Item -ItemType Directory -Path $work | Out-Null
             try {
                 $global:LASTEXITCODE = 0
                 & (Join-Path $root 'scripts/build-release-receipt.ps1') -Root $root -WorkDir $work -Fixture $fixtures `
                     -Bundle (Join-Path $built $builtNames[0]) -AppliedDir (Join-Path $root 'patches/build/fixture-apply')
                 if ($LASTEXITCODE -ne 0) { throw "The receipt did not pass (exit $LASTEXITCODE)." }
-            } finally { Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue }
+            } finally { Remove-TreeWithoutFollowingLinks -Path $work }
 
             New-Item -ItemType Directory -Force -Path $assets | Out-Null
             Copy-Item -LiteralPath ($builtNames | ForEach-Object { Join-Path $built $_ }) -Destination $assets -Force
@@ -278,31 +283,74 @@ try {
                 if (-not (Test-Path -LiteralPath (Join-Path $assets $name) -PathType Leaf)) { throw "No $name in $assets. Run -Stage bundle first." }
             }
             $receipt = Get-Content -LiteralPath (Join-Path $assets $receiptName) -Raw | ConvertFrom-Json
-            if ($receipt.source.commit -and $receipt.source.commit -ne $head) { throw "The receipt is for $($receipt.source.commit), and HEAD is $head." }
-
-            $notes = Join-Path $assets 'notes.md'
-            Invoke-ReleaseText 'The release notes' @('github-notes', '--version', $Version, '--checked', $Checked, '--out', $notes)
-            if (-not (& git -C $root tag --list $tag)) { Invoke-Native 'The tag' { & git -C $root tag $tag $head } }
-            if (([string](& git -C $root rev-parse "$tag^{commit}")).Trim() -ne $head) { throw "$tag doesn't point at $head." }
-            Invoke-Native 'The tag push' { & git -C $root push --quiet origin $tag }
-
-            Step "publishing $tag"
-            Invoke-Native 'gh release create' {
-                & gh release create $tag -R $Repository --verify-tag --title $tag --notes-file $notes `
-                    (($assetNames + 'SHA256SUMS.txt') | ForEach-Object { Join-Path $assets $_ })
+            # build-release-receipt writes the commit it saw as release.commit.
+            $receiptCommit = [string]$receipt.release.commit
+            if ($receiptCommit -ne $head) {
+                throw "The receipt is for $(if ($receiptCommit) { $receiptCommit } else { 'no commit' }), and HEAD is $head."
             }
-            $check = Join-Path ([IO.Path]::GetTempPath()) "hushfacebook-published-$Version"
-            Remove-Item -LiteralPath $check -Recurse -Force -ErrorAction SilentlyContinue
+
+            # What goes out is a copy taken now and checked, so a staged file changed after the
+            # check can't be uploaded in its place, and the download back is held to the same bytes.
+            # The copy's folder gets a name nobody knows ahead, and it and each file in it stay held
+            # (Open-HeldFile) from before the check until the download back is compared: the folder
+            # can't be renamed or swapped for a link, and a file can't be written, replaced or
+            # deleted. Each hold is proved to be the path's own file rather than one a link there
+            # led to, so what was checked is what gh opens by those paths. The hashes taken as
+            # they're opened are what the hosted copies must match.
+            $publishing = Join-Path ([IO.Path]::GetTempPath()) "hushfacebook-publishing-$Version-$([guid]::NewGuid().ToString('N'))"
+            New-Item -ItemType Directory -Path $publishing | Out-Null
+            $held = [Collections.Generic.List[IDisposable]]::new()
             try {
-                Invoke-Native 'The download back' { & gh release download $tag -R $Repository -D $check }
+                try { $held.Add((Open-HeldFile -Path $publishing -Directory)) }
+                catch { throw "The publishing copy couldn't be held as itself, so nothing was tagged: $($_.Exception.Message)" }
+                Copy-Item -LiteralPath (($assetNames + 'SHA256SUMS.txt') | ForEach-Object { Join-Path $assets $_ }) -Destination $publishing
+                $checkedHashes = @{}
                 foreach ($name in $assetNames + 'SHA256SUMS.txt') {
-                    $local = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $assets $name)).Hash
-                    $hostedPath = Join-Path $check $name
-                    if (-not (Test-Path -LiteralPath $hostedPath -PathType Leaf)) { throw "The release has no $name." }
-                    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $hostedPath).Hash -ne $local) { throw "The hosted $name differs from the local one." }
-                    Step "$name matches the hosted copy"
+                    $path = Join-Path $publishing $name
+                    try { $held.Add((Open-HeldFile -Path $path)) }
+                    catch { throw "$name in the publishing copy couldn't be held as itself, so nothing was tagged: $($_.Exception.Message)" }
+                    $checkedHashes[$name] = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash
                 }
-            } finally { Remove-Item -LiteralPath $check -Recurse -Force -ErrorAction SilentlyContinue }
+                Step 'holding the staged assets to SHA256SUMS.txt, the receipt and the source commit'
+                $staged = Test-StagedReleaseAt -Root $root -Folder $publishing -Version $Version -Commit $head
+                if (-not $staged.Valid) { throw "The staged release doesn't hold together, so nothing was tagged: $($staged.Reason)" }
+                # Anything else in the copy that's a link is refused too: nothing put one there, so
+                # one showing up means the copy was tampered with.
+                foreach ($item in @(Get-Item -LiteralPath $publishing -Force) + @(Get-ChildItem -LiteralPath $publishing -Force)) {
+                    if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+                        throw "$($item.Name) in the publishing copy is a link, so nothing was tagged: what was checked might not be what gh uploads."
+                    }
+                }
+
+                $notes = Join-Path $assets 'notes.md'
+                Invoke-ReleaseText 'The release notes' @('github-notes', '--version', $Version, '--checked', $Checked, '--out', $notes)
+                if (-not (& git -C $root tag --list $tag)) { Invoke-Native 'The tag' { & git -C $root tag $tag $head } }
+                if (([string](& git -C $root rev-parse "$tag^{commit}")).Trim() -ne $head) { throw "$tag doesn't point at $head." }
+                Invoke-Native 'The tag push' { & git -C $root push --quiet origin $tag }
+
+                Step "publishing $tag"
+                Invoke-Native 'gh release create' {
+                    & gh release create $tag -R $Repository --verify-tag --title $tag --notes-file $notes `
+                        (($assetNames + 'SHA256SUMS.txt') | ForEach-Object { Join-Path $publishing $_ })
+                }
+                # A name nobody knows ahead, like the publishing copy's, so nothing can wait there
+                # with good copies for the compare.
+                $check = Join-Path ([IO.Path]::GetTempPath()) "hushfacebook-published-$Version-$([guid]::NewGuid().ToString('N'))"
+                try {
+                    Invoke-Native 'The download back' { & gh release download $tag -R $Repository -D $check }
+                    foreach ($name in $assetNames + 'SHA256SUMS.txt') {
+                        $hostedPath = Join-Path $check $name
+                        if (-not (Test-Path -LiteralPath $hostedPath -PathType Leaf)) { throw "The release has no $name." }
+                        if ((Get-FileHash -Algorithm SHA256 -LiteralPath $hostedPath).Hash -ne $checkedHashes[$name]) { throw "The hosted $name differs from the local one." }
+                        Step "$name matches the hosted copy"
+                    }
+                } finally { Remove-TreeWithoutFollowingLinks -Path $check }
+            } finally {
+                foreach ($handle in $held) { $handle.Dispose() }
+                # Links go as links, at any depth: Windows PowerShell's recursive removal follows a
+                # junction and would empty whatever it points at.
+                Remove-TreeWithoutFollowingLinks -Path $publishing
+            }
             Step 'published. Write the README and bundle summaries, then run -Stage index'
         }
         'index' {
@@ -324,6 +372,8 @@ try {
             Copy-Item -LiteralPath (Join-Path $assets $receiptName) -Destination (Join-Path $root $receiptName) -Force
 
             $description = [string](& gh repo view $Repository --json description --jq .description)
+            # An unread description would compare equal to its own update and be left as it was.
+            if ($LASTEXITCODE -ne 0) { throw "gh couldn't read $Repository's description (exit $LASTEXITCODE)." }
             $catalog = Get-Content -LiteralPath (Join-Path $root 'patches-list.json') -Raw | ConvertFrom-Json
             $count = @($catalog.patches).Count
             # The build moves with the catalog too, or a port leaves the description on the old one.

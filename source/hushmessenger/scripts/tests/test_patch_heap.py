@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import io
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -15,6 +16,15 @@ from unittest.mock import patch
 from zipfile import BadZipFile, ZipFile
 
 from scripts import verify_patch_heap as checker
+
+
+def setUpModule():
+    # These tests check the plain command lines, so keep this PC's build queue out of them.
+    queue_off = patch.dict(
+        os.environ, {"HUSHMESSENGER_BUILD_WRAPPER": "", "BUILD_QUEUE_SCRIPT": ""}
+    )
+    queue_off.start()
+    unittest.addModuleCleanup(queue_off.stop)
 
 
 class PatchHeapChecks(unittest.TestCase):
@@ -97,7 +107,7 @@ class PatchHeapChecks(unittest.TestCase):
                     checked.append(code)
                 return f"PASS {code}"
 
-            # The real records and supported codes, not fixtures: 580 and 581 together.
+            # The real records and supported codes, not fixtures: both 582 families.
             with (
                 patch.object(checker, "ROOT", root),
                 patch.object(checker, "verify_development", return_value="metadata OK"),
@@ -109,8 +119,8 @@ class PatchHeapChecks(unittest.TestCase):
             ):
                 self.assertEqual(0, checker.main())
             self.assertEqual(sorted(checker.recorded_builds()), sorted(checked))
-            self.assertIn(346013387, checked)
-            self.assertIn(346213494, checked)
+            self.assertIn(346415686, checked)
+            self.assertIn(346415706, checked)
 
     def test_corrupt_output_entry_fails_that_build_and_keeps_the_others(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -183,8 +193,8 @@ class PatchHeapChecks(unittest.TestCase):
                     bundle_sha256=hashlib.sha256(bundle.read_bytes()).hexdigest(),
                 )
                 with patch.object(
-                    checker.subprocess,
-                    "run",
+                    checker,
+                    "run_bounded",
                     return_value=subprocess.CompletedProcess(
                         [], code, "Loaded DEX classes\n", ""
                     ),
@@ -327,7 +337,7 @@ class PatchHeapChecks(unittest.TestCase):
                         command, 1 if case == "nonzero" else 0, log, ""
                     )
 
-                with patch.object(checker.subprocess, "run", side_effect=run):
+                with patch.object(checker, "run_bounded", side_effect=run):
                     if case == "valid":
                         self.assertIn(
                             "PASS 123: 2 patches, 1024 MB",
@@ -357,7 +367,7 @@ class PatchHeapChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             stock = Path(directory) / "messenger-580-123.apk"
             stock.write_bytes(b"different APK")
-            with patch.object(checker.subprocess, "run") as run:
+            with patch.object(checker, "run_bounded") as run:
                 with self.assertRaisesRegex(ValueError, "does not match"):
                     checker.check_build(
                         argparse.Namespace(stock_dir=Path(directory)),
@@ -378,7 +388,7 @@ class PatchHeapChecks(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "found 0"):
                 checker.stock_apk(root, 456)
             (root / "messenger-580-123.apk").write_bytes(b"same code twice")
-            with patch.object(checker.subprocess, "run") as run:
+            with patch.object(checker, "run_bounded") as run:
                 with self.assertRaisesRegex(ValueError, "found 2"):
                     checker.check_build(
                         argparse.Namespace(stock_dir=root), 123, "0" * 64, set()

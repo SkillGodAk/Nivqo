@@ -12,6 +12,7 @@ import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragm
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.fileNameSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.fitAboveKeyboard;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.folderSummary;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.homeFeedSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.lockAfterSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.photoNameSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.seenKeepSummary;
@@ -24,6 +25,8 @@ import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragm
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.sendAppSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.showAllText;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.sourcesSummary;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.sourcesEditorLine;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.sourcesRefusal;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.startTabSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.subfolderSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.surfaceQualitySummary;
@@ -271,7 +274,7 @@ final class ValueRows {
             packs.setAllCaps(false);
             packs.setTextSize(14);
             packs.setTextColor(colors.heading);
-            packs.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            ScreenColors.pressFeedback(packs, colors.heading, false);
             int touch = Math.round(48 * context.getResources().getDisplayMetrics().density);
             packs.setMinHeight(touch);
             packs.setMinimumHeight(touch);
@@ -343,8 +346,17 @@ final class ValueRows {
      * as a word list's does.
      */
     static final class SourcesRow extends EditTextPreference {
+        @Nullable private TextView count;
+
         SourcesRow(Context context) {
             super(context);
+            getEditText().addTextChangedListener(new android.text.TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence text, int start, int count, int after) { }
+                @Override public void onTextChanged(CharSequence text, int start, int before, int after) {
+                    if (count != null) count.setText(sourcesEditorLine(text.toString()));
+                }
+                @Override public void afterTextChanged(android.text.Editable text) { }
+            });
         }
 
         @Override
@@ -370,7 +382,11 @@ final class ValueRows {
             help.setTextSize(14);
             help.setTextColor(colors.summary);
             help.setPadding(0, 0, 0, Math.round(10 * context.getResources().getDisplayMetrics().density));
-            return scrollingBody(context, help, getEditText());
+            count = new TextView(context);
+            count.setTextSize(14);
+            count.setTextColor(colors.summary);
+            count.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+            return scrollingBody(context, help, count, getEditText());
         }
 
         @Override protected void onBindDialogView(View view) {
@@ -378,11 +394,29 @@ final class ValueRows {
             getEditText().setText(getText());
         }
 
+        @Override protected void onDialogClosed(boolean positive) {
+            super.onDialogClosed(positive);
+            count = null;
+        }
+
         /** Its edit dialog takes the screen's colours, as the word lists' do. */
         @Override
         protected void showDialog(Bundle state) {
             super.showDialog(state);
-            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+            if (getDialog() instanceof AlertDialog) {
+                AlertDialog dialog = (AlertDialog) getDialog();
+                ScreenColors.dialog(dialog);
+                dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(button -> {
+                    String why = sourcesRefusal(getEditText().getText().toString());
+                    if (why != null) {
+                        if (count != null) count.setText(why);
+                        return;
+                    }
+                    Handler main = new Handler(Looper.getMainLooper());
+                    main.post(() -> onClick(dialog, DialogInterface.BUTTON_POSITIVE));
+                    main.post(dialog::dismiss);
+                });
+            }
             fitAboveKeyboard(getDialog());
         }
     }
@@ -717,6 +751,56 @@ final class ValueRows {
     }
 
     /**
+     * Home's feed row, under Following feed on Home. Its summary follows its value, whoever sets
+     * it, and says so while the switch is off, as the seen posts time's does.
+     */
+    static final class HomeFeedRow extends PlainSummaryList {
+        HomeFeedRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        /** It's greyed out while Following feed on Home is off, and its summary then says so. */
+        @Override
+        public void setEnabled(boolean enabled) {
+            super.setEnabled(enabled);
+            showSummary();
+        }
+
+        void showSummary() {
+            FeedsSubtab feed = FeedsSubtab.ALL;
+            for (FeedsSubtab candidate : FeedsSubtab.values()) {
+                if (candidate.name().equals(getValue())) feed = candidate;
+            }
+            String summary = homeFeedSummary(feed);
+            if (!isEnabled()) {
+                summary += " " + L10n.f("Turn on %1$s to use this.", L10n.isolate(SwitchLabels.title(Settings.FOLLOWING_FEED_HOME)));
+            }
+            setSummary(summary);
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /**
      * The comment order's row. Its summary follows its value, whoever sets it: the person, the
      * shared page syncing it from the setting, or an import.
      */
@@ -809,12 +893,23 @@ final class ValueRows {
             showSummary();
         }
 
+        /** It's greyed out while Hide seen posts is off, and its summary then says so. */
+        @Override
+        public void setEnabled(boolean enabled) {
+            super.setEnabled(enabled);
+            showSummary();
+        }
+
         void showSummary() {
             SeenPosts.Keep keep = SeenPosts.Keep.SEVEN_DAYS;
             for (SeenPosts.Keep candidate : SeenPosts.Keep.values()) {
                 if (candidate.name().equals(getValue())) keep = candidate;
             }
-            setSummary(seenKeepSummary(keep));
+            String summary = seenKeepSummary(keep);
+            if (!isEnabled()) {
+                summary += " " + L10n.f("Turn on %1$s to use this.", L10n.isolate(SwitchLabels.title(Settings.HIDE_SEEN_POSTS)));
+            }
+            setSummary(summary);
         }
 
         @Override

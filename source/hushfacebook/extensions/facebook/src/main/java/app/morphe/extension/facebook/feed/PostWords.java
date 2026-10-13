@@ -592,6 +592,17 @@ public final class PostWords {
         return found;
     }
 
+    /**
+     * Whether one text outside a post, a comment's words, goes by the post lists: a hide phrase or
+     * pattern in it and no keep one, judged as a post's words are. The rules are the posts' own
+     * cached ones, so the lists aren't folded twice. Blank text never goes.
+     */
+    public static boolean hidesText(@Nullable String text, String hideStored, String keepStored, boolean wholeWords) {
+        if (text == null || text.trim().isEmpty()) return false;
+        Rules found = rules(hideStored, keepStored, wholeWords);
+        return !found.hidesNothing() && found.judge(Arrays.asList(text)).hides();
+    }
+
     /** Where the line starting at [start] ends: the next line break, or the end of the text. */
     private static int lineEnd(String text, int start) {
         int newline = text.indexOf('\n', start);

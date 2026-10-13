@@ -55,7 +55,7 @@ private const val SET_COMPONENT = "Landroid/content/pm/PackageManager;->setCompo
 
 class AppIconsTest {
     @AfterTest fun reset() {
-        activeProfile = BASE_PROFILE
+        activeProfile = SYNTHETIC_PROFILE
     }
 
     private val staticPublic = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
@@ -139,6 +139,7 @@ class AppIconsTest {
                 assertEquals(before, after.drop(5), code)
             }
         }
-        assertEquals(6, families.size)
+        // One icon manager per 582 naming.
+        assertEquals(2, families.size)
     }
 }

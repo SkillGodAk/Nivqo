@@ -49,7 +49,7 @@ private val expectedManifestRoles = mapOf(
     ),
 )
 
-// Component names and instruction sites match both supported arm64 APKs.
+// Component names and instruction sites match every supported 582 arm64 APK.
 internal val expectedGuardOwners = mapOf(
     APP_COMMUNICATION to mapOf(
         "activity" to setOf(
@@ -88,104 +88,42 @@ internal val expectedGuardOwners = mapOf(
     ),
 )
 
+/** The six permission loads in twelve of the 582.0.0.61.92 builds. Generated from 346415686's record. */
 internal val expectedDexSites = mapOf(
-    "LX/0iX;->A04(Landroid/app/Application;)V@18" to APP_COMMUNICATION_FORMAT,
-    "LX/15l;->A03()V@25" to APP_COMMUNICATION,
-    "LX/1f4;->A05(Lcom/facebook/auth/usersession/FbUserSession;LX/1f4;Ljava/lang/String;Ljava/lang/String;)V@36" to APP_COMMUNICATION,
-    "LX/2Qr;->A01(Landroid/content/Intent;LX/2Qr;)V@24" to APP_COMMUNICATION_FORMAT,
-    "LX/33K;->A04(LX/5X3;Ljava/lang/Object;II)Ljava/lang/Object;@1433" to APP_COMMUNICATION_FORMAT,
-    "Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;->A0Z(Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;I)V@507" to APP_COMMUNICATION_FORMAT,
+    "LX/0iP;->A04(Landroid/app/Application;)V@18" to APP_COMMUNICATION_FORMAT,
+    "LX/0qM;->A03()V@25" to APP_COMMUNICATION,
+    "LX/1dG;->A05(Lcom/facebook/auth/usersession/FbUserSession;LX/1dG;Ljava/lang/String;Ljava/lang/String;)V@36" to APP_COMMUNICATION,
+    "LX/2FD;->A01(Landroid/content/Intent;LX/2FD;)V@24" to APP_COMMUNICATION_FORMAT,
+    "LX/341;->A05(Ljava/lang/Object;ILX/5f9;I)Ljava/lang/Object;@1109" to APP_COMMUNICATION_FORMAT,
+    "Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;->A0a(Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;I)V@507" to APP_COMMUNICATION_FORMAT,
 )
 
-/** The same six loads in build 346013370, under that build's names. Generated from its record. */
-internal val expectedDexSites346013370 = mapOf(
-    "LX/0iY;->A04(Landroid/app/Application;)V@18" to APP_COMMUNICATION_FORMAT,
-    "LX/15l;->A03()V@25" to APP_COMMUNICATION,
-    "LX/1f3;->A05(Lcom/facebook/auth/usersession/FbUserSession;LX/1f3;Ljava/lang/String;Ljava/lang/String;)V@36" to APP_COMMUNICATION,
-    "LX/2Qq;->A01(Landroid/content/Intent;LX/2Qq;)V@24" to APP_COMMUNICATION_FORMAT,
-    "LX/33J;->A04(LX/5X7;Ljava/lang/Object;II)Ljava/lang/Object;@1433" to APP_COMMUNICATION_FORMAT,
-    "Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;->A0Z(Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;I)V@894" to APP_COMMUNICATION_FORMAT,
-)
-
-/** The same six loads in build 346013423, under that build's names. Generated from its record. */
-internal val expectedDexSites346013423 = mapOf(
-    "LX/0Vx;->A03()V@25" to APP_COMMUNICATION,
-    "LX/0iV;->A04(Landroid/app/Application;)V@18" to APP_COMMUNICATION_FORMAT,
-    "LX/1fv;->A05(Lcom/facebook/auth/usersession/FbUserSession;LX/1fv;Ljava/lang/String;Ljava/lang/String;)V@36" to APP_COMMUNICATION,
-    "LX/2S3;->A01(Landroid/content/Intent;LX/2S3;)V@24" to APP_COMMUNICATION_FORMAT,
-    "LX/34l;->A05(Ljava/lang/Object;IILX/5aO;)Ljava/lang/Object;@816" to APP_COMMUNICATION_FORMAT,
-    "Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;->A0Z(Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;I)V@772" to APP_COMMUNICATION_FORMAT,
-)
-
-/** The same six loads in builds 346013357, 346013358, 346013359, 346013391, 346013443, 346013444 and 346013445. Generated from 346013357's record. */
-internal val expectedDexSites346013357 = mapOf(
-    "LX/0iX;->A04(Landroid/app/Application;)V@18" to APP_COMMUNICATION_FORMAT,
-    "LX/15l;->A03()V@25" to APP_COMMUNICATION,
-    "LX/1f4;->A05(Lcom/facebook/auth/usersession/FbUserSession;LX/1f4;Ljava/lang/String;Ljava/lang/String;)V@36" to APP_COMMUNICATION,
-    "LX/2Qr;->A01(Landroid/content/Intent;LX/2Qr;)V@24" to APP_COMMUNICATION_FORMAT,
-    "LX/33K;->A04(LX/5Ww;Ljava/lang/Object;II)Ljava/lang/Object;@1433" to APP_COMMUNICATION_FORMAT,
-    "Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;->A0Z(Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;I)V@507" to APP_COMMUNICATION_FORMAT,
-)
-
-/** The same six loads in builds 346013374 and 346013375. Generated from 346013374's record. */
-internal val expectedDexSites346013374 = mapOf(
-    "LX/0iY;->A04(Landroid/app/Application;)V@18" to APP_COMMUNICATION_FORMAT,
-    "LX/15l;->A03()V@25" to APP_COMMUNICATION,
-    "LX/1f3;->A05(Lcom/facebook/auth/usersession/FbUserSession;LX/1f3;Ljava/lang/String;Ljava/lang/String;)V@36" to APP_COMMUNICATION,
-    "LX/2Qq;->A01(Landroid/content/Intent;LX/2Qq;)V@24" to APP_COMMUNICATION_FORMAT,
-    "LX/33J;->A03(Ljava/lang/Object;LX/5Yu;II)Ljava/lang/Object;@1514" to APP_COMMUNICATION_FORMAT,
-    "Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;->A0Z(Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;I)V@821" to APP_COMMUNICATION_FORMAT,
-)
-
-/** The same six loads in all 16 builds of 581.0.0.49.91. Generated from 346213494's record. */
-internal val expectedDexSites346213494 = mapOf(
-    "LX/0S7;->A03()V@25" to APP_COMMUNICATION,
-    "LX/0iw;->A04(Landroid/app/Application;)V@18" to APP_COMMUNICATION_FORMAT,
-    "LX/1ev;->A05(Lcom/facebook/auth/usersession/FbUserSession;LX/1ev;Ljava/lang/String;Ljava/lang/String;)V@38" to APP_COMMUNICATION,
-    "LX/2Fd;->A01(Landroid/content/Intent;LX/2Fd;)V@24" to APP_COMMUNICATION_FORMAT,
-    "LX/33E;->A04(ILX/5ac;Ljava/lang/Object;)Ljava/lang/Object;@135" to APP_COMMUNICATION_FORMAT,
+/** The same six loads in builds 346415706 and 346415707, under their names. Generated from 346415706's record. */
+internal val expectedDexSites346415706 = mapOf(
+    "LX/0iP;->A04(Landroid/app/Application;)V@18" to APP_COMMUNICATION_FORMAT,
+    "LX/0qM;->A03()V@25" to APP_COMMUNICATION,
+    "LX/1dF;->A05(Lcom/facebook/auth/usersession/FbUserSession;LX/1dF;Ljava/lang/String;Ljava/lang/String;)V@36" to APP_COMMUNICATION,
+    "LX/2FC;->A01(Landroid/content/Intent;LX/2FC;)V@24" to APP_COMMUNICATION_FORMAT,
+    "LX/340;->A05(Ljava/lang/Object;ILX/5db;I)Ljava/lang/Object;@1109" to APP_COMMUNICATION_FORMAT,
     "Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;->A0a(Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;I)V@507" to APP_COMMUNICATION_FORMAT,
 )
 
 /** Each supported build's permission loads, by version code, as scripts/profiles records them. */
 internal val expectedDexSitesByBuild: Map<Int, Map<String, String>> = mapOf(
-    346013387 to expectedDexSites,
-    346013440 to expectedDexSites,
-    346013442 to expectedDexSites,
-    346013354 to expectedDexSites,
-    346013370 to expectedDexSites346013370,
-    346013394 to expectedDexSites,
-    346013423 to expectedDexSites346013423,
-    346013355 to expectedDexSites,
-    346013356 to expectedDexSites,
-    346013357 to expectedDexSites346013357,
-    346013358 to expectedDexSites346013357,
-    346013359 to expectedDexSites346013357,
-    346013372 to expectedDexSites346013370,
-    346013374 to expectedDexSites346013374,
-    346013375 to expectedDexSites346013374,
-    346013391 to expectedDexSites346013357,
-    346013427 to expectedDexSites346013423,
-    346013441 to expectedDexSites,
-    346013443 to expectedDexSites346013357,
-    346013444 to expectedDexSites346013357,
-    346013445 to expectedDexSites346013357,
-    346213494 to expectedDexSites346213494,
-    346213498 to expectedDexSites346213494,
-    346213510 to expectedDexSites346213494,
-    346213514 to expectedDexSites346213494,
-    346213528 to expectedDexSites346213494,
-    346213531 to expectedDexSites346213494,
-    346213532 to expectedDexSites346213494,
-    346213564 to expectedDexSites346213494,
-    346213567 to expectedDexSites346213494,
-    346213568 to expectedDexSites346213494,
-    346213580 to expectedDexSites346213494,
-    346213581 to expectedDexSites346213494,
-    346213582 to expectedDexSites346213494,
-    346213583 to expectedDexSites346213494,
-    346213584 to expectedDexSites346213494,
-    346213585 to expectedDexSites346213494,
+    346415686 to expectedDexSites,
+    346415687 to expectedDexSites,
+    346415690 to expectedDexSites,
+    346415706 to expectedDexSites346415706,
+    346415707 to expectedDexSites346415706,
+    346415720 to expectedDexSites,
+    346415721 to expectedDexSites,
+    346415723 to expectedDexSites,
+    346415759 to expectedDexSites,
+    346415772 to expectedDexSites,
+    346415773 to expectedDexSites,
+    346415774 to expectedDexSites,
+    346415776 to expectedDexSites,
+    346415777 to expectedDexSites,
 )
 
 internal fun expectedDexSitesFor(
@@ -350,7 +288,7 @@ private fun BytecodePatchContext.renameDexNames(): Int {
 @Suppress("unused")
 val installBesideMetaAppsPatch = bytecodePatch(
     name = PATCH_NAME,
-    description = "Renames two shared permissions so a re-signed Messenger can install beside Meta apps. Checked 580 builds only. Earlier clean installs stopped at a blank first-run screen.",
+    description = "Lets your patched Messenger install next to Facebook and other Meta apps. Without it, the apps can clash over shared permissions and the install can stop at a blank screen. Works as soon as you patch it in, with no switch.",
     default = true,
 ) {
     category("Fixes")

@@ -14,7 +14,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class LegacyDrawerPatchTest {
-    @AfterTest fun reset() { activeProfile = BASE_PROFILE }
+    @AfterTest fun reset() { activeProfile = SYNTHETIC_PROFILE }
 
     @Test fun menuBinderRejectsHolderWritesBeforeAnyMutation() {
         for (write in listOf("const/4 p1, 0x0", "move-object p1, p0", "const-wide/16 p0, 0x0", "const-wide/16 p1, 0x0")) {
@@ -43,6 +43,8 @@ class LegacyDrawerPatchTest {
     }
 
     @Test fun factoryUsesFreshNativeModelsAndItsOwnCachedKeyAcrossAllMappings() {
+        // One 582 family builds the Settings icon in place and the other calls its factory; both must be covered.
+        assertEquals(setOf(true, false), controlProfiles.values.distinct().map { legacyDrawerFixture(it).mapping.inlineIcon }.toSet())
         for (profile in controlProfiles.values.distinct()) {
             val fixture = legacyDrawerFixture(profile)
             val before = fixture.methods.map { it.implementation?.instructions?.toList() }
@@ -51,8 +53,11 @@ class LegacyDrawerPatchTest {
             val code = prepared.factory.implementation!!.instructions.toList()
             val references = code.mapNotNull { (it as? ReferenceInstruction)?.reference?.toString() }
             val allocations = code.filter { it.opcode == Opcode.NEW_INSTANCE }.map { (it as ReferenceInstruction).reference.toString() }
-            assertEquals(listOf(SETTINGS_KEY, DRAWER_METADATA, fixture.mapping.row, fixture.mapping.section), allocations)
-            assertContains(references, "${fixture.mapping.icon}->A00(${fixture.mapping.glyph})${fixture.mapping.icon}")
+            val (icon, glyph) = fixture.mapping.icon to fixture.mapping.glyph
+            assertEquals((if (fixture.mapping.inlineIcon) listOf(icon) else emptyList()) +
+                listOf(SETTINGS_KEY, DRAWER_METADATA, fixture.mapping.row, fixture.mapping.section), allocations)
+            assertContains(references, if (fixture.mapping.inlineIcon) "$icon-><init>(${glyph}Lfixture/Color;)V" else "$icon->A00($glyph)$icon")
+            assertContains(references, "$glyph->A65:$glyph")
             assertContains(references, "Ljava/util/Collections;->emptyMap()Ljava/util/Map;")
             assertContains(references, "Ljava/util/Collections;->singletonList(Ljava/lang/Object;)Ljava/util/List;")
             assertContains(references, LEGACY_KEY_CACHE)
@@ -67,8 +72,8 @@ class LegacyDrawerPatchTest {
     }
 
     @Test fun refreshHookUsesTheConnectedResultAndFragmentRegisters() {
-        val fixture = legacyDrawerFixture(BASE_PROFILE)
-        val id = BASE_PROFILE.hooks.getValue("menu_settings").single { it.endsWith("->A1i()V") }
+        val fixture = legacyDrawerFixture(SYNTHETIC_PROFILE)
+        val id = SYNTHETIC_PROFILE.hooks.getValue("menu_settings").single { it.endsWith("->A1i()V") }
         val owner = fixture.resolve(id.substringBefore("->"))!!
         val original = fixture.method(id)
         val method = fixtureMethod(id, """
@@ -80,7 +85,7 @@ class LegacyDrawerPatchTest {
         """.trimIndent(), 12)
         owner.methods.remove(original)
         owner.methods.add(method)
-        val prepared = plan(fixture, BASE_PROFILE)
+        val prepared = plan(fixture, SYNTHETIC_PROFILE)
         assertEquals(LegacyDrawerRefresh(3, 11, 2), prepared.refresh)
         method.injectLegacyDrawer(prepared.refresh)
         val code = method.implementation!!.instructions.toList()
@@ -106,13 +111,13 @@ class LegacyDrawerPatchTest {
     }
 
     @Test fun incomingCatchHandlerAtTheRefreshStoreIsRefused() {
-        val fixture = legacyDrawerFixture(BASE_PROFILE)
-        val id = BASE_PROFILE.hooks.getValue("menu_settings").single { it.endsWith("->A1i()V") }
+        val fixture = legacyDrawerFixture(SYNTHETIC_PROFILE)
+        val id = SYNTHETIC_PROFILE.hooks.getValue("menu_settings").single { it.endsWith("->A1i()V") }
         fixture.method(id).implementation!!.apply {
             val store = instructions.indexOfFirst { it.opcode == Opcode.IPUT_OBJECT }
             addCatch(newLabelForIndex(0), newLabelForIndex(1), newLabelForIndex(store))
         }
-        assertFailsWith<PatchException> { plan(fixture, BASE_PROFILE) }
+        assertFailsWith<PatchException> { plan(fixture, SYNTHETIC_PROFILE) }
     }
 
     @Test fun changedConstructorChecksAreRejectedBeforeAnyMenuEdits() {
@@ -149,8 +154,8 @@ class LegacyDrawerPatchTest {
     }
 
     @Test fun legacyRefreshIsMandatoryAndLookalikesCannotReplaceItsRecordedId() {
-        val fixture = legacyDrawerFixture(BASE_PROFILE)
-        activeProfile = BASE_PROFILE
+        val fixture = legacyDrawerFixture(SYNTHETIC_PROFILE)
+        activeProfile = SYNTHETIC_PROFILE
         validateControls(findControls(fixture.classes), setOf("menu_settings"))
         val owner = fixture.resolve("LX/9rv;")!!
         owner.methods.remove(fixture.method("LX/9rv;->A1i()V"))

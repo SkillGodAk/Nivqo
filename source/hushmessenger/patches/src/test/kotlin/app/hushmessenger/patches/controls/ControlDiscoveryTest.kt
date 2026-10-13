@@ -17,19 +17,20 @@ private val SECURE_WINDOW_BODY = """
     return-void
 """.trimIndent()
 
+private const val LIST_BUILDER = "Lcom/google/common/collect/ImmutableList\$Builder;"
+
 class ControlDiscoveryTest {
     private val originals = mapOf(
         "LX/2UL;" to "InboxSubtabsItemSupplierImplementation\$onSubscribe\$1",
         "LX/Ahp;" to "ConversationTypingContext\$sendActiveStateRunnable\$1",
         "LX/N2h;" to "SecureWindowUtils\$1",
-        "LX/AX0;" to "ReadThreadManager\$1",
         "LX/1hl;" to "MsysThreadViewFragment",
         "LX/1fs;" to "M4TabNavigationFragment",
         "LX/1hd;" to "ThreadViewFragment",
     )
 
     private fun completeFixture(): List<MutableClass> {
-        val methods = expectedHooks.filter { it.key !in setOf("unsent_indicator", "delta_unsent", "ai_sticker_cell", "screenshot_viewers", COMMUNITY_INBOX, EMOJI_DRAWER, EMOJI_SEARCH, ANALYTICS_UPLOADS, MESSAGE_LOG, SYSTEM_CAMERA) }.flatMap { (key, ids) ->
+        val methods = syntheticHooks.filter { it.key !in setOf("unsent_indicator", "delta_unsent", "ai_sticker_cell", "screenshot_viewers", COMMUNITY_INBOX, EMOJI_DRAWER, EMOJI_SEARCH, AI_MENTIONS, AI_COMMANDS, AI_SEARCH_HINT, XHE_AUDIO, DISAPPEARING_SWIPE, ANALYTICS_UPLOADS, ATTRIBUTION_UPLOADS, AD_EVENTS, MESSAGE_LOG, AUTO_REPLY, SYSTEM_CAMERA, HIDE_READ_RECEIPTS, REPLY_READ) + CUSTOM_FONT_HOOKS }.flatMap { (key, ids) ->
             ids.map { id ->
                 if (key == "people_jewel") return@map peopleJewelMethod()
                 if (key == "people_tab") return@map peopleTabMethod()
@@ -57,17 +58,25 @@ class ControlDiscoveryTest {
                         return v0
                     """.trimIndent()
                     "ai_fab" -> "const-string v0, \"AiFabComponent\"\nconst/4 v0, 0x0\nreturn-object v0"
-                    "subtabs", "typing", "hide_read_receipts" -> "return-void"
+                    "subtabs", "typing" -> "return-void"
                     "allow_screenshot" -> if (id.contains("(Landroid/view/Window;)")) SECURE_WINDOW_BODY else "return-void"
                     "keep_unsent" -> "const-string v0, \"com.facebook.stella.ipc.messenger.ACTION_REVOKE_MESSAGE\"\nreturn-void"
                     "ai_search" -> "const-string v0, \"com.facebook.messaging.search.aiagent.plugins.implementations.SearchAiagentImplementationsKillSwitch\"\nconst/4 v0, 0x1\nreturn v0"
                     "original_photo" -> if (id.endsWith(")[B")) "const/4 v0, 0x0\nreturn-object v0" else "return-void"
                     ORIGINAL_VIDEO -> VIDEO_TRANSCODE_BODY
                     "emoji_typeface" -> "const-string v0, \"FacebookEmojiTypefaceProviderImpl\"\nconst/4 v0, 0x0\nreturn-object v0"
-                    "avatar_tabs" -> "sget-object v0, $AVATAR_TAB_EVENT->A03:$AVATAR_TAB_EVENT\nreturn-object v0"
+                    "avatar_tabs" -> """
+                        sget-object v0, $AVATAR_TAB_EVENT->A03:$AVATAR_TAB_EVENT
+                        new-instance v1, Ljava/util/ArrayList;
+                        invoke-static {}, $IMMUTABLE_LIST->builder()$LIST_BUILDER
+                        move-result-object v2
+                        invoke-virtual {v2, v1}, $LIST_BUILDER->addAll(Ljava/lang/Iterable;)$LIST_BUILDER
+                        invoke-static {v2}, LX/34B;->A01($LIST_BUILDER)$IMMUTABLE_LIST
+                        move-result-object v3
+                        return-void
+                    """.trimIndent()
                     "ai_search_chip" -> "const/4 v0, 0x0\nreturn-object v0"
                     "typing_mailbox" -> "const-string v0, \"$TYPING_MAILBOX_CALL\"\nconst/4 v0, 0x0\nreturn-object v0"
-                    "read_mailbox" -> "const-string v0, \"$READ_MAILBOX_CALL\"\nreturn-void"
                     "anonymous_stories" -> STORY_MARK_READ_BODY
                     "save_stories" -> "const-string v0, \"$STORY_MENU_TAG\"\nreturn-void"
                     "chat_animation" -> FRAGMENT_ANIMATION_BODY
@@ -118,8 +127,8 @@ class ControlDiscoveryTest {
             fixtureMethod("$IMMUTABLE_LIST->copyOf(Ljava/util/Collection;)$IMMUTABLE_LIST",
                 "const/4 v0, 0x0\nreturn-object v0", flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value),
         )), peopleJewelKeyHolder(), storyCardKeyHolder(), debugDumperFixture(), messageWrapperFixture(type = "LX/K1Y;"), searchFieldFixture()) +
-            aiStickerCellFixture() + communityInboxFixture().filter { it.type != IMMUTABLE_LIST } + emojiDrawerFixture() + emojiSearchFixture() + analyticsUploadFixture() + messageLogFixture() + systemCameraFixture() +
-            expectedHooks.getValue("screenshot_viewers").map { screenshotViewerFixture(it) }
+            aiStickerCellFixture() + communityInboxFixture().filter { it.type != IMMUTABLE_LIST } + emojiDrawerFixture() + emojiSearchFixture() + aiMentionsFixture() + searchBarFixture() + shareCopyFixture() + disappearingSwipeFixture() + analyticsUploadFixture() + attributionUploadFixture() + adEventsFixture() + messageLogFixture() + readReceiptsFixture() + systemCameraFixture() + customFontFixture() +
+            syntheticHooks.getValue("screenshot_viewers").map { screenshotViewerFixture(it) }
                 .groupBy { it.definingClass }.map { (type, group) -> fixtureClass(type, group) }
     }
 
@@ -143,7 +152,7 @@ class ControlDiscoveryTest {
         val found = findControls(completeFixture())
         validateControls(found)
         assertEquals(ExpectedTotals.DISCOVERY_FIXTURE_HOOKS, found.values.sumOf { it.size })
-        for (key in expectedHooks.keys) validateControls(found, setOf(key))
+        for (key in syntheticHooks.keys) validateControls(found, setOf(key))
     }
 
     @Test fun theStoryRingHookIsOnlyThePreviewConstructorThatTakesTheCard() {
@@ -170,7 +179,7 @@ class ControlDiscoveryTest {
         method.replaceInstruction(method.screenshotViewerSites().first(), "nop")
         val before = lifecycleDex(classes)
         val found = findControls(classes)
-        validateControls(found, expectedHooks.keys - "screenshot_viewers")
+        validateControls(found, syntheticHooks.keys - "screenshot_viewers")
         assertFailsWith<PatchException> { validateControls(found, setOf("screenshot_viewers")) }
         kotlin.test.assertContentEquals(before, lifecycleDex(classes))
     }
@@ -178,7 +187,7 @@ class ControlDiscoveryTest {
     @Test fun aSuppliedUnavailableCommunityContractDoesNotRunDiscoveryAgain() {
         val found = findControls(completeFixture(), null)
         assertTrue(found.getValue(COMMUNITY_INBOX).isEmpty())
-        validateControls(found, expectedHooks.keys - COMMUNITY_INBOX)
+        validateControls(found, syntheticHooks.keys - COMMUNITY_INBOX)
     }
 
     @Test fun anExtraInvalidViewerDisablesTheWholeControlInEitherMethodOrder() {
@@ -189,7 +198,7 @@ class ControlDiscoveryTest {
             val methods = viewer.methods.toList()
             val changed = fixtureClass(viewer.type, if (first) listOf(extra) + methods else methods + extra)
             val found = findControls(classes.filter { it !== viewer } + changed)
-            validateControls(found, expectedHooks.keys - "screenshot_viewers")
+            validateControls(found, syntheticHooks.keys - "screenshot_viewers")
             assertTrue(found.getValue("screenshot_viewers").isEmpty())
             assertFailsWith<PatchException> { validateControls(found, setOf("screenshot_viewers")) }
         }

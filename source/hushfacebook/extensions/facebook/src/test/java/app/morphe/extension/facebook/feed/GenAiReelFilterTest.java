@@ -72,6 +72,16 @@ public class GenAiReelFilterTest {
         }
     }
 
+    /** A wrapper whose only list is shared by every instance, so none of its items are its own. */
+    public static final class StaticListSection {
+        static final List<Object> SHARED = new ArrayList<>();
+        final Object item;
+
+        StaticListSection(Object item) {
+            this.item = item;
+        }
+    }
+
     /** An attribution whose type can't be read: the call itself fails. */
     public static final class Unreadable extends TreeJNI {
         Unreadable() {
@@ -272,6 +282,22 @@ public class GenAiReelFilterTest {
                 + "was_detected_as_ai_generated. Removed: was_detected_as_ai_generated 2", line(GenAiReelFilter.SECTIONS_ROUTE));
         assertEquals(GenAiReelFilter.ITEMS_ROUTE + ": 3 lists, 3 items, 2 removed. Last reason: flag true. "
                 + "Removed: flag true 2. Kinds: flag true 2, flag false 1", line(GenAiReelFilter.ITEMS_ROUTE));
+    }
+
+    /**
+     * A static list is no section's own items, so a wrapper holding only one is a section the
+     * filter can't see into, and the report says so rather than counting its list as bound.
+     */
+    @Test
+    public void aSectionWhoseOnlyListIsStaticIsReportedUnread() {
+        Settings.HIDE_AI_DETECTED_REELS.save(true);
+        StaticListSection wrapper = new StaticListSection(reel(attribution(true)));
+
+        GenAiReelFilter.withoutAiSections(Collections.singletonList(wrapper), MODEL, FINDER, NO_STORY_INFO);
+
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains("First missing: item list " + StaticListSection.class.getName() + "#List field"));
+        assertTrue("the shared list was read as the section's", StaticListSection.SHARED.isEmpty());
     }
 
     /** Off, the rule doesn't ask for any item's attribution, so Facebook's path is all that runs. */

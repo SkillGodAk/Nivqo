@@ -319,10 +319,10 @@ public final class HushfacebookPause {
             } catch (Throwable ignored) {
                 // The crash belongs to the handler after this one.
             }
-            String before = JavaCrashReport.save(thread, throwable);
+            JavaCrashReport.Saved saved = JavaCrashReport.save(thread, throwable);
             if (delegate != null) delegate.uncaughtException(thread, throwable);
             // Still here: the handlers after this one let the process live on.
-            JavaCrashReport.survived(thread, before);
+            JavaCrashReport.survived(thread, saved);
         }
     }
 

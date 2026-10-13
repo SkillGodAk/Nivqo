@@ -1,5 +1,5 @@
 {
-  "version": "v0.10.0-nivqo.1",
+  "version": "v0.12.0",
   "appNames": {
     "com.facebook.katana": "Facebook"
   },
@@ -433,7 +433,7 @@
     },
     {
       "name": "Comment sheet options",
-      "description": "Small fixes for comments. Stop a long press on Like from opening reactions, hide the GIF and sticker buttons, show every reply without tapping View replies, and hide Related groups under group posts. Starts off. Turn on the parts you want in Hushfacebook settings > Comments.",
+      "description": "Small fixes for comments. Stop a long press on Like from opening reactions, hide the GIF and sticker buttons, show every reply without tapping View replies, hide Related groups under group posts, and hide comments with shop links or your words. Starts off. Turn on the parts you want in Hushfacebook settings > Comments.",
       "category": "Comments",
       "use": true,
       "dependencies": [
@@ -812,7 +812,7 @@
     },
     {
       "name": "Following feed on Home",
-      "description": "Makes Home show the newest posts from the friends, groups and Pages you follow instead of Facebook's ranked feed, so you see what they posted rather than what Facebook picks. Starts off. Turn it on in Hushfacebook settings > Opening Facebook.",
+      "description": "Makes Home show the newest posts from the friends, groups and Pages you follow instead of Facebook's ranked feed, so you see what they posted rather than what Facebook picks. Home shows, right below it, narrows Home to one of the Feeds tab's filters (Friends, Favorites, Groups or Pages). Starts off. Turn it on in Hushfacebook settings > Opening Facebook.",
       "category": "Feed",
       "use": true,
       "dependencies": [
@@ -855,6 +855,43 @@
       "use": true,
       "dependencies": [
         "BytecodePatch",
+        "Hushfacebook settings"
+      ],
+      "compatiblePackages": {
+        "com.facebook.katana": [
+          "582.0.0.50.54"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Facebook",
+          "packageName": "com.facebook.katana",
+          "description": null,
+          "appIconColor": 550655,
+          "signatures": [
+            "911d604446084ca7f4760b775bfc160fa8702441240a7258645d7a72c4312d27",
+            "e3f9e1e0cf99d0e56a055ba65e241b3399f7cea524326b0cdd6ec1327ed0fdc1"
+          ],
+          "targets": [
+            {
+              "version": "582.0.0.50.54",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 475417104,
+                "ARMEABI_V7A": 475417036
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Frame step",
+      "description": "With a reel or video paused, a tap on its right side steps one frame forward and a tap on its left side one frame back, so you can stop on the exact moment you want. Starts off. Turn it on in Hushfacebook settings > Playback.",
+      "category": "Playback",
+      "use": true,
+      "dependencies": [
         "Hushfacebook settings"
       ],
       "compatiblePackages": {
@@ -2095,11 +2132,12 @@
     },
     {
       "name": "Hushfacebook settings",
-      "description": "Adds Hushfacebook settings to Facebook, where you turn features on or off, pause Hushfacebook and back up your choices. To open them, long-press the Facebook logo at the top of your feed or Facebook's app icon. Other patches need it, so keep it selected.",
+      "description": "Adds Hushfacebook settings to Facebook, where you turn features on or off, pause Hushfacebook and back up your choices. To open them, long-press the Facebook logo at the top of your feed or Facebook's app icon. Its App name option shows a name you pick under the icon. Other patches need it, so keep it selected.",
       "category": "Settings",
       "use": true,
       "dependencies": [
-        "BytecodePatch"
+        "BytecodePatch",
+        "ResourcePatch"
       ],
       "compatiblePackages": {
         "com.facebook.katana": [
@@ -2128,7 +2166,17 @@
           ]
         }
       ],
-      "options": []
+      "options": [
+        {
+          "key": "appName",
+          "title": "App name",
+          "description": "A name to show under the app icon, in App info and in recent apps instead of Facebook, up to 50 characters, so this copy is easy to tell apart. Leave it empty to keep Facebook's name. It only changes the name. Clone app is what lets a copy install next to the official Facebook.",
+          "required": false,
+          "type": "kotlin.String",
+          "default": null,
+          "values": null
+        }
+      ]
     },
     {
       "name": "Install beside Meta's apps",
@@ -2208,7 +2256,7 @@
     },
     {
       "name": "Keep the progress bar",
-      "description": "Keeps every reel's progress bar full size and moving smoothly, with the time above it, so you can drag it without tapping first. Also keeps a full-screen video's controls on screen until you tap. Starts off. Turn it on in Hushfacebook settings > Playback.",
+      "description": "Keeps every reel's progress bar full size and moving smoothly, with the time above it, so you can drag it without tapping first. Also keeps a full-screen video's controls on screen until you tap, and another switch lets a tap anywhere on the bar jump there. Starts off. Turn it on in Hushfacebook settings > Playback.",
       "category": "Playback",
       "use": true,
       "dependencies": [
@@ -2851,7 +2899,7 @@
     },
     {
       "name": "Tab bar at the bottom",
-      "description": "Moves Facebook's tab bar to the bottom of the screen on accounts that have it at the top, where it's easier to reach. A second switch lets it slide away as you scroll. Starts off. Turn it on in Hushfacebook settings > Appearance, then restart Facebook.",
+      "description": "Moves Facebook's tab bar to the bottom of the screen on accounts that have it at the top, where it's easier to reach. A second switch lets it slide away as you scroll, and two more keep the tab bar or the top bar on screen instead. Starts off. Turn it on in Hushfacebook settings > Appearance, then restart Facebook.",
       "category": "Navigation",
       "use": true,
       "dependencies": [
@@ -3151,7 +3199,7 @@
     },
     {
       "name": "Unlock app icons",
-      "description": "Lets you pick the app icons Facebook keeps for Facebook Plus on its App icon page, so your home screen icon can be any of them. Starts off. Turn it on in Hushfacebook settings > Appearance.",
+      "description": "Lets you pick the app icons Facebook keeps for Facebook Plus on its App icon page (Menu > Settings and privacy > App icon), so your home screen icon can be any of them. Starts off. Turn it on in Hushfacebook settings > Appearance.",
       "category": "Theme",
       "use": true,
       "dependencies": [

@@ -5,6 +5,7 @@
 package app.morphe.extension.facebook.reels;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,11 +83,14 @@ public final class ReelSections {
         int removed = 0;
 
         try {
-            // A section with no list at all is a wrapper the filter can't see into, and the items
+            // A section with no list of its own is a wrapper the filter can't see into, and the items
             // in it reach the screen. Nothing else reads the page at this level, so it is recorded.
+            // A static list is no section's own, the way itemsOf reads it.
             boolean holdsAList = false;
             for (Field field : section.getClass().getDeclaredFields()) {
-                if (List.class.isAssignableFrom(field.getType())) holdsAList = true;
+                if (!Modifier.isStatic(field.getModifiers()) && List.class.isAssignableFrom(field.getType())) {
+                    holdsAList = true;
+                }
                 List<?> items = itemsOf(field, section);
                 if (items == null || items.isEmpty()) continue;
 
@@ -141,9 +145,12 @@ public final class ReelSections {
         return false;
     }
 
-    /** The list this field holds, or null when the field holds no list. */
+    /**
+     * The list this field holds, or null when the field holds no list. A static field is no
+     * section's own items, and writing a static final one back is refused from Android 17 on.
+     */
     private static List<?> itemsOf(Field field, Object section) throws IllegalAccessException {
-        if (!List.class.isAssignableFrom(field.getType())) return null;
+        if (Modifier.isStatic(field.getModifiers()) || !List.class.isAssignableFrom(field.getType())) return null;
 
         field.setAccessible(true);
         Object value = field.get(section);

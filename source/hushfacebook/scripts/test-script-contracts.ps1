@@ -298,6 +298,9 @@ if "%3"=="uninstall" goto uninstall
 exit /b 0
 :package_path
 if "%FAKE_ADB_MODE%"=="check-fail" goto check_fail
+if "%FAKE_ADB_MODE%"=="offline" goto offline
+rem pm path answers a package that isn't installed with exit 1 and nothing printed (Android 16).
+if "%FAKE_ADB_MODE%"=="absent" exit /b 1
 if "%FAKE_ADB_MODE%"=="present" echo package:/data/app/example/base.apk
 if "%FAKE_ADB_MODE%"=="uninstall-fail" echo package:/data/app/example/base.apk
 exit /b 0
@@ -307,6 +310,9 @@ echo Success
 exit /b 0
 :check_fail
 exit /b 17
+:offline
+echo adb.exe: device 'BROKEN' not found 1>&2
+exit /b 1
 :uninstall_fail
 exit /b 19
 '@
@@ -334,6 +340,19 @@ exit /b 19
     } '*could not check*' 'An ADB transport failure was treated as an absent package.'
     $calls = @(Get-Content -LiteralPath $log)
     Assert-True ($calls.Count -eq 1) 'The check-failure path continued after ADB failed.'
+
+    # adb's own failure also exits 1, but says why, so it isn't read as pm's "not installed".
+    Remove-Item -LiteralPath $log -Force
+    [System.IO.File]::WriteAllText($mode, 'offline', [System.Text.Encoding]::ASCII)
+    Assert-Throws {
+        Remove-AndroidPackageIfInstalled -Adb $fakeAdb -Serial 'BROKEN' -PackageName 'com.example.app'
+    } "*could not check*device 'BROKEN' not found*" 'adb failing with exit 1 was treated as an absent package.'
+    [System.IO.File]::WriteAllText($mode, 'absent', [System.Text.Encoding]::ASCII)
+    Assert-True (@(Get-AndroidPackagePaths -Adb $fakeAdb -Serial 'CLEAN' -PackageName 'com.example.app').Count -eq 0) `
+        'pm path exiting 1 with nothing printed was not read as not installed.'
+    [System.IO.File]::WriteAllText($mode, 'present', [System.Text.Encoding]::ASCII)
+    Assert-True ((@(Get-AndroidPackagePaths -Adb $fakeAdb -Serial 'READY' -PackageName 'com.example.app') -join ',') -eq
+        'package:/data/app/example/base.apk') 'An installed package gave no path.'
 
     Remove-Item -LiteralPath $log -Force
     [System.IO.File]::WriteAllText($mode, 'uninstall-fail', [System.Text.Encoding]::ASCII)
@@ -432,10 +451,57 @@ exit /b 19
     $newer = @(Get-SourcesNewerThanBundle -Root $staleRoot -Bundle $staleBundle)
     Assert-True ($newer.Count -eq 7 -and $newer[0].FullName -eq (Get-Item -LiteralPath $scopeManifest).FullName) `
         'A tooling coverage manifest written after the bundle was missed.'
-    $deviceScript = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'patch-for-device.ps1') -Raw
-    Assert-True ($deviceScript -match 'Get-SourcesNewerThanBundle' -and
-        $deviceScript -match '\[switch\]\$AllowStaleBundle') `
-        'patch-for-device.ps1 patches with a bundle without asking whether its sources are newer.'
+
+    # File times can't see an input deleted, renamed or edited behind an older time, so device
+    # patching holds the bundle to the digest patches/build.gradle.kts stamps instead. The same
+    # inputs, in the same order and the same layout, worked out here independently.
+    $inputPaths = @('NOTICE', 'extensions/app/build.gradle.kts', 'extensions/app/library/src/main/java/Hook.java',
+        'extensions/proguard-rules.pro', 'gradle/tooling-scopes.txt', 'patches/src/main/kotlin/Hook.kt',
+        'patches/stub/src/main/java/android/os/Build.java')
+    $layout = New-Object System.IO.MemoryStream
+    $header = [Text.Encoding]::ASCII.GetBytes("hushfacebook-source-inputs-1`n")
+    $layout.Write($header, 0, $header.Length)
+    foreach ($path in $inputPaths) {
+        $name = [Text.Encoding]::UTF8.GetBytes($path)
+        $bytes = [IO.File]::ReadAllBytes((Join-Path $staleRoot $path))
+        $fields = @([byte[]](0, 0, 0, $name.Length), $name, [byte[]](0, 0, 0, 0, 0, 0, 0, $bytes.Length), $bytes)
+        foreach ($field in $fields) { $layout.Write($field, 0, $field.Length) }
+    }
+    $expected = ([BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash($layout.ToArray())) -replace '-', '').ToLowerInvariant()
+    $inputs = Get-ProducerInputSha256 -Root $staleRoot
+    Assert-True ($inputs -ceq $expected) "The input digest isn't the one the build stamps: $inputs, expected $expected"
+    # Build output, Git's own files and anything outside the inputs leave it alone.
+    $outside = @('extensions/app/library/src/main/.gitignore', 'extensions/app/build/tmp/build.gradle.kts',
+        'extensions/app/notes.txt', 'patches/build/libs/build.gradle.kts', 'scripts/common.ps1', 'README.md',
+        'extensions/app/library/src/main/java/Hook.java~')
+    foreach ($path in $outside) {
+        $file = Join-Path $staleRoot $path
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $file) | Out-Null
+        [IO.File]::WriteAllText($file, 'z', [Text.Encoding]::ASCII)
+    }
+    Assert-True ((Get-ProducerInputSha256 -Root $staleRoot) -ceq $inputs) 'A file outside the producer inputs moved their digest.'
+    # An edit put back with its old time: the old check saw nothing, the digest does.
+    [IO.File]::WriteAllText($extensionSource, 'y', [Text.Encoding]::ASCII)
+    [IO.File]::SetLastWriteTimeUtc($extensionSource, $then)
+    Assert-True (-not (@(Get-SourcesNewerThanBundle -Root $staleRoot -Bundle $staleBundle) |
+        Where-Object { $_.FullName -eq (Get-Item -LiteralPath $extensionSource).FullName }))  `
+        'A backdated edit was expected to slip past the file-time check.'
+    Assert-True ((Get-ProducerInputSha256 -Root $staleRoot) -cne $inputs) 'A source edited behind an older file time kept its digest.'
+    [IO.File]::WriteAllText($extensionSource, 'x', [Text.Encoding]::ASCII)
+    Assert-True ((Get-ProducerInputSha256 -Root $staleRoot) -ceq $inputs) 'The same bytes back did not give the same digest.'
+    # Renamed, same bytes and time.
+    $renamed = Join-Path (Split-Path -Parent $extensionSource) 'Hook2.java'
+    Move-Item -LiteralPath $extensionSource -Destination $renamed
+    Assert-True ((Get-ProducerInputSha256 -Root $staleRoot) -cne $inputs) 'A renamed input kept its digest.'
+    Move-Item -LiteralPath $renamed -Destination $extensionSource
+    # Deleted, then a new one not yet built.
+    Remove-Item -LiteralPath $patchSource
+    Assert-True ((Get-ProducerInputSha256 -Root $staleRoot) -cne $inputs) 'A deleted input kept its digest.'
+    [IO.File]::WriteAllText($patchSource, 'x', [Text.Encoding]::ASCII)
+    Assert-True ((Get-ProducerInputSha256 -Root $staleRoot) -ceq $inputs) 'A restored input did not give the same digest.'
+    $added = Join-Path $staleRoot 'extensions/app/consumer-rules.pro'
+    [IO.File]::WriteAllText($added, 'x', [Text.Encoding]::ASCII)
+    Assert-True ((Get-ProducerInputSha256 -Root $staleRoot) -cne $inputs) 'A new R8 rules file kept the digest.'
 } finally {
     if ($caseRoot.StartsWith($requiredPrefix, [System.StringComparison]::OrdinalIgnoreCase) -and
         (Test-Path -LiteralPath $caseRoot)) {
@@ -695,8 +761,7 @@ try {
         tooling   = [ordered]@{ file = 'patches-9.9.9.tooling.json'; sha256 = Get-Sha256Hex -Path $toolingFile
             components = 1; scopes = 2; audit = [ordered]@{ status = 'checked' } }
         toolchain = [ordered]@{ patcherVersion = '1.12.0'; managerFloor = '1.29.0' }
-        extension = [ordered]@{ dexPayloads = @([ordered]@{
-            name = 'extensions/facebook.mpe'; sizeBytes = 10; sha256 = ('A' * 64) }) }
+        extension = [ordered]@{ dexPayloads = (Get-ExtensionPayloads -BundlePath $bundle) }
         targets   = @([ordered]@{
             source = [ordered]@{ file = 'stock.apkm'; package = 'com.example.host'
                 versionName = '46.7.3'; versionCode = '2024607030'; sha256 = ('B' * 64)
@@ -740,18 +805,21 @@ try {
     $identityRoot = Join-Path $allowlistRoot 'identity'
     New-Item -ItemType Directory -Path $identityRoot -Force | Out-Null
     $identityBundle = Join-Path $identityRoot 'patches-9.9.9.mpp'
-    function New-IdentityBundle([string]$State = 'clean', [string]$Commit = $template.release.commit) {
+    function New-IdentityBundle([string]$State = 'clean', [string]$Commit = $template.release.commit,
+        [string]$InputSha256 = ('b' * 64), [string]$Path = $identityBundle) {
         $source = @{
             'Hushfacebook-Source-State' = $State; 'Hushfacebook-Source-Commit' = $Commit
-            'Hushfacebook-Source-Tree' = ('a' * 40); 'Hushfacebook-Input-SHA256' = ('b' * 64)
+            'Hushfacebook-Source-Tree' = ('a' * 40); 'Hushfacebook-Input-SHA256' = $InputSha256
         }
         if ($State -ceq 'unknown') { $source['Hushfacebook-Source-Commit'] = 'unknown'; $source['Hushfacebook-Source-Tree'] = 'unknown' }
-        New-TestBundle -Path $identityBundle -Source $source -Entries @{
+        New-TestBundle -Path $Path -Source $source -Entries @{
             'classes.dex' = "dex`n035 payload"; 'META-INF/hushfacebook-build.identity' = 'placeholder'
+            # The template receipt's payload, which the receipt check holds to the bundle.
+            'extensions/facebook.mpe' = "dex`n035 payload"
         }
-        $zip = [IO.Compression.ZipFile]::OpenRead($identityBundle)
+        $zip = [IO.Compression.ZipFile]::OpenRead($Path)
         try { $payload = Get-BundlePayloadSha256 -Archive $zip } finally { $zip.Dispose() }
-        $zip = [IO.Compression.ZipFile]::Open($identityBundle, [IO.Compression.ZipArchiveMode]::Update)
+        $zip = [IO.Compression.ZipFile]::Open($Path, [IO.Compression.ZipArchiveMode]::Update)
         try {
             $zip.GetEntry('META-INF/hushfacebook-build.identity').Delete()
             $writer = [IO.StreamWriter]::new($zip.CreateEntry('META-INF/hushfacebook-build.identity').Open())
@@ -807,6 +875,32 @@ try {
     try { $zip.GetEntry('META-INF/hushfacebook-build.identity').Delete() } finally { $zip.Dispose() }
     $identity = Get-BundleIdentityFacts -BundlePath $identityBundle
     Assert-True ($identity.Present -and -not $identity.Valid) 'Removing identity downgraded a new bundle to legacy.'
+    # What patch-for-device holds its bundle to before the CLI runs: the input digest it carries,
+    # against the checkout's as it is now. A bundle with no intact record is refused, not trusted.
+    Assert-True ((Get-BundleInputMismatch -Root $identityRoot -BundlePath $identityBundle) -like '*no intact record*') `
+        'A bundle whose identity record is gone was taken for a build of the checkout.'
+    Assert-True ((Get-BundleInputMismatch -Root $identityRoot -BundlePath $bundle) -like '*no intact record*') `
+        'A legacy bundle with no input digest was taken for a build of the checkout.'
+    $inputRoot = Join-Path $identityRoot 'inputs'
+    $inputFile = Join-Path $inputRoot 'patches/src/main/kotlin/Hook.kt'
+    New-Item -ItemType Directory -Path (Split-Path -Parent $inputFile) -Force | Out-Null
+    [IO.File]::WriteAllText($inputFile, 'x', [Text.Encoding]::ASCII)
+    $inputBundle = Join-Path $identityRoot 'inputs.mpp'
+    New-IdentityBundle -Path $inputBundle -InputSha256 (Get-ProducerInputSha256 -Root $inputRoot)
+    Assert-True ($null -eq (Get-BundleInputMismatch -Root $inputRoot -BundlePath $inputBundle)) `
+        'A bundle built from the checkout as it is was called stale.'
+    $time = [IO.File]::GetLastWriteTimeUtc($inputFile)
+    [IO.File]::WriteAllText($inputFile, 'y', [Text.Encoding]::ASCII)
+    [IO.File]::SetLastWriteTimeUtc($inputFile, $time.AddHours(-1))
+    $mismatch = Get-BundleInputMismatch -Root $inputRoot -BundlePath $inputBundle
+    Assert-True ($mismatch -like '*built from other sources*') "A source edited behind an older file time passed: $mismatch"
+    $deviceScript = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'patch-for-device.ps1') -Raw
+    $guard = $deviceScript.IndexOf('Get-BundleInputMismatch -Root $root -BundlePath $bundle')
+    Assert-True ($guard -gt 0 -and $guard -lt $deviceScript.IndexOf('Invoke-HeavyJob') -and
+        $deviceScript -match '\$staleBundle -and -not \$AllowStaleBundle\) \{\s+throw' -and
+        $deviceScript -match '\[switch\]\$AllowStaleBundle' -and
+        $deviceScript -match 'Write-Warning "\[device\] -AllowStaleBundle') `
+        'patch-for-device.ps1 patches without holding the bundle to the checkout first, or overrides it unannounced.'
 
     # Every fact the receipt exists to pin, put in front of the check one at a time. A gate that
     # has never been shown to fail is a gate nobody has tested.
@@ -859,6 +953,44 @@ try {
         Assert-True (-not $result.Valid) "Receipt validation accepted $description."
         Assert-True ([bool]$result.Reason) "Receipt validation refused $description without saying why."
     }
+
+    # The payload list is held to the bundle it's checked with, not only to its form. Each of these
+    # kept the form and passed before.
+    $payloadCases = [ordered]@{
+        'a payload hash the bundle does not carry' = @{ Pattern = "*records an extension payload the bundle doesn't carry*"
+            Mutate = { param($r) $r.extension.dexPayloads[0].sha256 = ('C' * 64) } }
+        'a payload hash in lower case' = @{ Pattern = "*records an extension payload the bundle doesn't carry*"
+            Mutate = { param($r) $r.extension.dexPayloads[0].sha256 = ([string]$r.extension.dexPayloads[0].sha256).ToLowerInvariant() } }
+        'a payload size the bundle does not carry' = @{ Pattern = "*records an extension payload the bundle doesn't carry*"
+            Mutate = { param($r) $r.extension.dexPayloads[0].sizeBytes = 99 } }
+        'a payload the bundle does not carry' = @{ Pattern = "*records an extension payload the bundle doesn't carry: extensions/other.mpe*"
+            Mutate = { param($r)
+                $other = $r.extension.dexPayloads[0] | ConvertTo-Json | ConvertFrom-Json
+                $other.name = 'extensions/other.mpe'
+                $r.extension.dexPayloads = @($r.extension.dexPayloads[0], $other) } }
+        'the same payload twice' = @{ Pattern = '*extension payload more than once*'
+            Mutate = { param($r) $r.extension.dexPayloads = @($r.extension.dexPayloads[0], $r.extension.dexPayloads[0]) } }
+    }
+    foreach ($description in $payloadCases.Keys) {
+        $result = Test-TestReceipt -Receipt (New-TestReceipt -Mutate $payloadCases[$description].Mutate)
+        Assert-True (-not $result.Valid -and $result.Reason -like $payloadCases[$description].Pattern) `
+            "Receipt validation took $($description): $($result.Reason)"
+    }
+    # A bundle carrying two payloads: a receipt naming one leaves the other out, and one naming both
+    # passes, which is the control for the cases above.
+    $twoPayloads = Join-Path $allowlistRoot 'two-payloads.mpp'
+    New-TestBundle -Path $twoPayloads -Entries @{ 'extensions/facebook.mpe' = "dex`n035 payload"; 'extensions/messenger.mpe' = "dex`n035 other" }
+    $twoPayloadReceipt = New-TestReceipt -Mutate {
+        param($r)
+        $r.bundle.sha256 = Get-Sha256Hex -Path $twoPayloads
+        $r.bundle.sizeBytes = (Get-Item -LiteralPath $twoPayloads).Length
+    }
+    $result = Test-TestReceipt -Receipt $twoPayloadReceipt -BundlePath $twoPayloads
+    Assert-True (-not $result.Valid -and $result.Reason -like '*leaves out an extension payload the bundle carries: extensions/messenger.mpe*') `
+        "A receipt leaving out a payload the bundle carries passed: $($result.Reason)"
+    $twoPayloadReceipt.extension.dexPayloads = (Get-ExtensionPayloads -BundlePath $twoPayloads) | ConvertTo-Json -Depth 4 | ConvertFrom-Json
+    $result = Test-TestReceipt -Receipt $twoPayloadReceipt -BundlePath $twoPayloads
+    Assert-True $result.Valid "A receipt naming both of the bundle's payloads was refused: $($result.Reason)"
 
     # A receipt built only from forced runs against newer builds has to be refused for that
     # reason and name the target it is missing, not trip over some other field on the way.
@@ -1232,6 +1364,78 @@ try {
     $oneWithSbom = Test-ReceiptWithSbom $schemaOne -Schema 1
     Assert-True ($oneWithSbom.Reason -like '*schema 1 receipt names no SBOM to hold*') `
         "A schema 1 receipt was held to an SBOM it can't name: $($oneWithSbom.Reason)"
+
+    # What the publish stage holds its copy of the staged release to before it tags anything: the
+    # four assets, SHA256SUMS.txt over them, and the receipt over the other three. A staged file
+    # changed on its own is refused by SHA256SUMS.txt, and changed with SHA256SUMS.txt written over
+    # again, by the receipt, so neither check can go missing behind the other.
+    $stagedRoot = Join-Path $allowlistRoot 'staged'
+    $stagedNames = @('patches-9.9.9.mpp', 'patches-9.9.9.cdx.json', 'patches-9.9.9.tooling.json', 'release-receipt-9.9.9.json')
+    $stagedExpected = @{ ExpectedPatchNames = @('Alpha', 'Beta'); ExpectedPatcherVersion = '1.12.0'; ExpectedManagerFloor = '1.29.0'
+        ExpectedPackageName = 'com.example.host'; ExpectedPackageVersions = $declaredBuilds; ExpectedPackageVersionCodes = $declaredCodes
+        ToolingScopeManifestText = $scopeText }
+    function Get-StagedSums {
+        @($stagedNames | ForEach-Object { '{0}  {1}' -f (Get-Sha256Hex -Path (Join-Path $stagedRoot $_)).ToLowerInvariant(), $_ })
+    }
+    function Write-StagedSums([string[]]$Lines = (Get-StagedSums)) {
+        [IO.File]::WriteAllText((Join-Path $stagedRoot 'SHA256SUMS.txt'), (($Lines -join "`n") + "`n"))
+    }
+    function New-StagedRelease {
+        Remove-Item -LiteralPath $stagedRoot -Recurse -Force -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Path $stagedRoot -Force | Out-Null
+        Copy-Item -LiteralPath $bundle, $sbomFile, $toolingFile -Destination $stagedRoot
+        Set-Content -LiteralPath (Join-Path $stagedRoot 'release-receipt-9.9.9.json') -Encoding UTF8 -Value ((New-TestReceipt) | ConvertTo-Json -Depth 12)
+        Write-StagedSums
+    }
+    function Test-Staged { Test-StagedRelease -Folder $stagedRoot -Version '9.9.9' -Expected $stagedExpected }
+    New-StagedRelease
+    $stagedResult = Test-Staged
+    Assert-True $stagedResult.Valid "A complete staged release was refused: $($stagedResult.Reason)"
+    $stagedBound = @{
+        'patches-9.9.9.mpp' = '*The receipt says the bundle is*bytes*'
+        'patches-9.9.9.cdx.json' = '*The receipt says patches-9.9.9.cdx.json hashes to*'
+        'patches-9.9.9.tooling.json' = '*tooling report changed after its advisory audit*'
+        'release-receipt-9.9.9.json' = '*The receipt says the bundle hashes to CCCC*' }
+    foreach ($name in $stagedNames) {
+        foreach ($resummed in @($false, $true)) {
+            New-StagedRelease
+            $path = Join-Path $stagedRoot $name
+            if ($name -like 'release-receipt-*') {
+                Set-Content -LiteralPath $path -Encoding UTF8 -Value ((New-TestReceipt -Mutate { param($r) $r.bundle.sha256 = ('C' * 64) }) | ConvertTo-Json -Depth 12)
+            } else {
+                [IO.File]::WriteAllBytes($path, [byte[]]([IO.File]::ReadAllBytes($path) + [byte]10))
+            }
+            if ($resummed) { Write-StagedSums }
+            $result = Test-Staged
+            $pattern = if ($resummed) { $stagedBound[$name] } else { "*SHA256SUMS.txt lists * for $name, but the staged $name hashes to*" }
+            Assert-True (-not $result.Valid -and $result.Reason -like $pattern) `
+                "A staged $name changed$(if ($resummed) { ' with SHA256SUMS.txt over it' }) was not refused for it: $($result.Reason)"
+        }
+    }
+    foreach ($sums in @(
+            @{ Name = 'an asset left out'; Lines = { @(Get-StagedSums)[0..2] }; Pattern = '*has no entry for release-receipt-9.9.9.json*' },
+            @{ Name = 'a file that is no asset'; Lines = { @(Get-StagedSums) + "$('0' * 64)  notes.md" }; Pattern = "*lists notes.md, which isn't one of the release's assets*" },
+            @{ Name = 'an asset twice'; Lines = { @(Get-StagedSums) + @(Get-StagedSums)[0] }; Pattern = '*lists patches-9.9.9.mpp twice*' },
+            @{ Name = 'another hash'; Lines = { @("$('1' * 64)  patches-9.9.9.mpp") + @(Get-StagedSums)[1..3] }; Pattern = "*lists $('1' * 64) for patches-9.9.9.mpp*" },
+            @{ Name = 'a line that is no checksum'; Lines = { @(Get-StagedSums) + 'see the release notes' }; Pattern = "*a line that isn't a checksum: see the release notes*" })) {
+        New-StagedRelease
+        Write-StagedSums (& $sums.Lines)
+        $result = Test-Staged
+        Assert-True (-not $result.Valid -and $result.Reason -like $sums.Pattern) "SHA256SUMS.txt with $($sums.Name) was not refused for it: $($result.Reason)"
+    }
+    New-StagedRelease
+    Remove-Item -LiteralPath (Join-Path $stagedRoot 'patches-9.9.9.cdx.json') -Force
+    $result = Test-Staged
+    Assert-True ($result.Reason -like '*staged release has no patches-9.9.9.cdx.json*') "A staged release with no SBOM was not refused for it: $($result.Reason)"
+    # A receipt naming another bundle file, with SHA256SUMS.txt over it, though its hash and size
+    # are the staged bundle's: Test-ReleaseReceipt checks the bytes it's handed, not the name.
+    New-StagedRelease
+    Set-Content -LiteralPath (Join-Path $stagedRoot 'release-receipt-9.9.9.json') -Encoding UTF8 `
+        -Value ((New-TestReceipt -Mutate { param($r) $r.bundle.file = 'patches-9.9.8.mpp' }) | ConvertTo-Json -Depth 12)
+    Write-StagedSums
+    $result = Test-Staged
+    Assert-True ($result.Reason -like '*staged receipt names the bundle patches-9.9.8.mpp, not patches-9.9.9.mpp*') `
+        "A staged receipt naming another bundle file was not refused for it: $($result.Reason)"
 } finally {
     Remove-Item -LiteralPath $allowlistRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
@@ -1547,6 +1751,101 @@ Set-Content -LiteralPath $Result -Value $lines
         Assert-True ($noConsole.Count -eq 3 -and $noConsole[0] -eq 'detached True' -and $noConsole[1] -eq 'inside 65001' -and
             $noConsole[2] -eq "after $noConsoleBefore before $noConsoleBefore") `
             "Use-Utf8ConsoleOutput with no console under $noConsoleShell did not read UTF-8 and put the encoding back: $($noConsole -join ' / ')"
+    }
+    # The release and receipt copies lean on two helpers: one deletes a tree with every link in it
+    # removed as a link, the other holds a file or folder and proves the hold is the path's own.
+    # Windows PowerShell 5.1's recursive removal is the one that follows a junction, so both
+    # editions run them. Each hold is let go at the end and the same change then goes through, so
+    # a refusal is the hold's doing and not the machine's.
+    $heldChild = Join-Path $toolchainRoot 'held-child.ps1'
+    Set-Content -LiteralPath $heldChild -Encoding UTF8 -Value @'
+param([string]$Common, [string]$Result, [string]$Work)
+$ErrorActionPreference = 'Stop'
+. $Common
+function Try-Change([scriptblock]$Change) { try { & $Change; 'went' } catch { 'refused' } }
+function Try-Hold([string]$Path, [switch]$Directory) {
+    try { (Open-HeldFile -Path $Path -Directory:$Directory).Dispose(); 'held' }
+    catch { if ($_.Exception.Message -like '*is a link*') { 'refused' } else { 'threw ' + $_.Exception.Message } }
+}
+$lines = @()
+$outside = Join-Path $Work 'outside'
+$tree = Join-Path $Work 'tree'
+New-Item -ItemType Directory -Path $outside, (Join-Path $tree 'a\b') -Force | Out-Null
+Set-Content -LiteralPath (Join-Path $outside 'keep.txt') -Value keep
+Set-Content -LiteralPath (Join-Path $tree 'a\file.txt') -Value x
+(Get-Item -LiteralPath (Join-Path $tree 'a\file.txt')).IsReadOnly = $true
+New-Item -ItemType Junction -Path (Join-Path $tree 'a\b\linked') -Target $outside | Out-Null
+$readOnlyFolder = Get-Item -LiteralPath (Join-Path $tree 'a\b')
+$readOnlyFolder.Attributes = $readOnlyFolder.Attributes -bor [IO.FileAttributes]::ReadOnly
+Remove-TreeWithoutFollowingLinks -Path $tree
+$lines += 'tree ' + (Test-Path -LiteralPath $tree) + ' ' + (Test-Path -LiteralPath (Join-Path $outside 'keep.txt'))
+$top = Join-Path $Work 'top'
+New-Item -ItemType Junction -Path $top -Target $outside | Out-Null
+Remove-TreeWithoutFollowingLinks -Path $top
+$lines += 'top ' + (Test-Path -LiteralPath $top) + ' ' + (Test-Path -LiteralPath (Join-Path $outside 'keep.txt'))
+
+$folder = Join-Path $Work 'held'
+New-Item -ItemType Directory -Path $folder | Out-Null
+$file = Join-Path $folder 'asset.txt'
+Set-Content -LiteralPath $file -Value checked
+$folderHold = Open-HeldFile -Path $folder -Directory
+$renamed = Try-Change { [IO.Directory]::Move($folder, "$folder-moved") }
+# What the release flow does inside a held folder: copy in, read, plant and remove entries.
+$inside = Try-Change {
+    $extra = Join-Path $folder 'extra.txt'
+    Copy-Item -LiteralPath $file -Destination $extra
+    if ([IO.File]::ReadAllText($extra).Trim() -cne 'checked') { throw 'read back wrong' }
+    Remove-Item -LiteralPath $extra
+}
+$folderHold.Dispose()
+$renamedAfter = Try-Change { [IO.Directory]::Move($folder, "$folder-moved"); [IO.Directory]::Move("$folder-moved", $folder) }
+$lines += "folder $renamed $inside $renamedAfter"
+$fileHold = Open-HeldFile -Path $file
+$written = Try-Change { [IO.File]::AppendAllText($file, 'swapped') }
+$deleted = Try-Change { [IO.File]::Delete($file) }
+$read = [IO.File]::ReadAllText($file).Trim()
+$fileHold.Dispose()
+$writtenAfter = Try-Change { [IO.File]::AppendAllText($file, 'swapped') }
+$lines += "file $written $deleted $read $writtenAfter"
+
+$junction = Join-Path $Work 'junction'
+New-Item -ItemType Junction -Path $junction -Target $folder | Out-Null
+$lines += 'junction ' + (Try-Hold -Path $junction -Directory)
+# Through a junction to a real file the file is itself; the folder above it is held on its own.
+$lines += 'through ' + (Try-Hold -Path (Join-Path $junction 'asset.txt'))
+# A file symbolic link needs a privilege not every machine grants, so it's tried where it can be made.
+$symlink = Join-Path $Work 'symlink.txt'
+$made = try { New-Item -ItemType SymbolicLink -Path $symlink -Target $file -ErrorAction Stop | Out-Null; $true } catch { $false }
+$lines += 'symlink ' + $(if ($made) { Try-Hold -Path $symlink } else { 'unavailable' })
+Set-Content -LiteralPath $Result -Value $lines
+'@
+    foreach ($heldShell in $noConsoleShells) {
+        $heldWork = Join-Path $toolchainRoot ('held-' + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $heldWork | Out-Null
+        $heldResult = Join-Path $heldWork 'result.txt'
+        $preference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            $heldOutput = & $heldShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $heldChild `
+                -Common (Join-Path $PSScriptRoot 'common.ps1') -Result $heldResult -Work $heldWork 2>&1
+        } finally {
+            $ErrorActionPreference = $preference
+        }
+        $heldLines = if (Test-Path -LiteralPath $heldResult) { @(Get-Content -LiteralPath $heldResult) } else { @() }
+        $heldSays = "$($heldLines -join ' / ') $($heldOutput -join ' ')"
+        Assert-True ($heldLines.Count -eq 7) "The held-file child under $heldShell did not finish: $heldSays"
+        Assert-True ($heldLines[0] -ceq 'tree False True' -and $heldLines[1] -ceq 'top False True') `
+            "Remove-TreeWithoutFollowingLinks under $heldShell followed a junction or left the tree: $heldSays"
+        Assert-True ($heldLines[2] -ceq 'folder refused went went') `
+            "A held folder under $heldShell could be renamed, kept files from being copied in and removed, or the control failed: $heldSays"
+        Assert-True ($heldLines[3] -ceq 'file refused refused checked went') `
+            "A held file under $heldShell could be written or deleted, or the control failed: $heldSays"
+        Assert-True ($heldLines[4] -ceq 'junction refused' -and $heldLines[5] -ceq 'through held') `
+            "Open-HeldFile under $heldShell held a junction as a folder, or refused a real file reached through one: $heldSays"
+        Assert-True ($heldLines[6] -in @('symlink refused', 'symlink unavailable')) `
+            "Open-HeldFile under $heldShell held a file symbolic link as the file: $heldSays"
+        if ($heldLines[6] -ceq 'symlink unavailable') { Write-Host "[scripts] no file symbolic links here, so that hold case was skipped under $heldShell" }
+        Remove-TreeWithoutFollowingLinks -Path $heldWork
     }
     $atNoAllowlist = Resolve-ReceiptManifestAllowlist -Root $toolchainRoot -Commit $releaseCommitSha -WorkingPath $allowlistFile
     Assert-True ((@($atNoAllowlist.Entries) -join ',') -ceq $unreviewed -and $atNoAllowlist.Note -like '*has no manifest delta allowlist*') `
@@ -1914,6 +2213,368 @@ try {
 
 Write-Host '[scripts] advisory gate contracts passed'
 
+# --- published patch selection compatibility --------------------------------------------------
+#
+# Morphe Manager keeps a patch choice by name and starts an untouched patch at its use default, so
+# a rename, a removal or a flipped default changes what people get without a word. Each case below
+# starts from a comparison that passes and moves one fact.
+
+& {
+    function Copy-Document($Object) { return $Object | ConvertTo-Json -Depth 20 | ConvertFrom-Json }
+    function Catalog([string]$Version, [object[]]$Patches) {
+        return [pscustomobject]@{ version = "v$Version"; patches = $Patches }
+    }
+    function Patch([string]$Name, [bool]$Use) {
+        return [pscustomobject]@{ name = $Name; use = $Use; compatiblePackages = [pscustomobject]@{ 'com.example' = @('1.0.0') } }
+    }
+    $baseline = Catalog '0.6.0' @((Patch 'Alpha' $false), (Patch 'Beta' $true))
+    $baselineCommit = 'a' * 40
+    $candidate = Copy-Document $baseline
+    $compatibility = $null
+    $notes = ''
+    function Compare-Here {
+        return Test-PatchCatalogCompatibility -BaselinePatchList $baseline -BaselineVersion '0.6.0' `
+            -BaselineCommit $baselineCommit -CandidatePatchList $candidate `
+            -CandidateVersion $candidate.version.Substring(1) -Compatibility $compatibility -Changelog $notes
+    }
+    function Assert-Accept([string]$Message) {
+        $result = Compare-Here
+        Assert-True $result.Valid "$Message $($result.Reason)"
+    }
+    function Assert-Refuse([string]$Pattern, [string]$Message) {
+        $result = Compare-Here
+        Assert-True (-not $result.Valid -and $result.Reason -like $Pattern) "$Message Got: $($result.Valid) / $($result.Reason)"
+    }
+    function Declaration($Before, $After, [string]$Note) {
+        $beforeState = [pscustomobject]@{ name = $Before.name; use = $Before.use }
+        $afterState = if ($null -eq $After) { $null } else { [pscustomobject]@{ name = $After.name; use = $After.use } }
+        return [pscustomobject]@{ before = $beforeState; after = $afterState; migrationNote = $Note }
+    }
+    function Allow([object[]]$Changes, [string]$Version = '0.6.0') {
+        return [pscustomobject]@{ baselineVersion = '0.6.0'; baselineCommit = $baselineCommit; candidateVersion = $Version; changes = $Changes }
+    }
+
+    Assert-Accept 'An unchanged held catalog failed.'
+    $candidate.patches += Patch 'New patch' $true
+    Assert-Accept 'An addition failed.'
+    $candidate = Copy-Document $baseline
+    $candidate.patches[0].use = $true
+    Assert-Refuse '*without compatibility metadata*' 'A default flip passed without metadata.'
+    $flipNote = 'Alpha is now included by default.'
+    $compatibility = Allow @((Declaration $baseline.patches[0] $candidate.patches[0] $flipNote))
+    $notes = "## Unreleased`n- $flipNote`n## 0.6.0 (2026-09-30)`nOlder release."
+    Assert-Accept 'An intentional held default flip failed.'
+    $notes = "## 0.6.0 (2026-09-30)`n- $flipNote"
+    Assert-Refuse '*section for Unreleased*' 'A held default flip used the shipped changelog section.'
+    $notes = "## Unreleased`n- $($flipNote.ToLowerInvariant())"
+    Assert-Refuse '*exact migration note*' 'A case-changed migration note passed.'
+    $notes = "## Unreleased`n- $flipNote`n## Unreleased`n- $flipNote"
+    Assert-Refuse '*exactly one CHANGELOG section*' 'A duplicate changelog section passed.'
+
+    $candidate = Copy-Document $baseline
+    $candidate.patches[0].name = 'Gamma'
+    $compatibility = $null
+    $notes = ''
+    Assert-Refuse '*without compatibility metadata*' 'A rename passed without metadata.'
+    $renameNote = 'Alpha is now Gamma. This causes a selection reset and requires manual re-selection.'
+    $compatibility = Allow @((Declaration $baseline.patches[0] $candidate.patches[0] $renameNote))
+    $notes = "## Unreleased`n- $renameNote"
+    Assert-Accept 'A documented rename failed.'
+    $notes = "## Unreleased`n<!-- - $renameNote -->"
+    Assert-Refuse '*exact migration note*' 'A rename warning hidden in an HTML comment passed.'
+    $notes = "## Unreleased`n<!-- - $renameNote"
+    Assert-Refuse '*exact migration note*' 'A rename warning hidden in an unclosed HTML comment passed.'
+    $notes = "## Unreleased`n<!-- unrelated comment -->`n- $renameNote"
+    Assert-Accept 'A visible rename note after a comment failed.'
+    $candidate.patches[0].use = $true
+    Assert-Refuse '*after state*' 'A rename allowance covered a different use flag.'
+    $candidate.patches[0].use = $false
+    $compatibility.changes[0].migrationNote = 'Alpha is now Gamma.'
+    $notes = '## Unreleased' + "`n- Alpha is now Gamma."
+    Assert-Refuse '*selection reset*manual re-selection*' 'A rename without a reset warning passed.'
+    $candidate = Catalog '0.6.0' @((Patch 'alpha' $false), (Patch 'Beta' $true))
+    $compatibility = $null
+    Assert-Refuse '*without compatibility metadata*' 'Case-only renaming was treated as unchanged.'
+    $caseNote = 'Alpha is now alpha. This causes a selection reset and requires manual re-selection.'
+    $compatibility = Allow @((Declaration $baseline.patches[0] $candidate.patches[0] $caseNote))
+    $notes = "## Unreleased`n- $caseNote"
+    Assert-Accept 'An explicit case-only rename failed.'
+
+    $candidate = Catalog '0.6.0' @((Patch 'Beta' $true))
+    $compatibility = $null
+    Assert-Refuse '*without compatibility metadata*' 'A removal passed without metadata.'
+    $removeNote = 'Alpha was removed. This causes a selection reset and requires manual re-selection.'
+    $compatibility = Allow @((Declaration $baseline.patches[0] $null $removeNote))
+    $notes = "## Unreleased`n- $removeNote"
+    Assert-Accept 'A documented removal failed.'
+    $compatibility.changes += Copy-Document $compatibility.changes[0]
+    Assert-Refuse '*duplicates Alpha*' 'Duplicate allowances passed.'
+    $candidate = Copy-Document $baseline
+    $compatibility = Allow @((Declaration $baseline.patches[0] $baseline.patches[0] $flipNote))
+    $notes = "## Unreleased`n- $flipNote"
+    Assert-Refuse '*no-op*' 'An unused no-op allowance passed.'
+    $compatibility = Allow @((Declaration $baseline.patches[0] $null $removeNote))
+    $notes = "## Unreleased`n- $removeNote"
+    Assert-Refuse '*unused*' 'A removal allowance for a surviving patch passed.'
+    $candidate = Catalog '0.6.0' @((Patch 'Beta' $true))
+    $compatibility = Allow @((Declaration $baseline.patches[0] $candidate.patches[0] $renameNote))
+    $notes = "## Unreleased`n- $renameNote"
+    Assert-Refuse '*collides*' 'A rename colliding with an existing baseline name passed.'
+
+    $candidate = Copy-Document $baseline
+    $candidate.patches[0].use = $true
+    $compatibility = Allow @((Declaration $baseline.patches[0] $candidate.patches[0] $flipNote))
+    $notes = "## Unreleased`n- $flipNote"
+    foreach ($field in @('baselineVersion', 'baselineCommit', 'candidateVersion')) {
+        $saved = $compatibility.$field
+        $compatibility.$field = 'wrong'
+        Assert-Refuse '*exact baseline and candidate*' "A mismatched $field passed."
+        $compatibility.$field = $true
+        Assert-Refuse '*exact baseline and candidate*' "A Boolean $field passed."
+        $compatibility.$field = $saved
+    }
+    $compatibility.changes[0].before.use = $true
+    Assert-Refuse '*before state*' 'An allowance with the wrong published default passed.'
+    $compatibility.changes[0].before.use = 'false'
+    Assert-Refuse '*Boolean use*' 'An allowance with a string use passed.'
+    $compatibility.changes[0].before.use = $false
+    $compatibility.changes[0].after = 'Gamma'
+    Assert-Refuse '*exactly name and use*' 'A scalar after state passed.'
+    $compatibility.changes[0].after = [pscustomobject]@{ name = 'Alpha'; use = $true; extra = 'field' }
+    Assert-Refuse '*exactly name and use*' 'An unexpected after field passed.'
+    $compatibility.changes[0].after = [pscustomobject]@{ name = 'Alpha'; use = $true }
+    $compatibility.changes[0].PSObject.Properties.Remove('after')
+    Assert-Refuse '*malformed fields*' 'An omitted after field passed as a removal.'
+    $compatibility = Allow @()
+    Assert-Refuse '*nonempty array*' 'Empty compatibility declarations passed.'
+
+    $compatibility = $null
+    $candidate = Copy-Document $baseline
+    $candidate.patches += Patch 'Alpha' $false
+    Assert-Refuse '*duplicates patch Alpha*' 'An exact duplicate patch name passed.'
+    $candidate = Copy-Document $baseline
+    $candidate.patches += Patch 'alpha' $false
+    Assert-Accept 'Ordinal names collapsed distinct Alpha and alpha additions.'
+    foreach ($badUse in @('false', 0, $null)) {
+        $candidate = Copy-Document $baseline
+        $candidate.patches[0].use = $badUse
+        Assert-Refuse '*Boolean use*' 'A non-Boolean catalog default passed.'
+    }
+    $candidate = Copy-Document $baseline
+    $candidate.patches[0].name = ' Alpha'
+    Assert-Refuse '*invalid patch name*' 'A padded patch name passed.'
+    $candidate = Copy-Document $baseline
+    $baseline.patches[0].use = 'false'
+    Assert-Refuse '*Published catalog*Boolean use*' 'A malformed baseline default passed.'
+    $baseline.patches[0].use = $false
+
+    # Publication compares the candidate to its predecessor. The next ordinary source push
+    # sees that candidate as the published baseline and must remove the consumed allowance.
+    $candidate = Catalog '0.7.0' @((Patch 'Gamma' $false), (Patch 'Beta' $true))
+    $compatibility = Allow @((Declaration $baseline.patches[0] $candidate.patches[0] $renameNote)) '0.7.0'
+    $notes = "## 0.7.0 (2026-10-02)`n* **Facebook:** $renameNote`n## Unreleased`nOther changes."
+    Assert-Accept 'Publication did not compare to the predecessor.'
+    $stale = Test-PatchCatalogCompatibility -BaselinePatchList $candidate -BaselineVersion '0.7.0' `
+        -BaselineCommit ('b' * 40) -CandidatePatchList $candidate -CandidateVersion '0.7.0' -Compatibility $compatibility -Changelog $notes
+    Assert-True (-not $stale.Valid -and $stale.Reason -like '*exact baseline and candidate*') 'A consumed predecessor allowance survived the next source push.'
+    $cleaned = Test-PatchCatalogCompatibility -BaselinePatchList $candidate -BaselineVersion '0.7.0' `
+        -BaselineCommit ('b' * 40) -CandidatePatchList $candidate -CandidateVersion '0.7.0' -Changelog $notes
+    Assert-True $cleaned.Valid 'Removing the consumed allowance did not restore an ordinary source push.'
+    $notes = "## 0.6.0 (2026-09-30)`n- $renameNote`n## 0.7.0 (2026-10-02)`nNo migration."
+    Assert-Refuse '*exact migration note*0.7.0*' 'A migration note from the wrong release passed.'
+
+    $first = Catalog '0.1.0' @((Patch 'First' $true))
+    $result = Test-PatchCatalogCompatibility -CandidatePatchList $first -CandidateVersion '0.1.0' -FirstRelease
+    Assert-True $result.Valid 'A verified first release catalog failed.'
+    $result = Test-PatchCatalogCompatibility -CandidatePatchList $first -CandidateVersion '0.1.0' -FirstRelease -Compatibility @{}
+    Assert-True (-not $result.Valid) 'A first release accepted malformed compatibility metadata.'
+    $result = Test-PatchCatalogCompatibility -CandidatePatchList $first -CandidateVersion '0.1.0'
+    Assert-True (-not $result.Valid) 'A missing baseline became a first release without evidence.'
+
+    # Local fixture history tests the strict resolver and hosted-baseline identity without a
+    # network or optional working receipt. Its reported applied flags are deliberately different.
+    $fixtureRoot = Join-Path ([IO.Path]::GetTempPath()) ('hushfacebook-selection-' + [Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $fixtureRoot | Out-Null
+    try {
+    function Fixture-Git([string[]]$Arguments) {
+        $answer = @(Invoke-RepoGit -Root $fixtureRoot -Arguments $Arguments)
+        if ($LASTEXITCODE -ne 0) { throw "Fixture git failed: $($Arguments -join ' ')" }
+        return $answer
+    }
+    Fixture-Git @('init', '--quiet') | Out-Null
+    $selectionGitDir = (Fixture-Git @('rev-parse', '--absolute-git-dir') | Select-Object -First 1).Trim()
+    Assert-True ([IO.Path]::GetFullPath($selectionGitDir).TrimEnd('\', '/') -ieq [IO.Path]::GetFullPath((Join-Path $fixtureRoot '.git')).TrimEnd('\', '/')) `
+        'The selection fixture resolved outside its temporary repository. Refusing to write.'
+    Fixture-Git @('config', 'user.name', 'Contracts') | Out-Null
+    Fixture-Git @('config', 'user.email', 'contracts@example.invalid') | Out-Null
+    Fixture-Git @('commit', '--allow-empty', '-m', 'initial history', '--quiet') | Out-Null
+    $emptyCommit = (Fixture-Git @('rev-parse', 'HEAD') | Select-Object -First 1).Trim()
+    $absent = @(Fixture-Git @('ls-tree', '--name-only', $emptyCommit, '--', 'patches-bundle.json'))
+    Assert-True ($absent.Count -eq 0) 'The first-release fixture does not prove actual index absence.'
+    Set-Content -LiteralPath (Join-Path $fixtureRoot 'patches-list.json') -Value ($baseline | ConvertTo-Json -Depth 6) -Encoding UTF8
+    Fixture-Git @('add', '--', 'patches-list.json') | Out-Null
+    Fixture-Git @('commit', '-m', 'published catalog', '--quiet') | Out-Null
+    $publishedCommit = (Fixture-Git @('rev-parse', 'HEAD') | Select-Object -First 1).Trim()
+    $legacy = Resolve-ReceiptCatalog -Root $fixtureRoot -Commit '' -WorkingPatchList $candidate
+    Assert-True ($legacy.PatchList -eq $candidate -and $null -eq $legacy.Note) 'Legacy missing-commit behavior changed.'
+    $legacy = Resolve-ReceiptCatalog -Root $fixtureRoot -Commit $emptyCommit -WorkingPatchList $candidate
+    Assert-True ($legacy.PatchList -eq $candidate -and $legacy.Note -like '*no patch list*') 'Legacy missing-catalog behavior changed.'
+    Assert-Throws { Resolve-ReceiptCatalog -Root $fixtureRoot -Commit '' -WorkingPatchList $candidate -RequireHistory } '*exact historical commit*' 'Strict mode fell back for a missing commit.'
+    Assert-Throws { Resolve-ReceiptCatalog -Root $fixtureRoot -Commit ('f' * 40) -WorkingPatchList $candidate -RequireHistory } '*unavailable*' 'Strict mode accepted an unavailable commit.'
+    Assert-Throws { Resolve-ReceiptCatalog -Root $fixtureRoot -Commit $emptyCommit -WorkingPatchList $candidate -RequireHistory } '*no readable patches-list*' 'Strict mode fell back for a missing historical catalog.'
+    $strict = Resolve-ReceiptCatalog -Root $fixtureRoot -Commit $publishedCommit -WorkingPatchList $candidate -RequireHistory
+    Assert-True ($strict.PatchList.patches[0].name -ceq 'Alpha' -and $strict.PatchList.patches[0].use -eq $false) 'Strict history read working names/defaults.'
+
+    $receiptDocument = [pscustomobject]@{ release = [pscustomobject]@{ version = '0.6.0'; commit = $publishedCommit }
+        bundle = [pscustomobject]@{ file = 'patches-0.6.0.mpp'; sha256 = ('d' * 64) }; patches = @([pscustomobject]@{ name = 'Alpha'; applied = $true }) }
+    function Receipt-Bytes { return ,[Text.Encoding]::UTF8.GetBytes(($receiptDocument | ConvertTo-Json -Depth 5 -Compress)) }
+    function Receipt-Checksum([byte[]]$Bytes, [string]$Version = '0.6.0') {
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try { $hash = ([BitConverter]::ToString($sha.ComputeHash($Bytes))).Replace('-', '').ToLowerInvariant() }
+        finally { $sha.Dispose() }
+        return "$hash  release-receipt-$Version.json`n$('d' * 64)  patches-$Version.mpp"
+    }
+    $receiptBytes = Receipt-Bytes
+    $checksum = Receipt-Checksum $receiptBytes
+    $index = [pscustomobject]@{ version = '0.6.0'; download_url = 'https://github.com/fixture/catalog/releases/download/v0.6.0/patches-0.6.0.mpp' }
+    $tagObject = 'c' * 40
+    $tagsText = $tagObject + "`trefs/tags/v0.6.0"
+    $tagsText += "`n$publishedCommit`trefs/tags/v0.6.0^{}"
+    function Baseline-Here {
+        Resolve-PublishedCatalogBaseline -Root $fixtureRoot -WorkingPatchList $candidate -CandidateVersion '0.7.0' `
+            -Index $index -ReceiptBytes $receiptBytes -ChecksumText $checksum -RemoteTagsText $tagsText -RemoteTagsExitCode 0
+    }
+    $published = Baseline-Here
+    Assert-True ($published.Commit -ceq $publishedCommit -and $published.PatchList.patches[0].use -eq $false) 'The baseline used an unpeeled tag or receipt applied verdict as default.'
+    $savedDownloadUrl = $index.download_url
+    foreach ($invalidUrl in @(
+        'https://someone@github.com/fixture/catalog/releases/download/v0.6.0/patches-0.6.0.mpp',
+        'https://github.com:444/fixture/catalog/releases/download/v0.6.0/patches-0.6.0.mpp',
+        'https://github.com/fixture/catalog/releases/download/v0.6.0/patches-0.6.0.mpp?cache=1',
+        'https://github.com/fixture/catalog/releases/download/v0.6.0/patches-0.6.0.mpp#part')) {
+        $index.download_url = $invalidUrl
+        Assert-Throws { Baseline-Here } '*exact hosted bundle*' 'A predecessor URL with userinfo, port, query or fragment passed.'
+    }
+    $index.download_url = $savedDownloadUrl
+    $savedBytes = $receiptBytes
+    $receiptBytes = $null
+    Assert-Throws { Baseline-Here } '*hosted predecessor receipt or checksum is unavailable*' 'An unavailable predecessor asset passed.'
+    $receiptBytes = $savedBytes
+    $savedChecksum = $checksum
+    $checksum = ('0' * 64) + '  release-receipt-0.6.0.json'
+    Assert-Throws { Baseline-Here } '*checksum does not match*' 'Tampered hosted receipt bytes passed.'
+    $checksum = "$savedChecksum`n$savedChecksum"
+    Assert-Throws { Baseline-Here } '*exactly one*' 'Duplicate hosted checksum records passed.'
+    $checksum = $savedChecksum
+    foreach ($field in @('file', 'sha256')) {
+        $saved = $receiptDocument.bundle.$field
+        $receiptDocument.bundle.$field = if ($field -ceq 'file') { 'different.mpp' } else { 'e' * 64 }
+        $receiptBytes = Receipt-Bytes; $checksum = Receipt-Checksum $receiptBytes
+        Assert-Throws { Baseline-Here } '*indexed bundle checksum*' "A predecessor receipt with the wrong bundle $field passed."
+        $receiptDocument.bundle.$field = $true
+        $receiptBytes = Receipt-Bytes; $checksum = Receipt-Checksum $receiptBytes
+        Assert-Throws { Baseline-Here } '*indexed bundle checksum*' "A Boolean bundle $field passed."
+        $receiptDocument.bundle.$field = $saved
+    }
+    $receiptBytes = Receipt-Bytes; $checksum = Receipt-Checksum $receiptBytes
+    $savedChecksum = $checksum
+    $checksum = $savedChecksum -replace '(?m)^.*patches-0\.6\.0\.mpp$', ''
+    Assert-Throws { Baseline-Here } '*exactly one patches-0.6.0.mpp*' 'A checksum missing the indexed bundle passed.'
+    $checksum = "$savedChecksum`n$('d' * 64)  patches-0.6.0.mpp"
+    Assert-Throws { Baseline-Here } '*exactly one patches-0.6.0.mpp*' 'Duplicate indexed bundle checksums passed.'
+    $checksum = "$savedChecksum`nmalformed  patches-0.6.0.mpp"
+    Assert-Throws { Baseline-Here } '*exactly one patches-0.6.0.mpp*' 'A malformed duplicate indexed bundle checksum was hidden.'
+    $checksum = $savedChecksum -replace '(?m)^[d]{64}  patches-0\.6\.0\.mpp$', 'malformed  patches-0.6.0.mpp'
+    Assert-Throws { Baseline-Here } '*malformed*' 'A malformed indexed bundle checksum passed.'
+    $checksum = $savedChecksum
+    foreach ($field in @('version', 'commit')) {
+        $saved = $receiptDocument.release.$field
+        $receiptDocument.release.$field = 'wrong'
+        $receiptBytes = Receipt-Bytes; $checksum = Receipt-Checksum $receiptBytes
+        Assert-Throws { Baseline-Here } '*version/commit*peeled published tag*' "A wrong receipt $field passed."
+        $receiptDocument.release.$field = $true
+        $receiptBytes = Receipt-Bytes; $checksum = Receipt-Checksum $receiptBytes
+        Assert-Throws { Baseline-Here } '*version/commit*peeled published tag*' "A Boolean receipt $field passed."
+        $receiptDocument.release.$field = $saved
+    }
+    $receiptBytes = Receipt-Bytes; $checksum = Receipt-Checksum $receiptBytes
+    $tagsText = "$publishedCommit`trefs/tags/v0.6.0"
+    Assert-True ((Baseline-Here).Commit -ceq $publishedCommit) 'A lightweight published tag failed.'
+    $tagsText = ''
+    Assert-Throws { Baseline-Here } '*tag v0.6.0 is missing*' 'An unavailable published tag passed.'
+    Assert-Throws { Resolve-PublishedCatalogBaseline -Root $fixtureRoot -WorkingPatchList $first -CandidateVersion '0.1.0' -RemoteTagsText '' -RemoteTagsExitCode 0 } '*not confirmed absent*' 'A missing index became a first release.'
+    Assert-Throws { Resolve-PublishedCatalogBaseline -Root $fixtureRoot -WorkingPatchList $first -CandidateVersion '0.1.0' -PredecessorIndexAbsent -RemoteTagsText '' -RemoteTagsExitCode 1 } '*history is unavailable*' 'Failed remote history became a first release.'
+    $firstBaseline = Resolve-PublishedCatalogBaseline -Root $fixtureRoot -WorkingPatchList $first -CandidateVersion '0.1.0' -PredecessorIndexAbsent -RemoteTagsText '' -RemoteTagsExitCode 0
+    Assert-True $firstBaseline.FirstRelease 'Confirmed absence and no earlier version history failed first release.'
+    $earlierText = "$publishedCommit`trefs/tags/v0.0.9"
+    Assert-Throws { Resolve-PublishedCatalogBaseline -Root $fixtureRoot -WorkingPatchList $first -CandidateVersion '0.1.0' -PredecessorIndexAbsent -RemoteTagsText $earlierText -RemoteTagsExitCode 0 } '*earlier version history exists*' 'A 404-style absent index hid prior release history.'
+    $earlierText = ('d' * 64) + "`trefs/tags/v0.0.9"
+    Assert-Throws { Resolve-PublishedCatalogBaseline -Root $fixtureRoot -WorkingPatchList $first -CandidateVersion '0.1.0' -PredecessorIndexAbsent -RemoteTagsText $earlierText -RemoteTagsExitCode 0 } '*earlier version history exists*' 'An earlier 64-character tag hash was ignored.'
+
+    # Route publication through the predecessor index at the candidate's verified source commit.
+    # The working index is already 0.7.0, as it is on the later publication/index push.
+    $candidate = Catalog '0.7.0' @((Patch 'Gamma' $false), (Patch 'Beta' $true))
+    $compatibility = Allow @((Declaration $baseline.patches[0] $candidate.patches[0] $renameNote)) '0.7.0'
+    $notes = "## 0.7.0 (2026-10-02)`n* **Facebook:** $renameNote"
+    Set-Content -LiteralPath (Join-Path $fixtureRoot 'patches-list.json') -Value ($candidate | ConvertTo-Json -Depth 6) -Encoding UTF8
+    Set-Content -LiteralPath (Join-Path $fixtureRoot 'patches-bundle.json') -Value ($index | ConvertTo-Json -Depth 5) -Encoding UTF8
+    Fixture-Git @('add', '--', 'patches-list.json', 'patches-bundle.json') | Out-Null
+    Fixture-Git @('commit', '-m', 'candidate over predecessor index', '--quiet') | Out-Null
+    $candidateCommit = (Fixture-Git @('rev-parse', 'HEAD') | Select-Object -First 1).Trim()
+    $workingIndex = [pscustomobject]@{ version = '0.7.0'; download_url = 'https://github.com/fixture/catalog/releases/download/v0.7.0/patches-0.7.0.mpp' }
+    Set-Content -LiteralPath (Join-Path $fixtureRoot 'patches-bundle.json') -Value ($workingIndex | ConvertTo-Json -Depth 5) -Encoding UTF8
+    Fixture-Git @('add', '--', 'patches-bundle.json') | Out-Null
+    Fixture-Git @('commit', '-m', 'published candidate index', '--quiet') | Out-Null
+    $selected = Resolve-CatalogBaselineIndex -Root $fixtureRoot -WorkingIndex $workingIndex -CandidateCommit $candidateCommit -VerifyPublishedAsset
+    Assert-True ($selected.Index.version -ceq '0.6.0' -and -not $selected.PredecessorIndexAbsent) 'Publication self-compared using the working index instead of the source-commit predecessor.'
+    $tagsText = "$publishedCommit`trefs/tags/v0.6.0`n$candidateCommit`trefs/tags/v0.7.0"
+    $receiptBytes = Receipt-Bytes; $checksum = Receipt-Checksum $receiptBytes
+    $pubBaseline = Resolve-PublishedCatalogBaseline -Root $fixtureRoot -WorkingPatchList $candidate -CandidateVersion '0.7.0' `
+        -Index $selected.Index -ReceiptBytes $receiptBytes -ChecksumText $checksum -RemoteTagsText $tagsText -RemoteTagsExitCode 0
+    $compatibility.baselineCommit = $pubBaseline.Commit
+    $comparison = Test-PatchCatalogCompatibility -BaselinePatchList $pubBaseline.PatchList -BaselineVersion $pubBaseline.Version `
+        -BaselineCommit $pubBaseline.Commit -CandidatePatchList $candidate -CandidateVersion '0.7.0' -Compatibility $compatibility -Changelog $notes
+    Assert-True $comparison.Valid "The publication predecessor comparison failed: $($comparison.Reason)"
+    $ordinary = Resolve-CatalogBaselineIndex -Root $fixtureRoot -WorkingIndex $workingIndex -CandidateCommit $candidateCommit
+    Assert-True ($ordinary.Index.version -ceq '0.7.0') 'An ordinary source push used the older source-commit index.'
+    $candidateReceiptBytes = [Text.Encoding]::UTF8.GetBytes((@{ release = @{ version = '0.7.0'; commit = $candidateCommit }
+        bundle = @{ file = 'patches-0.7.0.mpp'; sha256 = ('d' * 64) } } | ConvertTo-Json -Compress -Depth 4))
+    $candidateReceiptHash = Receipt-Checksum $candidateReceiptBytes '0.7.0'
+    $nextBaseline = Resolve-PublishedCatalogBaseline -Root $fixtureRoot -WorkingPatchList $candidate -CandidateVersion '0.7.0' `
+        -Index $ordinary.Index -ReceiptBytes $candidateReceiptBytes -ChecksumText $candidateReceiptHash -RemoteTagsText $tagsText -RemoteTagsExitCode 0
+    $consumed = Test-PatchCatalogCompatibility -BaselinePatchList $nextBaseline.PatchList -BaselineVersion $nextBaseline.Version `
+        -BaselineCommit $nextBaseline.Commit -CandidatePatchList $candidate -CandidateVersion '0.7.0' -Compatibility $compatibility -Changelog $notes
+    Assert-True (-not $consumed.Valid -and $consumed.Reason -like '*exact baseline and candidate*') 'Index routing allowed a consumed predecessor declaration on an ordinary source push.'
+    $removed = Test-PatchCatalogCompatibility -BaselinePatchList $nextBaseline.PatchList -BaselineVersion $nextBaseline.Version `
+        -BaselineCommit $nextBaseline.Commit -CandidatePatchList $candidate -CandidateVersion '0.7.0' -Changelog $notes
+    Assert-True $removed.Valid 'The next ordinary push still failed after removing consumed declarations.'
+    $absentIndex = Resolve-CatalogBaselineIndex -Root $fixtureRoot -WorkingIndex $workingIndex -CandidateCommit $emptyCommit -VerifyPublishedAsset
+    Assert-True ($absentIndex.PredecessorIndexAbsent -and $null -eq $absentIndex.Index) 'A real missing source-commit predecessor was not identified.'
+    Assert-Throws { Resolve-CatalogBaselineIndex -Root $fixtureRoot -WorkingIndex $workingIndex -CandidateCommit ('f' * 40) -VerifyPublishedAsset } '*source commit is unavailable*' 'An unavailable source commit became an absent predecessor.'
+    Set-Content -LiteralPath (Join-Path $fixtureRoot 'patches-bundle.json') -Value '{bad json' -Encoding UTF8
+    Set-Content -LiteralPath (Join-Path $fixtureRoot 'patches-list.json') -Value '{bad json' -Encoding UTF8
+    Fixture-Git @('add', '--', 'patches-bundle.json', 'patches-list.json') | Out-Null
+    Fixture-Git @('commit', '-m', 'malformed historical metadata', '--quiet') | Out-Null
+    $badCommit = (Fixture-Git @('rev-parse', 'HEAD') | Select-Object -First 1).Trim()
+    Assert-Throws { Resolve-CatalogBaselineIndex -Root $fixtureRoot -WorkingIndex $workingIndex -CandidateCommit $badCommit -VerifyPublishedAsset } '*not readable JSON*' 'Malformed predecessor metadata passed.'
+    Assert-Throws { Resolve-ReceiptCatalog -Root $fixtureRoot -Commit $badCommit -WorkingPatchList $candidate -RequireHistory } '*not readable*' 'Malformed historical catalog passed strict mode.'
+
+    } finally {
+        if (Test-Path -LiteralPath $fixtureRoot) {
+            $resolved = [IO.Path]::GetFullPath((Resolve-Path -LiteralPath $fixtureRoot).ProviderPath)
+            $expected = [IO.Path]::GetFullPath($fixtureRoot)
+            $temporary = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+            if (-not [StringComparer]::OrdinalIgnoreCase.Equals($resolved, $expected) -or
+                -not $resolved.StartsWith($temporary, [StringComparison]::OrdinalIgnoreCase)) {
+                throw 'The selection fixture resolved outside its temporary directory.'
+            }
+            Remove-Item -LiteralPath $resolved -Recurse -Force
+        }
+    }
+}
+
+Write-Host '[scripts] published patch selection contracts passed'
+
 # --- validate-release-facts.ps1 -------------------------------------------------------------
 #
 # The gate the pre-push hook runs on every push that touches a published file, and the one a
@@ -1927,9 +2588,11 @@ Write-Host '[scripts] advisory gate contracts passed'
 
 $factsScript = Join-Path $PSScriptRoot 'validate-release-facts.ps1'
 $factsRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("hushfacebook-facts-" + [guid]::NewGuid().ToString('N'))
+$factsPreviousWebRequest = Get-Item Function:\Invoke-WebRequest -ErrorAction SilentlyContinue
 try {
     New-Item -ItemType Directory -Path $factsRoot -Force | Out-Null
-    foreach ($relative in @('patches-list.json', 'patches-bundle.json', 'gradle.properties', 'README.md', 'CHANGELOG.md')) {
+    foreach ($relative in @('patches-list.json', 'patches-bundle.json', 'gradle.properties', 'README.md', 'CHANGELOG.md',
+            'CONTRIBUTING.md')) {
         Copy-Item -LiteralPath (Join-Path $Root $relative) -Destination (Join-Path $factsRoot $relative)
     }
     New-Item -ItemType Directory -Path (Join-Path $factsRoot 'gradle') -Force | Out-Null
@@ -1938,6 +2601,81 @@ try {
     $bugFormRelative = '.github/ISSUE_TEMPLATE/bug_report.yml'
     New-Item -ItemType Directory -Path (Join-Path $factsRoot '.github/ISSUE_TEMPLATE') -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $Root $bugFormRelative) -Destination (Join-Path $factsRoot $bugFormRelative)
+
+    # Every run of the check compares the patch names and defaults with the published release's
+    # catalog, read through the hosted receipt, SHA256SUMS.txt and the tags on origin. Here each of
+    # those is local: a bare repository answers for origin through url.insteadOf, and a stand-in for
+    # Invoke-WebRequest serves the receipt and checksum list. The published catalog is this
+    # checkout's own, frozen at the start, so a case can move the working catalog away from it.
+    $factsPublishedCatalog = Get-Content -LiteralPath (Join-Path $Root 'patches-list.json') -Raw | ConvertFrom-Json
+    $factsPublishedCatalogs = @{}
+    $factsCatalogRequests = New-Object System.Collections.Generic.List[string]
+    $factsCatalogUnavailable = $null
+    Invoke-FixtureGit -Root $factsRoot -Arguments @('init', '--quiet') | Out-Null
+    $factsGitDir = "$(Invoke-FixtureGit -Root $factsRoot -Arguments @('rev-parse', '--absolute-git-dir') | Select-Object -First 1)".Trim()
+    Assert-True ([IO.Path]::GetFullPath($factsGitDir).TrimEnd('\', '/') -ieq [IO.Path]::GetFullPath((Join-Path $factsRoot '.git')).TrimEnd('\', '/')) `
+        'The facts catalog fixture resolved outside its temporary repository. Refusing to write.'
+    Invoke-FixtureGit -Root $factsRoot -Arguments @('config', 'user.name', 'Contracts') | Out-Null
+    Invoke-FixtureGit -Root $factsRoot -Arguments @('config', 'user.email', 'contracts@example.invalid') | Out-Null
+    Invoke-FixtureGit -Root $factsRoot -Arguments @('add', '--', 'patches-list.json', 'patches-bundle.json', 'gradle.properties',
+        'README.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'gradle/libs.versions.toml', $bugFormRelative) | Out-Null
+    Invoke-FixtureGit -Root $factsRoot -Arguments @('commit', '-m', 'facts fixture', '--quiet') | Out-Null
+    $factsPublishedRemote = (Join-Path $factsGitDir 'catalog-published.git').Replace('\', '/')
+    Invoke-FixtureGit -Root $factsRoot -Arguments @('init', '--bare', '--quiet', $factsPublishedRemote) | Out-Null
+    $factsSourceIndex = Get-Content -LiteralPath (Join-Path $Root 'patches-bundle.json') -Raw | ConvertFrom-Json
+    $factsSourceUri = [Uri]$factsSourceIndex.download_url
+    $factsCatalogSlug = (@($factsSourceUri.AbsolutePath.Trim('/') -split '/') | Select-Object -First 2) -join '/'
+    $factsCatalogRemoteUrl = "https://github.com/$factsCatalogSlug.git"
+    Invoke-FixtureGit -Root $factsRoot -Arguments @('config', "url.$factsPublishedRemote.insteadOf", $factsCatalogRemoteUrl) | Out-Null
+    Invoke-FixtureGit -Root $factsRoot -Arguments @('remote', 'add', 'origin', $factsCatalogRemoteUrl) | Out-Null
+
+    # Publishes the frozen catalog as release $Version: a commit beside the branch, its tag on the
+    # bare origin and the receipt the stand-in serves for it. The receipt's applied verdict is the
+    # opposite of the default on purpose, so a check reading defaults off the receipt shows.
+    function Register-FactsCatalogVersion([string]$Version) {
+        if ($Version -notmatch '^\d+\.\d+\.\d+$' -or $factsPublishedCatalogs.ContainsKey($Version)) { return }
+        $catalogPath = Join-Path $factsRoot 'patches-list.json'
+        $savedCatalog = [IO.File]::ReadAllBytes($catalogPath)
+        $frozen = $factsPublishedCatalog | ConvertTo-Json -Depth 15 | ConvertFrom-Json
+        $frozen.version = "v$Version"
+        try {
+            [IO.File]::WriteAllText($catalogPath, ($frozen | ConvertTo-Json -Depth 15), (New-Object Text.UTF8Encoding($false)))
+            Invoke-FixtureGit -Root $factsRoot -Arguments @('add', '--', 'patches-list.json') | Out-Null
+            $tree = "$(Invoke-FixtureGit -Root $factsRoot -Arguments @('write-tree') | Select-Object -First 1)".Trim()
+            $commit = "$(Invoke-FixtureGit -Root $factsRoot -Arguments @('commit-tree', $tree, '-m', "published selections $Version") | Select-Object -First 1)".Trim()
+            Invoke-FixtureGit -Root $factsRoot -Arguments @('push', '--quiet', $factsPublishedRemote, "${commit}:refs/tags/v$Version") | Out-Null
+            $receiptPath = Join-Path $factsGitDir "catalog-receipt-$Version.json"
+            [IO.File]::WriteAllText($receiptPath, (@{ release = @{ version = $Version; commit = $commit }
+                bundle = @{ file = "patches-$Version.mpp"; sha256 = ('d' * 64) }
+                patches = @(@{ name = $frozen.patches[0].name; applied = -not $frozen.patches[0].use }) } | ConvertTo-Json -Depth 5),
+                (New-Object Text.UTF8Encoding($false)))
+            $factsPublishedCatalogs[$Version] = [pscustomobject]@{ Commit = $commit; Receipt = $receiptPath }
+        } finally {
+            [IO.File]::WriteAllBytes($catalogPath, $savedCatalog)
+            Invoke-FixtureGit -Root $factsRoot -Arguments @('reset', '--quiet') | Out-Null
+        }
+    }
+
+    function Invoke-WebRequest {
+        param([Uri]$Uri, $Method, $OutFile, $MaximumRedirection, $TimeoutSec, [switch]$PassThru, [switch]$UseBasicParsing)
+        if (-not $UseBasicParsing) { throw "Invoke-WebRequest $Uri without -UseBasicParsing" }
+        $factsCatalogRequests.Add($Uri.AbsoluteUri)
+        $match = [regex]::Match($Uri.AbsolutePath, '/releases/download/v(\d+\.\d+\.\d+)/(release-receipt-\1\.json|SHA256SUMS\.txt)$')
+        if (-not $match.Success -or -not $factsPublishedCatalogs.ContainsKey($match.Groups[1].Value)) {
+            throw "No local facts catalog response for $Uri"
+        }
+        $version = $match.Groups[1].Value
+        if ($factsCatalogUnavailable -ceq $match.Groups[2].Value) { throw (New-NotFoundAnswer) }
+        $record = $factsPublishedCatalogs[$version]
+        $bytes = if ($match.Groups[2].Value -ceq 'SHA256SUMS.txt') {
+            [Text.Encoding]::UTF8.GetBytes("$(Get-Sha256Hex $record.Receipt)  release-receipt-$version.json`n$('d' * 64)  patches-$version.mpp`n")
+        } else { [IO.File]::ReadAllBytes($record.Receipt) }
+        if ($OutFile) { [IO.File]::WriteAllBytes($OutFile, $bytes) }
+        return [pscustomobject]@{ StatusCode = 200; Content = $bytes }
+    }
+
+    # The release this checkout's index publishes, which the lag windows below copy back in.
+    Register-FactsCatalogVersion ([string]$factsSourceIndex.version)
 
     function Invoke-Facts {
         param([switch]$WithUrls)
@@ -1996,6 +2734,8 @@ try {
         if ($indexBuild.Success -and $indexBuild.Groups[1].Value -ne $fixtureBuild) {
             $synced = $synced -replace ('(?<![\d.])' + [regex]::Escape($indexBuild.Groups[1].Value) + '(?!\d)'), $fixtureBuild
         }
+        # The index now names the fixture's version, so that version needs a published catalog.
+        Register-FactsCatalogVersion $fixtureVersion
         if ($synced -ceq $indexText) { return }
         Set-FactsFile 'patches-bundle.json' { param($text) $synced }
     }
@@ -2039,6 +2779,142 @@ try {
     Sync-FixtureIndex
     Sync-FixtureBugForm
     Sync-FixtureReadme
+
+    # The published patch selections, through the real check and both of its success exits, with
+    # no receipt and then a built bundle. Neither may skip the comparison, and the lenient path the
+    # hook runs may not either. Each change to the catalog copy (a flipped default, a rename, a
+    # removal) comes after a run that passes, is refused naming the patch, and passes again once
+    # scripts/patch-catalog-compatibility.json records it and the CHANGELOG carries its note.
+    $catalogFixturePath = Join-Path $factsRoot 'patches-list.json'
+    $catalogFixtureBytes = [IO.File]::ReadAllBytes($catalogFixturePath)
+    $catalogFixtureIndexPath = Join-Path $factsRoot 'patches-bundle.json'
+    $catalogFixtureIndexBytes = [IO.File]::ReadAllBytes($catalogFixtureIndexPath)
+    $catalogFixtureReadmePath = Join-Path $factsRoot 'README.md'
+    $catalogFixtureReadmeBytes = [IO.File]::ReadAllBytes($catalogFixtureReadmePath)
+    # A release's source commit has no Unreleased section, since the cut renames it to the version.
+    # The cases below record a change against the fixture's own version, and the note for that is
+    # read from Unreleased, so a copy without the section gets an empty one for these cases.
+    if ((Get-Content -LiteralPath (Join-Path $factsRoot 'CHANGELOG.md') -Raw) -notmatch '(?m)^## Unreleased\s*$') {
+        Set-FactsFile 'CHANGELOG.md' { param($text) ([regex]'(?m)^## ').Replace($text, "## Unreleased`n`n## ", 1) }
+    }
+    $catalogFixtureChangelog = [IO.File]::ReadAllBytes((Join-Path $factsRoot 'CHANGELOG.md'))
+    $catalogFixtureList = Get-Content -LiteralPath $catalogFixturePath -Raw | ConvertFrom-Json
+    $catalogFixtureVersion = $catalogFixtureList.version.Substring(1)
+    $catalogFixtureBaseline = $factsPublishedCatalogs[$catalogFixtureVersion]
+    Assert-True ($null -ne $catalogFixtureBaseline) "The facts fixture has no published catalog for $catalogFixtureVersion."
+    $catalogFixtureBefore = $catalogFixtureList.patches[0]
+    $catalogFixtureBundle = Get-ReleaseBundlePath -Root $factsRoot -Version $catalogFixtureVersion
+    $catalogFixtureMetadata = Join-Path $factsRoot 'scripts/patch-catalog-compatibility.json'
+    $catalogFixtureWrongPath = Join-Path $factsRoot 'patch-catalog-compatibility.json'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $factsRoot "release-receipt-$catalogFixtureVersion.json")) -and
+        -not (Test-Path -LiteralPath $catalogFixtureBundle)) 'The no-receipt/no-bundle catalog fixture is not empty.'
+    function Restore-CatalogFixture {
+        [IO.File]::WriteAllBytes($catalogFixturePath, $catalogFixtureBytes)
+        [IO.File]::WriteAllBytes($catalogFixtureIndexPath, $catalogFixtureIndexBytes)
+        [IO.File]::WriteAllBytes($catalogFixtureReadmePath, $catalogFixtureReadmeBytes)
+        [IO.File]::WriteAllBytes((Join-Path $factsRoot 'CHANGELOG.md'), $catalogFixtureChangelog)
+        foreach ($path in @($catalogFixtureMetadata, $catalogFixtureWrongPath)) {
+            if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force }
+        }
+    }
+    try {
+        New-Item -ItemType Directory -Path (Split-Path -Parent $catalogFixtureMetadata) -Force | Out-Null
+        Set-Content -LiteralPath $catalogFixtureMetadata -Value 'null' -Encoding UTF8
+        Assert-Throws { Invoke-Facts } '*compatibility*null*' 'A literal null compatibility file passed the facts gate.'
+        Remove-Item -LiteralPath $catalogFixtureMetadata -Force
+        $originalUrl = (Get-Content -LiteralPath $catalogFixtureIndexPath -Raw | ConvertFrom-Json).download_url
+        foreach ($invalidUrl in @(
+            $originalUrl.Replace('https://github.com/', 'https://someone@github.com/'),
+            $originalUrl.Replace('https://github.com/', 'https://github.com:444/'),
+            ($originalUrl + '?cache=1'), ($originalUrl + '#part'))) {
+            Set-FactsFile 'patches-bundle.json' { param($text) $text.Replace($originalUrl, $invalidUrl) }
+            $factsCatalogRequests.Clear()
+            $invalidUri = [Uri]$invalidUrl
+            $expectedUrlError = if ($invalidUri.Query -or $invalidUri.Fragment) {
+                '*download URL does not match the generated release facts*'
+            } else { '*exact hosted bundle*' }
+            Assert-Throws { Invoke-Facts } $expectedUrlError 'A malformed predecessor URL passed the facts gate.'
+            Assert-True ($factsCatalogRequests.Count -eq 0) 'The facts gate requested a predecessor URL before validating it.'
+            [IO.File]::WriteAllBytes($catalogFixtureIndexPath, $catalogFixtureIndexBytes)
+        }
+        foreach ($case in @(
+                @{ Kind = 'default'; Built = $false }, @{ Kind = 'default'; Built = $true },
+                @{ Kind = 'rename'; Built = $false }, @{ Kind = 'removal'; Built = $false })) {
+            $label = "$($case.Kind) (built=$($case.Built))"
+            if ($case.Built) {
+                New-Item -ItemType Directory -Path (Split-Path -Parent $catalogFixtureBundle) -Force | Out-Null
+                Add-Type -AssemblyName System.IO.Compression
+                Add-Type -AssemblyName System.IO.Compression.FileSystem
+                $archive = [IO.Compression.ZipFile]::Open($catalogFixtureBundle, [IO.Compression.ZipArchiveMode]::Create)
+                try {
+                    $writer = New-Object IO.StreamWriter(($archive.CreateEntry('META-INF/MANIFEST.MF')).Open())
+                    try {
+                        $pin = (Read-CatalogToolchain -Text (Get-Content -LiteralPath (Join-Path $factsRoot 'gradle/libs.versions.toml') -Raw) -Source 'catalog fixture').PatcherVersion
+                        $writer.Write("Manifest-Version: 1.0`nPatcher-Version: $pin`n`n")
+                    } finally { $writer.Dispose() }
+                } finally { $archive.Dispose() }
+            }
+            try {
+                # The positive control: the unchanged copy passes, and only after asking for the
+                # published receipt and its checksum list.
+                $factsCatalogRequests.Clear()
+                Invoke-Facts
+                Assert-True (@($factsCatalogRequests | Where-Object { $_ -like "*/release-receipt-$catalogFixtureVersion.json" }).Count -gt 0 -and
+                    @($factsCatalogRequests | Where-Object { $_ -like '*/SHA256SUMS.txt' }).Count -gt 0) `
+                    "The facts script's $label control skipped published selection history without a local receipt."
+                $name = [string]$catalogFixtureBefore.name
+                $edited = Get-Content -LiteralPath $catalogFixturePath -Raw | ConvertFrom-Json
+                switch ($case.Kind) {
+                    'default' {
+                        $edited.patches[0].use = -not $catalogFixtureBefore.use
+                        $after = @{ name = $name; use = $edited.patches[0].use }
+                        $note = "$name changes its default selection."
+                    }
+                    'rename' {
+                        $edited.patches[0].name = "$name renamed"
+                        $after = @{ name = $edited.patches[0].name; use = $catalogFixtureBefore.use }
+                        $note = "$name is now $name renamed. This causes a selection reset and requires manual re-selection."
+                    }
+                    'removal' {
+                        $edited.patches = @($edited.patches | Select-Object -Skip 1)
+                        $after = $null
+                        $note = "$name was removed. This causes a selection reset and requires manual re-selection."
+                    }
+                }
+                Set-Content -LiteralPath $catalogFixturePath -Value ($edited | ConvertTo-Json -Depth 15) -Encoding UTF8
+                # A removal moves the count, which the index and the README are held to first.
+                if ($case.Kind -eq 'removal') { Sync-FixtureIndex; Sync-FixtureReadme }
+                $refusal = "*Patch $([Management.Automation.WildcardPattern]::Escape($name)) was removed, renamed or changed its default without compatibility metadata*"
+                Assert-Throws { Invoke-Facts } $refusal "The facts check accepted an undocumented $label."
+                Assert-Throws { & $factsScript -Root $factsRoot -SkipDescriptionTestCount -SkipUrlCheck -AllowPublishedIndexLag 6> $null } `
+                    $refusal "AllowPublishedIndexLag bypassed the selection check for a $label."
+                $metadata = @{ baselineVersion = $catalogFixtureVersion; baselineCommit = $catalogFixtureBaseline.Commit
+                    candidateVersion = $catalogFixtureVersion; changes = @(@{ before = @{ name = $name; use = $catalogFixtureBefore.use }
+                        after = $after; migrationNote = $note }) }
+                Set-Content -LiteralPath $catalogFixtureWrongPath -Value ($metadata | ConvertTo-Json -Depth 6) -Encoding UTF8
+                Assert-Throws { Invoke-Facts } $refusal "A root-level compatibility file bypassed the scripts path for a $label."
+                Remove-Item -LiteralPath $catalogFixtureWrongPath -Force
+                Set-Content -LiteralPath $catalogFixtureMetadata -Value ($metadata | ConvertTo-Json -Depth 6) -Encoding UTF8
+                Assert-Throws { Invoke-Facts } "*no exact migration note in Unreleased*" `
+                    "A recorded $label passed with no CHANGELOG note."
+                Set-FactsFile 'CHANGELOG.md' { param($text) $text -replace '(?m)^## Unreleased\s*$', ("## Unreleased`n`n- " + $note) }
+                $global:LASTEXITCODE = 0
+                try { Invoke-Facts } catch { throw "The facts check refused a recorded and documented $label`: $($_.Exception.Message)" }
+                Assert-True ($LASTEXITCODE -eq 0 -or $null -eq $LASTEXITCODE) "The facts check refused a recorded and documented $label."
+            } finally {
+                Restore-CatalogFixture
+                if (Test-Path -LiteralPath $catalogFixtureBundle) { Remove-Item -LiteralPath $catalogFixtureBundle -Force }
+            }
+        }
+        $factsCatalogUnavailable = "release-receipt-$catalogFixtureVersion.json"
+        Assert-Throws { Invoke-Facts } "*release-receipt-$catalogFixtureVersion.json*" 'Unavailable published history passed the actual facts gate.'
+        $factsCatalogUnavailable = $null
+    } finally {
+        $factsCatalogUnavailable = $null
+        Restore-CatalogFixture
+        Reset-FactsFile 'CHANGELOG.md'
+        if (Test-Path -LiteralPath $catalogFixtureBundle) { Remove-Item -LiteralPath $catalogFixtureBundle -Force }
+    }
 
     # The control. Everything below is this same tree with one fact moved, so a failure there is
     # the moved fact talking and not the fixture being wrong.
@@ -2294,6 +3170,27 @@ try {
     Assert-Throws { Invoke-Facts } '*README badge Manager floor*' 'A README badge showing an older Manager was accepted.'
     Reset-FactsFile 'README.md'
 
+    # CONTRIBUTING names the patcher and the floor too, and it described "the v0.8.0 bundle" two
+    # releases on with nothing reading it. A release named there, an older floor or another
+    # patcher is refused.
+    foreach ($case in @(
+            @{ Name = 'the bundle described by its release'; Pattern = '*describes the bundle by a release*'
+                Edit = { param($text) $text -replace '(?m)^The bundle uses Morphe patcher', 'The v0.8.0 bundle uses Morphe patcher' } },
+            @{ Name = 'an older Manager floor'; Pattern = '*Morphe Manager 1.20.0 or newer*'
+                Edit = { param($text) $text -replace ('Morphe Manager ' + [regex]::Escape($fixtureFloor) + ' or newer'), 'Morphe Manager 1.20.0 or newer' } },
+            @{ Name = 'another patcher'; Pattern = '*CONTRIBUTING patcher version*'
+                Edit = { param($text) $text -replace 'Morphe patcher \d+(?:\.\d+)+', 'Morphe patcher 1.0.0' } })) {
+        $unedited = Get-Content -LiteralPath (Join-Path $factsRoot 'CONTRIBUTING.md') -Raw
+        Set-FactsFile 'CONTRIBUTING.md' $case.Edit
+        try {
+            Assert-True ((Get-Content -LiteralPath (Join-Path $factsRoot 'CONTRIBUTING.md') -Raw) -cne $unedited) `
+                "The CONTRIBUTING case '$($case.Name)' changed nothing, so it proves nothing."
+            Assert-Throws { Invoke-Facts } $case.Pattern "A CONTRIBUTING.md with $($case.Name) was accepted."
+        } finally {
+            Reset-FactsFile 'CONTRIBUTING.md'
+        }
+    }
+
     # And each copy has to be there. The alt text and install step cases above name a stale floor,
     # which the stale-floor check refuses before the presence checks run, so neither presence check
     # was ever reached. An alt text with no version, or a step reworded past the stale-floor
@@ -2484,6 +3381,8 @@ try {
     Assert-True ($LASTEXITCODE -eq 0 -or $null -eq $LASTEXITCODE) `
         'The release facts check refused the fixture after every change was put back.'
 } finally {
+    if ($factsPreviousWebRequest) { Set-Item Function:\Invoke-WebRequest -Value $factsPreviousWebRequest.ScriptBlock }
+    else { Remove-Item Function:\Invoke-WebRequest -ErrorAction SilentlyContinue }
     Remove-Item -LiteralPath $factsRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
@@ -2561,7 +3460,7 @@ try {
     }
 
     # The control: a file no gate reads runs no gate, so a marker below is the routing talking.
-    Invoke-Hook -Paths @('CONTRIBUTING.md')
+    Invoke-Hook -Paths @('LICENSE')
     Assert-True (-not (Test-Path -LiteralPath $factsMarker)) `
         'The release check ran for a push that changed nothing it reads.'
     Assert-True (-not (Test-Path -LiteralPath $toolingMarker)) `
@@ -2631,6 +3530,12 @@ try {
     Assert-True (Test-Path -LiteralPath $contractsMarker) `
         'A push that changed the manifest delta allowlist skipped the script contract tests.'
 
+    Invoke-Hook -Paths @('scripts/patch-catalog-compatibility.json')
+    Assert-True (Test-Path -LiteralPath $factsMarker) `
+        'A push changing only scripts/patch-catalog-compatibility.json skipped the release facts gate.'
+    Assert-True ((Get-Content -LiteralPath $factsMarker -Raw) -like 'lag=True*') `
+        'A compatibility-only push took the strict published-index path.'
+
     # Any script change runs the contract tests, and a gate that finds them gone stops the push
     # instead of noting it and carrying on, which is how this suite was missing for Hushfacebook's
     # first commits.
@@ -2669,8 +3574,9 @@ try {
         'scripts/test-injected-register-device.ps1' = @('injected-register-device.ps1', 'script-wiring.ps1',
             'test-injected-register-device.ps1', 'verify-injected-registers.ps1')
         'scripts/test-fingerprint-candidates.ps1' = @('FingerprintCandidates.java', 'FingerprintFixture.java',
-            'fingerprint-calibration.txt', 'fingerprint-candidates.ps1', 'fingerprint-signature.schema.json',
-            'test-fingerprint-candidates.ps1')
+            'fingerprint-calibration.txt', 'fingerprint-calibration-582-arm64.txt', 'fingerprint-calibration-582-armv7.txt',
+            'fingerprint-candidates.ps1', 'fingerprint-history.ps1', 'fingerprint-history.txt',
+            'fingerprint-signature.schema.json', 'test-fingerprint-candidates.ps1')
         'scripts/test-facebook-sources.ps1' = @('audit-facebook-sources.ps1', 'facebook-sources.ps1', 'patch-target.ps1',
             'test-facebook-sources.ps1')
         'scripts/test-release-text.ps1' = @('release/release.ps1', 'test-release-text.ps1')
@@ -2746,6 +3652,10 @@ try {
     Invoke-Hook -Paths @('.github/ISSUE_TEMPLATE/bug_report.yml')
     Assert-True (Test-Path -LiteralPath $factsMarker) `
         'A push that changed only the bug report form ran no release check.'
+
+    Invoke-Hook -Paths @('CONTRIBUTING.md')
+    Assert-True (Test-Path -LiteralPath $factsMarker) `
+        'A push that changed only CONTRIBUTING.md ran no release check, which holds its patcher and Manager floor.'
 
     Invoke-Hook -Paths @('patches-bundle.json')
     Assert-True (Test-Path -LiteralPath $factsMarker) 'An index change ran no release check.'
@@ -2949,8 +3859,9 @@ try {
     & git -C $hookRoot add extensions/facebook/src/main/java/FirstCommit.java
     & git -C $hookRoot commit --quiet -m 'code first'
     $firstCommit = (& git -C $hookRoot rev-parse HEAD).Trim()
-    Set-Content -LiteralPath (Join-Path $hookRoot 'CONTRIBUTING.md') -Encoding UTF8 -Value 'tip only'
-    & git -C $hookRoot add CONTRIBUTING.md
+    New-Item -ItemType Directory -Path (Join-Path $hookRoot 'docs') -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $hookRoot 'docs/guide.md') -Encoding UTF8 -Value 'tip only'
+    & git -C $hookRoot add docs/guide.md
     & git -C $hookRoot commit --quiet -m 'docs tip'
     $newBranchHead = (& git -C $hookRoot rev-parse HEAD).Trim()
     # A stale local remote-tracking ref that already points at the code commit must not subtract
@@ -3023,20 +3934,20 @@ try {
     $phoneSerial = 'R5' + 'C' + 'ZZZZ9999'
     $phoneDoc = Join-Path $hookRoot 'docs/phone.md'
     New-Item -ItemType Directory -Path (Split-Path -Parent $phoneDoc) -Force | Out-Null
-    Set-Content -LiteralPath (Join-Path $hookRoot 'CONTRIBUTING.md') -Encoding UTF8 -Value "Fixtures live in ~/$notesFolder/fixtures."
+    Set-Content -LiteralPath (Join-Path $hookRoot 'docs/guide.md') -Encoding UTF8 -Value "Fixtures live in ~/$notesFolder/fixtures."
     Set-Content -LiteralPath $phoneDoc -Encoding UTF8 -Value "adb -s $phoneSerial install app.apk"
     Set-Content -LiteralPath (Join-Path $hookRoot '.gitignore') -Encoding UTF8 -Value "$notesFolder/"
-    & git -C $hookRoot add CONTRIBUTING.md docs/phone.md .gitignore
+    & git -C $hookRoot add docs/guide.md docs/phone.md .gitignore
     & git -C $hookRoot commit --quiet -m 'names the machine'
     $namingCommit = (& git -C $hookRoot rev-parse HEAD).Trim()
     Assert-Throws { & $prePushScript -Root $hookRoot -PushedRefs "refs/heads/main $namingCommit refs/heads/main $newBranchHead" 6> $null } `
-        "*$namingCommit*CONTRIBUTING.md*docs/phone.md*" 'A push of docs naming the machine and a phone went through.'
+        "*$namingCommit*docs/guide.md*docs/phone.md*" 'A push of docs naming the machine and a phone went through.'
     Assert-Throws { & $prePushScript -Root $hookRoot -ChangedPaths @('docs/phone.md') 6> $null } `
-        '*the working tree*CONTRIBUTING.md*docs/phone.md*' 'A run by hand passed a working tree whose docs name the machine.'
+        '*the working tree*docs/guide.md*docs/phone.md*' 'A run by hand passed a working tree whose docs name the machine.'
     # The control: the same files naming nothing, .gitignore still naming the folder, go through.
-    Set-Content -LiteralPath (Join-Path $hookRoot 'CONTRIBUTING.md') -Encoding UTF8 -Value 'Fixtures live in HUSHFACEBOOK_FIXTURE_DIR.'
+    Set-Content -LiteralPath (Join-Path $hookRoot 'docs/guide.md') -Encoding UTF8 -Value 'Fixtures live in HUSHFACEBOOK_FIXTURE_DIR.'
     Set-Content -LiteralPath $phoneDoc -Encoding UTF8 -Value 'adb -s $env:HUSHFACEBOOK_DEVICE_SERIAL install app.apk'
-    & git -C $hookRoot add CONTRIBUTING.md docs/phone.md
+    & git -C $hookRoot add docs/guide.md docs/phone.md
     & git -C $hookRoot commit --quiet -m 'names nothing'
     $cleanCommit = (& git -C $hookRoot rev-parse HEAD).Trim()
     $global:LASTEXITCODE = 0
@@ -3049,9 +3960,9 @@ try {
     # commit: the naming commit is refused while the tree holds the clean text, and the clean
     # commit goes through while the tree names the machine.
     Assert-Throws { & $prePushScript -Root $hookRoot -PushedRefs "refs/heads/main $namingCommit refs/heads/main $newBranchHead" 6> $null } `
-        "*${namingCommit}:CONTRIBUTING.md:1:*${namingCommit}:docs/phone.md:1:*" `
+        "*${namingCommit}:docs/guide.md:1:*${namingCommit}:docs/phone.md:1:*" `
         'A push of a commit naming the machine went through because the working tree does not.'
-    Set-Content -LiteralPath (Join-Path $hookRoot 'CONTRIBUTING.md') -Encoding UTF8 -Value "Fixtures live in ~/$notesFolder/fixtures."
+    Set-Content -LiteralPath (Join-Path $hookRoot 'docs/guide.md') -Encoding UTF8 -Value "Fixtures live in ~/$notesFolder/fixtures."
     Set-Content -LiteralPath $phoneDoc -Encoding UTF8 -Value "adb -s $phoneSerial install app.apk"
     try {
         $global:LASTEXITCODE = 0
@@ -3060,7 +3971,7 @@ try {
     } catch {
         throw "A push of a clean commit was stopped by what the working tree names: $($_.Exception.Message)"
     } finally {
-        & git -C $hookRoot checkout --quiet -- CONTRIBUTING.md docs/phone.md
+        & git -C $hookRoot checkout --quiet -- docs/guide.md docs/phone.md
     }
 
     # Every commit the push publishes, not only each ref's tip: a serial one commit adds and the
@@ -3072,8 +3983,8 @@ try {
     & git -C $hookRoot commit --quiet -m 'names the phone again'
     $servedSerial = (& git -C $hookRoot rev-parse HEAD).Trim()
     & git -C $hookRoot rm --quiet docs/phone.md
-    Set-Content -LiteralPath (Join-Path $hookRoot 'CONTRIBUTING.md') -Encoding UTF8 -Value 'Fixtures live in HUSHFACEBOOK_FIXTURE_DIR, not in docs.'
-    & git -C $hookRoot add CONTRIBUTING.md
+    Set-Content -LiteralPath (Join-Path $hookRoot 'docs/guide.md') -Encoding UTF8 -Value 'Fixtures live in HUSHFACEBOOK_FIXTURE_DIR, not in docs.'
+    & git -C $hookRoot add docs/guide.md
     & git -C $hookRoot commit --quiet -m 'drops the doc'
     $droppedSerial = (& git -C $hookRoot rev-parse HEAD).Trim()
     $scanRemote = Join-Path $hookRoot 'scan-remote.git'
@@ -3237,7 +4148,7 @@ try {
                 '*GITHUB_ACTOR*' "A push that changed $pin did not reach the build gates."
         }
         # And the control: a file the build branch has no interest in must not reach it.
-        & $prePushScript -Root $hookRoot -ChangedPaths @('CONTRIBUTING.md') 6> $null
+        & $prePushScript -Root $hookRoot -ChangedPaths @('LICENSE') 6> $null
         Assert-True ($LASTEXITCODE -eq 0 -or $null -eq $LASTEXITCODE) `
             'A file no gate reads was routed into the build gates.'
     } finally {
@@ -3895,6 +4806,22 @@ try {
     $chosen = Resolve-D8 -Root $checkout
     Assert-True ($chosen -like '*37.0.0*d8.bat') "Resolve-D8 chose $chosen over 37.0.0; 9.0.0 sorts above it as text."
 
+    # Android Studio escapes the drive's colon as well as each backslash.
+    Set-Content -LiteralPath (Join-Path $checkout 'local.properties') -Encoding ASCII `
+        -Value ('sdk.dir=' + (($sdk -replace '\\', '\\') -replace ':', '\:'))
+    $chosen = Resolve-D8 -Root $checkout
+    Assert-True ($chosen -like '*37.0.0*d8.bat') "Resolve-D8 chose $chosen from Android Studio's escaped sdk.dir."
+    # Resolve-Aapt2 reads the same line, and takes the newest build-tools whatever it carries.
+    Set-Content -LiteralPath (Join-Path (Join-Path (Join-Path $sdk 'build-tools') '38.0.0') 'aapt2.exe') -Value '' -Encoding ASCII
+    $keptAapt2 = $env:HUSHFACEBOOK_AAPT2
+    try {
+        $env:HUSHFACEBOOK_AAPT2 = $null
+        $chosen = Resolve-Aapt2 -Root $checkout
+        Assert-True ($chosen -like '*38.0.0*aapt2.exe') "Resolve-Aapt2 chose $chosen from Android Studio's escaped sdk.dir."
+    } finally {
+        $env:HUSHFACEBOOK_AAPT2 = $keptAapt2
+    }
+
     $explicit = Join-Path (Join-Path (Join-Path $sdk 'build-tools') '9.0.0') 'd8.bat'
     Assert-True ((Resolve-D8 -Explicit $explicit -Root $checkout) -eq $explicit) `
         'An explicit d8 path was not honoured.'
@@ -4295,7 +5222,7 @@ try {
     # release is held to the census, and .gitignore has to let the ledger be committed.
     $releaseFiles = @('patches-list.json', 'patches-bundle.json', 'gradle.properties', 'README.md', 'CHANGELOG.md',
         'gradle/libs.versions.toml', 'gradle/tooling-scopes.txt', '.github/ISSUE_TEMPLATE/bug_report.yml', '.gitignore',
-        'sources/facebook-sources.json', 'NOTICE', 'provenance.json')
+        'sources/facebook-sources.json', 'NOTICE', 'provenance.json', 'CONTRIBUTING.md')
     foreach ($relative in $releaseFiles) {
         $destination = Join-Path $releaseRepo $relative
         New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
@@ -4446,6 +5373,37 @@ try {
         if ($Schema -lt 3) { $document.Remove('tooling') }
         Set-Content -LiteralPath $releaseReceipt -Encoding UTF8 -Value ($document | ConvertTo-Json -Depth 12)
     }
+    # Every release check also holds the patch names and defaults to the published release's
+    # catalog. That release is this fixture's own commit, published through a bare repository that
+    # answers for origin, with its hosted receipt and checksum list frozen here before the cases
+    # below edit the working receipt. The receipt's applied verdict is the opposite of the default.
+    $releaseCatalogPreviousWeb = Get-Item Function:\Invoke-WebRequest -ErrorAction SilentlyContinue
+    $releaseCatalogRemote = (Join-Path $releaseRoot 'published.git').Replace('\', '/')
+    Invoke-FixtureGit -Root $releaseRoot -Arguments @('init', '--bare', '--quiet', $releaseCatalogRemote) | Out-Null
+    $releaseCatalogUrl = [Uri]($releaseIndexText | ConvertFrom-Json).download_url
+    $releaseCatalogRepository = 'https://github.com/' + ((@($releaseCatalogUrl.AbsolutePath.Trim('/') -split '/') | Select-Object -First 2) -join '/') + '.git'
+    Invoke-FixtureGit -Root $releaseRepo -Arguments @('config', "url.$releaseCatalogRemote.insteadOf", $releaseCatalogRepository) | Out-Null
+    Invoke-FixtureGit -Root $releaseRepo -Arguments @('remote', 'add', 'origin', $releaseCatalogRepository) | Out-Null
+    Invoke-FixtureGit -Root $releaseRepo -Arguments @('push', '--quiet', $releaseCatalogRemote, "refs/tags/v$indexVersionHere") | Out-Null
+    $releaseCatalogReceiptPath = Join-Path $releaseRoot "catalog-release-receipt-$indexVersionHere.json"
+    [IO.File]::WriteAllText($releaseCatalogReceiptPath, (@{
+        release = @{ version = $indexVersionHere; commit = $releaseCommit }
+        bundle = @{ file = "patches-$indexVersionHere.mpp"; sha256 = ('d' * 64) }
+        patches = @(@{ name = $releaseNames[0]; applied = -not $releaseCatalog.patches[0].use })
+    } | ConvertTo-Json -Depth 5), (New-Object Text.UTF8Encoding($false)))
+    function Invoke-WebRequest {
+        param([Uri]$Uri, $Method, $OutFile, $MaximumRedirection, $TimeoutSec, [switch]$PassThru, [switch]$UseBasicParsing)
+        if (-not $UseBasicParsing) { throw "Invoke-WebRequest $Uri without -UseBasicParsing" }
+        $receiptUri = $releaseCatalogUrl.AbsoluteUri -replace '[^/]+$', "release-receipt-$indexVersionHere.json"
+        $checksumUri = $releaseCatalogUrl.AbsoluteUri -replace '[^/]+$', 'SHA256SUMS.txt'
+        $bytes = if ($Uri.AbsoluteUri -ceq $receiptUri) { [IO.File]::ReadAllBytes($releaseCatalogReceiptPath) }
+        elseif ($Uri.AbsoluteUri -ceq $checksumUri) {
+            [Text.Encoding]::UTF8.GetBytes("$(Get-Sha256Hex $releaseCatalogReceiptPath)  release-receipt-$indexVersionHere.json`n$('d' * 64)  patches-$indexVersionHere.mpp`n")
+        } else { throw "No local release catalog response for $Uri" }
+        if ($OutFile) { [IO.File]::WriteAllBytes($OutFile, $bytes) }
+        return [pscustomobject]@{ StatusCode = 200; Content = $bytes }
+    }
+
     # The run the hook makes for a push that carries a receipt: lenient, since the index may lag
     # the source, and with no network. What it says is kept, to tell a receipt it compared from
     # one it never found.
@@ -4546,6 +5504,9 @@ try {
         'shift',
         'goto next',
         ':take',
+        'rem Each -O with the -e before it, the patch the CLI gives that option to.',
+        'if "!PREV!"=="-O" >>"!HERE!options.log" echo !ENABLED! !V!',
+        'if "!PREV!"=="-e" set "ENABLED=!V!"',
         'if "!PREV!"=="-o" set "OUT=!V!"',
         'if "!PREV!"=="-r" set "RESULT=!V!"',
         'if "!V!"=="-f" set "FORCED=1"',
@@ -4593,6 +5554,8 @@ try {
     [System.IO.File]::WriteAllText($stubAapt2, ((@(
         '@echo off',
         'setlocal EnableExtensions DisableDelayedExpansion',
+        'rem Taken before the loop, since shift moves %0 along with the arguments.',
+        'set "HERE=%~dp0"',
         'set "APK="',
         ':next',
         'if "%~1"=="" goto run',
@@ -4600,8 +5563,29 @@ try {
         'shift',
         'goto next',
         ':run',
+        '>>"%HERE%aapt2.log" echo %APK%',
+        'rem A kept run''s copy is tried the way anyone running as the same user could, and the try is logged.',
+        'if "%APK:\kept\=%"=="%APK%" goto dump',
+        '(>>"%APK%" echo swapped) 2>nul && (>>"%HERE%aapt2.log" echo swap=went-through) || (>>"%HERE%aapt2.log" echo swap=refused)',
+        ':dump',
         'if exist "%APK%.xmltree" (type "%APK%.xmltree") else (type "%APK%")',
         'exit /b %errorlevel%') -join "`r`n") + "`r`n"), [System.Text.Encoding]::ASCII)
+    # The 16 KB check runs the zipalign beside aapt2. Aligned unless a case below says otherwise.
+    [System.IO.File]::WriteAllText((Join-Path $tools 'zipalign.cmd'), ((@(
+        '@echo off',
+        'if "%HUSHFACEBOOK_CONTRACT_ZIPALIGN%"=="old" goto old',
+        'echo Verifying alignment of patched.apk (4)...',
+        'if "%HUSHFACEBOOK_CONTRACT_ZIPALIGN%"=="bad" goto bad',
+        'echo   49152 lib/arm64-v8a/libstub.so (OK)',
+        'echo Verification succesful',
+        'exit /b 0',
+        ':bad',
+        'echo   49152 lib/arm64-v8a/libstub.so (BAD - 4096)',
+        'echo Verification FAILED',
+        'exit /b 1',
+        ':old',
+        'echo Unknown option -P',
+        'exit /b 1') -join "`r`n") + "`r`n"), [System.Text.Encoding]::ASCII)
     Set-Content -LiteralPath $stubJar -Value 'not a jar' -Encoding ASCII
     New-TestBundleArchive -Path (Join-Path $tools 'patched.apk') -Entries ([ordered]@{
         'AndroidManifest.xml' = 'binary manifest'; 'classes.dex' = "dex`n035" })
@@ -4778,6 +5762,34 @@ try {
     $builtProved = "the receipt proves $($releaseNames.Count) patches on $($builtVersions -join ', ') " +
         "from commit $($releaseCommit.Substring(0, 8))"
     Assert-True ($said -like "*$builtProved*") "The release check did not accept the receipt the builder wrote: $said"
+    # And the publish stage's check, on the release staged as the bundle stage stages it and held to
+    # what the release commit carries. The fixture commits no allowlist, so the checked-in one stands
+    # in. This bundle carries no build identity, which the builder still takes from a bundle built
+    # before bundles carried one, so the folder holds together and is refused for that alone. The
+    # identity cases further down stage a bundle that carries one, and the check takes it.
+    $stagedHere = Join-Path $releaseRoot 'staged'
+    function Save-StagedHere {
+        Remove-Item -LiteralPath $stagedHere -Recurse -Force -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Path $stagedHere -Force | Out-Null
+        Copy-Item -LiteralPath $releaseBundle, $releaseSbom, $releaseTooling, $releaseReceipt -Destination $stagedHere
+        $lines = @(Get-ChildItem -LiteralPath $stagedHere -File | Sort-Object Name |
+            ForEach-Object { '{0}  {1}' -f (Get-Sha256Hex -Path $_.FullName).ToLowerInvariant(), $_.Name })
+        [IO.File]::WriteAllText((Join-Path $stagedHere 'SHA256SUMS.txt'), (($lines -join "`n") + "`n"))
+    }
+    function Test-StagedHere([string]$Commit = $releaseCommit) {
+        Test-StagedReleaseAt -Root $releaseRepo -Folder $stagedHere -Version $releaseVersionHere -Commit $Commit `
+            -AllowlistPath (Join-Path $PSScriptRoot 'manifest-delta-allowlist.txt')
+    }
+    try {
+        Save-StagedHere
+        $stagedCheck = Test-StagedHere
+        Assert-True (-not $stagedCheck.Valid -and $stagedCheck.Reason -like '*carries no intact build identity*') `
+            "The publish stage took a staged bundle with no build identity: $($stagedCheck.Reason)"
+        $otherCommit = Test-StagedHere -Commit ('f' * 40)
+        Assert-True (-not $otherCommit.Valid) 'The publish stage held the staged release to a commit the fixture lacks.'
+    } finally {
+        Remove-Item -LiteralPath $stagedHere -Recurse -Force -ErrorAction SilentlyContinue
+    }
 
     # A merge that fails, and one that exits 0 and writes nothing, stop the run before the CLI
     # patches anything. base.apk is not what the CLI patches, so there's no receipt to fall back to.
@@ -4901,7 +5913,10 @@ try {
         $stamp = Get-Content -LiteralPath (Join-Path $keptDir 'stamp.json') -Raw | ConvertFrom-Json
         Assert-True ($stamp.bundleSha256 -ceq (Get-Sha256Hex -Path $releaseBundle) -and $stamp.apkSha256 -ceq (Get-Sha256Hex -Path $fixture) -and
             $stamp.patchListSha256 -ceq $listHash -and $stamp.desktopJarSha256 -ceq (Get-Sha256Hex -Path $stubJar) -and
-            $stamp.versionName -ceq $build -and $stamp.forced -eq $forcedHere -and $stamp.merged -eq $true) `
+            $stamp.versionName -ceq $build -and $stamp.forced -eq $forcedHere -and $stamp.merged -eq $true -and $stamp.schema -eq 2 -and
+            $stamp.patchedSha256 -ceq (Get-Sha256Hex -Path (Join-Path $keptDir 'patched.apk')) -and
+            $stamp.resultSha256 -ceq (Get-Sha256Hex -Path (Join-Path $keptDir 'result.json')) -and
+            $stamp.mergedSha256 -ceq (Get-Sha256Hex -Path (Join-Path $keptDir 'stock-merged.apk'))) `
             "The kept run of $build is stamped with something else than what it patched: $($stamp | ConvertTo-Json -Compress)"
         Copy-Item -LiteralPath "$fixture.patched.txt" -Destination (Join-Path $keptDir 'patched.apk.xmltree')
     }
@@ -4911,24 +5926,44 @@ try {
     }
     $keptBefore = Get-KeptHashes
     $null = @(Read-QueueLog)
+    $aapt2Log = Join-Path $tools 'aapt2.log'
+    Remove-Item -LiteralPath $aapt2Log -Force -ErrorAction SilentlyContinue
     Invoke-ReceiptBuilder -Fixtures $allFixtures -AppliedDir $appliedRoot
     Assert-True (-not (Test-Path -LiteralPath $javaLog) -and -not (Test-Path -LiteralPath $mergeLog)) `
         "The receipt patched or merged a fixture whose kept run matched: $(@(Get-Content -LiteralPath $javaLog -ErrorAction SilentlyContinue) -join '; ')"
     Assert-True (@([regex]::Matches($builderSaid, "reading the gate's run of")).Count -eq $builtBuilds.Count) `
         "The receipt did not say it read each kept run: $builderSaid"
+    # What it read was its own copy, hashed there. Reading the kept folder after hashing it left a
+    # window for a file to change between the hash and the read.
+    $manifestReads = @(Get-Content -LiteralPath $aapt2Log | ForEach-Object { "$_".Trim() })
+    Assert-True (@($manifestReads | Where-Object { $_.StartsWith($appliedRoot, [StringComparison]::OrdinalIgnoreCase) }).Count -eq 0 -and
+        @($manifestReads | Where-Object { $_ -like (Join-Path $releaseRoot 'work\receipt-*\kept\patched.apk') }).Count -eq $builtBuilds.Count) `
+        "The receipt read a kept run in place rather than its own copy: $($manifestReads -join '; ')"
+    # And that copy is held from its hash until its checks are done, so nothing can change it between.
+    $swaps = @($manifestReads | Where-Object { $_ -like 'swap=*' })
+    Assert-True ($swaps.Count -ge $builtBuilds.Count -and @($swaps | Where-Object { $_ -ne 'swap=refused' }).Count -eq 0) `
+        "The receipt's copy of a kept run could be changed while its checks read it: $($swaps -join '; ')"
     Assert-True (((Get-Content -LiteralPath $releaseReceipt -Raw | ConvertFrom-Json).targets | ConvertTo-Json -Depth 12) -ceq $freshTargets) `
         'The receipt read from kept runs differs from the one fresh runs gave.'
     Assert-True ((Get-KeptHashes) -ceq $keptBefore) 'The receipt changed the kept runs it read.'
 
     # A kept run that doesn't match is patched again, that fixture alone: a stamp naming another
-    # bundle, one gone, and one that says a split bundle wasn't merged.
+    # bundle, one gone, one that says a split bundle wasn't merged, one from before stamps named
+    # the outputs, and one missing the hash of an output.
     $declaredFixture = $fixturePaths[$releaseTarget.PackageVersion]
     $declaredStamp = Join-Path $appliedRoot "$(Split-Path -Leaf $declaredFixture)/stamp.json"
     $stampText = [System.IO.File]::ReadAllText($declaredStamp)
+    function Get-StampWithout([string[]]$Fields) {
+        $older = $stampText | ConvertFrom-Json
+        foreach ($field in $Fields) { $older.PSObject.Properties.Remove($field) }
+        $older | ConvertTo-Json -Depth 4
+    }
     $staleStamps = @(
         @{ Name = 'another bundle'; Text = $stampText.Replace((Get-Sha256Hex -Path $releaseBundle), ('0' * 64)); Said = '*made with another bundle*' },
         @{ Name = 'no stamp'; Text = $null; Said = '*kept no run of*' },
-        @{ Name = 'no merge'; Text = ($stampText -replace '"merged":\s*true', '"merged": false'); Said = '*made with another bundle*' })
+        @{ Name = 'no merge'; Text = ($stampText -replace '"merged":\s*true', '"merged": false'); Said = '*made with another bundle*' },
+        @{ Name = 'an older stamp'; Text = (Get-StampWithout 'schema', 'patchedSha256', 'resultSha256', 'mergedSha256'); Said = '*older stamp*' },
+        @{ Name = 'no hash of the patched APK'; Text = (Get-StampWithout 'patchedSha256'); Said = '*no longer holds the patched.apk it checked*' })
     foreach ($stale in $staleStamps) {
         if ($null -eq $stale.Text) { Remove-Item -LiteralPath $declaredStamp -Force }
         else {
@@ -4945,8 +5980,30 @@ try {
         }
     }
 
-    # A run that fails leaves no stamp behind, and a keep folder holding anything else is left alone.
+    # An output changed after the gate checked it is patched again too, though the stamp still
+    # names the same bundle, APK, patch list and CLI. One byte more keeps a patched APK's manifest
+    # and the report readable, the way a changed dex payload would, and keeps the file's time.
     $declaredKept = Split-Path -Parent $declaredStamp
+    foreach ($output in @('patched.apk', 'result.json', 'stock-merged.apk')) {
+        $outputPath = Join-Path $declaredKept $output
+        $outputBytes = [System.IO.File]::ReadAllBytes($outputPath)
+        $outputTime = (Get-Item -LiteralPath $outputPath).LastWriteTimeUtc
+        [System.IO.File]::WriteAllBytes($outputPath, [byte[]]($outputBytes + [byte]10))
+        (Get-Item -LiteralPath $outputPath).LastWriteTimeUtc = $outputTime
+        try {
+            Invoke-ReceiptBuilder -Fixtures $allFixtures -AppliedDir $appliedRoot
+            Assert-True ((@(Get-Content -LiteralPath $javaLog -ErrorAction SilentlyContinue) -join "`n") -eq "patch $declaredFixture merged forced=0" -and
+                $builderSaid -like "*no longer holds the $output it checked*") `
+                "With its $output changed the receipt did not patch that fixture alone: $(@(Get-Content -LiteralPath $javaLog -ErrorAction SilentlyContinue) -join '; ')"
+        } finally {
+            [System.IO.File]::WriteAllBytes($outputPath, $outputBytes)
+        }
+    }
+    $null = @(Read-QueueLog)
+    Invoke-ReceiptBuilder -Fixtures $allFixtures -AppliedDir $appliedRoot
+    Assert-True (-not (Test-Path -LiteralPath $javaLog)) 'The receipt patched a fixture again once its kept outputs were put back.'
+
+    # A run that fails leaves no stamp behind, and a keep folder holding anything else is left alone.
     Remove-Item -LiteralPath (Join-Path $declaredKept 'patched.apk.xmltree') -Force
     Set-Content -LiteralPath (Join-Path $tools 'merge-fails.txt') -Value 'on' -Encoding ASCII
     try {
@@ -5117,17 +6174,69 @@ try {
         [System.IO.File]::WriteAllBytes($releaseReceipt, $builtReceiptBytes)
     }
 
+    # The 16 KB alignment check, through the zipalign stand-in beside aapt2: a stored library off a
+    # 16 KB boundary stops the receipt and is named, and a zipalign too old for -P, which names no
+    # entry, stops it with its own words rather than an empty list of misses.
+    foreach ($alignment in @(
+            @{ Mode = 'bad'; Pattern = '*not 16 KB aligned (zipalign exit 1)*libstub.so (BAD - 4096)*' },
+            @{ Mode = 'old'; Pattern = "*zipalign exited 1*without naming an entry*the 16 KB check didn't run*Unknown option*" })) {
+        $env:HUSHFACEBOOK_CONTRACT_ZIPALIGN = $alignment.Mode
+        try {
+            Assert-Throws { Invoke-ReceiptBuilder -Fixtures @($allFixtures | Select-Object -First 1) } $alignment.Pattern `
+                "build-release-receipt.ps1 went ahead past a zipalign that answered '$($alignment.Mode)'."
+        } finally {
+            Remove-Item Env:\HUSHFACEBOOK_CONTRACT_ZIPALIGN -ErrorAction SilentlyContinue
+            [System.IO.File]::WriteAllBytes($releaseReceipt, $builtReceiptBytes)
+        }
+    }
+
     # patch-for-device.ps1 on the same root and stand-ins. It held every run's report to the
     # newest declared build, so an older declared build (README: 577 works too) was patched and
     # then refused with "unexpected package or version". Each declared build is held to its own
     # version now, the default fixture is still the newest build, and an undeclared build is
     # refused before the CLI starts. No -Serial, so nothing goes near adb.
     $deviceOut = Join-Path $releaseRoot 'device'
-    function Invoke-DeviceBuild([string]$Apk, [string]$OutDir = $deviceOut, [string]$DesktopJar = $stubJar) {
+    # patch-for-device holds the bundle to the input digest it carries, and the receipt runs' bundle
+    # carries none, so each device run gets that bundle stamped with this tree's digest (or the one
+    # given) and the receipt runs get it back as it was. The receipt cases that need a release's
+    # identity pass the clean commit.
+    function Use-StampedBundle([scriptblock]$Run, [string]$InputSha256, [string]$Commit) {
+        if (-not $InputSha256) { $InputSha256 = Get-ProducerInputSha256 -Root $releaseRepo }
+        $source = if ($Commit) {
+            "Hushfacebook-Source-State: clean`nHushfacebook-Source-Commit: $Commit`nHushfacebook-Source-Tree: $('a' * 40)`n"
+        } else {
+            "Hushfacebook-Source-State: unknown`nHushfacebook-Source-Commit: unknown`nHushfacebook-Source-Tree: unknown`n"
+        }
+        $legacy = [IO.File]::ReadAllBytes($releaseBundle)
+        try {
+            $zip = [IO.Compression.ZipFile]::Open($releaseBundle, [IO.Compression.ZipArchiveMode]::Update)
+            try {
+                $manifest = $zip.GetEntry('META-INF/MANIFEST.MF')
+                $reader = [IO.StreamReader]::new($manifest.Open())
+                try { $text = $reader.ReadToEnd() } finally { $reader.Dispose() }
+                $manifest.Delete()
+                $writer = [IO.StreamWriter]::new($zip.CreateEntry('META-INF/MANIFEST.MF').Open())
+                try {
+                    $writer.Write($text.TrimEnd("`n") + "`n$source" + "Hushfacebook-Input-SHA256: $InputSha256`n`n")
+                } finally { $writer.Dispose() }
+            } finally { $zip.Dispose() }
+            $zip = [IO.Compression.ZipFile]::OpenRead($releaseBundle)
+            try { $payload = Get-BundlePayloadSha256 -Archive $zip } finally { $zip.Dispose() }
+            $zip = [IO.Compression.ZipFile]::Open($releaseBundle, [IO.Compression.ZipArchiveMode]::Update)
+            try {
+                $writer = [IO.StreamWriter]::new($zip.CreateEntry('META-INF/hushfacebook-build.identity').Open())
+                try { $writer.Write("hushfacebook-bundle-1`n$payload`n") } finally { $writer.Dispose() }
+            } finally { $zip.Dispose() }
+            & $Run
+        } finally { [IO.File]::WriteAllBytes($releaseBundle, $legacy) }
+    }
+    function Invoke-DeviceBuild([string]$Apk, [string]$OutDir = $deviceOut, [string]$DesktopJar = $stubJar,
+        [string]$InputSha256, [switch]$AllowStaleBundle) {
         Remove-Item -LiteralPath $javaLog -Force -ErrorAction SilentlyContinue
         $arguments = @{ Root = $releaseRepo; DesktopJar = $DesktopJar; Java = $stubJava; Aapt2 = $stubAapt2; OutDir = $OutDir }
         if ($Apk) { $arguments['Apk'] = $Apk }
-        & (Join-Path $PSScriptRoot 'patch-for-device.ps1') @arguments 6> $null
+        if ($AllowStaleBundle) { $arguments['AllowStaleBundle'] = $true }
+        Use-StampedBundle -InputSha256 $InputSha256 -Run { & (Join-Path $PSScriptRoot 'patch-for-device.ps1') @arguments 6> $null }
     }
     $deviceApk = Join-Path $deviceOut "hushfacebook-$releaseVersionHere-signed.apk"
     foreach ($build in $releaseTarget.PackageVersions) {
@@ -5163,6 +6272,160 @@ try {
     Assert-Throws { Invoke-DeviceBuild -Apk $variantApkm } "*$variantBuild, which the bundle does not declare, at version code $variantCode*" `
         'patch-for-device.ps1 took another build of a declared version.'
     Assert-True (-not (Test-Path -LiteralPath $javaLog)) 'patch-for-device.ps1 started the CLI on another build of a declared version.'
+    # -PatchOptions only takes key=value options for a patch this build has, checked before the CLI starts.
+    $firstPatchHere = @((Get-Content -LiteralPath (Join-Path $releaseRepo 'patches-list.json') -Raw | ConvertFrom-Json).patches)[0].name
+    foreach ($badOptions in @(
+            @{ Options = @{ 'No such patch' = @('appName=HushBook') }; Pattern = "*No patch named 'No such patch' in this build to give options to*" },
+            @{ Options = @{ $firstPatchHere = @('no equals sign') }; Pattern = "*The option 'no equals sign' for*isn't key=value*" })) {
+        Remove-Item -LiteralPath $javaLog -Force -ErrorAction SilentlyContinue
+        Assert-Throws {
+            Use-StampedBundle {
+                & (Join-Path $PSScriptRoot 'patch-for-device.ps1') -Root $releaseRepo -DesktopJar $stubJar -Java $stubJava `
+                    -Aapt2 $stubAapt2 -OutDir $deviceOut -Apk $fixturePaths[$releaseTarget.PackageVersion] `
+                    -PatchOptions $badOptions.Options 6> $null
+            }
+        } $badOptions.Pattern 'patch-for-device.ps1 took patch options it should have refused.'
+        Assert-True (-not (Test-Path -LiteralPath $javaLog)) 'patch-for-device.ps1 started the CLI with patch options it should have refused.'
+    }
+    # An option goes after its own patch's -e. The CLI gives an -O to the -e before it, so one put
+    # in front landed on the patch listed before, and App name never reached Hushfacebook settings.
+    $optionedHere = @((Get-Content -LiteralPath (Join-Path $releaseRepo 'patches-list.json') -Raw | ConvertFrom-Json).patches)[1].name
+    $optionsLog = Join-Path $tools 'options.log'
+    Remove-Item -LiteralPath $javaLog, $optionsLog -Force -ErrorAction SilentlyContinue
+    Use-StampedBundle {
+        & (Join-Path $PSScriptRoot 'patch-for-device.ps1') -Root $releaseRepo -DesktopJar $stubJar -Java $stubJava `
+            -Aapt2 $stubAapt2 -OutDir $deviceOut -Apk $fixturePaths[$releaseTarget.PackageVersion] `
+            -PatchOptions @{ $optionedHere = @('appName=HushBook') } 6> $null
+    }
+    $null = @(Read-QueueLog)
+    $optionsSeen =@(Get-Content -LiteralPath $optionsLog -ErrorAction SilentlyContinue) -join '; '
+    Assert-True ($optionsSeen -eq "$optionedHere appName=HushBook") `
+        "patch-for-device.ps1 gave the option to the wrong patch: '$optionsSeen'"
+
+    # A source edited behind an older file time, which the file-time check let through: refused
+    # before the CLI starts, and -AllowStaleBundle patches anyway and says so.
+    $builtInputs = Get-ProducerInputSha256 -Root $releaseRepo
+    $catalogBytes = [IO.File]::ReadAllBytes($touchedCatalog)
+    $catalogTime = [IO.File]::GetLastWriteTimeUtc($touchedCatalog)
+    try {
+        [IO.File]::AppendAllText($touchedCatalog, "`n# edited`n")
+        [IO.File]::SetLastWriteTimeUtc($touchedCatalog, $catalogTime.AddDays(-1))
+        Assert-Throws { Invoke-DeviceBuild -Apk $fixturePaths[$releaseTarget.PackageVersion] -InputSha256 $builtInputs } `
+            "*doesn't match this checkout: it was built from other sources (input digest $builtInputs*" `
+            'patch-for-device.ps1 patched with a bundle built before a backdated edit.'
+        Assert-True (-not (Test-Path -LiteralPath $javaLog)) 'patch-for-device.ps1 started the CLI with a stale bundle.'
+        $warned = @(Invoke-DeviceBuild -Apk $fixturePaths[$releaseTarget.PackageVersion] -InputSha256 $builtInputs `
+            -AllowStaleBundle 3>&1 | ForEach-Object { "$_" }) -join "`n"
+        Assert-True (@(Get-Content -LiteralPath $javaLog -ErrorAction SilentlyContinue).Count -eq 1 -and
+            $warned -like '*-AllowStaleBundle: patching with*built from other sources*' -and
+            $warned -like '*built with -AllowStaleBundle from a bundle that doesn''t match this checkout*') `
+            "patch-for-device.ps1 -AllowStaleBundle didn't patch, or didn't say the bundle was stale: $warned"
+        $null = @(Read-QueueLog)
+    } finally {
+        [IO.File]::WriteAllBytes($touchedCatalog, $catalogBytes)
+        [IO.File]::SetLastWriteTimeUtc($touchedCatalog, $catalogTime)
+    }
+
+    # The receipt builder holds a bundle that carries its input digest to the checkout the same way.
+    # Its clean-tree check already sees an edit still there, so the case is a bundle built while the
+    # tree held an edit, or an input, that's gone again by the receipt run: the tree is clean, the
+    # stamp right and no file newer than the bundle. Both are refused before any fixture is patched,
+    # and the same tree, stamped as the clean release commit, writes its receipt.
+    $removedInput = Join-Path $releaseRepo 'gradle/wrapper/removed-input.txt'
+    New-Item -ItemType Directory -Path (Split-Path -Parent $removedInput) -Force | Out-Null
+    [IO.File]::WriteAllText($removedInput, 'x', [Text.Encoding]::ASCII)
+    $withRemoved = Get-ProducerInputSha256 -Root $releaseRepo
+    Remove-Item -LiteralPath $removedInput
+    [IO.File]::AppendAllText($touchedCatalog, "`n# edited`n")
+    $withEdit = Get-ProducerInputSha256 -Root $releaseRepo
+    [IO.File]::WriteAllBytes($touchedCatalog, $catalogBytes)
+    [IO.File]::SetLastWriteTimeUtc($touchedCatalog, $catalogTime)
+    $builtInputs = Get-ProducerInputSha256 -Root $releaseRepo
+    $releaseSbomBytes = [IO.File]::ReadAllBytes($releaseSbom)
+    $releaseToolingBytes = [IO.File]::ReadAllBytes($releaseTooling)
+    $releaseReceiptBytes = [IO.File]::ReadAllBytes($releaseReceipt)
+    try {
+        foreach ($since in @(@{ Name = 'an input deleted since'; Inputs = $withRemoved }, @{ Name = 'an edit put back since'; Inputs = $withEdit })) {
+            Use-StampedBundle -InputSha256 $since.Inputs -Commit $releaseCommit -Run {
+                Assert-Throws { Invoke-ReceiptBuilder -Fixtures $allFixtures } `
+                    "*doesn't match this checkout: it was built from other sources*Nothing was patched*" `
+                    "build-release-receipt.ps1 went ahead with a bundle built with $($since.Name)."
+                Assert-True (-not (Test-Path -LiteralPath $javaLog)) "build-release-receipt.ps1 patched with a bundle built with $($since.Name)."
+            }
+        }
+        Use-StampedBundle -InputSha256 $builtInputs -Commit $releaseCommit -Run {
+            New-TestSbom -Path $releaseSbom -Bundle $releaseBundle
+            New-TestTooling -Path $releaseTooling -Bundle $releaseBundle -Commit $releaseCommit -ScopeText $releaseScopeText
+            try {
+                Invoke-ReceiptBuilder -Fixtures $allFixtures
+            } catch {
+                throw "build-release-receipt.ps1 refused a bundle stamped with this tree's inputs: $($_.Exception.Message)"
+            }
+
+            # The publish stage's check takes that release staged, its bundle naming the clean commit
+            # and this tree's inputs. That's the control for the cases after it.
+            $exclude = Join-Path $releaseRepo '.git/info/exclude'
+            $excludeBefore = if (Test-Path -LiteralPath $exclude -PathType Leaf) { [IO.File]::ReadAllText($exclude) } else { $null }
+            $ignoredInput = Join-Path $releaseRepo 'gradle/ignored-input.txt'
+            try {
+                Save-StagedHere
+                $answer = Test-StagedHere
+                Assert-True $answer.Valid "The publish stage refused a staged bundle built from its clean commit and this tree: $($answer.Reason)"
+                # An input git doesn't see, as an ignored file in an input folder is: HEAD is the commit
+                # and the tree clean, and the bundle still isn't a build of what the checkout holds.
+                New-Item -ItemType Directory -Path (Split-Path -Parent $exclude) -Force | Out-Null
+                [IO.File]::AppendAllText($exclude, "`n/gradle/ignored-input.txt`n")
+                [IO.File]::WriteAllText($ignoredInput, 'x', [Text.Encoding]::ASCII)
+                Assert-True (@(Invoke-FixtureGit -Root $releaseRepo -Arguments @('status', '--porcelain')).Count -eq 0) `
+                    'git saw the input the case hides from it, so the case proves nothing.'
+                $answer = Test-StagedHere
+                Assert-True (-not $answer.Valid -and $answer.Reason -like "*isn't a build of commit*built from other sources*") `
+                    "The publish stage took a bundle the checkout's inputs don't match: $($answer.Reason)"
+                # Seen by git, the same file stops the check before the inputs are compared.
+                if ($null -eq $excludeBefore) { Remove-Item -LiteralPath $exclude -Force } else { [IO.File]::WriteAllText($exclude, $excludeBefore) }
+                $answer = Test-StagedHere
+                Assert-True (-not $answer.Valid -and $answer.Reason -like "*isn't commit * with nothing changed*") `
+                    "The publish stage held a bundle to a checkout with changes in it: $($answer.Reason)"
+            } finally {
+                Remove-Item -LiteralPath $ignoredInput -Force -ErrorAction SilentlyContinue
+                if ($null -eq $excludeBefore) { Remove-Item -LiteralPath $exclude -Force -ErrorAction SilentlyContinue }
+                else { [IO.File]::WriteAllText($exclude, $excludeBefore) }
+                Remove-Item -LiteralPath $stagedHere -Recurse -Force -ErrorAction SilentlyContinue
+            }
+
+            # The same bundle with its identity taken out, and the SBOM, tooling report, receipt and
+            # checksums made again to match, as whoever can write every staged file could. The folder
+            # holds together and passed as a bundle from before identities. It's refused before the tag.
+            $zip = [IO.Compression.ZipFile]::Open($releaseBundle, [IO.Compression.ZipArchiveMode]::Update)
+            try {
+                $zip.GetEntry('META-INF/hushfacebook-build.identity').Delete()
+                $manifest = $zip.GetEntry('META-INF/MANIFEST.MF')
+                $reader = [IO.StreamReader]::new($manifest.Open())
+                try { $text = $reader.ReadToEnd() } finally { $reader.Dispose() }
+                $manifest.Delete()
+                $writer = [IO.StreamWriter]::new($zip.CreateEntry('META-INF/MANIFEST.MF').Open())
+                try { $writer.Write((@($text -split "`n" | Where-Object { $_ -notlike 'Hushfacebook-*' }) -join "`n")) } finally { $writer.Dispose() }
+            } finally { $zip.Dispose() }
+            Assert-True (-not (Get-BundleIdentityFacts -BundlePath $releaseBundle).Present) 'The stripped bundle still shows a build identity.'
+            New-TestSbom -Path $releaseSbom -Bundle $releaseBundle
+            New-TestTooling -Path $releaseTooling -Bundle $releaseBundle -Commit $releaseCommit -ScopeText $releaseScopeText
+            Invoke-ReceiptBuilder -Fixtures $allFixtures
+            try {
+                Save-StagedHere
+                $answer = Test-StagedHere
+                Assert-True (-not $answer.Valid -and $answer.Reason -like '*carries no intact build identity*') `
+                    "The publish stage took a staged bundle stripped of its identity: $($answer.Reason)"
+            } finally {
+                Remove-Item -LiteralPath $stagedHere -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+    } finally {
+        [IO.File]::WriteAllBytes($touchedCatalog, $catalogBytes)
+        [IO.File]::SetLastWriteTimeUtc($touchedCatalog, $catalogTime)
+        [IO.File]::WriteAllBytes($releaseSbom, $releaseSbomBytes)
+        [IO.File]::WriteAllBytes($releaseTooling, $releaseToolingBytes)
+        [IO.File]::WriteAllBytes($releaseReceipt, $releaseReceiptBytes)
+    }
 
     # Another Meta app at a build the catalog declares. Neither script may hand it to the CLI: each
     # refuses it by name before anything is patched. The builder gets it beside the newest declared
@@ -5269,6 +6532,11 @@ try {
     $servedTooling = $cleanServedTooling
     $servedSums = $null
     $servedReceipt = $null
+    # Assets a case serves under their own address, ahead of everything above, and one address a
+    # case answers 404 for. The publication history cases below put a predecessor release here.
+    $catalogPublishedAssets = @{}
+    $catalogPublishedRequests = New-Object System.Collections.Generic.List[string]
+    $catalogPublishedUnavailable = $null
     $publishedStandIns = {
         function Invoke-WebRequest {
             param($Uri, $Method, $OutFile, $MaximumRedirection, $TimeoutSec, [switch]$PassThru, [switch]$UseBasicParsing)
@@ -5276,20 +6544,31 @@ try {
             # without -UseBasicParsing to the IE parser, and since its 2025 security update it asks
             # first. A hook can't answer, so every index push through it stopped at the download.
             if (-not $UseBasicParsing) { throw "Invoke-WebRequest $Uri without -UseBasicParsing" }
-            $receiptServed = if ($servedReceipt) { $servedReceipt } else { $releaseReceipt }
-            if ($OutFile) {
-                $served = if ("$Uri" -like '*.cdx.json') { $servedSbom } elseif ("$Uri" -like '*.tooling.json') {
-                    $servedTooling } elseif ("$Uri" -like '*/release-receipt-*.json') {
-                    $receiptServed } else { $servedBundle }
-                Copy-Item -LiteralPath $served -Destination $OutFile -Force
+            $uriText = [string]$Uri
+            $catalogPublishedRequests.Add($uriText)
+            if ($catalogPublishedUnavailable -ceq $uriText) { throw (New-NotFoundAnswer) }
+            if ($catalogPublishedAssets.ContainsKey($uriText)) {
+                $body = [IO.File]::ReadAllBytes($catalogPublishedAssets[$uriText])
+            } else {
+                $receiptServed = if ($servedReceipt) { $servedReceipt } else { $releaseReceipt }
+                $sums = if ($servedSums) { $servedSums } else {
+                    "$((Get-FileHash -LiteralPath $servedBundle -Algorithm SHA256).Hash.ToLowerInvariant())  patches-$indexVersionHere.mpp`n" +
+                        "$((Get-FileHash -LiteralPath $servedSbom -Algorithm SHA256).Hash.ToLowerInvariant())  patches-$indexVersionHere.cdx.json`n" +
+                        "$(Get-Sha256Hex -Path $servedTooling)  patches-$indexVersionHere.tooling.json`n" +
+                        "$((Get-FileHash -LiteralPath $receiptServed -Algorithm SHA256).Hash.ToLowerInvariant())  release-receipt-$releaseVersionHere.json`n"
+                }
+                # The checksum list is fetched both ways: into memory by the asset check, and to a
+                # file by the patch selection check, which keeps the bytes exactly as served.
+                if ($uriText -like '*/SHA256SUMS.txt') { $body = [Text.Encoding]::UTF8.GetBytes($sums) }
+                else {
+                    $served = if ($uriText -like '*.cdx.json') { $servedSbom } elseif ($uriText -like '*.tooling.json') {
+                        $servedTooling } elseif ($uriText -like '*/release-receipt-*.json') {
+                        $receiptServed } else { $servedBundle }
+                    $body = [IO.File]::ReadAllBytes($served)
+                }
             }
-            $sums = if ($servedSums) { $servedSums } else {
-                "$((Get-FileHash -LiteralPath $servedBundle -Algorithm SHA256).Hash.ToLowerInvariant())  patches-$indexVersionHere.mpp`n" +
-                    "$((Get-FileHash -LiteralPath $servedSbom -Algorithm SHA256).Hash.ToLowerInvariant())  patches-$indexVersionHere.cdx.json`n" +
-                    "$(Get-Sha256Hex -Path $servedTooling)  patches-$indexVersionHere.tooling.json`n" +
-                    "$((Get-FileHash -LiteralPath $receiptServed -Algorithm SHA256).Hash.ToLowerInvariant())  release-receipt-$releaseVersionHere.json`n"
-            }
-            [pscustomobject]@{ StatusCode = 200; Content = [Text.Encoding]::UTF8.GetBytes($sums) }
+            if ($OutFile) { [IO.File]::WriteAllBytes($OutFile, $body) }
+            [pscustomobject]@{ StatusCode = 200; Content = $body }
         }
         function gh {
             $global:LASTEXITCODE = 0
@@ -5640,6 +6919,166 @@ try {
             }
         }
 
+        # The patch selections at publication. The index push has already pointed patches-bundle.json
+        # at the release it publishes, so the comparison reads the predecessor index at the release's
+        # own tagged commit, which still names the release before it. Here that predecessor is a
+        # commit published as the version before this one, and the candidate flips one default and
+        # records it. All metadata, assets and tags are local.
+        & {
+            $catalogOriginalFiles = @{}
+            foreach ($relative in @('patches-list.json', 'patches-bundle.json', 'CHANGELOG.md')) {
+                $catalogOriginalFiles[$relative] = [IO.File]::ReadAllBytes((Join-Path $releaseRepo $relative))
+            }
+            $catalogOriginalReceipt = [IO.File]::ReadAllBytes($releaseReceipt)
+            $catalogPublishedAssets = @{}
+            $catalogPublishedRequests.Clear()
+            $catalogCurrent = [version]$releaseVersionHere
+            $catalogPreviousVersion = if ($catalogCurrent.Build -gt 0) {
+                "$($catalogCurrent.Major).$($catalogCurrent.Minor).$($catalogCurrent.Build - 1)"
+            } elseif ($catalogCurrent.Minor -gt 0) { "$($catalogCurrent.Major).$($catalogCurrent.Minor - 1).0" }
+            elseif ($catalogCurrent.Major -gt 0) { "$($catalogCurrent.Major - 1).0.0" }
+            else { throw 'The publication history fixture needs an earlier version.' }
+            $catalogMetadataPath = Join-Path $releaseRepo 'scripts/patch-catalog-compatibility.json'
+            Assert-True (-not (Test-Path -LiteralPath $catalogMetadataPath)) 'The publication fixture already has compatibility metadata.'
+            $catalogCaseDir = Join-Path $releaseRoot 'catalog-compatibility-cases'
+            New-Item -ItemType Directory -Path $catalogCaseDir -Force | Out-Null
+            # A commit beside the branch carrying this list, index (none for $null), metadata and notes.
+            function New-CatalogFixtureCommit($List, $Index, $Metadata, [string]$Notes) {
+                try {
+                    Set-Content -LiteralPath (Join-Path $releaseRepo 'patches-list.json') -Value ($List | ConvertTo-Json -Depth 15) -Encoding UTF8
+                    if ($null -eq $Index) {
+                        Invoke-FixtureGit -Root $releaseRepo -Arguments @('rm', '--cached', '--quiet', '--', 'patches-bundle.json') | Out-Null
+                    } else {
+                        Set-Content -LiteralPath (Join-Path $releaseRepo 'patches-bundle.json') -Value ($Index | ConvertTo-Json -Depth 8) -Encoding UTF8
+                        Invoke-FixtureGit -Root $releaseRepo -Arguments @('add', '--', 'patches-bundle.json') | Out-Null
+                    }
+                    Set-Content -LiteralPath (Join-Path $releaseRepo 'CHANGELOG.md') -Value $Notes -Encoding UTF8
+                    Invoke-FixtureGit -Root $releaseRepo -Arguments @('add', '--', 'patches-list.json', 'CHANGELOG.md') | Out-Null
+                    if ($null -ne $Metadata) {
+                        New-Item -ItemType Directory -Path (Split-Path -Parent $catalogMetadataPath) -Force | Out-Null
+                        Set-Content -LiteralPath $catalogMetadataPath -Value ($Metadata | ConvertTo-Json -Depth 6) -Encoding UTF8
+                        Invoke-FixtureGit -Root $releaseRepo -Arguments @('add', '--', 'scripts/patch-catalog-compatibility.json') | Out-Null
+                    }
+                    $tree = "$(Invoke-FixtureGit -Root $releaseRepo -Arguments @('write-tree') | Select-Object -First 1)".Trim()
+                    return "$(Invoke-FixtureGit -Root $releaseRepo -Arguments @('commit-tree', $tree, '-p', $releaseCommit,
+                        '-m', 'catalog publication history') | Select-Object -First 1)".Trim()
+                } finally {
+                    Invoke-FixtureGit -Root $releaseRepo -Arguments @('reset', '--quiet') | Out-Null
+                    foreach ($relative in $catalogOriginalFiles.Keys) {
+                        [IO.File]::WriteAllBytes((Join-Path $releaseRepo $relative), $catalogOriginalFiles[$relative])
+                    }
+                    if (Test-Path -LiteralPath $catalogMetadataPath) { Remove-Item -LiteralPath $catalogMetadataPath -Force }
+                }
+            }
+            # The candidate published at that commit: a bundle stamped with its time, its SBOM and
+            # tooling report, a receipt naming it, and the working tree the index push runs on.
+            function Serve-CatalogCandidate([string]$Commit, $List, $Metadata, [string]$Notes) {
+                $seconds = [long]"$(Invoke-FixtureGit -Root $releaseRepo -Arguments @('log', '-1', '--format=%ct', $Commit) | Select-Object -First 1)".Trim()
+                $bundle = Join-Path $catalogCaseDir "patches-$releaseVersionHere.mpp"
+                if (Test-Path -LiteralPath $bundle) { Remove-Item -LiteralPath $bundle -Force }
+                New-TestBundleArchive -Path $bundle -Entries ([ordered]@{
+                    'META-INF/MANIFEST.MF' = ("Manifest-Version: 1.0`nVersion: $releaseVersionHere`nTimestamp: $($seconds * 1000)`n" +
+                        "Patcher-Version: $($releaseToolchain.PatcherVersion)`n`n")
+                    'classes.dex' = "dex`n035" + ('patches' * 8)
+                    'extensions/facebook.mpe' = "dex`n035" + ('payload' * 8) })
+                $sbom = [IO.Path]::ChangeExtension($bundle, '.cdx.json')
+                New-TestSbom -Path $sbom -Bundle $bundle
+                $tooling = [IO.Path]::ChangeExtension($bundle, '.tooling.json')
+                New-TestTooling -Path $tooling -Bundle $bundle -Commit $Commit -ScopeText $releaseScopeText
+                $document = [Text.Encoding]::UTF8.GetString($catalogOriginalReceipt).TrimStart([char]0xFEFF) | ConvertFrom-Json
+                $document.release.commit = $Commit
+                $document.release.commitTimestamp = $seconds
+                $document.bundle.timestamp = $seconds * 1000
+                $document.bundle.sha256 = Get-Sha256Hex $bundle
+                $document.bundle.sizeBytes = (Get-Item -LiteralPath $bundle).Length
+                $document.sbom.sha256 = Get-Sha256Hex $sbom
+                $report = Read-ReleaseTooling $tooling
+                $document.tooling.sha256 = $report.Sha256
+                $document.tooling.components = $report.Components.Count
+                $document.tooling.scopes = $report.Scopes.Count
+                Set-Content -LiteralPath $releaseReceipt -Value ($document | ConvertTo-Json -Depth 16) -Encoding UTF8
+                Set-Content -LiteralPath (Join-Path $releaseRepo 'patches-list.json') -Value ($List | ConvertTo-Json -Depth 15) -Encoding UTF8
+                Set-Content -LiteralPath (Join-Path $releaseRepo 'CHANGELOG.md') -Value $Notes -Encoding UTF8
+                if ($null -ne $Metadata) {
+                    New-Item -ItemType Directory -Path (Split-Path -Parent $catalogMetadataPath) -Force | Out-Null
+                    Set-Content -LiteralPath $catalogMetadataPath -Value ($Metadata | ConvertTo-Json -Depth 6) -Encoding UTF8
+                } elseif (Test-Path -LiteralPath $catalogMetadataPath) { Remove-Item -LiteralPath $catalogMetadataPath -Force }
+                Invoke-FixtureGit -Root $releaseRepo -Arguments @('push', '--force', '--quiet', $publishedRepo,
+                    "${Commit}:refs/tags/v$indexVersionHere") | Out-Null
+                return [pscustomobject]@{ Bundle = $bundle; Sbom = $sbom; Tooling = $tooling }
+            }
+            try {
+                $catalogPrevious = [Text.Encoding]::UTF8.GetString($catalogOriginalFiles['patches-list.json']).TrimStart([char]0xFEFF) | ConvertFrom-Json
+                $catalogPrevious.version = "v$catalogPreviousVersion"
+                $catalogOldIndex = [Text.Encoding]::UTF8.GetString($catalogOriginalFiles['patches-bundle.json']).TrimStart([char]0xFEFF) | ConvertFrom-Json
+                $catalogOldIndex.version = $catalogPreviousVersion
+                $catalogOldIndex.download_url = "https://github.com/$((@($indexUrl.AbsolutePath.Trim('/') -split '/') | Select-Object -First 2) -join '/')/releases/download/v$catalogPreviousVersion/patches-$catalogPreviousVersion.mpp"
+                $catalogOldNotes = [Text.Encoding]::UTF8.GetString($catalogOriginalFiles['CHANGELOG.md']).TrimStart([char]0xFEFF)
+                $catalogPreviousCommit = New-CatalogFixtureCommit $catalogPrevious $catalogOldIndex $null $catalogOldNotes
+                Invoke-FixtureGit -Root $releaseRepo -Arguments @('push', '--quiet', $publishedRepo,
+                    "${catalogPreviousCommit}:refs/tags/v$catalogPreviousVersion") | Out-Null
+                $catalogPriorReceipt = Join-Path $catalogCaseDir "release-receipt-$catalogPreviousVersion.json"
+                Set-Content -LiteralPath $catalogPriorReceipt -Value (@{ release = @{ version = $catalogPreviousVersion; commit = $catalogPreviousCommit }
+                    bundle = @{ file = "patches-$catalogPreviousVersion.mpp"; sha256 = ('d' * 64) }
+                    patches = @(@{ name = $catalogPrevious.patches[0].name; applied = -not $catalogPrevious.patches[0].use }) } | ConvertTo-Json -Depth 5) -Encoding UTF8
+                $catalogPriorSums = Join-Path $catalogCaseDir 'prior-SHA256SUMS.txt'
+                Set-Content -LiteralPath $catalogPriorSums -Value ("$(Get-Sha256Hex $catalogPriorReceipt)  release-receipt-$catalogPreviousVersion.json`n$('d' * 64)  patches-$catalogPreviousVersion.mpp") -Encoding UTF8
+                $catalogPriorBase = ([Uri]$catalogOldIndex.download_url).AbsoluteUri -replace '[^/]+$', ''
+                $catalogPublishedAssets[$catalogPriorBase + "release-receipt-$catalogPreviousVersion.json"] = $catalogPriorReceipt
+                $catalogPublishedAssets[$catalogPriorBase + 'SHA256SUMS.txt'] = $catalogPriorSums
+                $catalogCandidate = [Text.Encoding]::UTF8.GetString($catalogOriginalFiles['patches-list.json']).TrimStart([char]0xFEFF) | ConvertFrom-Json
+                $catalogBefore = $catalogCandidate.patches[0] | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+                $catalogCandidate.patches[0].use = -not $catalogBefore.use
+                $catalogNote = "$($catalogBefore.name) changes its default selection."
+                $catalogNotes = $catalogOldNotes -replace ('(?m)^(##\s+\[?v?' + [regex]::Escape($releaseVersionHere) + '(?:\]|\s|$)[^\r\n]*)'), ("`$1`n`n* **Facebook:** $catalogNote")
+                Assert-True ($catalogNotes -cne $catalogOldNotes) "The publication fixture's CHANGELOG has no $releaseVersionHere heading to carry the note."
+                $catalogMetadata = @{ baselineVersion = $catalogPreviousVersion; baselineCommit = $catalogPreviousCommit
+                    candidateVersion = $releaseVersionHere; changes = @(@{ before = @{ name = $catalogBefore.name; use = $catalogBefore.use }
+                        after = @{ name = $catalogCandidate.patches[0].name; use = $catalogCandidate.patches[0].use }; migrationNote = $catalogNote }) }
+                $catalogCandidateCommit = New-CatalogFixtureCommit $catalogCandidate $catalogOldIndex $catalogMetadata $catalogNotes
+                $assets = Serve-CatalogCandidate $catalogCandidateCommit $catalogCandidate $catalogMetadata $catalogNotes
+                $servedBundle = $assets.Bundle; $servedSbom = $assets.Sbom; $servedTooling = $assets.Tooling; $servedReceipt = $null; $servedSums = $null
+                $catalogRun = $publishedRun.Clone(); $catalogRun['ArtifactPath'] = $assets.Bundle
+                $catalogPublishedRequests.Clear()
+                $said = Invoke-IndexPushCheck $catalogRun
+                Assert-True (@($catalogPublishedRequests | Where-Object { $_ -ceq ($catalogPriorBase + "release-receipt-$catalogPreviousVersion.json") }).Count -gt 0) `
+                    'Publication used the working candidate index instead of the source-commit predecessor receipt.'
+                Assert-True ($said -like "*patch names and defaults are compatible with published v$catalogPreviousVersion at $($catalogPreviousCommit.Substring(0, 8))*") `
+                    "Publication did not say which published catalog it held the candidate to: $said"
+                $sourceRun = @{ SkipDescriptionTestCount = $true; SkipUrlCheck = $true; AllowPublishedIndexLag = $true; ArtifactPath = $assets.Bundle }
+                Assert-Throws { Invoke-IndexPushCheck $sourceRun } '*exact baseline and candidate*' 'The next source push retained a consumed predecessor allowance.'
+                Remove-Item -LiteralPath $catalogMetadataPath -Force
+                Invoke-IndexPushCheck $sourceRun | Out-Null
+                Set-Content -LiteralPath $catalogMetadataPath -Value ($catalogMetadata | ConvertTo-Json -Depth 6) -Encoding UTF8
+                $catalogPublishedUnavailable = $catalogPriorBase + "release-receipt-$catalogPreviousVersion.json"
+                Assert-Throws { Invoke-IndexPushCheck $catalogRun } "*release-receipt-$catalogPreviousVersion.json*" 'An unavailable predecessor receipt passed publication.'
+                $catalogPublishedUnavailable = $null
+                $catalogNoIndexCommit = New-CatalogFixtureCommit $catalogCandidate $null $null $catalogNotes
+                $assets = Serve-CatalogCandidate $catalogNoIndexCommit $catalogCandidate $null $catalogNotes
+                $servedBundle = $assets.Bundle; $servedSbom = $assets.Sbom; $servedTooling = $assets.Tooling
+                $catalogRun['ArtifactPath'] = $assets.Bundle
+                Assert-Throws { Invoke-IndexPushCheck $catalogRun } '*earlier version history*' 'An absent predecessor index hid earlier published releases.'
+                Invoke-FixtureGit -Root $releaseRepo -Arguments @('push', '--quiet', $publishedRepo, '--delete', "v$catalogPreviousVersion") | Out-Null
+                $catalogPublishedRequests.Clear()
+                $said = Invoke-IndexPushCheck $catalogRun
+                Assert-True (@($catalogPublishedRequests | Where-Object { $_ -ceq ($catalogPriorBase + "release-receipt-$catalogPreviousVersion.json") }).Count -eq 0) `
+                    'A verified first release fetched a nonexistent predecessor asset.'
+                Assert-True ($said -like '*patch names and defaults are compatible with a verified first release*') `
+                    "A verified first release did not say so: $said"
+            } finally {
+                foreach ($relative in $catalogOriginalFiles.Keys) { [IO.File]::WriteAllBytes((Join-Path $releaseRepo $relative), $catalogOriginalFiles[$relative]) }
+                [IO.File]::WriteAllBytes($releaseReceipt, $catalogOriginalReceipt)
+                if (Test-Path -LiteralPath $catalogMetadataPath) { Remove-Item -LiteralPath $catalogMetadataPath -Force }
+                Invoke-FixtureGit -Root $releaseRepo -Arguments @('push', '--force', '--quiet', $publishedRepo,
+                    "${releaseCommit}:refs/tags/v$indexVersionHere") | Out-Null
+                $catalogRemoteTags = @(Invoke-FixtureGit -Root $releaseRepo -Arguments @('ls-remote', $publishedRepo, "refs/tags/v$catalogPreviousVersion"))
+                if ($catalogRemoteTags.Count -gt 0) {
+                    Invoke-FixtureGit -Root $releaseRepo -Arguments @('push', '--quiet', $publishedRepo, '--delete', "v$catalogPreviousVersion") | Out-Null
+                }
+                Invoke-FixtureGit -Root $releaseRepo -Arguments @('reset', '--quiet') | Out-Null
+            }
+        }
+
         # Schema 2 is held to the policy its release used. Its hosted payload-only receipt still
         # works, including the explicit historical offline path, without inventing tooling data.
         $schemaTwoScript = Join-Path $releaseRoot 'schema-two-release-receipt.ps1'
@@ -5724,6 +7163,12 @@ try {
         Invoke-FixtureGit -Root $releaseRepo -Arguments @('config', '--unset', "url.$publishedRepo.insteadOf") | Out-Null
     }
 
+    # The published catalog the remaining release checks compare with is still local, after the
+    # cases above took away the rewrite and left the bare tag on the deliberately broken re-cut.
+    Invoke-FixtureGit -Root $releaseRepo -Arguments @('push', '--force', '--quiet', $releaseCatalogRemote,
+        "${releaseCommit}:refs/tags/v$indexVersionHere") | Out-Null
+    Invoke-FixtureGit -Root $releaseRepo -Arguments @('config', "url.$releaseCatalogRemote.insteadOf", $releaseCatalogRepository) | Out-Null
+
     # A release cut before the receipt named an SBOM, which is where the checkout that cut 0.1.1
     # stands until the next release: its commit's receipt script writes schema 1, and its receipt
     # names no SBOM. An ordinary push holds that receipt to schema 1 and says so, and a schema 2
@@ -5785,8 +7230,11 @@ try {
     Edit-ReleaseFile '.github/ISSUE_TEMPLATE/bug_report.yml' {
         param($text) $text.Replace("Morphe Manager $releaseFloor", "Morphe Manager $laterFloor")
     }
+    Edit-ReleaseFile 'CONTRIBUTING.md' {
+        param($text) $text.Replace("Morphe Manager $releaseFloor or newer", "Morphe Manager $laterFloor or newer")
+    }
     Invoke-FixtureGit -Root $releaseRepo -Arguments @('add', '--', 'gradle.properties', 'patches-list.json', 'CHANGELOG.md',
-        'gradle/libs.versions.toml', 'README.md', '.github/ISSUE_TEMPLATE/bug_report.yml') | Out-Null
+        'gradle/libs.versions.toml', 'README.md', '.github/ISSUE_TEMPLATE/bug_report.yml', 'CONTRIBUTING.md') | Out-Null
     Invoke-FixtureGit -Root $releaseRepo -Arguments @('commit', '-m', 'next release', '--quiet') | Out-Null
     $laterCommit = "$(Invoke-FixtureGit -Root $releaseRepo -Arguments @('rev-parse', 'HEAD') | Select-Object -First 1)".Trim()
     Invoke-FixtureGit -Root $releaseRepo -Arguments @('tag', "v$laterVersion", $laterCommit) | Out-Null
@@ -5799,6 +7247,8 @@ try {
     Assert-True ($said -like "*tag v$indexVersionHere isn't in this clone, so the Manager floor the index names wasn't checked*") `
         "A lag window without the index version's tag did not say the floor went unchecked: $said"
 } finally {
+    if ($releaseCatalogPreviousWeb) { Set-Item Function:\Invoke-WebRequest -Value $releaseCatalogPreviousWeb.ScriptBlock }
+    else { Remove-Item Function:\Invoke-WebRequest -ErrorAction SilentlyContinue }
     Remove-Item -LiteralPath $releaseRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
@@ -5927,6 +7377,11 @@ try {
         '{"patches":[{"name":"A",' + $flowTarget + '},{"name":"B",' + $flowTarget + '}]}')
     $logLiteral = $flowLog.Replace("'", "''")
     $failLiteral = $flowFails.Replace("'", "''")
+    # What a link planted in the publish copy points at, with a file that must outlive the copy.
+    $flowLinkTarget = Join-Path $releaseFlow 'link-target'
+    New-Item -ItemType Directory -Force -Path $flowLinkTarget | Out-Null
+    Set-Content -LiteralPath (Join-Path $flowLinkTarget 'keep.txt') -Value 'keep' -Encoding ASCII
+    $linkTargetLiteral = $flowLinkTarget.Replace("'", "''")
     # The receipt names the commit it saw, as the real one does, and the bundle stage copies it.
     Set-Content -LiteralPath (Join-Path $flowRepo 'scripts/build-release-receipt.ps1') -Encoding UTF8 -Value @(
         'param([string[]]$Fixture, [string]$WorkDir, [string]$Root, [string]$Bundle, [string]$AppliedDir)',
@@ -5934,7 +7389,7 @@ try {
         "    "" bundle="" + (Split-Path -Leaf `$Bundle) + "" applied="" + `$AppliedDir.Replace('\', '/'))",
         "if ((Get-Content -LiteralPath '$failLiteral' -ErrorAction SilentlyContinue) -eq 'receipt') { exit 1 }",
         '$commit = (git -C $Root rev-parse HEAD).Trim()',
-        'Set-Content -LiteralPath (Join-Path $Root ''release-receipt-1.2.3.json'') -Value (''{"source":{"commit":"'' + $commit + ''"}}'') -Encoding ASCII',
+        'Set-Content -LiteralPath (Join-Path $Root ''release-receipt-1.2.3.json'') -Value (''{"release":{"commit":"'' + $commit + ''"}}'') -Encoding ASCII',
         'exit 0')
     # Each stand-in fails when fail.txt names it, so a case can stop the run at any step.
     Set-Content -LiteralPath (Join-Path $flowRepo 'scripts/test-script-contracts.ps1') -Encoding UTF8 -Value @(
@@ -5948,6 +7403,21 @@ try {
         "    ""skipResults=`$SkipTestResults priority=`$env:BUILD_QUEUE_PRIORITY"")",
         "if ((Get-Content -LiteralPath '$failLiteral' -ErrorAction SilentlyContinue) -eq 'facts') { exit 1 }",
         'exit 0')
+    # The publish stage's check of its copy of the staged release logs the folder it was handed and
+    # what's in it, and refuses it when fail.txt says staged. It also tries to change the bundle in
+    # that copy, as anyone running as the same user could once it's checked, and logs whether it could.
+    # When fail.txt says link, it plants a junction in the copy, as such a user could, and passes.
+    Set-Content -LiteralPath (Join-Path $flowRepo 'scripts/release-receipt.ps1') -Encoding UTF8 -Value @(
+        'function Test-StagedReleaseAt([string]$Root, [string]$Folder, [string]$Version, [string]$Commit) {',
+        '    try { [IO.File]::AppendAllText((Join-Path $Folder ''patches-1.2.3.mpp''), ''swapped''); $swap = ''went-through'' } catch { $swap = ''refused'' }',
+        "    if ((Get-Content -LiteralPath '$failLiteral' -ErrorAction SilentlyContinue) -eq 'link') {",
+        "        New-Item -ItemType Junction -Path (Join-Path `$Folder 'linked') -Target '$linkTargetLiteral' | Out-Null }",
+        "    Add-Content -LiteralPath '$logLiteral' -Value (""staged version=`$Version commit=`$Commit swap=`$swap folder=`$Folder files="" +",
+        '        ((Get-ChildItem -LiteralPath $Folder -File | ForEach-Object { $_.Name } | Sort-Object) -join '',''))',
+        "    if ((Get-Content -LiteralPath '$failLiteral' -ErrorAction SilentlyContinue) -eq 'staged') {",
+        '        return [pscustomobject]@{ Valid = $false; Reason = ''the stand-in refused it'' } }',
+        '    return [pscustomobject]@{ Valid = $true; Reason = $null }',
+        '}')
     $flowWrapper = Join-Path $releaseFlow 'wrapper.ps1'
     Set-Content -LiteralPath $flowWrapper -Encoding UTF8 -Value @(
         'param([string]$ProjectDir, [string[]]$Tasks)',
@@ -6125,14 +7595,63 @@ try {
     Assert-Throws { & $flowScript -Stage publish -Version 1.2.3 6> $null } '*-Checked*' 'Publish ran without a checked paragraph.'
     $flowChecked = Join-Path $releaseFlow 'checked.txt'
     Set-Content -LiteralPath $flowChecked -Value 'Checked.' -Encoding ASCII
+    # A receipt for another commit, or one naming none, is refused before anything is tagged: the
+    # assets would go out under a tag on a commit they weren't built from.
+    $flowReceipt = Join-Path $flowAssets 'release-receipt-1.2.3.json'
+    $keptReceipt = Get-Content -LiteralPath $flowReceipt -Raw
+    foreach ($other in @(('{"release":{"commit":"' + ('b' * 40) + '"}}'), '{"release":{}}')) {
+        Set-Content -LiteralPath $flowReceipt -Value $other -Encoding ASCII -NoNewline
+        Assert-Throws { & $flowScript -Stage publish -Version 1.2.3 -Checked $flowChecked 6> $null 3> $null } '*The receipt is for*' `
+            "Publish went ahead with a receipt that isn't for HEAD: $other"
+    }
+    Set-Content -LiteralPath $flowReceipt -Value $keptReceipt -Encoding ASCII -NoNewline
+    Assert-True (@(Read-FlowLog).Count -eq 0) 'Publish ran a step before refusing the receipt.'
+    Assert-True (-not (& git -C $flowRepo tag --list v1.2.3)) 'Publish tagged the commit before refusing the receipt.'
+    # A staged release its check refuses stops the stage before the notes, the tag or GitHub, and
+    # the copy it checked goes.
+    Set-Content -LiteralPath $flowFails -Value 'staged' -Encoding ASCII
+    Assert-Throws { & $flowScript -Stage publish -Version 1.2.3 -Checked $flowChecked 6> $null 3> $null } '*nothing was tagged: the stand-in refused it*' `
+        'Publish went ahead with a staged release its check refused.'
+    Remove-Item -LiteralPath $flowFails -Force
+    $flow = @(Read-FlowLog)
+    Assert-True ($flow.Count -eq 1 -and $flow[0] -like 'staged *') "Publish ran a step past a refused staged release: $($flow -join ' | ')"
+    Assert-True (-not (& git -C $flowRepo tag --list v1.2.3) -and -not (& git -C $flowOrigin tag --list v1.2.3)) 'Publish tagged a staged release its check refused.'
+    $refusedCopy = [regex]::Match($flow[0], ' folder=(.+) files=').Groups[1].Value
+    Assert-True ($refusedCopy -and -not (Test-Path -LiteralPath $refusedCopy)) 'A refused publish left the copy it checked behind.'
+    # A link in the copy, which could be pointed elsewhere before gh reads it, stops the stage before
+    # the notes, the tag or GitHub. Removing the copy takes the link away, not what it points at.
+    Set-Content -LiteralPath $flowFails -Value 'link' -Encoding ASCII
+    Assert-Throws { & $flowScript -Stage publish -Version 1.2.3 -Checked $flowChecked 6> $null 3> $null } '*linked in the publishing copy is a link, so nothing was tagged*' `
+        'Publish went ahead with a link in the copy it checked.'
+    Remove-Item -LiteralPath $flowFails -Force
+    $flow = @(Read-FlowLog)
+    Assert-True ($flow.Count -eq 1 -and $flow[0] -like 'staged *') "Publish ran a step past a link in its copy: $($flow -join ' | ')"
+    Assert-True (-not (& git -C $flowRepo tag --list v1.2.3) -and -not (& git -C $flowOrigin tag --list v1.2.3)) 'Publish tagged a copy holding a link.'
+    $linkedCopy = [regex]::Match($flow[0], ' folder=(.+) files=').Groups[1].Value
+    Assert-True ($linkedCopy -and -not (Test-Path -LiteralPath $linkedCopy)) 'A publish refused for a link left its copy behind.'
+    Assert-True (Test-Path -LiteralPath (Join-Path $flowLinkTarget 'keep.txt') -PathType Leaf) 'Removing the publish copy emptied what its link pointed at.'
+    $flowHead = "$(& git -C $flowRepo rev-parse HEAD)".Trim()
     & $flowScript -Stage publish -Version 1.2.3 -Checked $flowChecked 6> $null 3> $null
     $flow = @(Read-FlowLog)
-    Assert-True ($flow.Count -eq 3 -and $flow[0] -like "py * github-notes --version 1.2.3 --checked $flowChecked --out *notes.md" -and
-        $flow[1] -like 'gh release create v1.2.3 -R SysAdminDoc/HushFacebook --verify-tag --title v1.2.3 --notes-file *notes.md *' -and
-        $flow[2] -like 'gh release download v1.2.3 -R SysAdminDoc/HushFacebook -D *') "Publish did not write, create and download back: $($flow -join ' | ')"
+    Assert-True ($flow.Count -eq 4 -and $flow[0] -like ("staged version=1.2.3 commit=$flowHead swap=refused folder=* files=patches-1.2.3.cdx.json," +
+            'patches-1.2.3.mpp,patches-1.2.3.tooling.json,release-receipt-1.2.3.json,SHA256SUMS.txt') -and
+        $flow[1] -like "py * github-notes --version 1.2.3 --checked $flowChecked --out *notes.md" -and
+        $flow[2] -like 'gh release create v1.2.3 -R SysAdminDoc/HushFacebook --verify-tag --title v1.2.3 --notes-file *notes.md *' -and
+        $flow[3] -like 'gh release download v1.2.3 -R SysAdminDoc/HushFacebook -D *') "Publish did not check, write, create and download back: $($flow -join ' | ')"
+    # The release goes out from the copy that was checked, which is gone once the stage ends. Its
+    # folder's name isn't known ahead, and the swap above found every file in it held.
+    $checkedCopy = [regex]::Match($flow[0], ' folder=(.+) files=').Groups[1].Value
+    Assert-True ((Split-Path -Leaf $checkedCopy) -cmatch '\Ahushfacebook-publishing-1\.2\.3-[0-9a-f]{32}\z') `
+        "Publish checked a copy in a folder whose name can be known ahead: $checkedCopy"
     foreach ($name in 'patches-1.2.3.mpp', 'patches-1.2.3.cdx.json', 'patches-1.2.3.tooling.json', 'release-receipt-1.2.3.json', 'SHA256SUMS.txt') {
-        Assert-True ($flow[1].Contains($name)) "Publish created the release without $name."
+        Assert-True ($flow[2].Contains((Join-Path $checkedCopy $name))) "Publish created the release without the checked $name."
     }
+    Assert-True (-not (Test-Path -LiteralPath $checkedCopy)) 'Publish left the copy it checked behind.'
+    # The download back goes to a folder whose name isn't known ahead either, and it goes too.
+    $downloadedTo = [regex]::Match($flow[3], ' -D (.+)\z').Groups[1].Value
+    Assert-True ((Split-Path -Leaf $downloadedTo) -cmatch '\Ahushfacebook-published-1\.2\.3-[0-9a-f]{32}\z') `
+        "Publish downloaded the release back into a folder whose name can be known ahead: $downloadedTo"
+    Assert-True (-not (Test-Path -LiteralPath $downloadedTo)) 'Publish left the downloaded copy behind.'
     Assert-True ((& git -C $flowOrigin rev-parse 'v1.2.3^{commit}') -eq (& git -C $flowRepo rev-parse HEAD)) `
         'Publish did not push a v1.2.3 tag on the source commit.'
     $flowTamper = 'patches-1.2.3.mpp'
@@ -6151,6 +7670,14 @@ try {
             -Value ('<testsuite>' + ('<testcase/>' * $results.Cases) + '</testsuite>')
     }
     Remove-Item -LiteralPath (Join-Path $flowRepo 'release-receipt-1.2.3.json') -Force
+    # A description gh couldn't read stops the stage. Read as empty, it matched its own update, so
+    # nothing was edited and the stage still said the index was done.
+    Set-Content -LiteralPath $flowFails -Value 'repo view' -Encoding ASCII
+    Assert-Throws { & $flowScript -Stage index -Version 1.2.3 -ReadmeSummary $flowSummary -BundleSummary $flowSummary 6> $null 3> $null } `
+        "*couldn't read*description*" 'Index went on after gh could not read the repository description.'
+    Remove-Item -LiteralPath $flowFails -Force
+    Assert-True (-not (@(Read-FlowLog) -like 'gh repo edit*')) 'Index edited a description it could not read.'
+    Remove-Item -LiteralPath (Join-Path $flowRepo 'release-receipt-1.2.3.json') -Force -ErrorAction SilentlyContinue
     & $flowScript -Stage index -Version 1.2.3 -ReadmeSummary $flowSummary -BundleSummary $flowSummary 6> $null 3> $null
     $flow = @(Read-FlowLog)
     Assert-True ($flow.Count -eq 4 -and $flow[0] -eq 'gh release view v1.2.3 -R SysAdminDoc/HushFacebook --json publishedAt --jq .publishedAt' -and

@@ -38,12 +38,14 @@ public class AnalyticsUploadsTest {
     @Before
     public void turnTheSwitchOn() {
         Settings.HOLD_ANALYTICS_UPLOADS.save(true);
+        Settings.DEBUG.save(false);
     }
 
     @After
     public void restore() {
         PauseForTests.resume();
         Settings.HOLD_ANALYTICS_UPLOADS.resetToDefault();
+        Settings.DEBUG.resetToDefault();
         FeedFilterCounters.clear();
         HookStatus.clear();
     }
@@ -107,5 +109,67 @@ public class AnalyticsUploadsTest {
         for (int i = 0; i < 3; i++) assertTrue(AnalyticsUploads.holdXAnalyticsUpload());
         assertEquals(AnalyticsUploads.ROUTE + ": 3 lists, 3 items, 3 removed. Last reason: " + AnalyticsUploads.XANALYTICS
                 + ". Removed: " + AnalyticsUploads.XANALYTICS + " 3", counterLine());
+    }
+
+    @Test
+    public void retryObservationKeepsOnlyTwoFixedCountsAndDoesNotCountNativeUploads() {
+        Settings.HOLD_ANALYTICS_UPLOADS.save(false);
+        Settings.DEBUG.save(true);
+        for (int i = 0; i < 1000; i++) {
+            AnalyticsUploads.observeAnalytics2Retry(true);
+            AnalyticsUploads.observeAnalytics2Retry(false);
+        }
+        assertEquals(FamilyNames.ANALYTICS_UPLOADS + ": invoked 0, 0 found, 0 missing. Counted: "
+                + "retry requested 1000, finished without retry 1000", statusLine());
+        assertNull("observing a retry must not count an upload as held", counterLine());
+        HookStatus.clear();
+        AnalyticsUploads.observeAnalytics2Retry(false);
+        assertEquals(FamilyNames.ANALYTICS_UPLOADS + ": invoked 0, 0 found, 0 missing. Counted: "
+                + "finished without retry 1", statusLine());
+    }
+
+    @Test
+    public void retryObservationNeedsDebugAndTheHoldSwitchOff() {
+        Settings.HOLD_ANALYTICS_UPLOADS.save(false);
+        AnalyticsUploads.observeAnalytics2Retry(true);
+        AnalyticsUploads.observeAnalytics2Retry(false);
+        assertNull(statusLine());
+        Settings.DEBUG.save(true);
+        Settings.HOLD_ANALYTICS_UPLOADS.save(true);
+        AnalyticsUploads.observeAnalytics2Retry(true);
+        AnalyticsUploads.observeAnalytics2Retry(false);
+        assertNull(statusLine());
+        assertNull(counterLine());
+    }
+
+    @Test
+    public void retryObservationWaitsUntilSettingsAndThePauseDecisionAreReady() {
+        Settings.HOLD_ANALYTICS_UPLOADS.save(false);
+        Settings.DEBUG.save(true);
+        SettingsContextRule.withoutContext(() -> {
+            AnalyticsUploads.observeAnalytics2Retry(true);
+            AnalyticsUploads.observeAnalytics2Retry(false);
+        });
+        SettingsContextRule.beforeThePauseIsDecided(() -> {
+            AnalyticsUploads.observeAnalytics2Retry(true);
+            AnalyticsUploads.observeAnalytics2Retry(false);
+        });
+        assertNull(statusLine());
+        assertNull(counterLine());
+    }
+
+    @Test
+    public void everyPauseReasonStopsRetryObservationEvenWhenDebugStaysOn() {
+        Settings.HOLD_ANALYTICS_UPLOADS.save(false);
+        Settings.DEBUG.save(true);
+        for (HushfacebookPause.Reason reason : HushfacebookPause.Reason.values()) {
+            if (reason == HushfacebookPause.Reason.NONE) continue;
+            PauseForTests.pause(reason);
+            AnalyticsUploads.observeAnalytics2Retry(true);
+            AnalyticsUploads.observeAnalytics2Retry(false);
+            assertNull("a paused observation was counted for " + reason, statusLine());
+            PauseForTests.resume();
+        }
+        assertNull(counterLine());
     }
 }

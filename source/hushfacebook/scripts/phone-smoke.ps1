@@ -42,7 +42,8 @@ param(
 
 $Package = 'com.facebook.katana'
 $Entry = "$Package/.LoginActivity"
-$ReportDir = '/sdcard/Download/Morphe'
+# Reports go next to the crash files; builds before that saved them in Download/Morphe.
+$ReportGlob = '/sdcard/Download/Hushfacebook/morphe-diagnostics-*.txt /sdcard/Download/Morphe/morphe-diagnostics-*.txt'
 
 <#
     Reads a report's text into what the walk is judged on. Returns an object with Running (the
@@ -133,6 +134,7 @@ function Read-SmokeReport {
 if ($MyInvocation.InvocationName -eq '.') { return }
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'device-install.ps1')
 if (-not $Serial) { throw 'Pass -Serial or set HUSHFACEBOOK_DEVICE_SERIAL.' }
 if (-not $OutDir) {
     $OutDir = Join-Path ([IO.Path]::GetTempPath()) ("hushfacebook-smoke-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))
@@ -191,7 +193,7 @@ function Invoke-TapLabel {
 }
 
 if (((Invoke-Adb get-state) -join '') -ne 'device') { throw "$Serial is not ready." }
-if (-not (((Invoke-Adb shell pm path $Package) -join '') -like 'package:*')) { throw "$Package is not installed on $Serial." }
+if (@(Get-AndroidPackagePaths -Adb $adb -Serial $Serial -PackageName $Package).Count -eq 0) { throw "$Package is not installed on $Serial." }
 
 if ($Apk) {
     Write-Host "[smoke] installing $(Split-Path -Leaf $Apk)"
@@ -210,7 +212,7 @@ if ($size -notmatch '(\d+)x(\d+)\s*$') { throw "Could not read the screen size: 
 $width = [int]$Matches[1]; $height = [int]$Matches[2]
 $swipeX = [int]($width / 2); $swipeFrom = [int]($height * 0.75); $swipeTo = [int]($height * 0.3)
 
-$before = @(Invoke-Adb shell "ls $ReportDir 2>/dev/null; true")
+$before = @(Invoke-Adb shell "ls $ReportGlob 2>/dev/null; true")
 $startedEpoch = [long]((Invoke-Adb shell date +%s) -join '').Trim()
 
 Write-Host "[smoke] starting Facebook on $Serial"
@@ -239,12 +241,12 @@ Invoke-TapLabel $SaveLabel
 $saved = $null
 for ($wait = 0; $wait -lt 15 -and -not $saved; $wait++) {
     Start-Sleep -Seconds 1
-    $saved = @(Invoke-Adb shell "ls -t $ReportDir 2>/dev/null; true") |
-        Where-Object { $_ -like 'morphe-diagnostics-*.txt' -and $before -notcontains $_ } | Select-Object -First 1
+    $saved = @(Invoke-Adb shell "ls -t $ReportGlob 2>/dev/null; true") |
+        Where-Object { $_ -like '*/morphe-diagnostics-*.txt' -and $before -notcontains $_ } | Select-Object -First 1
 }
-if (-not $saved) { throw "No new report appeared in $ReportDir." }
-$local = Join-Path $OutDir $saved
-Invoke-Adb pull "$ReportDir/$saved" $local | Out-Null
+if (-not $saved) { throw 'No new report appeared in Download/Hushfacebook or Download/Morphe.' }
+$local = Join-Path $OutDir ($saved -split '/')[-1]
+Invoke-Adb pull $saved $local | Out-Null
 Write-Host "[smoke] report: $local"
 
 $walkStarted = [DateTime]::SpecifyKind([DateTime]'1970-01-01', 'Utc').AddSeconds($startedEpoch)

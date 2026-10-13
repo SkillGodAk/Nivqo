@@ -27,8 +27,9 @@ import com.android.tools.smali.dexlib2.iface.Method
 val unlockAppIconsPatch = bytecodePatch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Unlock app icons",
-    description = "Lets you pick the app icons Facebook keeps for Facebook Plus on its App icon page, so your home " +
-        "screen icon can be any of them. Starts off. Turn it on in Hushfacebook settings > Appearance.",
+    description = "Lets you pick the app icons Facebook keeps for Facebook Plus on its App icon page (Menu > " +
+        "Settings and privacy > App icon), so your home screen icon can be any of them. Starts off. Turn it on in " +
+        "Hushfacebook settings > Appearance.",
 ) {
     category("Theme")
     dependsOn(settingsPatch, facebookExtensionPatch)

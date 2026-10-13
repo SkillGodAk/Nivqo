@@ -9,10 +9,12 @@ import static org.junit.Assert.*;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.preference.Preference;
 import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ListView;
 
 import java.io.File;
@@ -164,7 +166,7 @@ public class MarketplaceSettingsTest {
     /** Real Android rows rendered in memory. No phone or desktop display receives input. */
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    @Config(sdk = 30, qualifiers = "w360dp-h780dp-night-xxhdpi")
+    @Config(sdk = 30, qualifiers = "w390dp-h844dp-night-xhdpi")
     public void renderMarketplaceChoicesAndRecoveryOffscreen() throws Exception {
         File directory = new File("build/reports/marketplace");
         assertTrue(directory.isDirectory() || directory.mkdirs());
@@ -173,10 +175,13 @@ public class MarketplaceSettingsTest {
             Settings.MARKETPLACE_ONLY.save(active);
             MarketplaceOnlyForTests.hidesHome();
             try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
-                HushfacebookPreferenceFragment page = open(controller.get());
-                View root = page.getView();
+                SettingsDialog dialog = SettingsL10nTest.show(controller.get());
+                HushfacebookPreferenceFragment page = SettingsL10nTest.pageOf(dialog);
+                assertNotNull(page.navigation);
+                page.navigation.navigate("Opening Facebook");
+                View root = dialog.getView();
                 assertNotNull(root);
-                int width = 1080, height = 4200;
+                int width = 780, height = 4200;
                 root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
                         View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
                 root.layout(0, 0, width, height);
@@ -189,26 +194,17 @@ public class MarketplaceSettingsTest {
                 assertTrue(list.getChildCount() > 4);
                 assertEquals(!active, page.findPreference(Settings.START_TAB.key).isEnabled());
                 assertEquals(active, page.findPreference(Settings.MARKETPLACE_SKIP_FEED_PREFETCH.key).isEnabled());
-                // Render the actual Opening Facebook group. The header's build strings are
-                // filled by the patcher and are intentionally absent from this unit-test app.
-                int first = -1, last = -1;
-                for (int i = 0; i < list.getAdapter().getCount(); i++) {
-                    Object row = list.getAdapter().getItem(i);
-                    if (!(row instanceof Preference)) continue;
-                    Preference preference = (Preference) row;
-                    if ("Opening Facebook".contentEquals(String.valueOf(preference.getTitle()))) first = i;
-                    if (Settings.START_TAB.key.equals(preference.getKey())) last = i;
-                }
-                assertTrue(first >= 0 && last > first);
-                View firstRow = list.getChildAt(first - list.getFirstVisiblePosition());
+                // Capture the current dialog host, with enough height to show both saved choices.
+                int last = list.getCount() - 1;
+                assertEquals(last, list.getLastVisiblePosition());
                 View lastRow = list.getChildAt(last - list.getFirstVisiblePosition());
-                assertNotNull(firstRow);
                 assertNotNull(lastRow);
-                int top = list.getTop() + firstRow.getTop();
-                int bottom = list.getTop() + lastRow.getBottom();
-                Bitmap image = Bitmap.createBitmap(width, bottom - top, Bitmap.Config.ARGB_8888);
+                Rect lastBounds = new Rect();
+                lastRow.getDrawingRect(lastBounds);
+                ((ViewGroup) root).offsetDescendantRectToMyCoords(lastRow, lastBounds);
+                int bottom = lastBounds.bottom + 32;
+                Bitmap image = Bitmap.createBitmap(width, bottom, Bitmap.Config.ARGB_8888);
                 Canvas canvas = new Canvas(image);
-                canvas.translate(0, -top);
                 root.draw(canvas);
                 File file = new File(directory, active ? "marketplace-active.png" : "marketplace-off.png");
                 try (FileOutputStream out = new FileOutputStream(file)) {

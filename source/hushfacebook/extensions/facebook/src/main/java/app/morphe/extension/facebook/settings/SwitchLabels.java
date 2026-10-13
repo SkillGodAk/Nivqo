@@ -69,6 +69,8 @@ final class SwitchLabels {
         if (setting == Settings.HIDE_COMMENT_GIF_STICKER_BUTTONS) return L10n.t("Hide GIF and sticker buttons");
         if (setting == Settings.OPEN_REPLY_THREADS) return L10n.t("Open every reply thread");
         if (setting == Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS) return L10n.t("Hide related groups");
+        if (setting == Settings.HIDE_SHOP_LINK_COMMENTS) return L10n.t("Hide comments with shop links");
+        if (setting == Settings.HIDE_COMMENTS_WITH_WORDS) return L10n.t("Hide comments with your words");
         if (setting == Settings.TAG_SUGGESTIONS_ONLY_AFTER_AT) return L10n.t("Tag suggestions only after @");
         if (setting == Settings.HIDE_REELS_TAB) return L10n.t("Hide the Reels tab");
         if (setting == Settings.HIDE_REELS_TAB_DOT) return L10n.t("Hide the Reels tab dot");
@@ -124,11 +126,13 @@ final class SwitchLabels {
         if (setting == Settings.TAP_TO_PLAY) return L10n.t("Tap to play");
         if (setting == Settings.TAP_TO_PLAY_REELS_AFTER_FIRST) return L10n.t("Only the first reel waits");
         if (setting == Settings.RESUME_LONG_VIDEOS) return L10n.t("Resume long videos");
+        if (setting == Settings.FRAME_STEP) return L10n.t("Frame step");
         if (setting == Settings.DEFAULT_PLAYBACK_QUALITY) return L10n.t("Default playback quality");
         if (setting == Settings.PICTURE_IN_PICTURE) return L10n.t("Picture-in-picture");
         if (setting == Settings.TURN_OFF_HDR_BRIGHTNESS) return L10n.t("Turn off HDR brightness");
         if (setting == Settings.KEEP_PROGRESS_BAR) return L10n.t("Keep the progress bar");
         if (setting == Settings.KEEP_PROGRESS_BAR_TIME) return L10n.t("Show a reel's time");
+        if (setting == Settings.TAP_TO_SEEK) return L10n.t("Tap the bar to seek");
         if (setting == Settings.DOWNLOAD_VIDEOS) return L10n.t("Download feed and Watch videos");
         if (setting == Settings.CLIPBOARD_DOWNLOAD) return L10n.t("Offer to download copied links");
         if (setting == Settings.DOWNLOAD_PHOTOS) return L10n.t("Save any photo");
@@ -138,15 +142,18 @@ final class SwitchLabels {
         if (setting == Settings.HIDE_CHAT_NOTES_TRAY) return L10n.t("Hide the notes and active now row");
         if (setting == Settings.HIDE_CHAT_PROMOTIONS) return L10n.t("Hide chat list promotions");
         if (setting == Settings.OPEN_MESSENGER_APP) return L10n.t("Open the Messenger app");
+        if (setting == Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER) return L10n.t("Leave calls and chats to Messenger");
         if (setting == Settings.SAVED_SHORTCUT) return L10n.t("Saved shortcut");
         if (setting == Settings.WATCH_HISTORY_SHORTCUT) return L10n.t("Watch history shortcut");
         if (setting == Settings.APP_LOCK) return L10n.t("Lock Facebook");
+        if (setting == Settings.SAVE_CRASH_FILE) return L10n.t("Save crashes to Downloads");
         if (setting == Settings.HIDE_MENU_UPGRADES) return L10n.t("Hide Upgrades");
         if (setting == Settings.HIDE_MENU_ALSO_FROM_META) return L10n.t("Hide Also from Meta");
         if (setting == Settings.HIDE_MENU_MUSE) return L10n.t("Hide the Muse card");
         if (setting == Settings.HIDE_EDITS_UPSELLS) return L10n.t("Hide Edits promotions");
         if (setting == Settings.HIDE_THREADS_CROSS_POSTING) return L10n.t("Hide Threads cross-posting prompts");
         if (setting == Settings.HIDE_THREADS_SHARE_BUTTON) return L10n.t("Hide Threads in the share sheet");
+        if (setting == Settings.HIDE_MUSE_SHARE_BUTTON) return L10n.t("Hide Muse in the share sheet");
         if (setting == Settings.HIDE_META_VERIFIED_UPSELLS) return L10n.t("Hide Meta Verified offers");
         if (setting == Settings.HIDE_AVATAR_UPSELLS) return L10n.t("Hide avatar sticker promotions");
         if (setting == Settings.HIDE_META_AI_IMAGINE) return L10n.t("Hide Meta AI's Imagine");
@@ -180,6 +187,8 @@ final class SwitchLabels {
         if (setting == Settings.USE_SYSTEM_EMOJI) return L10n.t("Use the phone's emoji");
         if (setting == Settings.BOTTOM_TAB_BAR) return L10n.t("Tab bar at the bottom");
         if (setting == Settings.TAB_BAR_SCROLL_AWAY) return L10n.t("Hide the tab bar while scrolling");
+        if (setting == Settings.KEEP_TAB_BAR) return L10n.t("Keep the tab bar on screen");
+        if (setting == Settings.KEEP_TOP_BAR) return L10n.t("Keep the top bar on screen");
         if (setting == Settings.FORCE_DARK_MODE) return L10n.t("Force dark mode");
         throw new IllegalArgumentException("No individual switch label: " + setting.key);
     }

@@ -43,15 +43,15 @@ class ExpandedControlsTest {
         }
     }
 
-    // #27: "Long-press Messenger" read as the Messenger title inside the app, where nothing happens.
-    @Test fun settingsDirectionsNameTheHomeScreenIcon() {
+    // Descriptions name the settings page, since "Long-press Messenger" (#27) read as the title inside the app.
+    @Test fun settingsDirectionsNameTheSettingsPage() {
         val patches = Class.forName("app.hushmessenger.patches.controls.MessengerControlsPatchKt").methods
             .filter { it.name.startsWith("get") && it.returnType == BytecodePatch::class.java }
             .map { it.invoke(null) as BytecodePatch }.filter { it.name != null }
-        val directed = patches.filter { "Patch controls" in it.description.orEmpty() }
+        val directed = patches.filter { "HushMessenger settings > Controls" in it.description.orEmpty() }
         assertEquals(ExpectedTotals.DIRECTED_CONTROLS, directed.size)
         for (patch in directed) {
-            assertTrue("Long-press Messenger's home screen icon > Patch controls." in patch.description!!, "${patch.name}")
+            assertTrue("Turn it on in HushMessenger settings > Controls." in patch.description!!, "${patch.name}")
         }
     }
 
@@ -218,53 +218,35 @@ class ExpandedControlsTest {
         }
     }
 
-    @Test fun adExitReplacementCoversIncomingBranchesAndPreservesTheOriginalResultRegister() {
-        val body = "goto/16 :first_exit\n" + "nop\n".repeat(915) + ":first_exit\nreturn-object v5\n" +
-            "nop\n".repeat(14) + "return-object v5\n" + "nop\n".repeat(3)
-        val method = method("LX/2Wl;", "D2i", 24, IMMUTABLE_LIST, body)
+    @Test fun adExitsCoverIncomingBranchesAndEachKeepTheirOwnResultRegister() {
+        val body = "goto/16 :first_exit\n" + "nop\n".repeat(1452) + ":first_exit\nreturn-object v7\n" +
+            "nop\n".repeat(8) + "return-object v2\n" + "nop\n".repeat(3)
+        val method = method("LX/2I2;", "D5T", 24, IMMUTABLE_LIST, body)
         method.injectAdFilter()
         val code = method.implementation!!.instructions
-        val branchAddress = (code[0] as OffsetInstruction).codeOffset
         val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
-        val target = code[addresses.indexOf(branchAddress)]
+        // The branch to the first exit lands on its filter call, not on the return after it.
+        val target = code[addresses.indexOf((code[0] as OffsetInstruction).codeOffset)]
         assertEquals(Opcode.INVOKE_STATIC, target.opcode)
         assertEquals("$SETTINGS->filterInboxAds(Ljava/util/List;)Ljava/util/List;", (target as ReferenceInstruction).reference.toString())
-        assertEquals(2, code.count { (it as? ReferenceInstruction)?.reference.toString().contains("->filterInboxAds(") })
-        for (index in code.indices.filter { code[it].opcode == Opcode.IF_EQZ }) {
-            val returnAddress = addresses[index] + (code[index] as OffsetInstruction).codeOffset
-            val returnInstruction = code[addresses.indexOf(returnAddress)]
-            assertEquals(Opcode.RETURN_OBJECT, returnInstruction.opcode)
-            assertEquals(5, (returnInstruction as com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction).registerA)
+        val filters = code.filter { (it as? ReferenceInstruction)?.reference.toString().contains("->filterInboxAds(") }
+        assertEquals(listOf(7, 2), filters.map { (it as FiveRegisterInstruction).registerC })
+        val kept = code.indices.filter { code[it].opcode == Opcode.IF_EQZ }.map { index ->
+            code[addresses.indexOf(addresses[index] + (code[index] as OffsetInstruction).codeOffset)]
         }
-        assertFailsWith<PatchException> {
-            method("LX/2Wl;", "D2i", 24, IMMUTABLE_LIST, body.replace("return-object v5", "return-object v6")).injectAdFilter()
-        }
-    }
-
-    @Test fun messenger581AdExitsEachKeepTheirOwnResultRegister() {
-        val body = "goto/16 :first_exit\n" + "nop\n".repeat(1449) + ":first_exit\nreturn-object v7\n" +
-            "nop\n".repeat(8) + "return-object v2\n" + "nop\n".repeat(3)
-        activeProfile = PROFILE_346213494
-        try {
-            val method = method("LX/2LJ;", "D3q", 24, IMMUTABLE_LIST, body)
-            method.injectAdFilter()
-            val code = method.implementation!!.instructions
-            val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
-            val filters = code.filter { (it as? ReferenceInstruction)?.reference.toString().contains("->filterInboxAds(") }
-            assertEquals(listOf(7, 2), filters.map { (it as FiveRegisterInstruction).registerC })
-            val kept = code.indices.filter { code[it].opcode == Opcode.IF_EQZ }.map { index ->
-                code[addresses.indexOf(addresses[index] + (code[index] as OffsetInstruction).codeOffset)]
-            }
-            assertEquals(listOf(7, 2), kept.map { (it as com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction).registerA })
-            for (changed in listOf(body.replace("return-object v2", "return-object v7"), body.replace("return-object v7", "return-object v5"))) {
-                assertFailsWith<PatchException> { method("LX/2LJ;", "D3q", 24, IMMUTABLE_LIST, changed).injectAdFilter() }
-            }
-        } finally {
-            activeProfile = BASE_PROFILE
+        assertEquals(listOf(Opcode.RETURN_OBJECT, Opcode.RETURN_OBJECT), kept.map { it.opcode })
+        assertEquals(listOf(7, 2), kept.map { (it as com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction).registerA })
+        for (changed in listOf(
+            body.replace("return-object v2", "return-object v7"),
+            body.replace("return-object v7", "return-object v5"),
+            // An older release's v5 from both exits.
+            body.replace("return-object v7", "return-object v5").replace("return-object v2", "return-object v5"),
+        )) {
+            assertFailsWith<PatchException> { method("LX/2I2;", "D5T", 24, IMMUTABLE_LIST, changed).injectAdFilter() }
         }
     }
 
-    // Mirrors the drawer case of Messenger 580's merged click listener: the row lands in a high register.
+    // Modelled on the drawer case of Messenger's merged click listener, where the row lands in a high register.
     private val folderClick = """
         move-object/from16 v3, p0
         iget-object v1, v3, LX/Jwp;->A00:Ljava/lang/Object;
@@ -327,39 +309,20 @@ class ExpandedControlsTest {
         val id = "LX/HFb;->Ax1(LX/0MG;)Ljava/util/ArrayList;"
         fun builder(rows: String) = fixtureMethod(id, rows + "const/4 v0, 0x0\nreturn-object v0", 10)
         assertEquals("LX/HRf;", builder(folderRow("LX/HRf;", settingsKey)).menuFolderItemType())
-        // 581 builds the QR code row in the same method, from the same row class and its own folder key.
+        // Messenger builds the QR code row in the same method, from the same row class and its own folder key.
         val both = builder(folderRow("LX/HRf;", settingsKey) + folderRow("LX/HRf;", qrKey))
         assertEquals("LX/HRf;", both.menuFolderItemType())
         assertEquals(2, both.settingsRowCall())
+        // 582's main family builds each row's icon in place, straight into the constructor's icon argument (v3).
+        assertEquals("LX/HRf;", builder("new-instance v3, LX/KGb;\n" + folderRow("LX/HRf;", settingsKey)).menuFolderItemType())
         for (changed in listOf(
             folderRow("LX/HRf;", settingsKey) + "new-instance v2, LX/HRg;\n",
+            "new-instance v2, LX/KGb;\n" + folderRow("LX/HRf;", settingsKey),
             folderRow("LX/HRf;", settingsKey) + folderRow("LX/HRf;", settingsKey),
             folderRow("LX/HRf;", qrKey),
             "new-instance v1, LX/HRf;\n",
             "",
         )) assertFailsWith<PatchException> { builder(changed).menuFolderItemType() }
-    }
-
-    @Test fun keyboardTabFilterReplacesTheOnlyExitAndKeepsItsBranches() {
-        val body = "if-eqz v2, :done\nconst/4 v1, 0x0\n:done\nreturn-object v0"
-        val method = method("Lcom/facebook/messaging/msys/thread/composer/configuration/xapp/BaseXappComposerConfigurationFactory;",
-            "A0P", 8, IMMUTABLE_LIST, body)
-        method.injectKeyboardTabs()
-        val code = method.implementation!!.instructions.toList()
-        val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
-        // The early branch now lands on the filter call that replaced the original return.
-        val branchTarget = code[addresses.indexOf((code[0] as OffsetInstruction).codeOffset)]
-        assertEquals("$SETTINGS->filterKeyboardTabs(Ljava/util/List;)Ljava/util/List;", (branchTarget as ReferenceInstruction).reference.toString())
-        assertEquals(1, (code[3] as OneRegisterInstruction).registerA)
-        assertEquals(Opcode.IF_EQZ, code[4].opcode)
-        assertEquals(0, (code[6] as OneRegisterInstruction).registerA)
-        assertEquals(Opcode.RETURN_OBJECT, code.last().opcode)
-        assertEquals(0, (code.last() as OneRegisterInstruction).registerA)
-        assertEquals(addresses[code.size - 1], addresses[4] + (code[4] as OffsetInstruction).codeOffset)
-        assertFailsWith<PatchException> {
-            method("LX/Fixture;", "A0P", 8, IMMUTABLE_LIST, "if-eqz v2, :other\nreturn-object v0\n:other\nreturn-object v1").injectKeyboardTabs()
-        }
-        assertFailsWith<PatchException> { method("LX/Fixture;", "A0P", 1, IMMUTABLE_LIST, "return-object p0").injectKeyboardTabs() }
     }
 
     @Test fun encryptedTypingFlagIsFilteredBeforeTheMailboxCallReadsIt() {

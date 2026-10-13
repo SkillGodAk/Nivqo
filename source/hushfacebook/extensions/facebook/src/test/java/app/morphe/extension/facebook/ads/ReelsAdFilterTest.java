@@ -461,6 +461,40 @@ public class ReelsAdFilterTest {
         }
     }
 
+    /** A section wrapper whose class also holds a list of its own, shared by every section. */
+    public static final class WithStaticList {
+        static final List<Object> SHARED = Collections.unmodifiableList(Collections.singletonList(new VideoAd()));
+        List<Object> items;
+
+        WithStaticList(List<Object> items) {
+            this.items = items;
+        }
+    }
+
+    /**
+     * A static list is the class's, not the section's items. The filter read it as items, and
+     * the unmodifiable one sent it to write a new list into the static final field, which Java
+     * refuses, as Android does from 17 on, so the section's own ad stayed and the hook threw.
+     */
+    @Test
+    public void aStaticListInASectionClassIsLeftAlone() {
+        HookStatus.clear();
+        try {
+            Reel reel = new Reel();
+            WithStaticList section = new WithStaticList(new ArrayList<>(Arrays.asList(reel, new VideoAd())));
+
+            List<?> kept = ReelsAdFilter.withoutAdSections(Collections.singletonList(section), AD);
+
+            assertEquals(1, kept.size());
+            assertEquals(Collections.singletonList(reel), section.items);
+            assertEquals("the class's list is untouched", 1, WithStaticList.SHARED.size());
+            assertFalse(HookStatus.missing("Hide sponsored reels").toString(),
+                    HookStatus.missing("Hide sponsored reels").toString().contains("threw"));
+        } finally {
+            HookStatus.clear();
+        }
+    }
+
     /** A section wrapper with no list in it at all, so the filter can't see its items. */
     public static final class Opaque {
         Object item = new VideoAd();

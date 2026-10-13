@@ -32,6 +32,7 @@ import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowActivity;
+import org.robolectric.shadows.ShadowToast;
 
 import java.lang.ref.WeakReference;
 import java.net.InetAddress;
@@ -298,6 +299,50 @@ public class ClipboardLinkTest {
         ClipboardLink.download(application, new WeakReference<>(activity), found);
         assertNull("opened a video it could save", screen.getNextStartedActivity());
         assertEquals(2, saved.size());
+    }
+
+    /**
+     * Download on a copied link while saves hold every slot says so and opens nothing. One already
+     * waiting for its video's player when the slots fill says so when the player comes, and saves
+     * nothing.
+     */
+    @Test
+    public void aCopiedLinkWhileEverySlotIsTakenSaysWhy() throws Exception {
+        String busy = "Too many saves at once. Try again when one finishes.";
+        Context application = RuntimeEnvironment.getApplication();
+        ShadowActivity screen = Shadows.shadowOf(activity);
+
+        ClipboardLink.Found found = ClipboardLink.find("https://www.facebook.com/reel/17320508076");
+        try (SaveSlotsForTests ignored = SaveSlotsForTests.holdAll(application)) {
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+            ShadowToast.reset();
+            int before = saved.size();
+            ClipboardLink.download(application, new WeakReference<>(activity), found);
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+            assertEquals(busy, ShadowToast.getTextOfLatestToast());
+            assertNull("the video opened with every slot taken", screen.getNextStartedActivity());
+            assertNull(ClipboardLink.waitingFor());
+            assertEquals(before, saved.size());
+        }
+
+        String later = "17320508077";
+        ClipboardLink.download(application, new WeakReference<>(activity),
+                ClipboardLink.find("https://www.facebook.com/reel/" + later));
+        assertNotNull("the video didn't open", screen.getNextStartedActivity());
+        assertEquals(later, ClipboardLink.waitingFor());
+        try (SaveSlotsForTests ignored = SaveSlotsForTests.holdAll(application)) {
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+            ShadowToast.reset();
+            int before = saved.size();
+            PlayerSources.rememberVideo(new Params(later), "videoId", "hd", "manifest");
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+            assertNull(ClipboardLink.waitingFor());
+            assertEquals(busy, ShadowToast.getTextOfLatestToast());
+            assertEquals("the player's arrival took a slot", SaveSlotsForTests.SLOTS, MediaDownload.savesInFlight());
+            assertEquals("the video went to the downloader", before, saved.size());
+        }
     }
 
     @Test

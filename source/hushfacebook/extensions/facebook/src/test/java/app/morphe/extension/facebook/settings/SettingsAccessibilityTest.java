@@ -233,9 +233,28 @@ public class SettingsAccessibilityTest {
         assertTrue(info.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_CLICK));
         assertNotNull("the back icon is missing", back.getDrawable());
 
-        View title = ((android.view.ViewGroup) back.getParent()).getChildAt(1);
-        assertEquals("Hushfacebook", String.valueOf(((TextView) title).getText()));
+        List<View> views = new ArrayList<>();
+        views.add(dialog.getView());
+        TextView title = null;
+        TextView eyebrow = null;
+        for (int index = 0; index < views.size(); index++) {
+            View view = views.get(index);
+            if (view instanceof TextView) {
+                TextView text = (TextView) view;
+                if ("Hushfacebook".contentEquals(text.getText())) title = text;
+                if ("Settings".contentEquals(text.getText())) eyebrow = text;
+            }
+            if (view instanceof android.view.ViewGroup) {
+                android.view.ViewGroup group = (android.view.ViewGroup) view;
+                for (int child = 0; child < group.getChildCount(); child++) views.add(group.getChildAt(child));
+            }
+        }
+        assertNotNull("the screen's title is missing", title);
+        assertEquals("Hushfacebook", String.valueOf(title.getText()));
         assertTrue("the screen's title isn't a heading", node(title).isHeading());
+        assertNotNull("the page's eyebrow is missing", eyebrow);
+        assertFalse("the eyebrow duplicates the screen's heading", node(eyebrow).isHeading());
+        assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO, eyebrow.getImportantForAccessibility());
     }
 
     @Test

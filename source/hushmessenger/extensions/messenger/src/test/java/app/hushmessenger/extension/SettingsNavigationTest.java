@@ -31,7 +31,7 @@ public class SettingsNavigationTest {
             View root = screen.get().getWindow().getDecorView();
             TextView count = root.findViewWithTag("search_status");
             root.findViewWithTag("category_chats").performClick();
-            assertEquals(ExpectedTotals.shown(13), count.getText().toString());
+            assertEquals(ExpectedTotals.shown(17), count.getText().toString());
             assertEquals(View.GONE, ((View) root.findViewWithTag("people").getParent()).getVisibility());
             ((EditText) root.findViewWithTag("find_control")).setText("People You");
             assertEquals(View.VISIBLE, root.findViewWithTag("empty_state").getVisibility());
@@ -40,7 +40,7 @@ public class SettingsNavigationTest {
             assertEquals(View.GONE, root.findViewWithTag("empty_state").getVisibility());
             assertTrue(root.findViewWithTag("category_all").isSelected());
             root.findViewWithTag("category_more").performClick();
-            assertEquals(ExpectedTotals.shown(16), count.getText().toString());
+            assertEquals(ExpectedTotals.shown(19), count.getText().toString());
             assertEquals(View.VISIBLE, ((View) root.findViewWithTag("facebook").getParent()).getVisibility());
         }
     }

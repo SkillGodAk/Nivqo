@@ -19,6 +19,27 @@ public final class SavesForTests {
 
     private static final Map<Integer, SaveControl.Save> STARTED = new ConcurrentHashMap<>();
 
+    /** A clock a test moves by hand. It starts ten seconds in, as a monotonic clock never reads 0. */
+    public static final class FakeClock implements SaveControl.Clock {
+        private volatile long now = 10_000_000_000L;
+
+        @Override
+        public long nanoTime() {
+            return now;
+        }
+
+        public void advanceMillis(long millis) {
+            now += millis * 1_000_000L;
+        }
+    }
+
+    /** Every save, its time, rate and update gaps, reads [FakeClock] until {@link #endAll}. */
+    public static FakeClock fakeClock() {
+        FakeClock clock = new FakeClock();
+        SaveControl.clock = clock;
+        return clock;
+    }
+
     /** Starts watching a save, as a tap does, and answers its number. */
     public static int begin(Context context, boolean video) {
         SaveControl.Save save = SaveControl.begin(context, video);
@@ -53,8 +74,9 @@ public final class SavesForTests {
         if (save != null) save.end();
     }
 
-    /** Ends every save a test started and left running. */
+    /** Ends every save a test started and left running, and gives the saves the real clock back. */
     public static void endAll() {
         for (Integer id : STARTED.keySet()) end(id);
+        SaveControl.clock = System::nanoTime;
     }
 }

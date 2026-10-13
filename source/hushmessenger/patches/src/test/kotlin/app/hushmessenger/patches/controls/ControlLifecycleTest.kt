@@ -108,9 +108,9 @@ class ControlLifecycleTest {
     }
 
     private fun targetTypes(key: String): Set<String> = when (key) {
-        "menu_row" -> BASE_PROFILE.hooks.getValue("menu_settings").map { it.substringBefore("->") }.toSet()
+        "menu_row" -> SYNTHETIC_PROFILE.hooks.getValue("menu_settings").map { it.substringBefore("->") }.toSet()
         "people" -> listOf("people", "people_list_end", "people_jewel", "people_tab", "people_search", "people_story", INBOX_REFRESH_HOOK)
-            .flatMap { BASE_PROFILE.hooks.getValue(it) }.map { it.substringBefore("->") }.toSet()
+            .flatMap { SYNTHETIC_PROFILE.hooks.getValue(it) }.map { it.substringBefore("->") }.toSet()
         "material_you" -> setOf(DARK_SCHEME, FDS_COLORS, "LX/DarkCheck;", "LX/ThemeColors;")
         else -> error("Unexpected fixture control $key")
     }

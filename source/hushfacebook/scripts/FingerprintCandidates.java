@@ -8,13 +8,21 @@ import com.android.tools.smali.dexlib2.Opcode;
 import com.android.tools.smali.dexlib2.Opcodes;
 import com.android.tools.smali.dexlib2.iface.ClassDef;
 import com.android.tools.smali.dexlib2.iface.DexFile;
+import com.android.tools.smali.dexlib2.iface.ExceptionHandler;
 import com.android.tools.smali.dexlib2.iface.Field;
 import com.android.tools.smali.dexlib2.iface.Method;
 import com.android.tools.smali.dexlib2.iface.MethodImplementation;
 import com.android.tools.smali.dexlib2.iface.MultiDexContainer;
+import com.android.tools.smali.dexlib2.iface.TryBlock;
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction;
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction;
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction;
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction;
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction;
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction;
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction;
+import com.android.tools.smali.dexlib2.iface.instruction.SwitchElement;
+import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload;
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction;
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference;
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference;
@@ -76,7 +84,7 @@ import java.util.TreeSet;
 public final class FingerprintCandidates {
 
     static final String SCHEMA = "hushfacebook-fingerprint-signature";
-    static final int SCHEMA_VERSION = 1;
+    static final int SCHEMA_VERSION = 2;
     static final int DEFAULT_TOP = 5;
 
     /**
@@ -99,6 +107,14 @@ public final class FingerprintCandidates {
     static final int CLASS_STRINGS = 48;
     /** Callers compared, per method. */
     static final int MAX_CALLERS = 400;
+
+    /**
+     * String tables read per build, their cases kept per build, and outlined strings kept per method.
+     * A switch lists at most 65,535 cases, so the case budget is across the build's tables. The
+     * table limit can be lowered with -Dhushfacebook.fingerprint.maxTables, which the suite uses.
+     */
+    static final int MAX_TABLES = Integer.getInteger("hushfacebook.fingerprint.maxTables", 512);
+    static final int MAX_CACHED_CASES = 1 << 20, MAX_OUTLINED = 64;
 
     // The weight of each part of a score. Strings, literals, references and kept names do most of
     // the work, each weighed by how rare it is in the new build; the rest tells apart the methods
@@ -449,6 +465,7 @@ public final class FingerprintCandidates {
         long[] callKey = new long[1 << 20];
         int[] caller = new int[1 << 20];
         int calls;
+        final Tables tables = new Tables(classes);
 
         Build(File apk) throws Exception {
             this.apk = apk;
@@ -537,8 +554,8 @@ public final class FingerprintCandidates {
             for (int c : set) {
                 if (taken++ >= MAX_CALLERS) break;
                 ClassDef cd = methodClass.get(c);
-                List<String> ctx = contexts.computeIfAbsent(cd, x -> classContext(this, x, classStrings(x)));
-                callerTokens(extract(methods.get(c), cd, ctx), info.tokens);
+                List<String> ctx = contexts.computeIfAbsent(cd, x -> classContext(this, x, classStrings(x, tables)));
+                callerTokens(extract(methods.get(c), cd, ctx, tables), info.tokens);
             }
             return info;
         }
@@ -563,6 +580,8 @@ public final class FingerprintCandidates {
         int instructions;
         int registers;
         LinkedHashSet<String> strings = new LinkedHashSet<>();
+        /** Strings the method asks a string table for ({@link Tables}), each with where it was read. */
+        LinkedHashMap<String, String> outlined = new LinkedHashMap<>();
         LinkedHashSet<String> literals = new LinkedHashSet<>();
         LinkedHashSet<String> references = new LinkedHashSet<>();
         List<String> context = new ArrayList<>();
@@ -586,11 +605,21 @@ public final class FingerprintCandidates {
          * in 580, run is eleven thousand.
          */
         List<String> bodyTokens() {
-            List<String> out = new ArrayList<>(strings.size() + literals.size() + references.size() + 1);
-            for (String s : strings) out.add("S:" + s);
+            List<String> out = new ArrayList<>(strings.size() + outlined.size() + literals.size() + references.size() + 1);
+            for (String s : allStrings()) out.add("S:" + s);
             out.addAll(literals);
             out.addAll(references);
             if (nameKept) out.add("NM:" + name);
+            return out;
+        }
+
+        /**
+         * The strings the method loads and the ones it asks a table for, as one: Redex moves a
+         * literal behind a table between releases, and the string means the same either way.
+         */
+        LinkedHashSet<String> allStrings() {
+            LinkedHashSet<String> out = new LinkedHashSet<>(strings);
+            out.addAll(outlined.keySet());
             return out;
         }
 
@@ -601,8 +630,11 @@ public final class FingerprintCandidates {
         }
     }
 
-    /** What one method's body says, with the names Redex makes up taken out. */
-    static Features extract(Method m, ClassDef cd, List<String> context) {
+    /**
+     * What one method's body says, with the names Redex makes up taken out. With [tables], the
+     * strings it asks a string table for count as its strings too.
+     */
+    static Features extract(Method m, ClassDef cd, List<String> context, Tables tables) {
         Features f = new Features();
         f.descriptor = descriptor(m);
         f.definingClass = m.getDefiningClass();
@@ -617,14 +649,36 @@ public final class FingerprintCandidates {
         MethodImplementation impl = m.getImplementation();
         if (impl == null) return f;
         f.registers = impl.getRegisterCount();
+        Instruction previous = null;
+        Set<Integer> landings = null;
+        // A narrow literal's tokens wait one instruction: the index a proven table call asks for is
+        // a case number Redex renumbers, and the string read back stands for it instead.
+        List<String> pending = new ArrayList<>(2);
+        int address = 0;
         for (Instruction i : impl.getInstructions()) {
+            int at = address;
+            address += i.getCodeUnits();
+            Instruction before = previous;
+            previous = i;
+            // The index goes only where its string is kept: past the limit a call counts by its number.
+            boolean kept = false;
+            if (tables != null && Tables.isTableCall(i)) {
+                if (landings == null) landings = landings(impl);
+                String[] hit = tables.outlined(before, i, at, landings);
+                if (hit != null && (f.outlined.size() < MAX_OUTLINED || f.outlined.containsKey(hit[0]))) {
+                    f.outlined.putIfAbsent(hit[0], hit[1]);
+                    kept = true;
+                }
+            }
+            if (!kept) f.literals.addAll(pending);
+            pending.clear();
             f.instructions++;
             Opcode opcode = i.getOpcode();
             f.opcodes.add(family(opcode));
             if (i instanceof WideLiteralInstruction && opcode.setsWideRegister()) {
                 literalTokens(((WideLiteralInstruction) i).getWideLiteral(), true, f.literals);
             } else if (i instanceof NarrowLiteralInstruction) {
-                literalTokens(((NarrowLiteralInstruction) i).getNarrowLiteral(), false, f.literals);
+                literalTokens(((NarrowLiteralInstruction) i).getNarrowLiteral(), false, pending);
             }
             if (!(i instanceof ReferenceInstruction)) continue;
             Reference r = ((ReferenceInstruction) i).getReference();
@@ -645,6 +699,7 @@ public final class FingerprintCandidates {
                 if (!obfuscatedType(mr.getDefiningClass())) f.references.add("C:" + mr.getDefiningClass());
             }
         }
+        f.literals.addAll(pending);
         return f;
     }
 
@@ -679,18 +734,147 @@ public final class FingerprintCandidates {
         return out;
     }
 
-    static Set<String> classStrings(ClassDef cd) {
+    /** The strings a class's methods load or ask a string table for, as the index reads them. */
+    static Set<String> classStrings(ClassDef cd, Tables tables) {
         Set<String> out = new HashSet<>();
         for (Method m : cd.getMethods()) {
-            MethodImplementation impl = m.getImplementation();
-            if (impl == null) continue;
-            for (Instruction i : impl.getInstructions()) {
-                if (i instanceof ReferenceInstruction && ((ReferenceInstruction) i).getReference() instanceof StringReference) {
-                    out.add(((StringReference) ((ReferenceInstruction) i).getReference()).getString());
-                }
-            }
+            if (m.getImplementation() != null) out.addAll(extract(m, cd, List.of(), tables).allStrings());
         }
         return out;
+    }
+
+    /** Every code address a branch, a switch case or an exception handler can jump to. */
+    static Set<Integer> landings(MethodImplementation impl) {
+        Map<Integer, Instruction> byAddress = new HashMap<>();
+        int address = 0;
+        for (Instruction i : impl.getInstructions()) {
+            byAddress.put(address, i);
+            address += i.getCodeUnits();
+        }
+        Set<Integer> out = new HashSet<>();
+        for (Map.Entry<Integer, Instruction> e : byAddress.entrySet()) {
+            Instruction i = e.getValue();
+            if (!(i instanceof OffsetInstruction)) continue;
+            int target = e.getKey() + ((OffsetInstruction) i).getCodeOffset();
+            if (i.getOpcode() == Opcode.PACKED_SWITCH || i.getOpcode() == Opcode.SPARSE_SWITCH) {
+                if (byAddress.get(target) instanceof SwitchPayload) {
+                    for (SwitchElement s : ((SwitchPayload) byAddress.get(target)).getSwitchElements()) out.add(e.getKey() + s.getOffset());
+                }
+            } else {
+                out.add(target);
+            }
+        }
+        for (TryBlock<?> t : impl.getTryBlocks()) {
+            for (ExceptionHandler handler : t.getExceptionHandlers()) out.add(handler.getHandlerCodeAddress());
+        }
+        return out;
+    }
+
+    /**
+     * Redex's outlined strings. A literal many methods share moves into a static
+     * {@code (I)Ljava/lang/String;} whose switch answers each index with a {@code const-string},
+     * and each method then loads an int and calls it, so the string is no longer in the method.
+     * Facebook moves literals in and out of these tables between releases (the story save event
+     * did on 581 and on 582's armeabi-v7a build). This reads one back only where nothing else can
+     * reach the call: the index is the int constant loaded straight before it, into the register
+     * it takes, no branch or handler lands on the call, and the table's first instruction is a
+     * switch on its argument whose case for the index is a {@code const-string} returned at once.
+     * An index without a case, any other argument, and a case that calls a helper, the table
+     * itself included, add nothing. Each table is read once per build, at most
+     * {@link #MAX_TABLES} of them and {@link #MAX_CACHED_CASES} cases in all. Only one thread
+     * featurizes methods, so the cache needs no lock.
+     */
+    static final class Tables {
+        final Map<String, ClassDef> classes;
+        final Map<String, Map<Integer, String>> read = new HashMap<>();
+        int tables, skipped, cached;
+
+        Tables(Map<String, ClassDef> classes) {
+            this.classes = classes;
+        }
+
+        static boolean isTableCall(Instruction i) {
+            if (i.getOpcode() != Opcode.INVOKE_STATIC && i.getOpcode() != Opcode.INVOKE_STATIC_RANGE) return false;
+            MethodReference call = (MethodReference) ((ReferenceInstruction) i).getReference();
+            return call.getReturnType().equals("Ljava/lang/String;") && call.getParameterTypes().size() == 1
+                    && call.getParameterTypes().get(0).toString().equals("I");
+        }
+
+        /**
+         * The string and its origin, as the table's descriptor and the case, that the call at
+         * [address] proves it asks for, with [before] the instruction straight ahead of it. Null
+         * when it proves none.
+         */
+        String[] outlined(Instruction before, Instruction call, int address, Set<Integer> landings) {
+            if (before == null || landings.contains(address)) return null;
+            Opcode load = before.getOpcode();
+            if (load != Opcode.CONST && load != Opcode.CONST_4 && load != Opcode.CONST_16 && load != Opcode.CONST_HIGH16) return null;
+            int register = ((OneRegisterInstruction) before).getRegisterA();
+            int argument = call instanceof RegisterRangeInstruction ? ((RegisterRangeInstruction) call).getStartRegister()
+                    : ((FiveRegisterInstruction) call).getRegisterC();
+            if (register != argument) return null;
+            int index = ((NarrowLiteralInstruction) before).getNarrowLiteral();
+            MethodReference ref = (MethodReference) ((ReferenceInstruction) call).getReference();
+            String table = ref.getDefiningClass() + "->" + ref.getName() + "(I)Ljava/lang/String;";
+            String value = cases(ref, table).get(index);
+            return value == null ? null : new String[] {value, table + " case " + index};
+        }
+
+        Map<Integer, String> cases(MethodReference ref, String table) {
+            Map<Integer, String> known = read.get(table);
+            if (known != null) return known;
+            Map<Integer, String> cases = Map.of();
+            ClassDef cd = classes.get(ref.getDefiningClass());
+            if (cd != null) {
+                for (Method m : cd.getMethods()) {
+                    if (m.getName().equals(ref.getName()) && descriptor(m).endsWith("(I)Ljava/lang/String;")) cases = parse(m);
+                }
+            }
+            if (!cases.isEmpty()) {
+                if (tables < MAX_TABLES && cached + cases.size() <= MAX_CACHED_CASES) {
+                    tables++;
+                    cached += cases.size();
+                } else {
+                    skipped++;
+                    cases = Map.of();
+                }
+            }
+            read.put(table, cases);
+            return cases;
+        }
+
+        /** A table's cases: a static method whose first instruction switches on its one argument. */
+        static Map<Integer, String> parse(Method m) {
+            MethodImplementation impl = m.getImplementation();
+            if (impl == null || !AccessFlags.STATIC.isSet(m.getAccessFlags())) return Map.of();
+            List<Instruction> code = new ArrayList<>();
+            Map<Integer, Integer> indexAt = new HashMap<>();
+            int address = 0;
+            for (Instruction i : impl.getInstructions()) {
+                indexAt.put(address, code.size());
+                code.add(i);
+                address += i.getCodeUnits();
+            }
+            if (code.isEmpty()) return Map.of();
+            Instruction first = code.get(0);
+            if (first.getOpcode() != Opcode.PACKED_SWITCH && first.getOpcode() != Opcode.SPARSE_SWITCH) return Map.of();
+            if (((OneRegisterInstruction) first).getRegisterA() != impl.getRegisterCount() - 1) return Map.of();
+            Integer payloadAt = indexAt.get(((OffsetInstruction) first).getCodeOffset());
+            if (payloadAt == null || !(code.get(payloadAt) instanceof SwitchPayload)) return Map.of();
+            List<? extends SwitchElement> elements = ((SwitchPayload) code.get(payloadAt)).getSwitchElements();
+            Map<Integer, String> out = new HashMap<>();
+            for (SwitchElement e : elements) {
+                Integer at = indexAt.get(e.getOffset());
+                if (at == null || at + 1 >= code.size()) continue;
+                Instruction value = code.get(at), next = code.get(at + 1);
+                boolean loads = value.getOpcode() == Opcode.CONST_STRING || value.getOpcode() == Opcode.CONST_STRING_JUMBO;
+                if (loads && next.getOpcode() == Opcode.RETURN_OBJECT
+                        && ((OneRegisterInstruction) next).getRegisterA() == ((OneRegisterInstruction) value).getRegisterA()) {
+                    out.put(e.getKey(), ((StringReference) ((ReferenceInstruction) value).getReference()).getString());
+                }
+            }
+            return out;
+        }
     }
 
     /**
@@ -699,7 +883,7 @@ public final class FingerprintCandidates {
      * what the same token weighs in a body.
      */
     static void callerTokens(Features caller, Collection<String> out) {
-        for (String s : caller.strings) out.add("S:" + s);
+        for (String s : caller.allStrings()) out.add("S:" + s);
         out.addAll(caller.context);
         if (caller.nameKept) out.add("NM:" + caller.name);
         out.add("PR:" + caller.prototype);
@@ -730,8 +914,8 @@ public final class FingerprintCandidates {
         for (String w : wanted) {
             int id = build.indexOf.get(w);
             ClassDef cd = build.methodClass.get(id);
-            List<String> context = contexts.computeIfAbsent(cd, c -> classContext(build, c, classStrings(c)));
-            Features f = extract(build.methods.get(id), cd, context);
+            List<String> context = contexts.computeIfAbsent(cd, c -> classContext(build, c, classStrings(c, build.tables)));
+            Features f = extract(build.methods.get(id), cd, context, build.tables);
             CallerInfo info = build.callerInfo(callers.get(id), contexts);
             f.callerCount = info.count;
             f.callerTokens = info.tokens;
@@ -747,8 +931,8 @@ public final class FingerprintCandidates {
         f.sourceSha256 = sha256(apk);
         writeText(signatureOut, Json.write(toJson(f)));
         System.out.println("[fingerprint] captured " + method + ": " + f.instructions + " instructions, "
-                + f.strings.size() + " strings, " + f.literals.size() + " literals, " + f.references.size()
-                + " references, " + f.callerCount + " callers");
+                + f.strings.size() + " strings, " + f.outlined.size() + " outlined strings, " + f.literals.size() + " literals, "
+                + f.references.size() + " references, " + f.callerCount + " callers");
         System.out.println("[fingerprint] signature written to " + signatureOut);
         return 0;
     }
@@ -830,9 +1014,9 @@ public final class FingerprintCandidates {
             Set<String> classStrings = new HashSet<>();
             List<Features> features = new ArrayList<>();
             for (Method m : withCode) {
-                Features f = extract(m, cd, List.of());
+                Features f = extract(m, cd, List.of(), build.tables);
                 features.add(f);
-                classStrings.addAll(f.strings);
+                classStrings.addAll(f.allStrings());
             }
             int[] ctx = ids(dict, classContext(build, cd, classStrings));
             for (int k = 0; k < withCode.size(); k++) {
@@ -883,6 +1067,9 @@ public final class FingerprintCandidates {
         }
         System.out.println("[fingerprint] " + n + " methods with code, " + dict.names.size() + " distinct tokens, "
                 + build.calls + " calls");
+        System.out.println("[fingerprint] " + build.tables.tables + " string tables read"
+                + (build.tables.skipped > 0 ? ", " + build.tables.skipped + " more left unread past the limit of " + MAX_TABLES
+                        + " tables or " + MAX_CACHED_CASES + " cases" : ""));
         return ix;
     }
 
@@ -1174,6 +1361,16 @@ public final class FingerprintCandidates {
             }
             open = wider;
         }
+        // A table left unread takes its strings out of the new build, so a signature that counts
+        // outlined strings could be missing them on its true match, and no candidate can stand out.
+        if (ix.build.tables.skipped > 0) {
+            for (Ranking r : rankings) {
+                if (!r.standsOut || r.query.f.outlined.isEmpty()) continue;
+                r.standsOut = false;
+                r.verdict = String.format(Locale.ROOT, "%s, but %d string tables of the new build were left unread past the limit, "
+                        + "and this signature counts outlined strings", r.verdict, ix.build.tables.skipped);
+            }
+        }
         return Arrays.asList(rankings);
     }
 
@@ -1404,9 +1601,11 @@ public final class FingerprintCandidates {
         out.append("   signature: ").append(q.descriptor).append('\n');
         out.append("     prototype ").append(q.prototype).append(q.isStatic() ? " static" : "").append(", ")
                 .append(q.instructions).append(" instructions, ").append(q.strings.size()).append(" strings, ")
+                .append(q.outlined.size()).append(" outlined strings, ")
                 .append(q.literals.size()).append(" literals, ").append(q.references.size()).append(" references, ")
                 .append(q.callerCount).append(" callers\n");
         out.append("     strings ").append(list(quoted(q.strings), 6)).append('\n');
+        if (!q.outlined.isEmpty()) out.append("     outlined strings ").append(list(origins(q), 6, false)).append('\n');
         out.append("     literals ").append(list(q.literals, 6)).append('\n');
         out.append("     opcodes ").append(clip(q.sketch(), 80)).append('\n');
         out.append("   verdict: ").append(r.verdict).append(r.standsOut ? ". Nothing is accepted." : ". This fails closed.").append('\n');
@@ -1419,7 +1618,7 @@ public final class FingerprintCandidates {
         }
         for (int k : shown) {
             Score s = r.ranked.get(k);
-            Features c = extract(ix.build.methods.get(s.method), ix.build.methodClass.get(s.method), List.of());
+            Features c = extract(ix.build.methods.get(s.method), ix.build.methodClass.get(s.method), List.of(), ix.build.tables);
             c.context = tokensOf(ix.dict, ix.context[s.method]);
             CallerInfo callers = ix.callers.get(s.method);
             out.append(String.format(Locale.ROOT, "   #%d  %.3f  %s%s%n", k + 1, s.total, c.descriptor,
@@ -1430,7 +1629,8 @@ public final class FingerprintCandidates {
             out.append("       prototype: ").append(c.prototype)
                     .append(c.prototype.equals(q.prototype) ? " (the same)" : " (was " + q.prototype + ")")
                     .append(c.isStatic() != q.isStatic() ? (c.isStatic() ? ", now static" : ", no longer static") : "").append('\n');
-            diff(out, "strings", quoted(q.strings), quoted(c.strings));
+            diff(out, "strings", quoted(q.allStrings()), quoted(c.allStrings()));
+            if (!c.outlined.isEmpty()) out.append("       outlined strings: ").append(list(origins(c), 6, false)).append('\n');
             diff(out, "literals", q.literals, c.literals);
             out.append("       opcodes: old ").append(q.instructions).append(' ').append(clip(q.sketch(), 60)).append('\n');
             out.append("                new ").append(c.instructions).append(' ').append(clip(c.sketch(), 60)).append('\n');
@@ -1443,6 +1643,21 @@ public final class FingerprintCandidates {
             diff(out, "call neighbourhood", q.callerTokens, callers == null ? List.of() : callers.tokens);
         }
         out.append('\n');
+    }
+
+    /**
+     * Each outlined string with the table case it was read from, already printable: the string and
+     * the table are clipped on their own, so a long one never cuts off the case.
+     */
+    static List<String> origins(Features f) {
+        List<String> out = new ArrayList<>();
+        for (Map.Entry<String, String> e : f.outlined.entrySet()) {
+            String origin = e.getValue();
+            int cut = origin.lastIndexOf(" case ");
+            out.add("\"" + printable(e.getKey()) + "\" from "
+                    + (cut < 0 ? printable(origin) : printable(origin.substring(0, cut)) + origin.substring(cut)));
+        }
+        return out;
     }
 
     static List<String> tokensOf(Dictionary dict, int[] ids) {
@@ -1496,6 +1711,11 @@ public final class FingerprintCandidates {
     }
 
     static String list(Collection<String> items, int max) {
+        return list(items, max, true);
+    }
+
+    /** Up to [max] items in brackets; [clip] off for items already made printable, as origins are. */
+    static String list(Collection<String> items, int max, boolean clip) {
         if (items.isEmpty()) return "-";
         StringBuilder b = new StringBuilder("[");
         int k = 0;
@@ -1505,7 +1725,7 @@ public final class FingerprintCandidates {
                 break;
             }
             if (k++ > 0) b.append(", ");
-            b.append(printable(s));
+            b.append(clip ? printable(s) : s);
         }
         return b.append(']').toString();
     }
@@ -1538,6 +1758,14 @@ public final class FingerprintCandidates {
         method.put("registers", f.registers);
         m.put("method", method);
         m.put("strings", new ArrayList<>(f.strings));
+        List<Object> outlined = new ArrayList<>();
+        for (Map.Entry<String, String> e : f.outlined.entrySet()) {
+            Map<String, Object> o = new LinkedHashMap<>();
+            o.put("string", e.getKey());
+            o.put("origin", e.getValue());
+            outlined.add(o);
+        }
+        m.put("outlinedStrings", outlined);
         m.put("literals", new ArrayList<>(f.literals));
         m.put("references", new ArrayList<>(f.references));
         m.put("context", new ArrayList<>(f.context));
@@ -1554,7 +1782,9 @@ public final class FingerprintCandidates {
         try {
             Map<String, Object> m = (Map<String, Object>) json;
             if (!SCHEMA.equals(m.get("schema"))) throw new InputException(file + " is not a " + SCHEMA + " file");
-            if (((Number) m.get("version")).intValue() != SCHEMA_VERSION) {
+            // A whole number only: 2.0 or 2.5 is no version this tool wrote.
+            Object version = m.get("version");
+            if (!(version instanceof Long) || (Long) version != SCHEMA_VERSION) {
                 throw new InputException(file + " is signature version " + m.get("version") + ", and this tool reads " + SCHEMA_VERSION);
             }
             Features f = new Features();
@@ -1574,6 +1804,12 @@ public final class FingerprintCandidates {
             f.instructions = ((Number) method.get("instructions")).intValue();
             f.registers = ((Number) method.get("registers")).intValue();
             for (Object s : (List<Object>) m.get("strings")) f.strings.add((String) s);
+            for (Object o : (List<Object>) m.get("outlinedStrings")) {
+                Map<String, Object> e = (Map<String, Object>) o;
+                String string = (String) e.get("string"), origin = (String) e.get("origin");
+                if (string == null || origin == null) throw new NullPointerException();
+                f.outlined.putIfAbsent(string, origin);
+            }
             for (Object s : (List<Object>) m.get("literals")) f.literals.add((String) s);
             for (Object s : (List<Object>) m.get("references")) f.references.add((String) s);
             for (Object s : (List<Object>) m.get("context")) f.context.add((String) s);

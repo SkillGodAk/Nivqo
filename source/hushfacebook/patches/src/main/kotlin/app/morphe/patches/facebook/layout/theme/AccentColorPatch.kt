@@ -195,7 +195,7 @@ internal fun MutableMethod.hookColourSpan(target: String) {
     )
 }
 
-private fun Method.sameAs(other: Method): Boolean =
+internal fun Method.sameAs(other: Method): Boolean =
     name == other.name && returnType == other.returnType &&
         parameterTypes.map(CharSequence::toString) == other.parameterTypes.map(CharSequence::toString)
 

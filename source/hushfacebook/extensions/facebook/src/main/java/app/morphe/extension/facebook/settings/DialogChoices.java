@@ -6,8 +6,9 @@ package app.morphe.extension.facebook.settings;
 
 import android.content.res.ColorStateList;
 import android.database.DataSetObserver;
-import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.StateListDrawable;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -40,7 +41,7 @@ final class DialogChoices extends BaseAdapter {
         if (row instanceof CheckedTextView) {
             CheckedTextView choice = (CheckedTextView) row;
             float density = row.getResources().getDisplayMetrics().density;
-            choice.setTextColor(colors.title);
+            choice.setTextColor(ScreenColors.dimmedWhenDisabled(colors.title));
             choice.setTextSize(16);
             choice.setSingleLine(false);
             choice.setMaxLines(Integer.MAX_VALUE);
@@ -52,10 +53,13 @@ final class DialogChoices extends BaseAdapter {
             for (android.graphics.drawable.Drawable drawable : choice.getCompoundDrawablesRelative()) {
                 if (drawable != null) drawable.mutate().setTintList(indicator);
             }
-            StateListDrawable background = new StateListDrawable();
-            background.addState(new int[]{android.R.attr.state_checked}, new ColorDrawable((colors.accent & 0xFFFFFF) | 0x22000000));
-            background.addState(new int[]{}, new ColorDrawable(android.graphics.Color.TRANSPARENT));
-            choice.setBackground(background);
+            GradientDrawable surface = new GradientDrawable();
+            surface.setCornerRadius(Math.round(4 * density));
+            surface.setColor(new ColorStateList(new int[][]{{android.R.attr.state_checked}, {}},
+                    new int[]{(colors.accent & 0xFFFFFF) | 0x22000000, Color.TRANSPARENT}));
+            surface.setStroke(Math.round(2 * density), ScreenColors.focusStroke(colors.heading, Color.TRANSPARENT));
+            choice.setBackground(new RippleDrawable(ColorStateList.valueOf(ScreenColors.half(colors.accent)),
+                    surface, null));
             // Rounding both sides up at densities such as 450dpi exceeds the measured 48dp row.
             int verticalPadding = (int) (8 * density);
             choice.setPaddingRelative(Math.round(20 * density), verticalPadding,

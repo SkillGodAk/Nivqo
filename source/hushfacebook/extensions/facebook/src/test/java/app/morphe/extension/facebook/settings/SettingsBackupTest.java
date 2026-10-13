@@ -42,6 +42,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowActivity;
 import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowLooper;
+import org.robolectric.shadows.ShadowSystemClock;
 import org.robolectric.shadows.ShadowToast;
 
 import java.io.ByteArrayInputStream;
@@ -51,6 +52,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -182,6 +184,7 @@ public class SettingsBackupTest {
         Settings.PHOTO_FILENAME_TEMPLATE.resetToDefault();
         Settings.START_TAB.resetToDefault();
         Settings.FEEDS_SUBTAB.resetToDefault();
+        Settings.HOME_FEED.resetToDefault();
         Settings.COMMENT_ORDER.resetToDefault();
         Settings.PLAYBACK_QUALITY.resetToDefault();
         Settings.REELS_PLAYBACK_QUALITY.resetToDefault();
@@ -243,7 +246,7 @@ public class SettingsBackupTest {
         for (Setting<?> setting : SettingsBackup.VALUES) {
             assertFalse(setting.key + " is carried and kept out at once", VALUES_STAY_OUT.containsKey(setting.key));
         }
-        assertEquals(Arrays.<Setting<?>>asList(Settings.HIDDEN_WORDS, Settings.KEPT_WORDS, Settings.HIDDEN_SOURCES, Settings.HIDE_POSTS_OVER_REACTIONS, Settings.HIDDEN_SHARE_ITEMS, Settings.SEEN_POSTS_KEEP, Settings.SAVE_TO,
+        assertEquals(Arrays.<Setting<?>>asList(Settings.HIDDEN_WORDS, Settings.KEPT_WORDS, Settings.HIDDEN_SOURCES, Settings.HIDE_POSTS_OVER_REACTIONS, Settings.HIDDEN_SHARE_ITEMS, Settings.HOME_FEED, Settings.SEEN_POSTS_KEEP, Settings.SAVE_TO,
                 Settings.SAVE_FOLDER, Settings.VIDEO_SUBFOLDER, Settings.PHOTO_SUBFOLDER, Settings.DOWNLOAD_QUALITY,
                 Settings.FILENAME_TEMPLATE, Settings.PHOTO_FILENAME_TEMPLATE, Settings.DOWNLOAD_ACTION, Settings.SEND_TO_APP,
                 Settings.START_TAB, Settings.FEEDS_SUBTAB, Settings.COMMENT_ORDER, Settings.PLAYBACK_QUALITY,
@@ -260,6 +263,7 @@ public class SettingsBackupTest {
         assertEquals(Settings.PHOTO_FILENAME_TEMPLATE, SettingsBackup.PHOTO_NAME);
         assertEquals(Settings.START_TAB, SettingsBackup.START);
         assertEquals(Settings.FEEDS_SUBTAB, SettingsBackup.SUBTAB);
+        assertEquals(Settings.HOME_FEED, SettingsBackup.HOME_FEED);
         assertEquals(Settings.COMMENT_ORDER, SettingsBackup.ORDER);
         assertEquals(Settings.PLAYBACK_QUALITY, SettingsBackup.PLAYBACK);
         assertEquals(Settings.REELS_PLAYBACK_QUALITY, SettingsBackup.REELS_QUALITY);
@@ -1575,6 +1579,62 @@ public class SettingsBackupTest {
     }
 
     /**
+     * The feed Home shows goes out as its file value and comes back only as one this build offers,
+     * like the Feeds filter, and the preview says what it does. A file from before it was carried
+     * leaves it alone.
+     */
+    @Test
+    public void homesFeedRoundTripsAndComesBackOnlyAsOneThisBuildOffers() throws Exception {
+        for (FeedsSubtab feed : FeedsSubtab.values()) {
+            Settings.HOME_FEED.save(feed);
+            String file = SettingsBackup.create();
+            assertEquals(feed.fileValue, new JSONObject(file).getJSONObject("settings").get(SettingsBackup.HOME_FEED.key));
+            Settings.HOME_FEED.save(feed == FeedsSubtab.ALL ? FeedsSubtab.FRIENDS : FeedsSubtab.ALL);
+
+            SettingsBackup.Snapshot snapshot = SettingsBackup.parse(file);
+            assertEquals(feed, snapshot.homeFeed);
+            assertEquals(feed, snapshot.homeFeedChange());
+            assertEquals(Collections.singletonMap(SettingsBackup.HOME_FEED, feed), snapshot.changes());
+            assertEquals(1, SettingsBackup.apply(snapshot));
+            assertEquals(feed, Settings.HOME_FEED.savedValue());
+            assertEquals("a file read back is the file", file, SettingsBackup.create());
+            assertEquals("the same feed again changes nothing", 0, SettingsBackup.parse(file).changes().size());
+        }
+
+        Settings.HOME_FEED.save(FeedsSubtab.FRIENDS);
+        String file = SettingsBackup.create();
+        Map<String, ?> before = store();
+        for (Object refused : new Object[]{"FRIENDS", "Friends", "most_recent_friend", "top_stories", "", 3, true,
+                JSONObject.NULL, new JSONObject(), new org.json.JSONArray()}) {
+            JSONObject hostile = new JSONObject(file);
+            hostile.getJSONObject("settings").put(SettingsBackup.HOME_FEED.key, refused);
+            try {
+                SettingsBackup.parse(hostile.toString());
+                fail("a file with the Home feed " + printable(String.valueOf(refused)) + " was read");
+            } catch (SettingsBackup.Rejected rejected) {
+                assertEquals(printable(String.valueOf(refused)), SettingsBackup.Reason.VALUE, rejected.reason);
+            }
+        }
+        assertEquals("a refused file wrote something", before, store());
+
+        SettingsBackup.Snapshot older = SettingsBackup.parse(fileWith(Settings.HIDE_SUGGESTED_POSTS, false));
+        assertNull(older.homeFeed);
+        assertNull(older.homeFeedChange());
+        SettingsBackup.apply(older);
+        assertEquals(FeedsSubtab.FRIENDS, Settings.HOME_FEED.savedValue());
+
+        // A preview kept across a rebuild keeps its feed, and only one this build offers comes back.
+        Bundle state = SettingsBackup.parse(file).toBundle();
+        assertEquals(FeedsSubtab.FRIENDS, SettingsBackup.Snapshot.fromBundle(state).homeFeed);
+        state.putString("home_feed", "FRIENDS");
+        assertNull(SettingsBackup.Snapshot.fromBundle(state).homeFeed);
+
+        assertEquals(L10n.f("With %1$s on, Home will show the same posts as %2$s in the Feeds tab.",
+                        L10n.isolate(SwitchLabels.title(Settings.FOLLOWING_FEED_HOME)), L10n.t("Groups")),
+                SettingsBackupPreference.homeFeedSentence(FeedsSubtab.GROUPS));
+    }
+
+    /**
      * The order comments open in goes out as its file value and comes back only as one this build
      * offers: any other value, or one that isn't text, refuses the whole file.
      */
@@ -1781,7 +1841,7 @@ public class SettingsBackupTest {
         String file = SettingsBackup.create();
         Map<String, ?> before = store();
         for (String key : new String[]{SettingsBackup.REELS_QUALITY.key, SettingsBackup.STORIES_QUALITY.key}) {
-            for (Object refused : new Object[]{"SAME", "Same as videos", "DATA_SAVER", "480", " 720p", "", "1080p", 720,
+            for (Object refused : new Object[]{"SAME", "Same as Playback quality", "DATA_SAVER", "480", " 720p", "", "1080p", 720,
                     true, JSONObject.NULL, new JSONObject(), new org.json.JSONArray()}) {
                 JSONObject hostile = new JSONObject(file);
                 hostile.getJSONObject("settings").put(key, refused);
@@ -2785,7 +2845,7 @@ public class SettingsBackupTest {
             HushfacebookPreferenceFragment page = SettingsL10nTest.pageOf(SettingsL10nTest.show(activity));
             deliver(activity, tap(activity, page, IMPORT_ROW), SettingsBackup.create());
             AlertDialog preview = shownPreview();
-            assertEquals("Your switches already match that file, so nothing will change.",
+            assertEquals("Your settings already match that file, so nothing will change.",
                     String.valueOf(shadowOf(preview).getMessage()));
             assertEquals("OK", String.valueOf(preview.getButton(AlertDialog.BUTTON_POSITIVE).getText()));
             assertFalse(preview.getButton(AlertDialog.BUTTON_NEGATIVE).isShown());
@@ -3201,6 +3261,43 @@ public class SettingsBackupTest {
             deliver(activity, tap(activity, page, IMPORT_ROW), fileWith(Settings.HIDE_SPONSORED_POSTS, false));
             shownPreview().cancel();
             settle();
+        }
+    }
+
+    /**
+     * A file turned down at the moment the wait runs out: the worker returned first, so the screen
+     * says why the file was turned down rather than that the app took too long, and the rows come
+     * back. The answer used to lose to the wait, which then dropped it.
+     */
+    @Test
+    public void aRefusalThatLandsAsTheWaitRunsOutIsTheOneSaid() throws Exception {
+        CountDownLatch release = new CountDownLatch(1);
+        SettingsFileProvider.stall = release;
+        Uri uri = SettingsFileProvider.put(AUTHORITY, "notes.json", "just some text".getBytes(StandardCharsets.UTF_8));
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            HushfacebookPreferenceFragment page = SettingsL10nTest.pageOf(SettingsL10nTest.show(activity));
+            ShadowAlertDialog.reset();
+            try {
+                shadowOf(activity).receiveResult(tap(activity, page, IMPORT_ROW).intent, Activity.RESULT_OK,
+                        new Intent().setData(uri));
+                ShadowLooper.idleMainLooper();
+                awaitHeldOpen();
+                // The wait is due, but the main thread hasn't got to it when the worker returns.
+                ShadowSystemClock.advanceBy(Duration.ofMillis(SettingsBackupPreference.timeoutMs + 1));
+            } finally {
+                release.countDown();
+            }
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+
+            assertEquals(SettingsBackupPreference.refusal(SettingsBackup.Reason.DAMAGED), ShadowToast.getTextOfLatestToast());
+            assertEquals("the cancel went out after the worker returned", 0, SettingsFileProvider.cancels.get());
+            assertNull(ShadowAlertDialog.getLatestAlertDialog());
+            assertTrue(page.findPreference(IMPORT_ROW).isEnabled());
+            assertTrue(page.findPreference(EXPORT_ROW).isEnabled());
+            // Nothing is left holding a worker, so the next pick opens the picker.
+            tap(activity, page, IMPORT_ROW);
         }
     }
 

@@ -34,15 +34,21 @@ public class MessageLogTest {
         Settings.activeAt.clear();
         CrashGuard.resetForTests();
         CrashGuard.onProcessStart(RuntimeEnvironment.getApplication());
+        // With the switch still off, this drops anything an earlier test left queued.
+        MessageLog.drain();
+        MessageLog.forgetCaptures();
+        Settings.hookErrors.clear();
         softwareVault = new SoftwareVault();
         MessageLog.vault = softwareVault;
         logFile().delete();
+        damagedFile().delete();
         Settings.preferences.edit().putBoolean("message_log", true).commit();
     }
 
     @After public void tidy() {
         MessageLog.vault = null;
         logFile().delete();
+        damagedFile().delete();
     }
 
     private File logFile() {
@@ -66,6 +72,105 @@ public class MessageLogTest {
     @Test public void tabsAndNewlinesInAMessageSurviveTheRoundTrip() throws Exception {
         MessageLog.storeNow("line one\nline\ttwo\\end", "t");
         assertEquals("line one\nline\ttwo\\end", MessageLog.entries().get(0).text);
+    }
+
+    @Test public void takesTheSenderAndTheGroupFromTheChatsNotification() throws Exception {
+        Context context = Settings.appContext;
+        android.app.NotificationManager manager = context.getSystemService(android.app.NotificationManager.class);
+        android.app.Notification.MessagingStyle style = new android.app.Notification.MessagingStyle(new android.app.Person.Builder().setName("Me").build())
+            .setConversationTitle("Climbing").setGroupConversation(true)
+            .addMessage("earlier", 1, new android.app.Person.Builder().setName("Bo").build())
+            .addMessage("see you at six", 2, new android.app.Person.Builder().setName("Ana").build());
+        manager.notify("GROUP:77", 1, new android.app.Notification.Builder(context, "chats")
+            .setSmallIcon(android.R.drawable.sym_def_app_icon).setStyle(style).build());
+        try {
+            MessageLog.storeNow("see you at six", "GROUP:77");
+            MessageLog.storeNow("no notification for this one", "ONE_TO_ONE:5:6");
+            List<MessageLog.Entry> entries = MessageLog.entries();
+            assertEquals("", entries.get(0).sender);
+            assertEquals("", entries.get(0).chat);
+            assertEquals("Ana", entries.get(1).sender);
+            assertEquals("Climbing", entries.get(1).chat);
+            assertEquals("GROUP:77", entries.get(1).thread);
+        } finally {
+            manager.cancelAll();
+        }
+    }
+
+    @Test public void aOneToOneNotificationGivesTheSenderAndNoGroup() throws Exception {
+        Context context = Settings.appContext;
+        android.app.NotificationManager manager = context.getSystemService(android.app.NotificationManager.class);
+        android.app.Notification.MessagingStyle style = new android.app.Notification.MessagingStyle(new android.app.Person.Builder().setName("Me").build())
+            .addMessage("hi\tthere", 1, new android.app.Person.Builder().setName("Ana\tB").build());
+        manager.notify("ADVANCED_CRYPTO_ONE_TO_ONE:9", 1, new android.app.Notification.Builder(context, "chats")
+            .setSmallIcon(android.R.drawable.sym_def_app_icon).setContentTitle("Ana\tB").setStyle(style).build());
+        try {
+            MessageLog.storeNow("hi\tthere", "ADVANCED_CRYPTO_ONE_TO_ONE:9");
+            MessageLog.Entry entry = MessageLog.entries().get(0);
+            // Tabs in a name or the text survive the five-column line.
+            assertEquals("Ana\tB", entry.sender);
+            assertEquals("", entry.chat);
+            assertEquals("hi\tthere", entry.text);
+        } finally {
+            manager.cancelAll();
+        }
+    }
+
+    @Test public void aMessageWhoseNotificationIsBuiltTwiceIsKeptOnce() throws Exception {
+        MessageLog.storeNow("same words", "ONE_TO_ONE:1:2");
+        MessageLog.storeNow("same words", "ONE_TO_ONE:1:2");
+        MessageLog.storeNow("same words", "ONE_TO_ONE:3:4");
+        MessageLog.storeNow("other words", "ONE_TO_ONE:1:2");
+        List<MessageLog.Entry> entries = MessageLog.entries();
+        assertEquals(3, entries.size());
+        assertEquals("other words", entries.get(0).text);
+        assertEquals("ONE_TO_ONE:3:4", entries.get(1).thread);
+        assertEquals("ONE_TO_ONE:1:2", entries.get(2).thread);
+    }
+
+    @Test public void theSameWordsAfterTheWindowAreANewMessage() {
+        long start = 1_000;
+        assertFalse(MessageLog.repeated("t", "ok", start));
+        assertTrue(MessageLog.repeated("t", "ok", start + MessageLog.DUPLICATE_WINDOW_MS));
+        assertFalse(MessageLog.repeated("t", "ok", start + MessageLog.DUPLICATE_WINDOW_MS + 1));
+        // A clock moved back doesn't hide the next message behind a capture from the future.
+        assertFalse(MessageLog.repeated("t", "later", 50_000));
+        assertFalse(MessageLog.repeated("t", "later", 40_000));
+    }
+
+    @Test public void namesAutoReplyNotedOutliveTheNotificationItAnswered() throws Exception {
+        android.app.Notification.MessagingStyle style = new android.app.Notification.MessagingStyle(new android.app.Person.Builder().setName("Me").build())
+            .addMessage("ping test", 1, new android.app.Person.Builder().setName("Ana").build());
+        android.app.Notification answered = new android.app.Notification.Builder(Settings.appContext, "chats")
+            .setSmallIcon(android.R.drawable.sym_def_app_icon).setContentTitle("Ana").setStyle(style).build();
+        // Auto reply read it, and the reply took it down before the log got to it, so it's never posted here.
+        MessageLog.noteNames("ADVANCED_CRYPTO_ONE_TO_ONE:9", "ping test", answered);
+        MessageLog.storeNow("ping test", "ADVANCED_CRYPTO_ONE_TO_ONE:9");
+        assertEquals("Ana", MessageLog.entries().get(0).sender);
+        // Used once: a later capture of other words in that chat isn't named from it.
+        MessageLog.storeNow("ping again", "ADVANCED_CRYPTO_ONE_TO_ONE:9");
+        assertEquals("", MessageLog.entries().get(0).sender);
+    }
+
+    @Test public void namesAreNotNotedWhileTheLogIsOff() throws Exception {
+        Settings.preferences.edit().putBoolean("message_log", false).commit();
+        android.app.Notification answered = new android.app.Notification.Builder(Settings.appContext, "chats")
+            .setSmallIcon(android.R.drawable.sym_def_app_icon).setContentTitle("Ana").build();
+        MessageLog.noteNames("ONE_TO_ONE:1:2", "hello", answered);
+        Settings.preferences.edit().putBoolean("message_log", true).commit();
+        MessageLog.storeNow("hello", "ONE_TO_ONE:1:2");
+        assertEquals("", MessageLog.entries().get(0).sender);
+    }
+
+    @Test public void readsALogWrittenBeforeNamesWereKept() throws Exception {
+        long now = System.currentTimeMillis();
+        byte[] plain = (now + "\tONE_TO_ONE:1:2\told format\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        Files.write(logFile().toPath(), MessageLog.vault().seal(plain));
+        MessageLog.Entry entry = MessageLog.entries().get(0);
+        assertEquals("old format", entry.text);
+        assertEquals("ONE_TO_ONE:1:2", entry.thread);
+        assertEquals("", entry.sender);
+        assertEquals("", entry.chat);
     }
 
     @Test public void listsNewestFirst() throws Exception {
@@ -124,6 +229,211 @@ public class MessageLogTest {
         assertFalse(logFile().exists());
         assertTrue(MessageLog.entries().isEmpty());
         assertNotEquals(keyBefore, softwareVault.generation);
+    }
+
+    @Test public void expiryRemovesOldEntriesFromTheFileWithoutANewMessageEvenWhenOff() throws Exception {
+        long now = System.currentTimeMillis();
+        List<MessageLog.Entry> seeded = new ArrayList<>();
+        seeded.add(new MessageLog.Entry(now - MessageLog.MAX_AGE_MS - 60_000, "t", "stale"));
+        seeded.add(new MessageLog.Entry(now, "t", "fresh"));
+        MessageLog.write(Settings.appContext, seeded);
+        // Off keeps what's stored but doesn't keep it past 30 days.
+        Settings.preferences.edit().putBoolean("message_log", false).commit();
+        MessageLog.expireNow();
+        List<MessageLog.Entry> onDisk = MessageLog.read(logFile());
+        assertEquals(1, onDisk.size());
+        assertEquals("fresh", onDisk.get(0).text);
+        assertNull(Settings.hookErrors.get("message_log"));
+    }
+
+    @Test public void expiryDeletesTheFileOnceEverythingIsOld() throws Exception {
+        List<MessageLog.Entry> seeded = new ArrayList<>();
+        seeded.add(new MessageLog.Entry(System.currentTimeMillis() - MessageLog.MAX_AGE_MS - 1, "t", "stale"));
+        MessageLog.write(Settings.appContext, seeded);
+        MessageLog.expireNow();
+        assertFalse(logFile().exists());
+    }
+
+    @Test public void viewingTheLogAlsoRemovesExpiredEntriesFromDisk() throws Exception {
+        long now = System.currentTimeMillis();
+        List<MessageLog.Entry> seeded = new ArrayList<>();
+        seeded.add(new MessageLog.Entry(now - MessageLog.MAX_AGE_MS - 60_000, "t", "stale"));
+        seeded.add(new MessageLog.Entry(now, "t", "fresh"));
+        MessageLog.write(Settings.appContext, seeded);
+        assertEquals(1, MessageLog.entries().size());
+        assertEquals(1, MessageLog.read(logFile()).size());
+    }
+
+    @Test public void anEntryDatedInTheFutureStillExpires() throws Exception {
+        List<MessageLog.Entry> seeded = new ArrayList<>();
+        seeded.add(new MessageLog.Entry(System.currentTimeMillis() + 365L * 24 * 60 * 60 * 1000, "t", "clock was wrong"));
+        MessageLog.write(Settings.appContext, seeded);
+        long time = MessageLog.read(logFile()).get(0).time;
+        assertTrue(time <= System.currentTimeMillis());
+        assertTrue(MessageLog.repairedOnRead);
+        // The moved time is written back, or the stored one would read as fresh on every run and never expire.
+        assertEquals(1, MessageLog.entries().size());
+        assertTrue(MessageLog.read(logFile()).get(0).time <= System.currentTimeMillis());
+        assertFalse(MessageLog.repairedOnRead);
+    }
+
+    @Test public void longMessagesAreCutWithoutSplittingAnEmoji() throws Exception {
+        String emoji = "😀";
+        String value = "x".repeat(MessageLog.MAX_TEXT_CHARS - 2) + emoji + "tail";
+        String clipped = MessageLog.clip(value, MessageLog.MAX_TEXT_CHARS);
+        assertTrue(clipped.length() <= MessageLog.MAX_TEXT_CHARS);
+        assertTrue(clipped.endsWith("…"));
+        assertFalse(Character.isHighSurrogate(clipped.charAt(clipped.length() - 2)));
+        MessageLog.storeNow("y".repeat(MessageLog.MAX_TEXT_CHARS * 3), "z".repeat(MessageLog.MAX_THREAD_CHARS * 3));
+        MessageLog.Entry stored = MessageLog.entries().get(0);
+        assertEquals(MessageLog.MAX_TEXT_CHARS, stored.text.length());
+        assertEquals(MessageLog.MAX_THREAD_CHARS, stored.thread.length());
+    }
+
+    @Test public void theWholeLogStaysUnderItsByteBudgetKeepingTheNewest() throws Exception {
+        long now = System.currentTimeMillis();
+        List<MessageLog.Entry> seeded = new ArrayList<>();
+        int big = MessageLog.MAX_PLAIN_BYTES / MessageLog.MAX_TEXT_CHARS + 50;
+        for (int i = 0; i < big; i++) seeded.add(new MessageLog.Entry(now - big + i, "t", i + "w".repeat(MessageLog.MAX_TEXT_CHARS - 10)));
+        MessageLog.write(Settings.appContext, seeded);
+        MessageLog.storeNow("newest", "t");
+        List<MessageLog.Entry> onDisk = MessageLog.read(logFile());
+        long bytes = 0;
+        for (MessageLog.Entry entry : onDisk) bytes += (entry.time + "\t" + entry.thread + "\t" + entry.text + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        assertTrue(bytes <= MessageLog.MAX_PLAIN_BYTES);
+        assertEquals("newest", onDisk.get(onDisk.size() - 1).text);
+        assertFalse(onDisk.get(0).text.startsWith("0w"));
+    }
+
+    @Test public void aLogTheKeyNoLongerOpensIsSetAsideAndTheLogKeepsWorking() throws Exception {
+        MessageLog.storeNow("before", "t");
+        // The keystore lost the key, for example after a restore; the old file can't be read any more.
+        softwareVault.forget();
+        MessageLog.storeNow("after", "t");
+        List<MessageLog.Entry> entries = MessageLog.entries();
+        assertEquals(1, entries.size());
+        assertEquals("after", entries.get(0).text);
+        assertTrue(damagedFile().exists());
+        assertTrue(Settings.hookErrors.get("message_log").contains("Damaged"));
+    }
+
+    @Test public void aFileCutShorterThanItsTagIsSetAside() throws Exception {
+        MessageLog.storeNow("before", "t");
+        File log = new File(Settings.appContext.getFilesDir(), MessageLog.FILE);
+        Files.write(log.toPath(), java.util.Arrays.copyOf(Files.readAllBytes(log.toPath()), 20));
+        MessageLog.storeNow("after", "t");
+        assertEquals("after", MessageLog.entries().get(0).text);
+        assertTrue(damagedFile().exists());
+    }
+
+    @Test public void anOversizedFileIsSetAsideWithoutBeingRead() throws Exception {
+        try (java.io.RandomAccessFile file = new java.io.RandomAccessFile(logFile(), "rw")) {
+            file.setLength(MessageLog.MAX_FILE_BYTES + 1);
+        }
+        assertTrue(MessageLog.entries().isEmpty());
+        assertFalse(logFile().exists());
+        assertTrue(damagedFile().exists());
+        MessageLog.storeNow("works again", "t");
+        assertEquals("works again", MessageLog.entries().get(0).text);
+    }
+
+    @Test public void aFailedWriteLeavesTheOldLogAsItWas() throws Exception {
+        MessageLog.storeNow("kept", "t");
+        byte[] before = Files.readAllBytes(logFile().toPath());
+        MessageLog.vault = new MessageLog.Vault() {
+            @Override public byte[] seal(byte[] plain) throws Exception { throw new java.io.IOException("disk full"); }
+            @Override public byte[] open(byte[] blob) throws Exception { return softwareVault.open(blob); }
+            @Override public void forget() { softwareVault.forget(); }
+        };
+        MessageLog.storeNow("lost", "t");
+        MessageLog.vault = softwareVault;
+        assertArrayEquals(before, Files.readAllBytes(logFile().toPath()));
+        assertTrue(Settings.hookErrors.get("message_log").contains("IOException"));
+        // A temporary file that can't be written (here a folder in its place) fails the same way.
+        File temp = new File(Settings.appContext.getFilesDir(), MessageLog.FILE + ".tmp");
+        assertTrue(temp.mkdir());
+        try {
+            MessageLog.storeNow("also lost", "t");
+            assertArrayEquals(before, Files.readAllBytes(logFile().toPath()));
+        } finally {
+            temp.delete();
+        }
+        List<MessageLog.Entry> entries = MessageLog.entries();
+        assertEquals(1, entries.size());
+        assertEquals("kept", entries.get(0).text);
+        // The messages a failed write couldn't keep wait in the queue, and the next write keeps them in order.
+        MessageLog.storeNow("retried", "t");
+        entries = MessageLog.entries();
+        assertEquals(List.of("retried", "also lost", "lost", "kept"), entries.stream().map(entry -> entry.text).toList());
+    }
+
+    @Test public void aLogLeftByARepatchWithoutTheControlIsDeletedWithItsKey() throws Exception {
+        MessageLog.storeNow("left behind", "t");
+        assertTrue(logFile().exists());
+        int keyBefore = softwareVault.generation;
+        java.util.concurrent.Future<?> dropped = MessageLog.dropLeftovers(Settings.appContext);
+        assertNotNull(dropped);
+        dropped.get(10, java.util.concurrent.TimeUnit.SECONDS);
+        assertFalse(logFile().exists());
+        assertNotEquals("the key goes too", keyBefore, softwareVault.generation);
+        // Nothing to drop means nothing scheduled.
+        assertNull(MessageLog.dropLeftovers(Settings.appContext));
+    }
+
+    @Test public void clearDropsMessagesStillWaitingToBeWritten() throws Exception {
+        MessageLog.storeNow("old", "t");
+        MessageLog.queue("arrived before clear", "t");
+        MessageLog.clear();
+        MessageLog.drain();
+        assertFalse(logFile().exists());
+        assertTrue(MessageLog.entries().isEmpty());
+        MessageLog.queue("arrived after clear", "t");
+        MessageLog.drain();
+        assertEquals("arrived after clear", MessageLog.entries().get(0).text);
+    }
+
+    @Test public void aBurstIsWrittenOnceAndTheQueueIsBounded() throws Exception {
+        assertTrue(MessageLog.queue("first", "t"));
+        // Already scheduled: the next ones ride the same write.
+        assertFalse(MessageLog.queue("second", "t"));
+        for (int i = 0; i < MessageLog.MAX_ENTRIES; i++) MessageLog.queue("burst " + i, "t");
+        MessageLog.drain();
+        List<MessageLog.Entry> entries = MessageLog.entries();
+        assertEquals(MessageLog.MAX_ENTRIES, entries.size());
+        assertEquals("burst " + (MessageLog.MAX_ENTRIES - 1), entries.get(0).text);
+        assertNotEquals("first", entries.get(entries.size() - 1).text);
+    }
+
+    @Test public void capturingNeverWaitsForAWriteInProgress() throws Exception {
+        java.util.concurrent.CountDownLatch writing = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+        MessageLog.vault = new MessageLog.Vault() {
+            @Override public byte[] seal(byte[] plain) throws Exception {
+                writing.countDown();
+                release.await(10, java.util.concurrent.TimeUnit.SECONDS);
+                return softwareVault.seal(plain);
+            }
+            @Override public byte[] open(byte[] blob) throws Exception { return softwareVault.open(blob); }
+            @Override public void forget() { softwareVault.forget(); }
+        };
+        try {
+            MessageLog.record("slow write", "t");
+            assertTrue(writing.await(10, java.util.concurrent.TimeUnit.SECONDS));
+            // The writer holds the file now; a new notification must still return at once.
+            Thread capture = new Thread(() -> MessageLog.record("during the write", "t"));
+            capture.start();
+            capture.join(2_000);
+            assertFalse(capture.isAlive());
+        } finally {
+            release.countDown();
+        }
+        long deadline = System.currentTimeMillis() + 10_000;
+        while (MessageLog.entries().size() < 2 && System.currentTimeMillis() < deadline) Thread.sleep(20);
+        assertEquals("during the write", MessageLog.entries().get(0).text);
+    }
+
+    private File damagedFile() {
+        return new File(Settings.appContext.getFilesDir(), MessageLog.DAMAGED);
     }
 
     /** AES-GCM with a key held in memory, same blob layout as the keystore path: 12-byte nonce, then ciphertext. */

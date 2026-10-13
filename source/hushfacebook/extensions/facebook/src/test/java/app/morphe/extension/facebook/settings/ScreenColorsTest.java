@@ -7,6 +7,7 @@ package app.morphe.extension.facebook.settings;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -409,6 +410,56 @@ public class ScreenColorsTest {
             } finally {
                 row.getDialog().dismiss();
             }
+        }
+    }
+
+    @Test public void disabledDialogActionsDifferWithoutRelyingOnWholeViewOpacity() {
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(controller.get())
+                    .setPositiveButton("Save", null).setNegativeButton("Cancel", null).create();
+            dialog.show();
+            try {
+                for (ScreenColors colors : new ScreenColors[]{ScreenColors.DEFAULT,
+                        ScreenColors.of(TonePalette.fallback(), false), ScreenColors.of(TonePalette.fallback(), true)}) {
+                    colors.paint(dialog);
+                    Button save = dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE);
+                    int enabledText = save.getCurrentTextColor();
+                    save.setEnabled(false);
+                    assertNotEquals("disabled Save still looks active", enabledText, save.getCurrentTextColor());
+                    assertEquals("the button must retain its own state colors", 1f, save.getAlpha(), 0);
+                    save.setEnabled(true);
+                    assertEquals(enabledText, save.getCurrentTextColor());
+                }
+            } finally { dialog.dismiss(); }
+        }
+    }
+
+    @Test public void selectedAndFocusedControlsKeepReadableBoundaries() {
+        for (ScreenColors colors : new ScreenColors[]{ScreenColors.DEFAULT,
+                ScreenColors.of(TonePalette.fallback(), false), ScreenColors.of(TonePalette.fallback(), true)}) {
+            android.content.res.ColorStateList border = ScreenColors.focusStroke(colors.heading, colors.outline);
+            assertEquals(colors.heading, border.getColorForState(
+                    new int[]{android.R.attr.state_enabled, android.R.attr.state_focused}, 0));
+            assertEquals(colors.heading, border.getColorForState(
+                    new int[]{android.R.attr.state_enabled, android.R.attr.state_selected}, 0));
+            assertEquals(colors.outline, border.getColorForState(new int[]{}, 0));
+            assertTrue(contrast(colors.heading, colors.card) >= NON_TEXT);
+            assertTrue(contrast(colors.heading, colors.dialog) >= NON_TEXT);
+        }
+    }
+
+    @Test public void fieldsHaveDistinctFocusAndDisabledBoundaries() {
+        EditText field = new EditText(RuntimeEnvironment.getApplication());
+        for (ScreenColors colors : new ScreenColors[]{ScreenColors.DEFAULT,
+                ScreenColors.of(TonePalette.fallback(), false), ScreenColors.of(TonePalette.fallback(), true)}) {
+            colors.paintField(field);
+            assertTrue("field border ignores focus", field.getBackground().isStateful());
+            field.clearFocus();
+            int enabledText = field.getCurrentTextColor();
+            field.setEnabled(false);
+            assertNotEquals(enabledText, field.getCurrentTextColor());
+            field.setEnabled(true);
+            assertEquals(enabledText, field.getCurrentTextColor());
         }
     }
 

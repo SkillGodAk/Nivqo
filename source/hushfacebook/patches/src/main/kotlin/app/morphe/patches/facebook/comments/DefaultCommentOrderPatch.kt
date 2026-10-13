@@ -61,6 +61,23 @@ val defaultCommentOrderPatch = bytecodePatch(
                 "\"$PICK_QUERY\", found ${handlers.size}",
         )
         mutableClassDefBy(handler.definingClass).findMutableMethodOf(handler).tellThePick()
+
+        val keyMaps = selectorKeyMaps(
+            classDefByStrings(SELECTOR_KEY, StringComparisonType.EQUALS).filterNot { it.type.startsWith(EXTENSION_CLASSES) },
+        )
+        val headers = classDefByStrings(INTENT_FLAG, StringComparisonType.EQUALS)
+            .filterNot { it.type.startsWith(EXTENSION_CLASSES) }
+            .flatMap { owner -> owner.methods.mapNotNull { sortHeaderIn(it, keyMaps) } }
+            .distinctBy { "${it.definingClass}->${it.name}${it.parameterTypes}" }
+        val header = headers.singleOrNull() ?: throw PatchException(
+            "$PATCH: expected one comment sort menu header built by the method holding \"$INTENT_FLAG\" and " +
+                "\"$INTERRANKED\" and filed under \"$SELECTOR_KEY\", found ${headers.size}",
+        )
+        val headerClass = mutableClassDefBy(header.definingClass)
+        val headerConstructor = headerClass.methods.firstOrNull {
+            it.name == "<init>" && it.parameterTypes.map { type -> type.toString() } == header.parameterTypes.map { type -> type.toString() }
+        } ?: throw PatchException("$PATCH: ${header.definingClass} has no constructor ${header.parameterTypes}")
+        headerConstructor.tellTheMenu()
         enableStatus("defaultCommentOrder")
     }
 }
@@ -85,6 +102,20 @@ internal fun MutableMethod.askForTheOrder(registers: RequestRegisters) {
             move-result-object v${registers.order}
         """,
     )
+}
+
+/**
+ * First thing in the sort menu header's constructor, the post's feedback tree and the Function1 a
+ * tap on a row calls go to the extension, which may call that Function1 later on the main thread.
+ */
+internal fun MutableMethod.tellTheMenu() {
+    val feedback = parameterRegisterNumber(1)
+    val pick = parameterRegisterNumber(3)
+    // 582's constructor has five registers, so both are v2 and v4. Guarded in case a build grows it.
+    if (feedback > 15 || pick > 15) {
+        throw PatchException("$PATCH: $definingClass->$name keeps the feedback or the pick past v15: $feedback, $pick")
+    }
+    addInstructions(0, "invoke-static { v$feedback, v$pick }, $SORT_MENU")
 }
 
 /** First thing in the pick handler, the picked token goes to the extension, which only notes it. */

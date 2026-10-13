@@ -12,7 +12,14 @@ import zlib
 from pathlib import Path
 from zipfile import BadZipFile, ZipFile
 
-PROFILES = Path(__file__).resolve().parent / "profiles"
+if __package__:
+    from .build_queue import queued, time_limit
+    from .check_release import run_bounded
+else:
+    from build_queue import queued, time_limit
+    from check_release import run_bounded
+
+PROFILES =Path(__file__).resolve().parent / "profiles"
 
 
 def recorded_builds(directory: Path = PROFILES) -> dict[int, str]:
@@ -24,11 +31,20 @@ def recorded_builds(directory: Path = PROFILES) -> dict[int, str]:
             key, _, value = line.partition(" ")
             if key in ("code", "sha256"):
                 fields[key] = value
-        builds[int(fields["code"])] = fields["sha256"]
+        try:
+            builds[int(fields["code"])] = fields["sha256"]
+        except (KeyError, ValueError) as error:
+            raise ValueError(f"{path.name} is missing a code or sha256 line") from error
     return builds
 
 
-BUILDS = recorded_builds()
+try:
+    BUILDS = recorded_builds()
+    PROFILE_ERROR = None
+except (OSError, ValueError) as error:
+    # A broken record has to read as CHECK FAILED (exit 2) from main, never as a traceback with exit 1.
+    BUILDS = {}
+    PROFILE_ERROR = f"The recorded builds can't be read: {error}"
 STOCK_SHA256 = set(BUILDS.values())
 OLD_LITERAL = b"com.facebook.permission.prod.FB_APP_COMMUNICATION"
 CHANGED_LITERAL = b"com.facebook.permission.proX.FB_APP_COMMUNICATION"
@@ -90,14 +106,13 @@ def check(args: argparse.Namespace) -> int:
             f"-o={output_apk}",
             str(changed_apk),
         ]
-        run = subprocess.run(
-            command,
+        run = run_bounded(
+            queued(command, "hushmessenger changed APK check"),
             capture_output=True,
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=300,
-            check=False,
+            timeout=time_limit(300),
         )
         log = run.stdout + run.stderr
         if not report_path.is_file():
@@ -170,6 +185,8 @@ def main() -> int:
     parser.add_argument("--java", type=Path, default=Path("java"))
     args = parser.parse_args()
     try:
+        if PROFILE_ERROR:
+            raise ValueError(PROFILE_ERROR)
         return check(args)
     except subprocess.TimeoutExpired:
         print("CHECK FAILED: Desktop exceeded the 300-second limit.", file=sys.stderr)

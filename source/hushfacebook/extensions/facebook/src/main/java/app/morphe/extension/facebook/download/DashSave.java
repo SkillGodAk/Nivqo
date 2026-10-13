@@ -128,7 +128,9 @@ final class DashSave {
     /**
      * As above. With [transcodeVideo], the fetched [video] is made H.264 ({@link VideoTranscode}),
      * and with [reencodeSound], the fetched [audio] is made AAC-LC ({@link AacReencode}), before
-     * the join. A conversion that fails fails the save, and the caller's single file follows.
+     * the join. A conversion that fails fails the save, and the caller's single file follows. Each
+     * conversion writes into the room reserved for it and stops at the first sample past it
+     * ({@link OutputAllowance}), and its work file goes with the rest whatever happens.
      */
     static Downloader.Result save(
         Context application,
@@ -176,8 +178,13 @@ final class DashSave {
                     return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "not enough free space to convert the picture");
                 }
                 long started = SystemClock.uptimeMillis();
-                if (!VideoTranscode.transcode(videoFile, picture, video.bandwidth, progress)) {
-                    return Downloader.Result.fail(Downloader.Status.CANCELLED, "cancelled during the conversion");
+                try {
+                    if (!VideoTranscode.transcode(videoFile, picture, video.bandwidth, room, progress)) {
+                        return Downloader.Result.fail(Downloader.Status.CANCELLED, "cancelled during the conversion");
+                    }
+                } catch (OutputAllowance.Exceeded over) {
+                    return Downloader.Result.fail(Downloader.Status.WRITE_ERROR,
+                        "the converted picture outgrew the " + room + " bytes kept for it");
                 }
                 long took = SystemClock.uptimeMillis() - started;
                 File made = picture;
@@ -193,14 +200,20 @@ final class DashSave {
             if (audioFile != null && reencodeSound) {
                 if (progress.cancelled()) return Downloader.Result.fail(Downloader.Status.CANCELLED, "cancelled before the re-encode");
                 sound = File.createTempFile("sound", ".m4a", folder);
-                // AAC-LC at its bitrate is about the size of what came in, often less.
-                long room = Math.max(audioFile.length() * 3, 4L << 20);
+                // AAC-LC at its bitrate runs a few times the xHE-AAC it came from, so the room goes
+                // by how long the sound runs. A track over the cap couldn't join under it either.
+                long room = Math.min(maxBytes, AacReencode.room(audioFile));
                 if (reserve(sound, room) < room) {
                     return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "not enough free space to re-encode the sound");
                 }
                 long started = SystemClock.uptimeMillis();
-                if (!AacReencode.reencode(audioFile, sound, progress)) {
-                    return Downloader.Result.fail(Downloader.Status.CANCELLED, "cancelled during the re-encode");
+                try {
+                    if (!AacReencode.reencode(audioFile, sound, room, progress)) {
+                        return Downloader.Result.fail(Downloader.Status.CANCELLED, "cancelled during the re-encode");
+                    }
+                } catch (OutputAllowance.Exceeded over) {
+                    return Downloader.Result.fail(Downloader.Status.WRITE_ERROR,
+                        "the re-encoded sound outgrew the " + room + " bytes kept for it");
                 }
                 long took = SystemClock.uptimeMillis() - started;
                 File made = sound;

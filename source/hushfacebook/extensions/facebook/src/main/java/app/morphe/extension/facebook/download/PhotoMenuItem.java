@@ -123,6 +123,7 @@ public final class PhotoMenuItem {
             Context application = context == null ? Utils.getContext() : context.getApplicationContext();
             Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE,
                 () -> "Save photo tapped on a post's menu, " + photos.size() + " photo(s)");
+            if (MediaDownload.busy(application)) return null;
             List<String> urls = new ArrayList<>();
             List<PostDetails> details = new ArrayList<>();
             for (Photo photo : photos) {

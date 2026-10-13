@@ -18,14 +18,17 @@ import java.security.MessageDigest
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import kotlin.test.*
 
-/** [castActivity] adds 581's check-cast of the provider result in v0, which moves the window code down one. */
-internal fun screenshotViewerFixture(id: String, quickSize: Int = 438, castActivity: Boolean = false): MutableMethod {
+/** Emoji drawer flag reads in each 582 build, across its nine drawer hooks. */
+private const val EMOJI_DRAWER_READS = 10
+
+/** [resumeTail] pads onResume after the guarded part: 22 instructions in 582, two more in older releases. */
+internal fun screenshotViewerFixture(id: String, quickSize: Int = 438, resumeTail: Int = 22): MutableMethod {
     val body: String
     val registers: Int
     when {
         id.contains("->onResume(") -> {
             registers = 5
-            body = List(7) { "nop" }.joinToString("\n") + "\n" + (if (castActivity) "check-cast v0, LX/Provider;\n" else "") + """
+            body = List(7) { "nop" }.joinToString("\n") + "\n" + """
                 invoke-virtual {p0}, LX/Fragment;->getActivity()Landroid/app/Activity;
                 move-result-object v0
                 const/16 v1, 0x2000
@@ -45,7 +48,7 @@ internal fun screenshotViewerFixture(id: String, quickSize: Int = 438, castActiv
                 invoke-virtual {v0, v1, v1}, Landroid/view/Window;->setFlags(II)V
                 :resume
                 invoke-static {}, LX/Lifecycle;->resume()V
-            """.trimIndent() + "\n" + List(24) { "nop" }.joinToString("\n") + "\nreturn-void"
+            """.trimIndent() + "\n" + List(resumeTail) { "nop" }.joinToString("\n") + "\nreturn-void"
         }
         id.contains("->onCreateView(") -> {
             registers = 23
@@ -90,14 +93,13 @@ internal fun screenshotViewerFixture(id: String, quickSize: Int = 438, castActiv
 
 internal fun aiStickerCellFixture(
     id: String = activeProfile.hooks.getValue("ai_sticker_cell").single(),
-    label: Int = if (id.startsWith("LX/Ez5;")) GENERATE_AI_LABEL_581 else GENERATE_AI_LABEL,
-    sourceCount: Int = if (id.startsWith("LX/Ez5;")) 5 else 4,
+    label: Int = GENERATE_AI_LABEL,
+    sourceCount: Int = AI_CELL_SOURCES,
 ): List<MutableClass> {
     val type = id.substringBefore("->")
-    val superclass = when (type) { "LX/FTy;", "LX/FfQ;" -> "LX/1Hw;"; "LX/FSU;" -> "LX/1IL;"; "LX/Ez5;" -> "LX/1IO;"; else -> "LX/1Hx;" }
-    val size = when (type) { "LX/FfQ;" -> 106; "LX/Ez5;" -> 105; else -> 104 }
-    val registers = if (type == "LX/Ez5;") 24 else 23
-    val render = fixtureMethod(id, "const/4 v0, 0x0\n" + List(size - 2) { "nop" }.joinToString("\n") + "\nreturn-object v0", registers)
+    val superclass = aiCells.single { it.type == type }.superclass
+    val size = AI_CELL_SIZE
+    val render = fixtureMethod(id, "const/4 v0, 0x0\n" + List(size - 2) { "nop" }.joinToString("\n") + "\nreturn-object v0", AI_CELL_REGISTERS)
     render.implementation!!.run {
         for (at in listOf(1, 3, 5, 7)) addCatch(newLabelForIndex(at), newLabelForIndex(at + 1), newLabelForIndex(size - 1))
     }
@@ -129,12 +131,12 @@ private fun assertShiftedTries(before: List<Triple<Int, Int, List<Pair<String?, 
 }
 
 class NativeMediaControlsTest {
-    @AfterTest fun reset() { activeProfile = BASE_PROFILE }
+    @AfterTest fun reset() { activeProfile = SYNTHETIC_PROFILE }
 
     @Test fun allMappingsReplaceOnlyTheFourCallsAndRetainTheirMasksAndLifecycle() {
         for (profile in controlProfiles.values.toSet()) {
             activeProfile = profile
-            for (size in listOf(438, 439, 441, 442, 444, 448)) {
+            for (size in listOf(438, 441)) {
                 val methods = profile.hooks.getValue("screenshot_viewers").map { screenshotViewerFixture(it, size) }
                 for (method in methods) {
                     val before = method.implementation!!.instructions.toList()
@@ -183,31 +185,26 @@ class NativeMediaControlsTest {
         assertFailsWith<PatchException> { caught.injectScreenshotViewer() }
     }
 
-    @Test fun messenger581ViewerShapesKeepTheSameCallsAndRefuseAMissingCast() {
-        val resume = screenshotViewerFixture("$EPHEMERAL_VIEWER->onResume()V", castActivity = true)
-        val before = resume.implementation!!.instructions.toList()
-        assertEquals(49, before.size)
-        assertEquals(listOf(15, 22), resume.screenshotViewerSites())
-        resume.injectScreenshotViewer()
-        val after = resume.implementation!!.instructions.toList()
-        assertEquals(before.filterIndexed { i, _ -> i !in setOf(15, 22) }, after.filterIndexed { i, _ -> i !in setOf(15, 22) })
-        for (at in listOf(15, 22)) {
-            assertEquals("$SETTINGS->setScreenshotFlags(Landroid/view/Window;II)V", (after[at] as ReferenceInstruction).reference.toString())
-        }
-        val uncast = screenshotViewerFixture("$EPHEMERAL_VIEWER->onResume()V", castActivity = true).apply { replaceInstruction(7, "nop") }
-        assertFailsWith<PatchException> { uncast.screenshotViewerSites() }
-        val mask = screenshotViewerFixture("$EPHEMERAL_VIEWER->onResume()V", castActivity = true).apply { replaceInstruction(10, "const/16 v1, 0x80") }
+    @Test fun olderViewerShapesAreRefusedAndTheOtherDialogNameKeepsItsCall() {
+        val resume = "$EPHEMERAL_VIEWER->onResume()V"
+        assertEquals(listOf(14, 21), screenshotViewerFixture(resume).screenshotViewerSites())
+        // Older releases ran onResume two instructions longer.
+        assertFailsWith<PatchException> { screenshotViewerFixture(resume, resumeTail = 24).screenshotViewerSites() }
+        val mask = screenshotViewerFixture(resume).apply { replaceInstruction(9, "const/16 v1, 0x80") }
         assertFailsWith<PatchException> { mask.screenshotViewerSites() }
-        assertEquals(listOf(9), screenshotViewerFixture("$EPHEMERAL_VIEWER->A1E(Landroid/os/Bundle;)Landroid/app/Dialog;").screenshotViewerSites())
+        assertEquals(listOf(9), screenshotViewerFixture("$EPHEMERAL_VIEWER->A1F(Landroid/os/Bundle;)Landroid/app/Dialog;").screenshotViewerSites())
         val quick = "$QUICKSNAP_VIEWER->onCreateView(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;"
-        assertEquals(listOf(32), screenshotViewerFixture(quick, 444).screenshotViewerSites())
+        assertEquals(listOf(32), screenshotViewerFixture(quick, 441).screenshotViewerSites())
+        assertFailsWith<PatchException> { screenshotViewerFixture(quick, 444).screenshotViewerSites() }
     }
 
-    @Test fun messenger581CellNeedsItsOwnLabelAndFifthSource() {
-        val id = "LX/Ez5;->render(LX/2AL;)LX/1Gd;"
-        assertEquals(listOf(id), findAiStickerCells(aiStickerCellFixture(id, GENERATE_AI_LABEL_581, 5)).map { it.hookId() })
-        assertTrue(findAiStickerCells(aiStickerCellFixture(id, GENERATE_AI_LABEL_581, 4)).isEmpty())
-        assertTrue(findAiStickerCells(aiStickerCellFixture(id, GENERATE_AI_LABEL, 5)).isEmpty())
+    @Test fun eachAiCellNeedsTheLabelAndAllFiveSources() {
+        for (cell in aiCells) {
+            assertEquals(listOf(cell.render), findAiStickerCells(aiStickerCellFixture(cell.render)).map { it.hookId() })
+            assertTrue(findAiStickerCells(aiStickerCellFixture(cell.render, sourceCount = 4)).isEmpty())
+            // An older release's label for the same row.
+            assertTrue(findAiStickerCells(aiStickerCellFixture(cell.render, label = 0x7f140511)).isEmpty())
+        }
     }
 
     @Test fun paymentWindowsCleanupAndWrongProfileDialogNeverBecomeViewerHooks() {
@@ -221,8 +218,8 @@ class NativeMediaControlsTest {
         val found = findControls(listOf(fixtureClass(payment.definingClass, listOf(payment)), fixtureClass(cleanup.definingClass, listOf(cleanup))))
         assertTrue(found.getValue("screenshot_viewers").isEmpty())
         assertEquals(before, listOf(payment, cleanup).map { it.implementation!!.instructions.toList() })
-        activeProfile = PROFILE_346013370
-        assertFailsWith<PatchException> { screenshotViewerFixture("$EPHEMERAL_VIEWER->A1A(Landroid/os/Bundle;)Landroid/app/Dialog;").injectScreenshotViewer() }
+        activeProfile = PROFILE_346415706
+        assertFailsWith<PatchException> { screenshotViewerFixture("$EPHEMERAL_VIEWER->A1D(Landroid/os/Bundle;)Landroid/app/Dialog;").injectScreenshotViewer() }
     }
 
     @Test fun aLateViewerFailureCannotMutateAnExistingScreenshotHook() {
@@ -246,8 +243,7 @@ class NativeMediaControlsTest {
             val after = method.implementation!!.instructions.toList()
             assertEquals(before, after.drop(10))
             assertEquals("${method.definingClass}->A00:I", (after[1] as ReferenceInstruction).reference.toString())
-            val label = if (method.definingClass == "LX/Ez5;") GENERATE_AI_LABEL_581 else GENERATE_AI_LABEL
-            assertEquals(label, (after[2] as NarrowLiteralInstruction).narrowLiteral)
+            assertEquals(GENERATE_AI_LABEL, (after[2] as NarrowLiteralInstruction).narrowLiteral)
             assertEquals(10, after.branchTarget(3))
             assertEquals(10, after.branchTarget(7))
             assertEquals(Opcode.IF_NE, after[3].opcode)
@@ -298,7 +294,7 @@ class NativeMediaControlsTest {
             validateControls(discovered, setOf("ai_sticker_cell", "screenshot_viewers", EMOJI_DRAWER, ANALYTICS_UPLOADS, MESSAGE_LOG))
             // The emoji drawer rides on the same discovery: every flag read takes the helper and nothing else moves.
             val drawerReads = discovered.getValue(EMOJI_DRAWER).sumOf { assertEmojiDrawerInjected(it, "$code ${it.hookId()}") }
-            assertEquals(if (code.startsWith("3462")) 9 else 2, drawerReads, code)
+            assertEquals(EMOJI_DRAWER_READS, drawerReads, code)
             // So do the analytics uploads: each entry point keeps every original instruction after the switch's guard.
             for (native in discovered.getValue(ANALYTICS_UPLOADS)) {
                 val method = MutableMethod(native)

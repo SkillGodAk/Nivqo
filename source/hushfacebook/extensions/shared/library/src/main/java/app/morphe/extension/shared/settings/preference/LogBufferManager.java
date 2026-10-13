@@ -16,10 +16,11 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.AtomicFile;
 import android.database.Cursor;
+
+import androidx.annotation.Nullable;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,6 +43,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.function.Consumer;
 
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Logger;
@@ -69,6 +71,7 @@ public final class LogBufferManager {
      * %1$s.
      */
     public static CharSequence copiedMessage;
+    public static CharSequence copyFailedMessage;
     public static CharSequence exportFailedMessage;
     public static CharSequence noContextMessage;
     public static CharSequence alreadySavingMessage;
@@ -89,8 +92,9 @@ public final class LogBufferManager {
     private static final Deque<DiagnosticEvent> logBuffer = new ConcurrentLinkedDeque<>();
     private static final AtomicInteger logBufferCharSize = new AtomicInteger();
     private static final Object CRASH_FILE_LOCK = new Object();
-    private static final Object CLEAR_UNDO_LOCK = new Object();
-    private static final AtomicBoolean FILE_EXPORT_RUNNING = new AtomicBoolean();
+    /** The diagnostic generation lock: events, Clear and Undo, and every Java crash save. */
+    static final Object CLEAR_UNDO_LOCK = new Object();
+    private static final AtomicBoolean EXPORT_RUNNING = new AtomicBoolean();
     private static ClearSnapshot lastClear;
 
     /** Everything the clear row removes, kept in memory until its next tap. */
@@ -98,14 +102,14 @@ public final class LogBufferManager {
         final List<DiagnosticEvent> events;
         final app.morphe.extension.shared.diagnostics.HookStatus.Snapshot hooks;
         final app.morphe.extension.shared.diagnostics.FeedFilterCounters.Snapshot feedFilter;
-        final String javaCrash;
+        final JavaCrashReport.Cleared javaCrash;
         final String nativeCrash;
 
         ClearSnapshot(
                 List<DiagnosticEvent> events,
                 app.morphe.extension.shared.diagnostics.HookStatus.Snapshot hooks,
                 app.morphe.extension.shared.diagnostics.FeedFilterCounters.Snapshot feedFilter,
-                String javaCrash,
+                JavaCrashReport.Cleared javaCrash,
                 String nativeCrash
         ) {
             this.events = events;
@@ -117,7 +121,7 @@ public final class LogBufferManager {
 
         boolean isEmpty() {
             return events.isEmpty() && hooks.isEmpty() && feedFilter.isEmpty()
-                    && javaCrash.isEmpty() && nativeCrash.isEmpty();
+                    && javaCrash.report.isEmpty() && nativeCrash.isEmpty();
         }
     }
 
@@ -168,68 +172,100 @@ public final class LogBufferManager {
      * 250,000 characters, and on the main thread that held up the tap that asked for it.
      */
     public static void exportToClipboard() {
+        exportToClipboard(null);
+    }
+
+    /** The optional result runs on the main thread, after the clipboard has answered. */
+    public static void exportToClipboard(@Nullable Consumer<Boolean> completed) {
+        if (!beginExport(completed)) return;
         boolean started = Utils.runOnBackgroundThread(() -> {
-            String exportText;
+            boolean handedToMainThread = false;
             try {
-                exportText = clipboardText(CLIPBOARD_MAX_CHARS);
+                String exportText = clipboardText(CLIPBOARD_MAX_CHARS);
+                Utils.runOnMainThread(() -> copyToClipboard(exportText, completed));
+                handedToMainThread = true;
             } catch (Exception ex) {
                 clipboardFailed(ex);
-                return;
+            } finally {
+                // Fatal section or scheduling failures still give up ownership. The worker's
+                // outer error handler keeps the original failure visible in the log.
+                if (!handedToMainThread) finishExport(completed, false);
             }
-            Utils.runOnMainThread(() -> copyToClipboard(exportText));
         });
         if (!started) {
             Utils.showToastLong(say(couldNotStartMessage, L10n.t("Couldn't start the report export. Try again shortly.")));
+            finishExport(completed, false);
         }
     }
 
     /** Puts a built report on the clipboard, on the main thread. */
-    private static void copyToClipboard(String exportText) {
+    private static void copyToClipboard(String exportText, @Nullable Consumer<Boolean> completed) {
+        boolean copied = false;
         try {
             Utils.setClipboard(exportText);
+            copied = true;
             Utils.showToastShort(say(copiedMessage, L10n.t("Diagnostic report copied to the clipboard.")));
         } catch (Exception ex) {
             clipboardFailed(ex);
+        } finally {
+            finishExport(completed, copied);
         }
     }
 
     private static void clipboardFailed(Exception ex) {
         // The exception's own text stays in the log. It can carry a path or a signed URL,
         // and a reader on a phone cannot act on it from a toast.
-        Utils.showToastLong(say(exportFailedMessage, L10n.t("The diagnostic report couldn't be saved. Try again.")));
+        Utils.showToastLong(say(copyFailedMessage, L10n.t("The diagnostic report couldn't be copied. Try again.")));
         Logger.printException(() -> "Failed to export diagnostics", ex);
     }
 
     public static void exportToFile() {
+        exportToFile(null);
+    }
+
+    /** The optional result runs on the main thread, after the saved file is published or removed. */
+    public static void exportToFile(@Nullable Consumer<Boolean> completed) {
+        if (!beginExport(completed)) return;
         Context context = Utils.getContext();
         if (context == null) {
             Utils.showToastLong(say(noContextMessage, L10n.t("The diagnostic report couldn't be saved yet. Try again in a moment.")));
+            finishExport(completed, false);
             return;
         }
         Context application = context.getApplicationContext();
         final Context app = application == null ? context : application;
-        if (!FILE_EXPORT_RUNNING.compareAndSet(false, true)) {
-            Utils.showToastShort(say(alreadySavingMessage, L10n.t("A diagnostic report is already being saved.")));
-            return;
-        }
         try {
             Utils.submitOnBackgroundThread(() -> {
+                boolean saved = false;
                 try {
-                    String saved = writeToFile(app, buildExportText());
-                    Utils.showToastLong(String.format(say(savedToMessage, L10n.t("Full report saved to %1$s")), L10n.isolate(saved)));
+                    String path = writeToFile(app, buildExportText());
+                    saved = true;
+                    Utils.showToastLong(String.format(say(savedToMessage, L10n.t("Full report saved to %1$s")), L10n.isolate(path)));
                 } catch (Exception ex) {
                     Utils.showToastLong(say(exportFailedMessage, L10n.t("The diagnostic report couldn't be saved. Try again.")));
                     Logger.printException(() -> "Failed to save diagnostics", ex);
                 } finally {
-                    FILE_EXPORT_RUNNING.set(false);
+                    finishExport(completed, saved);
                 }
                 return null;
             });
         } catch (RejectedExecutionException error) {
-            FILE_EXPORT_RUNNING.set(false);
             Logger.printException(() -> "Could not start diagnostic export", error);
             Utils.showToastLong(say(couldNotStartMessage, L10n.t("Couldn't start the report export. Try again shortly.")));
+            finishExport(completed, false);
         }
+    }
+
+    private static boolean beginExport(@Nullable Consumer<Boolean> completed) {
+        if (EXPORT_RUNNING.compareAndSet(false, true)) return true;
+        Utils.showToastShort(say(alreadySavingMessage, L10n.t("A diagnostic report is already being exported.")));
+        if (completed != null) Utils.runOnMainThreadNowOrLater(() -> completed.accept(false));
+        return false;
+    }
+
+    private static void finishExport(@Nullable Consumer<Boolean> completed, boolean succeeded) {
+        EXPORT_RUNNING.set(false);
+        if (completed != null) Utils.runOnMainThreadNowOrLater(() -> completed.accept(succeeded));
     }
 
     static String writeToFile(Context context, String exportText) throws Exception {
@@ -240,8 +276,8 @@ public final class LogBufferManager {
         ContentValues values = new ContentValues();
         values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
         values.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
-        values.put(MediaStore.MediaColumns.RELATIVE_PATH,
-                Environment.DIRECTORY_DOWNLOADS + "/Morphe");
+        // Next to the crash files, so a bug report's two files are in one folder.
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH, CrashFile.FOLDER);
         values.put(MediaStore.MediaColumns.IS_PENDING, 1);
         Uri pendingUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
         if (pendingUri == null) throw new IOException("Could not create report file");
@@ -255,7 +291,7 @@ public final class LogBufferManager {
             if (resolver.update(pendingUri, values, null, null) != 1) {
                 throw new IOException("Could not publish report file");
             }
-            return Environment.DIRECTORY_DOWNLOADS + "/Morphe/" + savedName;
+            return CrashFile.FOLDER + savedName;
         } catch (Exception error) {
             deleteIncomplete(resolver, pendingUri, error);
             throw error;
@@ -768,7 +804,8 @@ public final class LogBufferManager {
                     new ArrayList<>(logBuffer),
                     app.morphe.extension.shared.diagnostics.HookStatus.snapshotAndClear(),
                     app.morphe.extension.shared.diagnostics.FeedFilterCounters.snapshotAndClear(),
-                    readCrashReport(context),
+                    // With the swallowed exceptions still waiting in it, so none writes it back.
+                    JavaCrashReport.clear(context),
                     readNpthCrashReport(context)
             );
             clearLogBufferData();
@@ -798,7 +835,7 @@ public final class LogBufferManager {
             } else {
                 try {
                     Context context = Utils.getContext();
-                    restoreCrashReportIfMissing(context, CRASH_FILE, saved.javaCrash);
+                    JavaCrashReport.putBack(context, saved.javaCrash);
                     restoreCrashReportIfMissing(context, NPTH_CRASH_FILE, saved.nativeCrash);
                     restoreLogBufferData(saved.events);
                     app.morphe.extension.shared.diagnostics.HookStatus.restore(saved.hooks);
@@ -846,18 +883,24 @@ public final class LogBufferManager {
         }
     }
 
-    private static void restoreCrashReportIfMissing(
+    /** Undo's Java crash: true when [report] went back into the empty place. */
+    static boolean restoreJavaCrashIfMissing(Context context, String report) throws Exception {
+        return restoreCrashReportIfMissing(context, CRASH_FILE, report);
+    }
+
+    private static boolean restoreCrashReportIfMissing(
             Context context,
             String fileName,
             String report
     ) throws Exception {
-        if (report.isEmpty()) return;
+        if (report.isEmpty()) return false;
         if (context == null) throw new IOException("Application context unavailable");
         // A newer crash is better evidence than the one that was cleared. Undo fills only the
         // empty slot so it cannot erase a crash recorded after the first tap.
         synchronized (CRASH_FILE_LOCK) {
-            if (!readCrashReport(context, fileName).isEmpty()) return;
+            if (!readCrashReport(context, fileName).isEmpty()) return false;
             persistCrashReportLocked(context, fileName, report);
+            return true;
         }
     }
 

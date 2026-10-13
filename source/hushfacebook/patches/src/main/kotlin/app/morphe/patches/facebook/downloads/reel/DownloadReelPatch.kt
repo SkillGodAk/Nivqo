@@ -7,6 +7,16 @@
  */
 package app.morphe.patches.facebook.downloads.reel
 
+import app.morphe.patcher.StringComparisonType
+import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
+import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.media.resume.TRACK_START
+import app.morphe.patches.facebook.media.resume.paramsGetters
+import app.morphe.patches.facebook.media.resume.reportedValues
+import app.morphe.patches.facebook.media.resume.trackers
+import app.morphe.patches.facebook.media.taptoplay.FB_SHORTS
+import app.morphe.patches.facebook.media.taptoplay.GROOT_PLAY
+import app.morphe.patches.facebook.media.taptoplay.grootPlays
 import app.morphe.patches.facebook.shared.reportedFieldNames
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
@@ -18,12 +28,14 @@ import app.morphe.patches.facebook.misc.extension.requireFreeAt
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
+import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.util.singleOrPatchException
+import app.morphe.util.findMutableMethodOf
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation
@@ -42,6 +54,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 
 private const val HANDLER = "Lapp/morphe/extension/facebook/download/ReelDownload;"
+internal const val REEL_SIDEBAR_DIAGNOSTICS = "Lapp/morphe/extension/facebook/download/ReelSidebarDiagnostics;"
 
 private const val VIDEO_DATA_SOURCE = "Lcom/facebook/video/engine/api/VideoDataSource;"
 private const val VIDEO_PLAYER_PARAMS = "Lcom/facebook/video/engine/api/VideoPlayerParams;"
@@ -524,8 +537,72 @@ val downloadReelPatch = bytecodePatch(
             patchLog.warning("${exception.message}, so reels get no Download row in their More sheet.")
         }
 
+        try {
+            addMissingSidebarDiagnostic()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so the missing-sidebar layout diagnostic isn't added.")
+        }
+
         enableStatus("reelDownload")
     }
+}
+
+/**
+ * The kept start tracker and params getter used by the playback patches, without depending on
+ * either optional patch. All anchors are proved before the stub or tracker changes. One range
+ * call reads the player without borrowing a register, and the single predicate stub uses v0
+ * throughout so its getter and boolean field read fit the 4-bit register formats.
+ */
+internal fun BytecodePatchContext.addMissingSidebarDiagnostic() {
+    fun refuse(detail: String): Nothing = throw PatchException("$PATCH: missing-sidebar diagnostic: $detail")
+    val plays = classDefByStrings(GROOT_PLAY, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_CLASSES) }.flatMap(::grootPlays)
+    val play = plays.singleOrNull() ?: refuse("expected one player play holding $GROOT_PLAY, found ${plays.size}")
+    val owner = classDefBy(play.definingClass)
+    val starts = trackers(owner, TRACK_START, play.parameterTypes.single().toString())
+    val start = starts.singleOrNull() ?: refuse("expected one $TRACK_START in ${owner.type}, found ${starts.size}")
+    if (start.implementation!!.instructions.none()) refuse("$TRACK_START has no instructions")
+    val getters = paramsGetters(owner)
+    val getter = getters.singleOrNull() ?: refuse("expected one params getter in ${owner.type}, found ${getters.size}")
+    val params = classDefByOrNull(VIDEO_PLAYER_PARAMS) ?: refuse("this build has no $VIDEO_PLAYER_PARAMS")
+    val flags = params.methods.filter { holdsString(it, FB_SHORTS) }
+        .mapNotNull { reportedValues(it)[FB_SHORTS] }.distinctBy(FieldReference::toString)
+    val flag = flags.singleOrNull() ?: refuse("expected one field reported as $FB_SHORTS, found ${flags.size}")
+    if (flag.type != "Z") refuse("the field reported as $FB_SHORTS isn't boolean")
+    val declared = params.fields.singleOrNull {
+        it.name == flag.name && it.type == "Z" && !AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: refuse("$FB_SHORTS isn't an instance boolean field of $VIDEO_PLAYER_PARAMS")
+    if (!AccessFlags.PUBLIC.isSet(declared.accessFlags)) refuse("the $FB_SHORTS field isn't public")
+    if (!AccessFlags.PUBLIC.isSet(getter.accessFlags)) refuse("the params getter isn't public")
+    listOf(owner, params).forEach { if (!AccessFlags.PUBLIC.isSet(it.accessFlags)) refuse("${it.type} isn't public") }
+    if (classDefByOrNull(REEL_SIDEBAR_DIAGNOSTICS) == null) refuse("the extension has no $REEL_SIDEBAR_DIAGNOSTICS")
+    val predicate = mutableClassDefBy(REEL_SIDEBAR_DIAGNOSTICS).methods.singleOrNull {
+        it.name == "isReel" && it.returnType == "Z" && AccessFlags.STATIC.isSet(it.accessFlags) &&
+            it.parameterTypes.map(CharSequence::toString) == listOf(OBJECT)
+    } ?: refuse("the extension has no static boolean isReel(Object)")
+
+    val body = predicate.implementation ?: refuse("isReel has no body")
+    if (body.registerCount !in 1..16 || body.tryBlocks.isNotEmpty()) refuse("isReel has an unexpected body")
+    repeat(body.instructions.size) { body.removeInstruction(0) }
+    predicate.addInstructions(
+        0,
+        """
+            if-eqz p0, :not_reel
+            check-cast p0, ${owner.type}
+            invoke-virtual/range { p0 .. p0 }, ${owner.type}->${getter.name}()$VIDEO_PLAYER_PARAMS
+            move-result-object p0
+            if-eqz p0, :not_reel
+            iget-boolean p0, p0, $VIDEO_PLAYER_PARAMS->${flag.name}:Z
+            return p0
+            :not_reel
+            const/4 p0, 0x0
+            return p0
+        """,
+    )
+    mutableClassDefBy(owner.type).findMutableMethodOf(start).addInstructions(
+        0,
+        "invoke-static/range { p0 .. p0 }, $REEL_SIDEBAR_DIAGNOSTICS->started($OBJECT)V",
+    )
 }
 
 /** The locals [sidebarButtonBlock] writes besides the story's: v0 to v2. */

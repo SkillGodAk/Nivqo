@@ -501,7 +501,7 @@
       },
       "contaminatedBy": null,
       "disposition": "candidate",
-      "reason": "The original GPL-3.0 Facebook pair, still pinned to 490, and the four Messenger patches most Messenger work descends from. Its GitHub home is blocked by a DMCA notice, so GitLab holds it for now. It's ancestry and regression evidence for Facebook, and the likely base for a Messenger sibling.",
+      "reason": "The original GPL-3.0 Facebook pair, still pinned to 490, and the four Messenger patches most Messenger work descends from. Its GitHub home is blocked by a DMCA notice, so GitLab holds it for now. It's ancestry and regression evidence for Facebook, and the likely base for a Messenger sibling. The 2026-10-12 review added ten GitLab fork records without a new lineage. Seven carry only upstream branch heads. The divergent heads in radkawwa/main (ae3d3fe6c680bed3c6719cc1d4663981c6e83898), Bobocato/fix/kleinanzeigen-patches (fa2581a978aa1372807eb3db27240236711a60c6) and yuanleo/dev (767db7f6ebd124856954b46794ade93bbea26bdf) retain the same Facebook, Messenger and extension trees and GPL licence text as upstream.",
       "archived": false,
       "forks": [
         "Aiedevsm/revanced-patches-1",
@@ -597,7 +597,17 @@
         "yonggamer/revanced-patches",
         "zappybiby/revanced-patches",
         "chandler.bing/ecoscan-80488462-deletion_scheduled-87193458",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-87246759"
+        "rachel.green.r/ecoscan-80488462-deletion_scheduled-87246759",
+        "rachel.green.r/ecoscan-80488462-deletion_scheduled-87487475",
+        "radkawwa/revanced-patches",
+        "sudo-panda/revanced-patches",
+        "rachel.green.r/ecoscan-80488462-deletion_scheduled-87462565",
+        "Bobocato/revanced-patches",
+        "rachel.green.r/ecoscan-80488462-deletion_scheduled-87427817",
+        "chandler.bing/ecoscan-80488462-deletion_scheduled-87382344",
+        "chandler.bing/ecoscan-80488462-deletion_scheduled-87336999",
+        "yuanleo/revanced-patches",
+        "chandler.bing/ecoscan-80488462-deletion_scheduled-87291057"
       ],
       "contentHashes": [
         "002638f8f6f0681dc0903a439ccf7c2cf2234a3f",
@@ -1285,6 +1295,56 @@
       "lastChecked": "2026-10-02"
     },
     {
+      "id": "facebookgoodies",
+      "repository": "https://github.com/YMGPwcca/FacebookGoodies",
+      "lineage": "facebookgoodies",
+      "upstream": null,
+      "kind": "xposed-module",
+      "packages": [
+        "com.facebook.katana"
+      ],
+      "targetVersions": {
+        "com.facebook.katana": [
+          "582.0.0.50.54"
+        ]
+      },
+      "features": [
+        "Hide feed and CSR ads",
+        "Hide Reels and video ads",
+        "Hide embedded commercial breaks",
+        "Filter feed suggestions and People You May Know",
+        "Hide Threads feed cards and video promotions",
+        "Hide Stories and feed Reels independently",
+        "Block in-app Messenger read receipts",
+        "Block screenshot callbacks",
+        "Save the current video with DASH audio muxing"
+      ],
+      "branches": [
+        {
+          "name": "main",
+          "commit": "6a22e0eebd667df775805055a3b1bbb7a8d1a8c2"
+        }
+      ],
+      "watchPaths": [
+        "app/src/main"
+      ],
+      "license": {
+        "spdx": "Apache-2.0",
+        "url": "https://github.com/YMGPwcca/FacebookGoodies/blob/6a22e0eebd667df775805055a3b1bbb7a8d1a8c2/LICENSE",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "contaminatedBy": null,
+      "disposition": "candidate",
+      "reason": "An Apache-2.0 LSPosed module for the main Facebook process. Its source requires both Facebook 582.0.0.50.54 and version code 475417129. The watched app/src/main tree at 6a22e0e matches the reviewed repository head f2bc97330ddeea38139379130ebb9c38ea0c4c3d. Its licence permits consideration, but no code has been ported or adopted.",
+      "archived": false,
+      "forks": [],
+      "contentHashes": [
+        "4b02c068a1090db5b179b9eb1d5551da2aa8b224"
+      ],
+      "mirrors": [],
+      "lastChecked": "2026-10-12"
+    },
+    {
       "id": "loukious",
       "repository": "https://github.com/Loukious/FacebookAppAdsRemover",
       "lineage": "loukious",
@@ -1415,7 +1475,11 @@
       "branches": [
         {
           "name": "root",
-          "commit": "9a90bbbd010fa5e567ae3e5c0c164964f32eb14d"
+          "commit": "b73cf07a077878d71613e983cd3cefb2b9293599"
+        },
+        {
+          "name": "nonroot",
+          "commit": "19c067e0572cd1326e2e3c2ee5b0e010c04f4385"
         }
       ],
       "watchPaths": [
@@ -1432,7 +1496,7 @@
         "evidence": "https://github.com/gnadgnaoh/NexAlloy-XES/blob/7333cd8c93be223a8ec2804938449de4777be685/app/src/main/java/io/github/nexalloy/revanced/facebook/ad/HideFacebookAdsPatch.kt"
       },
       "disposition": "behavior-only",
-      "reason": "GPL-3.0 at the repository level, but its Facebook master patch says it ports every FacebookAppAdsRemover hook, and that code has no licence. The Facebook subtree is behavior-only until Loukious licenses it. The 2026-10-02 fix/tiktok-split-apk branches diverge from the removed sync-and-fix branch and change FacebookAdHelpers.kt and ad/Fingerprints.kt. The feature list is a branch union: Reels shopping hooks remain on root/nonroot, but were absent from sync-and-fix and remain absent from both new branches. On 2026-10-04 root moved Facebook onto a class-loader dex source behind a multidex gate, with the CSR sponsored slot queue, an ad-free session spoof, unseen story viewing, l.php unwrapping and screenshot allowing; nonroot, fix and tiktok-split-apk are gone, and the debug and new-seen branches share root Facebook head and carry Instagram work only.",
+      "reason": "GPL-3.0 at the repository level, but its Facebook master patch says it ports every FacebookAppAdsRemover hook, and that code has no licence. The Facebook subtree is behavior-only until Loukious licenses it. The feature list retains the reviewed branch union. On 2026-10-02 the fix/tiktok-split-apk branches diverged from the removed sync-and-fix branch and changed FacebookAdHelpers.kt and ad/Fingerprints.kt. Reels shopping hooks remained on root/nonroot but were absent from those other branches. On 2026-10-04 root moved Facebook onto a class-loader dex source behind a multidex gate, with the CSR sponsored slot queue, an ad-free session spoof, unseen story viewing, l.php unwrapping and screenshot allowing. The 2026-10-12 review found only root and a restored nonroot branch. Both new pins retain the same watched Facebook tree and KatanaDexGate blob as the recorded 9a90bbbd010fa5e567ae3e5c0c164964f32eb14d pin, so they establish no new Facebook behavior.",
       "archived": false,
       "forks": [
         "49ronind/NexAlloy",

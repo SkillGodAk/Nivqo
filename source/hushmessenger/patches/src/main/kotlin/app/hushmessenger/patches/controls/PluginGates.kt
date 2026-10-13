@@ -1,96 +1,103 @@
 package app.hushmessenger.patches.controls
 
-/** Plugin gates checked in both supported 580 APKs. False is the normal disabled path. */
-internal data class PluginGate(val anchors: Set<String>, val methods: Set<String>)
+import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
+
+/** Plugin gates by control, found by their kill switch or plugin names. False is the normal disabled path. */
+internal data class PluginGate(val anchors: Set<String>)
+
+internal const val AD_CONTEXT_BANNER = "ad_context_banner"
 
 internal val pluginGates = mapOf(
     "people" to PluginGate(
         setOf(
             "com.facebook.messaging.friending.plugins.inboxunit.InboxPeopleYouMayKnowSectionKillSwitch",
         ),
-        setOf("LX/1pm;->A0C()Z", "LX/2Wl;->A04()Z"),
     ),
     // The same suggestions repeated after the last chat; selected by the people control.
     "people_list_end" to PluginGate(
         setOf(
             "com.facebook.messaging.friending.plugins.inboxthreadlistend.InboxPYMKThreadListEndKillSwitch",
         ),
-        setOf("LX/1pm;->A0B()Z", "LX/2Wl;->A03()Z"),
     ),
     "friend_requests" to PluginGate(
         setOf(
             "com.facebook.messaging.friending.plugins.friendrequestinboxunit.FriendingFriendrequestinboxunitKillSwitch",
         ),
-        setOf("LX/1pm;->A09()Z", "LX/2Wl;->A02()Z"),
     ),
     "growth" to PluginGate(
         setOf(
             "com.facebook.messaging.friending.plugins.growthpromotioninboxunit.FriendingGrowthpromotioninboxunitKillSwitch",
         ),
-        setOf("LX/1pm;->A0A()Z", "LX/2GE;->A0A(LX/2GE;)Z"),
     ),
     "moments" to PluginGate(
         setOf(
             "com.facebook.messaging.navigation.plugins.momentsfolder.NavigationMomentsfolderKillSwitch",
         ),
-        setOf("LX/HFe;->A05()Z", "LX/Jiu;->A05()Z"),
     ),
     "ai_stickers" to PluginGate(
         setOf(
             "com.facebook.stickers.keyboardls.generatedtab.plugins.core.KeyboardlsGeneratedtabCoreKillSwitch",
             "com.facebook.messaging.suggestedkeyboard.plugins.core.composer.rows.genai.GenAiSearchSuggestedRow",
         ),
-        setOf("LX/PKW;->A03(LX/PKW;)Z", "LX/PKz;->A07(LX/PKz;)Z"),
     ),
     "avatar_stickers" to PluginGate(
         setOf(
             "com.facebook.stickers.keyboardls.avatartab.plugins.core.KeyboardlsAvatartabCoreKillSwitch",
         ),
-        setOf("LX/PKW;->A01(LX/PKW;)Z"),
     ),
     "inbox_promotions" to PluginGate(
         setOf(
             "com.facebook.messaging.quickpromotion.plugins.threadlist.QuickpromotionThreadlistKillSwitch",
             "com.facebook.messaging.quickpromotion.plugins.threadlistmsys.QuickpromotionThreadlistmsysKillSwitch",
         ),
-        setOf("LX/2Ef;->A0J()Z", "LX/2Ef;->A0K()Z"),
     ),
     "chat_promotions" to PluginGate(
         setOf(
             "com.facebook.messaging.quickpromotion.plugins.threadview.QuickpromotionThreadviewKillSwitch",
             "com.facebook.messaging.quickpromotion.plugins.threadviewmsys.QuickpromotionThreadviewmsysKillSwitch",
         ),
-        setOf("LX/ThP;->A0D()Z", "LX/ThP;->A0E()Z"),
+    ),
+    // The ad a chat with a business started from, shown as a banner at the top of the chat. It isn't a Quickpromotion,
+    // so the chat promotion gates never see it. The anchor is the banner itself, which only the thread banner gate builds.
+    AD_CONTEXT_BANNER to PluginGate(
+        setOf(
+            "com.facebook.messaging.nativepagereply.plugins.adscontextprovider.threadviewbanner.CTMAdsThreadViewBannerImplementation",
+        ),
     ),
     "suggested_replies" to PluginGate(
         setOf(
             "com.facebook.messaging.business.plugins.suggestedreply.SuggestedReplyKillSwitch",
         ),
-        setOf("LX/7Sd;->A06(LX/7Sd;)Z", "LX/7Tb;->A05(LX/7Tb;)Z", "LX/ThO;->A05()Z"),
     ),
     "business_suggestions" to PluginGate(
         setOf(
             "com.facebook.messaging.business.plugins.suggestasyoutype.SAYTKillSwitch",
         ),
-        setOf("LX/7Sd;->A05(LX/7Sd;)Z", "LX/7Tb;->A04(LX/7Tb;)Z", "LX/ThO;->A04()Z"),
     ),
     "event_prompts" to PluginGate(
         setOf(
             "com.facebook.messaging.events.plugins.qp.EventsQpKillSwitch",
         ),
-        setOf("LX/ThP;->A07()Z", "LX/ThP;->A08()Z"),
     ),
     "reels_badge" to PluginGate(
         setOf(
             "com.facebook.messaging.reels.plugins.badge.ReelsBadgeKillSwitch",
         ),
-        setOf("LX/7xF;->A09(LX/7xF;)Z"),
     ),
     "ai_toolbar" to PluginGate(
         setOf(
             "com.facebook.messaging.inbox.tab.plugins.core.tabtoolbarbutton.aihomebutton.AiHomeButtonKillSwitch",
         ),
-        setOf("LX/2aP;->A04()Z"),
     ),
     // The Meta AI bottom tab. Its kill switch also gates the tab's own toolbar buttons, so the
     // anchor is the tab content, which only the bottom bar's gate builds.
@@ -98,6 +105,44 @@ internal val pluginGates = mapOf(
         setOf(
             "com.facebook.messaging.aibot.plugins.tab.tabcontent.MetaAiTabContentImplementation",
         ),
-        setOf("LX/1iN;->A02(LX/1iN;)Z"),
     ),
 )
+
+/**
+ * Redex's string tables: static (I)String methods that switch on the key straight to a constant, by method and key.
+ * 582 moved some kill switch names into one, so a gate loads its anchor with `const/16 key` and a lookup, not a literal.
+ */
+internal fun redexStringTables(classes: Iterable<ClassDef>): Map<String, Map<Int, String>> = buildMap {
+    for (method in classes.asSequence().flatMap { it.methods }) {
+        if (!AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != "Ljava/lang/String;" ||
+            method.parameterTypes.map { it.toString() } != listOf("I")) continue
+        val code = method.implementation?.instructions?.toList() ?: continue
+        val switch = code.firstOrNull()?.takeIf { it.opcode == Opcode.PACKED_SWITCH || it.opcode == Opcode.SPARSE_SWITCH } as? OffsetInstruction
+            ?: continue
+        val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+        val indexAt = code.indices.associateBy { addresses[it] }
+        val payload = indexAt[switch.codeOffset]?.let(code::get) as? SwitchPayload ?: continue
+        val cases = payload.switchElements.mapNotNull { case ->
+            val at = indexAt[case.offset] ?: return@mapNotNull null
+            val load = code[at]
+            val exit = code.getOrNull(at + 1)
+            val string = ((load as? ReferenceInstruction)?.reference as? StringReference)?.string
+            if (string == null || load.opcode !in setOf(Opcode.CONST_STRING, Opcode.CONST_STRING_JUMBO) || exit?.opcode != Opcode.RETURN_OBJECT ||
+                (exit as OneRegisterInstruction).registerA != (load as OneRegisterInstruction).registerA) null else case.key to string
+        }.toMap()
+        if (cases.isNotEmpty()) put(method.hookId(), cases)
+    }
+}
+
+/** The strings [this] looks up in a [redexStringTables] table by a constant key loaded right before the call. */
+internal fun Method.tableStrings(tables: Map<String, Map<Int, String>>): Set<String> {
+    val code = implementation?.instructions?.toList() ?: return emptySet()
+    return (1 until code.size).mapNotNull { at ->
+        val call = code[at] as? FiveRegisterInstruction ?: return@mapNotNull null
+        val table = tables[(call as? ReferenceInstruction)?.reference?.toString()] ?: return@mapNotNull null
+        val key = code[at - 1]
+        if (call.opcode != Opcode.INVOKE_STATIC || call.registerCount != 1 ||
+            key.opcode !in setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST) || (key as? OneRegisterInstruction)?.registerA != call.registerC) null
+        else table[(key as? NarrowLiteralInstruction)?.narrowLiteral]
+    }.toSet()
+}

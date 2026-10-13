@@ -19,9 +19,12 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
 
 /**
  * What the Hide Meta upsells patch asks wherever Facebook pushes Meta's other products outside the
- * Menu. Seven switches, all off by default: Edits (the Reels composer header's button and badge, and
+ * Menu. Eight switches, all off by default: Edits (the Reels composer header's button and badge, and
  * the server's Edits pill under feed videos, which the feed's requests stop asking for), Threads
- * cross-posting (the composer's onboarding), Threads in the share sheet, Meta Verified (the offer sheet after you post and the
+ * cross-posting (the composer's onboarding), Threads in the share sheet, Muse in the share sheet
+ * (Meta's AI agent app; on 582 the share sheet component behind a reel's long-press share row reads
+ * the same list, so that row should lose it too, not yet seen on a phone), Meta Verified (the offer
+ * sheet after you post and the
  * label under some posts' headers), avatar stickers (the upsell components in comments and
  * Facebook's promotion slots) and Meta AI's Imagine (the Imagine me button under posts, the post
  * composer's Imagine and Create story's Imagine tile), and the other Meta AI buttons under posts
@@ -32,13 +35,14 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * Facebook's own.
  */
 public final class MetaUpsells {
-    /** Counted under the patch's name each time one of the seven is answered away. */
+    /** Counted under the patch's name each time one of the eight is answered away. */
     static final String EDITS_HIDDEN = "Edits promotion kept out";
     static final String THREADS_HIDDEN = "Threads cross-posting prompt kept out";
     static final String VERIFIED_HIDDEN = "Meta Verified offer kept out";
     static final String AVATAR_HIDDEN = "Avatar sticker promotion kept out";
     static final String IMAGINE_HIDDEN = "Imagine entry kept out";
     static final String THREADS_SHARE_HIDDEN = "Threads share button kept out";
+    static final String MUSE_SHARE_HIDDEN = "Muse share button kept out";
     static final String META_AI_BUTTON_HIDDEN = "Meta AI post button kept out";
     static final String CAPTION_DEEP_DIVE_HIDDEN = "Meta AI deep dive under a caption kept out";
 
@@ -64,6 +68,9 @@ public final class MetaUpsells {
 
     /** The share sheet's Threads item, a constant of Facebook's enum of share sheet items. */
     static final String SHARE_TO_THREADS = "SHARE_TO_THREADS";
+
+    /** The share sheet's Muse item, named after Muse's internal name, Hatch. */
+    static final String SHARE_TO_HATCH = "SHARE_TO_HATCH";
 
     private static final String FAMILY = FamilyNames.META_UPSELLS;
 
@@ -283,17 +290,25 @@ public final class MetaUpsells {
     /**
      * The hook in front of each return of the method that picks the share sheet's items, handed
      * the list of item types, constants of Facebook's enum. Answers the same items in the same order
-     * without Threads while its switch is on, and the list it was handed otherwise. The patch copies
-     * the answer back into an ImmutableList.
+     * without Threads and without Muse while each one's switch is on, and the list it was handed
+     * when neither takes anything out. The patch copies the answer back into an ImmutableList.
      */
     @Nullable
     public static List<?> shareTargets(@Nullable List<?> targets) {
         try {
             HookStatus.invoked(FAMILY);
-            if (targets == null || targets.isEmpty()) return targets;
-            if (!Utils.settingsReady() || !Settings.HIDE_THREADS_SHARE_BUTTON.get()) return targets;
-            List<?> kept = without(targets, SHARE_TO_THREADS);
-            if (kept != targets) hid("share sheet Threads button", THREADS_SHARE_HIDDEN);
+            if (targets == null || targets.isEmpty() || !Utils.settingsReady()) return targets;
+            List<?> kept = targets;
+            if (Settings.HIDE_THREADS_SHARE_BUTTON.get()) {
+                List<?> withoutThreads = without(kept, SHARE_TO_THREADS);
+                if (withoutThreads != kept) hid("share sheet Threads button", THREADS_SHARE_HIDDEN);
+                kept = withoutThreads;
+            }
+            if (Settings.HIDE_MUSE_SHARE_BUTTON.get()) {
+                List<?> withoutMuse = without(kept, SHARE_TO_HATCH);
+                if (withoutMuse != kept) hid("share sheet Muse button", MUSE_SHARE_HIDDEN);
+                kept = withoutMuse;
+            }
             return kept;
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "share sheet items", failure);

@@ -9,13 +9,23 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.media.resume.TRACK_START
+import app.morphe.patches.facebook.media.resume.paramsGetters
+import app.morphe.patches.facebook.media.resume.reportedValues
+import app.morphe.patches.facebook.media.resume.trackers
+import app.morphe.patches.facebook.media.taptoplay.FB_SHORTS
+import app.morphe.patches.facebook.media.taptoplay.GROOT_PLAY
+import app.morphe.patches.facebook.media.taptoplay.grootPlays
 import app.morphe.patches.facebook.misc.extension.SETTINGS_STATUS
 import app.morphe.patches.shared.compat.AppCompatibilities
+import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
@@ -30,7 +40,8 @@ import org.junit.Test
  * the whole builder, and each register it reads unchanged up to the call. The build's one FbShortsSideBarComponent render, which the button
  * can't go in, gets a counter as its first instruction and nothing else (#18). And the More sheet's
  * builder asks for a Download row first thing, through a helper on its class, with the handler made
- * to take the row's click interface (#18).
+ * to take the row's click interface (#18). The kept player start gets one range call for the
+ * missing-sidebar diagnostic, whose one-register predicate reads this build's getter and flag.
  */
 class DownloadReelFixtureTest {
     private val sidebarName = "UDDSideBarComponent"
@@ -110,6 +121,17 @@ class DownloadReelFixtureTest {
                 classes[sheetHolder.type] = sheetHolder
                 classes[SETTINGS_STATUS] = ExtensionDex.classDef(SETTINGS_STATUS)
                 classes[MENU_HANDLER] = ExtensionDex.classDef(MENU_HANDLER)
+                classes[REEL_SIDEBAR_DIAGNOSTICS] = ExtensionDex.classDef(REEL_SIDEBAR_DIAGNOSTICS)
+                val player = FixtureDex.classesHolding(bundle, GROOT_PLAY).single { grootPlays(it).size == 1 }
+                classes[player.type] = player
+                val paramsType = "Lcom/facebook/video/engine/api/VideoPlayerParams;"
+                val params = FixtureDex.classes(bundle, setOf(paramsType)).getValue(paramsType)
+                classes[paramsType] = params
+                val play = grootPlays(player).single()
+                val start = trackers(player, TRACK_START, play.parameterTypes.single().toString()).single()
+                val getter = paramsGetters(player).single()
+                val flag = params.methods.filter { holdsString(it, FB_SHORTS) }
+                    .mapNotNull { reportedValues(it)[FB_SHORTS] }.distinctBy(FieldReference::toString).single()
                 val context = PatchContexts.of(classes.values)
                 val sheet = context.moreSheet("the fixture")
 
@@ -175,6 +197,29 @@ class DownloadReelFixtureTest {
                     otherOriginal.implementation!!.instructions.count() + 1,
                     otherRender.implementation!!.instructions.count(),
                 )
+                val tracked = context.mutableClassDefBy(player.type).methods.single {
+                    it.name == start.name && it.parameterTypes.map(CharSequence::toString) == start.parameterTypes.map(CharSequence::toString)
+                }
+                val trackedBody = tracked.implementation!!.instructions.toList()
+                val started = trackedBody.first() as RegisterRangeInstruction
+                assertEquals("${bundle.name}: the real start tracker uses the range form", Opcode.INVOKE_STATIC_RANGE, trackedBody.first().opcode)
+                assertEquals("${bundle.name}: the diagnostic receives this tracker's player", tracked.implementation!!.registerCount - 2, started.startRegister)
+                assertEquals("${bundle.name}: only the player is passed", 1, started.registerCount)
+                assertEquals("${bundle.name}: the start calls the diagnostic", "$REEL_SIDEBAR_DIAGNOSTICS->started(Ljava/lang/Object;)V",
+                    (trackedBody.first() as ReferenceInstruction).reference.toString())
+                assertEquals("${bundle.name}: the tracker keeps all its own instructions", start.implementation!!.instructions.count() + 1, trackedBody.size)
+                val predicate = context.mutableClassDefBy(REEL_SIDEBAR_DIAGNOSTICS).methods.single { it.name == "isReel" }
+                val predicateBody = predicate.implementation!!.instructions.toList()
+                assertEquals("${bundle.name}: the predicate keeps its parameter in v0", 1, predicate.implementation!!.registerCount)
+                assertTrue("${bundle.name}: predicate register operands fit their instruction formats",
+                    predicateBody.filterIsInstance<OneRegisterInstruction>().all { it.registerA == 0 } &&
+                        predicateBody.filterIsInstance<TwoRegisterInstruction>().all { it.registerB == 0 })
+                assertEquals("${bundle.name}: the predicate calls the build's actual params getter",
+                    "${player.type}->${getter.name}()$paramsType",
+                    predicateBody.mapNotNull { ((it as? ReferenceInstruction)?.reference as? MethodReference)?.toString() }.single())
+                assertEquals("${bundle.name}: the predicate reads the field actually reported as isFbShorts", flag.toString(),
+                    predicateBody.mapNotNull { ((it as? ReferenceInstruction)?.reference as? FieldReference)?.toString() }.single())
+                assertEquals("${bundle.name}: null players and params return false", 2, predicateBody.count { it.opcode == Opcode.IF_EQZ })
                 checked += version
             }
         }

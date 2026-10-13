@@ -17,7 +17,8 @@ function Resolve-D8 {
     $sdkLine = Get-Content -LiteralPath $properties -ErrorAction SilentlyContinue |
         Where-Object { $_ -match '^sdk\.dir=' } | Select-Object -First 1
     if (-not $sdkLine) { throw 'No Android SDK path in local.properties. Pass -D8.' }
-    $sdk = ($sdkLine -replace '^sdk\.dir=', '') -replace '\\\\', '\'
+    # A properties file escapes with a backslash; Android Studio writes C\:\\Users\\...
+    $sdk = ($sdkLine -replace '^sdk\.dir=', '') -replace '\\(.)', '$1'
     $found = @(Get-ChildItem -LiteralPath (Join-Path $sdk 'build-tools') -Directory `
         -ErrorAction SilentlyContinue |
         Where-Object {

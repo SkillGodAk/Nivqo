@@ -189,14 +189,51 @@ public final class MaterialYouTheme {
      */
     public static int fds(int color, Object token) {
         HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
-        if (!(token instanceof Enum) || !DarkMode.on()) return color;
-        String name = ((Enum<?>) token).name();
+        if (!(token instanceof Enum)) return color;
+        return fds(color, ((Enum<?>) token).name());
+    }
+
+    private static int fds(int color, String name) {
+        if (!DarkMode.on()) return color;
         if (listed(FDS.get(name), color) || madeByAmoled(FDS.get(name), color, name)
                 || (listed(SHARED.get(name), color) && DarkMode.saidOn())) {
             return AmoledTheme.foreground(recolour(palette(), color), name);
         }
         if (isSurface(color)) noteUnlisted(name, color);
         return color;
+    }
+
+    /** The token each colour resource FDS's token lookup gave out is for, by resource id. */
+    private static final Map<Integer, String> TOKEN_RESOURCES = new ConcurrentHashMap<>();
+
+    /**
+     * Route one for a token's colour resource (issue #37). FDS's token lookup (582 {@code
+     * LX/24i;->A02}) answers the colour resource a token's theme attribute points at, and the code
+     * that asked reads it with {@code getColor} or as a drawable. The Menu's Log out row is a drawable
+     * of CARD_BACKGROUND_FLAT's resource this way, #333334 in dark mode, a grey light mode draws too,
+     * so route two's surfaces leave it. The patch sends each answer here, which notes the token the
+     * resource is for, and route two's reads of it then go by that token's rule, as a resolver's
+     * colour does ({@link #fds(int, Object)}). The id comes back as it was.
+     */
+    public static int tokenResource(int id, Object token) {
+        HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
+        if (id != 0 && token instanceof Enum) TOKEN_RESOURCES.put(id, ((Enum<?>) token).name());
+        return id;
+    }
+
+    /**
+     * A colour read from resource {@code id}: a dark surface goes the way {@link #withoutToken} sends
+     * it, and any other colour by its token's rule when FDS's token lookup gave the resource out.
+     */
+    private static int fromResource(int id, int color) {
+        int themed = withoutToken(color);
+        if (themed != color) return themed;
+        String token = TOKEN_RESOURCES.get(id);
+        return token == null ? color : fds(color, token);
+    }
+
+    static void forgetTokenResourcesForTests() {
+        TOKEN_RESOURCES.clear();
     }
 
     /** The tokens {@link #noteUnlisted} has written to the log. */
@@ -278,13 +315,46 @@ public final class MaterialYouTheme {
      * Facebook's dark mode each kind of link attachment picks that colour by parsing one MobileConfig
      * sends before it looks at a token, and the box came out #333334, CARD_BACKGROUND's dark grey.
      * That grey is no {@link #SURFACES} colour, light mode drawing it too, so {@link #parseColor}
-     * alone leaves it. The patch sends only those parses here, and the box is a background like a
-     * React card's ({@link #reactBackground}): once Facebook has said dark mode is on, a grey
-     * {@link #FDS_DARK} lists takes the palette's neutral at the same lightness. With AMOLED in the
-     * build its near black stays.
+     * alone leaves it. The patch sends only those parses here, and only from a method that asks
+     * Facebook's own dark check first, so the parse is always on its dark branch: a grey
+     * {@link #FDS_DARK} lists takes the palette's neutral at the same lightness unless Facebook has
+     * said light ({@link #darkSiteGrey}). It doesn't wait for Facebook's first answer, which the box
+     * did in 0.10.0: feed units render on a background thread at a cold start, before that answer,
+     * and a box rendered then stayed grey. With AMOLED in the build its near black stays.
      */
     public static int parseLinkBox(String text) {
-        return darkBackground(parseColor(text));
+        return darkSiteGrey(parseColor(text));
+    }
+
+    /**
+     * Route four for a Bloks screen's colours (issue #37). The server sends each one as a light and
+     * a dark hex string, and the screen's model parses the one Bloks' theme picks: the dark string
+     * when Bloks says dark and the server sent one. On 582 the Menu's profile card at the top, with
+     * the account's name and picture, is #333334 this way. That grey is no {@link #SURFACES} colour,
+     * light mode drawing it too, so {@link #parseColor} alone leaves it. The patch sends only those
+     * parses here. Once Facebook has said its dark mode is on, a grey {@link #FDS_DARK} lists takes
+     * the palette's neutral at the same lightness, as a React card's does ({@link #darkBackground}).
+     * Before that answer, and in light mode, where Bloks parses the light string, the colour goes the
+     * way {@link #parseColor} sends it. With AMOLED in the build its near black stays.
+     */
+    public static int parseBloks(String text) {
+        HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
+        return darkBackground(SettingsStatus.amoledTheme() ? AmoledTheme.parseColor(text) : Color.parseColor(text));
+    }
+
+    /**
+     * Route three for a colour Facebook writes into its code for its dark theme only: the patch
+     * sends here each colour {@code const} that is the first thing Facebook does once its own dark
+     * check said yes (issue #37). On 582 the Create story tile at the start of the stories tray is
+     * #333334 written this way, under the account's picture. That grey is no {@link #SURFACES}
+     * colour, light mode drawing it elsewhere, so route three's fields leave it. Here the code around
+     * it has already said dark, so a grey {@link #FDS_DARK} lists takes the palette's neutral at the
+     * same lightness unless Facebook has said light, and any other colour goes the way
+     * {@link #withoutToken} sends it.
+     */
+    public static int darkBranch(int color) {
+        HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
+        return darkSiteGrey(color);
     }
 
     /**
@@ -305,7 +375,7 @@ public final class MaterialYouTheme {
     }
 
     static int getColor(Context context, int id, boolean amoled) {
-        return withoutToken(amoled ? AmoledTheme.getColor(context, id) : context.getColor(id));
+        return fromResource(id, amoled ? AmoledTheme.getColor(context, id) : context.getColor(id));
     }
 
     /** The same for {@code Resources.getColor(int)}. */
@@ -315,7 +385,7 @@ public final class MaterialYouTheme {
 
     @SuppressWarnings("deprecation")
     static int getColor(Resources resources, int id, boolean amoled) {
-        return withoutToken(amoled ? AmoledTheme.getColor(resources, id) : resources.getColor(id));
+        return fromResource(id, amoled ? AmoledTheme.getColor(resources, id) : resources.getColor(id));
     }
 
     /** The same for {@code Resources.getColor(int, Theme)}. */
@@ -324,7 +394,7 @@ public final class MaterialYouTheme {
     }
 
     static int getColor(Resources resources, int id, @Nullable Resources.Theme theme, boolean amoled) {
-        return withoutToken(amoled ? AmoledTheme.getColor(resources, id, theme) : resources.getColor(id, theme));
+        return fromResource(id, amoled ? AmoledTheme.getColor(resources, id, theme) : resources.getColor(id, theme));
     }
 
     /**
@@ -352,7 +422,7 @@ public final class MaterialYouTheme {
      * any other drawable comes back as it was.
      */
     public static Drawable getDrawable(Context context, int id) {
-        return recolour(context.getDrawable(id));
+        return recolour(context.getDrawable(id), id);
     }
 
     /**
@@ -362,12 +432,12 @@ public final class MaterialYouTheme {
      */
     @SuppressWarnings("deprecation")
     public static Drawable getDrawable(Resources resources, int id) {
-        return recolour(resources.getDrawable(id));
+        return recolour(resources.getDrawable(id), id);
     }
 
     /** The same for {@code Resources.getDrawable(int, Theme)}. */
     public static Drawable getDrawable(Resources resources, int id, @Nullable Resources.Theme theme) {
-        return recolour(resources.getDrawable(id, theme));
+        return recolour(resources.getDrawable(id, theme), id);
     }
 
     /**
@@ -394,13 +464,19 @@ public final class MaterialYouTheme {
      */
     @Nullable
     static Drawable recolour(@Nullable Drawable drawable) {
+        return recolour(drawable, 0);
+    }
+
+    /** The same for a drawable of resource {@code id}, whose plain colour goes by {@link #fromResource}. */
+    @Nullable
+    static Drawable recolour(@Nullable Drawable drawable, int id) {
         if (!(drawable instanceof ColorDrawable)) {
             if (!SettingsStatus.amoledTheme()) recolourShapes(drawable);
             return drawable;
         }
         ColorDrawable plain = (ColorDrawable) drawable;
         int color = plain.getColor();
-        int themed = withoutToken(color);
+        int themed = fromResource(id, color);
         if (themed == color) return drawable;
         plain.mutate();
         plain.setColor(themed);
@@ -666,8 +742,17 @@ public final class MaterialYouTheme {
      * same lightness for any grey {@link #FDS_DARK} lists.
      */
     private static int darkBackground(int color) {
+        return DarkMode.saidOn() ? darkSiteGrey(color) : withoutToken(color);
+    }
+
+    /**
+     * {@link #withoutToken}, and in dark mode the palette's neutral at the same lightness for any grey
+     * {@link #FDS_DARK} lists. For a colour Facebook only picks once its own check has said dark, so
+     * the time before its first answer counts as dark, as {@link DarkMode#on} has it.
+     */
+    private static int darkSiteGrey(int color) {
         int themed = withoutToken(color);
-        if (themed != color || !DarkMode.saidOn() || Arrays.binarySearch(DARK_GREYS, color) < 0) return themed;
+        if (themed != color || !DarkMode.on() || Arrays.binarySearch(DARK_GREYS, color) < 0) return themed;
         return palette().sameLightness(TonePalette.NEUTRAL, color);
     }
 

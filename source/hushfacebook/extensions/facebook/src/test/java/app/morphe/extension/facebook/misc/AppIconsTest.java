@@ -8,8 +8,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
 import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 
 import org.junit.After;
@@ -20,6 +24,7 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowPackageManager;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
@@ -152,5 +157,34 @@ public class AppIconsTest {
         AppIcons.componentState(manager, entry, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
         assertEquals("off, Facebook resets the launcher entry", PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                 manager.getComponentEnabledSetting(entry));
+    }
+
+    /**
+     * Picking an icon turns the launcher entry off and the icon's alias on. The patches' own intents
+     * named the entry and started nothing after that (#119), so they ask for the one that's on. A
+     * launcher activity that only starts with the entry's name isn't one of its aliases.
+     */
+    @Test
+    public void theLauncherEntryThatsOnIsThePickedIcons() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        ComponentName entry = component(AppIcons.LAUNCHER);
+        assertEquals("none listed: the entry Facebook ships", entry, AppIcons.launcher(context));
+
+        ComponentName icon = component(AppIcons.LAUNCHER + ".vaporwave_ic");
+        ComponentName lookalike = component(AppIcons.LAUNCHER + "Alias");
+        ShadowPackageManager packages = shadowOf(context.getPackageManager());
+        IntentFilter main = new IntentFilter(Intent.ACTION_MAIN);
+        main.addCategory(Intent.CATEGORY_LAUNCHER);
+        for (ComponentName launcher : new ComponentName[] {lookalike, entry, icon}) {
+            packages.addActivityIfNotPresent(launcher);
+            packages.addIntentFilterForActivity(launcher, main);
+        }
+        PackageManager manager = context.getPackageManager();
+        manager.setComponentEnabledSetting(icon, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+        assertEquals("the default icon", entry, AppIcons.launcher(context));
+
+        manager.setComponentEnabledSetting(icon, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+        manager.setComponentEnabledSetting(entry, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+        assertEquals("a picked icon", icon, AppIcons.launcher(context));
     }
 }

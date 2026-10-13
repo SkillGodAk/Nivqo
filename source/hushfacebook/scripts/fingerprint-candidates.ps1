@@ -21,17 +21,20 @@
     -Calibrate holds the ranking to scripts/fingerprint-calibration.txt: real transitions the patches
     resolve on both 577 and 580, each of which has to rank its known replacement in the top five.
     -CalibrationPath runs a list of your own the same way, and -OldApk and -NewApk name the two builds
-    it describes. They default to 577 and 580, the builds the bundled list names methods of.
+    it describes. Left out, they're the retired 577 and 580 the bundled list names methods of, out of
+    the folder HUSHFACEBOOK_FINGERPRINT_HISTORY_DIR names, each held first to what
+    scripts/fingerprint-history.txt pins for it. Without that folder, or with anything else in it,
+    the calibration fails rather than skipping.
 
     An APK argument is a path to an .apk or .apkm, or a version that names exactly one fixture in the
-    folder HUSHFACEBOOK_FIXTURE_DIR names, such as 577 or 580.0.0.51.74. When a version names a split
+    folder HUSHFACEBOOK_FIXTURE_DIR names, such as 582.0.0.50.54-arm64. When a version names a split
     bundle beside other APKs, such as the emulator's -minapi28.apk, the bundle is the one it reads.
 
 .EXAMPLE
-    scripts/fingerprint-candidates.ps1 -OldApk 577 -Method 'LX/7f5;->A0g(LX/7ej;I)J' -NewApk 580
+    scripts/fingerprint-candidates.ps1 -OldApk 582.0.0.50.54-arm64 -Method 'LX/8F3;->A0b(LX/8Eh;I)J' -NewApk <new .apkm>
 
 .EXAMPLE
-    scripts/fingerprint-candidates.ps1 -OldApk 580 -Method '<descriptor>' -SignaturePath tick.json
+    scripts/fingerprint-candidates.ps1 -OldApk 582.0.0.50.54-arm64 -Method '<descriptor>' -SignaturePath tick.json
 
     Captures the signature only, for a build that isn't out yet.
 
@@ -42,7 +45,7 @@
     scripts/fingerprint-candidates.ps1 -Calibrate
 
 .EXAMPLE
-    scripts/fingerprint-candidates.ps1 -Calibrate -CalibrationPath 580-to-583.txt -OldApk 580 -NewApk 583
+    scripts/fingerprint-candidates.ps1 -Calibrate -CalibrationPath 582-to-583.txt -OldApk 582.0.0.50.54-arm64 -NewApk <583 .apkm>
 
     Checks the ranking against transitions confirmed on a later pair of builds.
 #>
@@ -66,6 +69,8 @@ $ErrorActionPreference = 'Stop'
 if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
 . (Join-Path $PSScriptRoot 'Resolve-Java.ps1')
 . (Join-Path $PSScriptRoot 'common.ps1')
+. (Join-Path $PSScriptRoot 'release-receipt.ps1')
+. (Join-Path $PSScriptRoot 'fingerprint-history.ps1')
 
 function Resolve-FullPath {
     param([string]$Path)
@@ -139,10 +144,16 @@ $exitCode = 2
 try {
     if ($Calibrate) {
         if (-not $CalibrationPath) { $CalibrationPath = Join-Path $PSScriptRoot 'fingerprint-calibration.txt' }
-        $old = Get-BaseApk -Apk (Resolve-Build $(if ($OldApk) { $OldApk } else { '577.0.0.50.72' }) 'old build') `
-            -Destination (Join-Path $work 'old-base.apk')
-        $new = Get-BaseApk -Apk (Resolve-Build $(if ($NewApk) { $NewApk } else { '580.0.0.51.74' }) 'new build') `
-            -Destination (Join-Path $work 'new-base.apk')
+        # A build left out is one the fingerprint history keeps, held to its pins before java starts.
+        $history = if (-not $OldApk -or -not $NewApk) {
+            Resolve-FingerprintHistory -Root $Root -Aapt2 (Resolve-Aapt2 -Root $Root) -Work $work
+        }
+        $old = if ($OldApk) {
+            Get-BaseApk -Apk (Resolve-Build $OldApk 'old build') -Destination (Join-Path $work 'old-base.apk')
+        } else { $history.Old }
+        $new = if ($NewApk) {
+            Get-BaseApk -Apk (Resolve-Build $NewApk 'new build') -Destination (Join-Path $work 'new-base.apk')
+        } else { $history.New }
         $exitCode = Invoke-Candidates @('calibrate', (Resolve-FullPath $CalibrationPath), $old, $new, $ReportPath, '--top', "$Top")
     } else {
         $captured = 0

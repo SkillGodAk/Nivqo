@@ -17,6 +17,7 @@ import com.sun.jna.win32.StdCallLibrary;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Owns codec descendants before executing them. Linux callers in one worker must be sequential. */
 public final class CodecProcess implements AutoCloseable {
@@ -38,7 +40,7 @@ public final class CodecProcess implements AutoCloseable {
     private WindowsJob job;
     private Posix posix;
     private Subreaper subreaper;
-    private boolean ready, started, moved, groupGone, closed;
+    private boolean ready, groupGone, closed;
 
     private CodecProcess(long deadline) {
         this.deadline = deadline;
@@ -67,13 +69,12 @@ public final class CodecProcess implements AutoCloseable {
             owned.pid = Math.toIntExact((Long) Process.class.getMethod("pid").invoke(owned.launcher));
             if (owned.job != null) owned.job.assign(owned.pid);
             owned.await("ready");
+            if (owned.posix != null) owned.pid = Integer.parseInt(read(owned.control.resolve("ready")).trim());
             owned.ready = true;
             owned.checkDeadline();
-            owned.started = true;
             owned.launcher.getOutputStream().write(START);
             owned.launcher.getOutputStream().flush();
             owned.await("moved");
-            owned.moved = true;
             owned.checkDeadline();
             return owned;
         } catch (Throwable failure) {
@@ -123,21 +124,12 @@ public final class CodecProcess implements AutoCloseable {
         throw nativeFailure("probe codec process group", error);
     }
 
-    private void killGroup() throws IOException {
-        if (groupGone) return;
-        if (!launcher.isAlive()) throw new IOException("codec group anchor exited before termination");
-        if (posix.kill(-pid, SIGKILL) == 0) return;
-        int error = Native.getLastError();
-        if (error == ESRCH) { groupGone = true; return; }
-        throw nativeFailure("terminate codec process group", error);
-    }
-
     /** Returns true once no adopted children in this group remain. Never waits for other groups. */
     private boolean reap() throws IOException {
         if (subreaper == null || groupGone) return true;
         IntByReference status = new IntByReference();
         for (int count = 0; count < 64; count++) {
-            int child = posix.waitpid(-pid, status, 1); // WNOHANG. MOVED excludes Java's launcher child.
+            int child = posix.waitpid(-pid, status, 1); // WNOHANG. The live guard is outside this group.
             if (child > 0) continue;
             if (child == 0) return false;
             int error = Native.getLastError();
@@ -145,6 +137,18 @@ public final class CodecProcess implements AutoCloseable {
             if (error != 4) throw nativeFailure("reap codec process group", error); // EINTR
         }
         return false; // A continuously forking tool must not consume the worker's deadline here.
+    }
+
+    /** Linux adopts the guard too if its launcher was killed; it moved outside the tool group. */
+    private boolean reapGuard() throws IOException {
+        if (subreaper == null) return true;
+        int child = posix.waitpid(pid, new IntByReference(), 1);
+        if (child == pid) return true;
+        if (child == 0) return false;
+        int error = Native.getLastError();
+        if (error == ECHILD) return true; // A live launcher reaps its own guard.
+        if (error == 4) return false;
+        throw nativeFailure("reap codec group guard", error);
     }
 
     /**
@@ -168,34 +172,21 @@ public final class CodecProcess implements AutoCloseable {
                     while (job.activeProcesses() != 0 && System.nanoTime() < until) pause(interrupted);
                     if (job.activeProcesses() != 0) throw new IOException("codec job survived termination");
                 } else if (ready) {
-                    moved |= Files.exists(control.resolve("moved"));
-                    killGroup();
-                    if (moved) {
-                        while (true) {
-                            reap();
-                            if (!groupExists()) break;
-                            if (System.nanoTime() >= until) throw new IOException("codec group survived termination");
-                            killGroup();
-                            pause(interrupted);
-                        }
-                    } else {
-                        // Before MOVED, SIGKILL includes the launcher. Let Java reap it first.
-                        if (!waitLauncher(until, interrupted)) throw new IOException("codec launcher survived termination");
-                        if (subreaper != null && started) {
-                            while (!reap()) {
-                                if (System.nanoTime() >= until) throw new IOException("codec children survived termination");
-                                pause(interrupted);
-                            }
-                        }
+                    // Only the live guard can terminate its group. Launcher loss closes its
+                    // private pipe, so the same cleanup happens without signalling a stale PGID.
+                    releaseLauncher(until, interrupted);
+                    while (true) {
+                        reap();
+                        if (!groupExists() && reapGuard()) break;
+                        if (System.nanoTime() >= until) throw new IOException("codec group survived termination");
+                        pause(interrupted);
                     }
-                } else {
-                    // No START token was released, so this managed child cannot have spawned a codec.
-                    launcher.destroyForcibly();
                 }
             }
         } catch (Throwable cleanup) { failure = cleanup; }
         if (launcher != null) {
             try {
+                // Before READY, RELEASE aborts startup without orphaning an unstarted guard.
                 releaseLauncher(until, interrupted);
                 try {
                     launcher.getOutputStream().close();
@@ -303,41 +294,97 @@ public final class CodecProcess implements AutoCloseable {
             throw nativeFailure("detach codec console", Native.getLastError());
     }
 
+    /**
+     * POSIX needs two children: a killable launcher, and the resident group guard behind its pipe.
+     * The codec never inherits the pipe's write end. Killing the launcher therefore delivers EOF
+     * to the guard even while a codec descendant still holds stdout open.
+     */
+    private static void relayPosixControl(Path control) throws Exception {
+        List<String> command = launcherCommand(control);
+        command.add("guard");
+        Process guard = new ProcessBuilder(command).redirectErrorStream(true)
+                .redirectOutput(ProcessBuilder.Redirect.INHERIT).start();
+        AtomicBoolean closing = new AtomicBoolean();
+        Thread relay = new Thread(() -> {
+            try (OutputStream pipe = guard.getOutputStream()) {
+                int value;
+                while ((value = System.in.read()) >= 0) {
+                    if (value == RELEASE) closing.set(true);
+                    pipe.write(value);
+                    pipe.flush();
+                    if (value == RELEASE) return;
+                }
+                closing.set(true);
+            } catch (IOException failure) {
+                failure.printStackTrace(System.err);
+                try { publish(control, "error", failure.toString()); }
+                catch (IOException publication) { failure.addSuppressed(publication); }
+            }
+        }, "codec-guard-control");
+        relay.setDaemon(true);
+        relay.start();
+        int exit = guard.waitFor();
+        if (!closing.get()) throw new IOException("codec group guard exited before release: " + exit);
+    }
+
+    /** Called only by the guard itself: its allocated PID pins the group number through kill(). */
+    private static void terminateOwnGroup(Posix api, int ownPid) throws IOException {
+        if (api.getpid() != ownPid) throw new IOException("codec group guard identity changed");
+        if (api.kill(-ownPid, SIGKILL) != 0 && Native.getLastError() != ESRCH)
+            throw nativeFailure("terminate owned codec process group", Native.getLastError());
+    }
+
     /** Private child entry point. Its control pipe is never inherited by the codec. */
     public static void main(String[] arguments) throws Exception {
         Path control = Paths.get(arguments[0]);
+        if (!Platform.isWindows() && arguments.length == 1) {
+            try { relayPosixControl(control); }
+            catch (Throwable failure) {
+                publish(control, "error", failure.toString());
+                throw failure;
+            }
+            return;
+        }
         Posix api = Platform.isWindows() ? null : Native.load(Platform.C_LIBRARY_NAME, Posix.class);
         int ownPid = api == null ? 0 : api.getpid();
         int originalGroup = api == null ? 0 : api.getpgrp();
         CountDownLatch released = new CountDownLatch(1);
+        AtomicBoolean stopping = new AtomicBoolean();
+        Object startLock = new Object();
+        boolean groupCreated = false;
         try {
             detachConsole();
             if (api != null && api.setpgid(0, 0) != 0) throw nativeFailure("create codec process group", Native.getLastError());
-            publish(control, "ready", "");
+            groupCreated = api != null;
+            publish(control, "ready", api == null ? "" : Integer.toString(ownPid));
             if (System.in.read() != START) return;
             Thread watcher = new Thread(() -> {
-                boolean cleanupComplete = false;
                 try {
-                    cleanupComplete = System.in.read() == RELEASE;
+                    System.in.read();
                 } catch (IOException failure) { failure.printStackTrace(System.err); }
                 finally {
-                    if (!cleanupComplete && api != null) {
-                        // Parent died. This live PID still pins the group, even after moving out.
-                        if (api.kill(-ownPid, SIGKILL) != 0 && Native.getLastError() != ESRCH)
-                            System.err.println("codec parent-death cleanup failed: " + Native.getLastError());
+                    stopping.set(true);
+                    synchronized (startLock) {
+                        if (api != null) try { terminateOwnGroup(api, ownPid); }
+                        catch (IOException failure) { failure.printStackTrace(System.err); }
                     }
                     released.countDown();
                 }
             }, "codec-control");
             watcher.setDaemon(true);
             watcher.start();
-            Process codec = new ProcessBuilder(read(control.resolve("command")).split("\0", -1))
-                    .redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.INHERIT).start();
-            codec.getOutputStream().close();
-            // Keep our PID allocated outside the codec group until the worker completes cleanup.
-            // https://man7.org/linux/man-pages/man2/setpgid.2.html
-            if (api != null && api.setpgid(0, originalGroup) != 0) throw nativeFailure("pin codec process group", Native.getLastError());
-            publish(control, "moved", "");
+            Process codec;
+            synchronized (startLock) {
+                if (stopping.get()) return;
+                codec = new ProcessBuilder(read(control.resolve("command")).split("\0", -1))
+                        .redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.INHERIT).start();
+                codec.getOutputStream().close();
+                // Only this live guard sends terminating signals. It pins its own group's number
+                // while outside the group, so cleanup doesn't kill the guard before it can finish.
+                // https://man7.org/linux/man-pages/man2/setpgid.2.html
+                if (api != null && api.setpgid(0, originalGroup) != 0) throw nativeFailure("pin codec process group", Native.getLastError());
+                publish(control, "moved", "");
+            }
             int exit = codec.waitFor();
             // A tool can allocate a console. Do not keep its host alive through our anchor.
             detachConsole();
@@ -347,6 +394,10 @@ public final class CodecProcess implements AutoCloseable {
             failure.printStackTrace(System.err);
             try { publish(control, "error", failure.toString()); }
             catch (IOException publication) { failure.addSuppressed(publication); }
+            if (groupCreated) {
+                synchronized (startLock) { terminateOwnGroup(api, ownPid); }
+                return;
+            }
             // Preserve the anchor after errors too. The worker owns termination.
             while (System.in.read() >= 0) { }
         }

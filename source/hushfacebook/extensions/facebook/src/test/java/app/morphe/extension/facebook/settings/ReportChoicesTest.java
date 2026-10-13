@@ -116,7 +116,7 @@ public class ReportChoicesTest {
         AlertDialog stock = new AlertDialog.Builder(HushfacebookPreferenceFragment.themed(activity()))
                 .setTitle("Export diagnostic report")
                 .setItems(new CharSequence[]{"Copy quick report\nCopy a short report to the clipboard.",
-                        "Save full report\nSave the full report in Download/Morphe."}, null)
+                        "Save full report\nSave the full report in Download/Hushfacebook."}, null)
                 .setNegativeButton("Cancel", null)
                 .show();
         ShadowLooper.idleMainLooper();

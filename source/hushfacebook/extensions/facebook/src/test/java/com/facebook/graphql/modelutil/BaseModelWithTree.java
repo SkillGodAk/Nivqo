@@ -14,12 +14,14 @@ import java.util.Map;
  * native tree by the hash of the field's GraphQL name, and its type name out of the same tree.
  * These members are the ones the extension calls, under the names Facebook keeps: the GenAI rule
  * reads a flag through the public {@code getCachedBoolean(int)} by reflection, and the video save
- * reads strings and the type name. Like Facebook's, a boolean key the model doesn't hold reads
+ * reads strings and the type name, and the comment filter a comment's body through
+ * {@code getCachedModel(int, Class, int)}. Like Facebook's, a boolean key the model doesn't hold reads
  * false. Every boolean read is counted, so a test can show that a switched-off rule reads nothing.
  * The tree accessors the file name uses are the ones every tree has, on {@link TreeJNI}.
  */
 public class BaseModelWithTree extends TreeJNI {
     private final Map<Integer, Boolean> booleans = new HashMap<>();
+    private final Map<Integer, BaseModelWithTree> models = new HashMap<>();
     private final String typeName;
     public int reads;
 
@@ -65,6 +67,21 @@ public class BaseModelWithTree extends TreeJNI {
     /** The model's own cache of a string field: no native read, so safe on a released model. */
     public final String getCachedString(int field) {
         return cachedString(field);
+    }
+
+    /** Sets the model field named [field], as getCachedModel answers it. */
+    public BaseModelWithTree withModel(String field, BaseModelWithTree model) {
+        models.put(field.hashCode(), model);
+        return this;
+    }
+
+    /**
+     * A model field, as Facebook's kept {@code getCachedModel(int, Class, int)} answers it: the
+     * model under the field name's hash when it's of the class and type tag asked for, else null.
+     */
+    public final BaseModelWithTree getCachedModel(int field, Class<?> type, int typeTag) {
+        BaseModelWithTree model = models.get(field);
+        return model != null && type.isInstance(model) && model.mTypeTag == typeTag ? model : null;
     }
 
     /** The model's int field, as Facebook's public {@code getCachedInt(int)} answers it; an unset one reads 0. */

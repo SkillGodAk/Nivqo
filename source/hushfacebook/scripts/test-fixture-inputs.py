@@ -5,7 +5,8 @@ source calls Fixtures or FixtureDex. The probe below calls Fixtures and is writt
 test sources, so the task takes it the same way, and :patches:test --tests hands the selection on.
 
 Run with the build's JAVA_HOME and registry credentials. All changes stay in a private
-copy; --work-dir retains its project, logs and fixtures for diagnosis.
+copy; --work-dir retains its project, logs and fixtures for diagnosis. Without it, a passing run
+deletes its copy from the system temp directory and a failing one leaves it there.
 """
 
 import argparse
@@ -184,6 +185,9 @@ class FixtureInputProbeTest {
     run("restored-top-level", fixtures, names, "execute")
     run("restored-unchanged", fixtures, names, "up-to-date")
     print(f"All {len(records)} actual fixture-task input and execution cases passed.", flush=True)
+    if not args.work_dir:
+        # A copy of the checkout and its build is hundreds of MB.
+        shutil.rmtree(work, ignore_errors=True)
 
 
 if __name__ == "__main__":

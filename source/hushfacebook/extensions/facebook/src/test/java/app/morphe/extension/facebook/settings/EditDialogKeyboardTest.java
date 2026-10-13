@@ -78,6 +78,16 @@ public class EditDialogKeyboardTest {
         assertResizes(Settings.KEPT_WORDS.key);
     }
 
+    @Test
+    @Config(qualifiers = "w640dp-h360dp-land")
+    public void everySingleLineEditorKeepsItsActionsWithTheLandscapeKeyboard() {
+        for (String key : new String[]{Settings.SAVE_FOLDER.key, Settings.VIDEO_SUBFOLDER.key,
+                Settings.PHOTO_SUBFOLDER.key, Settings.FILENAME_TEMPLATE.key,
+                Settings.PHOTO_FILENAME_TEMPLATE.key, Settings.SEND_TO_APP.key}) {
+            assertResizes(key);
+        }
+    }
+
     /**
      * #58: with the longest list on a phone-sized screen, a word list's dialog is one scroll that
      * holds its explanation and the whole list. The list doesn't scroll inside itself, the scroll
@@ -322,11 +332,9 @@ public class EditDialogKeyboardTest {
                 int mode = row.getDialog().getWindow().getAttributes().softInputMode;
                 assertEquals(key + " doesn't resize above the keyboard", WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
                         mode & WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST);
-                if (row instanceof ValueRows.WordsRow) {
-                    int flags = EditorInfo.IME_FLAG_NO_FULLSCREEN | EditorInfo.IME_FLAG_NO_EXTRACT_UI;
-                    assertEquals("the landscape keyboard can replace the word dialog", flags,
-                            row.getEditText().getImeOptions() & flags);
-                }
+                int flags = EditorInfo.IME_FLAG_NO_FULLSCREEN | EditorInfo.IME_FLAG_NO_EXTRACT_UI;
+                assertEquals("the landscape keyboard can replace the edit dialog", flags,
+                        row.getEditText().getImeOptions() & flags);
             } finally {
                 row.getDialog().dismiss();
             }
@@ -345,10 +353,14 @@ public class EditDialogKeyboardTest {
         assertNotNull("no row for " + key, row);
         if (row instanceof ValueRows.FolderRow) {
             ((ValueRows.FolderRow) row).showDialog(null);
+        } else if (row instanceof ValueRows.SubfolderRow) {
+            ((ValueRows.SubfolderRow) row).showDialog(null);
         } else if (row instanceof ValueRows.FileNameRow) {
             ((ValueRows.FileNameRow) row).showDialog(null);
         } else if (row instanceof ValueRows.WordsRow) {
             ((ValueRows.WordsRow) row).showDialog(null);
+        } else if (row instanceof ValueRows.SendAppRow) {
+            ((ValueRows.SendAppRow) row).showDialog(null);
         } else {
             fail(key + " is a " + row.getClass().getName() + ", not one of the page's edit rows");
         }

@@ -21,16 +21,16 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.preference.SwitchPreference;
 
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.Setting;
 import app.morphe.extension.shared.settings.preference.AbstractPreferenceFragment;
+import app.morphe.extension.shared.settings.preference.ReopenSettingsAfterRestart;
+import app.morphe.extension.shared.settings.preference.SettingsSearch;
 
 /**
  * A view of the complete preference model. Filtering never removes preferences from their
@@ -42,6 +42,10 @@ final class SettingsNavigation extends BaseAdapter {
     private static final String MORE = "more";
     /** Marks the Pause, Resume or Undo button placed under a status row's title, so a rebind replaces it. */
     private static final String STATUS_ACTION = "hushfacebook_status_action";
+    /** The restart row's key. Like the other rows only this view draws, it stores nothing. */
+    static final String RESTART = "action_restart_to_apply";
+    static final String QUICK_SETUPS = "action_quick_setups";
+    static final String REPORT = "action_report_problem";
     private final HushfacebookPreferenceFragment page;
     private final SettingsDialog host;
     private final ListView list;
@@ -49,12 +53,26 @@ final class SettingsNavigation extends BaseAdapter {
     private final ListAdapter source;
     private final List<Section> sections = new ArrayList<>();
     private final List<Preference> visible = new ArrayList<>();
+    private final Object guideLinks = new Object();
     private final Preference browse;
     private final Preference more;
     /** The home page's last row, which opens Hushfacebook's Ko-fi page in a browser. */
     private final Preference support;
+    /** Just above Support: a new GitHub bug report with this install's versions filled in. */
+    private final Preference report;
+    /** Just above Browse settings: a set of switches in one tap. */
+    private final Preference quickSetups;
+    /**
+     * Shown on every page while a change waits for a restart: a tap restarts Facebook and the
+     * screen comes back on the same page ({@link ReopenSettingsAfterRestart}).
+     */
+    private final SettingsRows.Row restart;
+    /** Keeps the shared fragment's restart toast off this screen, which shows the restart row instead. */
+    private final AbstractPreferenceFragment.RestartFeedbackPresenter restartFeedback;
+    /** The page the last rebuild drew, so a row coming or going on that same page keeps the list's place. */
+    private String rebuiltPage;
     private final Preference empty;
-    /** The line a category or search page starts with while a pause or a restart applies to it. */
+    /** The line a category or search page starts with while a pause applies to it. */
     private final Preference pageStatus;
     /** Whether that line is about Pause, and so carries Resume or Undo. */
     private boolean pageAction;
@@ -84,7 +102,7 @@ final class SettingsNavigation extends BaseAdapter {
         source = screen.getRootAdapter();
         Context context = screen.getContext();
         // Stable English route IDs survive a locale change; the displayed names are localized.
-        section("Opening Facebook", L10n.t("Opening Facebook"), L10n.t("Marketplace mode and your start tab"), SettingsIcons.OPENING, true);
+        section("Opening Facebook", L10n.t("Opening Facebook"), L10n.t("Marketplace only and your start tab"), SettingsIcons.OPENING, true);
         section("News feed", L10n.t("News feed"), L10n.t("Ads, suggestions and word filters"), SettingsIcons.FEED, true);
         section("Stories", L10n.t("Stories"), L10n.t("Suggestions, saving, auto-advance and viewing anonymously"), SettingsIcons.STORIES, true);
         section("Reels and Watch", L10n.t("Reels and Watch"), L10n.t("Cleaner reels and video controls"), SettingsIcons.REELS, true);
@@ -105,6 +123,10 @@ final class SettingsNavigation extends BaseAdapter {
         section("Set when you patched", L10n.t("Set when you patched"), null, SettingsIcons.PATCHED, false);
         section("Pause, backup and diagnostics", L10n.t("Pause, backup and diagnostics"), null, SettingsIcons.TOOLS, false);
         section("About", L10n.t("About"), null, SettingsIcons.ABOUT, false);
+        guideIcon(Settings.HIDE_FEED_REELS, SettingsIcons.FEED);
+        guideIcon(Settings.TAP_TO_PLAY, SettingsIcons.PLAYBACK);
+        guideIcon(Settings.HIDE_REELS_TAB, SettingsIcons.REELS);
+        guideIcon(Settings.MARKETPLACE_ONLY, SettingsIcons.MARKETPLACE);
         browse = new SettingsRows.Heading(context);
         browse.setTitle(L10n.t("Browse settings"));
         more = link(context, L10n.t("More settings"), L10n.t("Additional Facebook preferences"), SettingsIcons.SETTINGS);
@@ -112,9 +134,33 @@ final class SettingsNavigation extends BaseAdapter {
         support = link(context, L10n.t("Support Hushfacebook"), L10n.t("Buy me a coffee on Ko-fi"), SettingsIcons.OPENING);
         support.setKey(HushfacebookPages.SUPPORT);
         support.setOnPreferenceClickListener(row -> { HushfacebookPages.openSupport(row.getContext()); return true; });
+        report = link(context, L10n.t("Report a problem"),
+                L10n.t("Opens a GitHub report with your versions and settings filled in. Add what happened."), SettingsIcons.BUG);
+        report.setKey(REPORT);
+        report.setOnPreferenceClickListener(row -> { ReportProblemForm.open(row.getContext(), screen); return true; });
+        quickSetups = link(context, L10n.t("Quick setups"),
+                L10n.t("Turn on a set of switches in one tap, or put every switch back the way it started."), SettingsIcons.TOOLS);
+        quickSetups.setKey(QUICK_SETUPS);
+        quickSetups.setOnPreferenceClickListener(ignored -> { page.showQuickSetups(); return true; });
+        restart = new SettingsRows.Row(context);
+        restart.setKey(RESTART);
+        restart.setPersistent(false);
+        // A tap restarts at once, so the row goes without a chevron.
+        restart.actsAtOnce = true;
+        restart.setSummary(L10n.t("Facebook closes and reopens on this page."));
+        restart.setIcon(SettingsIcons.icon(context, SettingsIcons.UPDATES, palette().heading));
+        restart.setOnPreferenceClickListener(row -> {
+            ReopenSettingsAfterRestart.restartInto(row.getContext(), route);
+            return true;
+        });
+        // The row appears as the switch flips. A screen reader hears the saved message as well,
+        // since the row can land above the part of the list in view.
+        restartFeedback = (shown, message) -> list.announceForAccessibility(message);
+        AbstractPreferenceFragment.setRestartFeedbackPresenter(restartFeedback);
         empty = new SettingsRows.Row(context);
         empty.setTitle(L10n.t("No matching settings"));
         empty.setSummary(L10n.t("Try a different word or clear the search."));
+        empty.setIcon(SettingsIcons.icon(context, SettingsIcons.SEARCH, palette().heading));
         empty.setSelectable(false);
         empty.setPersistent(false);
         pageStatus = new SettingsRows.Row(context);
@@ -128,6 +174,11 @@ final class SettingsNavigation extends BaseAdapter {
             homeOffset = state.getInt("homeOffset");
             morePosition = state.getInt("morePosition");
             moreOffset = state.getInt("moreOffset");
+            if (!MORE.equals(route) && selected() == null) route = "";
+        } else {
+            // Nothing saved: the page the screen was asked to open on, such as the one a restart
+            // from the restart row left.
+            route = host.startPage();
             if (!MORE.equals(route) && selected() == null) route = "";
         }
         source.registerDataSetObserver(changes);
@@ -163,9 +214,14 @@ final class SettingsNavigation extends BaseAdapter {
         Preference row = new SettingsRows.Row(context);
         row.setTitle(title);
         row.setSummary(summary);
-        row.setIcon(SettingsIcons.icon(context, icon, palette().summary));
+        row.setIcon(SettingsIcons.icon(context, icon, palette().heading));
         row.setPersistent(false);
         return row;
+    }
+
+    private void guideIcon(Setting<?> setting, String icon) {
+        Preference row = screen.findPreference("action_show_" + setting.key);
+        if (row != null) row.setIcon(SettingsIcons.icon(screen.getContext(), icon, palette().heading));
     }
 
     private Section selected() {
@@ -236,7 +292,24 @@ final class SettingsNavigation extends BaseAdapter {
         // selection in touch mode. Rebind when changing pages; normal preference updates
         // still keep their current views and scroll position through notifyDataSetChanged.
         list.setAdapter(this);
-        list.setSelectionFromTop(position, offset);
+        // Outside touch mode, selection skips read-only status rows and headings. Offset the
+        // next selectable row by their full heights so the requested row still starts the page.
+        // No status becomes actionable, and no later animation moves the person's place.
+        int selectable = position;
+        int top = offset;
+        if (!list.isInTouchMode()) {
+            int width = list.getWidth();
+            if (width == 0) width = list.getResources().getDisplayMetrics().widthPixels;
+            int widthSpec = View.MeasureSpec.makeMeasureSpec(
+                    width - list.getPaddingLeft() - list.getPaddingRight(), View.MeasureSpec.EXACTLY);
+            while (selectable >= 0 && selectable < getCount() && !isEnabled(selectable)) {
+                View row = getView(selectable++, null, list);
+                row.measure(widthSpec, View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+                top += row.getMeasuredHeight() + list.getDividerHeight();
+            }
+        }
+        list.setSelectionFromTop(selectable < getCount() ? selectable : position,
+                selectable < getCount() ? top : offset);
     }
 
     private void rememberIndex() {
@@ -265,21 +338,27 @@ final class SettingsNavigation extends BaseAdapter {
         out.putBundle(STATE, state);
     }
 
-    void close() { source.unregisterDataSetObserver(changes); }
+    void close() {
+        source.unregisterDataSetObserver(changes);
+        AbstractPreferenceFragment.clearRestartFeedbackPresenter(restartFeedback);
+    }
+
+    /** A change that waits for a restart was made or taken back: the restart row comes, goes or counts again. */
+    void restartChanged() { rebuild(); }
 
     private void rebuild() {
+        int restartWas = visible.indexOf(restart);
+        boolean pageStatusWas = visible.contains(pageStatus);
         visible.clear();
-        String terms = normalized(query).trim();
+        List<String> terms = SettingsSearch.terms(query);
         Section selected = selected();
         if (!terms.isEmpty()) {
             for (Section section : sections) {
                 boolean headingAdded = false;
                 for (int i = 0; i < section.category.getPreferenceCount(); i++) {
                     Preference row = section.category.getPreference(i);
-                    String text = normalized(section.category.getTitle() + " " + row.getTitle() + " " + row.getSummary());
-                    boolean matches = true;
-                    for (String term : terms.split("\\s+")) if (!text.contains(term)) matches = false;
-                    if (!matches) continue;
+                    if (!SettingsSearch.matchesTerms(terms, section.category.getTitle(), row.getTitle(),
+                            row.getSummary())) continue;
                     if (!headingAdded) visible.add(section.category);
                     headingAdded = true;
                     visible.add(row);
@@ -304,13 +383,51 @@ final class SettingsNavigation extends BaseAdapter {
             // Only in a build that lacks another default patch: the card's own line under it.
             Preference missing = screen.findPreference(HushfacebookPreferenceFragment.MISSING_DEFAULTS);
             if (missing != null) visible.add(missing);
+            visible.add(quickSetups);
             visible.add(browse);
             for (Section section : sections) if (section.primary) visible.add(section.link);
             visible.add(more);
+            visible.add(report);
             visible.add(support);
         }
+        addRestart();
         if (terms.isEmpty()) host.showResults(-1);
         notifyDataSetChanged();
+        keepPlace(restartWas, pageStatusWas);
+    }
+
+    /**
+     * The restart row, on whatever page is showing, while a change waits for a restart: under the
+     * home page's status card or a page's pause line, and otherwise first. Its title counts the
+     * changes a restart applies.
+     */
+    private void addRestart() {
+        Context context = screen.getContext();
+        int count = ReopenSettingsAfterRestart.changesWaiting(context);
+        if (count <= 0) return;
+        restart.setTitle(L10n.quantity(context, count, "Restart Facebook to apply this change",
+                "Restart Facebook to apply %1$d changes", count));
+        boolean underStatus = !visible.isEmpty()
+                && (visible.get(0) == pageStatus || visible.get(0) == screen.getPreference(0));
+        visible.add(underStatus ? 1 : 0, restart);
+    }
+
+    /**
+     * The restart row comes and goes above the rows in view when a switch is flipped. On the same
+     * page, with nothing else above moving, the list moves with it, so the row that was tapped
+     * stays where it was. A row added at the top of what's in view is left to push the list down,
+     * so it's seen.
+     */
+    private void keepPlace(int restartWas, boolean pageStatusWas) {
+        String pageWas = rebuiltPage;
+        rebuiltPage = route + '\n' + query;
+        int restartNow = visible.indexOf(restart);
+        if (!rebuiltPage.equals(pageWas) || (restartWas < 0) == (restartNow < 0)
+                || pageStatusWas != visible.contains(pageStatus) || list.getChildCount() == 0) return;
+        int first = list.getFirstVisiblePosition();
+        int top = list.getChildAt(0).getTop();
+        if (restartNow >= 0 && restartNow < first) list.setSelectionFromTop(first + 1, top);
+        else if (restartWas >= 0 && restartWas < first) list.setSelectionFromTop(first - 1, top);
     }
 
     private int headings() {
@@ -321,32 +438,25 @@ final class SettingsNavigation extends BaseAdapter {
 
     /**
      * Starts a category or search page with a short line while Hushfacebook is paused or a pause
-     * or its end waits for a restart, when the page shows a switch Pause reaches, or while a restart
-     * is owed for a setting the page shows. On a paused start the switches keep showing what was
-     * saved, which read as active without it. Nothing here changes a saved choice.
+     * or its end waits for a restart, when the page shows a switch Pause reaches. On a paused start
+     * the switches keep showing what was saved, which read as active without it. Nothing here
+     * changes a saved choice. A restart owed for anything else is the restart row's to say.
      */
     private void addPageStatus() {
         Context context = screen.getContext();
         boolean paused = HushfacebookPause.isPaused();
         boolean nextPaused = HushfacebookPause.pausesNextStart(context);
         pageAction = (paused || nextPaused) && showsPausable();
-        if (pageAction) {
-            pageStatus.setTitle(paused ? L10n.t("Hushfacebook is paused") : L10n.t("Hushfacebook is on"));
-            // Worded like the Pause switch: Debug logging, Lock Facebook and what was set when patching stay in.
-            pageStatus.setSummary(paused == nextPaused
-                    ? L10n.t("Until you resume, every switch but Debug logging and Lock Facebook acts as if it "
-                    + "were off. Changes made when you patched stay in.")
-                    : paused ? L10n.t("Hushfacebook turns back on when Facebook restarts.")
-                    : L10n.t("Hushfacebook pauses when Facebook restarts."));
-            pageStatus.setIcon(SettingsIcons.icon(context, paused ? SettingsIcons.PAUSE : SettingsIcons.PATCHED,
-                    paused ? palette().summary : palette().heading));
-        } else if (showsRestartOwed()) {
-            pageStatus.setTitle(L10n.t("A change here applies after Facebook restarts."));
-            pageStatus.setSummary(null);
-            pageStatus.setIcon(SettingsIcons.icon(context, SettingsIcons.UPDATES, palette().heading));
-        } else {
-            return;
-        }
+        if (!pageAction) return;
+        pageStatus.setTitle(paused ? L10n.t("Hushfacebook is paused") : L10n.t("Hushfacebook is on"));
+        // Worded like the Pause switch: Debug logging, Lock Facebook and what was set when patching stay in.
+        pageStatus.setSummary(paused == nextPaused
+                ? L10n.t("Until you resume, every switch but Debug logging and Lock Facebook acts as if it "
+                + "were off. Changes made when you patched stay in.")
+                : paused ? L10n.t("Hushfacebook turns back on when Facebook restarts.")
+                : L10n.t("Hushfacebook pauses when Facebook restarts."));
+        pageStatus.setIcon(SettingsIcons.icon(context, paused ? SettingsIcons.PAUSE : SettingsIcons.PATCHED,
+                paused ? palette().summary : palette().heading));
         visible.add(0, pageStatus);
     }
 
@@ -357,17 +467,6 @@ final class SettingsNavigation extends BaseAdapter {
             if (setting != null && (!setting.isKeptWhenPaused() || setting == BaseSettings.PAUSED)) return true;
         }
         return false;
-    }
-
-    private boolean showsRestartOwed() {
-        for (Preference row : visible) {
-            if (row.hasKey() && AbstractPreferenceFragment.restartPending.contains(row.getKey())) return true;
-        }
-        return false;
-    }
-
-    private static String normalized(String value) {
-        return Normalizer.normalize(value, Normalizer.Form.NFD).replaceAll("\\p{M}+", "").toLowerCase(Locale.ROOT);
     }
 
     private int originalPosition(Preference item) {
@@ -397,9 +496,9 @@ final class SettingsNavigation extends BaseAdapter {
             boolean first = position == 0 || group(getItem(position - 1)) != group;
             boolean last = position + 1 == getCount() || group(getItem(position + 1)) != group;
             palette().paintSurface(row, item, first, last);
-            if (MORE.equals(route)) {
-                row.setMinimumHeight(dp(56));
-                row.setPaddingRelative(dp(34), dp(12), dp(34), dp(12));
+            if (MORE.equals(route) && query.isEmpty()) {
+                row.setMinimumHeight(dp(48));
+                row.setPaddingRelative(dp(36), dp(10), dp(36), dp(10));
             }
         }
         if (item == screen.getPreference(0)) {
@@ -410,7 +509,24 @@ final class SettingsNavigation extends BaseAdapter {
         if (item == pageStatus && pageAction) {
             bindAction(row, HushfacebookPause.isPaused(), HushfacebookPause.pausesNextStart(screen.getContext()));
         }
+        if (item == screen.getPreference(0)) styleBuildDetails(row);
         return row;
+    }
+
+    /** Keep provenance visible without giving it the weight of the current running state. */
+    private void styleBuildDetails(View row) {
+        TextView summary = row.findViewById(android.R.id.summary);
+        if (summary == null) return;
+        String value = summary.getText().toString();
+        String detail = HushfacebookPreferenceFragment.overviewBuildDetails();
+        int start = value.indexOf(detail);
+        if (start < 0) return;
+        android.text.SpannableStringBuilder styled = new android.text.SpannableStringBuilder(value);
+        String caption = detail.replace('\n', ' ');
+        styled.replace(start, start + detail.length(), caption);
+        styled.setSpan(new android.text.style.RelativeSizeSpan(12f / 13f), start, start + caption.length(),
+                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        summary.setText(styled);
     }
 
     private void bindStatus(View row) {
@@ -440,12 +556,11 @@ final class SettingsNavigation extends BaseAdapter {
         action.setAllCaps(false);
         action.setTextSize(14);
         action.setTextColor(palette().heading);
-        action.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        palette().outlineAction(action);
         action.setMinWidth(dp(48));
         action.setMinHeight(dp(48));
         action.setMinimumWidth(dp(48));
         action.setMinimumHeight(dp(48));
-        action.setPadding(0, 0, 0, 0);
         action.setOnClickListener(ignored -> {
             if (nextPaused) {
                 page.resumeFromOverview();
@@ -488,7 +603,21 @@ final class SettingsNavigation extends BaseAdapter {
     private int dp(int value) { return Math.round(value * screen.getContext().getResources().getDisplayMetrics().density); }
 
     private Object group(Preference item) {
-        if (item == more || item == support || item == browse || item == screen.getPreference(0)) return item;
+        if (item == more || item == support || item == browse || item == screen.getPreference(0)
+                || item == restart || item == quickSetups || item == report) return item;
+        for (Section section : sections) if (item == section.link) return section.primary ? sections : more;
+        if (!query.trim().isEmpty() && item.getParent() != null) return item.getParent();
+        String key = item.getKey();
+        if (Settings.DEFAULT_COMMENT_ORDER.key.equals(key) || Settings.COMMENT_ORDER.key.equals(key)) {
+            return Settings.COMMENT_ORDER;
+        }
+        // Guide destinations form one list; independent selectors keep their own surfaces.
+        if (key != null && key.startsWith("action_show_")) return guideLinks;
+        if (Settings.OPEN_ON_CHOSEN_TAB.key.equals(key) || Settings.START_TAB.key.equals(key)
+                || Settings.FEEDS_SUBTAB.key.equals(key)) return Settings.OPEN_ON_CHOSEN_TAB;
+        if (Settings.PLAYBACK_QUALITY.key.equals(key) || Settings.REELS_PLAYBACK_QUALITY.key.equals(key)
+                || Settings.STORIES_PLAYBACK_QUALITY.key.equals(key)) return Settings.PLAYBACK_QUALITY;
+        if (Settings.DOWNLOAD_QUALITY.key.equals(key)) return item;
         if (item.getParent() != null) return item.getParent();
         return sections;
     }

@@ -28,6 +28,39 @@ object PatchMetadataLocalizer {
     )
 
     private val zh = mapOf(
+        "Frame step" to Zh(
+            "逐格播放",
+            "Reels 或影片暫停時，點擊畫面右側前進一格、左側倒退一格，方便精準選擇畫面。預設關閉，可在播放設定中啟用。"
+        ),
+        "Auto reply" to Zh(
+            "自動回覆",
+            "依照自訂關鍵字或全部訊息，自動透過 Messenger 通知回覆，包括加密聊天。每個對話最多每五分鐘回覆一次，預設關閉。"
+        ),
+        "Fix shared videos with xHE-AAC sound" to Zh(
+            "修復 xHE-AAC 影片分享",
+            "將從其他 App 分享至 Messenger 的 xHE-AAC 音訊轉為一般 AAC，使影片可正常傳送，畫面不會修改。預設關閉。"
+        ),
+        "Hide ad banners in business chats" to Zh(
+            "隱藏商家聊天廣告橫幅",
+            "隱藏從商家廣告開啟的聊天內所顯示的廣告橫幅。預設關閉。"
+        ),
+        "Stop ad attribution uploads" to Zh(
+            "阻止廣告歸因資料上傳",
+            "停止將手機廣告識別碼及廣告追蹤設定傳送至 Meta 的背景工作，不會變更識別碼本身。預設關閉。"
+        ),
+        "Stop inbox and ad link logging" to Zh(
+            "停止收件匣與廣告連結紀錄",
+            "停止回報聊天列表顯示範圍及透過廣告連結開啟對話的來源紀錄。預設關閉。"
+        ),
+        "Turn off the swipe up for disappearing messages" to Zh(
+            "停用上滑啟動消失訊息",
+            "聊天時向上滑動不再意外啟用消失訊息計時；仍可從對話設定手動調整。預設關閉。"
+        ),
+        "Use your own font" to Zh(
+            "使用自訂字型",
+            "讓 Messenger 文字使用手機字型或自行選擇的 .ttf／.otf 字型。Emoji 不受影響，變更後需重新啟動。預設關閉。"
+        ),
+
         // Morphe universal patches
         "Clone app" to Zh(
             "複製應用程式",

@@ -26,10 +26,9 @@ import org.w3c.dom.Document
 import org.w3c.dom.Element
 
 internal const val BUBBLE_SESSION = "Lcom/facebook/auth/usersession/FbUserSession;"
-internal const val BUBBLE_ROLLOUT = 36312032932401152L
-/** 581 renumbered the specifier of the same rollout read. Exactly these two are accepted. */
-internal const val BUBBLE_ROLLOUT_581 = 36312028637433857L
-internal val BUBBLE_ROLLOUTS = setOf(BUBBLE_ROLLOUT, BUBBLE_ROLLOUT_581)
+/** The specifier of the bubble rollout read. Each release renumbers it, and only this one is accepted. */
+internal const val BUBBLE_ROLLOUT = 36312020047499274L
+internal val BUBBLE_ROLLOUTS = setOf(BUBBLE_ROLLOUT)
 internal const val BUBBLE_ACTIVITY = "com.facebook.messaging.msys.thread.bubbles.activity.StaxThreadViewBubblesActivity"
 internal const val NATIVE_BUBBLE_ROUTES = "$HOST_SCREENS->nativeBubbleRoutes()Z"
 internal const val NATIVE_BUBBLE_METADATA = "hush.native_bubble_routes"
@@ -155,7 +154,7 @@ internal fun Document.addNativeBubbleRoutesMetadata() {
     })
 }
 
-/** 581 reads the gate through a static (session, lazy holder) helper. Only one returning the gate's own answer counts. */
+/** The gate is read through a static (session, lazy holder) helper. Only one returning the gate's own answer counts. */
 private fun Method.bubbleGateHelper(gate: String): Boolean {
     val c = bubbleCode()
     val p = bubbleParameters()
@@ -172,6 +171,14 @@ private fun Method.bubbleGateHelper(gate: String): Boolean {
         c[4].bubbleRef() == gate && c[4].calls(0, 1) && c[5].bubbleRegister() == 0 && c[6].bubbleRegister() == 0
 }
 
+/** The shortcut builder names its ID itself, or (582) through a static (ThreadKey)String helper that does. */
+private fun List<Instruction>.namesThreadShortcut(byType: Map<String, ClassDef>) = any { it.bubbleRef() == "thread_shortcut_" } ||
+    any { i -> i.opcode == Opcode.INVOKE_STATIC && ((i as? ReferenceInstruction)?.reference as? MethodReference)?.let { ref ->
+        ref.parameterTypes.map(CharSequence::toString) == listOf("Lcom/facebook/messaging/model/threadkey/ThreadKey;") &&
+            ref.returnType == "Ljava/lang/String;" && byType[ref.definingClass]?.methods?.singleOrNull { it.hookId() == ref.toString() }
+                ?.bubbleCode()?.any { it.bubbleRef() == "thread_shortcut_" } == true
+    } == true }
+
 /** Discover only existing, connected host routes; these methods are inspected, never rewritten. */
 internal fun findNativeBubbleRoutes(classes: List<ClassDef>, gate: String): String? {
     val byType = classes.associateBy { it.type }
@@ -186,7 +193,7 @@ internal fun findNativeBubbleRoutes(classes: List<ClassDef>, gate: String): Stri
         val refs = c.mapNotNull { it.bubbleRef() }.toSet()
         if (m.bubbleParameters() == listOf("Landroid/content/Context;", "Landroid/graphics/Bitmap;",
                 "Lcom/facebook/messaging/model/threadkey/ThreadKey;", "Ljava/lang/String;") &&
-            "thread_shortcut_" in refs && "$SHORTCUT_BUILDER->setPerson(Landroid/app/Person;)$SHORTCUT_BUILDER" in refs &&
+            c.namesThreadShortcut(byType) && "$SHORTCUT_BUILDER->setPerson(Landroid/app/Person;)$SHORTCUT_BUILDER" in refs &&
             "$SHORTCUT_BUILDER->setIntent(Landroid/content/Intent;)$SHORTCUT_BUILDER" in refs &&
             "$SHORTCUT_BUILDER->build()Landroid/content/pm/ShortcutInfo;" in refs) {
             val set = c.indexOfFirst { it.bubbleRef() == "$SHORTCUT_BUILDER->setLongLived(Z)$SHORTCUT_BUILDER" }
