@@ -123,6 +123,7 @@ public final class VideoMenuItem {
                 return;
             }
             Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "Download to phone tapped");
+            if (MediaDownload.busy(application)) return;
             if (MediaDownload.saveFeedVideo(application, video.details, video.hd, video.sd)) return;
 
             Feedback.show(application,

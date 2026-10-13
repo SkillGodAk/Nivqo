@@ -134,6 +134,7 @@ public final class ReelDownload implements Function1<Object, Object> {
      */
     public static boolean showsButton() {
         try {
+            ReelSidebarDiagnostics.sidebarObserved();
             if (!Utils.settingsReady()) {
                 HookStatus.counted(FamilyNames.REEL_DOWNLOAD, SIDEBAR_NOT_READY);
                 return false;
@@ -159,6 +160,7 @@ public final class ReelDownload implements Function1<Object, Object> {
      * Never throws.
      */
     public static void otherSidebarBuilt() {
+        ReelSidebarDiagnostics.sidebarObserved();
         HookStatus.counted(FamilyNames.REEL_DOWNLOAD, OTHER_SIDEBAR);
     }
 

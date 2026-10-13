@@ -1,11 +1,19 @@
 package app.hushmessenger.extension;
 
+import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+import android.os.Messenger;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import static org.junit.Assert.*;
 
@@ -42,6 +50,43 @@ public class AnalyticsUploadsTest {
             assertFalse(state, Settings.stopAnalyticsUploads());
             assertEquals(state, 0, Settings.lastActive("analytics_uploads"));
         }
+    }
+
+    @Test public void aSkippedStartAnswersItsStarterOnceSoItsWakelockGoesAtOnce() {
+        Settings.hookErrors.clear();
+        List<Message> answers = new ArrayList<>();
+        Handler starter = new Handler(Looper.getMainLooper()) {
+            @Override public void handleMessage(Message message) { answers.add(Message.obtain(message)); }
+        };
+        Intent start = new Intent("com.facebook.analytics2.logger.UPLOAD_NOW")
+            .putExtra(Settings.UPLOAD_STARTER, new Messenger(starter)).putExtra("_job_id", 7);
+        Settings.releaseUploadStarter(start);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        // Messenger's own service sends one empty message, and the starter's handler reads nothing from it.
+        assertEquals(1, answers.size());
+        assertEquals(0, answers.get(0).what);
+        assertNull(answers.get(0).obj);
+        assertTrue(Settings.hookErrors.isEmpty());
+    }
+
+    @Test public void aStartWithNoStarterHasNothingToAnswer() {
+        Settings.hookErrors.clear();
+        Settings.releaseUploadStarter(null);
+        Settings.releaseUploadStarter(new Intent());
+        Settings.releaseUploadStarter(new Intent().putExtra(Settings.UPLOAD_STARTER, "not a messenger"));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertTrue(Settings.hookErrors.isEmpty());
+    }
+
+    @Test public void extrasThatWontUnpackStillLetTheSkipStopTheStart() {
+        Settings.hookErrors.clear();
+        Intent broken = new Intent("com.facebook.analytics2.logger.UPLOAD_NOW") {
+            @Override public android.os.Bundle getExtras() { throw new RuntimeException("Parcel: unknown type code"); }
+        };
+        // Reading the starter is the only new step on the skip path, so a failure there is logged instead of thrown.
+        Settings.releaseUploadStarter(broken);
+        assertEquals(java.util.Collections.singleton("analytics_uploads"), Settings.hookErrors.keySet());
+        Settings.hookErrors.clear();
     }
 
     @Test public void pauseLetsTheNextUploadRunWithoutForgettingTheChoice() {

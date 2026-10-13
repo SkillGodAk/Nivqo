@@ -21,8 +21,7 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 internal const val EMOJI_SEARCH = "emoji_search"
 
-/** The mode Messenger asks its emoji and sticker tray for after typing, and the plain mode it asks for otherwise. */
-internal const val EMOJI_SEARCH_MODE = "expression_search"
+/** The plain mode Messenger asks its emoji and sticker tray for when the composer isn't searching. */
 internal const val EMOJI_PLAIN_MODE = "expression"
 
 internal const val EMOJI_SEARCH_HELPER = "$SETTINGS->emojiSearchMode(Ljava/lang/String;)Ljava/lang/String;"
@@ -51,15 +50,15 @@ internal fun findEmojiSearch(classes: Iterable<ClassDef>): List<Method> =
 /**
  * Index of the call that hands the mode to the tray's listener. Both modes meet there:
  *
- *     581:  const-string vS, "expression_search"        580:  const/16 vK, key
- *           invoke-interface {vL, vS}, ...(String)V  <-         invoke-static {vK}, table(I)String
- *           ...                                                 move-result-object vS
- *           const-string vS, "expression"                       invoke-interface {vL, vS}, ...(String)V  <-
- *           goto <the invoke>                                   ...
- *                                                               const-string vS, "expression"
- *                                                               goto <the invoke>
+ *     const/16 vK, key
+ *     invoke-static {vK}, table(I)String
+ *     move-result-object vS
+ *     invoke-interface {vL, vS}, ...(String)V  <-
+ *     ...
+ *     const-string vS, "expression"
+ *     goto <the invoke>
  *
- * 580 reaches the search string through a generated switch table that returns "expression_search" for its key, so the
+ * The search string comes from a generated switch table that returns "expression_search" for its key, so the
  * extension compares the string it's handed at run time. The plain path is the only jump into the call, and it already
  * holds the plain mode, so hooking the call from above (the fall-through search path) is enough.
  */
@@ -75,21 +74,15 @@ internal fun Method.emojiSearchCall(): Int {
     if (call < 1 || call > plain || (invoke.opcode != Opcode.INVOKE_INTERFACE && invoke.opcode != Opcode.INVOKE_VIRTUAL) ||
         invoke.registerCount != 2 || invoke.registerD != mode || callee.returnType != "V" ||
         callee.parameterTypes.map { it.toString() } != listOf("Ljava/lang/String;")) searchChanged("mode call")
-    // The search mode arrives by falling through: a literal in 581, or a switch-table lookup answer in 580.
+    // The search mode arrives by falling through, as the switch table's answer.
     val before = code[call - 1]
-    val search = when {
-        before.string() == EMOJI_SEARCH_MODE -> true
-        before.opcode == Opcode.MOVE_RESULT_OBJECT -> {
-            val lookup = (code.getOrNull(call - 2) as? ReferenceInstruction)?.reference as? MethodReference
-            code[call - 2].opcode == Opcode.INVOKE_STATIC && lookup?.returnType == "Ljava/lang/String;" &&
-                lookup.parameterTypes.map { it.toString() } == listOf("I")
-        }
-        else -> false
-    }
-    if (!search || (before as? OneRegisterInstruction)?.registerA != mode) searchChanged("search mode")
+    val lookup = (code.getOrNull(call - 2) as? ReferenceInstruction)?.reference as? MethodReference
+    val search = before.opcode == Opcode.MOVE_RESULT_OBJECT && code.getOrNull(call - 2)?.opcode == Opcode.INVOKE_STATIC &&
+        lookup?.returnType == "Ljava/lang/String;" && lookup.parameterTypes.map { it.toString() } == listOf("I")
+    if (!search || (before as OneRegisterInstruction).registerA != mode) searchChanged("search mode")
     // Only the plain path may jump straight to the call, or the search value could skip the extension.
     val entries = code.indices.filter { code[it] is OffsetInstruction && code.branchTarget(it) == call }
-    if (entries != listOf(plain + 1)) searchChanged("other jumps into the call")
+    if (entries != listOf(plain + 1) || call in jumpTargets(branches = false)) searchChanged("other jumps into the call")
     // The helper is a plain invoke, which reaches v15 at most. The call's own registers already fit that.
     if (mode > 15) searchChanged("register out of range")
     return call

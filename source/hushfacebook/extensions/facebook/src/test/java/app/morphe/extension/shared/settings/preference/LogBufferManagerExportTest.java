@@ -108,8 +108,8 @@ public class LogBufferManagerExportTest {
 
     /**
      * Facebook runs on Android 11 and newer, where the report goes through MediaStore into
-     * Download/Morphe. The path handed back is the name MediaStore gave the file, which differs
-     * from the one asked for when a file of that name is already there.
+     * Download/Hushfacebook, next to the crash files. The path handed back is the name MediaStore
+     * gave the file, which differs from the one asked for when a file of that name is already there.
      */
     @Test public void repeatedExportsEachGetTheirOwnDownloadsEntry() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
@@ -124,7 +124,7 @@ public class LogBufferManagerExportTest {
         String first = LogBufferManager.writeToFile(context, report);
         String second = LogBufferManager.writeToFile(context, report);
 
-        String folder = Environment.DIRECTORY_DOWNLOADS + "/Morphe/";
+        String folder = Environment.DIRECTORY_DOWNLOADS + "/Hushfacebook/";
         assertTrue(first, first.startsWith(folder + "morphe-diagnostics-") && first.endsWith(".txt"));
         assertTrue(second, second.startsWith(folder + "morphe-diagnostics-") && second.endsWith(".txt"));
         assertNotEquals(first, second);
@@ -133,7 +133,7 @@ public class LogBufferManagerExportTest {
         for (int id = 1; id <= 2; id++) {
             assertEquals("entry " + id + " was left pending", Integer.valueOf(0),
                     downloads.row(id).getAsInteger(MediaStore.MediaColumns.IS_PENDING));
-            assertEquals(Environment.DIRECTORY_DOWNLOADS + "/Morphe",
+            assertEquals(folder,
                     downloads.row(id).getAsString(MediaStore.MediaColumns.RELATIVE_PATH));
         }
         assertEquals(report, firstBody.toString(StandardCharsets.UTF_8.name()));
@@ -142,7 +142,7 @@ public class LogBufferManagerExportTest {
 
     /**
      * The file's place is a value set into a sentence, so the toast isolates it: a right-to-left
-     * sentence then keeps "Download/Morphe/..." in the order it was written.
+     * sentence then keeps "Download/Hushfacebook/..." in the order it was written.
      */
     @Test public void theSavedPathIsIsolatedInItsToast() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
@@ -165,7 +165,7 @@ public class LogBufferManagerExportTest {
         }
 
         assertNotNull("the export said nothing", toast);
-        String saved = Environment.DIRECTORY_DOWNLOADS + "/Morphe/" + downloads.row(1).getAsString(MediaStore.MediaColumns.DISPLAY_NAME);
+        String saved = Environment.DIRECTORY_DOWNLOADS + "/Hushfacebook/" + downloads.row(1).getAsString(MediaStore.MediaColumns.DISPLAY_NAME);
         assertEquals("Full report saved to " + app.morphe.extension.shared.L10n.isolate(saved), toast);
     }
 

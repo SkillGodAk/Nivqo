@@ -8,6 +8,7 @@ import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
+import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
@@ -21,10 +22,15 @@ import app.morphe.patches.facebook.misc.extension.parameterRegister
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 
 private const val OPEN = "$EXTENSION_PACKAGE/chats/MessengerIcon;->open(Landroid/content/Context;Z)Z"
 private const val TOUCH = "$EXTENSION_PACKAGE/chats/MessengerIcon;->touch($MOTION_EVENT)V"
+private const val HANDOFF = "$EXTENSION_PACKAGE/chats/MessengerHandoff;"
+internal const val DROP_CALL_PUSH = "$HANDOFF->dropCallPush()Z"
+internal const val DROP_RING = "$HANDOFF->dropRing()Z"
+internal const val DROP_CHAT = "$HANDOFF->dropChat(Ljava/lang/Object;)Z"
 
 /**
  * Has a tap on the Messenger icon in Facebook's top bar open the Messenger app, while the switch
@@ -37,6 +43,14 @@ private const val TOUCH = "$EXTENSION_PACKAGE/chats/MessengerIcon;->touch($MOTIO
  * on. Where Facebook builds the icon without its long-click listener, a held press comes to the tap
  * as a plain tap, so the patch hands every touch to the extension as well, which is how it tells.
  * In the default selection, with the switch off, so nothing changes until it's turned on.
+ *
+ * The same patch carries the Chats page's second switch, Leave calls and chats to Messenger
+ * (issues #39 and #100): Facebook and Messenger both ring for a call and both notify for a message,
+ * and with the switch on and Messenger installed only Messenger does. The patch asks the extension
+ * first in Facebook's VOIP push handlers, in the parser every incoming ring goes through and in the
+ * dispatcher that hands chat notifications to Facebook's notifiers (MessengerHandoffAnchors.kt).
+ * Without Messenger, or with it disabled, the extension answers no and Facebook rings as before.
+ * Every anchor is found before anything changes, so a build missing one stops the patch whole.
  */
 @Suppress("unused")
 val openMessengerFromTopBarPatch = bytecodePatch(
@@ -71,11 +85,128 @@ val openMessengerFromTopBarPatch = bytecodePatch(
         val dispatch = dispatches.singleOrNull() ?: throw PatchException(
             "$ICON_PATCH: expected $FRAGMENT_ACTIVITY to declare one dispatchTouchEvent($MOTION_EVENT)Z, found ${dispatches.size}",
         )
+        val handoff = handoffTargets()
         mutableClassDefBy(tap.definingClass).methods.single { it.isSameAs(tap) }.openMessengerFirst(TAP_LONG_PRESS)
         mutableClassDefBy(handler.definingClass).methods.single { it.isSameAs(handler) }.openMessengerFirst(BUTTON_LONG_PRESS)
         mutableClassDefBy(FRAGMENT_ACTIVITY).methods.single { it.isSameAs(dispatch) }.handTouchesToIcon()
+        for (push in handoff.callPushes) {
+            mutableClassDefBy(push.definingClass).methods.single { it.isSameAs(push) }.dropCallPushFirst()
+        }
+        mutableClassDefBy(handoff.ringParse.definingClass).methods.single { it.isSameAs(handoff.ringParse) }.parseNoRingFirst()
+        mutableClassDefBy(MESSAGES_NOTIFICATION_MANAGER).methods.single { it.isSameAs(handoff.chatDispatch) }.dropChatFirst()
         enableStatus("messengerIcon")
     }
+}
+
+/** The methods Leave calls and chats to Messenger goes first in, all found before anything changes. */
+internal class HandoffTargets(val callPushes: List<Method>, val ringParse: Method, val chatDispatch: Method)
+
+/**
+ * Finds the VOIP push handlers' handle methods, the ring parser's parse and the chat dispatcher
+ * (see MessengerHandoffAnchors.kt), or stops the patch naming what this build lacks. One pass over
+ * the classes finds both the handlers and the parser.
+ */
+internal fun BytecodePatchContext.handoffTargets(): HandoffTargets {
+    val notificationType = classDefByOrNull(NOTIFICATION_TYPE)
+        ?: throw PatchException("$ICON_PATCH: $NOTIFICATION_TYPE isn't in this build")
+    val voip = voipConstant(notificationType)
+        ?: throw PatchException("$ICON_PATCH: $NOTIFICATION_TYPE doesn't store a constant named $VOIP")
+    val handlers = mutableListOf<ClassDef>()
+    val parsers = mutableListOf<ClassDef>()
+    classDefForEach { classDef ->
+        if (classDef.type.startsWith(EXTENSION_PACKAGE)) return@classDefForEach
+        if (isRingParser(classDef)) parsers += classDef
+        if (claimsVoip(classDef, voip)) handlers += classDef
+    }
+    if (handlers.isEmpty()) {
+        throw PatchException("$ICON_PATCH: no push handler claims $VOIP pushes alone by reading $voip")
+    }
+    val callPushes = handlers.map { handler ->
+        val handles = handler.methods.filter(::isPushHandle)
+        handles.singleOrNull() ?: throw PatchException(
+            "$ICON_PATCH: ${handler.type} claims $VOIP pushes but has ${handles.size} handle methods over (Context, " +
+                "FbUserSession, PushProperty, the push, a helper, PushInfraMetaData)",
+        )
+    }
+    val parser = parsers.singleOrNull() ?: throw PatchException(
+        "$ICON_PATCH: expected one class declaring $RING_TYPE... and $RING_PAYLOAD..., found ${parsers.size}",
+    )
+    val parses = parser.methods.filter(::isRingParse)
+    val ringParse = parses.singleOrNull() ?: throw PatchException(
+        "$ICON_PATCH: expected ${parser.type} to have one parse over (FbUserSession, the type, the message, Long, " +
+            "byte[]), found ${parses.size}",
+    )
+    val manager = classDefByOrNull(MESSAGES_NOTIFICATION_MANAGER)
+        ?: throw PatchException("$ICON_PATCH: $MESSAGES_NOTIFICATION_MANAGER isn't in this build")
+    val dispatches = manager.methods.filter(::isChatDispatch)
+    val chatDispatch = dispatches.singleOrNull() ?: throw PatchException(
+        "$ICON_PATCH: expected one static dispatcher of $MESSAGES_NOTIFICATION_MANAGER handing a notification to " +
+            "the notifiers, found ${dispatches.size}",
+    )
+    return HandoffTargets(callPushes, ringParse, chatDispatch)
+}
+
+/**
+ * First thing in a VOIP push handler's handle method: ask the extension, and return while it says
+ * Messenger takes calls, so the push goes nowhere. v0 is free at index 0.
+ */
+internal fun MutableMethod.dropCallPushFirst() {
+    if (returnType != "V") throw PatchException("$ICON_PATCH: $definingClass->$name isn't a void push handler")
+    requireLocals(ICON_PATCH, 1)
+    addInstructionsWithLabels(
+        0,
+        """
+            invoke-static {}, $DROP_CALL_PUSH
+            move-result v0
+            if-eqz v0, :facebook
+            return-void
+        """,
+        ExternalLabel("facebook", getInstruction(0)),
+    )
+}
+
+/**
+ * First thing in the ring parser's parse, ahead of the lock it takes: ask the extension, and
+ * answer null while it says Messenger takes calls, which every caller reads as nothing to ring.
+ * v0 is free at index 0.
+ */
+internal fun MutableMethod.parseNoRingFirst() {
+    if (!returnType.startsWith("L")) throw PatchException("$ICON_PATCH: $definingClass->$name doesn't answer an object")
+    requireLocals(ICON_PATCH, 1)
+    addInstructionsWithLabels(
+        0,
+        """
+            invoke-static {}, $DROP_RING
+            move-result v0
+            if-eqz v0, :facebook
+            const/4 v0, 0x0
+            return-object v0
+        """,
+        ExternalLabel("facebook", getInstruction(0)),
+    )
+}
+
+/**
+ * First thing in the chat dispatcher: hand the extension the notification, copied down into v0
+ * with the 16-bit move, and return while it says Messenger posts that kind, so no notifier sees it.
+ */
+internal fun MutableMethod.dropChatFirst() {
+    if (returnType != "V" || parameterTypes.getOrNull(CHAT_NOTIFICATION_PARAMETER)?.toString() != MESSAGING_NOTIFICATION) {
+        throw PatchException("$ICON_PATCH: $definingClass->$name isn't a void method taking the notification as parameter " +
+            "$CHAT_NOTIFICATION_PARAMETER")
+    }
+    requireLocals(ICON_PATCH, 1)
+    addInstructionsWithLabels(
+        0,
+        """
+            move-object/from16 v0, ${parameterRegister(CHAT_NOTIFICATION_PARAMETER)}
+            invoke-static { v0 }, $DROP_CHAT
+            move-result v0
+            if-eqz v0, :facebook
+            return-void
+        """,
+        ExternalLabel("facebook", getInstruction(0)),
+    )
 }
 
 /**

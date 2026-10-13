@@ -8,7 +8,13 @@
     among decoys, and it has to rank first and stand out, with the tool still accepting nothing. In
     "twins" it is there twice, identical, and in "gone" it is missing: both runs have to fail closed
     and name no candidate on the console. A captured signature has to hold exactly the properties
-    fingerprint-signature.schema.json declares, and one of another version has to be refused.
+    fingerprint-signature.schema.json declares, and one of another version has to be refused. In
+    "outlined" the target asks a Redex string table for its marker beside a twin asking for another
+    case: read back, the marker has to set it apart, and five calls that prove no string, out of
+    range, a passed argument, a branch onto the call, a case calling the table again and a helper
+    that isn't a table, have to read none back. In "outlined-alone" the target has no twin and
+    stands out, until the table limit leaves its table unread and the run has to fail closed. A
+    sparse table's case 4660 read back there must not also count 4660 as the caller's literal.
 
     A getter that only its caller tells apart hides among 250 getters just like it. Callers are only
     compared for a shortlist, so in "crowd" the real one, last of a tie at the shortlist's end, has
@@ -16,11 +22,15 @@
     out. In "crowd-behind" it scores just under the crowd until its callers count, and the shortlist
     has to widen until it stands out.
 
-    Then fingerprint-candidates.ps1 -Calibrate runs over Facebook 577 and 580 from
-    HUSHFACEBOOK_FIXTURE_DIR, and every case of fingerprint-calibration.txt has to rank its known 580
-    method in the top five. The report has to show each candidate's prototype, strings, literals,
-    opcode sketch, references and call neighbourhood. The AMOLED resolver that split in two has two
-    real candidates, and that case has to fail closed.
+    Then fingerprint-candidates.ps1 -Calibrate runs over the retired Facebook 577 and 580 from
+    HUSHFACEBOOK_FINGERPRINT_HISTORY_DIR, each held first to its pins in fingerprint-history.txt,
+    and every case of fingerprint-calibration.txt has to rank its known 580 method in the top five.
+    A history that isn't set, overlaps the fixtures or the repository, lacks a build, or holds one
+    with other bytes, another version, another ABI or a signer that isn't Meta's has to be refused.
+    The report has to show each candidate's prototype, strings, literals, opcode sketch, references
+    and call neighbourhood. The AMOLED resolver that split in two has two real candidates, and that
+    case has to fail closed. The 580-to-582 lists then have to rank theirs in the top five on both
+    582 fixtures in HUSHFACEBOOK_FIXTURE_DIR.
 
     Through all of it, nothing under patches/ may change, and an output path there, or one ending in
     .kt or .java, has to be refused by both the tool and the wrapper. The tool has to refuse it
@@ -40,6 +50,8 @@ $ErrorActionPreference = 'Stop'
 if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
 . (Join-Path $PSScriptRoot 'Resolve-Java.ps1')
 . (Join-Path $PSScriptRoot 'common.ps1')
+. (Join-Path $PSScriptRoot 'release-receipt.ps1')
+. (Join-Path $PSScriptRoot 'fingerprint-history.ps1')
 
 function Assert-True {
     param([bool]$Condition, [string]$Message)
@@ -143,6 +155,7 @@ $patchProbes = @('fingerprint-probe.json', 'src\fingerprint-probe.json', 'finger
 $tempBase = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
 $caseRoot = [System.IO.Path]::GetFullPath((Join-Path $tempBase ("hushfacebook-fingerprint-test-" + [guid]::NewGuid().ToString('N'))))
 $junction = Join-Path $caseRoot 'reports'
+$historyJunction = Join-Path $caseRoot 'history-linked'
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 try {
@@ -169,8 +182,8 @@ try {
     $violations = @(Get-SchemaViolations $parsed $schema 'signature')
     Assert-True ($violations.Count -eq 0) ("The signature breaks its schema:`n" + ($violations -join "`n"))
     Assert-True ($parsed.method.descriptor -ceq $target -and $parsed.callers.count -eq 1 -and
-        @($parsed.strings) -contains 'fingerprint_fixture_marker' -and @($parsed.literals) -contains 'N:74565') `
-        "The signature does not describe the target and its one caller.`n$signatureText"
+        @($parsed.strings) -contains 'fingerprint_fixture_marker' -and @($parsed.literals) -contains 'N:74565' -and
+        @($parsed.outlinedStrings).Count -eq 0) "The signature does not describe the target and its one caller.`n$signatureText"
     # The schema check itself, on a signature with a property the schema doesn't declare.
     $extra = @(Get-SchemaViolations ($signatureText.Replace('"schema":', '"unknown": 1, "schema":') | ConvertFrom-Json) $schema 'signature')
     Assert-True ($extra.Count -eq 1 -and $extra[0] -like '*unknown is not in the schema*') 'The schema check let an undeclared property through.'
@@ -197,6 +210,75 @@ try {
     $gone = Invoke-Tool @('rank', $signature, (New-DexApk 'gone'), (Join-Path $caseRoot 'gone.txt'))
     Assert-True ($gone.ExitCode -eq 1 -and $gone.Text -match 'no candidate scores' -and $gone.Text -match 'fails closed') `
         "A build without the target did not fail closed.`n$($gone.Text)"
+
+    # Redex moved the marker into a string table. Read back, it sets the target apart from a twin
+    # that asks the table for another case, and the report names the case it came from.
+    $outlinedApk = New-DexApk 'outlined'
+    $outlinedReport = Join-Path $caseRoot 'outlined.txt'
+    $outlined = Invoke-Tool @('rank', $signature, $outlinedApk, $outlinedReport)
+    Assert-True ($outlined.ExitCode -eq 0 -and $outlined.Text -match 'Nothing was accepted' -and
+        ($outlined.Output | Where-Object { $_ -like '*#1 *' } | Select-Object -First 1) -like "*$moved*") `
+        "The target asking a string table for its marker did not rank first and stand out over its twin.`n$($outlined.Text)"
+    $outlinedText = [System.IO.File]::ReadAllText($outlinedReport)
+    $origin = 'LX/000;->A00(I)Ljava/lang/String; case 7'
+    Assert-True ($outlinedText -match [regex]::Escape("outlined strings: [`"fingerprint_fixture_marker`" from $origin]") -and
+        $outlinedText -match '"fingerprint_fixture_other_x+\.\.\." from LX/000;->A00\(I\)Ljava/lang/String; case 8\]') `
+        "The report did not say which table case the marker and the twin's long string came from.`n$outlinedText"
+    $outlinedSignature = Join-Path $caseRoot 'outlined.json'
+    $outlinedCaptured = Invoke-Tool @('capture', $outlinedApk, $moved, $outlinedSignature)
+    Assert-True ($outlinedCaptured.ExitCode -eq 0) "The capture of the outlined target failed.`n$($outlinedCaptured.Text)"
+    $outlinedParsed = [System.IO.File]::ReadAllText($outlinedSignature) | ConvertFrom-Json
+    $outlinedViolations = @(Get-SchemaViolations $outlinedParsed $schema 'outlined')
+    Assert-True ($outlinedViolations.Count -eq 0 -and @($outlinedParsed.outlinedStrings).Count -eq 1 -and
+        $outlinedParsed.outlinedStrings[0].string -ceq 'fingerprint_fixture_marker' -and $outlinedParsed.outlinedStrings[0].origin -ceq $origin -and
+        @($outlinedParsed.strings) -notcontains 'fingerprint_fixture_marker') `
+        "The outlined target's signature does not hold the marker as case 7 of the table, apart from its strings.`n$($outlinedViolations -join "`n")"
+    # A table left unread past the limit takes its strings out of the new build, so a signature that
+    # counts outlined strings fails closed there, even where its match stands out with the table read.
+    $aloneApk = New-DexApk 'outlined-alone'
+    $alone = Invoke-Tool @('rank', $outlinedSignature, $aloneApk, (Join-Path $caseRoot 'alone.txt'))
+    Assert-True ($alone.ExitCode -eq 0 -and $alone.Text -match 'one candidate stands out') `
+        "The outlined target with no twin did not stand out with its table read.`n$($alone.Text)"
+    $unread = Invoke-Tool -Arguments @('rank', $outlinedSignature, $aloneApk, (Join-Path $caseRoot 'unread.txt')) `
+        -JavaOptions @('-Dhushfacebook.fingerprint.maxTables=0')
+    Assert-True ($unread.ExitCode -eq 1 -and $unread.Text -match '2 more left unread past the limit of 0 tables' -and
+        $unread.Text -match '2 string tables of the new build were left unread past the limit, and this signature counts outlined strings') `
+        "A signature with outlined strings stood out in a build whose table was left unread.`n$($unread.Text)"
+    # The index a proven table call asks for is a case number Redex renumbers, so it's no literal of
+    # the method, while the same kind of number loaded for anything else still is.
+    $highSignature = Join-Path $caseRoot 'high.json'
+    $high = Invoke-Tool @('capture', $aloneApk, 'LX/Zz5;->A00()V', $highSignature)
+    Assert-True ($high.ExitCode -eq 0) "The capture of the sparse table's caller failed.`n$($high.Text)"
+    $highParsed = [System.IO.File]::ReadAllText($highSignature) | ConvertFrom-Json
+    Assert-True (@($highParsed.outlinedStrings).Count -eq 1 -and $highParsed.outlinedStrings[0].string -ceq 'fingerprint_fixture_high' -and
+        $highParsed.outlinedStrings[0].origin -ceq 'LX/002;->A00(I)Ljava/lang/String; case 4660' -and
+        @($highParsed.literals) -notcontains 'N:4660' -and @($highParsed.literals) -contains 'N:4661') `
+        "The sparse table's case 4660 was not read back, or its index still counted as a literal: $(@($highParsed.literals) -join ', ')"
+    # Past the 64 strings a signature keeps, a call's index stays a number, so neither is lost.
+    $fullSignature = Join-Path $caseRoot 'full.json'
+    $full = Invoke-Tool @('capture', (New-DexApk 'outlined-full'), 'LX/Zz4;->A00()V', $fullSignature)
+    Assert-True ($full.ExitCode -eq 0) "The capture of the full table's caller failed.`n$($full.Text)"
+    $fullParsed = [System.IO.File]::ReadAllText($fullSignature) | ConvertFrom-Json
+    $fullNumbers = @(@($fullParsed.literals) | Where-Object { $_ -like 'N:50*' })
+    Assert-True (@($fullParsed.outlinedStrings).Count -eq 64 -and
+        @($fullParsed.outlinedStrings | Where-Object { $_.string -ceq 'fingerprint_fixture_full_64' }).Count -eq 0 -and
+        $fullNumbers.Count -eq 1 -and $fullNumbers[0] -ceq 'N:5064') `
+        "The case past the limit lost both its string and its number, or a kept one kept its number: $($fullNumbers -join ', ')"
+    # Calls that prove no string add none.
+    $unprovable = [ordered]@{
+        'LX/Ng1;' = 'asks for a case the table lacks'
+        'LX/Ng2;' = 'passes its own argument'
+        'LX/Ng3;' = 'is reached by a branch loading another case'
+        'LX/Ng4;' = 'asks for a case that calls the table again'
+        'LX/Ng5;' = "calls a helper that isn't a table"
+    }
+    foreach ($owner in $unprovable.Keys) {
+        $unprovablePath = Join-Path $caseRoot ("unprovable-" + $owner.Substring(3, 3) + '.json')
+        $unprovableCapture = Invoke-Tool @('capture', $outlinedApk, "$owner->A00(I)V", $unprovablePath)
+        Assert-True ($unprovableCapture.ExitCode -eq 0) "The capture of $owner failed.`n$($unprovableCapture.Text)"
+        $read = @(([System.IO.File]::ReadAllText($unprovablePath) | ConvertFrom-Json).outlinedStrings)
+        Assert-True ($read.Count -eq 0) "A call that $($unprovable[$owner]) read back $($read.Count) string(s): $($read.origin -join ', ')"
+    }
 
     # A getter only its caller tells apart, among 250 just like it. Callers are compared for a
     # shortlist only, so the shortlist mustn't cut a tie by dex order, and a method it leaves off
@@ -266,11 +348,16 @@ try {
     Assert-True ($strayOld.ExitCode -ne 0 -and $strayOld.Text -match '-OldApk goes with -Method, or with -Calibrate') `
         "The wrapper took -OldApk beside -Signature, where it names nothing.`n$($strayOld.Text)"
 
-    # A signature of another version is refused rather than read the new way.
-    $future = Join-Path $caseRoot 'future.json'
-    [System.IO.File]::WriteAllText($future, $signatureText.Replace('"version": 1', '"version": 2'))
-    $refused = Invoke-Tool @('rank', $future, (Join-Path $caseRoot 'moved.apk'), (Join-Path $caseRoot 'future.txt'))
-    Assert-True ($refused.ExitCode -eq 2 -and $refused.Text -match 'version 2') "A version 2 signature was read.`n$($refused.Text)"
+    # A signature of another version is refused rather than read the new way, and one of version 1,
+    # captured before outlined strings counted, rather than read as if it had none. 2.0 is no
+    # version the tool writes either.
+    foreach ($version in '1', '3', '2.0') {
+        $other = Join-Path $caseRoot "version-$version.json"
+        [System.IO.File]::WriteAllText($other, $signatureText.Replace('"version": 2', "`"version`": $version"))
+        $refused = Invoke-Tool @('rank', $other, (Join-Path $caseRoot 'moved.apk'), (Join-Path $caseRoot "version-$version.txt"))
+        Assert-True ($refused.ExitCode -eq 2 -and $refused.Text -match "version $version, and this tool reads 2") `
+            "A version $version signature was read.`n$($refused.Text)"
+    }
 
     # Nothing is ever written as patch source: not under patches/ however the path spells it, and not
     # as a .kt or .java file. NTFS reads PATCHES and patches. as patches, and a junction reaches a
@@ -377,12 +464,66 @@ try {
         $env:HUSHFACEBOOK_FIXTURE_DIR = $fixtureDir
     }
 
+    # The calibration's builds are the retired 577 and 580, out of the fingerprint history and held to
+    # what fingerprint-history.txt pins, never out of the fixture folder. Without that history this
+    # throws, so the top-five claim fails rather than going unchecked.
     $fixtures = if ($env:HUSHFACEBOOK_FIXTURE_DIR) { $env:HUSHFACEBOOK_FIXTURE_DIR } else { Join-Path $Root 'fixtures' }
-    foreach ($version in '577.0.0.50.72', '580.0.0.51.74') {
-        Assert-True (@(Select-FixtureBuild -Folder $fixtures -Version $version).Count -eq 1) `
-            ("The calibration needs Facebook $version in $fixtures, the folder HUSHFACEBOOK_FIXTURE_DIR names. " +
-                'Without it the top-five claim is not checked, so this fails rather than skipping.')
+    $aapt2 = Resolve-Aapt2 -Root $Root
+    $history = Resolve-FingerprintHistory -Root $Root -Aapt2 $aapt2 -Work (Join-Path $caseRoot 'history')
+    Assert-True ($history.OldVersion -eq '577.0.0.50.72' -and $history.NewVersion -eq '580.0.0.51.74') `
+        "The fingerprint history pins $($history.OldVersion) and $($history.NewVersion), not the 577 and 580 fingerprint-calibration.txt names."
+
+    # A history that isn't set, overlaps the fixtures or the repository, lacks a build, or holds one
+    # that isn't the pinned one stops before java starts, and says which.
+    $historyDir = $env:HUSHFACEBOOK_FINGERPRINT_HISTORY_DIR
+    try {
+        Remove-Item -LiteralPath 'Env:\HUSHFACEBOOK_FINGERPRINT_HISTORY_DIR'
+        $unset = Invoke-Wrapper @('-Calibrate', '-ReportPath', (Join-Path $caseRoot 'unset.txt'),
+            '-Java', $Java, '-DesktopJar', $DesktopJar, '-Root', $Root)
+        Assert-True ($unset.ExitCode -ne 0 -and $unset.Text -match 'HUSHFACEBOOK_FINGERPRINT_HISTORY_DIR is not set' -and
+            $unset.Text -notmatch '\[fingerprint\] case ') "The wrapper calibrated with no fingerprint history.`n$($unset.Text)"
+    } finally {
+        $env:HUSHFACEBOOK_FINGERPRINT_HISTORY_DIR = $historyDir
     }
+    $historyManifest = [System.IO.File]::ReadAllText((Join-Path $PSScriptRoot 'fingerprint-history.txt'))
+    $emptyHistory = Join-Path $caseRoot 'history-empty'
+    $junkHistory = Join-Path $caseRoot 'history-junk'
+    New-Item -ItemType Directory -Force -Path $emptyHistory, $junkHistory | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $junkHistory 'facebook-577.0.0.50.72-arm64-v8a.apkm'), 'not a bundle')
+    New-Item -ItemType Junction -Path $historyJunction -Target $fixtures | Out-Null
+    $refusals = @(
+        @{ Name = 'the fixture folder'; Folder = $fixtures; Expect = 'overlaps the fixture folder' }
+        @{ Name = 'a junction into the fixture folder'; Folder = $historyJunction; Expect = 'overlaps the fixture folder' }
+        @{ Name = 'a folder in the repository'; Folder = (Join-Path $Root 'scripts'); Expect = 'overlaps the repository' }
+        @{ Name = 'a folder without the builds'; Folder = $emptyHistory; Expect = 'is missing facebook-577.0.0.50.72-arm64-v8a.apkm' }
+        @{ Name = 'a bundle with other bytes'; Folder = $junkHistory; Expect = 'not the pinned 452973bb' }
+        @{ Name = 'another version pinned'; Folder = $historyDir; Expect = 'is com.facebook.katana 577.0.0.50.72 \(474426275\), not the pinned'
+            From = ' 577.0.0.50.72 474426275 '; To = ' 577.0.0.50.73 474426275 ' }
+        @{ Name = 'another ABI pinned'; Folder = $historyDir; Expect = "carries native code for 'arm64-v8a', not the pinned armeabi-v7a"
+            From = '474426275 arm64-v8a'; To = '474426275 armeabi-v7a' }
+        # 577 carries only Meta's older certificate, so pinning the newer one alone has to refuse it.
+        @{ Name = 'a signer it lacks'; Folder = $historyDir; Expect = 'is signed by e3f9e1e0[0-9a-f]+, not by Meta alone'
+            From = "signer e3f9e1e0cf99d0e56a055ba65e241b3399f7cea524326b0cdd6ec1327ed0fdc1`n"; To = '' }
+    )
+    foreach ($refusal in $refusals) {
+        $manifest = Join-Path $caseRoot 'history-manifest.txt'
+        $text = $historyManifest.Replace("`r`n", "`n")
+        if ($refusal.From) {
+            Assert-True ($text.Contains($refusal.From)) "fingerprint-history.txt no longer holds what the '$($refusal.Name)' case edits."
+            $text = $text.Replace($refusal.From, $refusal.To)
+        }
+        [System.IO.File]::WriteAllText($manifest, $text)
+        $message = $null
+        try {
+            $null = Resolve-FingerprintHistory -Root $Root -Aapt2 $aapt2 -Work (Join-Path $caseRoot 'history-refused') `
+                -Folder $refusal.Folder -ManifestPath $manifest
+        } catch {
+            $message = $_.Exception.Message
+        }
+        Assert-True ($message -match $refusal.Expect) "The fingerprint history was not refused for $($refusal.Name): $message"
+    }
+    [System.IO.Directory]::Delete($historyJunction)
+
     $calibrationReport = Join-Path $caseRoot 'calibration.txt'
     $calibrated = Invoke-Wrapper @('-Calibrate', '-ReportPath', $calibrationReport, '-Java', $Java, '-DesktopJar', $DesktopJar, '-Root', $Root)
     $lines = @($calibrated.Output | Where-Object { $_ -match '^\[fingerprint\] case \S+ rank \S+ score' })
@@ -417,6 +558,32 @@ try {
         }
     }
 
+    # From the history's 580 to each 582 fixture: feed, Reels and story menu targets found by hand on
+    # both, the armeabi-v7a list crossing ABIs as well. A missing 582 fixture fails here too.
+    $laterCases = 0
+    foreach ($later in @(@{ Abi = 'arm64-v8a'; List = 'fingerprint-calibration-582-arm64.txt' },
+            @{ Abi = 'armeabi-v7a'; List = 'fingerprint-calibration-582-armv7.txt' })) {
+        $listPath = Join-Path $PSScriptRoot $later.List
+        $listIds = @(Get-Content -LiteralPath $listPath | Where-Object { $_ -match '^case (\S+)$' } | ForEach-Object { $Matches[1] })
+        foreach ($id in 'feed-add-new-edge', 'feed-story-category', 'reels-insert-ads', 'reels-ad-break-tick', 'story-menu-builder') {
+            Assert-True ($listIds -contains $id) "$($later.List) lost the case $id."
+        }
+        $bundle = @(Select-FixtureBuild -Folder $fixtures -Version "582.0.0.50.54-$($later.Abi)")
+        Assert-True ($bundle.Count -eq 1) `
+            ("The 580-to-582 calibration needs Facebook 582.0.0.50.54 $($later.Abi) in $fixtures, the folder " +
+                'HUSHFACEBOOK_FIXTURE_DIR names, and fails rather than skipping without it.')
+        $laterRun = Invoke-Wrapper @('-Calibrate', '-CalibrationPath', $listPath, '-OldApk', $history.New, '-NewApk', $bundle[0].FullName,
+            '-ReportPath', (Join-Path $caseRoot "calibration-582-$($later.Abi).txt"), '-Java', $Java, '-DesktopJar', $DesktopJar, '-Root', $Root)
+        $laterLines = @($laterRun.Output | Where-Object { $_ -match '^\[fingerprint\] case \S+ rank \S+ score' })
+        Assert-True ($laterRun.ExitCode -eq 0 -and $laterLines.Count -eq $listIds.Count) `
+            "The 580-to-582 $($later.Abi) calibration did not run every case and pass.`n$($laterRun.Text)"
+        foreach ($line in $laterLines) {
+            Assert-True ($line -match '^\[fingerprint\] case (\S+) rank (\d+) score [0-9.]+ ok (stands-out|fails-closed)$' -and
+                [int]$Matches[2] -le 5) "A 580-to-582 $($later.Abi) case ranked its replacement outside the top five: $line"
+        }
+        $laterCases += $listIds.Count
+    }
+
     $after = Get-TreeSnapshot $patches
     Assert-True (@(Compare-Object $before $after).Count -eq 0) `
         ("Something under patches/ changed while the tool ran:`n" + (@(Compare-Object $before $after) | Out-String))
@@ -424,12 +591,15 @@ try {
     foreach ($probe in $patchProbes) {
         if (Test-Path -LiteralPath $probe) { Remove-Item -LiteralPath $probe -Force }
     }
-    # The junction goes first, on its own: a recursive delete can follow it into its target.
-    if (Test-Path -LiteralPath $junction) { [System.IO.Directory]::Delete($junction) }
+    # The junctions go first, on their own: a recursive delete can follow one into its target.
+    foreach ($link in $junction, $historyJunction) {
+        if (Test-Path -LiteralPath $link) { [System.IO.Directory]::Delete($link) }
+    }
     if ($caseRoot.StartsWith($tempBase, [System.StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $caseRoot)) {
         Remove-Item -LiteralPath $caseRoot -Recurse -Force
     }
 }
 
 $global:LASTEXITCODE = 0
-Write-Host "[scripts] fingerprint candidates passed ($($caseIds.Count) calibrated cases in the top five; ties and misses fail closed)"
+Write-Host ("[scripts] fingerprint candidates passed ($($caseIds.Count) 577-to-580 and $laterCases 580-to-582 calibrated cases " +
+    'in the top five; ties and misses fail closed)')

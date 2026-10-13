@@ -1,0 +1,76 @@
+/*
+ * Copyright 2026 Hushfacebook contributors
+ * https://github.com/SysAdminDoc/Hushfacebook
+ */
+package app.morphe.patches.facebook.layout.theme
+
+import app.morphe.Fixtures
+import app.morphe.PatchContexts
+import app.morphe.patches.facebook.feed.FixtureDex
+import app.morphe.patches.shared.compat.AppCompatibilities
+import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * Issue #37's Create story tile on each declared build: the tile at the start of the stories tray
+ * is #333334 under the account's picture, which Facebook writes right after its own dark check says
+ * yes (582 `LX/3Nj;->invoke`, the AddToStoryTileSplitCardComponentSpec, and `LX/374;->render`).
+ * Route three's dark-branch pass finds at least those two, and every site it finds gets the
+ * extension's call right after its `const`, on the same register.
+ */
+class DarkBranchLiteralFixtureTest {
+    private val versions = AppCompatibilities.facebook().single().targets.mapNotNull { it.version }.toSet()
+
+    private fun bundles(version: String) = Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }
+
+    private fun Method.body(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
+
+    private fun Method.descriptor() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
+
+    /** The Create story tile's grey, #333334, as a signed int. */
+    private val cardGrey = -0xcccccc
+
+    @Test
+    fun `the Create story tile's grey is on Facebook's dark branch and each such colour goes to the extension`() {
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in bundles(version)) {
+                val name = bundle.name
+                val darkCheck = fdsDarkCheckOf(bundle)
+                val owners = mutableListOf<ClassDef>()
+                FixtureDex.forEach(bundle) { dex ->
+                    for (classDef in dex.classes) {
+                        if (classDef.methods.any { it.darkBranchLiterals(darkCheck).isNotEmpty() }) owners += ImmutableClassDef.of(classDef)
+                    }
+                }
+                val sites = owners.flatMap { owner -> owner.methods.flatMap { method -> method.darkBranchLiterals(darkCheck).map { method to it } } }
+                val cards = sites.filter { (method, index) -> (method.body()[index] as NarrowLiteralInstruction).narrowLiteral == cardGrey }
+                assertTrue("$name: the Create story tile's two #333334 writes, at least (${cards.map { it.first.descriptor() }})", cards.size >= 2)
+
+                val context = PatchContexts.of(owners)
+                assertEquals("$name: every site changed", sites.size, with(context) { readDarkBranchLiterals(darkCheck) })
+                for ((method, index) in sites) {
+                    val after = context.mutableClassDefBy(method.definingClass).methods.single { it.descriptor() == method.descriptor() }.body()
+                    val register = (after[index] as OneRegisterInstruction).registerA
+                    val call = after[index + 1]
+                    assertEquals("$name: ${method.descriptor()} calls the extension", DARK_BRANCH, (call as ReferenceInstruction).reference.toString())
+                    assertEquals("$name: on the const's register", register, (call as RegisterRangeInstruction).startRegister)
+                    assertEquals("$name: then reads it back", Opcode.MOVE_RESULT, after[index + 2].opcode)
+                    assertEquals("$name: into the same register", register, (after[index + 2] as OneRegisterInstruction).registerA)
+                }
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+}

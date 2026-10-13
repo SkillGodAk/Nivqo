@@ -41,7 +41,8 @@ import java.io.File
  * the Related groups plugin, its check is another one than the button check, and it's hooked the
  * same way with its own extension method (#101). The comment section is found by its name, its reply flag
  * through the expandReplySection update, and the flag goes through the extension, as a range
- * call, just before the initial state returns. Reads the fixture bundles from
+ * call, just before the initial state returns. The section's draw method asks about its comment
+ * first, read off its props, and returns no children on a yes (#118). Reads the fixture bundles from
  * HUSHFACEBOOK_FIXTURE_DIR and skips without it.
  */
 class CommentSheetOptionsFixtureTest {
@@ -221,6 +222,46 @@ class CommentSheetOptionsFixtureTest {
             (patched[end + 3] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
         assertEquals("$where: then Facebook returns", Opcode.RETURN_VOID, patched[end + 4].opcode)
         assertEquals("$where: the code before the return runs into the hook", listOf(end), ControlFlow.of(method).normal[end - 1])
+    }
+
+    private fun comments(bundle: File) {
+        val drawn = commentDraw(holders(bundle, COMMENT_SECTION))
+        val render = drawn.render
+        val where = "${bundle.name}: ${render.descriptor()}"
+        assertEquals("$where: the props are a field of the section", render.definingClass, drawn.props.definingClass)
+        assertEquals("$where: the comment is read off the props", drawn.props.type, drawn.comment.definingClass)
+        assertEquals("$where: the comment is read as an Object", "Ljava/lang/Object;", drawn.comment.type)
+
+        val section = FixtureDex.classes(bundle, setOf(render.definingClass)).values.single()
+        val context = PatchContexts.of(listOf(section))
+        val method = context.mutableClassDefBy(section.type).methods.single { it.descriptor() == render.descriptor() }
+        val original = method.implementation!!.instructions.toList()
+        val self = method.implementation!!.registerCount - 2
+        method.hideComments(drawn)
+        val patched = method.implementation!!.instructions.toList()
+        val props = drawn.props.let { "${it.definingClass}->${it.name}:${it.type}" }
+        val comment = drawn.comment.let { "${it.definingClass}->${it.name}:${it.type}" }
+        assertEquals("$where: the hook's shape", listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.IGET_OBJECT, Opcode.IF_EQZ,
+            Opcode.IGET_OBJECT, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CONST_4,
+            Opcode.RETURN_OBJECT), patched.take(9).map { it.opcode })
+        assertEquals("$where gains nine instructions", original.size + 9, patched.size)
+        assertEquals("$where: the section is copied into v0", listOf(0, self),
+            (patched[0] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+        assertEquals("$where: the props are read off it", listOf(0, 0),
+            (patched[1] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+        assertEquals("$where: the props are read", props, patched[1].reference())
+        assertEquals("$where: then the comment off them", comment, patched[3].reference())
+        assertEquals("$where: the extension is asked", HIDES_COMMENT, patched[4].reference())
+        assertTrue("$where: the hook writes v0, which isn't a local", method.localRegisterCount() > 0)
+        assertEquals("$where: Facebook's code stays", original.map { it.opcode }, patched.drop(9).map { it.opcode })
+        val flow = ControlFlow.of(method)
+        assertEquals("$where: no props go on to Facebook's first instruction", setOf(3, 9), flow.normal[2].toSet())
+        assertEquals("$where: a no goes on to Facebook's first instruction", setOf(7, 9), flow.normal[6].toSet())
+    }
+
+    @Test
+    fun `each declared build asks about each comment before the comment section draws it`() = bundles { bundle ->
+        comments(bundle)
     }
 
     @Test

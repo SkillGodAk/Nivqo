@@ -1085,6 +1085,97 @@ public class Mp4JoinTest {
         assertFalse(exited.isAlive());
     }
 
+    @Test(timeout = CHAIN_TEST_TIMEOUT)
+    public void losingThePrivateLauncherStillStopsItsWholeToolTree() throws Exception {
+        File marker = temp.newFile("launcher-loss-pids.txt");
+        File otherMarker = temp.newFile("launcher-loss-unrelated.txt");
+        Process other = new ProcessBuilder(tool("hang", otherMarker)).redirectErrorStream(true)
+                .redirectOutput(temp.newFile("launcher-loss-unrelated.log")).start();
+        Path output = temp.newFile("launcher-loss.log").toPath();
+        CodecProcess owned = null;
+        List<Object> children = new ArrayList<>();
+        try {
+            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(CHAIN_DEADLINE);
+            owned = CodecProcess.open(output, deadline, tool("tree", marker));
+            while (!text(output).contains("child-ready")) {
+                assertTrue("tool tree exited before readiness", owned.isRunning());
+                assertTrue("tool tree did not become ready", System.nanoTime() < deadline);
+                Thread.sleep(10);
+            }
+            assertEquals(3, Files.readAllLines(marker.toPath(), StandardCharsets.UTF_8).size());
+            for (String line : Files.readAllLines(marker.toPath(), StandardCharsets.UTF_8)) {
+                java.util.Optional<?> handle = (java.util.Optional<?>) HANDLE.getMethod("of", long.class)
+                        .invoke(null, Long.parseLong(line));
+                assertTrue("recorded tool exited before launcher loss", handle.isPresent());
+                children.add(handle.get());
+            }
+            java.lang.reflect.Field field = CodecProcess.class.getDeclaredField("launcher");
+            field.setAccessible(true);
+            Process launcher = (Process) field.get(owned);
+            java.lang.reflect.Field group = CodecProcess.class.getDeclaredField("pid");
+            group.setAccessible(true);
+            java.util.Optional<?> guard = (java.util.Optional<?>) HANDLE.getMethod("of", long.class)
+                    .invoke(null, ((Integer) group.get(owned)).longValue());
+            launcher.destroyForcibly();
+            assertTrue("private launcher did not stop", launcher.waitFor(10, TimeUnit.SECONDS));
+            long closing = System.nanoTime();
+            owned.close();
+            assertTrue("launcher-loss cleanup exceeded its deadline", System.nanoTime() - closing
+                    < TimeUnit.MILLISECONDS.toNanos(CodecProcess.CLOSE_GRACE_MS + 2_000));
+            dead(marker);
+            assertFalse("group guard survived cleanup", guard.isPresent()
+                    && (Boolean) HANDLE.getMethod("isAlive").invoke(guard.get()));
+            assertTrue("launcher-loss cleanup terminated an unrelated process", other.isAlive());
+        } finally {
+            try { if (owned != null) owned.close(); }
+            finally {
+                // Keep the failing version of this test from leaking its known, pinned identities.
+                for (int i = children.size() - 1; i >= 0; i--) {
+                    HANDLE.getMethod("destroyForcibly").invoke(children.get(i));
+                }
+                if (com.sun.jna.Platform.isLinux()) {
+                    CodecProcess.Posix api = Native.load(com.sun.jna.Platform.C_LIBRARY_NAME, CodecProcess.Posix.class);
+                    long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+                    for (Object child : children) {
+                        int pid = Math.toIntExact((Long) HANDLE.getMethod("pid").invoke(child));
+                        while (api.waitpid(pid, new com.sun.jna.ptr.IntByReference(), 1) == 0
+                                && System.nanoTime() < until) Thread.sleep(5);
+                    }
+                }
+                other.destroyForcibly();
+                assertTrue("unrelated probe cleanup failed", other.waitFor(10, TimeUnit.SECONDS));
+            }
+        }
+    }
+
+    @Test(timeout = TEST_TIMEOUT)
+    public void controlEofBeforeStartCannotLaunchTheTool() throws Exception {
+        Path control = temp.newFolder("control-eof").toPath();
+        File marker = temp.newFile("control-eof-pids.txt");
+        Files.write(control.resolve("command"), String.join("\0", tool("success", marker))
+                .getBytes(StandardCharsets.UTF_8));
+        java.lang.reflect.Method command = CodecProcess.class.getDeclaredMethod("launcherCommand", Path.class);
+        command.setAccessible(true);
+        @SuppressWarnings("unchecked") List<String> arguments = (List<String>) command.invoke(null, control);
+        Process launcher = new ProcessBuilder(arguments).redirectErrorStream(true)
+                .redirectOutput(temp.newFile("control-eof.log")).start();
+        try {
+            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(TOOL_DEADLINE);
+            while (!Files.exists(control.resolve("ready"))) {
+                assertTrue("launcher exited before readiness", launcher.isAlive());
+                assertTrue("launcher did not become ready", System.nanoTime() < deadline);
+                Thread.sleep(10);
+            }
+            launcher.getOutputStream().close();
+            assertTrue("EOF did not stop the unstarted launcher", launcher.waitFor(
+                    CodecProcess.CLOSE_GRACE_MS, TimeUnit.MILLISECONDS));
+            assertEquals("tool started after control EOF", 0, marker.length());
+        } finally {
+            launcher.destroyForcibly();
+            assertTrue("unstarted launcher cleanup failed", launcher.waitFor(10, TimeUnit.SECONDS));
+        }
+    }
+
     @Test(timeout = TEST_TIMEOUT)
     public void aDeadlineCannotKillAProcessOutsideItsOwnershipBoundary() throws Exception {
         File otherMarker = temp.newFile("unrelated.txt");

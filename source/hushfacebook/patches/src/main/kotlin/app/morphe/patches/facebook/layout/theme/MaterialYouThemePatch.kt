@@ -5,6 +5,7 @@
 package app.morphe.patches.facebook.layout.theme
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
@@ -21,11 +22,15 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 import org.w3c.dom.Document
@@ -383,7 +388,16 @@ val materialYouThemePatch = bytecodePatch(
         }
 
         // The box under a link post's picture (issue #37), whose dark-mode colour MobileConfig sends.
-        check(hookLinkBoxColour() > 0) { "No parse of the link box's colour found, so link posts would keep a grey box" }
+        check(hookLinkBoxColour(darkCheck) > 0) { "No parse of the link box's colour found, so link posts would keep a grey box" }
+
+        // Bloks screens such as the Menu's profile card (issue #37): the server sends each colour as
+        // a light and a dark hex string, and the screen's model parses the one Bloks' theme picks.
+        check(hookBloksColourPairs() > 0) { "No parse of a Bloks colour pair found, so the Menu's profile card would stay grey" }
+
+        // The colour resource behind a token, which FDS's token lookup answers and the code then reads
+        // with getColor or as a drawable, like the Menu's Log out row (issue #37). Route two's reads
+        // above go by the token once the extension knows it.
+        fdsTokenResourceLookup().hookColorReturns(tokenParameterIndex = 1, target = TOKEN_RESOURCE)
 
         // The comment list's rows (issue #37): a theme attribute resolved into a TypedValue and read as
         // its `data`, which SURFACE_BACKGROUND's night item (#252728) reaches without a colour call.
@@ -393,6 +407,13 @@ val materialYouThemePatch = bytecodePatch(
         // finding none is fine then.
         val read = readSurfaceLiterals()
         check(read > 0 || amoledParsers > 0) { "No dark surface written in code, so the chrome would stay grey" }
+
+        // Route three for the colours written right after Facebook's own dark check says yes, like
+        // the stories tray's Create story tile (issue #37). After the surfaces, so a surface there is
+        // a field read.
+        check(readDarkBranchLiterals(darkCheck) > 0) {
+            "No colour written on Facebook's dark branch found, so the Create story tile would stay grey"
+        }
 
         // React Native screens such as Marketplace home. With AMOLED in the build its call put
         // the hooks in already, and ReactColours runs both themes.
@@ -422,9 +443,11 @@ internal fun readsLinkBoxColour(method: Method): Boolean =
  * In each method that reads [LINK_BOX_COLOUR_CONFIG], sends its one call to route four's parser to
  * [PARSE_LINK_BOX] on the same register. Runs after route four, so the call is already Material
  * You's stand-in, AMOLED's included. Answers how many it changed. A method that reads the config
- * with no parser call, or more than one, is refused: the parse to change would be a guess.
+ * with no parser call, or more than one, is refused: the parse to change would be a guess. So is
+ * one that never asks [darkCheck], Facebook's own dark check: the extension takes the parse for a
+ * dark-mode colour from before Facebook's first answer on, which only that check makes true.
  */
-internal fun BytecodePatchContext.hookLinkBoxColour(): Int {
+internal fun BytecodePatchContext.hookLinkBoxColour(darkCheck: String): Int {
     val parser = standIn(MATERIAL_YOU, PARSE_COLOR)
     val owners = mutableSetOf<String>()
     classDefForEach { classDef ->
@@ -434,21 +457,149 @@ internal fun BytecodePatchContext.hookLinkBoxColour(): Int {
     var changed = 0
     for (type in owners) {
         for (method in mutableClassDefBy(type).methods.filter(::readsLinkBoxColour)) {
-            val parses = method.implementation!!.instructions.withIndex().filter { it.value.referenceText() == parser }
-            check(parses.size == 1) {
-                "${method.definingClass}->${method.name} reads the link box's colour with ${parses.size} calls to $parser"
+            check(method.implementation!!.instructions.any { it.referenceText() == darkCheck }) {
+                "${method.definingClass}->${method.name} reads the link box's colour without asking $darkCheck"
             }
-            val (index, call) = parses.single()
-            val text = when (call) {
-                is RegisterRangeInstruction -> call.startRegister
-                is FiveRegisterInstruction -> call.registerC
-                else -> error("${method.definingClass}->${method.name}: unexpected call form ${call.opcode}")
-            }
-            method.replaceInstruction(index, "invoke-static/range { v$text .. v$text }, $PARSE_LINK_BOX")
+            method.sendOneParse(parser, PARSE_LINK_BOX, "the link box's colour")
             changed++
         }
     }
     return changed
+}
+
+/**
+ * Sends this method's one call to route four's [parser] to [target] on the same register. A method
+ * with no such call, or more than one, is refused: the parse to change would be a guess. [what] names
+ * the colour for the refusal.
+ */
+private fun MutableMethod.sendOneParse(parser: String, target: String, what: String) {
+    val parses = implementation!!.instructions.withIndex().filter { it.value.referenceText() == parser }
+    check(parses.size == 1) { "$definingClass->$name reads $what with ${parses.size} calls to $parser" }
+    val (index, call) = parses.single()
+    val text = when (call) {
+        is RegisterRangeInstruction -> call.startRegister
+        is FiveRegisterInstruction -> call.registerC
+        else -> error("$definingClass->$name: unexpected call form ${call.opcode}")
+    }
+    replaceInstruction(index, "invoke-static/range { v$text .. v$text }, $target")
+}
+
+/** Where the parse of a Bloks colour pair goes instead of route four's parser (issue #37). */
+internal const val PARSE_BLOKS = "$MATERIAL_YOU->parseBloks(Ljava/lang/String;)I"
+
+/** What a Bloks model logs, around the two keys, for a colour pair it can't parse. */
+internal const val BLOKS_PAIR_LIGHT_KEY = " for Color with keyLight: "
+internal const val BLOKS_PAIR_DARK_KEY = " and keyDark: "
+
+/** An instance (theme, light key, dark key, fallback) method answering an int, as a Bloks colour pair reader is. */
+private fun Method.hasColourPairShape(): Boolean {
+    val parameters = parameterTypes.map(CharSequence::toString)
+    return !AccessFlags.STATIC.isSet(accessFlags) && returnType == "I" && parameters.size == 4 &&
+        parameters[0].startsWith("L") && parameters.drop(1) == listOf("I", "I", "I")
+}
+
+/**
+ * The Bloks model that logs a colour pair it can't parse, with both keys (582
+ * `LX/1Vp;->BAJ(LX/cKD;III)I`): the one colour pair reader holding both of the log's strings.
+ */
+internal fun isLoggingBloksColourPair(method: Method): Boolean {
+    if (!method.hasColourPairShape()) return false
+    val strings = method.implementation?.instructions
+        ?.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
+        .orEmpty()
+    return BLOKS_PAIR_LIGHT_KEY in strings && BLOKS_PAIR_DARK_KEY in strings
+}
+
+/**
+ * Bloks' colour pairs (issue #37). A Bloks screen gets each colour from the server as a light and a
+ * dark hex string, and the screen's model answers one through an interface method (582
+ * `LX/fra;->BAJ`, in the models `LX/1Vp` and `LX/4TS`). Each model asks Bloks' theme whether it's
+ * dark, takes that key's string, or the light one when there is no dark one, and parses it. The
+ * Menu's profile card at the top is #333334 this way, a grey light mode draws too, so route four's
+ * parser leaves it. In each model the one call to that parser goes to [PARSE_BLOKS] on the same
+ * register. Runs after route four, so the call is already Material You's stand-in, AMOLED's included.
+ * The model that logs a pair it can't parse ([isLoggingBloksColourPair]) names the interface, and the
+ * interface names the other models. One that parses more than once or never is refused, and so is
+ * one that doesn't ask the theme. Answers how many it changed.
+ */
+internal fun BytecodePatchContext.hookBloksColourPairs(): Int {
+    val parser = standIn(MATERIAL_YOU, PARSE_COLOR)
+    val logging = mutableListOf<Method>()
+    val implementers = mutableListOf<String>()
+    classDefForEach { classDef ->
+        if (classDef.type.startsWith(EXTENSION_PACKAGE)) return@classDefForEach
+        classDef.methods.filterTo(logging, ::isLoggingBloksColourPair)
+        if (classDef.interfaces.isNotEmpty() && classDef.methods.any { it.hasColourPairShape() && it.implementation != null }) {
+            implementers += classDef.type
+        }
+    }
+    val anchor = logging.singleOrNull()
+        ?: error("Found ${logging.size} Bloks colour pair readers that log both keys, expected one")
+    val accessor = classDefBy(anchor.definingClass).interfaces.singleOrNull { type ->
+        classDefByOrNull(type)?.methods?.any { it.sameAs(anchor) } == true
+    } ?: error("${anchor.definingClass}->${anchor.name} implements no interface that declares it")
+    val theme = anchor.parameterTypes.first().toString()
+    var changed = 0
+    for (type in implementers) {
+        val model = mutableClassDefBy(type)
+        if (accessor !in model.interfaces) continue
+        val method = model.methods.singleOrNull { it.sameAs(anchor) && it.implementation != null } ?: continue
+        check(method.implementation!!.instructions.any { it.asksDark(theme) }) {
+            "${method.definingClass}->${method.name} picks a Bloks colour without asking $theme whether it's dark"
+        }
+        method.sendOneParse(parser, PARSE_BLOKS, "a Bloks colour pair")
+        changed++
+    }
+    return changed
+}
+
+/** Where FDS's token lookup sends each colour resource it answers, with the token (issue #37). */
+internal const val TOKEN_RESOURCE = "$MATERIAL_YOU->tokenResource(ILjava/lang/Object;)I"
+
+private const val GET_RESOURCE_ID = "Landroid/content/res/TypedArray;->getResourceId(II)I"
+
+/**
+ * FDS's token lookup (582 `LX/24i;->A02(Landroid/content/Context;LX/23Y;)I`): the static (Context,
+ * token) method on the [fdsViewResolver]'s class that answers the colour resource the token's theme
+ * attribute points at. It caches what a helper reads with `TypedArray.getResourceId` (582
+ * `LX/24s;->A01`), which tells it from the resolver beside it, which answers a colour.
+ */
+internal fun BytecodePatchContext.fdsTokenResourceLookup(): MutableMethod {
+    val viewResolver = fdsViewResolver()
+    val parameters = viewResolver.parameterTypes.map(CharSequence::toString)
+    val lookups = mutableClassDefBy(viewResolver.definingClass).methods.filter { method ->
+        isTokenResourceLookup(method, parameters) { call -> readsResourceId(call) }
+    }
+    return lookups.singleOrNull()
+        ?: error("The FDS view resolver's class has ${lookups.size} token resource lookups, expected one")
+}
+
+/**
+ * Whether [method] is a static method taking [parameters] and answering an int that calls another
+ * such method, one that [readsResourceId].
+ */
+internal fun isTokenResourceLookup(method: Method, parameters: List<String>, readsResourceId: (MethodReference) -> Boolean): Boolean {
+    if (!AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != "I") return false
+    if (method.parameterTypes.map(CharSequence::toString) != parameters) return false
+    return method.implementation?.instructions?.any { instruction ->
+        val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+        call != null && call.returnType == "I" && call.parameterTypes.map(CharSequence::toString) == parameters &&
+            readsResourceId(call)
+    } == true
+}
+
+/** Whether the method [call] names reads a resource id with `TypedArray.getResourceId` itself. */
+internal fun BytecodePatchContext.readsResourceId(call: MethodReference): Boolean =
+    classDefByOrNull(call.definingClass)?.methods?.any { method ->
+        method.name == call.name &&
+            method.parameterTypes.map(CharSequence::toString) == call.parameterTypes.map(CharSequence::toString) &&
+            method.implementation?.instructions?.any { it.referenceText() == GET_RESOURCE_ID } == true
+    } == true
+
+/** Whether this calls a no-argument [theme] method answering a boolean: Bloks asking its theme whether it's dark. */
+private fun Instruction.asksDark(theme: String): Boolean {
+    val call = (this as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+    return call.definingClass == theme && call.returnType == "Z" && call.parameterTypes.isEmpty()
 }
 
 /**
@@ -473,6 +624,80 @@ internal fun BytecodePatchContext.readSurfaceLiterals(): Int {
     return owners.sumOf { type ->
         mutableClassDefByOrNull(type)?.methods?.sumOf { if (handsToBar(it)) 0 else it.readSurfaceFields() } ?: 0
     }
+}
+
+/** Where route three sends a colour Facebook writes on its own dark branch (issue #37). */
+internal const val DARK_BRANCH = "$MATERIAL_YOU->darkBranch(I)I"
+
+/**
+ * Route three for the colours Facebook writes into its code for its dark theme only (issue #37): an
+ * opaque colour `const` that is the first instruction once [darkCheck] has said yes, as in
+ * `invoke-static {..}, darkCheck; move-result vR; if-eqz vR, :light; const vX, colour`. Each goes
+ * through [DARK_BRANCH] into the same register right after the `const`. The light branch jumps past
+ * it, and so does any jump to what follows the `const`, since a label stays on the instruction it
+ * was on. A `const` something else jumps to is left, as it doesn't only run on the dark branch. On
+ * 582 the Create story tile at the start of the stories tray is two of these (`LX/3Nj;->invoke`, the
+ * AddToStoryTileSplitCardComponentSpec, and `LX/374;->render`), #333334, which isn't one of
+ * [SURFACE_FIELDS]. Answers how many it changed.
+ */
+internal fun BytecodePatchContext.readDarkBranchLiterals(darkCheck: String): Int {
+    val owners = mutableSetOf<String>()
+    classDefForEach { classDef ->
+        if (classDef.type.startsWith(EXTENSION_PACKAGE)) return@classDefForEach
+        if (classDef.methods.any { it.darkBranchLiterals(darkCheck).isNotEmpty() }) owners += classDef.type
+    }
+    return owners.sumOf { type -> mutableClassDefBy(type).methods.sumOf { it.readDarkBranchLiterals(darkCheck) } }
+}
+
+/** The indexes of this method's colour `const`s on [darkCheck]'s dark branch, for [readDarkBranchLiterals]. */
+internal fun Method.darkBranchLiterals(darkCheck: String): List<Int> {
+    val instructions = implementation?.instructions?.toList() ?: return emptyList()
+    if (instructions.none { it.referenceText() == darkCheck }) return emptyList()
+    val targets = branchTargets(instructions)
+    return (0 until instructions.size - 3).filter { index ->
+        val result = instructions[index + 1]
+        val branch = instructions[index + 2]
+        val literal = instructions[index + 3]
+        instructions[index].referenceText() == darkCheck &&
+            result.opcode == Opcode.MOVE_RESULT && branch.opcode == Opcode.IF_EQZ &&
+            (result as OneRegisterInstruction).registerA == (branch as OneRegisterInstruction).registerA &&
+            literal.opcode == Opcode.CONST && ((literal as NarrowLiteralInstruction).narrowLiteral ushr 24) == 0xFF &&
+            index + 3 !in targets
+    }.map { it + 3 }
+}
+
+/** [readDarkBranchLiterals] for one method. `move-result` takes any register a `const` does. */
+internal fun MutableMethod.readDarkBranchLiterals(darkCheck: String): Int {
+    val sites = darkBranchLiterals(darkCheck)
+    sites.asReversed().forEach { index ->
+        val register = getInstruction<OneRegisterInstruction>(index).registerA
+        addInstructions(
+            index + 1,
+            """
+                invoke-static/range { v$register .. v$register }, $DARK_BRANCH
+                move-result v$register
+            """,
+        )
+    }
+    return sites.size
+}
+
+/** The indexes some branch or switch case of a method jumps to. */
+private fun branchTargets(instructions: List<Instruction>): Set<Int> {
+    val addresses = instructions.runningFold(0) { address, it -> address + it.codeUnits }
+    val indexOfAddress = addresses.withIndex().associate { (index, address) -> address to index }
+    val targets = mutableSetOf<Int>()
+    instructions.forEachIndexed { index, instruction ->
+        if (instruction !is OffsetInstruction) return@forEachIndexed
+        val target = addresses[index] + instruction.codeOffset
+        if (instruction.opcode == Opcode.PACKED_SWITCH || instruction.opcode == Opcode.SPARSE_SWITCH) {
+            val payload = instructions[indexOfAddress.getValue(target)] as SwitchPayload
+            payload.switchElements.forEach { element -> indexOfAddress[addresses[index] + element.offset]?.let(targets::add) }
+        } else {
+            indexOfAddress[target]?.let(targets::add)
+        }
+    }
+    return targets
 }
 
 /**

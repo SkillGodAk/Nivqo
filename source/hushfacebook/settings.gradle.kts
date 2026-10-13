@@ -56,14 +56,14 @@ buildscript {
     configurations.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin") {
-                useVersion("2.4.20")
+                useVersion("2.4.21")
             }
             if (requested.group == "org.bouncycastle") {
                 useVersion("1.86")
             }
             when ("${requested.group}:${requested.name}") {
                 "com.google.guava:guava" -> useVersion("33.7.2-jre")
-                "org.apache.commons:commons-lang3" -> useVersion("3.18.0")
+                "org.apache.commons:commons-lang3" -> useVersion("3.21.0")
                 "org.bitbucket.b_c:jose4j" -> useVersion("0.9.6")
                 // Jetifier introduces JDOM only through the settings-plugin classpath.
                 "org.jdom:jdom2" -> useVersion("2.0.6.1")
@@ -105,7 +105,7 @@ gradle.beforeProject {
         resolutionStrategy.eachDependency {
             when ("${requested.group}:${requested.name}") {
                 "com.google.guava:guava" -> useVersion("33.7.2-jre")
-                "org.apache.commons:commons-lang3" -> useVersion("3.18.0")
+                "org.apache.commons:commons-lang3" -> useVersion("3.21.0")
                 "org.bitbucket.b_c:jose4j" -> useVersion("0.9.6")
             }
         }

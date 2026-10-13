@@ -26,12 +26,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import app.morphe.extension.facebook.feed.SeenPostsForTests.Story;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.SettingsContextRule;
+import app.morphe.extension.shared.Utils;
+import app.morphe.extension.shared.WorkerPoolForTests;
 import app.morphe.extension.shared.diagnostics.FeedFilterCounters;
 import app.morphe.extension.shared.diagnostics.HookStatus;
 import app.morphe.extension.shared.settings.HushfacebookPause;
@@ -425,5 +428,162 @@ public class SeenPostsTest {
         SeenPosts.inBuildForTests = Boolean.FALSE;
         assertNull(SeenPosts.hideReason(story));
         assertFalse(FeedFilter.hideEdge(Category.ORGANIC, story));
+    }
+
+    /**
+     * The delayed write finding every worker busy is tried again. It used to stay marked as
+     * scheduled, so no later post scheduled anything and the next start had neither post.
+     */
+    @Test
+    public void aRefusedFlushIsTriedAgainAndBothPostsSurviveARestart() throws Exception {
+        AtomicInteger schedules = new AtomicInteger();
+        SeenPosts.laterForTests = schedules::incrementAndGet;
+        SeenPosts.backgroundForTests = null;
+        Story first = new Story("before the refusal");
+        Story second = new Story("after the refusal");
+        SeenPosts.seen(first);
+        assertEquals(1, schedules.get());
+        try (WorkerPoolForTests ignored = WorkerPoolForTests.fill()) {
+            SeenPosts.startWrite();
+        }
+        assertEquals("a refused write wasn't tried again", 2, schedules.get());
+        SeenPosts.seen(second);
+        SeenPosts.startWrite();
+        Utils.awaitBackgroundTasksForTests();
+        restart();
+        assertEquals(SeenPosts.REASON, SeenPosts.hideReason(first));
+        assertEquals(SeenPosts.REASON, SeenPosts.hideReason(second));
+    }
+
+    /**
+     * Forget seen posts finding every worker busy still deletes the file once one is free. It used
+     * to drop the delete, and the next start read the forgotten posts back.
+     */
+    @Test
+    public void aRefusedForgetIsTriedAgainSoTheFileCantBringThePostsBack() throws Exception {
+        Story story = new Story("forget refused");
+        SeenPosts.seen(story);
+        SeenPosts.writeNow();
+        assertTrue("the store wasn't written", file.length() > 0);
+        AtomicInteger schedules = new AtomicInteger();
+        SeenPosts.laterForTests = schedules::incrementAndGet;
+        SeenPosts.backgroundForTests = null;
+        try (WorkerPoolForTests ignored = WorkerPoolForTests.fill()) {
+            SeenPosts.clear();
+        }
+        assertEquals(0, SeenPosts.size());
+        assertEquals("a refused delete wasn't tried again", 1, schedules.get());
+        SeenPosts.startWrite();
+        Utils.awaitBackgroundTasksForTests();
+        assertFalse("the file outlived Forget seen posts", file.exists());
+        restart();
+        assertEquals(0, SeenPosts.size());
+        assertNull(SeenPosts.hideReason(story));
+    }
+
+    /**
+     * A write the disk doesn't take leaves the last good file as it was and the store marked for
+     * another try, with a post seen in between kept too. It used to count as written, so nothing
+     * was tried again until the next post.
+     */
+    @Test
+    public void aWriteTheDiskRefusesKeepsTheLastGoodFileAndIsTriedAgain() throws IOException {
+        SeenPosts.seen(new Story("already on disk"));
+        SeenPosts.writeNow();
+        byte[] good = Files.readAllBytes(file.toPath());
+        AtomicInteger schedules = new AtomicInteger();
+        SeenPosts.laterForTests = schedules::incrementAndGet;
+        File blocked = blockTheWorkFile();
+        try {
+            SeenPosts.seen(new Story("not on disk yet"));
+            SeenPosts.writeNow();
+            assertTrue("a failed write changed the last good file", java.util.Arrays.equals(good, Files.readAllBytes(file.toPath())));
+            assertEquals("a write that didn't land wasn't tried again", 2, schedules.get());
+            SeenPosts.seen(new Story("seen while it was failing"));
+        } finally {
+            unblock(blocked);
+        }
+        SeenPosts.writeNow();
+        restart();
+        assertEquals(3, SeenPosts.size());
+    }
+
+    /** Retries stop after {@link SeenPosts#MAX_RETRIES} in a row, and the next post tries again. */
+    @Test
+    public void retriesStopAtTheLimitAndTheNextPostTriesAgain() throws IOException {
+        AtomicInteger schedules = new AtomicInteger();
+        SeenPosts.laterForTests = schedules::incrementAndGet;
+        File blocked = blockTheWorkFile();
+        try {
+            SeenPosts.seen(new Story("stuck"));
+            for (int i = 0; i <= SeenPosts.MAX_RETRIES; i++) SeenPosts.writeNow();
+            assertEquals(1 + SeenPosts.MAX_RETRIES, schedules.get());
+            SeenPosts.seen(new Story("next"));
+            assertEquals(2 + SeenPosts.MAX_RETRIES, schedules.get());
+        } finally {
+            unblock(blocked);
+        }
+        SeenPosts.writeNow();
+        restart();
+        assertEquals(2, SeenPosts.size());
+    }
+
+    /**
+     * Forget seen posts still deletes the file when writes before it used up their retries. A
+     * refused Forget went through the same count, so it was never tried again, and the next start
+     * read the forgotten posts back.
+     */
+    @Test
+    public void aForgetAfterTheRetriesRanOutIsStillTriedAgain() throws Exception {
+        Story story = new Story("forget after the limit");
+        SeenPosts.seen(story);
+        SeenPosts.writeNow();
+        assertTrue("the store wasn't written", file.length() > 0);
+        AtomicInteger schedules = new AtomicInteger();
+        SeenPosts.laterForTests = schedules::incrementAndGet;
+        File blocked = blockTheWorkFile();
+        try {
+            SeenPosts.seen(new Story("stuck"));
+            for (int i = 0; i <= SeenPosts.MAX_RETRIES; i++) SeenPosts.writeNow();
+            assertEquals(1 + SeenPosts.MAX_RETRIES, schedules.get());
+        } finally {
+            unblock(blocked);
+        }
+        SeenPosts.backgroundForTests = null;
+        try (WorkerPoolForTests ignored = WorkerPoolForTests.fill()) {
+            SeenPosts.clear();
+        }
+        assertEquals("a refused Forget past the limit wasn't tried again", 2 + SeenPosts.MAX_RETRIES, schedules.get());
+        SeenPosts.startWrite();
+        Utils.awaitBackgroundTasksForTests();
+        assertFalse("the file outlived Forget seen posts", file.exists());
+        restart();
+        assertEquals(0, SeenPosts.size());
+        assertNull(SeenPosts.hideReason(story));
+    }
+
+    /** A folder, not empty, where the write's work file goes, so it can't be opened or deleted. */
+    private File blockTheWorkFile() throws IOException {
+        File blocked = new File(file.getPath() + ".tmp");
+        assertTrue(blocked.mkdir());
+        assertTrue(new File(blocked, "inside").createNewFile());
+        return blocked;
+    }
+
+    private static void unblock(File blocked) {
+        //noinspection ResultOfMethodCallIgnored
+        new File(blocked, "inside").delete();
+        //noinspection ResultOfMethodCallIgnored
+        blocked.delete();
+    }
+
+    /** What a new process finds: the store read back from its file. */
+    private void restart() {
+        SeenPosts.resetForTests();
+        SeenPosts.inBuildForTests = Boolean.TRUE;
+        SeenPosts.fileForTests = file;
+        SeenPosts.laterForTests = () -> { };
+        SeenPosts.backgroundForTests = Runnable::run;
+        SeenPosts.clock = now::get;
     }
 }

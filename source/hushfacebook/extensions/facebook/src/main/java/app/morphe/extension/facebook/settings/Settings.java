@@ -30,6 +30,7 @@ import app.morphe.extension.shared.settings.BooleanSetting;
 import app.morphe.extension.shared.settings.EnumSetting;
 import app.morphe.extension.shared.settings.Setting;
 import app.morphe.extension.shared.settings.StringSetting;
+import app.morphe.extension.shared.settings.preference.CrashFile;
 
 /**
  * The switches behind the hooks that ask before they act.
@@ -136,9 +137,12 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting BLOCK_RETURN_REFRESH =
             new BooleanSetting("hushfacebook_block_return_refresh", FALSE);
 
-    /** With the switch above, keep the feed however long Facebook stayed in the background (#23). */
+    /**
+     * With the switch above, keep the feed however long Facebook stayed in the background (#23). It's
+     * greyed out while that switch is off, and keeps its saved value (#130).
+     */
     public static final BooleanSetting RETURN_REFRESH_NO_LIMIT =
-            new BooleanSetting("hushfacebook_return_refresh_no_limit", FALSE);
+            new BooleanSetting("hushfacebook_return_refresh_no_limit", FALSE, Setting.parent(BLOCK_RETURN_REFRESH));
 
     /**
      * Feed posts Facebook's own detection marked as made with AI. Off until one AI-labeled and one
@@ -593,6 +597,22 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_hide_related_groups_under_comments", FALSE);
 
     /**
+     * Comments whose words link to an online shop, like the Shopee links pasted under reels, are
+     * left out with their replies ({@link app.morphe.extension.facebook.comments.CommentSheetOptions},
+     * #118). Off by default. A change shows on the next comments drawn.
+     */
+    public static final BooleanSetting HIDE_SHOP_LINK_COMMENTS =
+            new BooleanSetting("hushfacebook_hide_shop_link_comments", FALSE);
+
+    /**
+     * Comments holding a phrase from {@link #HIDDEN_WORDS} and none from {@link #KEPT_WORDS} are
+     * left out with their replies, matched as posts are
+     * ({@link app.morphe.extension.facebook.comments.CommentSheetOptions}, #118). Off by default.
+     */
+    public static final BooleanSetting HIDE_COMMENTS_WITH_WORDS =
+            new BooleanSetting("hushfacebook_hide_comments_with_words", FALSE);
+
+    /**
      * Facebook's text boxes (posts, comments, captions, a story's text) look people up to tag only
      * for a word that starts with @. Off, they also look them up for a plain word Facebook takes for
      * a name, what its code calls an implicit mention
@@ -628,6 +648,14 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting RESUME_LONG_VIDEOS =
             new BooleanSetting("hushfacebook_resume_long_videos", FALSE);
+
+    /**
+     * With a reel or video paused, a tap on its right third steps it one frame forward and a tap on
+     * its left third one frame back ({@link app.morphe.extension.facebook.media.FrameStep}). Starts
+     * off. Off or paused, every tap goes to Facebook as before.
+     */
+    public static final BooleanSetting FRAME_STEP =
+            new BooleanSetting("hushfacebook_frame_step", FALSE);
 
     /**
      * Videos, reels and video stories start at the quality in {@link #PLAYBACK_QUALITY}, through
@@ -673,20 +701,30 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_keep_progress_bar_time", TRUE);
 
     /**
+     * A tap anywhere on a reel's or video's progress bar jumps there, where Facebook's bar only seeks
+     * on a drag from its thumb ({@link app.morphe.extension.facebook.media.TapToSeek}).
+     * Works with {@link #KEEP_PROGRESS_BAR} on or off. Off by default, and asked on every press, so
+     * no restart.
+     */
+    public static final BooleanSetting TAP_TO_SEEK =
+            new BooleanSetting("hushfacebook_tap_to_seek", FALSE);
+
+    /**
      * Facebook's own text, React Native screens' included, drawn in the font {@link #FONT_SOURCE}
      * names instead of Meta's Optimistic, at the same weight and slant. A typeface already on
-     * screen keeps its font until Facebook restarts.
+     * screen keeps its font until Facebook restarts, so a change brings up the restart row.
      */
     public static final BooleanSetting USE_SYSTEM_FONT =
-            new BooleanSetting("hushfacebook_use_system_font", FALSE);
+            new BooleanSetting("hushfacebook_use_system_font", FALSE, true);
 
     /**
      * Emoji drawn with the phone's own emoji font instead of the one Meta downloads. An emoji
      * already laid out keeps its look until its text is drawn again, and the quick emoji picker
-     * until Facebook restarts. Reactions and stickers are pictures, not text, and don't change.
+     * until Facebook restarts, so a change brings up the restart row. Reactions and stickers are
+     * pictures, not text, and don't change.
      */
     public static final BooleanSetting USE_SYSTEM_EMOJI =
-            new BooleanSetting("hushfacebook_use_system_emoji", FALSE);
+            new BooleanSetting("hushfacebook_use_system_emoji", FALSE, true);
 
     /** Web links leave Facebook's in-app browser for the default browser. */
     public static final BooleanSetting OPEN_LINKS_EXTERNALLY =
@@ -753,6 +791,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_open_messenger_app", FALSE);
 
     /**
+     * While Messenger is installed and enabled, Facebook doesn't ring for calls or post
+     * notifications for new messages, reactions, message requests and missed calls, so only
+     * Messenger does. Starts off. Without Messenger, or with it disabled, Facebook rings and
+     * notifies as it always did. Read on every call and notification, so it needs no restart.
+     */
+    public static final BooleanSetting LEAVE_CALLS_AND_CHATS_TO_MESSENGER =
+            new BooleanSetting("hushfacebook_leave_calls_and_chats_to_messenger", FALSE);
+
+    /**
      * The Upgrades section of Facebook's Menu, the group Facebook types UPSELL, with its offers.
      * Only that group goes: Settings, Help and support and the rest of the Menu stay.
      */
@@ -788,6 +835,13 @@ public class Settings extends BaseSettings {
     /** The share sheet's button for sharing to Threads. Off until it's turned on. */
     public static final BooleanSetting HIDE_THREADS_SHARE_BUTTON =
             new BooleanSetting("hushfacebook_hide_threads_share_button", FALSE);
+
+    /**
+     * The share sheet's Muse button, Meta's AI agent app, wherever Facebook's one list of share
+     * items reaches. Off until it's turned on.
+     */
+    public static final BooleanSetting HIDE_MUSE_SHARE_BUTTON =
+            new BooleanSetting("hushfacebook_hide_muse_share_button", FALSE);
 
     /**
      * The share sheet items Share sheet items keeps out, as the item enum's constant names separated
@@ -947,6 +1001,21 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_app_lock", FALSE);
 
     /**
+     * A Java crash that ends the app also goes to Download/Hushfacebook as a text file
+     * ({@link CrashFile}), so it can be sent with a bug report when Facebook won't open. The
+     * settings entry's own switch, so every build has it ({@link PatchFamily#ENTRY_SWITCHES}). On
+     * by default: the file holds only what the diagnostic report's crash section shows, redacted
+     * the same way. Like the other switches it answers off while Hushfacebook is paused.
+     */
+    public static final BooleanSetting SAVE_CRASH_FILE =
+            new BooleanSetting("hushfacebook_save_crash_file", TRUE);
+
+    static {
+        // The crash handler is the shared library's, which can't name this class.
+        CrashFile.useSwitch(SAVE_CRASH_FILE);
+    }
+
+    /**
      * The story viewer's menu offers Save on anyone's story, and Save runs Hushfacebook's own
      * download. Off, only your own stories offer it, and it's Facebook's own save.
      */
@@ -1003,6 +1072,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_following_feed_home", FALSE);
 
     /**
+     * Which of the Feeds tab's filters Home shows while {@link #FOLLOWING_FEED_HOME} is on. All is
+     * the most recent feed. A filter Facebook's feed types don't have leaves Home on All.
+     */
+    public static final EnumSetting<FeedsSubtab> HOME_FEED =
+            new EnumSetting<>("hushfacebook_home_feed", FeedsSubtab.ALL, Setting.parent(FOLLOWING_FEED_HOME));
+
+    /**
      * The tab bar keeps Marketplace, Notifications and the profile or Menu tab, and a start from
      * the launcher icon opens Marketplace whatever {@link #START_TAB} says. Home with the news feed,
      * Video, Friends, Feeds, Groups, Gaming and Events go. Facebook builds the bar once, so a change
@@ -1011,11 +1087,11 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting MARKETPLACE_ONLY =
             new BooleanSetting("hushfacebook_marketplace_only", FALSE, true);
 
-    /** Silences only recognized social promotions while Marketplace mode is selected. */
+    /** Silences only recognized social promotions while Marketplace only is selected. */
     public static final BooleanSetting MARKETPLACE_QUIET_NOTIFICATIONS =
             new BooleanSetting("hushfacebook_marketplace_quiet_notifications", FALSE);
 
-    /** Skip only confirmed feed warm-ups once the tab bar has applied Marketplace mode. */
+    /** Skip only confirmed feed warm-ups once the tab bar has applied Marketplace only. */
     public static final BooleanSetting MARKETPLACE_SKIP_FEED_PREFETCH =
             new BooleanSetting("hushfacebook_marketplace_skip_feed_prefetch", FALSE);
 
@@ -1128,6 +1204,22 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting TAB_BAR_SCROLL_AWAY =
             new BooleanSetting("hushfacebook_tab_bar_scroll_away", FALSE, true);
+
+    /**
+     * The tab bar at the bottom stays on screen while the feed scrolls, on the accounts Facebook's
+     * server settings give scroll-away to. Facebook adds the bar to the views that scroll away as its
+     * main screen starts, so a change waits for a restart. Greyed out while
+     * {@link #TAB_BAR_SCROLL_AWAY} is on, which wins.
+     */
+    public static final BooleanSetting KEEP_TAB_BAR =
+            new BooleanSetting("hushfacebook_keep_tab_bar", FALSE, true, Setting.parentNot(TAB_BAR_SCROLL_AWAY));
+
+    /**
+     * The top bar stays where it rests while the feed scrolls, instead of sliding away. Asked each
+     * time Facebook moves it, so a change shows on the next scroll.
+     */
+    public static final BooleanSetting KEEP_TOP_BAR =
+            new BooleanSetting("hushfacebook_keep_top_bar", FALSE);
 
     /**
      * Facebook's dark mode controller answers dark whatever its own setting says
@@ -1372,18 +1464,20 @@ public class Settings extends BaseSettings {
     /**
      * How large Facebook's text is, as a share of the phone's font size ({@link TextSize}). It
      * isn't a switch: 100% is Facebook as it ships, which is also what a paused Facebook reads.
-     * The settings entry carries it, so every build has it.
+     * The settings entry carries it, so every build has it. Its row says to restart, so a change
+     * brings up the restart row.
      */
     public static final EnumSetting<TextSize.Scale> TEXT_SIZE =
-            new EnumSetting<>("hushfacebook_text_size", TextSize.Scale.P100);
+            new EnumSetting<>("hushfacebook_text_size", TextSize.Scale.P100, true);
 
     /**
      * The colour that stands in for Facebook's blue on links, buttons, switches and the selected
      * tab ({@link AccentColor}), with the Accent color patch in the build. Facebook blue is Facebook
-     * as it ships, which is also what a paused Facebook reads. Not a switch.
+     * as it ships, which is also what a paused Facebook reads. Not a switch. Screens pick their
+     * colours as they build, so a change brings up the restart row.
      */
     public static final EnumSetting<AccentColor.Preset> ACCENT_COLOR =
-            new EnumSetting<>("hushfacebook_accent_color", AccentColor.Preset.FACEBOOK);
+            new EnumSetting<>("hushfacebook_accent_color", AccentColor.Preset.FACEBOOK, true);
 
     /**
      * Where {@link #USE_SYSTEM_FONT} takes its font from: empty for the phone's own, or the name of

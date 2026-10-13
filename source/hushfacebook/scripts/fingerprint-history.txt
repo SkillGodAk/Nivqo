@@ -1,0 +1,19 @@
+# The retired Facebook builds fingerprint-calibration.txt names methods of, and what each has to be.
+#
+# The fixture folder keeps only the builds the patches target, so these left it. The calibration
+# still needs them, from the folder HUSHFACEBOOK_FINGERPRINT_HISTORY_DIR names: a folder of their own,
+# outside the fixture folder and outside the repository, that nothing writes. They're APKMirror
+# bundles and are never committed. CONTRIBUTING.md says how to set the folder up once.
+#
+# signer <SHA-256 of a certificate Meta signs Facebook with>
+# old|new <file> <SHA-256 of the file> <package> <version name> <version code> <ABI>
+#
+# Resolve-FingerprintHistory in fingerprint-history.ps1 holds each bundle to its hash, and its
+# base.apk to the package, version and ABI aapt2 reads and to signers apksigner reads, which have
+# to be Meta's.
+
+signer 911d604446084ca7f4760b775bfc160fa8702441240a7258645d7a72c4312d27
+signer e3f9e1e0cf99d0e56a055ba65e241b3399f7cea524326b0cdd6ec1327ed0fdc1
+
+old facebook-577.0.0.50.72-arm64-v8a.apkm 452973bb6510831612ebde4dc5fea155e78be58b3d88ab1e1105f415d6bd4c68 com.facebook.katana 577.0.0.50.72 474426275 arm64-v8a
+new facebook-580.0.0.51.74-arm64-v8a.apkm 05e5e72b3573c4c95d407c97cfd963cccb16b4fa33a3e3d18b92c2f6ce362dda com.facebook.katana 580.0.0.51.74 475019344 arm64-v8a

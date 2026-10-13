@@ -33,8 +33,8 @@ public class SetupSummaryTest {
     private void installedFeatures(String... keys) throws Exception {
         var app = RuntimeEnvironment.getApplication();
         var info = app.getPackageManager().getPackageInfo(app.getPackageName(), PackageManager.GET_META_DATA | PackageManager.GET_PROVIDERS);
-        info.versionName = "580.0.0.49.91";
-        info.setLongVersionCode((7L << 32) | 346013387L);
+        info.versionName = "582.0.0.61.92";
+        info.setLongVersionCode((7L << 32) | 346415686L);
         info.applicationInfo.metaData = new Bundle();
         for (String key : keys) info.applicationInfo.metaData.putBoolean("hush.feature." + key, true);
         // An installed bubbles fixture must also declare the host routes validated by the patch.
@@ -63,12 +63,12 @@ public class SetupSummaryTest {
             String text = clip.getItemAt(0).getText().toString();
             assertTrue(text.startsWith("HushMessenger v" + BuildConfig.VERSION_NAME + "\n"));
             assertTrue(text.contains("\nHost package: " + activity.getPackageName() + "\nSettings provider: found\n"));
-            assertTrue(text.contains("\nHost version: 580.0.0.49.91\n"));
-            assertTrue(text.contains("\nHost version code: " + ((7L << 32) | 346013387L) + "\n"));
+            assertTrue(text.contains("\nHost version: 582.0.0.61.92\n"));
+            assertTrue(text.contains("\nHost version code: " + ((7L << 32) | 346415686L) + "\n"));
             assertTrue(text.contains("\nAndroid API: " + Build.VERSION.SDK_INT + "\nPaused: false\nSafe mode: false\n"));
             assertTrue(text.contains("people: installed=true, selected=true, active=true,"));
             assertTrue(text.contains("stories: installed=false, selected=true, active=false,"));
-            assertTrue(text.matches("(?s).*\nFacebook caller checks: trusted=\\d+, signer_differs=\\d+, meta_signed_build=\\d+, not_family=\\d+, error=\\d+\n"));
+            assertTrue(text.matches("(?s).*\nLate start: (not needed|\\d+ ms on [^\n]+)\nAnalytics stores: none\nFacebook caller checks: trusted=\\d+, signer_differs=\\d+, meta_signed_build=\\d+, not_family=\\d+, error=\\d+\n"));
             assertEquals(ExpectedTotals.SETUP_LINES, text.split("\n").length);
             assertFalse(text.contains("private-"));
             assertFalse(text.contains("account-secret"));
@@ -78,6 +78,29 @@ public class SetupSummaryTest {
             assertNull(Shadows.shadowOf(activity).getNextStartedActivity());
             if (Build.VERSION.SDK_INT < 33) assertEquals("Setup copied", ShadowToast.getTextOfLatestToast());
             else assertNull(ShadowToast.getTextOfLatestToast());
+        }
+    }
+
+    @Test public void analyticsStoresListNamesAndSizesOnly() throws Exception {
+        java.io.File data = java.nio.file.Files.createTempDirectory("hush-data").toFile();
+        try {
+            assertEquals("none", SettingsActivity.analyticsStores(data));
+            java.io.File batches = new java.io.File(data, "files/xanalytics/batches");
+            assertTrue(batches.mkdirs());
+            java.nio.file.Files.write(new java.io.File(batches, "1.batch").toPath(), new byte[] {1, 2, 3});
+            assertTrue(new java.io.File(data, "app_analytics").mkdirs());
+            assertTrue(new java.io.File(data, "app_light_prefs").mkdirs());
+            // A file named like a store isn't one, and a store's own subfolders aren't listed again.
+            java.nio.file.Files.write(new java.io.File(data, "analytics.txt").toPath(), new byte[] {4});
+            assertTrue(new java.io.File(data, "app_analytics/analytics_old").mkdirs());
+            assertEquals("app_analytics 0 files 0 bytes, files/xanalytics 1 files 3 bytes", SettingsActivity.analyticsStores(data));
+            assertEquals("unreadable", SettingsActivity.analyticsStores(new java.io.File(data, "missing")));
+            // Finding the stores opens three folders (the data dir, files and app_light_prefs), so none are left to count with.
+            assertEquals("app_analytics 0+ files 0+ bytes, files/xanalytics 0+ files 0+ bytes", SettingsActivity.analyticsStores(data, 100, 3));
+        } finally {
+            try (var walk = java.nio.file.Files.walk(data.toPath())) {
+                walk.sorted(java.util.Comparator.reverseOrder()).forEach(path -> path.toFile().delete());
+            }
         }
     }
 
@@ -119,7 +142,7 @@ public class SetupSummaryTest {
             android.widget.TextView people = root.findViewWithTag("active_people");
             android.widget.TextView stories = root.findViewWithTag("active_stories");
             assertEquals(View.VISIBLE, people.getVisibility());
-            assertEquals("Nothing to change yet since restart", people.getText().toString());
+            assertEquals("Not used yet since Messenger started", people.getText().toString());
             // An off switch has nothing to report, and turning it on shows its label.
             assertEquals(View.GONE, stories.getVisibility());
             ((android.widget.Switch) root.findViewWithTag("stories")).setChecked(true);
@@ -146,15 +169,16 @@ public class SetupSummaryTest {
         Settings.activeAt.put("hide_read_receipts", System.currentTimeMillis());
         try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
             String report = copiedSetup(screen.get().getWindow().getDecorView());
-            assertTrue(report.contains("Activity records show a control ran. They don't verify its visible effect or privacy protection.\n"));
+            assertTrue(report.contains("Activity notes only show that a control ran. They don't prove it had a visible effect or protected your privacy.\n"));
             for (String[] control : SettingsActivity.CONTROLS)
                 assertTrue(control[0], report.contains(", scope=" + control[2] + "\n"));
             assertTrue(report.matches("(?s).*hide_read_receipts: installed=true, selected=true, active=true, last_active=\\d+s ago, scope=.*"));
-            assertTrue(report.contains("Replying or switching this off may notify the sender."));
-            assertTrue(report.contains("Activity records intercepted legacy unsends, not whether a chat is supported."));
-            assertTrue(report.contains("This doesn't add replay or saving."));
-            assertTrue(report.contains("Native Bubbles needs Android 11, account support and notification permissions."));
-            assertTrue(report.contains("Search and community folders keep them. Delivery and unread counts stay unchanged."));
+            assertTrue(report.contains("Marking it read yourself or replying marks it read and shows Seen"));
+            assertTrue(report.contains("Group chats aren't tested. Messenger's own Read receipts setting under Privacy & safety"));
+            assertTrue(report.contains("Encrypted chats aren't supported and group chats aren't tested."));
+            assertTrue(report.contains("It doesn't add replay or saving."));
+            assertTrue(report.contains("Native Bubbles needs Android 11 or newer, a supported account and notification permission."));
+            assertTrue(report.contains("Search and community folders still show them."));
         }
     }
 
@@ -180,7 +204,7 @@ public class SetupSummaryTest {
                     android.graphics.Rect visible = new android.graphics.Rect();
                     assertTrue(target.getGlobalVisibleRect(visible));
                     assertEquals(target.getHeight(), visible.height());
-                    assertTrue(root.findViewWithTag("allow_screenshot").getContentDescription().toString().contains("This doesn't add replay or saving."));
+                    assertTrue(root.findViewWithTag("allow_screenshot").getContentDescription().toString().contains("It doesn't add replay or saving."));
                     String output = System.getenv("HUSH_SETTINGS_CAPTURES");
                     if (output != null) {
                         var directory = java.nio.file.Path.of(output);
@@ -205,7 +229,7 @@ public class SetupSummaryTest {
         Settings.hookFailed("menu_row", "test", new IllegalStateException("private-chat-text"));
         try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
             View root = screen.get().getWindow().getDecorView();
-            assertEquals("Stopped with an error just now", ((android.widget.TextView) root.findViewWithTag("active_avatar_stickers")).getText().toString());
+            assertEquals("Stopped with an error just now. Copy setup on the App tab has details.", ((android.widget.TextView) root.findViewWithTag("active_avatar_stickers")).getText().toString());
             assertEquals("Used just now", ((android.widget.TextView) root.findViewWithTag("active_people")).getText().toString());
             String text = copiedSetup(root);
             String time = ", \\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ\n";
@@ -221,6 +245,40 @@ public class SetupSummaryTest {
         try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
             View root = screen.get().getWindow().getDecorView();
             assertEquals("Used just now", ((android.widget.TextView) root.findViewWithTag("active_avatar_stickers")).getText().toString());
+        }
+    }
+
+    @Test public void anOlderUseCountsInHoursThenDays() throws Exception {
+        installedFeatures("people");
+        Settings.preferences.edit().putBoolean("people", true).commit();
+        long now = System.currentTimeMillis();
+        Settings.activeAt.put("people", now - 30L * 60 * 60 * 1000);
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            assertEquals("Used 30h ago", ((android.widget.TextView) screen.get().getWindow().getDecorView().findViewWithTag("active_people")).getText().toString());
+        }
+        Settings.activeAt.put("people", now - 3L * 24 * 60 * 60 * 1000 - 60_000);
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            assertEquals("Used 3d ago", ((android.widget.TextView) screen.get().getWindow().getDecorView().findViewWithTag("active_people")).getText().toString());
+        }
+    }
+
+    /** A row's label column hides its children from TalkBack, so the buttons under a row must sit outside it. */
+    @Test public void theLogAndFontButtonsAreReachableAndADisabledButtonLooksOff() throws Exception {
+        installedFeatures(MessageLog.KEY, OwnFont.KEY);
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View root = screen.get().getWindow().getDecorView();
+            for (String tag : new String[] {"message_log_view", "message_log_clear", "font_file"}) {
+                View button = root.findViewWithTag(tag);
+                assertNotNull(tag, button);
+                for (android.view.ViewParent parent = button.getParent(); parent instanceof View; parent = parent.getParent()) {
+                    assertNotEquals(tag, View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS, ((View) parent).getImportantForAccessibility());
+                }
+            }
+            android.widget.Button view = root.findViewWithTag("message_log_view");
+            int enabled = view.getCurrentTextColor();
+            view.setEnabled(false);
+            assertNotEquals("a disabled button needs its own color", enabled, view.getCurrentTextColor());
+            view.setEnabled(true);
         }
     }
 
@@ -301,7 +359,7 @@ public class SetupSummaryTest {
             try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
                 android.widget.TextView help = screen.get().getWindow().getDecorView().findViewWithTag("shared_install_help");
                 assertNotNull(help);
-                assertTrue(help.getText().toString().contains("removes Messenger and its local data"));
+                assertTrue(help.getText().toString().contains("Messenger is removed and its data on your phone is erased"));
                 assertTrue(help.getText().toString().contains("Hide app drawer icon"));
                 assertNotEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO, help.getImportantForAccessibility());
             }
@@ -313,7 +371,7 @@ public class SetupSummaryTest {
         try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
             View root = screen.get().getWindow().getDecorView();
             assertNull(root.findViewWithTag("hide_drawer_icon"));
-            assertTrue(((android.widget.TextView) root.findViewWithTag("drawer_help")).getText().toString().contains("no settings launcher alias"));
+            assertTrue(((android.widget.TextView) root.findViewWithTag("drawer_help")).getText().toString().contains("no settings icon to hide"));
             assertFalse(((android.widget.TextView) root.findViewWithTag("access_help")).getText().toString().contains("or from your app drawer"));
             android.widget.EditText search = root.findViewWithTag("find_control");
             search.setText("drawer icon");
@@ -344,7 +402,7 @@ public class SetupSummaryTest {
                 View root = screen.get().getWindow().getDecorView();
                 root.findViewWithTag("tab_app").performClick();
                 assertNull(root.findViewWithTag("hide_drawer_icon"));
-                assertTrue(((android.widget.TextView) root.findViewWithTag("drawer_help")).getText().toString().contains("requires the HushMessenger row"));
+                assertTrue(((android.widget.TextView) root.findViewWithTag("drawer_help")).getText().toString().contains("patch in Open settings from menu first"));
             }
         } finally {
             Settings.preferences.edit().putBoolean("hide_drawer_icon", false).commit();

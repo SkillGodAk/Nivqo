@@ -6,6 +6,7 @@ package app.morphe.extension.facebook.download;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -37,6 +38,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import app.morphe.extension.facebook.settings.Settings;
@@ -344,6 +347,49 @@ public class VideoMenuItemTest {
         assertEquals("Couldn't save this video. Play it for a moment, then try again.",
                 ShadowToast.getTextOfLatestToast());
         assertNoAddressIn(report);
+    }
+
+    /**
+     * A tap while saves hold every slot says so and starts nothing, instead of the missing-file
+     * message a refused start used to fall through to.
+     */
+    @Test
+    public void aTapWhileEverySlotIsTakenSaysWhy() throws Exception {
+        CountDownLatch release = new CountDownLatch(1);
+        List<Thread> held = new ArrayList<>();
+        try {
+            for (int i = 0; i < 3; i++) {
+                CountDownLatch entered = new CountDownLatch(1);
+                Thread worker = MediaDownload.start(context, false, (writer, progress) -> {
+                    entered.countDown();
+                    try {
+                        release.await(10, TimeUnit.SECONDS);
+                    } catch (InterruptedException stopped) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return Downloader.Result.fail(Downloader.Status.CANCELLED, "test job ended");
+                });
+                assertNotNull("a holding save didn't start", worker);
+                held.add(worker);
+                assertTrue("a holding save never ran", entered.await(10, TimeUnit.SECONDS));
+            }
+            assertEquals(3, MediaDownload.savesInFlight());
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+            ShadowToast.reset();
+
+            tap(filled(VideoMenuItemForTests.videoPost()));
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+            assertEquals("Too many saves at once. Try again when one finishes.", ShadowToast.getTextOfLatestToast());
+            assertEquals("the tap took a fourth slot", 3, MediaDownload.savesInFlight());
+        } finally {
+            release.countDown();
+            for (Thread worker : held) worker.join(10_000);
+        }
+        String report = report();
+        assertTrue(report, report.contains("a tap found every save slot taken, so nothing started"));
+        assertFalse(report, report.contains("saving video"));
+        assertFalse(report, report.contains("too many saves at once"));
     }
 
     /** A tap after the switch went off, from a menu still open, saves nothing and says nothing. */

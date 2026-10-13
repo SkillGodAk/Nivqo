@@ -224,7 +224,8 @@ public class CommentSheetOptionsTest {
     public void theSwitchesNeedNoRestartAndTravelWithTheirFamily() {
         for (app.morphe.extension.shared.settings.BooleanSetting setting : new app.morphe.extension.shared.settings.BooleanSetting[] {
                 Settings.LIKE_ONLY, Settings.HIDE_COMMENT_GIF_STICKER_BUTTONS, Settings.OPEN_REPLY_THREADS,
-                Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS}) {
+                Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS, Settings.HIDE_SHOP_LINK_COMMENTS,
+                Settings.HIDE_COMMENTS_WITH_WORDS}) {
             assertFalse(setting.key + " asks for a restart, but each hook reads it again", setting.rebootApp);
             assertNull(setting.key + " asks before it changes", setting.userDialogMessage);
             assertTrue("Pause and the report don't know " + setting.key,

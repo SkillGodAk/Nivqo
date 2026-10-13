@@ -4,12 +4,14 @@
  */
 package app.morphe.patches.facebook.misc.analytics
 
+import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
+import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.superclassChain
@@ -75,6 +77,15 @@ val holdAnalyticsUploadsPatch = bytecodePatch(
                 "$PATCH: could not find " + missing.joinToString("; ") +
                     ". Applying the rest would leave that sender running, so nothing was changed.",
             )
+        }
+        val retryOutcomes = classDefByStrings(ANALYTICS2_JOB_RAN, StringComparisonType.EQUALS).flatMap { owner ->
+            owner.methods.mapNotNull { method -> analytics2RetryValue(method)?.let { method to it } }
+        }
+        if (retryOutcomes.size == 1) {
+            val (method, index) = retryOutcomes.single()
+            mutable(method).observeAnalytics2Retry(index)
+        } else {
+            patchLog.warning("$PATCH: found ${retryOutcomes.size} Analytics2 retry stores. Debug reports go on without retry outcomes.")
         }
         mutable(jobStart!!).passPapayaGate(gate!!)
         mutable(kickOff!!.first).skipUploadWhenHeld(kickOff.second, KICK_OFF_UPLOAD)

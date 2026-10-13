@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "0.6.0",
+    [string]$Version = "0.7.0",
     [string]$OutputPath,
     [string]$AndroidSdk = ""
 )
@@ -88,18 +88,21 @@ try {
     Copy-Tree -Source (Join-Path $messenger "patches\src\main") -Destination (Join-Path $temp "patches\src\main")
     Copy-Tree -Source (Join-Path $messenger "extensions\messenger") -Destination (Join-Path $temp "extensions\messenger") -ExcludeDirectories @("build", ".gradle")
 
-    # HushFacebook v0.7.2 forces Guava 33.7.2-jre on all project configurations for its
-    # reviewed tooling graph. HushMessenger v0.21.0 still locks its unit-test configurations to
+    # HushFacebook v0.12.0 forces Guava 33.7.2-jre on all project configurations for its
+    # reviewed tooling graph. HushMessenger v0.23.0 still locks its unit-test configurations to
     # 33.6.0-jre. The combined tree is temporary, so align only its copied Messenger lockfile;
     # do not modify the standalone HushMessenger core.
     # The combined build uses the HushFacebook root build, whose reviewed dependency strategy forces
-    # Guava 33.7.2-jre. HushMessenger 0.21.0 still locks its extension unit-test graph to 33.6.0-jre.
+    # Guava 33.7.2-jre. HushMessenger 0.23.0 still locks its extension unit-test graph to 33.6.0-jre.
     $messengerLock = Join-Path $temp "extensions\messenger\gradle.lockfile"
     $messengerLockText = [System.IO.File]::ReadAllText($messengerLock)
     $messengerLockText = $messengerLockText.Replace(
         "com.google.guava:guava:33.6.0-jre=",
         "com.google.guava:guava:33.7.2-jre="
     )
+    # FB v0.12.0 root graph locks Kotlin stdlib 2.4.21, while Messenger v0.23.0's standalone extension lock uses 2.4.20.
+    # Only align the disposable combined tree; leave standalone Messenger source untouched.
+    $messengerLockText = $messengerLockText.Replace(":2.4.20=", ":2.4.21=")
     [System.IO.File]::WriteAllText($messengerLock, $messengerLockText, [System.Text.UTF8Encoding]::new($false))
 
     [System.IO.File]::WriteAllText((Join-Path $temp "local.properties"), ("sdk.dir=" + $AndroidSdk.Replace("\", "\\")), [System.Text.Encoding]::ASCII)
@@ -127,7 +130,15 @@ try {
 
     Push-Location $temp
     try {
-        & .\gradlew.bat :patches:generatePatchesList :patches:buildAndroid -PallowMavenLocal=true --dependency-verification off --no-daemon
+        # Windows PowerShell may promote native Gradle SDK warnings on stderr to errors.
+        # Keep the explicit native process exit-code check as the build failure gate.
+        $previousErrorPreference = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        try {
+            & .\gradlew.bat :patches:generatePatchesList :patches:buildAndroid -PallowMavenLocal=true --dependency-verification off --no-daemon --max-workers=2 "-Dorg.gradle.jvmargs=-Xmx1536m -XX:MaxMetaspaceSize=384m"
+        } finally {
+            $ErrorActionPreference = $previousErrorPreference
+        }
         if ($LASTEXITCODE -ne 0) {
             throw "Combined MPP Gradle build failed with exit code $LASTEXITCODE"
         }
@@ -154,7 +165,7 @@ try {
     }
 
     $duplicates = @($patches | Group-Object name | Where-Object { $_.Count -gt 1 })
-    if ($patches.Count -ne 130 -or $facebookCount -ne 87 -or $messengerCount -ne 43 -or $otherCount -ne 0) {
+    if ($patches.Count -ne 138 -or $facebookCount -ne 88 -or $messengerCount -ne 50 -or $otherCount -ne 0) {
         throw "Unexpected catalog split: total=$($patches.Count), Facebook=$facebookCount, Messenger=$messengerCount, other=$otherCount"
     }
     if ($duplicates.Count -ne 0) {

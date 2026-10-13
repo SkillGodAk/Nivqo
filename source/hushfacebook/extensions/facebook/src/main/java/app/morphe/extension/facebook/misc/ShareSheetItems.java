@@ -28,7 +28,7 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * What the share sheet's item list hook asks. Facebook builds every share sheet from one method
  * that answers a list of item types, constants of one enum: SHARE_NOW, COPY_LINK, SEND_IN_WHATSAPP
  * and about ninety more. The hook goes in when Hide Meta upsells or Share sheet items is picked, and
- * each list it's handed comes here: Hide Meta upsells' Threads switch first, when that patch is in,
+ * each list it's handed comes here: Hide Meta upsells' Threads and Muse switches first, when that patch is in,
  * then the items picked in Share sheet items' list, when that one is. What's left keeps Facebook's
  * order.
  *
@@ -131,9 +131,25 @@ public final class ShareSheetItems {
         return parse(Settings.HIDDEN_SHARE_ITEMS.savedValue());
     }
 
-    /** Saves [types] as the ones to keep out, dropping anything that isn't a type. */
-    public static void hide(Collection<String> types) {
-        Settings.HIDDEN_SHARE_ITEMS.save(clean(join(types)));
+    /** What {@link #hide} did with a pick. */
+    public enum Hidden {
+        SAVED,
+        /** The types need more than {@link #MAX_HIDDEN_CHARS}. Nothing was saved. */
+        NO_ROOM,
+        /** The phone didn't keep the write. The old list stands, live and on disk. */
+        NOT_STORED
+    }
+
+    /**
+     * Saves [types] as the ones to keep out, dropping anything that isn't a type. When the types
+     * need more than {@link #MAX_HIDDEN_CHARS}, it saves nothing and says so, so a picked type is
+     * never lost in silence. An imported list can hold long types this build doesn't name.
+     */
+    public static Hidden hide(Collection<String> types) {
+        String picked = join(types);
+        String kept = clean(picked);
+        if (count(kept) < count(picked)) return Hidden.NO_ROOM;
+        return Settings.HIDDEN_SHARE_ITEMS.save(kept) ? Hidden.SAVED : Hidden.NOT_STORED;
     }
 
     /**

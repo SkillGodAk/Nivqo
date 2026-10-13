@@ -200,12 +200,12 @@ public class ChoiceBackupTest {
             assertTrue(Settings.preferences.getBoolean("people", false));
             assertTrue(Settings.preferences.getBoolean("typing", false));
             assertFalse(Settings.preferences.contains("new_control"));
-            assertEquals("Restored 1 choice Skipped 1 unknown choice. Skipped 1 choice absent from this bundle.", ShadowToast.getTextOfLatestToast());
+            assertEquals("Restored 1 choice Skipped 1 choice this version doesn't know. Skipped 1 choice whose patch isn't installed.", ShadowToast.getTextOfLatestToast());
             Map<String, ?> before = Settings.preferences.getAll();
             clipboard(ChoiceCodec.HEADER + "\nnew_control=false\n");
             screen.get().getWindow().getDecorView().findViewWithTag("import_choices").performClick();
             assertEquals(before, Settings.preferences.getAll());
-            assertTrue(ShadowToast.getTextOfLatestToast().startsWith("No installed"));
+            assertTrue(ShadowToast.getTextOfLatestToast().startsWith("Nothing to restore"));
         }
     }
 
@@ -296,7 +296,8 @@ public class ChoiceBackupTest {
                     () -> { throw new SecurityException("Refused"); });
                 ShadowToast.reset();
                 activity.onActivityResult(SettingsActivity.READ_CHOICES, Activity.RESULT_OK, new Intent().setData(uri));
-                awaitToast("Not a valid");
+                // A document that can't be read gets different advice from one that isn't a backup.
+                awaitToast("unreadable".equals(data) ? "Couldn't read that file" : "Not a valid");
                 assertEquals(before, Settings.preferences.getAll());
             }
         }
@@ -323,7 +324,7 @@ public class ChoiceBackupTest {
             Uri uri = Uri.fromFile(file);
             activity.getWindow().getDecorView().findViewWithTag("read_choices_file").performClick();
             activity.onActivityResult(SettingsActivity.READ_CHOICES, Activity.RESULT_OK, new Intent().setData(uri));
-            awaitToast("Not a valid");
+            awaitToast("Couldn't read that file");
             assertEquals(before, Settings.preferences.getAll());
             ShadowToast.reset();
             activity.getWindow().getDecorView().findViewWithTag("save_choices_file").performClick();
@@ -342,7 +343,7 @@ public class ChoiceBackupTest {
                 () -> { throw new IllegalStateException("private provider details"); });
             activity.getWindow().getDecorView().findViewWithTag("read_choices_file").performClick();
             activity.onActivityResult(SettingsActivity.READ_CHOICES, Activity.RESULT_OK, new Intent().setData(uri));
-            awaitToast("Not a valid");
+            awaitToast("Couldn't read that file");
             assertEquals(before, Settings.preferences.getAll());
             assertTrue(org.robolectric.shadows.ShadowLog.getLogsForTag("HushMessenger").stream()
                 .noneMatch(log -> log.throwable != null && "private provider details".equals(log.throwable.getMessage())));
@@ -369,7 +370,7 @@ public class ChoiceBackupTest {
             Map<String, ?> before = Settings.preferences.getAll();
             activity.getWindow().getDecorView().findViewWithTag("read_choices_file").performClick();
             activity.onActivityResult(SettingsActivity.READ_CHOICES, Activity.RESULT_OK, new Intent().setData(uri));
-            awaitToast("Not a valid");
+            awaitToast("Couldn't read that file");
             assertEquals(before, Settings.preferences.getAll());
             activity.getWindow().getDecorView().findViewWithTag("save_choices_file").performClick();
             activity.onActivityResult(SettingsActivity.SAVE_CHOICES, Activity.RESULT_OK, new Intent().setData(uri));
@@ -407,7 +408,7 @@ public class ChoiceBackupTest {
                 ShadowToast.reset();
                 activity.getWindow().getDecorView().findViewWithTag("read_choices_file").performClick();
                 activity.onActivityResult(SettingsActivity.READ_CHOICES, Activity.RESULT_OK, new Intent().setData(uri));
-                awaitToast("Not a valid");
+                awaitToast("Couldn't read that file");
                 assertEquals(before, Settings.preferences.getAll());
                 assertEquals(0, reads.get());
                 ShadowToast.reset();
@@ -741,7 +742,7 @@ public class ChoiceBackupTest {
             Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(101));
             assertTrue(canceled.await(5, TimeUnit.SECONDS));
             finishWorkers();
-            assertEquals("The file operation took too long. Try again. A save may leave an incomplete file.", ShadowToast.getTextOfLatestToast());
+            assertEquals("The file save or restore took too long. Try again. A save may leave an incomplete file.", ShadowToast.getTextOfLatestToast());
         } finally { canceled.countDown(); finishWorkers(); SettingsActivity.documentTimeoutMillis = 30_000; }
     }
 
@@ -824,7 +825,8 @@ public class ChoiceBackupTest {
             SeekableOs.errno = android.system.OsConstants.EBADF;
             DocumentResolver.opener = (uri, signal) -> new AssetFileDescriptor(descriptor, 0, original.length);
             startFile(screen.get(), false, Uri.parse("content://choices/bad-seek"));
-            awaitToast("Not a valid HushMessenger backup");
+            // A seek that fails is a read failure, not a bad backup.
+            awaitToast("Couldn't read that file");
             finishWorkers();
             assertFalse(Settings.preferences.getBoolean("stories", false));
             assertArrayEquals(original, Files.readAllBytes(file));
@@ -858,6 +860,35 @@ public class ChoiceBackupTest {
             finishWorkers();
             assertTrue(Settings.preferences.getBoolean("stories", false));
             assertArrayEquals(original, Files.readAllBytes(file));
+        } finally { Files.deleteIfExists(file); }
+    }
+
+    @Test @Config(sdk = {28, 29, 36}) public void aNonSeekableSliceWithAStartOffsetRestoresChoices() throws Exception {
+        var file = Files.createTempFile("choices-pipe-slice", ".txt");
+        byte[] prefix = "provider framing ".getBytes(StandardCharsets.UTF_8);
+        byte[] payload = (ChoiceCodec.HEADER + "\nstories=true\n").getBytes(StandardCharsets.UTF_8);
+        var bytes = new java.io.ByteArrayOutputStream();
+        bytes.write(prefix);
+        bytes.write(payload);
+        bytes.write("trailing provider bytes".getBytes(StandardCharsets.UTF_8));
+        Files.write(file, bytes.toByteArray());
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup();
+             var descriptor = ParcelFileDescriptor.open(file.toFile(), ParcelFileDescriptor.MODE_READ_ONLY)) {
+            Settings.installed = new HashSet<>(Set.of("stories"));
+            SeekableOs.errno = android.system.OsConstants.ESPIPE;
+            // The host file can seek, so stand in for a pipe on Android 9 and 10: their input stream skips to the
+            // start before it knows the length, which on a pipe reads nothing, and so starts at the front.
+            DocumentResolver.opener = (uri, signal) -> new AssetFileDescriptor(descriptor, prefix.length, payload.length) {
+                @Override public java.io.FileInputStream createInputStream() throws java.io.IOException {
+                    return android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R
+                        ? new ParcelFileDescriptor.AutoCloseInputStream(descriptor) : super.createInputStream();
+                }
+            };
+            startFile(screen.get(), false, Uri.parse("content://choices/pipe-slice"));
+            awaitToast("Restored 1 choice");
+            finishWorkers();
+            assertTrue(Settings.preferences.getBoolean("stories", false));
+            assertArrayEquals(bytes.toByteArray(), Files.readAllBytes(file));
         } finally { Files.deleteIfExists(file); }
     }
 
@@ -946,6 +977,8 @@ public class ChoiceBackupTest {
             if (toast != null && toast.startsWith(prefix)) return;
             Thread.sleep(20);
         } while (System.currentTimeMillis() < deadline);
-        fail("Missing document result: " + prefix);
+        StringBuilder logged = new StringBuilder();
+        for (var item : org.robolectric.shadows.ShadowLog.getLogsForTag("HushMessenger")) logged.append(" | ").append(item.msg);
+        fail("Missing document result: " + prefix + "; latest toast: " + ShadowToast.getTextOfLatestToast() + "; log" + logged);
     }
 }

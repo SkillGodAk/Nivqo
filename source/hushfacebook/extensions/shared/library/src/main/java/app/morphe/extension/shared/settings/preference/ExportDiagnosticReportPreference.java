@@ -11,23 +11,44 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.preference.Preference;
 import android.util.AttributeSet;
+import android.view.View;
 import android.widget.ListAdapter;
 
 import androidx.annotation.Nullable;
+
+import java.lang.ref.WeakReference;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import app.morphe.extension.shared.L10n;
 
 /** Offers a compact choice between a quick clipboard report and a full text file. */
 @SuppressWarnings({"deprecation", "unused"})
 public class ExportDiagnosticReportPreference extends Preference {
+    private enum State { IDLE, COPYING, SAVING, COPIED, SAVED, COPY_FAILED, SAVE_FAILED }
+
+    private static final CopyOnWriteArrayList<WeakReference<ExportDiagnosticReportPreference>> ROWS =
+            new CopyOnWriteArrayList<>();
+    private static State state = State.IDLE;
+    private CharSequence restingSummary;
+
     {
         // A key so the settings search can index this row. Nothing in the settings
         // framework treats it as a setting: a key with no Setting behind it is skipped.
         setKey("action_export_diagnostic_report");
+        setPersistent(false);
+        ROWS.add(new WeakReference<>(this));
+        showState();
         setOnPreferenceClickListener(pref -> {
+            if (busy()) return true;
             DialogInterface.OnClickListener choose = (dialog, which) -> {
-                if (which == 0) LogBufferManager.exportToClipboard();
-                if (which == 1) LogBufferManager.exportToFile();
+                if (busy() || which < 0 || which > 1) return;
+                boolean file = which == 1;
+                update(file ? State.SAVING : State.COPYING);
+                java.util.function.Consumer<Boolean> completed = succeeded -> update(file
+                        ? (succeeded ? State.SAVED : State.SAVE_FAILED)
+                        : (succeeded ? State.COPIED : State.COPY_FAILED));
+                if (file) LogBufferManager.exportToFile(completed);
+                else LogBufferManager.exportToClipboard(completed);
             };
             AlertDialog.Builder builder = new AlertDialog.Builder(getContext()).setTitle(dialogTitle());
             ListAdapter drawn = choices(builder.getContext());
@@ -42,6 +63,49 @@ public class ExportDiagnosticReportPreference extends Preference {
             dialog.show();
             return true;
         });
+    }
+
+    private static boolean busy() {
+        return state == State.COPYING || state == State.SAVING;
+    }
+
+    /** Only fixed states are held in memory. Report text and destinations never enter a row. */
+    private static void update(State next) {
+        state = next;
+        for (WeakReference<ExportDiagnosticReportPreference> held : ROWS) {
+            ExportDiagnosticReportPreference row = held.get();
+            if (row == null) ROWS.remove(held);
+            else row.showState();
+        }
+    }
+
+    @Override
+    public void setSummary(CharSequence summary) {
+        restingSummary = summary;
+        showState();
+    }
+
+    private void showState() {
+        setEnabled(!busy());
+        super.setSummary(statusLine());
+    }
+
+    private CharSequence statusLine() {
+        switch (state) {
+            case COPYING: return L10n.t(getContext(), "Copying diagnostic report...");
+            case SAVING: return L10n.t(getContext(), "Saving diagnostic report...");
+            case COPIED: return L10n.t(getContext(), "Diagnostic report copied.");
+            case SAVED: return L10n.t(getContext(), "Diagnostic report saved.");
+            case COPY_FAILED: return L10n.t(getContext(), "The report couldn't be copied. Try again.");
+            case SAVE_FAILED: return L10n.t(getContext(), "The report couldn't be saved. Try again.");
+            default: return restingSummary;
+        }
+    }
+
+    @Override
+    protected void onBindView(View view) {
+        super.onBindView(view);
+        view.setStateDescription(state == State.IDLE ? null : statusLine());
     }
 
     /**

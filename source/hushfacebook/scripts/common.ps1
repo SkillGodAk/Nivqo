@@ -61,6 +61,136 @@ function Remove-GeneratedPath {
     }
 }
 
+function Remove-TreeWithoutFollowingLinks {
+    <#
+    .SYNOPSIS
+        Delete a folder this run made, removing every link in it as a link, never what it points at.
+    .DESCRIPTION
+        Windows PowerShell 5.1's Remove-Item -Recurse follows a junction and empties the folder it
+        points at, and a copy that's been tampered with is exactly where one would be. This walks
+        the tree itself: a link (a junction, a symbolic link, any reparse point) is deleted on its
+        own, a folder is emptied and then deleted. Anything that won't go is warned about and left,
+        since the callers are cleaning up after an answer that already stands.
+    #>
+    param([Parameter(Mandatory = $true)][string]$Path)
+    $full = [IO.Path]::GetFullPath($Path)
+    # The link's own attributes, never its target's, and a dangling link still answers. Only a
+    # path that isn't there is quiet; anything else that stops the read is said.
+    try { $attributes = [IO.File]::GetAttributes($full) }
+    catch [IO.FileNotFoundException], [IO.DirectoryNotFoundException] { return }
+    catch {
+        Write-Warning "Could not remove ${full}: $($_.Exception.Message)"
+        return
+    }
+    $link = [bool]($attributes -band [IO.FileAttributes]::ReparsePoint)
+    try {
+        # A read-only file or folder won't delete. A link's flag is left alone, since setting it
+        # could reach whatever it points at.
+        $info = if ($attributes -band [IO.FileAttributes]::Directory) { [IO.DirectoryInfo]::new($full) } else { [IO.FileInfo]::new($full) }
+        if (-not $link -and ($attributes -band [IO.FileAttributes]::ReadOnly)) {
+            $info.Attributes = $attributes -band -bnot [IO.FileAttributes]::ReadOnly
+        }
+        if ($info -is [IO.DirectoryInfo] -and -not $link) {
+            foreach ($child in @($info.GetFileSystemInfos())) { Remove-TreeWithoutFollowingLinks -Path $child.FullName }
+        }
+        # Not recursive: on a junction or a directory link this removes the link alone.
+        $info.Delete()
+    } catch {
+        Write-Warning "Could not remove ${full}: $($_.Exception.Message)"
+    }
+}
+
+function Open-HeldFile {
+    <#
+    .SYNOPSIS
+        Open a file, or a folder with -Directory, so nothing can change or move it while it's held,
+        and prove what's open is the path's own file and not one a link there led to.
+    .DESCRIPTION
+        A file comes back as a FileStream opened for reading and shared only with readers: Windows
+        refuses to write, replace, rename or delete it while that's open. A folder comes back as a
+        handle that lets others read and write inside it but not rename or delete it, so every path
+        under it keeps meaning the same place. Both are compared with the path opened as itself
+        (FILE_FLAG_OPEN_REPARSE_POINT), by volume and file index, so a link at the path, or one
+        swapped in before the open, throws instead of handing back what it pointed at. A hard link
+        is the same file, so it passes, and holding it holds that file. The caller disposes what
+        comes back.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [switch]$Directory
+    )
+    if (-not ('Hushfacebook.HeldFile' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.IO;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
+
+namespace Hushfacebook {
+    public static class HeldFile {
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Info {
+            public uint Attributes;
+            public uint CreatedLow, CreatedHigh, AccessedLow, AccessedHigh, WrittenLow, WrittenHigh;
+            public uint VolumeSerial, SizeHigh, SizeLow, Links, IndexHigh, IndexLow;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool GetFileInformationByHandle(SafeFileHandle file, out Info info);
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern SafeFileHandle CreateFileW(string name, uint access, uint share, IntPtr security,
+            uint disposition, uint flags, IntPtr template);
+
+        private const uint ListDirectory = 0x1, ReadAttributes = 0x80;
+        private const uint ShareRead = 1, ShareWrite = 2, ShareDelete = 4;
+        private const uint OpenExisting = 3;
+        private const uint OpenReparsePoint = 0x00200000, BackupSemantics = 0x02000000;
+
+        private static SafeFileHandle Open(string path, uint access, uint share, uint flags) {
+            SafeFileHandle file = CreateFileW(path, access, share, IntPtr.Zero, OpenExisting, flags, IntPtr.Zero);
+            if (file.IsInvalid) throw new IOException("Couldn't open " + path, new Win32Exception(Marshal.GetLastWin32Error()));
+            return file;
+        }
+
+        private static string Id(SafeFileHandle file) {
+            Info info;
+            if (!GetFileInformationByHandle(file, out info)) throw new Win32Exception(Marshal.GetLastWin32Error());
+            return info.VolumeSerial.ToString("x8") + ":" + info.IndexHigh.ToString("x8") + info.IndexLow.ToString("x8");
+        }
+
+        public static IDisposable Open(string path, bool directory) {
+            IDisposable held;
+            SafeFileHandle handle;
+            if (directory) {
+                // List access takes part in sharing, so leaving out delete sharing stops a rename.
+                handle = Open(path, ListDirectory, ShareRead | ShareWrite, BackupSemantics);
+                held = handle;
+            } else {
+                FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+                handle = stream.SafeFileHandle;
+                held = stream;
+            }
+            try {
+                // Attribute access alone takes no part in sharing, so this can't be refused by the hold.
+                using (SafeFileHandle own = Open(path, ReadAttributes, ShareRead | ShareWrite | ShareDelete,
+                        OpenReparsePoint | BackupSemantics)) {
+                    if (Id(handle) != Id(own)) throw new IOException(path + " is a link, so what it led to wasn't held");
+                }
+                return held;
+            } catch {
+                held.Dispose();
+                throw;
+            }
+        }
+    }
+}
+'@
+    }
+    return [Hushfacebook.HeldFile]::Open([IO.Path]::GetFullPath($Path), [bool]$Directory)
+}
+
 function Get-BundleVersion {
     <#
     .SYNOPSIS
@@ -165,6 +295,97 @@ function Get-SourcesNewerThanBundle {
         if ($file.LastWriteTimeUtc -gt $built) { $newer.Add($file) }
     }
     return @($newer | Sort-Object LastWriteTimeUtc -Descending)
+}
+
+function Get-ProducerInputSha256 {
+    <#
+    .SYNOPSIS
+        The digest patches/build.gradle.kts stamps into a bundle as Hushfacebook-Input-SHA256,
+        worked out from the producer inputs as they are now.
+    .DESCRIPTION
+        The same files in the same order, hashed the same way, so a deleted, renamed or changed
+        input moves it whatever the file times say: patches/src/main, patches/stub/src/main and
+        gradle whole; under extensions every src/main tree, Gradle file and *.pro; the Gradle files
+        of the patches modules; and the root's build.gradle.kts, settings.gradle.kts,
+        gradle.properties, gradlew, gradlew.bat and NOTICE. Nothing in a build folder counts, nor
+        what Ant's default excludes leave out. Each file goes in as the UTF-8 length of its path
+        (4 bytes, big-endian), the path from the root with '/', its length (8 bytes) and its bytes,
+        in ordinal path order, after the line "hushfacebook-source-inputs-1". Keep it in step with
+        identityInputTrees in patches/build.gradle.kts.
+    #>
+    param([Parameter(Mandatory = $true)][string]$Root)
+
+    $Root = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Root)
+    $ignoredNames = @('.gitattributes', '.gitignore', '.gitmodules', '.hgignore', '.hgsub', '.hgsubstate',
+        '.hgtags', '.bzrignore', '.cvsignore', 'vssver.scc', '.DS_Store')
+    $ignoredDirs = @('.git', '.hg', '.bzr', '.svn', 'CVS', 'SCCS')
+    function Test-AntIgnored([string]$Name) {
+        return $Name -cin $ignoredNames -or $Name -cin $ignoredDirs -or $Name -cmatch '\A%.*%\z' -or
+            $Name -cmatch '\A\._' -or $Name -cmatch '\A#.*#\z' -or $Name -cmatch '\A\.#' -or $Name.EndsWith('~')
+    }
+    $paths = New-Object 'System.Collections.Generic.SortedSet[string]' ([StringComparer]::Ordinal)
+    # [relative tree, which of its files count, whether build folders are left out]
+    $trees = @(
+        @('patches/src/main', { param($parts) $true }, $false),
+        @('patches/stub/src/main', { param($parts) $true }, $false),
+        @('extensions', {
+            param($parts)
+            $name = $parts[$parts.Count - 1]
+            if ($name -ceq 'build.gradle.kts' -or $name.EndsWith('.pro')) { return $true }
+            for ($i = 0; $i -le $parts.Count - 3; $i++) {
+                if ($parts[$i] -ceq 'src' -and $parts[$i + 1] -ceq 'main') { return $true }
+            }
+            return $false
+        }, $true),
+        @('patches', { param($parts) $parts[$parts.Count - 1] -ceq 'build.gradle.kts' }, $true),
+        @('gradle', { param($parts) $true }, $false)
+    )
+    foreach ($tree in $trees) {
+        $base = Join-Path $Root $tree[0]
+        if (-not (Test-Path -LiteralPath $base -PathType Container)) { continue }
+        $pending = New-Object System.Collections.Generic.Stack[string]
+        $pending.Push($base)
+        while ($pending.Count -gt 0) {
+            $dir = $pending.Pop()
+            foreach ($sub in [System.IO.Directory]::GetDirectories($dir)) {
+                $name = [System.IO.Path]::GetFileName($sub)
+                if (Test-AntIgnored $name) { continue }
+                if ($tree[2] -and $name -ceq 'build') { continue }
+                $pending.Push($sub)
+            }
+            foreach ($file in [System.IO.Directory]::GetFiles($dir)) {
+                $name = [System.IO.Path]::GetFileName($file)
+                if ((Test-AntIgnored $name) -or ($tree[2] -and $name -ceq 'build')) { continue }
+                $relative = $file.Substring($base.Length).TrimStart('\', '/').Replace('\', '/')
+                if (& $tree[1] ($relative -split '/')) { [void]$paths.Add("$($tree[0])/$relative") }
+            }
+        }
+    }
+    foreach ($name in @('build.gradle.kts', 'settings.gradle.kts', 'gradle.properties', 'gradlew', 'gradlew.bat', 'NOTICE')) {
+        if (Test-Path -LiteralPath (Join-Path $Root $name) -PathType Leaf) { [void]$paths.Add($name) }
+    }
+
+    $hash = [System.Security.Cryptography.IncrementalHash]::CreateHash([System.Security.Cryptography.HashAlgorithmName]::SHA256)
+    try {
+        $header = [System.Text.Encoding]::ASCII.GetBytes("hushfacebook-source-inputs-1`n")
+        $hash.AppendData($header)
+        $buffer = New-Object byte[] 65536
+        foreach ($path in $paths) {
+            $name = [System.Text.Encoding]::UTF8.GetBytes($path)
+            $length = [BitConverter]::GetBytes([int]$name.Length)
+            if ([BitConverter]::IsLittleEndian) { [Array]::Reverse($length) }
+            $hash.AppendData($length)
+            $hash.AppendData($name)
+            $stream = [System.IO.File]::OpenRead((Join-Path $Root $path))
+            try {
+                $size = [BitConverter]::GetBytes([long]$stream.Length)
+                if ([BitConverter]::IsLittleEndian) { [Array]::Reverse($size) }
+                $hash.AppendData($size)
+                while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) { $hash.AppendData($buffer, 0, $read) }
+            } finally { $stream.Dispose() }
+        }
+        return ([BitConverter]::ToString($hash.GetHashAndReset()) -replace '-', '').ToLowerInvariant()
+    } finally { $hash.Dispose() }
 }
 
 function Resolve-DesktopCli {

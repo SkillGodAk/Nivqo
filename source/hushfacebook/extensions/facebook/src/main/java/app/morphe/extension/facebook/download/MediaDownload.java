@@ -13,7 +13,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
@@ -67,21 +68,56 @@ public final class MediaDownload {
     /** A guard against a rapid tap, not a work queue. */
     private static final int MAX_IN_FLIGHT = 3;
 
-    private static final AtomicInteger IN_FLIGHT = new AtomicInteger();
+    private static final Semaphore SAVE_SLOTS = new Semaphore(MAX_IN_FLIGHT);
 
-    /** Saves still running. A test waits on this for the ones it started through a hook. */
+    /** Slots held by saves, including the ones whose workers are still starting. */
     static int savesInFlight() {
-        return IN_FLIGHT.get();
+        return MAX_IN_FLIGHT - SAVE_SLOTS.availablePermits();
+    }
+
+    /** The worker owns its slot until cleanup ends, even after Cancel removes its row. */
+    private static final class Reservation implements AutoCloseable {
+        private final AtomicBoolean released = new AtomicBoolean();
+
+        @Override
+        public void close() {
+            if (released.compareAndSet(false, true)) SAVE_SLOTS.release();
+        }
+    }
+
+    private static Reservation awaitReservation() throws InterruptedException {
+        Reservation reservation = new Reservation();
+        SAVE_SLOTS.acquire();
+        return reservation;
+    }
+
+    private static Reservation reserveNow() {
+        Reservation reservation = new Reservation();
+        if (!SAVE_SLOTS.tryAcquire()) {
+            failure(() -> "too many saves at once", null);
+            return null;
+        }
+        return reservation;
     }
 
     /**
-     * Save the media of the story that is open.
-     *
-     * <p>[host] is the story card. Its address is read by value, because the fields that hold it
-     * are renamed on every release of the app while the addresses in them keep their shape.
-     *
-     * @return whether a download started. {@code false} lets the caller fall back to the app.
+     * Whether every save slot is taken, saying so on screen when it is. The post menu items ask this
+     * before they save, so a tap while saves fill every slot hears why nothing started instead of a
+     * guess at a missing file. A slot that frees or fills in between only means the save's own
+     * answer stands, and so does anything that fails in here. Never throws.
      */
+    static boolean busy(Context application) {
+        try {
+            if (SAVE_SLOTS.availablePermits() > 0) return false;
+            info(() -> "a tap found every save slot taken, so nothing started");
+            Feedback.show(application, L10n.t(application, "Too many saves at once. Try again when one finishes."), true);
+            return true;
+        } catch (Throwable t) {
+            failure(() -> "could not say that every save slot was taken", t);
+            return false;
+        }
+    }
+
     /**
      * The answer the story viewer's menu gets when it asks whether a story can be saved, where
      * Facebook's own [facebooks] means "it's yours". With Save any story on, every story can be.
@@ -99,6 +135,14 @@ public final class MediaDownload {
         }
     }
 
+    /**
+     * Save the media of the story that is open.
+     *
+     * <p>[host] is the story card. Its address is read by value, because the fields that hold it
+     * are renamed on every release of the app while the addresses in them keep their shape.
+     *
+     * @return whether a download started. {@code false} lets the caller fall back to the app.
+     */
     public static boolean saveStory(Context context, Object host) {
         HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
         try {
@@ -276,8 +320,8 @@ public final class MediaDownload {
         Context safe = ready(context);
         if (safe == null) return false;
         info(() -> "saving the photo's biggest image, a " + describe(url));
-        start(safe, false, details == null ? PostDetails.NONE : details, fileJob(safe, url, Downloader.Kind.IMAGE));
-        return true;
+        return start(safe, false, details == null ? PostDetails.NONE : details,
+                fileJob(safe, url, Downloader.Kind.IMAGE)) != null;
     }
 
     /**
@@ -301,25 +345,46 @@ public final class MediaDownload {
         if (safe == null) return null;
         int count = usable.size();
         info(() -> "saving " + count + " photo(s) of a post, one after another");
-        Thread chain = new Thread(() -> {
-            for (int i : usable) {
-                PostDetails known = i < details.size() && details.get(i) != null ? details.get(i) : PostDetails.NONE;
+        Reservation first = reserveNow();
+        if (first == null) return null;
+        boolean started = false;
+        try {
+            Thread chain = thread(() -> {
+                Reservation pending = first;
                 try {
-                    while (IN_FLIGHT.get() >= MAX_IN_FLIGHT) Thread.sleep(250);
-                    start(safe, false, known, fileJob(safe, urls.get(i), Downloader.Kind.IMAGE)).join();
-                } catch (InterruptedException stop) {
-                    Thread.currentThread().interrupt();
-                    return;
-                } catch (Throwable t) {
-                    // Nothing can leave this thread; the next photo still gets its turn.
-                    failure(() -> "a photo of the post could not start", t);
+                    for (int i : usable) {
+                        try {
+                            PostDetails known = i < details.size() ? details.get(i) : PostDetails.NONE;
+                            if (pending == null) pending = awaitReservation();
+                            if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
+                            Job job = fileJob(safe, urls.get(i), Downloader.Kind.IMAGE);
+                            Reservation owned = pending;
+                            pending = null;
+                            startReserved(safe, false, known, job, owned).join();
+                        } catch (InterruptedException stop) {
+                            Thread.currentThread().interrupt();
+                            return;
+                        } catch (Throwable t) {
+                            if (pending != null) {
+                                pending.close();
+                                pending = null;
+                            }
+                            // Nothing can leave this thread; the next photo still gets its turn.
+                            failure(() -> "a photo of the post could not start", t);
+                        }
+                    }
+                } finally {
+                    if (pending != null) pending.close();
                 }
-            }
-        }, "hushfacebook-photo-saves");
-        chain.setDaemon(true);
-        chain.setPriority(Thread.NORM_PRIORITY - 1);
-        chain.start();
-        return chain;
+            }, "hushfacebook-photo-saves");
+            chain.setDaemon(true);
+            chain.setPriority(Thread.NORM_PRIORITY - 1);
+            chain.start();
+            started = true;
+            return chain;
+        } finally {
+            if (!started) first.close();
+        }
     }
 
     // ---------------------------------------------------------------- internals
@@ -397,8 +462,7 @@ public final class MediaDownload {
 
         saving(isVideo, chosen, urls, quality, Dash.SINGLE_FILE, null);
         Downloader.Kind kind = isVideo ? Downloader.Kind.VIDEO : Downloader.Kind.IMAGE;
-        start(safe, isVideo, details, fileJob(safe, chosen, kind));
-        return true;
+        return start(safe, isVideo, details, fileJob(safe, chosen, kind)) != null;
     }
 
     /**
@@ -580,7 +644,7 @@ public final class MediaDownload {
             Downloader.Result fetched = DashSave.fetchWork(url, kind, file, policyFor(application), cap(), progress);
             if (!fetched.ok()) return fetched;
             // A photo the CDN sent as AVIF goes to the gallery as a JPEG, like Facebook's own saves.
-            String mime = kind == Downloader.Kind.IMAGE ? PhotoFormat.jpegFromAvif(file, fetched.mime) : fetched.mime;
+            String mime = kind == Downloader.Kind.IMAGE ? PhotoFormat.jpegFromAvif(file, fetched.mime, cap()) : fetched.mime;
             Downloader.Result published = Downloader.publish(file, mime, writer, progress);
             boolean lower = false;
             boolean refused = false;
@@ -704,8 +768,8 @@ public final class MediaDownload {
         Context safe = ready(context);
         if (safe == null) return false;
         List<String> candidates = new ArrayList<>(urls);
-        start(safe, true, details, (writer, progress) -> saveDash(safe, label, manifest, candidates, writer, progress));
-        return true;
+        return start(safe, true, details,
+                (writer, progress) -> saveDash(safe, label, manifest, candidates, writer, progress)) != null;
     }
 
     /**
@@ -897,11 +961,6 @@ public final class MediaDownload {
     private static Context ready(Context context) {
         if (context == null) return null;
 
-        if (IN_FLIGHT.get() >= MAX_IN_FLIGHT) {
-            failure(() -> "too many saves at once", null);
-            return null;
-        }
-
         Context application = context.getApplicationContext();
         return application != null ? application : context;
     }
@@ -930,17 +989,30 @@ public final class MediaDownload {
     /** Hands each save's details to a test, which can't see the name of a save that fails. Never set on a phone. */
     static volatile java.util.function.Consumer<PostDetails> detailsForTests;
 
+    /** Tests can fail a real Thread.start without changing the ordinary worker's setup. */
+    static volatile java.util.function.BiFunction<Runnable, String, Thread> threadsForTests;
+
+    private static Thread thread(Runnable work, String name) {
+        java.util.function.BiFunction<Runnable, String, Thread> factory = threadsForTests;
+        return factory == null ? new Thread(work, name) : factory.apply(work, name);
+    }
+
     /** As above, naming the video from whatever of the post [details] holds and the file name asks for. */
     static Thread start(Context application, boolean video, PostDetails details, Job job) {
-        final PostDetails known = details == null ? PostDetails.NONE : details;
-        java.util.function.Consumer<PostDetails> watching = detailsForTests;
-        if (watching != null) watching.accept(known);
-        IN_FLIGHT.incrementAndGet();
+        Reservation reservation = reserveNow();
+        return reservation == null ? null : startReserved(application, video, details, job, reservation);
+    }
+
+    private static Thread startReserved(Context application, boolean video, PostDetails details, Job job,
+            Reservation reservation) {
         // Until the worker runs, whatever throws here gives back the slot and the save it began, or
         // enough such failures would block every save.
         SaveControl.Save begun = null;
         boolean started = false;
         try {
+            final PostDetails known = details == null ? PostDetails.NONE : details;
+            java.util.function.Consumer<PostDetails> watching = detailsForTests;
+            if (watching != null) watching.accept(known);
             final SaveControl.Save save = SaveControl.begin(application, video);
             begun = save;
             // With no notification to cancel it from, the list of saves in the settings is the only way
@@ -952,10 +1024,9 @@ public final class MediaDownload {
                     L10n.t(application, "Saving... To cancel, open Downloads in Hushfacebook settings."), true);
             }
 
-            Thread worker = new Thread(() -> {
-                MediaStoreWriter writer = new MediaStoreWriter(application, video, known);
-
+            Thread worker = thread(() -> {
                 try {
+                    MediaStoreWriter writer = new MediaStoreWriter(application, video, known);
                     // What a save in a process Android ended left behind goes before this one makes
                     // anything. It runs once per process.
                     SaveLeftovers.sweepOnce(application);
@@ -965,12 +1036,12 @@ public final class MediaDownload {
                     if (result.ok() || cancelled) info(() -> "save finished: " + result);
                     else failure(() -> "save finished: " + result, null);
                     String text = message(application, result.status, writer.savedLocation(), result.lower);
-                    if (result.ok()) SaveControl.showCompleted(save, writer);
-                    if (result.ok() && result.refused && !compatibleSaves()) {
+                    boolean refused = result.ok() && result.refused && !compatibleSaves();
+                    boolean carded = result.ok() && SaveControl.showCompleted(save, writer, refused ? text : null);
+                    if (refused) {
                         info(() -> "the saved file has a track WhatsApp and some editors refuse, with Save videos "
                             + "other apps can open off");
-                        Feedback.show(application, refusedMessage(application, SaveControl.showRefused(application, text)),
-                            true);
+                        Feedback.show(application, refusedMessage(application, carded), true);
                     } else {
                         Feedback.show(application, text, !result.ok() && !cancelled);
                     }
@@ -980,8 +1051,11 @@ public final class MediaDownload {
                     failure(() -> "the save failed", t);
                     Feedback.show(application, L10n.t(application, "Download failed. Try again in a moment."), true);
                 } finally {
-                    save.end();
-                    IN_FLIGHT.decrementAndGet();
+                    try {
+                        save.end();
+                    } finally {
+                        reservation.close();
+                    }
                 }
             }, "hushfacebook-save");
 
@@ -994,8 +1068,11 @@ public final class MediaDownload {
             return worker;
         } finally {
             if (!started) {
-                if (begun != null) begun.end();
-                IN_FLIGHT.decrementAndGet();
+                try {
+                    if (begun != null) begun.end();
+                } finally {
+                    reservation.close();
+                }
             }
         }
     }

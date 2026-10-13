@@ -52,8 +52,8 @@ private var materialYouApplied = false
 /**
  * DarkColorScheme's colour token resolver: one class-typed parameter (the Mig colour token
  * interface every token enum implements), an int result, and an interface call ()I on that
- * parameter's own type. 346013440 names them DCz(LX/4r6;)I and ApL()I, 346013372 DCt(LX/4rB;)I
- * and ApN()I; every naming group renames both, so match the shape instead of the names.
+ * parameter's own type. Every naming group renames both methods (the 580 builds had DCz(LX/4r6;)I
+ * with ApL()I and DCt(LX/4rB;)I with ApN()I), so match the shape instead of the names.
  */
 internal fun isTokenColorMethod(method: Method): Boolean {
     val token = method.parameterTypes.singleOrNull()?.toString() ?: return false
@@ -81,8 +81,7 @@ private val materialYouResources = resourcePatch(description = "Record HushMesse
 @Suppress("unused")
 val materialYouPatch = bytecodePatch(
     name = "Material You theme",
-    description = "Gives Messenger's dark mode the colors of your wallpaper on Android 12 and newer, and a fixed blue palette on Android 11. Light mode stays as it is. Turn on dark mode in Messenger first.",
-    default = false,
+    description = "Colors Messenger's dark mode with your wallpaper colors on Android 12 and newer, and a fixed blue on Android 11. Light mode stays the same. Turn on dark mode in Messenger first. Starts off. Turn it on in HushMessenger settings > Controls.",
 ) {
     category("Theme")
     compatibleWith(MessengerTarget.COMPATIBILITY)
@@ -93,12 +92,12 @@ val materialYouPatch = bytecodePatch(
         data class Edit(val index: Int, val code: String, val tail: String? = null)
         val edits = linkedMapOf<Method, MutableList<Edit>>()
 
-        fun planReturns(method: Method, helper: String) {
+        fun planReturns(method: Method, helper: String, skip: Set<Int> = emptySet()) {
             val implementation = method.implementation
                 ?: throw app.morphe.patcher.patch.PatchException("No code in ${method.hookId()}")
             var count = 0
             for ((index, instruction) in implementation.instructions.withIndex()) {
-                if (instruction.opcode != Opcode.RETURN) continue
+                if (instruction.opcode != Opcode.RETURN || index in skip) continue
                 val register = (instruction as OneRegisterInstruction).registerA
                 val call = if (register < 16) "invoke-static {v$register}"
                     else "invoke-static/range {v$register .. v$register}"
@@ -110,7 +109,7 @@ val materialYouPatch = bytecodePatch(
         }
 
         val resolver = classDefBy(DARK_SCHEME).methods.filter(::isTokenColorMethod).singleOrNull()
-            ?: throw app.morphe.patcher.patch.PatchException("DarkColorScheme's colour token method not found")
+            ?: throw app.morphe.patcher.patch.PatchException("DarkColorScheme's color token method not found")
         planReturns(resolver, "mig(I)I")
 
         val fdsMethods = classDefBy(FDS_COLORS).methods.filter {
@@ -133,7 +132,26 @@ val materialYouPatch = bytecodePatch(
             it.hookId() == darkCheckRef.toString() && AccessFlags.STATIC.isSet(it.accessFlags)
         } ?: throw app.morphe.patcher.patch.PatchException("Dark mode check not found: $darkCheckRef")
         planReturns(darkCheck, "darkModeAnswer(Z)Z")
-        fdsMethods.forEach { planReturns(it, "fds(I)I") }
+        // A method that only returns another FDSColors method's answer (582's A02 hands its token to A01) already gets
+        // the remapped color from that one, so wrapping it too would remap twice.
+        val fdsIds = fdsMethods.map { it.hookId() }.toSet()
+        fun Method.delegatedReturns(): Set<Int> {
+            val code = implementation!!.instructions.toList()
+            val targets = jumpTargets()
+            return code.indices.filter { at ->
+                val call = (code.getOrNull(at - 2) as? ReferenceInstruction)?.reference as? MethodReference
+                code[at].opcode == Opcode.RETURN && at >= 2 && at !in targets &&
+                    code[at - 1].opcode == Opcode.MOVE_RESULT &&
+                    (code[at - 1] as OneRegisterInstruction).registerA == (code[at] as OneRegisterInstruction).registerA &&
+                    call != null && call.toString() != hookId() && call.toString() in fdsIds
+            }.toSet()
+        }
+        for (method in fdsMethods) {
+            val skip = method.delegatedReturns()
+            if (skip.size < method.implementation!!.instructions.count { it.opcode == Opcode.RETURN }) {
+                planReturns(method, "fds(I)I", skip)
+            }
+        }
 
         var surfaceCount = 0
         var colorCount = 0
@@ -163,7 +181,7 @@ val materialYouPatch = bytecodePatch(
                         val expectedRegisters = if (contextCall) 2 else 1
                         if (instruction.opcode != expectedOpcode || (range?.registerCount ?: invoke?.registerCount) != expectedRegisters ||
                             (range != null && range.startRegister + range.registerCount > implementation.registerCount)) {
-                            throw app.morphe.patcher.patch.PatchException("Invalid colour call in ${method.hookId()}")
+                            throw app.morphe.patcher.patch.PatchException("Invalid color call in ${method.hookId()}")
                         }
                         val call = if (range != null) {
                             "invoke-static/range {v${range.startRegister} .. v${range.startRegister + range.registerCount - 1}}"
@@ -176,7 +194,7 @@ val materialYouPatch = bytecodePatch(
             }
         }
         if (surfaceCount == 0 || colorCount == 0) {
-            throw app.morphe.patcher.patch.PatchException("Missing Material You surface or colour-call route")
+            throw app.morphe.patcher.patch.PatchException("Missing Material You surface or color-call route")
         }
 
         // Resolve every editable target before the first edit. Apply backwards so original

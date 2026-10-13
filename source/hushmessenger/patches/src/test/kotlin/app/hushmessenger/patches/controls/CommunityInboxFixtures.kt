@@ -23,13 +23,15 @@ internal fun communityStub(id: String, body: String = "const/4 v0, 0x0\nreturn v
     fixtureMethod(id, body, if (id == MAIN_INBOX_SCOPE) 2 else 1, AccessFlags.STATIC.value)
 
 /**
- * Synthetic wiring reads independently recorded stock IDs, not the compiled profile being checked.
- * [sessionFirst] builds the 581 closure: the session capture moves to slot 2 and a gated block precedes the second read.
+ * Wiring for 582's closure: the session capture in slot 2, an $onThreadInViewport capture before the trailing flag,
+ * a session-gated block before the second read, that read into v1, and a 13-argument sink that takes the callback
+ * after the list. A supported build's profile gets the IDs its record in scripts/profiles holds, not the compiled
+ * profile being checked. The synthetic mapping has no build behind it, so it uses its own profile's line.
  */
-internal fun communityInboxFixture(sessionFirst: Boolean = false): List<MutableClass> {
-    val code = controlProfiles.entries.first { it.value === activeProfile }.key
-    val record = Files.readAllLines(Path.of("../scripts/profiles/$code.txt"))
-    val ids = record.single { it.startsWith("nativeCommunityInbox ") }.substringAfter(' ').split('|')
+internal fun communityInboxFixture(): List<MutableClass> {
+    val code = controlProfiles.entries.firstOrNull { it.value === activeProfile }?.key
+    val record = code?.let { Files.readAllLines(Path.of("../scripts/profiles/$it.txt")) }
+    val ids = (record?.single { it.startsWith("nativeCommunityInbox ") }?.substringAfter(' ') ?: SYNTHETIC_PROFILE.nativeCommunityInbox).split('|')
     val (updateId, ctorId, scopeGetterId, switchId, summaryField) = ids
     val joinedId = ids[5]; val nullableId = ids[6]; val anyId = ids[7]; val channelId = ids[8]; val requests = ids[9]
     val prefix = ids[10]; val path = ids.subList(11, 16); val folderGetter = ids[16]; val inbox = ids[17]
@@ -58,7 +60,8 @@ internal fun communityInboxFixture(sessionFirst: Boolean = false): List<MutableC
         74 to "instance-of v3, v5, $row",
         108 to "iget-object v4, v13, ${path[1]}", 110 to "invoke-virtual {v4}, $scopeGetterId", 111 to "move-result-object v23",
         134 to "iget-object v3, v13, $mainPrefix", 152 to "move-object/from16 v21, v3",
-        143 to "new-instance v0, $closure", 155 to "invoke-direct/range {v14 .. v28}, $ctorId", 196 to "return-void")), 29,
+        143 to "new-instance v0, $closure", 155 to "invoke-direct/range {v14 .. v29}, $ctorId", 196 to "return-void")),
+        30,
         AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)
     val switch = fixtureMethod(switchId, sparse(45, mapOf(
         2 to "sget-object v0, $requests", 3 to "if-ne p1, v0, :inbox",
@@ -68,22 +71,24 @@ internal fun communityInboxFixture(sessionFirst: Boolean = false): List<MutableC
         15 to ":config\nnop", 25 to "iput-object v5, v1, $BUILDER->scope:$scope",
         28 to "iput-object v4, v1, $BUILDER->folder:$FOLDER", 29 to "const-string v0, \"folderName\"", 37 to "return-void")), 6,
         AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)
-    val shift = if (sessionFirst) 1 else 0
-    val ctor = fixtureMethod(ctorId, sparse(17, mapOf(0 to "iput-object v13, v1, $closure->\$inboxUnitItems:$IMMUTABLE_LIST",
-        4 + shift to "iput-object v10, v1, $closure->\$threadTypeFilter:$scope", 7 + shift to "iput-object v8, v1, $prefix", 16 to "return-void") +
-        (if (sessionFirst) mapOf(2 to "iput-object v2, v1, $closure->\$fbUserSession:$FB_USER_SESSION") else emptyMap())), 16)
-    val second = if (sessionFirst) 66 else if (activeProfile in listOf(PROFILE_346013370, PROFILE_346013374)) 55 else 56
-    val invokeId = record.single { it.startsWith("hook community_inbox ") }.substringAfter("hook community_inbox ")
-    val invoke = fixtureMethod(invokeId, sparse(second + 19, mapOf(
+    val ctor = fixtureMethod(ctorId, sparse(19, mapOf(0 to "iput-object v13, v1, $closure->\$inboxUnitItems:$IMMUTABLE_LIST",
+        2 to "iput-object v2, v1, $closure->\$fbUserSession:$FB_USER_SESSION",
+        5 to "iput-object v10, v1, $closure->\$threadTypeFilter:$scope",
+        9 to "iput-object v8, v1, $prefix", 18 to "return-void")), 17)
+    val invokeId = record?.single { it.startsWith("hook community_inbox ") }?.substringAfter("hook community_inbox ")
+        ?: syntheticHooks.getValue(COMMUNITY_INBOX).single()
+    val invoke = fixtureMethod(invokeId, sparse(85, mapOf(
         5 to "iget-object v0, v4, $closure->\$inboxUnitItems:$IMMUTABLE_LIST",
         6 to "invoke-virtual {v0}, Ljava/util/AbstractCollection;->isEmpty()Z",
         8 to "if-nez v0, :empty", 27 to "iget-object v1, v4, $closure->\$threadTypeFilter:$scope",
         32 to "const-string v0, \"searchBarSection\"",
-        second to "iget-object v0, v4, $closure->\$inboxUnitItems:$IMMUTABLE_LIST",
-        second + 10 to "move-object/from16 v17, v0",
-        second + 11 to "invoke-static/range {v6 .. v17}, LX/Section;->build(LX/Session;LX/Scope;LX/Observer;LX/Binder;LX/Header;LX/Footer;LX/Loading;LX/Theme;LX/Publisher;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)LX/Section;",
-        second + 14 to "return-object v2", second + 17 to ":empty\nconst/4 v3, 0x0", second + 18 to "goto :end",
-        48 to ":end\nnop")), 20)
+        64 to "iget-object v1, v4, $closure->\$inboxUnitItems:$IMMUTABLE_LIST",
+        70 to "iget-object v0, v4, $closure->\$onThreadInViewport:Lkotlin/jvm/functions/Function1;",
+        75 to "move-object/from16 v17, v1", 76 to "move-object/from16 v18, v0",
+        77 to "invoke-static/range {v6 .. v18}, LX/Section;->build(LX/Session;LX/Scope;LX/Observer;LX/Binder;LX/Header;LX/Footer;LX/Loading;LX/Theme;LX/Publisher;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Lkotlin/jvm/functions/Function1;)LX/Section;",
+        78 to "move-result-object v0", 79 to "invoke-virtual {v2, v0}, LX/Builder;->add(LX/Section;)V",
+        80 to "return-object v2", 83 to ":empty\nconst/4 v3, 0x0", 84 to "goto :end",
+        48 to ":end\nnop")), 21)
     val joined = fixtureMethod(joinedId, """
         iget-object v0, p0, $TS->A0d:$TK
         invoke-static {v0}, $nullableId

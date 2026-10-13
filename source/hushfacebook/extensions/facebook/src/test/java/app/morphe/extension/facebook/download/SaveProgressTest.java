@@ -105,9 +105,11 @@ public class SaveProgressTest {
     @After
     public void tearDown() throws IOException {
         release.countDown();
-        server.close();
+        // First, so a server that fails to close can't leave the fake clock to the next class.
+        SavesForTests.endAll();
         MediaDownload.policyForTests = null;
         LogBufferManager.clearLogBuffer();
+        server.close();
     }
 
     /** A save on the feature's own worker, as a tap starts one, of [path] into the gallery. */
@@ -177,6 +179,49 @@ public class SaveProgressTest {
         return sent.getIntExtra(SaveControl.EXTRA_ID, -1);
     }
 
+    @Test public void everyPhaseRefreshesTheNotificationAtOnce() {
+        SavesForTests.fakeClock();
+        SaveControl.Save save = SaveControl.begin(context, true);
+        try {
+            save.transferred(MIB, 4 * MIB);
+            save.joining();
+            Notification joining = saveNotification();
+            assertEquals("Joining the picture and sound\n0:00 elapsed", joining.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
+            assertTrue(joining.extras.getBoolean(Notification.EXTRA_PROGRESS_INDETERMINATE));
+            assertEquals(SaveControl.status(SaveControl.running().get(0)),
+                    joining.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
+            save.saving();
+            Notification copying = saveNotification();
+            assertEquals("Copying to the gallery\n0:00 elapsed", copying.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
+            assertTrue(copying.extras.getBoolean(Notification.EXTRA_PROGRESS_INDETERMINATE));
+            assertEquals(1, copying.actions.length);
+            assertTrue(save.publishing());
+            Notification publishing = saveNotification();
+            assertTrue(publishing.actions == null || publishing.actions.length == 0);
+            assertFalse(save.cancel());
+            save.published(true);
+        } finally { save.end(); }
+        assertEquals(SaveControl.Outcome.VIDEO_SAVED, SaveControl.lastOutcome());
+    }
+
+    @Test public void lateCleanupCannotReplaceANewerGenericOutcome() {
+        Shadows.shadowOf(notifications()).setNotificationsEnabled(false);
+        SaveControl.Save cancelled = SaveControl.begin(context, true);
+        assertTrue(cancelled.cancel());
+        assertEquals(SaveControl.Outcome.CANCELLED, SaveControl.lastOutcome());
+        SaveControl.Save latest = SaveControl.begin(context, false);
+        assertTrue(latest.publishing());
+        latest.published(true);
+        latest.end();
+        cancelled.end();
+        assertEquals(SaveControl.Outcome.PHOTO_SAVED, SaveControl.lastOutcome());
+        assertEquals("Photo saved", SaveControl.outcomeText(SaveControl.lastOutcome()));
+        SaveControl.Save failed = SaveControl.begin(context, true);
+        failed.end();
+        assertEquals("The video wasn't saved. Try again.", SaveControl.outcomeText(SaveControl.lastOutcome()));
+        assertTrue(SaveControl.running().isEmpty());
+    }
+
     @Test
     public void aSaveShowsItsProgressAtOnceAndCancelStopsIt() throws Exception {
         cancelFromTheNotification();
@@ -203,7 +248,7 @@ public class SaveProgressTest {
         // Then how far it has got, against the 100 MiB the server announced.
         Notification moving = waitForNotification(SaveProgressTest::moving, "progress");
         String text = String.valueOf(moving.extras.getCharSequence(Notification.EXTRA_TEXT));
-        assertTrue(text, text.endsWith(" of 100 MB"));
+        assertTrue(text, text.contains(" of 100 MB\n") && text.endsWith(" elapsed"));
         assertEquals(100, moving.extras.getInt(Notification.EXTRA_PROGRESS_MAX));
 
         // A Cancel without this process's token is somebody else's broadcast and changes nothing.
@@ -1018,6 +1063,148 @@ public class SaveProgressTest {
         assertNull(SaveControl.progressText(0, 100 * MIB));
         assertEquals("4.2 MB of 100 MB", SaveControl.progressText((long) (4.2 * MIB), 100 * MIB));
         assertEquals("12 MB so far", SaveControl.progressText(12 * MIB, -1));
+    }
+
+    @Test
+    public void timeAndRateReadPlainly() {
+        assertEquals("0:00 elapsed", SaveControl.elapsedText(-5));
+        assertEquals("0:42 elapsed", SaveControl.elapsedText(42_999));
+        assertEquals("59:59 elapsed", SaveControl.elapsedText(3_599_000));
+        assertEquals("1:00:00 elapsed", SaveControl.elapsedText(3_600_000));
+        assertEquals("1 KB a second", SaveControl.rateText(1));
+        assertEquals("850 KB a second", SaveControl.rateText(850 * 1024));
+        assertEquals("1023 KB a second", SaveControl.rateText(1023 * 1024));
+        // Just under a megabyte rounds to 1024 KB, so it's said as a megabyte.
+        assertEquals("1.0 MB a second", SaveControl.rateText(MIB - 400));
+        assertEquals("1.3 MB a second", SaveControl.rateText((long) (1.3 * MIB)));
+        assertEquals("12 MB a second", SaveControl.rateText(12 * MIB));
+    }
+
+    /** Two megabytes in two seconds, of a file of no announced length: the same line in both places. */
+    @Test public void theNotificationAndTheListGiveTheSameRateAndTime() {
+        SavesForTests.FakeClock clock = SavesForTests.fakeClock();
+        SaveControl.Save save = SaveControl.begin(context, true);
+        try {
+            for (int quarter = 0; quarter <= 8; quarter++) {
+                if (quarter > 0) clock.advanceMillis(250);
+                save.transferred(quarter * MIB / 4, -1);
+            }
+            String shown = String.valueOf(saveNotification().extras.getCharSequence(Notification.EXTRA_TEXT));
+            assertEquals("Downloading\n2.0 MB so far\n1.0 MB a second, 0:02 elapsed", shown);
+            assertEquals(shown, SaveControl.status(SaveControl.running().get(0)));
+        } finally { save.end(); }
+    }
+
+    /** Joining and copying move no bytes over the line, so they give no rate, and the time goes on. */
+    @Test public void aJoinOrACopyClaimsNoRateAndTheTickKeepsTheTimeGoing() {
+        SavesForTests.FakeClock clock = SavesForTests.fakeClock();
+        SaveControl.Save save = SaveControl.begin(context, true);
+        try {
+            for (int quarter = 0; quarter <= 8; quarter++) {
+                if (quarter > 0) clock.advanceMillis(250);
+                save.transferred(quarter * MIB / 4, 2 * MIB);
+            }
+            save.joining();
+            assertEquals("Joining the picture and sound\n0:02 elapsed", text(saveNotification()));
+            clock.advanceMillis(1_000);
+            Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(1));
+            assertEquals("Joining the picture and sound\n0:03 elapsed", text(saveNotification()));
+            assertEquals(text(saveNotification()), SaveControl.status(SaveControl.running().get(0)));
+            save.saving();
+            assertEquals("Copying to the gallery\n0:03 elapsed", text(saveNotification()));
+        } finally { save.end(); }
+    }
+
+    /** A tick right after a download's own tell waits its turn, so the list is told at most twice a second. */
+    @Test public void theTickKeepsToTheGapAfterADownloadTold() {
+        SavesForTests.FakeClock clock = SavesForTests.fakeClock();
+        SaveControl.Save save = SaveControl.begin(context, true);
+        AtomicInteger told = new AtomicInteger();
+        SaveControl.Watcher counting = told::incrementAndGet;
+        SaveControl.watch(counting);
+        try {
+            clock.advanceMillis(900);
+            save.transferred(MIB, 4 * MIB);
+            int afterDownload = told.get();
+            // The tick comes while the fake clock still reads the moment of that tell.
+            Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(1));
+            assertEquals("the tick told again straight after the download did", afterDownload, told.get());
+            clock.advanceMillis(1_000);
+            Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(1));
+            assertEquals("the tick stopped telling once the gap had passed", afterDownload + 1, told.get());
+        } finally {
+            save.end();
+            SaveControl.unwatch(counting);
+        }
+    }
+
+    private static String text(Notification shown) {
+        return String.valueOf(shown.extras.getCharSequence(Notification.EXTRA_TEXT));
+    }
+
+    /** The end of a save takes its tick away: nothing is told or shown for it afterwards. */
+    @Test public void theTickEndsWithTheSave() {
+        SaveControl.Save save = SaveControl.begin(context, true);
+        AtomicInteger told = new AtomicInteger();
+        SaveControl.Watcher counting = told::incrementAndGet;
+        SaveControl.watch(counting);
+        try {
+            assertTrue("a running save has no tick", save.ticks.hasCallbacks(save.tick));
+            save.end();
+            int ended = told.get();
+            assertFalse("the tick outlived the save", save.ticks.hasCallbacks(save.tick));
+            Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(5));
+            assertEquals("a save that ended still told the settings about itself", ended, told.get());
+            assertNull("a save that ended showed its notification again", saveNotification());
+        } finally {
+            // A failed check above still ends it, or it would run on into the next test.
+            save.end();
+            SaveControl.unwatch(counting);
+        }
+    }
+
+    /**
+     * The single file fetched after a join fails starts from nothing, and the rate starts over with
+     * it instead of reading the drop from 4 MB as a negative speed.
+     */
+    @Test public void theSingleFileAfterAFailedJoinIsMeasuredAfresh() {
+        SavesForTests.FakeClock clock = SavesForTests.fakeClock();
+        SaveControl.Save save = SaveControl.begin(context, true);
+        try {
+            for (int quarter = 0; quarter <= 4; quarter++) {
+                if (quarter > 0) clock.advanceMillis(250);
+                save.transferred(quarter * MIB, 4 * MIB);
+            }
+            save.joining();
+            clock.advanceMillis(250);
+            save.transferred(MIB / 2, 10 * MIB);
+            assertEquals("Downloading\n0.5 MB of 10 MB\n0:01 elapsed", SaveControl.status(SaveControl.running().get(0)));
+            clock.advanceMillis(1_000);
+            save.transferred(3 * MIB / 2, 10 * MIB);
+            assertEquals("Downloading\n1.5 MB of 10 MB\n1.0 MB a second, 0:02 elapsed", SaveControl.status(SaveControl.running().get(0)));
+        } finally { save.end(); }
+    }
+
+    /**
+     * A DASH save fetches the picture and then the sound, the sound counted on from the picture's
+     * bytes (Downloader.after), so the rate goes straight on rather than start over or jump.
+     */
+    @Test public void theSoundTrackCarriesOnThePicturesRate() {
+        SavesForTests.FakeClock clock = SavesForTests.fakeClock();
+        SaveControl.Save save = SaveControl.begin(context, true);
+        try {
+            for (int quarter = 0; quarter <= 8; quarter++) {
+                if (quarter > 0) clock.advanceMillis(250);
+                save.transferred(quarter * MIB / 2, 4 * MIB);
+            }
+            Downloader.Progress sound = Downloader.after(4 * MIB, save);
+            for (int quarter = 1; quarter <= 4; quarter++) {
+                clock.advanceMillis(250);
+                sound.transferred(quarter * MIB / 2, 2 * MIB);
+            }
+            assertEquals("Downloading\n6.0 MB of 6.0 MB\n2.0 MB a second, 0:03 elapsed",
+                    SaveControl.status(SaveControl.running().get(0)));
+        } finally { save.end(); }
     }
 
     /** Counts what the gallery was given, so a large save needs no array of its size. */

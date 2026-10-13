@@ -90,9 +90,9 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  *
  * <p>Facebook lays most of its text out without font padding, each line as tall as the font's own
  * ascent and descent, which fits Optimistic. Some fonts phones offer declare far less descent than
- * their letters use (#96), and there y, g and p lost their tails. So each text layout Facebook
- * builds, and each text view, takes the padding while the switch is on and its font is one of
- * those ({@link #needsPad}).
+ * their letters use (#96), and there y, g and p lost their tails, or a Bengali caption its vowel
+ * signs. So each text layout Facebook builds, and each text view, takes the padding while the
+ * switch is on and its font is one of those ({@link #needsPad}).
  */
 public final class OwnFont {
     /** The font variation strings each builder was given, by the builder, for as long as it lives. */
@@ -139,6 +139,13 @@ public final class OwnFont {
     /** Letters reaching below the line, and above the x-height, for {@link #overflows}. */
     private static final String DESCENDERS = "gjpqy";
     private static final String ASCENDERS = "bdfhklt";
+    /**
+     * Bengali and Devanagari letters with the vowel signs that hang below them and rise above them,
+     * for {@link #overflows}, one script to a line as Facebook lays them out.
+     */
+    static final String[] SCRIPTS = {
+            "কুকূকৃকিকীকৈ",
+            "कुकूकृकिकीकै"};
     static final float PROBE_SIZE = 100f;
 
     /** What {@link #overflows} measured for each typeface, for as long as it lives. */
@@ -468,6 +475,13 @@ public final class OwnFont {
      * Whether [face]'s letters reach past the ascent and descent it declares, measured once. Some
      * fonts phones offer as the system font declare almost no descent and draw y, g and p well below
      * it, which Android's own views never show, since they lay out with the padding on.
+     *
+     * <p>Bengali and Devanagari are measured too, each against the line box Facebook's layouts give
+     * it: the tallest ascent and descent of the font and of the fonts that draw the script, since
+     * they lay lines out with the fallback fonts' spacing. A theme font made for those scripts can
+     * hang its vowel signs below that box while its Latin letters fit (#96). A script the font
+     * draws exactly as a serif paint does comes from the phone's fallback font, as it does in
+     * Facebook's own font, and leaves the layout alone.
      */
     static boolean overflows(Typeface face) {
         Boolean known = OVERFLOWS.get(face);
@@ -481,14 +495,63 @@ public final class OwnFont {
         Rect above = new Rect();
         probe.getTextBounds(ASCENDERS, 0, ASCENDERS.length(), above);
         boolean overflows = reachesPast(metrics.ascent, metrics.descent, above.top, below.bottom);
-        OVERFLOWS.put(face, overflows);
-        HookStatus.counted(FamilyNames.SYSTEM_FONT, overflows ? PADDED : FITS);
         if (overflows) {
             Logger.printInfo(() -> String.format(Locale.ROOT, "The font at weight %d draws past its line box at %.0f px "
                     + "(ascent %.1f, descent %.1f, letters %d to %d), so its text gets the font padding",
                     face.getWeight(), PROBE_SIZE, metrics.ascent, metrics.descent, above.top, below.bottom));
         }
+        Paint.FontMetricsInt own = probe.getFontMetricsInt();
+        Paint stockProbe = new Paint();
+        stockProbe.setTypeface(Typeface.SERIF);
+        stockProbe.setTextSize(PROBE_SIZE);
+        for (int i = 0; i < SCRIPTS.length && !overflows; i++) {
+            String script = SCRIPTS[i];
+            Paint.FontMetricsInt drawing = fallbackLine(probe, script);
+            Rect letters = new Rect();
+            probe.getTextBounds(script, 0, script.length(), letters);
+            Rect stock = new Rect();
+            stockProbe.getTextBounds(script, 0, script.length(), stock);
+            overflows = scriptReachesPast(own, drawing, letters, stock);
+            if (overflows) {
+                Logger.printInfo(() -> String.format(Locale.ROOT, "The font at weight %d draws %s past its line box at "
+                        + "%.0f px (ascent %d, descent %d, letters %d to %d), so its text gets the font padding",
+                        face.getWeight(), Character.UnicodeScript.of(script.codePointAt(0)), PROBE_SIZE,
+                        Math.min(own.ascent, drawing.ascent), Math.max(own.descent, drawing.descent),
+                        letters.top, letters.bottom));
+            }
+        }
+        OVERFLOWS.put(face, overflows);
+        HookStatus.counted(FamilyNames.SYSTEM_FONT, overflows ? PADDED : FITS);
         return overflows;
+    }
+
+    /**
+     * The line box a layout spaced by its fallback fonts gives [script] in [paint], the way
+     * Facebook's StaticLayouts build it. Paint's own per-text metrics call is Android 14 and later,
+     * and Facebook runs from Android 11, so the line is read off a one-line layout instead.
+     */
+    static Paint.FontMetricsInt fallbackLine(Paint paint, String script) {
+        StaticLayout layout = StaticLayout.Builder
+                .obtain(script, 0, script.length(), new TextPaint(paint), 1 << 16)
+                .setIncludePad(false)
+                .setUseLineSpacingFromFallbacks(true)
+                .build();
+        Paint.FontMetricsInt line = new Paint.FontMetricsInt();
+        line.ascent = layout.getLineAscent(0);
+        line.descent = layout.getLineDescent(0);
+        return line;
+    }
+
+    /**
+     * Whether a script's [letters] reach past the line a fallback-spaced layout gives them, the
+     * tallest of [own], the font's metrics, and [drawing], those of the fonts that draw the script.
+     * Letters drawn exactly as [stock], the same text in a serif paint, come from the phone's
+     * fallback font, and a script no font draws has no letters to reach with.
+     */
+    static boolean scriptReachesPast(Paint.FontMetricsInt own, Paint.FontMetricsInt drawing, Rect letters, Rect stock) {
+        if (letters.isEmpty() || letters.equals(stock)) return false;
+        return reachesPast(Math.min(own.ascent, drawing.ascent), Math.max(own.descent, drawing.descent),
+                letters.top, letters.bottom);
     }
 
     /**

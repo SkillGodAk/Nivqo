@@ -89,6 +89,10 @@ internal const val HOLDS_BUTTON = "$COMMENT_SHEET_OPTIONS->holdsButton(Ljava/lan
 internal const val HOLDS_BOTTOM_CONTENT = "$COMMENT_SHEET_OPTIONS->holdsBottomContent(Ljava/lang/String;)Z"
 internal const val SKIP_PICKER = "$COMMENT_SHEET_OPTIONS->skipReactionPicker()Z"
 internal const val OPEN_REPLY_THREADS = "$COMMENT_SHEET_OPTIONS->openReplyThreads(Z)Z"
+internal const val HIDES_COMMENT = "$COMMENT_SHEET_OPTIONS->hidesComment(Ljava/lang/Object;)Z"
+
+/** Facebook's comment model, a kept class the comment section casts its comment to. */
+internal const val GRAPHQL_COMMENT = "Lcom/facebook/graphql/model/GraphQLComment;"
 
 /**
  * Four switches for comments and reactions, all off until turned on.
@@ -127,15 +131,23 @@ internal const val OPEN_REPLY_THREADS = "$COMMENT_SHEET_OPTIONS->openReplyThread
  * initial-state method returns, the extension is handed the flag and its answer is written back, so
  * with the switch on every comment starts the way a tap on View replies leaves it.
  *
- * In the default selection with all four switches off, so nothing changes until one is turned on.
+ * Hide comments with shop links and Hide comments with your words (#118): the same comment section
+ * draws its one comment, with its replies, in the one method of it besides the constructor that
+ * names [COMMENT_SECTION] (582 `LX/5mz;->A2F`). Its comment sits in a props holder kept in one field
+ * of the section (582 `A05:LX/2Z5;`), whose Object field the method reads and casts to
+ * [GRAPHQL_COMMENT]. First thing there, the extension is handed that comment, and a yes returns
+ * no children, as Facebook's own comment list section does when it has nothing to draw.
+ *
+ * In the default selection with all six switches off, so nothing changes until one is turned on.
  */
 @Suppress("unused")
 val commentSheetOptionsPatch = bytecodePatch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Comment sheet options",
     description = "Small fixes for comments. Stop a long press on Like from opening reactions, hide the GIF and " +
-        "sticker buttons, show every reply without tapping View replies, and hide Related groups under group " +
-        "posts. Starts off. Turn on the parts you want in Hushfacebook settings > Comments.",
+        "sticker buttons, show every reply without tapping View replies, hide Related groups under group " +
+        "posts, and hide comments with shop links or your words. Starts off. Turn on the parts you want in " +
+        "Hushfacebook settings > Comments.",
 ) {
     category("Comments")
     dependsOn(settingsPatch, facebookExtensionPatch)
@@ -160,6 +172,7 @@ val commentSheetOptionsPatch = bytecodePatch(
             holders(COMMENT_SECTION),
             holders(EXPAND_REPLIES).flatMap { methodsHolding(it, EXPAND_REPLIES) },
         ) { types -> types.mapNotNull { classDefByOrNull(it) }.associateBy { it.type } }
+        val drawn = commentDraw(holders(COMMENT_SECTION))
 
         mutableClassDefBy(buttons.check.definingClass).methods.single { it.descriptor() == buttons.check.descriptor() }
             .holdButtons(buttons.table)
@@ -170,6 +183,8 @@ val commentSheetOptionsPatch = bytecodePatch(
         mutableClassDefBy(threads.initialState.definingClass).methods
             .single { it.descriptor() == threads.initialState.descriptor() }
             .openReplyThreads(threads)
+        mutableClassDefBy(drawn.render.definingClass).methods.single { it.descriptor() == drawn.render.descriptor() }
+            .hideComments(drawn)
         enableStatus("commentSheetOptions")
     }
 }
@@ -446,6 +461,76 @@ internal fun replyThreads(
     }
     if (freeRegister(put.registerB) >= start.localRegisterCount()) refuse("$where has no local register for the hook")
     return ReplyThreads(start, flag, write, end)
+}
+
+/**
+ * The comment section's draw method, [render]; the field of the section holding its props,
+ * [props]; and the props' Object field the comment is read from, [comment].
+ */
+internal class CommentDraw(val render: Method, val props: FieldReference, val comment: FieldReference)
+
+/**
+ * Where the comment section draws its comment, from [sections], the classes loading
+ * [COMMENT_SECTION]. The section is the one class whose constructor names itself. Its draw method
+ * is its one other instance method naming [COMMENT_SECTION], with one argument and an object
+ * returned. The comment is read from the one Object field whose read the method casts straight to
+ * [GRAPHQL_COMMENT], on a props type the section keeps exactly one instance field of. Refuses
+ * unless each is exactly one and the method has a local register for the hook.
+ */
+internal fun commentDraw(sections: List<ClassDef>): CommentDraw {
+    val named = sections.filter { section ->
+        section.methods.any { it.name == "<init>" && holdsString(it, COMMENT_SECTION) }
+    }.distinctBy { it.type }
+    val section = named.singleOrNull()
+        ?: refuse("expected one class naming itself \"$COMMENT_SECTION\", found ${named.size}")
+    val renders = section.methods.filter {
+        it.name != "<init>" && !AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.size == 1 &&
+            it.returnType.startsWith("L") && holdsString(it, COMMENT_SECTION)
+    }
+    val render = renders.singleOrNull()
+        ?: refuse("expected one method of ${section.type} drawing its comment, found ${renders.size}")
+    val where = render.descriptor()
+    val code = render.implementation?.instructions?.toList().orEmpty()
+    val reads = code.indices.filter { index ->
+        val read = code[index]
+        val cast = code.getOrNull(index + 1) ?: return@filter false
+        read.opcode == Opcode.IGET_OBJECT && read.field()?.type == "Ljava/lang/Object;" &&
+            cast.opcode == Opcode.CHECK_CAST &&
+            ((cast as ReferenceInstruction).reference as? TypeReference)?.type == GRAPHQL_COMMENT &&
+            (cast as OneRegisterInstruction).registerA == (read as TwoRegisterInstruction).registerA
+    }.mapNotNull { code[it].field() }.distinctBy { "${it.definingClass}->${it.name}" }
+    val comment = reads.singleOrNull() ?: refuse("$where reads its comment from ${reads.size} fields, not one")
+    val holders = section.fields.filter { it.type == comment.definingClass && !AccessFlags.STATIC.isSet(it.accessFlags) }
+    val props = holders.singleOrNull()
+        ?: refuse("expected one field of ${section.type} holding ${comment.definingClass}, found ${holders.size}")
+    if (render.localRegisterCount() < 1) refuse("$where has no local register for the hook")
+    return CommentDraw(render, props, comment)
+}
+
+/**
+ * First thing where the comment section draws: its comment out of the props, the extension asked
+ * with it, and no children returned on a yes. Props not set yet go on to Facebook's code, which
+ * meets them as it would. The section is copied into v0 first: 582's render has 46 registers,
+ * and an iget can only name v0 to v15.
+ */
+internal fun MutableMethod.hideComments(drawn: CommentDraw) {
+    val props = drawn.props.let { "${it.definingClass}->${it.name}:${it.type}" }
+    val comment = drawn.comment.let { "${it.definingClass}->${it.name}:${it.type}" }
+    addInstructionsWithLabels(
+        0,
+        """
+            move-object/from16 v0, p0
+            iget-object v0, v0, $props
+            if-eqz v0, :draw
+            iget-object v0, v0, $comment
+            invoke-static { v0 }, $HIDES_COMMENT
+            move-result v0
+            if-eqz v0, :draw
+            const/4 v0, 0x0
+            return-object v0
+        """,
+        ExternalLabel("draw", getInstruction(0)),
+    )
 }
 
 /** The register the reply hook borrows: any but the state's, every register being free at the return. */

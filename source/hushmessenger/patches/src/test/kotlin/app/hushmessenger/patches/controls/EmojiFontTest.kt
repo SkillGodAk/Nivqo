@@ -55,7 +55,7 @@ private val HOLDER_INIT_BODY = """
 
 class EmojiFontTest {
     @AfterTest fun reset() {
-        activeProfile = BASE_PROFILE
+        activeProfile = SYNTHETIC_PROFILE
     }
 
     private fun String.lf() = replace("\r\n", "\n")
@@ -122,6 +122,9 @@ class EmojiFontTest {
         )) assertFailsWith<PatchException> { getter().emojiFontHolder(classes::get) }
         val noHolderRead = getter("const/4 v0, 0x0\nreturn-object v0")
         assertFailsWith<PatchException> { noHolderRead.emojiFontHolder(mapOf(HOLDER to holder())::get) }
+        // With 17 registers the file parameter sits in v16, which the hook's plain invoke can't pass.
+        val wide = fixtureMethod(HOLDER_INIT, HOLDER_INIT_BODY.lf(), 17, AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value)
+        assertFailsWith<PatchException> { wide.validateEmojiFontHolder() }
     }
 
     @Test fun everyStockBuildLoadsMessengersFontThroughOneHolder() {

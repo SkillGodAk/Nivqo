@@ -15,7 +15,7 @@ import app.morphe.patches.shared.compat.AppCompatibilities
  * Hide Menu promotions takes Meta's other products out of the Menu; this takes the pushes for them
  * out of everywhere else, each behind its own switch, all off until they're turned on: the Edits
  * button and badge in the Reels composer's header and the Edits pill under feed videos, the Threads
- * cross-posting onboarding in the composer, the Threads button in the share sheet, the Meta
+ * cross-posting onboarding in the composer, the Threads and Muse buttons in the share sheet, the Meta
  * Verified offer sheet after you post and the label under some posts' headers, the avatar sticker
  * promotions in comments and Facebook's own promotion slots, and Meta AI's Imagine: the Imagine me
  * button under posts, the post composer's Imagine and Create story's Imagine tile, plus the other

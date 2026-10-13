@@ -12,6 +12,7 @@ import android.util.AttributeSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.settings.BaseSettings;
 
 @SuppressWarnings({"deprecation", "unused"})
@@ -105,6 +106,11 @@ public class LogExportFilterPreference extends Preference {
         return "Includes all Morphe diagnostic events.";
     }
 
+    /** What Apply says when the phone doesn't keep the choice. The list stays open with it. */
+    protected CharSequence saveFailedText() {
+        return "Couldn't save the change. Try again.";
+    }
+
     /**
      * The whole sentence, with the kinds already joined into it.
      *
@@ -141,12 +147,18 @@ public class LogExportFilterPreference extends Preference {
                     }
                     applyWhenSomethingIsChosen(alertDialog, checked);
                 })
-                .setPositiveButton(positiveText(), (dialog, which) -> {
-                    BaseSettings.DEBUG_LOG_FILTERS.save(serialize(checked));
-                    updateSummary();
-                })
+                .setPositiveButton(positiveText(), null)
                 .setNegativeButton(negativeText(), null)
                 .show();
+        // Set here rather than on the builder, which closes the list whatever the save did.
+        shownDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button -> {
+            if (!BaseSettings.DEBUG_LOG_FILTERS.save(serialize(checked))) {
+                Utils.showToastLong(saveFailedText().toString());
+                return;
+            }
+            updateSummary();
+            shownDialog.dismiss();
+        });
         onDialogShown(shownDialog);
         applyWhenSomethingIsChosen(shownDialog, checked);
     }

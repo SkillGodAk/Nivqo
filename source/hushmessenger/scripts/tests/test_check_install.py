@@ -19,9 +19,9 @@ PERMISSION = "app.hushfacebook.receiver.permission.ACCESS"
 OWNERS = f"+ permission:android.permission.INTERNET\n  package:android\n+ permission:{PERMISSION}\n  package:com.facebook.katana\n"
 
 
-def apk(package="com.facebook.orca", signers=(A,), code=346013440):
+def apk(package="com.facebook.orca", signers=(A,), code=346415686):
     return checker.Apk(
-        package, code, "580.0.0.49.91", frozenset({PERMISSION}), frozenset(signers)
+        package, code, "582.0.0.61.92", frozenset({PERMISSION}), frozenset(signers)
     )
 
 
@@ -140,15 +140,15 @@ class CertificateChecks(unittest.TestCase):
     def test_downgrade_and_unreadable_owner_fail(self):
         self.assertIn(
             "downgrade",
-            checker.conflicts(apk(), {"com.facebook.orca": apk(code=346013441)}, {})[0],
+            checker.conflicts(apk(), {"com.facebook.orca": apk(code=346415687)}, {})[0],
         )
         with self.assertRaises(ValueError):
             checker.conflicts(apk(), {}, {PERMISSION: "com.facebook.katana"})
 
     def test_normal_downgrade_keeps_the_plain_message(self):
         self.assertEqual(
-            checker.conflicts(apk(), {"com.facebook.orca": apk(code=346013441)}, {}),
-            ["Version downgrade: installed 346013441, candidate 346013440."],
+            checker.conflicts(apk(), {"com.facebook.orca": apk(code=346415687)}, {}),
+            ["Version downgrade: installed 346415687, candidate 346415686."],
         )
 
     def test_spoofed_version_code_is_named_with_the_readme_fix(self):
@@ -174,9 +174,9 @@ class CertificateChecks(unittest.TestCase):
     def test_leftover_data_only_conflicts_when_newer(self):
         self.assertIn(
             "Android refuses anything lower",
-            checker.conflicts(apk(), {}, {}, leftover=346013441)[0],
+            checker.conflicts(apk(), {}, {}, leftover=346415687)[0],
         )
-        self.assertEqual(checker.conflicts(apk(), {}, {}, leftover=346013387), [])
+        self.assertEqual(checker.conflicts(apk(), {}, {}, leftover=346000000), [])
         self.assertEqual(checker.conflicts(apk(), {}, {}, leftover=None), [])
 
     def test_leftover_version_inventory_is_read_exactly(self):
@@ -414,7 +414,7 @@ class CertificateChecks(unittest.TestCase):
 class ParserAndCliChecks(unittest.TestCase):
     def setUp(self):
         self.args = argparse.Namespace(build_tools=Path("tools"), java=Path("java"))
-        self.badging = "package: name='com.facebook.orca' versionCode='346013440' versionName='580.0.0.49.91'\n"
+        self.badging = "package: name='com.facebook.orca' versionCode='346415686' versionName='582.0.0.61.92'\n"
         self.permissions = f"package: com.facebook.orca\npermission: {PERMISSION}\n"
         self.certificates = (
             f"Number of signers: 1\nSigner #1 certificate SHA-256 digest: {A}\n"
@@ -518,6 +518,26 @@ class ParserAndCliChecks(unittest.TestCase):
             with self.subTest(output=output), self.assertRaises(ValueError):
                 checker.package_names(output)
 
+    def test_a_broken_build_record_is_a_check_failure_not_a_traceback(self):
+        argv = ["check_install.py", "--apk", "missing.apk", "--serial", "phone", "--build-tools", "tools"]
+        output = io.StringIO()
+        with (
+            patch("sys.argv", argv),
+            patch.object(checker, "PROFILE_ERROR", "The recorded builds can't be read: 1.txt is missing a version, code or sha256 line"),
+            patch.object(checker, "check", side_effect=AssertionError("the check must not run on broken records")),
+            redirect_stderr(output),
+        ):
+            self.assertEqual(checker.main(), 2)
+        self.assertIn("CHECK FAILED: The recorded builds can't be read", output.getvalue())
+        self.assertNotIn("Traceback", output.getvalue())
+        with tempfile.TemporaryDirectory() as folder:
+            Path(folder, "1.txt").write_text("version 1.0\ncode 1\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "1.txt is missing a version, code or sha256 line"):
+                checker.recorded_builds(Path(folder))
+            Path(folder, "1.txt").write_text("version 1.0\ncode one\nsha256 ab\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "1.txt is missing"):
+                checker.recorded_builds(Path(folder))
+
     def test_cli_errors_and_conflicts_have_stable_exit_codes_without_tracebacks(self):
         argv = [
             "check_install.py",
@@ -555,8 +575,8 @@ class RecordedBuildChecks(unittest.TestCase):
     def test_builds_and_checksums_come_from_compat_report_records(self):
         with tempfile.TemporaryDirectory() as root:
             for code, version in (
-                (347000001, "581.0.0.1.91"),
-                (346013370, "580.0.0.49.91"),
+                (347000001, "583.0.0.1.91"),
+                (346415690, "582.0.0.61.92"),
             ):
                 Path(root, f"{code}.txt").write_text(
                     f"# header\nversion {version}\ncode {code}\nsha256 {str(code) * 2}\n"
@@ -567,14 +587,14 @@ class RecordedBuildChecks(unittest.TestCase):
             self.assertEqual(
                 builds,
                 {
-                    346013370: ("580.0.0.49.91", "346013370" * 2),
-                    347000001: ("581.0.0.1.91", "347000001" * 2),
+                    346415690: ("582.0.0.61.92", "346415690" * 2),
+                    347000001: ("583.0.0.1.91", "347000001" * 2),
                 },
             )
             with patch.object(checker, "BUILDS", builds):
                 self.assertEqual(
                     checker.supported_builds(),
-                    "580.0.0.49.91, version code 346013370; 581.0.0.1.91, version code 347000001",
+                    "582.0.0.61.92, version code 346415690; 583.0.0.1.91, version code 347000001",
                 )
         self.assertTrue(checker.BUILDS)
         self.assertEqual(set(checker.STOCK_SHA256), set(checker.BUILDS))

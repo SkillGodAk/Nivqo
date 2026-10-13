@@ -27,9 +27,10 @@ import org.junit.Test
  * Default comment order on every Facebook build the bundle declares: one builder of a comment
  * request reads the order, the feedback id and the focused comment id from FetchFeedbackParams;
  * one constructor of the params stores all three from its own parameters; one pick handler fetches
- * the order-change request from a copy of the sheet's FeedbackParams; the three tokens the
- * extension asks for are in the build; and the patch, run on those classes, asks the extension
- * first in the constructor and tells it first in the handler. Reads the fixture bundles from
+ * the order-change request from a copy of the sheet's FeedbackParams; one sort menu header is
+ * built by the comment section's renderer and filed under its key; the three tokens the extension
+ * asks for are in the build; and the patch, run on those classes, asks the extension first in the
+ * constructor and tells it first in the handler and the header. Reads the fixture bundles from
  * HUSHFACEBOOK_FIXTURE_DIR and skips without it.
  */
 class DefaultCommentOrderFixtureTest {
@@ -93,9 +94,23 @@ class DefaultCommentOrderFixtureTest {
                     assertTrue("$name: $token isn't in this build", FixtureDex.classesHolding(bundle, token).isNotEmpty())
                 }
 
+                val keyOwners = FixtureDex.classesHolding(bundle, SELECTOR_KEY)
+                val keyMaps = selectorKeyMaps(keyOwners)
+                assertTrue("$name: no static map beside \"$SELECTOR_KEY\"", keyMaps.isNotEmpty())
+                val renderers = FixtureDex.classesHolding(bundle, INTENT_FLAG)
+                val headers = renderers.flatMap { owner -> owner.methods.mapNotNull { sortHeaderIn(it, keyMaps) } }
+                    .distinctBy { it.toString() }
+                assertEquals("$name: comment sort menu headers", 1, headers.size)
+                val headerClass = FixtureDex.classes(bundle, setOf(headers.single().definingClass))
+                    .getValue(headers.single().definingClass)
+                val headerConstructor = headerClass.methods.single {
+                    it.name == "<init>" && it.parameters() == headers.single().parameterTypes.map { type -> type.toString() }
+                }
+
                 val owners = mutableMapOf<String, ClassDef>()
                 owners[params.type] = params
-                (builderOwners + handlerOwners).forEach { owners[it.type] = it }
+                (builderOwners + handlerOwners + keyOwners + renderers).forEach { owners[it.type] = it }
+                owners[headerClass.type] = headerClass
                 val context = PatchContexts.of(owners.values + ExtensionDex.classDef(SETTINGS_STATUS))
                 defaultCommentOrderPatch.execute(context)
 
@@ -121,6 +136,16 @@ class DefaultCommentOrderFixtureTest {
                 assertEquals("$name: the handler hands on the picked token", listOf(token), tells.callRegisters())
                 assertEquals("$name: the handler after the call", handler.body().map { it.opcode },
                     patchedHandler.drop(1).map { it.opcode })
+
+                val patchedHeader = context.mutableClassDefBy(headerClass.type).methods.single {
+                    it.name == "<init>" && it.parameters() == headerConstructor.parameters()
+                }.body()
+                assertEquals("$name: the header's call", SORT_MENU, (patchedHeader[0] as ReferenceInstruction).reference.toString())
+                val locals = headerConstructor.implementation!!.registerCount - 5
+                assertEquals("$name: the header hands on the feedback and the pick", listOf(locals + 2, locals + 4),
+                    patchedHeader[0].callRegisters())
+                assertEquals("$name: the header after the call", headerConstructor.body().map { it.opcode },
+                    patchedHeader.drop(1).map { it.opcode })
                 checked += version
             }
         }

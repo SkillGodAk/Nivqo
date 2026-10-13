@@ -19,6 +19,7 @@ import android.graphics.Typeface;
 import android.net.Uri;
 import android.widget.TextView;
 
+import com.facebook.graphql.model.GraphQLComment;
 import com.facebook.graphql.model.GraphQLPagesYouMayLikeFeedUnit;
 import com.facebook.graphql.model.GraphQLStory;
 
@@ -41,6 +42,7 @@ import app.morphe.extension.facebook.ads.ReelsAdFilter;
 import app.morphe.extension.facebook.ads.SearchAdFilterForTests;
 import app.morphe.extension.facebook.chats.ChatListForTests;
 import app.morphe.extension.facebook.chats.MessengerCardForTests;
+import app.morphe.extension.facebook.chats.MessengerHandoffForTests;
 import app.morphe.extension.facebook.chats.MessengerIconForTests;
 import app.morphe.extension.facebook.chats.OriginalChatMediaForTests;
 import app.morphe.extension.facebook.composer.TagSuggestionsForTests;
@@ -64,6 +66,7 @@ import app.morphe.extension.facebook.comments.MetaAiSummaries;
 import app.morphe.extension.facebook.media.HdrBrightnessForTests;
 import app.morphe.extension.facebook.media.PictureInPictureForTests;
 import app.morphe.extension.facebook.media.ProgressBar;
+import app.morphe.extension.facebook.media.FrameStepForTests;
 import app.morphe.extension.facebook.media.QualityChoiceForTests;
 import app.morphe.extension.facebook.media.ReelSpeedForTests;
 import app.morphe.extension.facebook.media.ResumePlaybackForTests;
@@ -113,7 +116,9 @@ import app.morphe.extension.shared.settings.PauseForTests;
  * out of the start. PausedHooksTest can't see that: its sandbox loaded the settings classes with a
  * context first, so a read there just answers. This is the only class at sdk 33, so it runs in a
  * sandbox of its own where nothing has loaded them yet, and it declares no SettingsContextRule,
- * which would load them. Give another class sdk 33 and this stops proving anything.
+ * which would load them. Give another class sdk 33 and this stops proving anything. For the same
+ * reason it doesn't also run at sdk 37 beside PausedHooksTest and SettingsNavigationTest: the
+ * order it proves doesn't depend on the Android version, and a shared sandbox would hide it.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 33)
@@ -255,6 +260,8 @@ public class ColdStartHooksTest {
                 HdrBrightnessForTests.answersTheScreenAsShowingNoHdr());
         assertFalse("a reel's bar kept full size before the context said yes", ProgressBar.keepsReelBar());
         assertFalse("a fade timer skipped before the context said yes", ProgressBar.keepsControls());
+        assertFalse("a reel's caption lifted before the context said yes", ProgressBar.liftsFooter());
+        assertFalse("a short reel's faded bar skipped before the context said yes", ProgressBar.noFadedBar());
         assertTrue("a haptic before the context was held back", Haptics.performHapticFeedback(new android.view.View(app) {
             @Override
             public boolean performHapticFeedback(int feedbackConstant) {
@@ -299,6 +306,8 @@ public class ColdStartHooksTest {
         assertFalse("a tab bar built before the context lost the Friends tab", HiddenTabsForTests.hidesTheTab());
         assertFalse("a comment request built before the context was given an order",
                 DefaultCommentOrderForTests.asksForTheChosenOrder());
+        assertFalse("a comment sort menu built before the context was picked in",
+                DefaultCommentOrderForTests.picksInTheMenu());
         assertFalse("a comment summary held before the context said yes",
                 MetaAiSummaries.holds(MetaAiSummaries.SHEET_SUMMARY));
         assertFalse("a comment box drawn before the context lost its GIF button",
@@ -309,6 +318,8 @@ public class ColdStartHooksTest {
                 CommentSheetOptions.openReplyThreads(false));
         assertFalse("a post's comments drawn before the context lost Related groups",
                 CommentSheetOptions.holdsBottomContent(CommentSheetOptions.RELATED_GROUPS));
+        assertFalse("a comment with a shop link drawn before the context was left out",
+                CommentSheetOptions.hidesComment(new GraphQLComment("https://s.shopee.vn/9zKs")));
         assertFalse("a word typed before the context lost its tag suggestions", TagSuggestionsForTests.skipsAPlainWord());
         assertFalse("a list of people open before the context was closed", TagSuggestionsForTests.closesAListLeftOpen());
         assertFalse("a Chats list built before the context lost the Get Messenger card",
@@ -351,6 +362,9 @@ public class ColdStartHooksTest {
         assertFalse("a trending video push before the context was blocked", NotificationKindsForTests.blocksTrendingVideo());
         assertFalse("a birthday push before the context was blocked", NotificationKindsForTests.blocksBirthday());
         assertFalse("a live video push before the context was blocked", NotificationKindsForTests.blocksLiveVideo());
+        assertFalse("a call push before the context was left to Messenger", MessengerHandoffForTests.dropsACallPush());
+        assertFalse("a ring before the context was left to Messenger", MessengerHandoffForTests.dropsARing());
+        assertFalse("a message before the context was left to Messenger", MessengerHandoffForTests.dropsAMessage());
         assertTrue("a player start before the context was held",
                 TapToPlay.allowStart(new Object(), TapToPlayForTests.Trigger.BY_AUTOPLAY));
         assertTrue("an older player start before the context was held",
@@ -359,6 +373,7 @@ public class ColdStartHooksTest {
                 TapToPlay.autoplaySetting(TapToPlayForTests.Autoplay.ON));
         assertFalse("a reel built before the context was given its play button", TapToPlay.showReelPlayButton(false));
         assertFalse("a long video started before the context was moved", ResumePlaybackForTests.resumesALongVideo());
+        assertFalse("a tap on a paused video before the context stepped it", FrameStepForTests.stepsAPausedVideo());
         assertFalse("a reel started before the context got a picked speed", ReelSpeedForTests.keepsAPickedSpeed());
         assertFalse("a speed menu built before the context offered slower speeds", ReelSpeedForTests.offersSlowerSpeeds());
         assertFalse("a gear speed sheet built before the context offered slower speeds",

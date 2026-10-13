@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -31,6 +32,7 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -229,6 +231,29 @@ public class SaveBoundsTest {
     private Downloader.Result saveDash(DashManifest.Track video, DashManifest.Track audio) {
         return MediaDownload.dashJob(context, video, audio, null).run(new MediaStoreWriter(context, true),
                 Downloader.SILENT);
+    }
+
+    /**
+     * A conversion's file keeps to the room it was given: each sample counts with its table
+     * entries, the boxes' room is kept from the start, the sample that would pass the room is
+     * refused before the muxer has it, and a finished file over the room is refused too.
+     */
+    @Test
+    public void aConversionsFileKeepsToItsRoom() throws IOException {
+        OutputAllowance allowance = new OutputAllowance(OutputAllowance.BOXES + 2 * (1_000 + OutputAllowance.PER_SAMPLE));
+        allowance.take(1_000);
+        allowance.take(1_000);
+        assertThrows(OutputAllowance.Exceeded.class, () -> allowance.take(1));
+
+        File out = File.createTempFile("joined", ".mp4", folder());
+        try {
+            Files.write(out.toPath(), new byte[(int) allowance.room]);
+            allowance.check(out);
+            Files.write(out.toPath(), new byte[(int) allowance.room + 1]);
+            assertThrows(OutputAllowance.Exceeded.class, () -> allowance.check(out));
+        } finally {
+            DashSave.discard(out);
+        }
     }
 
     @Test

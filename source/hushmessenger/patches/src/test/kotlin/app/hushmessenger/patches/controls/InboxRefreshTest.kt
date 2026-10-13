@@ -23,7 +23,7 @@ import kotlin.test.assertTrue
 
 class InboxRefreshTest {
     @AfterTest fun reset() {
-        activeProfile = BASE_PROFILE
+        activeProfile = SYNTHETIC_PROFILE
     }
 
     private fun resolve(classes: List<ClassDef>, items: Method = classes.single { it.type == INBOX_SUPPLIER }.methods
@@ -52,6 +52,10 @@ class InboxRefreshTest {
                 inboxObserverClass()),
             "observer constructor changed" to listOf(inboxSupplierClass(subscribe = listOf(
                 inboxSubscribeMethod(init = "<init>(Ljava/lang/Object;Ljava/lang/Object;)V"))), inboxObserverClass()),
+            "a shared lambda class picked by an int" to listOf(inboxSupplierClass(subscribe = listOf(
+                inboxSubscribeMethod(init = "<init>(Ljava/lang/Object;I)V", args = "v1, v2, v4"))), inboxObserverClass()),
+            "supplier-only constructor given an extra value" to listOf(inboxSupplierClass(subscribe = listOf(
+                inboxSubscribeMethod(args = "v1, v2, v4"))), inboxObserverClass()),
             "observer created elsewhere" to listOf(inboxSupplierClass(subscribe = listOf(inboxSubscribeMethod(between = "const/4 v3, 0x0"))),
                 inboxObserverClass()),
             "observer missing" to listOf(inboxSupplierClass()),

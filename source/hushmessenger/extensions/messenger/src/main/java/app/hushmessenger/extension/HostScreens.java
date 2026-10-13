@@ -93,9 +93,26 @@ public final class HostScreens {
         if (started || failed) return;
         Application app = application;
         if (app == null || app.getBaseContext() == null || !app.getPackageName().equals(Application.getProcessName())) return;
+        long began = android.os.SystemClock.elapsedRealtime();
         start(app);
-        if (started && hosted(app)) publishShortcuts(app);
+        boolean publish = started && hosted(app);
+        if (lateStart == null) lateStart = (android.os.SystemClock.elapsedRealtime() - began) + " ms on " + Thread.currentThread().getName();
+        // The first hook to ask runs this, often on the UI thread, and the shortcut calls are three trips to Android.
+        if (publish) shortcutWork.execute(() -> publishShortcuts(app));
     }
+
+    /**
+     * How long the late start held up the hook that asked first, and on which thread, for Copy setup. Null when
+     * SettingsProvider started settings, which is every install but Root Mount.
+     */
+    static volatile String lateStart;
+
+    /** Where the Root Mount shortcuts get published. Tests run it in place. */
+    static java.util.concurrent.Executor shortcutWork = work -> {
+        Thread thread = new Thread(work, "HushShortcuts");
+        thread.setDaemon(true);
+        thread.start();
+    };
 
     /**
      * Android reads static shortcuts when a package is installed or updated, and a Root Mount install is neither, so
@@ -154,6 +171,10 @@ public final class HostScreens {
         // Colour hooks can initialize this process while their class initializer is running. Bind after releasing
         // the startup lock so a second startup thread cannot wait on that initializer while it waits on this lock.
         if (started && !failed && Settings.installed.contains("material_you")) MaterialYouTheme.bind();
+        // After CrashGuard, so safe mode can keep a picked font file that crashes the font loader from loading again.
+        // A native crash in the loader only counts from Android 11, where the exit history records it.
+        if (started && !failed && Settings.installed.contains(OwnFont.KEY)
+                && context.getPackageName().equals(Application.getProcessName())) OwnFont.warmUp();
     }
 
     /** The settings provider's authority is the package name plus this, on a clone install too. */

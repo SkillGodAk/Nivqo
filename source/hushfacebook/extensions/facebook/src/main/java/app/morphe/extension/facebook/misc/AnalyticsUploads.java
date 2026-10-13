@@ -10,6 +10,7 @@ import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.diagnostics.FeedFilterCounters;
 import app.morphe.extension.shared.diagnostics.HookStatus;
+import app.morphe.extension.shared.settings.HushfacebookPause;
 
 /**
  * What the Hold back analytics uploads patch asks before Facebook uploads its app analytics.
@@ -59,6 +60,21 @@ public final class AnalyticsUploads {
             return false;
         }
         return !hold(PAPAYA, "Papaya job");
+    }
+
+    /**
+     * Observes the flag Analytics2 has already stored as it finishes a job. False only means no
+     * retry was requested, not that an upload succeeded. No job, payload or retry delay is received.
+     */
+    public static void observeAnalytics2Retry(boolean willRetry) {
+        try {
+            if (!Utils.settingsReady() || HushfacebookPause.isPaused() || !Settings.DEBUG.get()
+                    || Settings.HOLD_ANALYTICS_UPLOADS.get()) return;
+            HookStatus.counted(FamilyNames.ANALYTICS_UPLOADS,
+                    willRetry ? "retry requested" : "finished without retry");
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ANALYTICS_UPLOADS, "Analytics2 retry observation", failure);
+        }
     }
 
     /** True when the switch holds back what's starting, counted under [what]. Never throws. */

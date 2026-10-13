@@ -175,6 +175,9 @@ class HideMetaUpsellsFixtureTest {
                 // Threads in the share sheet: the item enum, the one list of items, and Guava's copy.
                 val shareEnums = FixtureDex.classesHolding(bundle, SHARE_TO_THREADS).filter { isEnumNaming(it, SHARE_ITEM_TYPES) }
                 assertEquals("$name: share sheet item enums", 1, shareEnums.size)
+                // Muse in the share sheet is a constant of the same enum, so the same list carries it.
+                assertTrue("$name: the share sheet item enum has no SHARE_TO_HATCH (Muse)",
+                    isEnumNaming(shareEnums.single(), listOf("SHARE_TO_HATCH")))
                 val shareThreads = enumConstant(shareEnums.single(), SHARE_TO_THREADS)
                 val shareLists = FixtureDex.methodsWhere(bundle, { dex -> dex.fieldSection.any { it.toString() == shareThreads.toString() } }) {
                     isShareItemList(it, shareThreads)

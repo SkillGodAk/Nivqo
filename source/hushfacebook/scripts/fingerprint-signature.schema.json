@@ -5,14 +5,14 @@
   "description": "What scripts/FingerprintCandidates.java captures about one method of a Facebook build, so it can rank the methods of a later build as that method's replacement. Everything here survives a Redex rebuild or is marked as a name that doesn't. The tool writes exactly these properties and refuses a file of another schema or version.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "version", "source", "method", "strings", "literals", "references", "context", "opcodes", "callers"],
+  "required": ["schema", "version", "source", "method", "strings", "outlinedStrings", "literals", "references", "context", "opcodes", "callers"],
   "properties": {
     "schema": {
       "const": "hushfacebook-fingerprint-signature"
     },
     "version": {
       "description": "Bumped when a property's meaning changes. A signature of another version is refused rather than read the new way.",
-      "const": 1
+      "const": 2
     },
     "source": {
       "description": "The build the method was captured from.",
@@ -72,6 +72,22 @@
       "type": "array",
       "items": { "type": "string" }
     },
+    "outlinedStrings": {
+      "description": "Strings the method asks a Redex string table for: an int constant loaded straight before a static (I)Ljava/lang/String; call, into the register it takes, where no branch or handler lands, and whose case for that index returns a const-string at once. Each counts as one of its strings; the origin names the table and the case. At most 64.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["string", "origin"],
+        "properties": {
+          "string": { "type": "string" },
+          "origin": {
+            "type": "string",
+            "pattern": "^\\[*L[^;]+;->[^(]+\\(I\\)Ljava/lang/String; case -?[0-9]+$"
+          }
+        }
+      }
+    },
     "literals": {
       "description": "N: a narrow literal of 256 or more, resource ids left out. W: a wide literal. WA: and WB: the two MobileConfig id families with their version and slot bytes masked.",
       "type": "array",
@@ -103,7 +119,7 @@
           "minimum": 0
         },
         "tokens": {
-          "description": "What the first 400 callers hold: their strings (S:), class context tokens, kept names (NM:) and prototypes (PR:).",
+          "description": "What the first 400 callers hold: their strings and outlined strings (S:), class context tokens, kept names (NM:) and prototypes (PR:).",
           "type": "array",
           "items": { "type": "string" }
         }

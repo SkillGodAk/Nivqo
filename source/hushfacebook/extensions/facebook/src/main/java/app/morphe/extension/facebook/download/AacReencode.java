@@ -50,6 +50,12 @@ final class AacReencode {
     /** The AAC object type xHE-AAC (USAC) declares, as in {@code mp4a.40.42}. */
     static final int XHE_OBJECT_TYPE = 42;
 
+    /** The slowest sound a file that doesn't say how long it runs is taken to be. Facebook sends 48 kbps and up. */
+    static final int SLOWEST_SOURCE_RATE = 32_000;
+
+    /** The least room a new track is given, as before it was worked out from the track's length. */
+    static final long LEAST_ROOM = 4L << 20;
+
     private AacReencode() {}
 
     /** Whether [codecs], a manifest track's codec string, is xHE-AAC. */
@@ -79,11 +85,62 @@ final class AacReencode {
     }
 
     /**
-     * Writes the first sound track of [in] to [out] as AAC-LC. Answers false when [progress] was
-     * cancelled first; throws when a codec can't be had, stalls or fails, and [out] is then the
+     * The room the new track needs ({@link DashSave#reserve}): as long as [in]'s sound runs, at
+     * {@link #BIT_RATE} and half again for an encoder that runs over it, with the tables and boxes
+     * on top. The new track is a few times the size of sound that came in at 48 kbps, so three
+     * times the file, the room it used to get, ran out on a track of a few minutes.
+     */
+    static long room(File in) {
+        long durationUs = -1;
+        int sampleRate = 48_000;
+        MediaExtractor source = null;
+        try {
+            source = new MediaExtractor();
+            source.setDataSource(in.getPath());
+            MediaFormat format = soundTrack(source);
+            if (format != null && format.containsKey(MediaFormat.KEY_DURATION)) {
+                durationUs = format.getLong(MediaFormat.KEY_DURATION);
+            }
+            if (format != null && format.containsKey(MediaFormat.KEY_SAMPLE_RATE)) {
+                sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+            }
+        } catch (Throwable unreadable) {
+            // The file's size stands in for the length it doesn't give.
+        } finally {
+            if (source != null) attempt(null, source::release);
+        }
+        return roomFor(durationUs, sampleRate, in.length());
+    }
+
+    /**
+     * {@link #room} from what the track says: it runs [durationUs], or, when that's not above zero,
+     * as long as [bytes] last at {@link #SLOWEST_SOURCE_RATE}, at [sampleRate]. Never below
+     * {@link #LEAST_ROOM}.
+     */
+    static long roomFor(long durationUs, int sampleRate, long bytes) {
+        long ms = durationUs > 0 ? durationUs / 1000 : Math.max(0L, bytes) * 8_000L / SLOWEST_SOURCE_RATE;
+        long sound = ms * (BIT_RATE / 8) / 1000 * 3 / 2;
+        // One AAC frame holds 1,024 samples of sound, and each is a sample of the new file.
+        long frames = ms * Math.max(8_000, Math.min(sampleRate, 192_000)) / 1024 / 1000 + 1;
+        return Math.max(LEAST_ROOM, OutputAllowance.BOXES + sound + frames * OutputAllowance.PER_SAMPLE);
+    }
+
+    /**
+     * Writes the first sound track of [in] to [out] as AAC-LC, in at most [room] bytes. Answers
+     * false when [progress] was cancelled first; throws when a codec can't be had, stalls or fails,
+     * or when the file would pass [room] ({@link OutputAllowance.Exceeded}), and [out] is then the
      * caller's to discard.
      */
-    static boolean reencode(File in, File out, Downloader.Progress progress) throws IOException {
+    static boolean reencode(File in, File out, long room, Downloader.Progress progress) throws IOException {
+        OutputAllowance allowance = new OutputAllowance(room);
+        if (!reencode(in, out, allowance, progress)) return false;
+        // The muxer's tables went in when it stopped, after the last sample was counted.
+        allowance.check(out);
+        return true;
+    }
+
+    private static boolean reencode(File in, File out, OutputAllowance allowance, Downloader.Progress progress)
+            throws IOException {
         MediaExtractor source = null;
         MediaCodec decoder = null;
         MediaCodec encoder = null;
@@ -150,10 +207,16 @@ final class AacReencode {
                     int index = decoder.dequeueOutputBuffer(info, WAIT_US);
                     if (index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                         MediaFormat pcm = decoder.getOutputFormat();
-                        sampleRate = pcm.getInteger(MediaFormat.KEY_SAMPLE_RATE);
-                        int channels = pcm.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-                        frameBytes = 2 * channels;
-                        if (encoder == null) encoder = startEncoder(sampleRate, channels);
+                        int rate = pcm.containsKey(MediaFormat.KEY_SAMPLE_RATE) ? pcm.getInteger(MediaFormat.KEY_SAMPLE_RATE) : 0;
+                        int channels = pcm.containsKey(MediaFormat.KEY_CHANNEL_COUNT) ? pcm.getInteger(MediaFormat.KEY_CHANNEL_COUNT) : 0;
+                        if (rate <= 0 || channels <= 0) throw new IOException("the decoder gave no sample rate or channel count");
+                        if (encoder == null) {
+                            sampleRate = rate;
+                            frameBytes = 2 * channels;
+                            encoder = startEncoder(rate, channels);
+                        } else {
+                            sameFormat(rate, channels, sampleRate, frameBytes);
+                        }
                         worked = true;
                     } else if (index >= 0) {
                         if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) decoderDone = true;
@@ -222,6 +285,8 @@ final class AacReencode {
                     boolean config = (info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0;
                     if (encoded != null && info.size > 0 && !config) {
                         if (!muxing) throw new IOException("the encoder gave sound before its format");
+                        // Counted before the muxer has it, so a sample that won't fit is never written.
+                        allowance.take(info.size);
                         encoded.position(info.offset);
                         encoded.limit(info.offset + info.size);
                         muxer.writeSampleData(track, encoded, info);
@@ -264,6 +329,14 @@ final class AacReencode {
                     closing);
             }
         }
+    }
+
+    /**
+     * A later format from the decoder has to repeat the first: the encoder was made for that one,
+     * and sound at another rate or channel count through it would come out wrong.
+     */
+    static void sameFormat(int rate, int channels, int sampleRate, int frameBytes) throws IOException {
+        if (rate != sampleRate || 2 * channels != frameBytes) throw new IOException("the decoder changed its sound format");
     }
 
     private static MediaCodec startEncoder(int sampleRate, int channels) throws IOException {

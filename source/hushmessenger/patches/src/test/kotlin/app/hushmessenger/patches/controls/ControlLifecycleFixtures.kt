@@ -72,7 +72,7 @@ internal fun lifecycleClasses(brokenMenu: Boolean = false, brokenPeople: Boolean
             return v0
         """.trimIndent(), flags = 9))),
     )
-    return (legacyDrawerFixture(BASE_PROFILE, if (brokenMenu) "bind" else "none").classes +
+    return (legacyDrawerFixture(SYNTHETIC_PROFILE, if (brokenMenu) "bind" else "none").classes +
         peopleMethods.groupBy { it.definingClass }.map { (type, methods) -> fixtureClass(type, methods) } +
         peopleJewelKeyHolder() + inboxRefreshClasses() + theme).filterNot { it.type.startsWith("Lapp/hushmessenger/extension/") }
 }
@@ -85,7 +85,12 @@ private fun fixtureCall(target: Any, name: String, vararg arguments: Any): Any? 
     }
 }.invoke(target, *arguments)
 
+/** The supported build number the lifecycle manifest claims. Its classes follow the synthetic mapping instead. */
+internal const val LIFECYCLE_VERSION_CODE = 346415686
+
 internal fun lifecycleApk(directory: Path, classes: List<ClassDef>, manifestExtra: String = "", applicationExtra: String = ""): File {
+    // Patching reads the profile by the manifest's version code, and these classes carry the synthetic names.
+    controlProfilesInUse = mapOf(LIFECYCLE_VERSION_CODE to SYNTHETIC_PROFILE)
     Files.createDirectories(directory)
     val resourceFixture = Path.of("../extensions/messenger/build/intermediates/linked_resources_binary_format/release/" +
         "processReleaseResources/linked-resources-binary-format-release.ap_").toFile()
@@ -108,7 +113,7 @@ internal fun lifecycleApk(directory: Path, classes: List<ClassDef>, manifestExtr
         fixtureCall(manifest, "setPackageBlock", pkg)
         fixtureCall(manifest, "parse", parser.invoke(null, StringReader("""
             <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.facebook.orca"
-                android:versionCode="346013440" android:versionName="580.0.0.49.91">
+                android:versionCode="$LIFECYCLE_VERSION_CODE" android:versionName="582.0.0.61.92">
               <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="36"/>
               $manifestExtra
               <application android:appComponentFactory="$APP_COMPONENT_FACTORY">

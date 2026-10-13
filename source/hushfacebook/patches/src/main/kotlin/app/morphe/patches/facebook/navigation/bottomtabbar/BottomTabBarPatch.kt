@@ -56,11 +56,12 @@ val bottomTabBarPatch = bytecodePatch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Tab bar at the bottom",
     description = "Moves Facebook's tab bar to the bottom of the screen on accounts that have it at the top, " +
-        "where it's easier to reach. A second switch lets it slide away as you scroll. Starts off. Turn it on in " +
-        "Hushfacebook settings > Appearance, then restart Facebook.",
+        "where it's easier to reach. A second switch lets it slide away as you scroll, and two more keep the tab bar " +
+        "or the top bar on screen instead. Starts off. Turn it on in Hushfacebook settings > Appearance, then restart " +
+        "Facebook.",
 ) {
     category("Navigation")
-    // The second switch: Facebook's own scroll-away for the bar at the bottom, in TabBarScrollAwayPatch.kt.
+    // The other switches: Facebook's own scroll-away for both bars, in TabBarScrollAwayPatch.kt.
     dependsOn(settingsPatch, tabBarScrollAwayPatch)
     compatibleWith(*AppCompatibilities.facebook())
 

@@ -78,12 +78,13 @@ public final class ProfileAdFilter {
             HookStatus.invoked(FamilyNames.SPONSORED_PROFILE_POSTS);
             FeedFilterCounters.sawList(ROUTE, 1);
             String kind = kind(unit, reader);
+            // The counters keep every row's kind. A log line per row would come on each render
+            // and push everything else out of the log, so only a hidden row gets one.
             FeedFilterCounters.sawKind(ROUTE, kind);
-            // What the row is, as a kind or a GraphQL type name, never what it shows.
-            Logger.printDebug(() -> "Profile timeline row: " + kind);
             if (!SPONSORED.equals(kind)) return false;
             if (!Utils.settingsReady() || !Settings.HIDE_SPONSORED_PROFILE_POSTS.get()) return false;
             FeedFilterCounters.removed(ROUTE, 1, REASON);
+            Logger.printDebug(() -> "Profile timeline row: hid a sponsored story");
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.SPONSORED_PROFILE_POSTS, "timeline row", failure);

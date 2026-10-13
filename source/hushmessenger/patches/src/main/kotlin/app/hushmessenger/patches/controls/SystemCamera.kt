@@ -1,7 +1,10 @@
 package app.hushmessenger.patches.controls
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -12,8 +15,11 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 
@@ -23,6 +29,8 @@ internal const val NAVIGATION_TRIGGER = "Lcom/facebook/messaging/send/trigger/Na
 internal const val MONTAGE_ACTIVITY = "Lcom/facebook/messaging/montage/composer/MontageComposerActivity;"
 /** The request code the chat composer starts Messenger's own camera with, and reads its sent message back under. */
 internal const val CAMERA_REQUEST = 7377
+/** The request code Messenger 582's chat screen starts Messenger's own camera with, through its activity launcher. */
+internal const val CHAT_CAMERA_REQUEST = 7376
 /** The request code a photo picked in another app comes back under, which opens Messenger's editor for the open chat. */
 internal const val EXTERNAL_MEDIA_REQUEST = 1112
 internal const val EXTERNAL_MEDIA_NULL_DATA = "ComposeFragment:externalMediaGalleryActivityResultNullData"
@@ -33,12 +41,23 @@ internal const val CAMERA_PROVIDER = "app.hushmessenger.extension.CameraProvider
 internal const val CAMERA_AUTHORITY_SUFFIX = ".hush.camera"
 private const val CAMERA_INTENT_CALL = "$SETTINGS->systemCamera(Landroid/content/Intent;)Landroid/content/Intent;"
 private const val CAMERA_REQUEST_CALL = "$SETTINGS->cameraRequestCode(Landroid/content/Intent;I)I"
+private const val CHAT_CAMERA_MARK_CALL = "$SETTINGS->markChatCamera(Landroid/os/Bundle;)V"
+private const val CHAT_CAMERA_CALL = "$SETTINGS->chatCamera(Landroid/content/Intent;)Landroid/content/Intent;"
+private const val TRUST_CAPTURE_CALL = "$SETTINGS->trustCapturedPhoto(Landroid/net/Uri;)Z"
+private const val INTERNAL_FILE_CALL = "$SETTINGS->internalFile(ZLandroid/net/Uri;)Z"
+private const val INTERNAL_FILE = "Attempted to retrieve internal file."
+private const val BUNDLE = "Landroid/os/Bundle;"
+private const val BUNDLE_COPY = "$BUNDLE-><init>($BUNDLE)V"
 
 private fun cameraChanged(detail: String): Nothing =
     throw PatchException("Messenger controls: the chat camera launch moved ($detail)")
 
 private fun Instruction.literal() = (this as? NarrowLiteralInstruction)?.narrowLiteral
 private fun Instruction.methodRef() = (this as? ReferenceInstruction)?.reference as? MethodReference
+private fun Instruction.isCameraClass() = opcode == Opcode.CONST_CLASS &&
+    ((this as ReferenceInstruction).reference as? TypeReference)?.type == MONTAGE_ACTIVITY
+private fun Method.strings() = implementation?.instructions
+    ?.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }?.toSet().orEmpty()
 
 /** Messenger's static helper that builds the camera screen's intent from the composer's params. */
 private fun MethodReference.isCameraIntent() = definingClass == MONTAGE_ACTIVITY && returnType == "Landroid/content/Intent;" &&
@@ -69,11 +88,68 @@ internal fun Method.isComposerResult(): Boolean {
         EXTERNAL_MEDIA_NULL_DATA in strings && CAMERA_NULL_DATA in strings
 }
 
-/** Every camera listener, or none when the chat fragment no longer reads a photo from another app. */
+/**
+ * Messenger 582's chat screen asks this static factory for its camera button (#40). It copies the camera screen's extras
+ * into an activity launcher that starts [MONTAGE_ACTIVITY] with [CHAT_CAMERA_REQUEST] on the chat's fragment. Story and
+ * note replies build the same kind of launcher with the same request code elsewhere, so only this one gets marked.
+ */
+internal fun Method.isChatCameraFactory(): Boolean {
+    if (!AccessFlags.STATIC.isSet(accessFlags) || parameterTypes.firstOrNull()?.toString() != "Landroid/content/Context;") return false
+    val code = implementation?.instructions ?: return false
+    val strings = strings()
+    return "fragment_params" in strings && "trigger2" in strings &&
+        code.any { it.literal() == CHAT_CAMERA_REQUEST } && code.any { it.isCameraClass() }
+}
+
+/** The launcher type the factory builds: what its builder returns right after it's handed the camera screen's class. */
+internal fun Method.chatCameraLauncherType(): String? {
+    val code = implementation?.instructions?.toList() ?: return null
+    val at = code.indexOfFirst { it.isCameraClass() }
+    val store = code.getOrNull(at + 1)?.takeIf { it.opcode == Opcode.IPUT_OBJECT } as? ReferenceInstruction ?: return null
+    val builder = (store.reference as FieldReference).definingClass
+    return code.drop(at + 2).firstNotNullOfOrNull { insn ->
+        insn.methodRef()?.takeIf { insn.opcode == Opcode.INVOKE_VIRTUAL && it.definingClass == builder }?.returnType
+    }
+}
+
+/** The launcher's start for a result: it builds the intent from its class and extras and starts it on its fragment. */
+internal fun Method.isLauncherStart(): Boolean = returnType == "Z" && parameterTypes.map { it.toString() } == listOf(BUNDLE) &&
+    !AccessFlags.STATIC.isSet(accessFlags) && "ActivityLauncher" in strings() &&
+    implementation?.instructions?.any { it.methodRef()?.isFragmentLauncher() == true } == true
+
+/**
+ * Messenger 582's chat copies a photo picked in another app only once this check says the URI's provider belongs to an
+ * app outside Meta's. The capture screen's provider lives inside Messenger, so without the hook its photo is refused
+ * with a SecurityException that closes Messenger (#40).
+ */
+internal fun Method.isThirdPartyUriCheck(): Boolean = !AccessFlags.STATIC.isSet(accessFlags) &&
+    returnType == "Ljava/lang/Boolean;" &&
+    parameterTypes.map { it.toString() } == listOf("Landroid/content/Context;", "Landroid/net/Uri;") &&
+    strings().let { "Unable to get providerInfo for authority " in it && "content" in it }
+
+/**
+ * The copy then opens the photo through this static helper, which refuses a file Messenger itself owns. Every file the
+ * capture screen's provider serves is one, since the provider runs inside Messenger (#40).
+ */
+internal fun Method.isInternalFileOpen(): Boolean = AccessFlags.STATIC.isSet(accessFlags) &&
+    returnType == "Landroid/content/res/AssetFileDescriptor;" &&
+    parameterTypes.map { it.toString() } == listOf("Landroid/content/Context;", "Landroid/net/Uri;") && INTERNAL_FILE in strings()
+
+/**
+ * Every camera listener, plus the chat camera's factory, its launcher's start and the two checks the chat runs before
+ * it copies the photo, or none when the chat fragment no longer reads a photo from another app. The last four come only
+ * while that same reader also reads the chat camera's request code, so the photo goes back to the chat that asked for it.
+ */
 internal fun findSystemCamera(classes: Iterable<ClassDef>): List<Method> {
     val methods = classes.flatMap { it.methods }
-    if (methods.count { it.isComposerResult() } != 1) return emptyList()
-    return methods.filter { it.isCameraLaunch() }
+    val readers = methods.filter { it.isComposerResult() }
+    if (readers.size != 1) return emptyList()
+    val listeners = methods.filter { it.isCameraLaunch() }
+    if (readers.single().implementation!!.instructions.none { it.literal() == CHAT_CAMERA_REQUEST }) return listeners
+    val factories = methods.filter { it.isChatCameraFactory() }
+    val launcher = factories.singleOrNull()?.chatCameraLauncherType()
+    return listeners + factories + methods.filter { it.definingClass == launcher && it.isLauncherStart() } +
+        methods.filter { it.isThirdPartyUriCheck() } + methods.filter { it.isInternalFileOpen() }
 }
 
 /**
@@ -121,25 +197,138 @@ internal fun Method.cameraLaunchSite(): Int {
     return l
 }
 
-internal fun MutableMethod.validateSystemCamera(): Int {
-    if (AccessFlags.STATIC.isSet(accessFlags) || !isCameraLaunch()) {
-        throw PatchException("Messenger controls: unexpected camera listener ${hookId()}")
+/**
+ * Index right after the factory copies the camera screen's extras for its launcher, where the copy gets marked:
+ *
+ *     new-instance vExtras, Landroid/os/Bundle;
+ *     invoke-direct {vExtras, p1}, Landroid/os/Bundle;-><init>(Landroid/os/Bundle;)V
+ *     iput-object vExtras, vBuilder, <builder>->extras    <- returned
+ */
+internal fun Method.chatCameraMarkSite(): Int {
+    val code = implementation?.instructions?.toList() ?: cameraChanged("no code")
+    val copies = code.indices.filter { code[it].opcode == Opcode.INVOKE_DIRECT && code[it].methodRef()?.toString() == BUNDLE_COPY }
+    val c = copies.singleOrNull() ?: cameraChanged("${copies.size} launcher extras")
+    val extras = (code[c] as FiveRegisterInstruction).registerC
+    val store = code.getOrNull(c + 1)
+    if (store?.opcode != Opcode.IPUT_OBJECT || (store as TwoRegisterInstruction).registerA != extras ||
+        ((store as ReferenceInstruction).reference as FieldReference).type != BUNDLE) cameraChanged("launcher extras")
+    if (code.count { it.literal() == CHAT_CAMERA_REQUEST } != 1 || code.count { it.isCameraClass() } != 1) cameraChanged("chat camera launcher")
+    if (c + 1 in jumpTargets()) cameraChanged("a branch lands on the launcher extras")
+    if (extras > 15) cameraChanged("launcher extras register out of range")
+    return c + 1
+}
+
+/**
+ * Index of the launcher's start, where every intent it starts for a result goes past the extension:
+ *
+ *     invoke-static {vContext, vClass}, <helper>(Context, Class)Intent
+ *     move-result-object vIntent
+ *     ...                                   (its extras)
+ *     iget vCode, p0, <launcher>->requestCode
+ *     invoke-static {vIntent, vFragment, vCode}, <launcher>(Intent, Fragment, I)Z   <- returned
+ *     move-result vStarted
+ */
+internal fun Method.chatCameraLaunchSite(): Int {
+    val code = implementation?.instructions?.toList() ?: cameraChanged("no code")
+    val starts = code.indices.filter { code[it].methodRef()?.isFragmentLauncher() == true }
+    val l = starts.singleOrNull() ?: cameraChanged("${starts.size} launcher starts")
+    val start = code[l] as FiveRegisterInstruction
+    if (code[l].opcode != Opcode.INVOKE_STATIC || start.registerCount != 3) cameraChanged("launcher start arguments")
+    val intent = start.registerC
+    val request = start.registerE
+    val read = code.getOrNull(l - 1)
+    if (read?.opcode != Opcode.IGET || (read as TwoRegisterInstruction).registerA != request) cameraChanged("launcher request code")
+    if (code.getOrNull(l + 1)?.opcode != Opcode.MOVE_RESULT) cameraChanged("after the launcher start")
+    if (l in jumpTargets()) cameraChanged("a branch lands on the launcher start")
+    if (intent > 15 || request > 15 || intent == request) cameraChanged("launcher registers out of range")
+    return l
+}
+
+/**
+ * Index of the open's refusal, where its answer on whether Messenger owns the file goes past the extension first:
+ *
+ *     invoke-static {vDescriptor}, <helper>(ParcelFileDescriptor)Z
+ *     move-result vInternal
+ *     if-nez vInternal, :refuse        <- returned
+ */
+internal fun Method.internalFileSite(): Int {
+    val code = implementation?.instructions?.toList() ?: cameraChanged("no code")
+    val checks = code.indices.filter { at ->
+        code[at].opcode == Opcode.INVOKE_STATIC && code[at].methodRef()?.let {
+            it.returnType == "Z" && it.parameterTypes.map { type -> type.toString() } == listOf("Landroid/os/ParcelFileDescriptor;")
+        } == true
     }
-    return cameraLaunchSite()
+    val c = checks.singleOrNull() ?: cameraChanged("${checks.size} internal file checks")
+    val internal = (code.getOrNull(c + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT } as? OneRegisterInstruction)?.registerA
+        ?: cameraChanged("internal file answer")
+    val refuse = code.getOrNull(c + 2)
+    if (refuse?.opcode != Opcode.IF_NEZ || (refuse as OneRegisterInstruction).registerA != internal) cameraChanged("internal file refusal")
+    // The URI is the last parameter, and nothing before the refusal may write it.
+    val uri = implementation!!.registerCount - 1
+    for (at in 0..c + 1) {
+        if (!code[at].opcode.setsRegister()) continue
+        val written = (code[at] as? OneRegisterInstruction)?.registerA ?: continue
+        if (written == uri || (code[at].opcode.setsWideRegister() && written + 1 == uri)) cameraChanged("uri register reused")
+    }
+    if (jumpTargets().any { it in c + 1..c + 2 }) cameraChanged("a branch lands on the internal file refusal")
+    if (internal > 15 || uri > 15) cameraChanged("internal file registers out of range")
+    return c + 2
+}
+
+internal fun MutableMethod.validateSystemCamera(): Int = when {
+    isChatCameraFactory() -> chatCameraMarkSite()
+    isLauncherStart() -> chatCameraLaunchSite()
+    // The URI is the last parameter, and the hook passes it to a plain invoke.
+    isThirdPartyUriCheck() -> 0.also {
+        validateScratch()
+        if (implementation!!.registerCount - 1 > 15) cameraChanged("uri register out of range")
+    }
+    isInternalFileOpen() -> internalFileSite()
+    AccessFlags.STATIC.isSet(accessFlags) || !isCameraLaunch() -> throw PatchException("Messenger controls: unexpected camera listener ${hookId()}")
+    else -> cameraLaunchSite()
 }
 
 /**
  * Swaps the intent and its request code right before the launch. With the switch on, the intent opens the extension's
  * capture screen, which hands the phone camera's photo back the way another app's picked photo comes back, so the chat
  * fragment's own code opens it in Messenger's editor for this chat. Off, Pause and safe mode get Messenger's camera.
+ * Messenger 582's chat screen starts its camera through the activity launcher instead, so its factory marks that
+ * launcher's extras, and the launcher's start swaps only an intent that carries the mark. Its checks on where a picked
+ * photo comes from and who owns its file let the capture screen's own photo through, and keep Messenger's answer for
+ * the rest.
  */
 internal fun MutableMethod.injectSystemCamera() {
-    val l = validateSystemCamera()
-    val launch = implementation!!.instructions.elementAt(l) as FiveRegisterInstruction
-    val intent = launch.registerD
-    val request = launch.registerF
-    addInstructions(l, """
-        invoke-static {v$intent}, $CAMERA_INTENT_CALL
+    val at = validateSystemCamera()
+    if (isInternalFileOpen()) {
+        val internal = (implementation!!.instructions.elementAt(at) as OneRegisterInstruction).registerA
+        addInstructions(at, """
+            invoke-static {v$internal, p1}, $INTERNAL_FILE_CALL
+            move-result v$internal
+        """.trimIndent())
+        return
+    }
+    if (isThirdPartyUriCheck()) {
+        addInstructionsWithLabels(0, """
+            invoke-static {p2}, $TRUST_CAPTURE_CALL
+            move-result v0
+            if-eqz v0, :stock_behavior
+            sget-object v0, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;
+            return-object v0
+        """.trimIndent(), ExternalLabel("stock_behavior", getInstruction(0)))
+        return
+    }
+    val site = implementation!!.instructions.elementAt(at)
+    if (isChatCameraFactory()) {
+        val extras = (implementation!!.instructions.elementAt(at - 1) as FiveRegisterInstruction).registerC
+        addInstructions(at, "invoke-static {v$extras}, $CHAT_CAMERA_MARK_CALL")
+        return
+    }
+    val chat = isLauncherStart()
+    val launch = site as FiveRegisterInstruction
+    val intent = if (chat) launch.registerC else launch.registerD
+    val request = if (chat) launch.registerE else launch.registerF
+    addInstructions(at, """
+        invoke-static {v$intent}, ${if (chat) CHAT_CAMERA_CALL else CAMERA_INTENT_CALL}
         move-result-object v$intent
         invoke-static {v$intent, v$request}, $CAMERA_REQUEST_CALL
         move-result v$request

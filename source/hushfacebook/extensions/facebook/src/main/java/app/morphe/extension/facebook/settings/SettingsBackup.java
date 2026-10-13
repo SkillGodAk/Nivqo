@@ -189,15 +189,19 @@ public final class SettingsBackup {
             Settings.HIDE_COMMENT_GIF_STICKER_BUTTONS,
             Settings.OPEN_REPLY_THREADS,
             Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS,
+            Settings.HIDE_SHOP_LINK_COMMENTS,
+            Settings.HIDE_COMMENTS_WITH_WORDS,
             Settings.TAG_SUGGESTIONS_ONLY_AFTER_AT,
             Settings.TAP_TO_PLAY,
             Settings.TAP_TO_PLAY_REELS_AFTER_FIRST,
             Settings.RESUME_LONG_VIDEOS,
+            Settings.FRAME_STEP,
             Settings.DEFAULT_PLAYBACK_QUALITY,
             Settings.PICTURE_IN_PICTURE,
             Settings.TURN_OFF_HDR_BRIGHTNESS,
             Settings.KEEP_PROGRESS_BAR,
             Settings.KEEP_PROGRESS_BAR_TIME,
+            Settings.TAP_TO_SEEK,
             Settings.USE_SYSTEM_FONT,
             Settings.USE_SYSTEM_EMOJI,
             Settings.OPEN_LINKS_EXTERNALLY,
@@ -218,6 +222,7 @@ public final class SettingsBackup {
             Settings.SAVED_SHORTCUT,
             Settings.WATCH_HISTORY_SHORTCUT,
             Settings.APP_LOCK,
+            Settings.SAVE_CRASH_FILE,
             Settings.MARKETPLACE_ONLY,
             Settings.MARKETPLACE_QUIET_NOTIFICATIONS,
             Settings.MARKETPLACE_SKIP_FEED_PREFETCH,
@@ -246,18 +251,22 @@ public final class SettingsBackup {
             Settings.HIDE_JOBS_TAB,
             Settings.BOTTOM_TAB_BAR,
             Settings.TAB_BAR_SCROLL_AWAY,
+            Settings.KEEP_TAB_BAR,
+            Settings.KEEP_TOP_BAR,
             Settings.FORCE_DARK_MODE,
             Settings.HIDE_REEL_PROMPTS,
             Settings.HIDE_GET_MESSENGER_CARD,
             Settings.HIDE_CHAT_NOTES_TRAY,
             Settings.HIDE_CHAT_PROMOTIONS,
             Settings.OPEN_MESSENGER_APP,
+            Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER,
             Settings.HIDE_MENU_UPGRADES,
             Settings.HIDE_MENU_ALSO_FROM_META,
             Settings.HIDE_MENU_MUSE,
             Settings.HIDE_EDITS_UPSELLS,
             Settings.HIDE_THREADS_CROSS_POSTING,
             Settings.HIDE_THREADS_SHARE_BUTTON,
+            Settings.HIDE_MUSE_SHARE_BUTTON,
             Settings.HIDE_META_VERIFIED_UPSELLS,
             Settings.HIDE_AVATAR_UPSELLS,
             Settings.HIDE_META_AI_IMAGINE,
@@ -361,6 +370,12 @@ public final class SettingsBackup {
     static final EnumSetting<FeedsSubtab> SUBTAB = Settings.FEEDS_SUBTAB;
 
     /**
+     * The feed Home shows while Following feed on Home is on, held in a file as its
+     * {@link FeedsSubtab#fileValue}, like the Feeds filter. Anything else refuses the whole file.
+     */
+    static final EnumSetting<FeedsSubtab> HOME_FEED = Settings.HOME_FEED;
+
+    /**
      * The order comment sheets ask for, held in a file as its {@link CommentOrder#fileValue}.
      * Anything else refuses the whole file, as a tab does.
      */
@@ -429,7 +444,7 @@ public final class SettingsBackup {
 
     /** The settings a file carries that aren't switches, in the order Settings declares them. */
     static final List<Setting<?>> VALUES = Collections.unmodifiableList(
-            Arrays.<Setting<?>>asList(HIDDEN, KEPT, SOURCES, CEILING, SHARE_ITEMS, SEEN_KEEP, TO, FOLDER, VIDEO_SUBFOLDER, PHOTO_SUBFOLDER, QUALITY,
+            Arrays.<Setting<?>>asList(HIDDEN, KEPT, SOURCES, CEILING, SHARE_ITEMS, HOME_FEED, SEEN_KEEP, TO, FOLDER, VIDEO_SUBFOLDER, PHOTO_SUBFOLDER, QUALITY,
                     FILE_NAME, PHOTO_NAME, ACTION, APP, START, SUBTAB, ORDER, PLAYBACK, REELS_QUALITY, STORIES_QUALITY,
                     QUIET_FROM, QUIET_UNTIL, LOCK_AFTER, TEXT_SIZE, ACCENT));
 
@@ -536,6 +551,7 @@ public final class SettingsBackup {
         private static final String ACCENT_NAME = "accent_color";
         private static final String CEILING_NAME = "hide_posts_over_reactions";
         private static final String SHARE_ITEMS_NAME = "hidden_share_items";
+        private static final String HOME_FEED_NAME = "home_feed";
 
         /** In {@link #ALLOWLIST} order, and only the switches the file named. */
         final Map<BooleanSetting, Boolean> values;
@@ -617,6 +633,9 @@ public final class SettingsBackup {
         /** The clean list of share sheet items to hide the file holds, or null when it names none. Set once, as it's read. */
         @Nullable
         String shareItems;
+        /** The feed the file says Home shows, or null when it names none. Set once, as it's read. */
+        @Nullable
+        FeedsSubtab homeFeed;
         /** Names the file holds that aren't settings this build knows. They're left out. */
         final int unknown;
 
@@ -829,6 +848,8 @@ public final class SettingsBackup {
             String shareItemsChange = shareItemsChange();
             if (shareItemsChange != null) changes.put(SHARE_ITEMS, shareItemsChange);
             if (seenKeep != null && seenKeep != SEEN_KEEP.savedValue()) changes.put(SEEN_KEEP, seenKeep);
+            FeedsSubtab homeFeedChange = homeFeedChange();
+            if (homeFeedChange != null) changes.put(HOME_FEED, homeFeedChange);
             SendLink.Action actionChange = actionChange();
             if (actionChange != null) changes.put(ACTION, actionChange);
             String appChange = appChange();
@@ -1016,6 +1037,12 @@ public final class SettingsBackup {
             return shareItems.equals(ShareSheetItems.clean(SHARE_ITEMS.savedValue())) ? null : shareItems;
         }
 
+        /** The feed Home shows after this file, or null when it names none or the one already set. */
+        @Nullable
+        FeedsSubtab homeFeedChange() {
+            return homeFeed == null || homeFeed == HOME_FEED.savedValue() ? null : homeFeed;
+        }
+
         @Nullable
         private static String listChange(@Nullable String list, StringSetting setting) {
             if (list == null) return null;
@@ -1056,6 +1083,7 @@ public final class SettingsBackup {
             if (ceiling != null) state.putString(CEILING_NAME, ceiling.fileValue);
             if (seenKeep != null) state.putString(SEEN_KEEP_NAME, seenKeep.fileValue);
             if (shareItems != null) state.putString(SHARE_ITEMS_NAME, shareItems);
+            if (homeFeed != null) state.putString(HOME_FEED_NAME, homeFeed.fileValue);
             state.putInt(UNKNOWN, unknown);
             return state;
         }
@@ -1112,6 +1140,7 @@ public final class SettingsBackup {
             Object shareItems = state.get(SHARE_ITEMS_NAME);
             read.shareItems = shareItems instanceof String && ShareSheetItems.isClean((String) shareItems)
                     ? (String) shareItems : null;
+            read.homeFeed = FeedsSubtab.fromFile(state.get(HOME_FEED_NAME));
             return read;
         }
     }
@@ -1135,6 +1164,7 @@ public final class SettingsBackup {
         switches.put(PHOTO_NAME.key, FileNameTemplate.sanitizePhoto(PHOTO_NAME.savedValue()));
         switches.put(START.key, START.savedValue().fileValue);
         switches.put(SUBTAB.key, SUBTAB.savedValue().fileValue);
+        switches.put(HOME_FEED.key, HOME_FEED.savedValue().fileValue);
         switches.put(ORDER.key, ORDER.savedValue().fileValue);
         switches.put(PLAYBACK.key, PLAYBACK.savedValue().fileValue);
         switches.put(REELS_QUALITY.key, REELS_QUALITY.savedValue().fileValue);
@@ -1265,6 +1295,7 @@ public final class SettingsBackup {
         AccentColor.Preset accent = null;
         ReactionCeiling ceiling = null;
         String shareItems = null;
+        FeedsSubtab homeFeed = null;
         JSONObject values = (JSONObject) settings;
         for (Iterator<String> names = values.keys(); names.hasNext(); ) {
             String name = names.next();
@@ -1327,6 +1358,11 @@ public final class SettingsBackup {
             if (SUBTAB.key.equals(name)) {
                 subtab = FeedsSubtab.fromFile(values.opt(name));
                 if (subtab == null) throw new Rejected(Reason.VALUE, "Not a Feeds filter: " + name);
+                continue;
+            }
+            if (HOME_FEED.key.equals(name)) {
+                homeFeed = FeedsSubtab.fromFile(values.opt(name));
+                if (homeFeed == null) throw new Rejected(Reason.VALUE, "Not a Home feed: " + name);
                 continue;
             }
             if (ORDER.key.equals(name)) {
@@ -1459,6 +1495,7 @@ public final class SettingsBackup {
                 quietUntil, lockAfter, textSize, accent, ceiling, unknown);
         read.seenKeep = seenKeep;
         read.shareItems = shareItems;
+        read.homeFeed = homeFeed;
         return read;
     }
 

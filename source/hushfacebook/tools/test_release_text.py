@@ -219,6 +219,9 @@ class NotesTest(Repo):
         self.assertNotIn("What was checked", self.notes(checked=None, draft=True))
         self.refused(lambda: self.notes(checked=None), "--checked")
         self.refused(lambda: self.notes(checked="Local checks passed."), "nothing in the notes says")
+        # 0.10.0's first try: a word between "to" and "Facebook", which installed builds don't read either.
+        self.refused(lambda: self.notes(checked="All 3 patches applied to both Facebook 581.0.0.45.58 builds."),
+                     "nothing in the notes says", "with \"Facebook\" right after \"to\"")
 
     def test_refuses_a_section_cut_did_not_write(self):
         self.refused(self.notes, "no dated 0.2.0 heading")
@@ -340,6 +343,14 @@ class TranslationsTest(unittest.TestCase):
         write(tables / "tr.tsv", self.TABLES["tr"] + "%1$d items\t%1$d öge\n%1$d items|few\t%1$d öge\n")
         self.generate()
         self.assertIn("translate the same 3 strings", release_text.check_translations(self.root))
+
+    def test_a_plural_variant_without_its_other_form_fails(self):
+        tables = self.root / "extensions/shared/library/src/main/l10n"
+        write(tables / "de.tsv", self.TABLES["de"] + "%1$d items\t%1$d Einträge\n")
+        write(tables / "tr.tsv", self.TABLES["tr"] + "%1$d items|few\t%1$d öge\n")
+        with self.assertRaises(SystemExit) as stop:
+            release_text.check_translations(self.root)
+        self.assertIn("%1$d items|few has no row for its other form: %1$d items", str(stop.exception))
 
     def test_a_table_edited_without_the_generator_fails(self):
         write(self.root / "extensions/shared/library/src/main/l10n/de.tsv", self.TABLES["de"].replace("ausblenden", "verbergen"))

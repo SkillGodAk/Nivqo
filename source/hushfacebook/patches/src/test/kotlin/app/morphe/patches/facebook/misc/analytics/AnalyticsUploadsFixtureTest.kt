@@ -5,6 +5,9 @@
 package app.morphe.patches.facebook.misc.analytics
 
 import app.morphe.Fixtures
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.reels.watchhistory.callRegisters
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -16,9 +19,13 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -37,10 +44,90 @@ class AnalyticsUploadsFixtureTest {
             for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
                 checkPapaya(bundle)
                 checkXAnalytics(bundle)
+                checkAnalytics2Retry(bundle)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    private fun checkAnalytics2Retry(bundle: File) {
+        val matches = FixtureDex.classesHolding(bundle, ANALYTICS2_JOB_RAN).flatMap { owner ->
+            owner.methods.mapNotNull { method -> analytics2RetryValue(method)?.let { method to it } }
+        }
+        assertEquals("${bundle.name}: Analytics2 retry stores", 1, matches.size)
+        val (method, index) = matches.single()
+        assertObservationOnly(method, index)
+    }
+
+    private fun assertObservationOnly(method: Method, index: Int) {
+        val original = method.implementation!!.instructions.toList()
+        val value = original[index].callRegisters()[2]
+        val patched = MutableMethod(method).apply { observeAnalytics2Retry(index) }
+        val instructions = patched.implementation!!.instructions.toList()
+        val observer = instructions[index + 1]
+        assertEquals(method.implementation!!.registerCount, patched.implementation!!.registerCount)
+        assertEquals(original.size + 1, instructions.size)
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, observer.opcode)
+        assertEquals(OBSERVE_ANALYTICS2_RETRY, (observer as ReferenceInstruction).reference.toString())
+        assertEquals(listOf(value), observer.callRegisters())
+        val retained = instructions.filterIndexed { at, _ -> at != index + 1 }
+        assertEquals(original.map { it.opcode }, retained.map { it.opcode })
+        assertEquals(original.map { (it as? ReferenceInstruction)?.reference?.toString() },
+            retained.map { (it as? ReferenceInstruction)?.reference?.toString() })
+    }
+
+    private val retryStore = """
+        const-string/jumbo v16, "will_retry"
+        invoke-virtual/range {v15 .. v17}, Landroid/os/BaseBundle;->putBoolean(Ljava/lang/String;Z)V
+    """.trimIndent()
+
+    private fun retryMethod(store: String = retryStore) = MutableMethod(
+        ImmutableMethod("Lfixture/Analytics2;", "finish", emptyList(), "V",
+            AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null,
+            ImmutableMethodImplementation(18, emptyList(), null, null)),
+    ).apply {
+        addInstructionsWithLabels(0, """
+            const-string v0, "$ANALYTICS2_JOB_RAN"
+            const-string v0, "exitStateMachine"
+            new-instance v15, Landroid/os/Bundle;
+            invoke-direct/range {v15 .. v15}, Landroid/os/Bundle;-><init>()V
+            const/16 v17, 0x1
+            if-eqz v17, :finished
+            $store
+            :finished
+            return-void
+        """)
+    }
+
+    @Test
+    fun `retry observation reads a high register after the store and preserves the bypass branch`() {
+        val method = retryMethod()
+        val index = analytics2RetryValue(method)!!
+        assertObservationOnly(method, index)
+        method.observeAnalytics2Retry(index)
+        val code = method.implementation!!.instructions.toList()
+        val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+        val branch = code.indexOfFirst { it.opcode == Opcode.IF_EQZ }
+        assertEquals(addresses[code.lastIndex], addresses[branch] + (code[branch] as OffsetInstruction).codeOffset)
+        assertEquals(Opcode.RETURN_VOID, code.last().opcode)
+        assertEquals(listOf(17), code[index + 1].callRegisters())
+    }
+
+    @Test
+    fun `retry observation rejects an ambiguous or differently typed store without changing it`() {
+        for (store in listOf(
+            "$retryStore\n$retryStore",
+            retryStore.replace("will_retry", "other_flag"),
+            retryStore.replace("const-string/jumbo v16", "const-string/jumbo v14"),
+            retryStore.replace("Ljava/lang/String;Z", "Ljava/lang/String;I"),
+        )) {
+            assertNull(analytics2RetryValue(retryMethod(store)))
+        }
+        val method = retryMethod()
+        val before = method.implementation!!.instructions.toList()
+        assertThrows(PatchException::class.java) { method.observeAnalytics2Retry(0) }
+        assertEquals(before.size, method.implementation!!.instructions.count())
     }
 
     private fun checkPapaya(bundle: File) {

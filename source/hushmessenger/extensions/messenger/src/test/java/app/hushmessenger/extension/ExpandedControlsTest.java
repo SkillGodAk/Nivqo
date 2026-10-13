@@ -112,7 +112,7 @@ public class ExpandedControlsTest {
         try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
             View root = screen.get().getWindow().getDecorView();
             for (String[] spec : SettingsActivity.CONTROLS) assertNull(root.findViewWithTag(spec[0]));
-            assertTrue(((TextView) root.findViewWithTag("search_status")).getText().toString().startsWith("No optional controls installed."));
+            assertTrue(((TextView) root.findViewWithTag("search_status")).getText().toString().startsWith("No controls are installed."));
             assertNotNull(root.findViewWithTag("open_messenger"));
             // Nothing to search, and no "try another search" panel contradicting the status line.
             assertEquals(View.GONE, root.findViewWithTag("find_control").getVisibility());
@@ -136,14 +136,14 @@ public class ExpandedControlsTest {
             View root = screen.get().getWindow().getDecorView();
             EditText search = root.findViewWithTag("find_control");
             TextView status = root.findViewWithTag("search_status");
-            search.setText("  PEOPLE YOU  ");
+            search.setText("  PEOPLE YOU MAY  ");
             assertEquals(ExpectedTotals.shown(1), status.getText().toString());
             assertEquals(View.VISIBLE, ((View) root.findViewWithTag("people").getParent()).getVisibility());
             assertEquals(View.GONE, ((View) root.findViewWithTag("stories").getParent()).getVisibility());
             search.setText("Stickers");
             assertEquals(ExpectedTotals.shown(4), status.getText().toString());
             search.setText("missing control xyz");
-            assertEquals("No matching controls. Try another search.", status.getText().toString());
+            assertEquals("No matching controls.", status.getText().toString());
             search.setText("");
             assertEquals(ExpectedTotals.shown(ExpectedTotals.CONTROLS), status.getText().toString());
         }

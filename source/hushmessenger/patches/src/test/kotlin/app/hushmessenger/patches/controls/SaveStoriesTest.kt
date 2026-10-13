@@ -32,7 +32,7 @@ private const val ADD_ITEM = "$FRAGMENT->A0f($ICON$FRAGMENT${MENU}Ljava/lang/Str
 private const val CONTROLLER = "$FRAGMENT->A0D($FRAGMENT)LX/JQP;"
 private const val SAVE_ID = 0x7f0b0652L
 
-/** Build 346013440 lists the card controllers Save works for. */
+/** The card controllers Save works for, listed as 580 (346013440) first did and 582 still does. */
 private val CARD_TYPES = """
     instance-of v1, v2, LX/HBq;
     if-nez v1, :save
@@ -112,7 +112,7 @@ class SaveStoriesTest {
         val previousProfile = activeProfile
         val previousControls = discoveredControls
         try {
-            activeProfile = BASE_PROFILE
+            activeProfile = SYNTHETIC_PROFILE
             resources.use {
                 ResourcePatchContext::class.java.getMethod("decodeResources\$morphe_patcher", ResourceMode::class.java)
                     .invoke(resources, ResourceMode.RAW_ONLY)
@@ -234,7 +234,8 @@ class SaveStoriesTest {
     @Test fun aMenuThatChangedShapeIsRejected() {
         fun rejects(body: String) = assertFailsWith<PatchException> { builder(body).validateStorySave() }
         val body = builderBody()
-        rejects(body.replace("return-void", "invoke-virtual {v6}, $FRAGMENT->A1p()Z\nmove-result v3\nif-nez v3, :own\n" +
+        rejects(body.replace("return-void", "invoke-static {v7}, LX/JXT;->A01(Landroid/content/Context;)$MENU\nmove-result-object v5\n" +
+            "invoke-virtual {v6}, $FRAGMENT->A1p()Z\nmove-result v3\nif-nez v3, :own\n" +
             "iget-boolean v1, v6, $FRAGMENT->A10:Z\nif-nez v1, :own\nreturn-void"))
         rejects(body.replace("const/4 v4, 0x1\n", "const/4 v5, 0x1\n"))
         rejects(body.replace("iget-object v1, v6, $FRAGMENT->A0R", ":others\niget-object v1, v6, $FRAGMENT->A0R")
@@ -250,6 +251,25 @@ class SaveStoriesTest {
             "invoke-virtual {v5, v1}, LX/Ntp;->A0P(LX/Q2E;)V\nreturn-void"))
         rejects(builderBody(CARD_ANSWER).replace("invoke-virtual {v2}, LX/JQP;->A08()Z", "invoke-virtual {v7}, LX/JQP;->A08()Z"))
         assertFailsWith<PatchException> { fixtureMethod("LX/JgG;->A01(Landroid/view/View;)V", body, registers = 16).validateStorySave() }
+    }
+
+    @Test fun aMergedCheckOfTheSameShapeWithoutAMenuIsIgnored() {
+        // 582's 346415706 family asks its fragment manager the same way later in this merged onClick.
+        val decoy = listOf(
+            "invoke-virtual {p1}, Landroidx/fragment/app/Fragment;->getParentFragmentManager()LX/0XE;",
+            "move-result-object v8",
+            "invoke-virtual {v8}, LX/0XE;->A1V()Z",
+            "move-result v1",
+            "if-nez v1, :done",
+            "iget-boolean v1, v8, LX/0XE;->A0B:Z",
+            "if-nez v1, :done",
+            "const-string v4, \"SpectraGamesPickerFragment\"",
+            ":done",
+            "return-void",
+        ).joinToString("\n")
+        val save = builder(builderBody().replace("return-void", decoy)).validateStorySave()
+        assertEquals(14, save.others)
+        assertEquals(SAVE_ID, save.id)
     }
 
     @Test fun theHandlerMustSaveTheItemTheMenuAdds() {

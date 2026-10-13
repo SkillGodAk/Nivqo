@@ -7,7 +7,6 @@ package app.hushmessenger.patches.controls
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
-import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -19,8 +18,8 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 internal const val EMOJI_DRAWER = "emoji_drawer"
 
-/** Meta's server flag for the redesigned emoji drawer, renumbered by each release: 580's, then 581's. */
-internal val EMOJI_DRAWER_FLAGS = setOf(36320734536089357L, 36320704471318256L)
+/** Meta's server flag for the redesigned emoji drawer. Meta renumbers it with each release; this is 582's. */
+internal val EMOJI_DRAWER_FLAGS = setOf(36320652931710646L)
 
 /** The drawer renderer throws this when the redesign can't draw. It's what ties the flag to the emoji drawer. */
 internal const val EMOJI_DRAWER_ANCHOR = "Cannot render redesigned drawer with search icon "
@@ -34,19 +33,11 @@ internal fun Instruction.isEmojiDrawerFlag() =
 
 /**
  * Every method that reads the redesign flag, but only when the one renderer that throws [EMOJI_DRAWER_ANCHOR] reads it
- * too: itself (581) or through a static no-argument boolean that does (580's MobileConfigUnsafeContext helper, which
- * every drawer component calls). Without that link nothing is found, so the switch can't patch an unrelated flag.
+ * too. Without that link nothing is found, so the switch can't patch an unrelated flag.
  */
 internal fun connectEmojiDrawer(readers: List<Method>, anchors: List<Method>): List<Method> {
     val anchor = anchors.singleOrNull() ?: return emptyList()
-    val ids = readers.map { it.hookId() }.toSet()
-    val helpers = readers.filter {
-        AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.isEmpty() && it.returnType == "Z"
-    }.map { it.hookId() }.toSet()
-    val connected = anchor.hookId() in ids || anchor.implementation?.instructions?.any {
-        it.opcode == Opcode.INVOKE_STATIC && (it as ReferenceInstruction).reference.toString() in helpers
-    } == true
-    return if (connected) readers.distinctBy { it.hookId() } else emptyList()
+    return if (readers.any { it.hookId() == anchor.hookId() }) readers.distinctBy { it.hookId() } else emptyList()
 }
 
 /** One flag read: the constant's index, the move-result that takes the answer and the register it fills. */

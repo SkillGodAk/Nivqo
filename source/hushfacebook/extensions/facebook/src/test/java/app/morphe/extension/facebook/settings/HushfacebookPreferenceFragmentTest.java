@@ -28,6 +28,7 @@ import app.morphe.extension.facebook.download.SendLink;
 import app.morphe.extension.facebook.feed.PostWordsForTests;
 import app.morphe.extension.facebook.feed.SeenPostsForTests;
 import app.morphe.extension.facebook.media.PlaybackQuality;
+import app.morphe.extension.facebook.misc.ShareSheetItems;
 import app.morphe.extension.facebook.media.SurfaceQuality;
 import app.morphe.extension.facebook.navigation.FeedsSubtab;
 import app.morphe.extension.facebook.navigation.HiddenTabs;
@@ -36,6 +37,7 @@ import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.BooleanSetting;
+import app.morphe.extension.shared.settings.FailingStore;
 import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.PauseForTests;
 
@@ -748,6 +750,89 @@ public class HushfacebookPreferenceFragmentTest {
     }
 
     /**
+     * An imported list can fill the share sheet list's room. Ticking one more then keeps the list
+     * open, says why and saves nothing, and unticking it lets Save keep every item still ticked.
+     */
+    @Test
+    public void theShareSheetListKeepsEveryTickOrSavesNothing() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.SHARE_SHEET_ITEMS);
+        StringBuilder one = new StringBuilder("A");
+        while (one.length() < ShareSheetItems.MAX_HIDDEN_CHARS) one.append('B');
+        String longType = one.toString();
+        Settings.HIDDEN_SHARE_ITEMS.save(longType);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(controller);
+            Preference items = rows.get(indexOfKey(rows, AppPages.SHARE_ITEMS_ROW));
+            String summary = String.valueOf(items.getSummary());
+            ShadowAlertDialog.reset();
+            items.getOnPreferenceClickListener().onPreferenceClick(items);
+            AlertDialog list = ShadowAlertDialog.getLatestAlertDialog();
+            List<String> choices = ShareSheetItems.choices();
+            Shadows.shadowOf(list).clickOnItem(choices.indexOf("COPY_LINK"));
+            ShadowLooper.idleMainLooper();
+
+            list.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+            ShadowLooper.idleMainLooper();
+            assertTrue("a Save past the list's room closed it", list.isShowing());
+            assertEquals("This list needs more room than it has. Shorten it, then save again.",
+                    ShadowToast.getTextOfLatestToast());
+            assertEquals(longType, Settings.HIDDEN_SHARE_ITEMS.savedValue());
+            assertEquals(summary, String.valueOf(items.getSummary()));
+
+            // The dialog marks a row ticked from the start only once the row is drawn, which the long
+            // type's never is here, so the room comes back by unticking Copy link again.
+            Shadows.shadowOf(list).clickOnItem(choices.indexOf("COPY_LINK"));
+            ShadowLooper.idleMainLooper();
+            list.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+            ShadowLooper.idleMainLooper();
+            assertFalse(list.isShowing());
+            assertEquals("the imported type didn't stay picked", longType, Settings.HIDDEN_SHARE_ITEMS.savedValue());
+            assertEquals(AppPages.shareItemsSummary(ShareSheetItems.hidden()), String.valueOf(items.getSummary()));
+        } finally {
+            Settings.HIDDEN_SHARE_ITEMS.resetToDefault();
+        }
+    }
+
+    /**
+     * A Save the phone doesn't keep leaves the share sheet list open with its ticks and says so in
+     * its own words, not the out-of-room ones, and Save again keeps them once the phone does.
+     */
+    @Test
+    public void theShareSheetListStaysOpenWhenThePhoneDoesntKeepTheSave() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.SHARE_SHEET_ITEMS);
+        Settings.HIDDEN_SHARE_ITEMS.resetToDefault();
+        String before = Settings.HIDDEN_SHARE_ITEMS.savedValue();
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(controller);
+            Preference items = rows.get(indexOfKey(rows, AppPages.SHARE_ITEMS_ROW));
+            String summary = String.valueOf(items.getSummary());
+            ShadowAlertDialog.reset();
+            items.getOnPreferenceClickListener().onPreferenceClick(items);
+            AlertDialog list = ShadowAlertDialog.getLatestAlertDialog();
+            Shadows.shadowOf(list).clickOnItem(ShareSheetItems.choices().indexOf("COPY_LINK"));
+            ShadowLooper.idleMainLooper();
+
+            try (FailingStore ignored = FailingStore.install(FailingStore.Fault.COMMIT_THROWS)) {
+                list.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+                ShadowLooper.idleMainLooper();
+            }
+            assertTrue("a Save the phone didn't keep closed the list", list.isShowing());
+            assertEquals("Couldn't save the change. Try again.", ShadowToast.getTextOfLatestToast());
+            assertEquals(before, Settings.HIDDEN_SHARE_ITEMS.get());
+            assertEquals(before, Settings.HIDDEN_SHARE_ITEMS.savedValue());
+            assertEquals(summary, String.valueOf(items.getSummary()));
+
+            list.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+            ShadowLooper.idleMainLooper();
+            assertFalse(list.isShowing());
+            assertEquals("COPY_LINK", Settings.HIDDEN_SHARE_ITEMS.savedValue());
+            assertEquals(AppPages.shareItemsSummary(ShareSheetItems.hidden()), String.valueOf(items.getSummary()));
+        } finally {
+            Settings.HIDDEN_SHARE_ITEMS.resetToDefault();
+        }
+    }
+
+    /**
      * A Save on a word list can land as the activity goes. The button's click and the edit
      * dialog's close are posted one after the other, and when the activity's end comes between
      * them, it closes the dialog itself, which still counts as Save. The list's listener then runs
@@ -1234,16 +1319,21 @@ public class HushfacebookPreferenceFragmentTest {
             assertEquals("Stories quality", String.valueOf(stories.getTitle()));
             List<String> own = new ArrayList<>();
             for (CharSequence entry : reels.getEntries()) own.add(String.valueOf(entry));
-            assertEquals(Arrays.asList("Same as videos", "Auto", "Data saver", "Up to " + L10n.isolate("480p"),
+            assertEquals(Arrays.asList("Same as Playback quality", "Auto", "Data saver", "Up to " + L10n.isolate("480p"),
                     "Up to " + L10n.isolate("720p"), "Highest"), own);
             assertEquals("SAME", reels.getValue());
-            assertEquals("Reels play at the playback quality above.", String.valueOf(reels.getSummary()));
-            assertEquals("Video stories play at the playback quality above.", String.valueOf(stories.getSummary()));
+            assertEquals("Reels follow the Playback quality row.", String.valueOf(reels.getSummary()));
+            assertEquals("Video stories follow the Playback quality row.", String.valueOf(stories.getSummary()));
+            // #90: a quality of their own says it's separate from Playback quality, not just its name.
             reels.setValue("DATA_SAVER");
             ShadowLooper.idleMainLooper();
             assertEquals(SurfaceQuality.DATA_SAVER, Settings.REELS_PLAYBACK_QUALITY.savedValue());
-            assertEquals("Data saver", String.valueOf(reels.getSummary()));
+            assertEquals("Data saver for reels, whatever Playback quality is set to.", String.valueOf(reels.getSummary()));
             assertEquals(SurfaceQuality.SAME, Settings.STORIES_PLAYBACK_QUALITY.savedValue());
+            stories.setValue("HIGHEST");
+            ShadowLooper.idleMainLooper();
+            assertEquals("Highest for video stories, whatever Playback quality is set to.",
+                    String.valueOf(stories.getSummary()));
         } finally {
             Settings.PLAYBACK_QUALITY.resetToDefault();
             Settings.REELS_PLAYBACK_QUALITY.resetToDefault();
@@ -1299,7 +1389,7 @@ public class HushfacebookPreferenceFragmentTest {
             SwitchPreference qualitySwitch = (SwitchPreference) page.findPreference(Settings.DEFAULT_PLAYBACK_QUALITY.key);
             ListPreference stories = (ListPreference) page.findPreference(Settings.STORIES_PLAYBACK_QUALITY.key);
             pick(stories, "SAME");
-            assertFalse("Same as videos turned the switch on", Settings.DEFAULT_PLAYBACK_QUALITY.savedValue());
+            assertFalse("Same as Playback quality turned the switch on", Settings.DEFAULT_PLAYBACK_QUALITY.savedValue());
             pick(stories, "HIGHEST");
             assertEquals(SurfaceQuality.HIGHEST, Settings.STORIES_PLAYBACK_QUALITY.savedValue());
             assertTrue(Settings.DEFAULT_PLAYBACK_QUALITY.savedValue());
@@ -1496,7 +1586,7 @@ public class HushfacebookPreferenceFragmentTest {
     }
 
     /**
-     * Hide seen posts' rows. Keep them hidden for follows the switch, Forget seen posts works with the
+     * Hide seen posts' rows. Keep seen posts hidden for follows the switch, Forget seen posts works with the
      * switch off too, and turning the switch off forgets the list and its file.
      */
     @Test
@@ -1514,6 +1604,11 @@ public class HushfacebookPreferenceFragmentTest {
             assertEquals(Settings.SEEN_POSTS_KEEP.key, keep.getKey());
             assertEquals("Forget seen posts", String.valueOf(forget.getTitle()));
             assertFalse("the keep time is open with the switch off", keep.isEnabled());
+            assertEquals("Keep seen posts hidden for", String.valueOf(keep.getTitle()));
+            String greyed = String.valueOf(keep.getSummary());
+            assertTrue("the greyed keep time doesn't say why: " + greyed,
+                    greyed.contains("Turn on") && greyed.contains(SwitchLabels.title(Settings.HIDE_SEEN_POSTS))
+                            && greyed.endsWith("to use this."));
             assertTrue("Forget seen posts is greyed out with the switch off", forget.isEnabled());
 
             SeenPostsForTests.rememberAndWrite("left from before");
@@ -1524,6 +1619,8 @@ public class HushfacebookPreferenceFragmentTest {
 
             assertTrue(seen.getOnPreferenceChangeListener().onPreferenceChange(seen, true));
             assertTrue(keep.isEnabled());
+            assertFalse("the open keep time still says to turn the switch on",
+                    String.valueOf(keep.getSummary()).contains("Turn on"));
             assertTrue(forget.isEnabled());
             SeenPostsForTests.rememberAndWrite("seen with it on");
             assertTrue(file.exists());
@@ -1536,6 +1633,110 @@ public class HushfacebookPreferenceFragmentTest {
             SeenPostsForTests.forgetStore();
             //noinspection ResultOfMethodCallIgnored
             file.delete();
+        }
+    }
+
+    /**
+     * Home shows sits right under Following feed on Home, follows it the way the seen posts time
+     * follows its switch, offers the Feeds tab's filters by their names in Facebook, and says what
+     * each one shows.
+     */
+    @Test
+    public void homesFeedChoiceFollowsFollowingFeedOnHome() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.FOLLOWING_HOME);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(controller);
+            int switchAt = indexOfKey(rows, Settings.FOLLOWING_FEED_HOME.key);
+            assertTrue("no Following feed on Home switch", switchAt >= 0);
+            Preference following = rows.get(switchAt);
+            assertTrue("no row under the switch", rows.get(switchAt + 1) instanceof ValueRows.HomeFeedRow);
+            ValueRows.HomeFeedRow feed = (ValueRows.HomeFeedRow) rows.get(switchAt + 1);
+            assertEquals(Settings.HOME_FEED.key, feed.getKey());
+            assertEquals("Home shows", String.valueOf(feed.getTitle()));
+            List<String> entries = new ArrayList<>();
+            for (CharSequence entry : feed.getEntries()) entries.add(String.valueOf(entry));
+            assertEquals(Arrays.asList("All", "Favorites", "Friends", "Groups", "Pages"), entries);
+            assertEquals("ALL", feed.getValue());
+
+            assertFalse("the feed choice is open with the switch off", feed.isEnabled());
+            String greyed = String.valueOf(feed.getSummary());
+            assertTrue("the greyed feed choice doesn't say why: " + greyed,
+                    greyed.startsWith("Home shows the same posts as All in the Feeds tab. Turn on")
+                            && greyed.contains(SwitchLabels.title(Settings.FOLLOWING_FEED_HOME))
+                            && greyed.endsWith("to use this."));
+
+            // The switch saves what its listener accepted, and a later save of the choice has the
+            // shared fragment work out which rows are open from the saved switch.
+            assertTrue(following.getOnPreferenceChangeListener().onPreferenceChange(following, true));
+            Settings.FOLLOWING_FEED_HOME.save(true);
+            assertTrue(feed.isEnabled());
+            assertEquals("Home shows the same posts as All in the Feeds tab.", String.valueOf(feed.getSummary()));
+            pick(feed, "FRIENDS");
+            assertEquals(FeedsSubtab.FRIENDS, Settings.HOME_FEED.savedValue());
+            assertEquals("Home shows the same posts as Friends in the Feeds tab. If Facebook doesn't have that feed, "
+                    + "Home shows All.", String.valueOf(feed.getSummary()));
+
+            assertTrue(following.getOnPreferenceChangeListener().onPreferenceChange(following, false));
+            Settings.FOLLOWING_FEED_HOME.save(false);
+            assertFalse(feed.isEnabled());
+            assertEquals("turning the switch off changed the choice", FeedsSubtab.FRIENDS, Settings.HOME_FEED.savedValue());
+        } finally {
+            Settings.FOLLOWING_FEED_HOME.resetToDefault();
+            Settings.HOME_FEED.resetToDefault();
+        }
+    }
+
+    /**
+     * No time limit only works with Keep feed position on return on, so it's greyed out with that
+     * switch off and names it, and turning the switch off keeps what No time limit was set to (#130).
+     */
+    @Test
+    public void noTimeLimitFollowsKeepFeedPositionOnReturn() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.RETURN_REFRESH);
+        String plain = "With the switch above on, your place stays however long you're away. Pull to refresh and a fresh "
+                + "start still load new posts.";
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(controller);
+            int switchAt = indexOfKey(rows, Settings.BLOCK_RETURN_REFRESH.key);
+            assertTrue("no Keep feed position on return switch", switchAt >= 0);
+            SwitchPreference keep = (SwitchPreference) rows.get(switchAt);
+            SwitchPreference noLimit = (SwitchPreference) rows.get(switchAt + 1);
+            assertEquals(Settings.RETURN_REFRESH_NO_LIMIT.key, noLimit.getKey());
+
+            assertFalse("No time limit is open with Keep feed position on return off", noLimit.isEnabled());
+            String greyed = String.valueOf(noLimit.getSummary());
+            assertTrue("the greyed No time limit doesn't say why: " + greyed,
+                    greyed.startsWith(plain + " Turn on") && greyed.contains(SwitchLabels.title(Settings.BLOCK_RETURN_REFRESH))
+                            && greyed.endsWith("to use this."));
+
+            keep.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(Settings.BLOCK_RETURN_REFRESH.savedValue());
+            assertTrue(noLimit.isEnabled());
+            assertEquals(plain, String.valueOf(noLimit.getSummary()));
+            noLimit.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(Settings.RETURN_REFRESH_NO_LIMIT.savedValue());
+
+            keep.setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse(noLimit.isEnabled());
+            assertTrue("the greyed row lost its note on the way back", String.valueOf(noLimit.getSummary()).endsWith("to use this."));
+            assertTrue("turning the switch off changed No time limit", Settings.RETURN_REFRESH_NO_LIMIT.savedValue());
+        } finally {
+            Settings.BLOCK_RETURN_REFRESH.resetToDefault();
+            Settings.RETURN_REFRESH_NO_LIMIT.resetToDefault();
+        }
+
+        // Opened again with the switch still off, it starts greyed out rather than as it was built.
+        Settings.RETURN_REFRESH_NO_LIMIT.save(true);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(controller);
+            Preference noLimit = rows.get(indexOfKey(rows, Settings.RETURN_REFRESH_NO_LIMIT.key));
+            assertFalse("No time limit opened again as open with its switch off", noLimit.isEnabled());
+            assertTrue(String.valueOf(noLimit.getSummary()).endsWith("to use this."));
+        } finally {
+            Settings.RETURN_REFRESH_NO_LIMIT.resetToDefault();
         }
     }
 

@@ -126,6 +126,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean frameStep() {
+        return false;
+    }
+
     public static boolean defaultPlaybackQuality() {
         return false;
     }

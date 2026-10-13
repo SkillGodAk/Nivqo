@@ -34,7 +34,7 @@ import static org.robolectric.Shadows.shadowOf;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35)
 public class ChatAnimationTest {
-    /** The entrance Messenger 580 gives a chat it opens from the inbox, search or a notification. */
+    /** Stands in for the entrance Messenger gives a chat it opens from the inbox, search or a notification. */
     private static final int THREAD_ENTER = 0x7f18000a;
 
     /** What the patch's animation resources resolve to in these tests. */

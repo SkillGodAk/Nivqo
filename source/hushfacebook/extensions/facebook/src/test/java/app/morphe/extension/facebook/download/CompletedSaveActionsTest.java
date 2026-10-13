@@ -348,6 +348,76 @@ public class CompletedSaveActionsTest {
         assertEquals(two, second.getData());
     }
 
+    /**
+     * A picked app icon turns Facebook's launcher entry off and the icon's alias on, so a button
+     * naming the entry started nothing (#119). Both buttons name the entry that's on.
+     */
+    @Test public void buttonsAfterAnIconChangeNameThePickedIconsEntry() throws Exception {
+        android.content.ComponentName entry = new android.content.ComponentName(context.getPackageName(),
+                app.morphe.extension.facebook.misc.AppIcons.LAUNCHER);
+        android.content.ComponentName icon = new android.content.ComponentName(context.getPackageName(),
+                app.morphe.extension.facebook.misc.AppIcons.LAUNCHER + ".blue_fb");
+        android.content.IntentFilter main = new android.content.IntentFilter(Intent.ACTION_MAIN);
+        main.addCategory(Intent.CATEGORY_LAUNCHER);
+        for (android.content.ComponentName launcher : new android.content.ComponentName[] {entry, icon}) {
+            shadowOf(context.getPackageManager()).addActivityIfNotPresent(launcher);
+            shadowOf(context.getPackageManager()).addIntentFilterForActivity(launcher, main);
+        }
+        context.getPackageManager().setComponentEnabledSetting(entry,
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                android.content.pm.PackageManager.DONT_KILL_APP);
+        Uri uri = Uri.parse("content://media/external/video/media/73");
+        for (boolean share : new boolean[]{false, true}) {
+            Intent button = shadowOf(SavedFileActions.button(context, uri, "video/mp4", share)).getSavedIntent();
+            assertEquals(icon, button.getComponent());
+        }
+    }
+
+    /**
+     * After a run of saves nobody cleared, the oldest cards go, so Android's limit on an app's
+     * notifications never swallows the next save's own progress card.
+     */
+    @Test public void onlyTheNewestCompletedCardsStayUp() throws Exception {
+        List<Uri> saved = new ArrayList<>();
+        for (int i = 0; i < SaveControl.COMPLETED_KEPT + 3; i++) {
+            saved.add(entry(save(true, "video/mp4"), 0).getData());
+        }
+        assertEquals(SaveControl.COMPLETED_KEPT, completed().size());
+        for (int i = 0; i < saved.size(); i++) {
+            boolean up = false;
+            for (StatusBarNotification note : notifications().getActiveNotifications()) {
+                if ((COMPLETED + ":" + saved.get(i)).equals(note.getTag())) up = true;
+            }
+            assertEquals("card " + i + " of " + saved.size(), i >= 3, up);
+        }
+    }
+
+    @Test public void aFinishedSaveWaitsForTheOneBeforeItToPostAndTrim() throws Exception {
+        MediaStoreWriter writer = new MediaStoreWriter(context, true);
+        Uri uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, gallery.next);
+        shadowOf(context.getContentResolver()).registerOutputStream(uri, new ByteArrayOutputStream());
+        writer.open("application/octet-stream").write(1);
+        writer.commit();
+        SaveControl.Save save = SaveControl.begin(context, true);
+        try {
+            assertTrue(save.publishing());
+            save.published(true);
+            Thread poster = new Thread(() -> SaveControl.showCompleted(save, writer, null));
+            synchronized (SaveControl.COMPLETED_LOCK) {
+                // Another save is posting its card and trimming: this one waits its turn.
+                poster.start();
+                long until = System.currentTimeMillis() + 10_000;
+                while (poster.getState() != Thread.State.BLOCKED && poster.isAlive() && System.currentTimeMillis() < until) {
+                    Thread.sleep(5);
+                }
+                assertEquals("the second save didn't wait", Thread.State.BLOCKED, poster.getState());
+                assertTrue("a card went up while another save trimmed", completed().isEmpty());
+            }
+            poster.join(10_000);
+            assertEquals(1, completed().size());
+        } finally { save.end(); }
+    }
+
     @Test public void aPendingWriterAndAnUnclaimedSaveExposeNoFileHandle() throws Exception {
         MediaStoreWriter writer = new MediaStoreWriter(context, true);
         assertNull(writer.publishedUri());
@@ -361,7 +431,7 @@ public class CompletedSaveActionsTest {
         assertEquals("video/mp4", writer.publishedMime());
         SaveControl.Save save = SaveControl.begin(context, true);
         try {
-            SaveControl.showCompleted(save, writer);
+            SaveControl.showCompleted(save, writer, null);
             assertTrue(completed().isEmpty());
         } finally { save.end(); }
     }
@@ -389,21 +459,21 @@ public class CompletedSaveActionsTest {
         assertEquals("Save canceled", ShadowToast.getTextOfLatestToast());
     }
 
-    @Test public void theCompatibilityAdviceAndFileActionsCoexist() throws Exception {
+    @Test public void theCompatibilityAdviceAndFileActionsShareOneCard() throws Exception {
         Uri uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, gallery.next);
         shadowOf(context.getContentResolver()).registerOutputStream(uri, new ByteArrayOutputStream());
         finish(MediaDownload.start(context, true,
                 (writer, progress) -> Downloader.publish(file, "video/mp4", writer, progress).refused()));
         assertEquals(1, completed().size());
-        Notification advice = null;
-        for (StatusBarNotification note : notifications().getActiveNotifications()) {
-            if (SaveControl.SAVED_TAG.equals(note.getTag())) advice = note.getNotification();
-        }
-        assertNotNull(advice);
-        assertEquals(1, advice.actions.length);
-        assertEquals("Open the setting", advice.actions[0].title.toString());
+        assertEquals("one save, one card", 1, notifications().getActiveNotifications().length);
+        Notification card = completed().get(0);
+        assertEquals(3, card.actions.length);
+        assertEquals("Open", card.actions[0].title.toString());
+        assertEquals("Share", card.actions[1].title.toString());
+        assertEquals("Open the setting", card.actions[2].title.toString());
+        assertEquals(uri, new Intent(shadowOf(card.actions[0].actionIntent).getSavedIntent()).getData());
         assertEquals(Settings.DOWNLOAD_COMPATIBLE.key,
-                shadowOf(advice.actions[0].actionIntent).getSavedIntent().getStringExtra(SettingsEntry.EXTRA_SHOW_SETTING));
+                shadowOf(card.actions[2].actionIntent).getSavedIntent().getStringExtra(SettingsEntry.EXTRA_SHOW_SETTING));
         assertEquals("Saved, but WhatsApp and some editors may not accept it", ShadowToast.getTextOfLatestToast());
     }
 

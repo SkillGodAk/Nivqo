@@ -1,0 +1,79 @@
+# Calibration cases for FingerprintCandidates.java: where feed, Reels and story menu targets went
+# between Facebook 580.0.0.51.74 and 582.0.0.50.54, both arm64-v8a (base.apk of each APKMirror bundle).
+#
+# "old" is the method on 580, the "new" of the same case in fingerprint-calibration.txt, read from the
+# fingerprint history (fingerprint-history.txt). "new" is the method on the 582 arm64 fixture, found
+# by hand on 2026-10-12: each one read on stock 582 and on 582 patched with the 0.11.1 bundle's 86
+# default patches, where it is the method whose body gained the patch's code. Where a rule on stock
+# 582 picks the same method, it is listed too. test-fingerprint-candidates.ps1 holds the tool to
+# ranking every "new" method in the top five, given only the "old" one.
+#
+# These names are one build's inventions, written down as calibration data. A patch never names one:
+# ObfuscatedIdentityTest fails on that.
+
+case feed-add-new-edge
+  patch Hide sponsored posts
+  role The feed collection's add method, where the one feed guard goes. Its name is kept; its class isn't.
+  old LX/1oG;->addNewEdgeToCollection(Lcom/google/common/collect/ImmutableList$Builder;Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;LX/1SO;)Z
+  new LX/1we;->addNewEdgeToCollection(Lcom/google/common/collect/ImmutableList$Builder;Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;LX/1Zs;)Z
+  evidence Patched 582: the only Facebook method calling FeedFilter.hideEdge. Stock 582: the only method of that name.
+
+case feed-story-category
+  patch Hide sponsored posts
+  role The edge's story-category getter, which the feed guard calls.
+  old Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;->B6W()Lcom/crossapp/graphql/facebook/enums/GraphQLFeedStoryCategory;
+  new Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;->B8S()Lcom/crossapp/graphql/facebook/enums/GraphQLFeedStoryCategory;
+  evidence Patched 582: the guard injected at the start of addNewEdgeToCollection invokes it first.
+
+case feed-unit-inflate
+  patch Hide sponsored posts
+  role The edge's feed-unit getter that inflates the unit, picked by its inflateFeedUnit literal.
+  old Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;->BOq()LX/3Te;
+  new Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;->BR6()LX/2U7;
+  evidence Patched 582: the guard injected at the start of addNewEdgeToCollection invokes it second.
+  evidence Stock 582: the one method holding "inflateFeedUnit".
+
+case reels-insert-ads
+  patch Hide sponsored reels
+  role VideoHomeDataControllerImpl.maybeInsertAds, which splices a page of ads in.
+  old LX/4VK;->CxV(LX/6iZ;I)V
+  new LX/5Q5;->D1V(LX/fsl;I)V
+  evidence Patched 582: return-void at its start.
+  evidence Stock 582: the one method holding "VideoHomeDataControllerImpl.maybeInsertAds".
+
+case reels-idle-video-query
+  patch Hide sponsored reels
+  role The idle ad state's own video ad query, whose executor call the patch replaces.
+  old LX/7z3;->A0A(Lcom/facebook/auth/usersession/FbUserSession;LX/6uh;I)V
+  new LX/8Ev;->A0A(Lcom/facebook/auth/usersession/FbUserSession;LX/8Eh;I)V
+  evidence Patched 582: it calls the patch's failedAdFetch.
+  evidence Stock 582: the one void method holding "FBFetchReelsVideoAdsQuery".
+
+case reels-state-name
+  patch Hide sponsored reels
+  role The method naming the ad-break states by instance-of. It sits in a class of its own, as on 580, not beside the tick.
+  old LX/9IF;->A0e()Ljava/lang/String;
+  new LX/9bE;->A0f()Ljava/lang/String;
+  evidence Stock 582: the one method holding "UnresolvedWithDeferredCardState". It tests LX/8Hs; just before that literal.
+
+case reels-ad-break-tick
+  patch Hide sponsored reels
+  role The ad-break lookup's poller tick, declared by a class the deferred-card state inherits from.
+  old LX/7z9;->A0a(LX/6uh;I)J
+  new LX/8F3;->A0b(LX/8Eh;I)J
+  evidence Patched 582: it gained the instance-of LX/8Hs; guard answering -1 (const-wide/16, return-wide) ahead of its stock first instruction.
+
+case story-save-action
+  patch Download any story
+  role The tap handler of the story menu's save action, found by the event it reports.
+  old LX/X5S;->E0G(LX/Wkb;)V
+  new LX/eu1;->E55(LX/ay9;)V
+  evidence Patched 582: the only method calling MediaDownload.saveStory.
+  evidence Stock 582: the one-parameter void method holding "save_story_attempted".
+
+case story-menu-builder
+  patch Download any story
+  role The story viewer's More menu builder that creates the save action.
+  old Lcom/facebook/stories/viewer/ui/buckets/regular/topbar/menu/StoryViewerMoreButtonCallback;->A09(Lcom/facebook/auth/usersession/FbUserSession;LX/3MF;LX/CtQ;Lcom/google/common/collect/ImmutableList$Builder;)V
+  new Lcom/facebook/stories/viewer/ui/buckets/regular/topbar/menu/StoryViewerMoreButtonCallback;->A09(Lcom/facebook/auth/usersession/FbUserSession;LX/3mT;LX/DE4;Lcom/google/common/collect/ImmutableList$Builder;)V
+  evidence Patched 582: the only method calling MediaDownload.offersSave.

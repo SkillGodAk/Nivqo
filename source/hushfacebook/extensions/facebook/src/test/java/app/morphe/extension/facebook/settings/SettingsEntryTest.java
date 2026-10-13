@@ -21,6 +21,7 @@ import java.util.List;
 
 import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.settings.BaseSettings;
+import app.morphe.extension.shared.settings.preference.ReopenSettingsAfterRestart;
 
 import org.junit.After;
 import org.junit.Before;
@@ -182,6 +183,78 @@ public class SettingsEntryTest {
         org.junit.Assert.assertEquals(0, shortcut(manager, SettingsEntry.SHORTCUT_ID).getRank());
     }
 
+    /**
+     * Picking an app icon turns Facebook's launcher entry off and the icon's alias on. The shortcut
+     * still named the entry, so a tap on it started nothing (#119). The next start pushes it again
+     * naming the icon's alias, and a notification's open-setting intent names it too.
+     */
+    @Test public void anIconChangeMovesTheShortcutToTheLauncherEntryThatsOn() throws Exception {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        android.content.pm.ShortcutManager manager = context.getSystemService(android.content.pm.ShortcutManager.class);
+        android.content.pm.PackageManager packages = context.getPackageManager();
+        android.content.ComponentName entry = new android.content.ComponentName(context.getPackageName(),
+                app.morphe.extension.facebook.misc.AppIcons.LAUNCHER);
+        android.content.ComponentName icon = new android.content.ComponentName(context.getPackageName(),
+                app.morphe.extension.facebook.misc.AppIcons.LAUNCHER + ".vaporwave_ic");
+        android.content.IntentFilter main = new android.content.IntentFilter(Intent.ACTION_MAIN);
+        main.addCategory(Intent.CATEGORY_LAUNCHER);
+        for (android.content.ComponentName launcher : new android.content.ComponentName[] {entry, icon}) {
+            org.robolectric.Shadows.shadowOf(packages).addActivityIfNotPresent(launcher);
+            org.robolectric.Shadows.shadowOf(packages).addIntentFilterForActivity(launcher, main);
+        }
+        int on = android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
+        int off = android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
+        packages.setComponentEnabledSetting(icon, off, android.content.pm.PackageManager.DONT_KILL_APP);
+        SettingsEntry.publishShortcutNow(context);
+        org.junit.Assert.assertEquals(entry, shortcut(manager, SettingsEntry.SHORTCUT_ID).getIntent().getComponent());
+
+        packages.setComponentEnabledSetting(icon, on, android.content.pm.PackageManager.DONT_KILL_APP);
+        packages.setComponentEnabledSetting(entry, off, android.content.pm.PackageManager.DONT_KILL_APP);
+        SettingsEntry.publishShortcutNow(context);
+
+        Intent opens = shortcut(manager, SettingsEntry.SHORTCUT_ID).getIntent();
+        org.junit.Assert.assertEquals("the shortcut still named the entry that's off", icon, opens.getComponent());
+        assertTrue(opens.getBooleanExtra(SettingsEntry.EXTRA_OPEN_SETTINGS, false));
+        org.junit.Assert.assertEquals("one shortcut, pushed again, not two", 1, manager.getDynamicShortcuts().size());
+        org.junit.Assert.assertEquals(icon,
+                SettingsEntry.settingIntent(context, Settings.DOWNLOAD_COMPATIBLE.key).getComponent());
+    }
+
+    /**
+     * Android disables the shortcuts tied to the launcher entry an icon change turns off, and
+     * Facebook keeps running, so the Hushfacebook one stayed gone until the next cold start (#119).
+     * Facebook's own PACKAGE_CHANGED naming the launcher entry puts it back after Android has had
+     * its turn; one naming another component, or another app, leaves the shortcuts alone.
+     */
+    @Test public void aLauncherChangePublishesTheShortcutAgainWithoutARestart() throws Exception {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        android.content.pm.ShortcutManager manager = context.getSystemService(android.content.pm.ShortcutManager.class);
+        String pkg = context.getPackageName();
+        SettingsEntry.watchLauncherChanges(context);
+        manager.removeAllDynamicShortcuts();
+
+        context.sendBroadcast(packageChanged("package:" + pkg, pkg + ".SomeService"));
+        context.sendBroadcast(packageChanged("package:com.example.other", app.morphe.extension.facebook.misc.AppIcons.LAUNCHER));
+        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(SettingsEntry.LAUNCHER_CHANGE_DELAY_MS));
+        app.morphe.extension.shared.Utils.awaitBackgroundTasksForTests();
+        assertNull("another component's change", shortcut(manager, SettingsEntry.SHORTCUT_ID));
+
+        context.sendBroadcast(packageChanged("package:" + pkg, app.morphe.extension.facebook.misc.AppIcons.LAUNCHER,
+                app.morphe.extension.facebook.misc.AppIcons.LAUNCHER + ".vaporwave_ic"));
+        ShadowLooper.idleMainLooper();
+        app.morphe.extension.shared.Utils.awaitBackgroundTasksForTests();
+        assertNull("not before Android has disabled the old ones", shortcut(manager, SettingsEntry.SHORTCUT_ID));
+        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(SettingsEntry.LAUNCHER_CHANGE_DELAY_MS));
+        app.morphe.extension.shared.Utils.awaitBackgroundTasksForTests();
+        assertNotNull("published again on the launcher change", shortcut(manager, SettingsEntry.SHORTCUT_ID));
+        assertTrue("the whole package", SettingsEntry.namesLauncher(pkg, packageChanged("package:" + pkg, pkg)));
+    }
+
+    private static Intent packageChanged(String data, String... components) {
+        return new Intent(Intent.ACTION_PACKAGE_CHANGED, android.net.Uri.parse(data))
+                .putExtra(Intent.EXTRA_CHANGED_COMPONENT_NAME_LIST, components);
+    }
+
     /** What the platform leaves after Facebook's pushes rank ahead of the Hushfacebook shortcut. */
     private static void demote(android.content.Context context, android.content.pm.ShortcutManager manager,
                                int rank, String label) {
@@ -281,6 +354,47 @@ public class SettingsEntryTest {
         ActivityController<Activity> loggedOut = replace(login);
 
         assertNull("the screen came back after the person closed it with the arrow", dialogOver(loggedOut.get()));
+    }
+
+    /**
+     * The restart row restarts Facebook with a marker naming its page. The next start takes the
+     * marker, the same way onApplicationCreate does, and the screen opens over the first Facebook
+     * screen to resume, on that page. Closing it drops the page, so a later open starts at the top.
+     */
+    @Test public void aStartAfterTheRestartRowOpensTheScreenOnItsPage() {
+        android.content.SharedPreferences store = app.morphe.extension.shared.settings.Setting.preferences.preferences;
+        PatchFamily.inBuildForTests = java.util.EnumSet.allOf(PatchFamily.class);
+        try {
+            assertFalse("a start without a marker asked for the screen",
+                    ReopenSettingsAfterRestart.reopenIfPending(SettingsEntry::reopenOn));
+            ReopenSettingsAfterRestart.remember(store, "Links", android.os.SystemClock.elapsedRealtime());
+            assertTrue(ReopenSettingsAfterRestart.reopenIfPending(SettingsEntry::reopenOn));
+            assertFalse("the marker outlived the start that read it", store.contains("hush_reopen_settings_page"));
+
+            ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup();
+            ShadowLooper.idleMainLooper();
+            SettingsDialog dialog = (SettingsDialog) dialogOver(activity.get());
+            assertNotNull("the restart didn't open the screen again", dialog);
+            org.junit.Assert.assertEquals("Links", dialog.startPage());
+            ListView list = pageOver(activity.get()).getView().findViewById(android.R.id.list);
+            boolean onLinks = false;
+            for (int i = 0; i < list.getCount(); i++) {
+                Object row = list.getItemAtPosition(i);
+                if (row instanceof Preference
+                        && Settings.OPEN_LINKS_EXTERNALLY.key.equals(((Preference) row).getKey())) onLinks = true;
+            }
+            assertTrue("the screen didn't open on Links", onLinks);
+
+            SettingsL10nTest.backOf(dialog).performClick();
+            SettingsL10nTest.backOf(dialog).performClick();
+            SettingsL10nTest.backOf(dialog).performClick();
+            ShadowLooper.idleMainLooper();
+            assertNull("the screen stayed open", dialogOver(activity.get()));
+            assertNull("closing the screen kept its page for the next open", SettingsEntry.requestedPage());
+        } finally {
+            SettingsEntry.onClosedByUser();
+            PatchFamily.inBuildForTests = null;
+        }
     }
 
     /**

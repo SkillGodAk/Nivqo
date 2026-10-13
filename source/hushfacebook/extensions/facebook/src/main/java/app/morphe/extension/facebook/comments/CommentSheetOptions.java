@@ -13,6 +13,7 @@ import android.net.Uri;
 
 import androidx.annotation.Nullable;
 
+import app.morphe.extension.facebook.feed.PostWords;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.Logger;
@@ -22,8 +23,8 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
 /**
  * Comment sheet options: the comment box without its GIF and sticker buttons, Like without the
  * reaction picker a long press opens, every comment's reply thread open from the start, a group
- * post's comments without the Related groups list under them, and a way to Facebook's own setting
- * that hides reaction counts.
+ * post's comments without the Related groups list under them, comments with shop links or your
+ * words left out, and a way to Facebook's own setting that hides reaction counts.
  *
  * <p>The comment box draws its buttons through a socket that asks a check of each button, by
  * number, whether it shows. The patch asks {@link #holdsButton} first in that check with the
@@ -34,6 +35,8 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * returns before anything opens. A comment keeps whether its reply thread is open in its state,
  * which starts closed until a tap on View replies opens it. The patch hands
  * {@link #openReplyThreads} that flag as the state is first set up and writes back the answer.
+ * Each comment is drawn by a section that the patch asks {@link #hidesComment} first, with the
+ * comment it draws; a yes draws nothing for it.
  *
  * <p>Off, paused, before the settings are ready, or when anything here fails, the answers are
  * Facebook's own and its code runs as written.
@@ -62,6 +65,15 @@ public final class CommentSheetOptions {
 
     /** Counted each time a comment starts with its reply thread open. */
     static final String THREAD_OPENED = "Reply thread opened";
+
+    /** Counted each time a comment is left out for a link to a shop. */
+    static final String SHOP_LINK_HIDDEN = "Comment with a shop link left out";
+
+    /** Counted each time a comment is left out for a phrase from Words to hide. */
+    static final String WORDS_HIDDEN = "Comment with your words left out";
+
+    /** The member the report names once a comment has been drawn through the hook. */
+    static final String COMMENTS = "comments";
 
     /** The member the report names once the comment box's socket has asked about the GIF or sticker button. */
     static final String BUTTONS = "comment box buttons";
@@ -156,6 +168,39 @@ public final class CommentSheetOptions {
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "reply thread", failure);
             return open;
+        }
+    }
+
+    /**
+     * The hook, first thing as a comment is drawn, handed the GraphQLComment it draws. True leaves
+     * the comment out, with its replies: while Hide comments with shop links is on and its words
+     * link to a shop, or while Hide comments with your words is on and they hold a phrase from
+     * Words to hide and none from the keep list. False draws it as Facebook does, and so does
+     * anything this can't read.
+     */
+    public static boolean hidesComment(@Nullable Object comment) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, COMMENTS);
+            if (!Utils.settingsReady()) return false;
+            boolean links = Settings.HIDE_SHOP_LINK_COMMENTS.get();
+            boolean words = Settings.HIDE_COMMENTS_WITH_WORDS.get();
+            if (!links && !words) return false;
+            String text = CommentText.body(comment);
+            if (text == null) return false;
+            if (links && ShopLinks.holds(text)) {
+                HookStatus.counted(FAMILY, SHOP_LINK_HIDDEN);
+                return true;
+            }
+            if (words && PostWords.hidesText(text, Settings.HIDDEN_WORDS.get(), Settings.KEPT_WORDS.get(),
+                    Settings.POST_WORDS_WHOLE_WORDS.get())) {
+                HookStatus.counted(FAMILY, WORDS_HIDDEN);
+                return true;
+            }
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "comment filter", failure);
+            return false;
         }
     }
 

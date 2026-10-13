@@ -23,6 +23,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 /*
@@ -59,6 +60,35 @@ internal const val RUNNABLE = "Ljava/lang/Runnable;"
 private const val ANALYTICS_UPLOADS = "$EXTENSION_PACKAGE/misc/AnalyticsUploads;"
 internal const val HOLD_XANALYTICS = "$ANALYTICS_UPLOADS->holdXAnalyticsUpload()Z"
 internal const val PAPAYA_ON = "$ANALYTICS_UPLOADS->papayaOn(Z)Z"
+internal const val ANALYTICS2_JOB_RAN = "com.facebook.analytics2.action.UPLOAD_JOB_RAN"
+internal const val OBSERVE_ANALYTICS2_RETRY = "$ANALYTICS_UPLOADS->observeAnalytics2Retry(Z)V"
+
+/** The unique framework store of Analytics2's retry flag, after the state machine finishes. */
+internal fun analytics2RetryValue(method: Method): Int? {
+    if (method.returnType != "V" || method.parameterTypes.isNotEmpty() ||
+        !holdsString(method, ANALYTICS2_JOB_RAN) || !holdsString(method, "exitStateMachine")) return null
+    val instructions = method.implementation?.instructions?.toList() ?: return null
+    return (1 until instructions.lastIndex).filter { index ->
+        val call = instructions[index]
+        val ref = (call as? ReferenceInstruction)?.reference as? MethodReference
+        val key = instructions[index - 1]
+        val registers = call.callRegisters()
+        call.opcode in listOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE) &&
+            ref?.definingClass == "Landroid/os/BaseBundle;" && ref.name == "putBoolean" &&
+            ref.returnType == "V" && ref.parameterTypes.map(Any::toString) == listOf("Ljava/lang/String;", "Z") &&
+            registers.size == 3 && registers.toSet().size == 3 &&
+            key.opcode in listOf(Opcode.CONST_STRING, Opcode.CONST_STRING_JUMBO) &&
+            ((key as? ReferenceInstruction)?.reference as? StringReference)?.string == "will_retry" &&
+            (key as? OneRegisterInstruction)?.registerA == registers[1]
+    }.singleOrNull()
+}
+
+/** One void call after the existing store, borrowing no registers and changing no host values. */
+internal fun MutableMethod.observeAnalytics2Retry(index: Int) {
+    if (analytics2RetryValue(this) != index) throw PatchException("$PATCH: Analytics2's retry store moved in $definingClass->$name")
+    val value = getInstruction(index).callRegisters()[2]
+    addInstructions(index + 1, "invoke-static/range { v$value .. v$value }, $OBSERVE_ANALYTICS2_RETRY")
+}
 
 /** Whether [method] is the Papaya job's start: onStartJob(JobParameters)Z with a body. */
 internal fun isJobStart(method: Method): Boolean =

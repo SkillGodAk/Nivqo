@@ -13,6 +13,7 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.preference.ListPreference;
 import android.preference.Preference;
@@ -32,6 +33,7 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -78,6 +80,7 @@ import app.morphe.extension.facebook.settings.ValueRows.FeedsSubtabRow;
 import app.morphe.extension.facebook.settings.ValueRows.FileNameRow;
 import app.morphe.extension.facebook.settings.ValueRows.FolderRow;
 import app.morphe.extension.facebook.settings.ValueRows.LanguageRow;
+import app.morphe.extension.facebook.settings.ValueRows.HomeFeedRow;
 import app.morphe.extension.facebook.settings.ValueRows.PlaybackQualityRow;
 import app.morphe.extension.facebook.settings.ValueRows.QuietHourRow;
 import app.morphe.extension.facebook.settings.ValueRows.QualityRow;
@@ -99,6 +102,7 @@ import app.morphe.extension.shared.settings.Setting;
 import app.morphe.extension.shared.settings.StringSetting;
 import app.morphe.extension.shared.settings.preference.AbstractPreferenceFragment;
 import app.morphe.extension.shared.settings.preference.LogBufferManager;
+import app.morphe.extension.shared.settings.preference.QuickSetups;
 
 /**
  * The preference list, built in code rather than from an XML resource so the bundle adds no
@@ -365,6 +369,24 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             saveRows.put(save.id, row);
             group.addPreference(row);
         }
+        SaveControl.Outcome outcome = SaveControl.lastOutcome();
+        Preference last = group.findPreference("last_save_outcome");
+        if (outcome == null) {
+            if (last != null) group.removePreference(last);
+            return;
+        }
+        if (last == null) {
+            last = new Row(group.getContext());
+            last.setKey("last_save_outcome");
+            last.setTitle(L10n.t("Last save"));
+            last.setPersistent(false);
+            last.setSelectable(false);
+            last.setOrder(Integer.MIN_VALUE / 4);
+            last.setSummary(SaveControl.outcomeText(outcome));
+            group.addPreference(last);
+        } else {
+            last.setSummary(SaveControl.outcomeText(outcome));
+        }
     }
 
     /**
@@ -401,13 +423,15 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
      * shows once the view is gone or the activity is finishing: a word list's Save can land as the
      * activity goes, and its note would come up over a window that's gone.
      */
-    void show(AlertDialog.Builder builder) {
+    @Nullable
+    AlertDialog show(AlertDialog.Builder builder) {
         Activity activity = getActivity();
-        if (getView() == null || activity == null || activity.isFinishing() || activity.isDestroyed()) return;
+        if (getView() == null || activity == null || activity.isFinishing() || activity.isDestroyed()) return null;
         AlertDialog dialog = builder.show();
         ScreenColors.dialog(dialog);
         shownDialogs.add(dialog);
         dialog.setOnDismissListener(shownDialogs::remove);
+        return dialog;
     }
 
     /** The section headings on the page, in order. */
@@ -723,12 +747,55 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         return pending;
     }
 
+    /**
+     * A switch whose change waits for a restart: the card says what the next start brings, and the
+     * restart row comes, goes or counts again.
+     */
     @Override
     protected void onRestartPendingChanged() {
         Preference card = statusCard;
         Context context = getContext();
         if (card != null && context != null) showStatus(card, context);
         showMarketplaceSettings();
+        if (navigation != null) navigation.restartChanged();
+    }
+
+    /**
+     * Quick setups: Quiet, Privacy or Back to defaults, each changing its switches at once
+     * ({@link QuickSetupKeys}), then a toast saying how many changed. A switch that needs a restart
+     * brings up the restart row the way a tap on it would.
+     */
+    void showQuickSetups() {
+        Context context = getContext();
+        if (context == null) return;
+        List<Map<BooleanSetting, Boolean>> choices = Arrays.asList(
+                QuickSetupKeys.quiet(), QuickSetupKeys.privacy(), QuickSetupKeys.defaults());
+        CharSequence[] names = {L10n.t("Quiet"), L10n.t("Privacy"), L10n.t("Back to defaults")};
+        CharSequence[] details = {
+                L10n.t("Hides ads, suggestions, promos and prompts, and stops nagging notifications."),
+                L10n.t("Holds back usage reports and camera roll scans, removes link tracking, and hides your typing and screenshots."),
+                L10n.t("Puts every feature switch but Lock Facebook back the way it started.")};
+        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        AlertDialog dialog = show(new AlertDialog.Builder(themed(context))
+                .setTitle(L10n.t("Quick setups"))
+                .setAdapter(new ChoiceCards(colors, names, details),
+                        (shown, which) -> applyQuickSetup(choices.get(which)))
+                .setNegativeButton(L10n.t("Cancel"), null));
+        ListView list = dialog == null ? null : dialog.getListView();
+        if (list != null) {
+            // The cards bring their own spacing and press ripple, as in the diagnostic report's choices.
+            list.setDivider(null);
+            list.setSelector(new ColorDrawable(Color.TRANSPARENT));
+        }
+    }
+
+    /** Applies one Quick setups choice to the switches on this page and says how many changed. */
+    int applyQuickSetup(Map<BooleanSetting, Boolean> values) {
+        PreferenceScreen screen = getPreferenceScreen();
+        if (screen == null) return 0;
+        int changed = QuickSetups.apply(screen, values);
+        Utils.showToastLong(L10n.quantity(changed, "Changed %1$d setting", "Changed %1$d settings", changed));
+        return changed;
     }
 
     @Override
@@ -791,19 +858,19 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         Preference chosen = findPreference(Settings.OPEN_ON_CHOSEN_TAB.key);
         if (chosen != null) {
             chosen.setEnabled(!selected);
-            chosen.setSummary(selected ? L10n.t("Marketplace mode chooses the opening tab. Your previous choice stays saved.")
+            chosen.setSummary(selected ? L10n.t("Marketplace only chooses the opening tab. Your previous choice stays saved.")
                     : L10n.t("Choose where Facebook opens from its icon. Notifications and links still open their destination."));
         }
         Preference tab = findPreference(Settings.START_TAB.key);
         if (tab != null) {
             tab.setEnabled(!selected);
-            tab.setSummary(selected ? L10n.t("Marketplace mode chooses the opening tab. Your previous choice stays saved.")
+            tab.setSummary(selected ? L10n.t("Marketplace only chooses the opening tab. Your previous choice stays saved.")
                     : startTabSummary(Settings.START_TAB.savedValue()));
         }
         Preference subtab = findPreference(Settings.FEEDS_SUBTAB.key);
         if (subtab != null) {
             subtab.setEnabled(!selected);
-            subtab.setSummary(selected ? L10n.t("Marketplace mode chooses the opening tab. Your previous choice stays saved.")
+            subtab.setSummary(selected ? L10n.t("Marketplace only chooses the opening tab. Your previous choice stays saved.")
                     : feedsSubtabSummary(Settings.FEEDS_SUBTAB.savedValue()));
         }
     }
@@ -824,7 +891,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 return L10n.t("Active. Marketplace, Notifications and Profile/Menu stay. Find Hushfacebook settings in Menu, under Settings and privacy.");
             case RESTART_NEEDED:
                 return Settings.MARKETPLACE_ONLY.savedValue()
-                        ? L10n.t("Restart needed. Marketplace mode will turn on the next time Facebook starts.")
+                        ? L10n.t("Restart needed. Marketplace only will turn on the next time Facebook starts.")
                         : L10n.t("Restart needed. The normal tabs will return the next time Facebook starts.");
             case PAUSED:
                 return L10n.t("Paused with Hushfacebook. Your Marketplace choice stays saved. Tabs already hidden return after a restart while paused.");
@@ -835,7 +902,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             case UNREADABLE:
                 return L10n.t("Couldn't check the tab bar. Your normal tabs stay available. Restart Facebook to try again.");
             case WAITING:
-                return L10n.t("Waiting for Facebook's tab bar. Marketplace mode will apply when Facebook builds it.");
+                return L10n.t("Waiting for Facebook's tab bar. Marketplace only will apply when Facebook builds it.");
             default:
                 return L10n.t("Off. Turn on to open Marketplace and hide the feed and other social tabs after restarting Facebook.");
         }
@@ -904,12 +971,12 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         return category;
     }
 
-    static SwitchPreference toggle(Context context, BooleanSetting setting, String summary) {
+    static Toggle toggle(Context context, BooleanSetting setting, String summary) {
         return toggle(context, setting, SwitchLabels.title(setting), summary);
     }
 
-    static SwitchPreference toggle(Context context, BooleanSetting setting, String title, String summary) {
-        SwitchPreference preference = new Toggle(context);
+    static Toggle toggle(Context context, BooleanSetting setting, String title, String summary) {
+        Toggle preference = new Toggle(context);
         preference.setKey(setting.key);
         preference.setTitle(title);
         preference.setSummary(summary);
@@ -1110,6 +1177,40 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     }
 
     /**
+     * Which of the Feeds tab's filters Home shows while Following feed on Home is on. Like the
+     * Feeds filter row, its values are the setting's own names and its summary says what the
+     * choice does.
+     */
+    static HomeFeedRow homeFeedRow(Context context) {
+        HomeFeedRow row = new HomeFeedRow(context);
+        row.setKey(Settings.HOME_FEED.key);
+        row.setTitle(L10n.t("Home shows"));
+        row.setDialogTitle(L10n.t("Home shows"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        FeedsSubtab[] feeds = FeedsSubtab.values();
+        CharSequence[] entries = new CharSequence[feeds.length];
+        CharSequence[] values = new CharSequence[feeds.length];
+        for (int i = 0; i < feeds.length; i++) {
+            entries[i] = feedsSubtabLabel(feeds[i]);
+            values[i] = feeds[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.HOME_FEED.savedValue().name());
+        return row;
+    }
+
+    /**
+     * What Home shows with [feed], for the row's summary. A filter Facebook hasn't got leaves Home
+     * on All, so the summary says so rather than promise the filter.
+     */
+    static String homeFeedSummary(FeedsSubtab feed) {
+        if (feed == FeedsSubtab.ALL) return L10n.t("Home shows the same posts as All in the Feeds tab.");
+        return L10n.f("Home shows the same posts as %1$s in the Feeds tab. If Facebook doesn't have that feed, "
+                + "Home shows All.", feedsSubtabLabel(feed));
+    }
+
+    /**
      * The order comment sheets ask for. Like the start tab row, its values are the setting's own
      * names and its summary says what the choice does.
      */
@@ -1227,8 +1328,9 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     static SeenKeepRow seenKeepRow(Context context) {
         SeenKeepRow row = new SeenKeepRow(context);
         row.setKey(Settings.SEEN_POSTS_KEEP.key);
-        row.setTitle(L10n.t("Keep them hidden for"));
-        row.setDialogTitle(L10n.t("Keep them hidden for"));
+        // Settings search shows the title on its own, so it names what it keeps hidden.
+        row.setTitle(L10n.t("Keep seen posts hidden for"));
+        row.setDialogTitle(L10n.t("Keep seen posts hidden for"));
         // Android's own Cancel follows the activity's language, as the other lists' did.
         row.setNegativeButtonText(L10n.t("Cancel"));
         SeenPosts.Keep[] choices = SeenPosts.Keep.values();
@@ -1444,7 +1546,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         CharSequence[] values = new CharSequence[choices.length];
         for (int i = 0; i < choices.length; i++) {
             PlaybackQuality quality = choices[i].quality;
-            entries[i] = quality == null ? L10n.t("Same as videos") : playbackQualityLabel(quality);
+            entries[i] = quality == null ? L10n.t("Same as Playback quality") : playbackQualityLabel(quality);
             values[i] = choices[i].name();
         }
         row.setEntries(entries);
@@ -1454,11 +1556,18 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         return row;
     }
 
-    /** What the Reels ([reels]) or Stories quality row says [choice] does. A quality of their own is named as the list names it. */
+    /**
+     * What the Reels ([reels]) or Stories quality row says [choice] does. Both kinds say how the
+     * choice relates to Playback quality, which a bare label left unclear (#90).
+     */
     static String surfaceQualitySummary(SurfaceQuality choice, boolean reels) {
-        if (choice.quality != null) return playbackQualityLabel(choice.quality);
-        return reels ? L10n.t("Reels play at the playback quality above.")
-                : L10n.t("Video stories play at the playback quality above.");
+        if (choice.quality != null) {
+            String label = playbackQualityLabel(choice.quality);
+            return reels ? L10n.f("%1$s for reels, whatever Playback quality is set to.", label)
+                    : L10n.f("%1$s for video stories, whatever Playback quality is set to.", label);
+        }
+        return reels ? L10n.t("Reels follow the Playback quality row.")
+                : L10n.t("Video stories follow the Playback quality row.");
     }
 
     /** What the list calls [quality]: Auto, as Facebook's own quality menu calls it, and a ceiling by its label. */
@@ -1544,6 +1653,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             ((StartTabRow) listPreference).showSummary();
         } else if (listPreference instanceof FeedsSubtabRow) {
             ((FeedsSubtabRow) listPreference).showSummary();
+        } else if (listPreference instanceof HomeFeedRow) {
+            ((HomeFeedRow) listPreference).showSummary();
         } else if (listPreference instanceof CommentOrderRow) {
             ((CommentOrderRow) listPreference).showSummary();
         } else if (listPreference instanceof LockAfterRow) {
@@ -1582,7 +1693,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         // from Facebook's, and the dialog read "Speichern" next to "Cancel".
         row.setNegativeButtonText(L10n.t("Cancel"));
         EditText field = row.getEditText();
-        field.setSingleLine(true);
+        keepEditorInDialog(field, false);
         field.setHint(L10n.t("Folder name"));
         row.setText(Settings.SAVE_FOLDER.savedValue());
         row.setOnPreferenceChangeListener((preference, typed) -> {
@@ -1617,7 +1728,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         row.setPositiveButtonText(L10n.t("Save"));
         row.setNegativeButtonText(L10n.t("Cancel"));
         EditText field = row.getEditText();
-        field.setSingleLine(true);
+        keepEditorInDialog(field, false);
         field.setHint(L10n.t("Folder name"));
         row.setText(setting.savedValue());
         row.setOnPreferenceChangeListener((preference, typed) -> {
@@ -1726,7 +1837,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         // Android's own Cancel follows the activity's language, as the folder row's did.
         row.setNegativeButtonText(L10n.t("Cancel"));
         EditText field = row.getEditText();
-        field.setSingleLine(true);
+        keepEditorInDialog(field, false);
         field.setHint(L10n.t("File name"));
         row.setText(setting.savedValue());
         row.setOnPreferenceChangeListener((preference, typed) -> {
@@ -1792,7 +1903,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         row.setPositiveButtonText(L10n.t("Save"));
         row.setNegativeButtonText(L10n.t("Cancel"));
         EditText field = row.getEditText();
-        field.setSingleLine(true);
+        keepEditorInDialog(field, false);
         field.setHint(L10n.t("App ID"));
         row.setText(Settings.SEND_TO_APP.savedValue());
         row.setOnPreferenceChangeListener((preference, typed) -> {
@@ -1861,11 +1972,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         // Android's own Cancel follows the activity's language, as the folder row's did.
         row.setNegativeButtonText(L10n.t("Cancel"));
         EditText field = row.getEditText();
-        field.setSingleLine(false);
-        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        // A landscape IME's extracted editor replaces the dialog and hides Save and Cancel.
-        field.setImeOptions(field.getImeOptions() | EditorInfo.IME_FLAG_NO_FULLSCREEN
-                | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+        keepEditorInDialog(field, true);
         // No line cap: the list grows inside its dialog's scroll, which a field scrolling itself
         // inside it would fight (#58).
         field.setMinLines(3);
@@ -1915,9 +2022,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
 
     /**
      * The list Hide posts from people, Pages and sites reads. What's typed is cleaned before it's
-     * kept, one rule per line within the bounds {@link PostSources} holds the list to, so the row,
-     * the setting and the filter all read the same rules. A dialog says how many lines were left
-     * out, never which.
+     * kept, one rule per line within the bounds {@link PostSources} holds the list to. Its editor
+     * refuses anything that would lose a rule, keeping the draft open to correct it.
      */
     SourcesRow sourcesRow(Context context) {
         SourcesRow row = new SourcesRow(context);
@@ -1932,36 +2038,67 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         row.setPositiveButtonText(L10n.t("Save"));
         row.setNegativeButtonText(L10n.t("Cancel"));
         EditText field = row.getEditText();
-        field.setSingleLine(false);
-        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        // A landscape IME's extracted editor replaces the dialog and hides Save and Cancel.
-        field.setImeOptions(field.getImeOptions() | EditorInfo.IME_FLAG_NO_FULLSCREEN
-                | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+        keepEditorInDialog(field, true);
         field.setMinLines(3);
-        field.setHint(L10n.t("One name, id or site per line"));
+        field.setHint(L10n.t("One name, ID or site per line"));
         row.setText(Settings.HIDDEN_SOURCES.savedValue());
         row.setOnPreferenceChangeListener((preference, typed) -> {
             String raw = typed == null ? "" : typed.toString();
+            if (sourcesRefusal(raw) != null) return false;
             String clean = PostSources.clean(raw);
             if (clean.equals(raw)) return true;
-            // Keeps the clean list in place of what was typed, as the word lists do.
-            int leftOut = PostSources.leftOut(raw);
+            // Harmless normalization and duplicates use the filter's own spelling and identity.
             ((SourcesRow) preference).setText(clean);
-            if (leftOut > 0) {
-                String why = L10n.quantity(leftOut,
-                        "%1$d line was left out. A line holds up to %2$d characters, the list up to %3$d lines, "
-                                + "and one given twice counts once.",
-                        "%1$d lines were left out. A line holds up to %2$d characters, the list up to %3$d lines, "
-                                + "and one given twice counts once.",
-                        leftOut, PostSources.MAX_LENGTH, PostSources.MAX_RULES);
-                show(new AlertDialog.Builder(preference.getContext())
-                        .setTitle(title)
-                        .setMessage(why)
-                        .setPositiveButton(L10n.t("OK"), null));
-            }
             return false;
         });
         return row;
+    }
+
+    /** Counts and capacity only, never a name, id or site from the draft. */
+    static String sourcesEditorLine(@Nullable String typed) {
+        String why = sourcesRefusal(typed);
+        if (why != null) return why;
+        String clean = PostSources.clean(typed);
+        int rules = PostSources.count(clean);
+        int percent = (int) ((100L * PostWords.encodedBytes(clean) + PostSources.MAX_LIST_BYTES - 1)
+                / PostSources.MAX_LIST_BYTES);
+        return L10n.f("%1$d of %2$d people, Pages or sites. The list fills %3$d%% of its room.",
+                rules, PostSources.MAX_RULES, percent);
+    }
+
+    /** Refuses lost rules while accepting blank lines, normalization and equivalent duplicates. */
+    @Nullable
+    static String sourcesRefusal(@Nullable String typed) {
+        if (typed == null || PostSources.leftOut(typed) == 0) return null;
+        String clean = PostSources.clean(typed);
+        String[] kept = clean.isEmpty() ? new String[0] : clean.split("\n");
+        Set<String> spellings = new HashSet<>();
+        for (String line : kept) spellings.add(line.toLowerCase(Locale.ROOT));
+        int number = 0;
+        for (String line : typed.split("\n", -1)) {
+            number++;
+            String one = PostSources.clean(line);
+            if (one.isEmpty()) {
+                if (PostSources.leftOut(line) == 0) continue;
+                return L10n.f("Line %1$d can't be saved. Check its length or use the profile or Page ID, then save again.", number);
+            }
+            if (spellings.contains(one.toLowerCase(Locale.ROOT))) continue;
+            // Different spellings may be the same rule, such as an id and a Facebook profile link.
+            // A two-rule list is below every capacity bound, so the filter decides identity here.
+            boolean duplicate = false;
+            for (String stored : kept) {
+                if (PostSources.count(PostSources.clean(stored + "\n" + one)) == 1) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) {
+                return kept.length == PostSources.MAX_RULES
+                        ? L10n.f("The list holds up to %1$d people, Pages or sites. Remove some, then save again.", PostSources.MAX_RULES)
+                        : L10n.t("This list needs more room than it has. Shorten it, then save again.");
+            }
+        }
+        return null;
     }
 
     /** What the people, Pages and sites row says: how many it holds. Counts only, never a name. */
@@ -2099,6 +2236,15 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         }
         TextView summary = row.findViewById(android.R.id.summary);
         if (summary != null) summary.setMaxLines(Integer.MAX_VALUE);
+    }
+
+    /** Keeps every text editor and its actions together, including with a landscape keyboard. */
+    static void keepEditorInDialog(EditText field, boolean multiline) {
+        field.setSingleLine(!multiline);
+        if (multiline) field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        // The landscape extracted editor replaces the dialog and hides its actions.
+        field.setImeOptions(field.getImeOptions() | EditorInfo.IME_FLAG_NO_FULLSCREEN
+                | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
     }
 
     /**

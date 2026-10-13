@@ -39,7 +39,7 @@ internal const val SHARE_TO_THREADS = "SHARE_TO_THREADS"
 internal val SHARE_ITEM_TYPES = listOf(SHARE_TO_THREADS, "OFF_PLATFORM_WHATSAPP", "COPY_LINK", "SHARE_NOW")
 
 /**
- * The extension class the hook hands each list to. It runs Hide Meta upsells' Threads switch and
+ * The extension class the hook hands each list to. It runs Hide Meta upsells' Threads and Muse switches and
  * Share sheet items' picks, each only when its patch is in.
  */
 internal const val SHARE_SHEET_ITEMS = "$EXTENSION_PACKAGE/misc/ShareSheetItems;"

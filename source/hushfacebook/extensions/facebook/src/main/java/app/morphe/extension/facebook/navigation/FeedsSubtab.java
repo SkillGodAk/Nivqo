@@ -11,8 +11,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The filters a start on the Feeds tab can be told to open on (#56), each with the names
- * Facebook's own feed types keep for it.
+ * The filters a start on the Feeds tab can be told to open on (#56), and Home can show while
+ * Following feed on Home is on, each with the names Facebook's own feed types keep for it.
  *
  * <p>Facebook builds the Feeds tab's filters from one of two lists in its own code, and each
  * filter is one of its feed types, known by a name it keeps. The usual list is All, Favorites
@@ -37,9 +37,10 @@ public enum FeedsSubtab {
 
     /**
      * The names this filter's feed types keep, in the order they're asked for: the most recent
-     * posts list's first, then the usual list's. None for All, which asks for nothing.
+     * posts list's first, then the usual list's. None for All, which asks for nothing. Home's feed
+     * choice ({@link app.morphe.extension.facebook.feed.FollowingHome}) asks for them in the same order.
      */
-    final List<String> feedTypes;
+    public final List<String> feedTypes;
 
     FeedsSubtab(String fileValue, String... feedTypes) {
         this.fileValue = fileValue;

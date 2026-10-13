@@ -27,7 +27,8 @@ import org.junit.Test
  * Facebook's dark mode each kind of link attachment (ten on 582) picks its colour by reading
  * [LINK_BOX_COLOUR_CONFIG]'s string and parsing it with `Color.parseColor` once. After route four, with AMOLED first or not, that one
  * parse goes to Material You's link box stand-in on the text's register, and every other parse in
- * those classes stays route four's.
+ * those classes stays route four's. Each reader asks Facebook's own dark check, which the stand-in
+ * counts on, and the hook refuses one that doesn't.
  */
 class LinkBoxColourFixtureTest {
     private val versions = AppCompatibilities.facebook().single().targets.mapNotNull { it.version }.toSet()
@@ -75,13 +76,23 @@ class LinkBoxColourFixtureTest {
                 val otherParses = owners.flatMap { it.methods }.filterNot(::readsLinkBoxColour)
                     .sumOf { method -> method.body().count { it.call()?.toString() == PARSE_COLOR } }
 
+                val darkCheck = fdsDarkCheckOf(bundle)
+                for (reader in readers) {
+                    assertTrue("$name: ${reader.descriptor()} asks $darkCheck", reader.body().any { it.call()?.toString() == darkCheck })
+                }
+                val refused = runCatching {
+                    with(PatchContexts.of(owners)) { hookLinkBoxColour("Lfixture/NoCheck;->dark(Landroid/content/Context;)Z") }
+                }
+                assertTrue("$name: a reader without the dark check is refused (${refused.exceptionOrNull()})",
+                    refused.exceptionOrNull()?.message.orEmpty().contains("without asking"))
+
                 for (amoled in listOf(false, true)) {
                     val themes = "$name, AMOLED $amoled"
                     val context = PatchContexts.of(owners)
                     with(context) {
                         if (amoled) rerouteColourCalls(AMOLED_COLOUR_CALLS)
                         rerouteColourCalls(YOU_COLOUR_CALLS)
-                        assertEquals("$themes: each reader's parse goes to the stand-in", readers.size, hookLinkBoxColour())
+                        assertEquals("$themes: each reader's parse goes to the stand-in", readers.size, hookLinkBoxColour(darkCheck))
                     }
                     val after = owners.flatMap { owner -> context.mutableClassDefBy(owner.type).methods }
                     for ((descriptor, parse) in parses) {

@@ -158,7 +158,7 @@ class CatalogToolTest {
             category("Example")
             dependsOn(dependency)
             compatibleWith(Compatibility("com.example.app", "Example", targets = listOf(
-                AppTarget("580", versionCodes = null, minSdk = 28, description = "346013387, 346013440 and 346013442"),
+                AppTarget("582", versionCodes = null, minSdk = 28, description = "346415686, 346415687 and 346415690"),
             )))
         }
         val catalog = CatalogTool.catalog("1.2.3", setOf(patch))
@@ -173,14 +173,14 @@ class CatalogToolTest {
         assertEquals("Fixture dependency", dependencyEntry.getValue("description").jsonPrimitive.content)
         val target = entry.getValue("compatiblePackages").jsonArray.single().jsonObject.getValue("targets").jsonArray.single().jsonObject
         assertEquals(JsonNull, target.getValue("versionCodes"))
-        assertEquals("346013387, 346013440 and 346013442", target.getValue("description").jsonPrimitive.content)
+        assertEquals("346415686, 346415687 and 346415690", target.getValue("description").jsonPrimitive.content)
     }
 
     @Test fun optionsKeepTheirKeyTypeDefaultAndRequirement() {
         val catalog = CatalogTool.catalog("1", setOf(app.hushmessenger.patches.misc.spoofPackageVersionPatch))
         val option = catalog.getValue("patches").jsonArray.single().jsonObject.getValue("options").jsonArray.single().jsonObject
         assertEquals("versionCode", option.getValue("key").jsonPrimitive.content)
-        assertEquals("Version code", option.getValue("title").jsonPrimitive.content)
+        assertEquals("Version number", option.getValue("title").jsonPrimitive.content)
         assertEquals("kotlin.Int", option.getValue("type").jsonPrimitive.content)
         assertEquals(2147483647, option.getValue("default").jsonPrimitive.int)
         assertTrue(option.getValue("required").jsonPrimitive.boolean)

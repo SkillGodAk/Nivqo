@@ -127,10 +127,10 @@ internal fun screenHostClasses() = listOf(
 
 internal const val INBOX_ITEMS_HOOK = "$INBOX_SUPPLIER->A0B()$IMMUTABLE_LIST"
 internal const val INBOX_OBSERVER = "LX/34A;"
-/** What every supported build resolves: 346013440's subscribe call A04 and listed count A00. */
+/** What every supported build resolves: the subscribe call A04 and the listed count A00. */
 internal val INBOX_ROUTE = InboxRefreshRoute("$INBOX_SUPPLIER->A04($INBOX_SUPPLIER)V", "$INBOX_SUPPLIER->A00:I")
 
-/** The chat list supplier's items read as 346013440 starts it: the trace, then a check of the listed count. */
+/** The chat list supplier's items read as Messenger starts it: the trace, then a check of the listed count. */
 internal fun inboxItemsMethod(
     trace: String = INBOX_ITEMS_TRACE,
     listed: String = "A00",
@@ -151,19 +151,20 @@ internal fun inboxItemsMethod(
     """.trimIndent(), registers = 3, flags = flags)
 }
 
-/** The supplier's static subscribe call, cut down to its warning and the observer it creates for the loader. */
+/** The supplier's static subscribe call, cut down to its warning and the observer it builds from the supplier alone. */
 internal fun inboxSubscribeMethod(
     warning: String = INBOX_SUBSCRIBE_WARNING,
-    init: String = "<init>(Ljava/lang/Object;I)V",
+    init: String = "<init>($INBOX_SUPPLIER)V",
     between: String = "",
     name: String = "A04",
+    args: String = "v1, v2",
 ) = fixtureMethod("$INBOX_SUPPLIER->$name($INBOX_SUPPLIER)V", """
     move-object v2, p0
     const-string v0, "$warning"
     const/4 v4, 0x0
     new-instance v1, $INBOX_OBSERVER
     $between
-    invoke-direct {v1, v2, v4}, $INBOX_OBSERVER->$init
+    invoke-direct {$args}, $INBOX_OBSERVER->$init
     invoke-static {v1, v2}, LX/0D8;->A00(Ljava/lang/Object;Ljava/lang/Object;)V
     return-void
 """.trimIndent(), registers = 6, flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value)
@@ -175,7 +176,7 @@ internal fun inboxSupplierClass(
 ) = fixtureClass(INBOX_SUPPLIER, listOf(items) + subscribe, flags = flags,
     extraFields = listOf("A00", "A01", "A02", "A03").map { ImmutableField(INBOX_SUPPLIER, it, "I", AccessFlags.PUBLIC.value, null, null, null) })
 
-/** The observer's list callback as 346013440 has it: the size, then 5 or 1 into the listed count. */
+/** The observer's list callback as Messenger has it: the size, then 5 or 1 into the listed count. */
 internal fun inboxObserverClass(
     high: Int = 5,
     low: Int = 1,
@@ -184,7 +185,7 @@ internal fun inboxObserverClass(
     secondWrite: Boolean = false,
     callbacks: Int = 1,
 ) = fixtureClass(INBOX_OBSERVER, listOf(
-    fixtureMethod("$INBOX_OBSERVER-><init>(Ljava/lang/Object;I)V", "invoke-direct {p0}, Ljava/lang/Object;-><init>()V\nreturn-void", 3),
+    fixtureMethod("$INBOX_OBSERVER-><init>($INBOX_SUPPLIER)V", "invoke-direct {p0}, Ljava/lang/Object;-><init>()V\nreturn-void", 2),
 ) + (0 until callbacks).map { index ->
     val again = if (!secondWrite) "" else """
         const/4 v2, 0x5
@@ -212,7 +213,7 @@ internal fun inboxObserverClass(
 
 internal fun inboxRefreshClasses() = listOf(inboxSupplierClass(), inboxObserverClass())
 
-internal const val PEOPLE_JEWEL_HOOK = "LX/HAR;->A01(LX/HAR;)Z"
+internal const val PEOPLE_JEWEL_HOOK = "LX/HAR;->A01(LX/3nt;LX/HAR;)Z"
 internal const val PEOPLE_TAB_HOOK = "LX/JZ6;->A01(LX/JZ6;)V"
 
 /** The People tab handler's publish step as 346013440 has it: list and filter map to the listener it loads first. */
@@ -281,48 +282,51 @@ internal fun peopleStoryMethod(
 """.trimIndent(), registers = 4, flags = flags)
 
 /**
- * Instructions 0-20 match the supported APKs; one instruction stands in for the list reset. With [inlinedReset],
- * 346013423's single call replaces the two calls at 14-15, so the server flag moves from 17 to 16.
+ * Instructions 0-20 match the supported APKs; one instruction stands in for the list reset. The suggestions logger
+ * comes first, so the owner is p1, and false lives in v5 of ten registers. The older shapes are only there to be
+ * refused: with [inlinedReset] one call replaces the two at 14-15, so the server flag moves from 17 to 16, and
+ * without [logged] the reader takes only its owner and keeps false in v4 of six registers.
  */
 internal fun peopleJewelMethod(
     key: String = "LX/JTx;->A01:LX/1BL;",
     resultRegister: String = "v0",
-    serverFlag: String = "72344235860374863L",
+    serverFlag: String = "72344188615734930L",
     serverTarget: String = ":shown",
     flags: Int = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value,
     inlinedReset: Boolean = false,
     extraFlag: Boolean = false,
     extraFlagValue: String = serverFlag,
-) = fixtureMethod(PEOPLE_JEWEL_HOOK, """
-    iget-object v0, p0, LX/HAR;->A07:LX/17Z;
+    logged: Boolean = true,
+) = fixtureMethod(if (logged) PEOPLE_JEWEL_HOOK else PEOPLE_JEWEL_HOOK.replace("(LX/3nt;", "("), """
+    iget-object v0, ${if (logged) "p1" else "p0"}, LX/HAR;->A07:LX/17Z;
     invoke-static {v0}, LX/17Z;->A0F(LX/17Z;)Ljava/lang/Object;
     move-result-object v0
     check-cast v0, LX/JTx;
-    iget-object v2, p0, LX/HAR;->A01:Lcom/facebook/auth/usersession/FbUserSession;
+    iget-object v2, ${if (logged) "p1" else "p0"}, LX/HAR;->A01:Lcom/facebook/auth/usersession/FbUserSession;
     iget-object v0, v0, LX/JTx;->A00:LX/17Z;
     invoke-static {v0}, LX/17Z;->A0C(LX/17Z;)Lcom/facebook/prefs/shared/FbSharedPreferences;
     move-result-object v1
     sget-object v0, $key
-    const/4 v4, 0x0
-    invoke-interface {v1, v0, v4}, $PREFERENCE_GETTER
+    const/4 ${if (logged) "v5" else "v4"}, 0x0
+    invoke-interface {v1, v0, ${if (logged) "v5" else "v4"}}, $PREFERENCE_GETTER
     move-result $resultRegister
     if-eqz v0, :shown
-    iget-object v0, p0, LX/HAR;->A06:LX/17Z;
+    iget-object v0, ${if (logged) "p1" else "p0"}, LX/HAR;->A06:LX/17Z;
     ${if (inlinedReset) "invoke-static {v0, v2}, LX/H7e;->A0T(LX/17Z;Ljava/lang/Object;)LX/4qb;"
-      else "invoke-static {v0}, LX/17Z;->A0I(LX/17Z;)V\n    invoke-static {v2, v4}, LX/1Aa;->A07(Ljava/lang/Object;I)LX/4nI;"}
+      else "invoke-static {v0}, LX/17Z;->A0I(LX/17Z;)V\n    invoke-static {v2, ${if (logged) "v5" else "v4"}}, LX/1Aa;->A07(Ljava/lang/Object;I)LX/4nI;"}
     move-result-object v2
     const-wide v0, $serverFlag
     invoke-static {v2, v0, v1}, LX/16z;->A1Z(Ljava/lang/Object;J)Z
     move-result v0
     if-nez v0, $serverTarget
-    iget-object v3, p0, LX/HAR;->A0F:LX/WZw;
+    iget-object v3, ${if (logged) "p1" else "p0"}, LX/HAR;->A0F:LX/WZw;
     ${if (extraFlag) "const-wide v0, $extraFlagValue" else ""}
     :hidden
     const/4 v0, 0x1
     return v0
     :shown
-    return v4
-""".trimIndent(), registers = 6, flags = flags)
+    return ${if (logged) "v5" else "v4"}
+""".trimIndent(), registers = if (logged) 10 else 6, flags = flags)
 
 internal fun peopleJewelKeyHolder() = fixtureClass("LX/JTx;", listOf(fixtureMethod("LX/JTx;-><clinit>()V", """
     const-string v0, "pymk_jewel_section_hidden"
@@ -376,9 +380,12 @@ internal fun messageWrapperFixture(
     idGetter: String = "B9d",
     unsentGetter: String = "Btd",
 ): MutableClass {
+    // 582 reads the text getter's row straight from the list; the other getters still go through the helper.
     val bwoMethod = fixtureMethod("$type->$textGetter(I)Ljava/lang/String;", """
-        invoke-static {p0, p1}, $type->A00(${type}I)Lfixture/KKn;
+        iget-object v0, p0, $type->A00:Ljava/util/List;
+        invoke-interface {v0, p1}, Ljava/util/List;->get(I)Ljava/lang/Object;
         move-result-object v0
+        check-cast v0, Lfixture/KKn;
         invoke-interface {v0}, Lfixture/KKn;->BWn()Ljava/lang/String;
         move-result-object v0
         return-object v0

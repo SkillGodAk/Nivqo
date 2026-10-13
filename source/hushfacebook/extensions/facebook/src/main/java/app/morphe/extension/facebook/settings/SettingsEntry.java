@@ -10,10 +10,11 @@ import android.app.Activity;
 import android.app.Application;
 import android.app.Fragment;
 import android.app.FragmentManager;
-import android.content.ComponentName;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ShortcutInfo;
 import android.content.pm.ShortcutManager;
 import android.graphics.Bitmap;
@@ -22,7 +23,10 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.Icon;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.PatternMatcher;
 import android.os.SystemClock;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
@@ -39,6 +43,7 @@ import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.settings.HushfacebookPause;
+import app.morphe.extension.shared.settings.preference.ReopenSettingsAfterRestart;
 import app.morphe.extension.facebook.download.ClipboardLink;
 import app.morphe.extension.facebook.download.SaveLeftovers;
 import app.morphe.extension.facebook.download.SavedFileActions;
@@ -46,10 +51,12 @@ import app.morphe.extension.facebook.feed.ReturnRefresh;
 import app.morphe.extension.facebook.media.ResumePlayback;
 import app.morphe.extension.facebook.menu.MenuLayoutDump;
 import app.morphe.extension.facebook.media.TapToPlay;
+import app.morphe.extension.facebook.misc.AppIcons;
 import app.morphe.extension.facebook.misc.AppLock;
 import app.morphe.extension.facebook.misc.ScreenTransitions;
 import app.morphe.extension.facebook.misc.TextSize;
 import app.morphe.extension.facebook.navigation.ReelsTab;
+import app.morphe.extension.facebook.notifications.PushDiagnostics;
 import app.morphe.extension.facebook.stories.StorySeenButton;
 import app.morphe.extension.facebook.theme.AccentResources;
 import app.morphe.extension.facebook.theme.MaterialYouTheme;
@@ -73,12 +80,6 @@ public final class SettingsEntry {
     /** With {@link #EXTRA_OPEN_SETTINGS}: the key of the setting whose row the screen opens at. */
     public static final String EXTRA_SHOW_SETTING = "app.morphe.extension.facebook.SHOW_SETTING";
     static final String SHORTCUT_ID = "hushfacebook_settings";
-
-    /**
-     * The manifest's launcher alias. It points at {@code FbMainTabActivity}, and naming the alias
-     * rather than its target keeps the shortcut working if the target is ever renamed.
-     */
-    private static final String LAUNCHER_ALIAS = "com.facebook.katana.LoginActivity";
     private static final String DIALOG_TAG = "hushfacebook_settings";
 
     /** A request older than this is dropped rather than opened over some later screen. */
@@ -88,12 +89,21 @@ public final class SettingsEntry {
     private static volatile long requestedAt;
     /** The setting the pending request opens at, or null for the overview. */
     private static volatile String requestedSetting;
+    /**
+     * The page the next open lands on, or null for the first page. Set by a restart from the
+     * restart row, kept while the screen is opened again over a later activity, and dropped
+     * once the person closes it or asks for it another way.
+     */
+    private static volatile String requestedPage;
     private static volatile boolean callbacksRegistered;
     /** The activity the screen was last shown over, while the person hasn't closed it. */
     private static WeakReference<Activity> host;
     private static volatile boolean closedByUser;
     /** The long label last pushed, or found already on the shortcut, in this process. */
     private static volatile String publishedLabel;
+    /** How long after a launcher change the shortcuts go back, so Android has disabled the old ones first. */
+    static final long LAUNCHER_CHANGE_DELAY_MS = 2_000;
+    private static volatile Context watchingLauncherFor;
     /** A check of the shortcut's place is waiting for the background thread. */
     private static final AtomicBoolean keepFirstQueued = new AtomicBoolean();
 
@@ -107,17 +117,21 @@ public final class SettingsEntry {
      * build, each activity's dark window background takes the palette from here on, and with Accent
      * color each activity's resources take the accent's colour table. Also where the release
      * check, when it's on, asks at most once a day, on a worker, and where what a save cut short
-     * by Android left behind is removed, on a worker too. In Facebook's other processes it only
-     * starts Lock Facebook's watch ({@link AppLock#watch}).
+     * by Android left behind is removed, on a worker too. Every process starts private push
+     * observations. Other processes also start Lock Facebook's watch ({@link AppLock#watch}). The
+     * report's network count starts here too ({@link NetworkUsage}). A start that the settings
+     * screen's restart row asked for opens the screen again, on the page it was on.
      */
     public static void onApplicationCreate(Context context) {
         try {
+            PushDiagnostics.initialize(context);
             if (!Utils.isMainProcess()) {
                 // Instant Games, the Audience Network ads and Facebook's crash screen have
                 // processes of their own. Only the lock watches their screens.
                 AppLock.watch(context);
                 return;
             }
+            NetworkUsage.start(context);
             if (context instanceof Application && !callbacksRegistered) {
                 ((Application) context).registerActivityLifecycleCallbacks(new OpenWhenResumed());
                 callbacksRegistered = true;
@@ -128,11 +142,14 @@ public final class SettingsEntry {
             // above the cover, which then goes back on top (AppLock.Cover).
             AppLock.watch(context);
             ReturnRefresh.register(context);
+            watchLauncherChanges(context);
             TextSize.application(context);
             // Only with the theme in the build, so its class and palette aren't loaded otherwise.
             if (SettingsStatus.materialYouTheme()) MaterialYouTheme.watchWindows(context);
             // Accent color's route five, for the colours views inflated from XML read themselves.
             if (SettingsStatus.accentColor()) AccentResources.watchActivities(context);
+            // Last, so nothing above waits on it. The open itself waits for the first screen to resume.
+            ReopenSettingsAfterRestart.reopenIfPending(SettingsEntry::reopenOn);
         } catch (Throwable ex) {
             // Throwable, as in every hook: an Error here, from a class that fails to load or set
             // itself up, would end Facebook at every start, paused or not.
@@ -157,6 +174,61 @@ public final class SettingsEntry {
             SavedShortcut.refreshNow(app);
             WatchHistoryShortcut.refreshNow(app);
         });
+    }
+
+    /**
+     * Picking an app icon turns Facebook's launcher entry off and the icon's alias on, and Android
+     * then disables every dynamic shortcut tied to the entry that went off, ours included. Facebook
+     * keeps running, so they stayed gone until its next cold start (#119). Android announces the
+     * change to Facebook itself with PACKAGE_CHANGED, so a moment after one that names the launcher
+     * entry or an icon alias, the shortcuts are published again on the entry that's on now.
+     */
+    static void watchLauncherChanges(Context context) {
+        final Context app = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        if (watchingLauncherFor == app) return;
+        BroadcastReceiver receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context ignored, Intent intent) {
+                try {
+                    if (!namesLauncher(app.getPackageName(), intent)) return;
+                    Logger.printInfo(() -> "Settings entry: Facebook's launcher entry changed, publishing the shortcuts again");
+                    Utils.runOnMainThreadDelayed(() -> publishShortcut(app), LAUNCHER_CHANGE_DELAY_MS);
+                } catch (Throwable failure) {
+                    Logger.printException(() -> "Settings entry: could not follow a launcher change", failure);
+                }
+            }
+        };
+        try {
+            IntentFilter filter = new IntentFilter(Intent.ACTION_PACKAGE_CHANGED);
+            filter.addDataScheme("package");
+            filter.addDataSchemeSpecificPart(app.getPackageName(), PatternMatcher.PATTERN_LITERAL);
+            // The system sends it, so a receiver other apps can't reach still gets it.
+            if (Build.VERSION.SDK_INT >= 33) {
+                app.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            } else {
+                app.registerReceiver(receiver, filter);
+            }
+            watchingLauncherFor = app;
+        } catch (Throwable failure) {
+            Logger.printException(() -> "Settings entry: could not watch for launcher changes", failure);
+        }
+    }
+
+    /**
+     * Whether [intent] is a PACKAGE_CHANGED for [packageName] naming its launcher entry, one of the
+     * icon aliases, or the whole package. Package-visible for tests.
+     */
+    static boolean namesLauncher(String packageName, @Nullable Intent intent) {
+        if (intent == null || !Intent.ACTION_PACKAGE_CHANGED.equals(intent.getAction())) return false;
+        Uri data = intent.getData();
+        if (data == null || !packageName.equals(data.getSchemeSpecificPart())) return false;
+        String[] changed = intent.getStringArrayExtra(Intent.EXTRA_CHANGED_COMPONENT_NAME_LIST);
+        if (changed == null) return false;
+        for (String name : changed) {
+            if (packageName.equals(name) || AppIcons.LAUNCHER.equals(name)
+                    || (name != null && name.startsWith(AppIcons.LAUNCHER + "."))) return true;
+        }
+        return false;
     }
 
     /**
@@ -185,11 +257,15 @@ public final class SettingsEntry {
             // Set before the attempt, so a shortcut that can't be pushed isn't tried on every screen.
             publishedLabel = longLabel;
             ShortcutInfo existing = ours(manager);
-            // One labelled in another language, or behind Facebook's, is pushed again below.
+            Intent open = openIntent(app);
+            // One labelled in another language, behind Facebook's, or naming a launcher entry an
+            // icon change has turned off (#119), is pushed again below.
             if (existing != null && existing.getRank() == 0
-                    && longLabel.contentEquals(existing.getLongLabel())) return;
+                    && longLabel.contentEquals(existing.getLongLabel())
+                    && existing.getIntent() != null
+                    && open.getComponent().equals(existing.getIntent().getComponent())) return;
             // Evicts the lowest-ranked dynamic shortcut when Facebook's own fill the limit.
-            manager.pushDynamicShortcut(shortcut(app, longLabel));
+            manager.pushDynamicShortcut(shortcut(app, longLabel, open));
             Logger.printInfo(() -> "Settings entry: launcher shortcut published");
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: could not publish the shortcut", ex);
@@ -214,7 +290,7 @@ public final class SettingsEntry {
             final int rank = existing.getRank();
             if (rank == 0) return;
             CharSequence label = existing.getLongLabel();
-            manager.pushDynamicShortcut(shortcut(app, label != null ? label : L10n.t(app, "Hushfacebook settings")));
+            manager.pushDynamicShortcut(shortcut(app, label != null ? label : L10n.t(app, "Hushfacebook settings"), openIntent(app)));
             Logger.printInfo(() -> "Settings entry: launcher shortcut moved back in front from rank " + rank);
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: could not put the shortcut back in front", ex);
@@ -229,10 +305,13 @@ public final class SettingsEntry {
         return null;
     }
 
-    /** What the launcher shortcut sends: Facebook's launcher entry, asked to show the screen. */
+    /**
+     * What the launcher shortcut sends: Facebook's launcher entry, asked to show the screen. The
+     * entry that's on now, which is the picked icon's after an icon change ({@link AppIcons#launcher}).
+     */
     private static Intent openIntent(Context app) {
         return new Intent(Intent.ACTION_VIEW)
-                .setComponent(new ComponentName(app.getPackageName(), LAUNCHER_ALIAS))
+                .setComponent(AppIcons.launcher(app))
                 .putExtra(EXTRA_OPEN_SETTINGS, true)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
     }
@@ -250,8 +329,7 @@ public final class SettingsEntry {
         return key;
     }
 
-    private static ShortcutInfo shortcut(Context app, CharSequence longLabel) {
-        Intent intent = openIntent(app);
+    private static ShortcutInfo shortcut(Context app, CharSequence longLabel, Intent intent) {
         return new ShortcutInfo.Builder(app, SHORTCUT_ID)
                 .setShortLabel("Hushfacebook")
                 .setLongLabel(longLabel)
@@ -473,6 +551,7 @@ public final class SettingsEntry {
         }
         requestedAt = SystemClock.elapsedRealtime();
         requestedSetting = null;
+        requestedPage = null;
         openPending = true;
         Logger.printInfo(() -> "Settings requested by a long press on the Facebook logo");
         OpenWhenResumed.openWhenSettled(activity);
@@ -534,7 +613,10 @@ public final class SettingsEntry {
         }
 
         @Override public void onActivityStarted(Activity activity) { }
-        @Override public void onActivityStopped(Activity activity) { }
+        @Override
+        public void onActivityStopped(Activity activity) {
+            TapToPlay.activityStopped(activity);
+        }
 
         @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
         @Override
@@ -571,6 +653,7 @@ public final class SettingsEntry {
                 if (SystemClock.elapsedRealtime() - requestedAt > REQUEST_LIFETIME_MS) {
                     openPending = false;
                     requestedSetting = null;
+                    requestedPage = null;
                     Logger.printInfo(() -> "Settings request expired before a Facebook screen could show it");
                     return;
                 }
@@ -609,7 +692,7 @@ public final class SettingsEntry {
                 return false;
             }
             closedByUser = false;
-            new SettingsDialog().show(fragments, DIALOG_TAG);
+            SettingsDialog.onPage(requestedPage).show(fragments, DIALOG_TAG);
             host = new WeakReference<>(activity);
             Logger.printInfo(() -> "Settings opened over " + name);
             return true;
@@ -631,6 +714,7 @@ public final class SettingsEntry {
     static void onClosedByUser() {
         closedByUser = true;
         host = null;
+        requestedPage = null;
     }
 
     private static void noteIntent(Intent intent) {
@@ -642,10 +726,28 @@ public final class SettingsEntry {
             String key = asked != null && asked.matches("[a-z0-9_]{1,64}") ? asked : null;
             requestedAt = SystemClock.elapsedRealtime();
             requestedSetting = key;
+            requestedPage = null;
             openPending = true;
             Logger.printInfo(() -> key == null ? "Settings requested by the launcher shortcut"
                     : "Settings requested at " + key);
         }
+    }
+
+    /**
+     * The screen again after the restart row restarted Facebook, on [page], over the first
+     * Facebook screen to resume: the same open the logo's long press and the shortcut lead to.
+     */
+    static void reopenOn(String page) {
+        requestedAt = SystemClock.elapsedRealtime();
+        requestedSetting = null;
+        requestedPage = page;
+        openPending = true;
+        Logger.printInfo(() -> "Settings requested by a restart from the settings screen");
+    }
+
+    /** The page the next open lands on. Package-visible for tests. */
+    static String requestedPage() {
+        return requestedPage;
     }
 
     /** A Facebook-blue disc with an "H", drawn so the shortcut needs no resource in Facebook's APK. */

@@ -20,7 +20,7 @@ Hushfacebook is a Morphe patch source for Facebook's Android app, package `com.f
 
 The current declared target is Facebook 582.0.0.50.54 on Android 11 or newer. `AppCompatibilities.kt` holds its version codes and the Facebook signing certificates. It declares build 475417104 for arm64-v8a and 475417036 for armeabi-v7a. Fixtures for older builds can still help when tracing a rename, but the current catalog declares only 582. Read the README's unsupported-version section before promising that an undeclared build works, and rerun the full fixture check before changing that claim.
 
-The v0.8.0 bundle uses Morphe patcher 1.15.1 and needs Morphe Manager 1.34.0 or newer. The Gradle wrapper, dependency pins, and verification data live under `gradle/`. The Morphe plugin version is in `settings.gradle.kts`. Keep those pins aligned when updating the patcher.
+The bundle uses Morphe patcher 1.15.1 and needs Morphe Manager 1.34.0 or newer. `scripts/validate-release-facts.ps1` holds both numbers here to the pins in `gradle/libs.versions.toml`. The Gradle wrapper, dependency pins, and verification data live under `gradle/`. The Morphe plugin version is in `settings.gradle.kts`. Keep those pins aligned when updating the patcher.
 
 ## Source map
 
@@ -41,7 +41,7 @@ The v0.8.0 bundle uses Morphe patcher 1.15.1 and needs Morphe Manager 1.34.0 or 
 | `provenance.json` and `NOTICE` | Per-file origin and license notices carried into the patch bundle. `ProvenanceTest` checks the source headers against this record. |
 | `scripts/` and `fixtures/` | Build, compatibility, release, and device helpers. The Facebook APK and APKM fixtures are local inputs and are not committed. |
 
-Patch folders follow implementation areas. Morphe's visible categories come from each patch's `category()` declaration, so one category can draw patches from several folders. In v0.8.0 the release notes count 85 user-facing features. The generated 86-row catalog also includes the required `Hushfacebook settings` patch.
+Patch folders follow implementation areas. Morphe's visible categories come from each patch's `category()` declaration, so one category can draw patches from several folders. The generated catalog has one row more than the user-facing features the release notes count, because it also lists the required `Hushfacebook settings` patch.
 
 Patch and runtime directories are grouped by behavior. Their names don't always match, so start from the Morphe patch declaration and follow its injected extension class, status method, or setting key into Java.
 
@@ -428,16 +428,49 @@ For a patch change, say which Facebook build you tested against and what you che
 `scripts/fingerprint-candidates.ps1` ranks the methods of the new build by how much each one looks like the method the patch found on the old one. Give it the method as the old build names it and both builds, as a path or as a version your fixture folder has:
 
 ```powershell
-scripts/fingerprint-candidates.ps1 -OldApk 580 -Method 'LX/7z9;->A0a(LX/6uh;I)J' -NewApk <new .apkm>
+scripts/fingerprint-candidates.ps1 -OldApk 582.0.0.50.54-arm64 -Method 'LX/8F3;->A0b(LX/8Eh;I)J' -NewApk <new .apkm>
 ```
 
 It only compares what survives a rebuild. That means the strings a method loads, its literals, the framework and kept-class calls it makes, an opcode sketch, its prototype, its class and who calls it. Facebook's config ids change a few bytes every build, so those bytes are masked before literals are compared. A shared string or call counts for more the rarer it is in the new build. The report lists the five closest methods, and for each one it sets the old method's prototype, strings and literals, opcode sketch, references and callers beside the candidate's.
 
+Redex also moves strings that many methods share into tables. A table is a static method that takes an int and switches on it, and each case returns one string, so the method that used the string now loads a number and calls the table. Facebook moves strings in and out of these between releases. The 582 armeabi-v7a build's story save action only has its event name that way. The tool reads a case back as one of the method's strings, but only where nothing else could reach the call. The number has to be loaded straight before it, into the register the call passes, with no branch or handler landing on the call, and that case has to return its string at once. The report lists each string it read back with the table and case it came from.
+
 The tool changes nothing. When one candidate is clearly ahead it says so and still leaves the patch to you. When two are close, or none scores well enough, it exits 1 and names no candidate on the console. The report still lists the closest ones, and a near tie tells you the fingerprint needs something that sets them apart. Comparing callers is the slow part, so it does that for the closest 200 or so methods first. While a method it left out could still catch the leader once its callers count, it takes in four times as many and tries again, and if one still could after 51,200 it fails closed too.
 
-`-SignaturePath` saves what the tool captured about a method, and `-Signature` ranks a later build against a saved one, so you can capture a patch's targets while today's build is still in your fixture folder. `scripts/fingerprint-signature.schema.json` describes that file.
+`-SignaturePath` saves what the tool captured about a method, and `-Signature` ranks a later build against a saved one, so you can capture a patch's targets while today's build is still in your fixture folder. `scripts/fingerprint-signature.schema.json` describes that file. A signature saved before table strings counted is version 1, and the tool won't read it as if it had none, so capture it again.
 
-`scripts/fingerprint-calibration.txt` holds 36 transitions from 577 to 580 that the patches resolve on both builds, among them the ones that broke when 580 came out. The Reels ad-break state lost its naming method to the abstract base class and the AMOLED colour resolver split in two, while the reel button factory gained a parameter. `scripts/test-fingerprint-candidates.ps1` fails unless every one ranks its known 580 method in the top five, so it needs both bundles in `HUSHFACEBOOK_FIXTURE_DIR`. `-Calibrate` runs the same check by hand. With `-CalibrationPath` it runs a list of your own instead, and `-OldApk` and `-NewApk` name the two builds that list describes, so once you've confirmed where a few methods went on a newer build you can hold the ranker to those too.
+`scripts/fingerprint-calibration.txt` holds 36 transitions from 577 to 580 that the patches resolve on both builds, among them the ones that broke when 580 came out. The Reels ad-break state lost its naming method to the abstract base class and the AMOLED colour resolver split in two, while the reel button factory gained a parameter. `scripts/test-fingerprint-candidates.ps1` fails unless every one ranks its known 580 method in the top five. `-Calibrate` runs the same check by hand. With `-CalibrationPath` it runs a list of your own instead, and `-OldApk` and `-NewApk` name the two builds that list describes, so once you've confirmed where a few methods went on a newer build you can hold the ranker to those too.
+
+`scripts/fingerprint-calibration-582-arm64.txt` and `-582-armv7.txt` are two such lists: nine feed, Reels and story menu targets each, from 580 to both 582 fixtures, found by reading each method on the stock build and on the patched one. The armeabi-v7a 582 is a separate rebuild whose names share nothing with the arm64 one apart from kept names, so its list is real transitions too, and it crosses ABIs because the history keeps only the arm64 580. The suite runs both against the 582 bundles in `HUSHFACEBOOK_FIXTURE_DIR`.
+
+#### The fingerprint history
+
+577 and 580 aren't in the fixture folder any more, since it only keeps the builds the patches target. The calibration reads them from a folder of their own that `HUSHFACEBOOK_FINGERPRINT_HISTORY_DIR` names. Keep it outside the fixture folder and outside your clone. The scripts refuse a folder that overlaps either one. Never commit or share the bundles.
+
+Set it up once:
+
+1. Download both arm64-v8a bundles from APKMirror: Facebook 577.0.0.50.72 and 580.0.0.51.74.
+2. Put them in the folder under the exact names `scripts/fingerprint-history.txt` lists, and mark them read-only.
+3. Set `HUSHFACEBOOK_FINGERPRINT_HISTORY_DIR` to that folder in your user environment.
+
+Every run checks each bundle's SHA-256 against `scripts/fingerprint-history.txt` and then reads its base APK, which has to be `com.facebook.katana` with the pinned version name, version code and ABI, signed only with Meta's certificates. If the folder isn't set, a bundle is missing or anything differs, the calibration stops and says what, before it ranks anything. It never skips.
+
+## Android 17, checked October 11, 2026
+
+Samsung started moving phones to Android 17 with One UI 9 in September 2026. Facebook 582 targets SDK 36, and most of what Android 17 changes only reaches apps that target 37, so those rows start to matter once Facebook raises its target. Google lists the changes [for all apps](https://developer.android.com/about/versions/17/behavior-changes-all) and [for apps targeting 17](https://developer.android.com/about/versions/17/behavior-changes-17).
+
+| Change | Reaches Facebook 582 | Where in Hushfacebook | Verdict |
+|---|---|---|---|
+| Audio playback, audio focus and volume calls fail silently outside a valid lifecycle state (all apps) | Yes | Nothing on main. The background audio work (`feat/bgaudio`, 6566f02c) asks for audio focus. | Nothing to fix now. Before that branch lands it has to ask for focus only while Facebook is in front or a foreground service runs. |
+| `static final` fields can't be changed through reflection (target 37) | Not yet | `ReelSections.itemsOf` read every declared list field, static ones too, and could write a new list back. Every other `setAccessible` in the extension only reads. | Fixed: static fields are skipped. `ReelsAdFilterTest.aStaticListInASectionClassIsLeftAlone` covers it. |
+| `System.load` needs a read-only file (target 37) | Not yet | No `System.load` or `loadLibrary` in the extension. | Nothing to do. |
+| A lock-free `MessageQueue` breaks reflection on its private fields (target 37) | Not yet | No `MessageQueue` reflection. | Nothing to do. |
+| Background activity launch rules extend to `IntentSender` (target 37) | Not yet | No `startIntentSender`. The settings shortcut and the notification buttons start Facebook's own launcher entry from intents Facebook owns. | Nothing to do. |
+| Orientation and resizability requests are ignored on large screens with no opt-out (target 37) | Not yet | No `setRequestedOrientation`. | Nothing to do. |
+| The keyboard isn't brought back by itself after a rotation (all apps) | Yes | The settings search box. | Nothing depends on it. After a rotation you tap the box again. |
+| Native libraries stored uncompressed need 16 KB alignment on 16 KB page phones | Yes, on those phones | The patched APK. Facebook 582 stores its 18 libraries compressed, so Android extracts them at install. | `build-release-receipt.ps1` runs `zipalign -c -P 16 -v 4` on every patched fixture and records `nativeAlignment` in the receipt. A miss stops the release. |
+
+`PausedHooksTest` and `SettingsNavigationTest` also run at SDK 37 (Robolectric 4.17). `ColdStartHooksTest` stays alone at SDK 33, because it needs a sandbox nothing else has loaded the settings into.
 
 ## Building and checking
 
@@ -447,8 +480,27 @@ The checks that matter before a release:
 
 - `:patches:test` and `:extensions:facebook:testDebugUnitTest`, with `HUSHFACEBOOK_FIXTURE_DIR` set so the tests that read real Facebook builds run instead of skipping. Those tests are the ones whose source calls `Fixtures` or `FixtureDex`, and they run in their own task, `:patches:fixtureTest`, which `:patches:test` runs first. Add `-x :patches:fixtureTest -x :patches:verifyPatchTestSelection` for a quick pass without them.
 - `scripts/verify-all-patches.ps1` on every retained fixture. It merges the split bundle into one APK the way the CLI does, applies all patches to that merge in one run, checks the CLI's own report and holds the rebuilt resource table to the merge's, so the resources only the splits carry are compared too.
-- `scripts/build-release-receipt.ps1`, which writes the release receipt from those runs, and `scripts/validate-release-facts.ps1`, which holds the README, `patches-bundle.json`, the CHANGELOG and the bug form to the generated patch list. `verify-all-patches.ps1 -KeepIn <folder>` keeps a passing run with a stamp naming the bundle, APK, patch list and CLI it used, and `build-release-receipt.ps1 -AppliedDir patches/build/fixture-apply` reads a kept run whose stamp matches instead of patching that fixture a second time.
+- `scripts/build-release-receipt.ps1`, which writes the release receipt from those runs, and `scripts/validate-release-facts.ps1`, which holds the README, `patches-bundle.json`, the CHANGELOG and the bug form to the generated patch list. `verify-all-patches.ps1 -KeepIn <folder>` keeps a passing run with a stamp naming the bundle, APK, patch list and CLI it used and the SHA-256 of each file it kept. `build-release-receipt.ps1 -AppliedDir patches/build/fixture-apply` reads a kept run whose stamp matches and whose files still hash the same instead of patching that fixture a second time.
 - The advisory check inside the receipt script. It reads the SBOM `buildAndroid` writes beside the bundle and asks [OSV](https://osv.dev) about every library in it, and a high or critical advisory stops the release before anything gets patched. If one doesn't apply to what the bundle does with that library, accept it in `scripts/advisory-exceptions.txt` with the reason and a date at most 90 days out. With no network, `-SkipAdvisoryCheck` gets you a receipt anyway, and the index push asks OSV again.
+
+The release check also holds every patch's name and `use` default to the catalog the published release shipped, since Morphe Manager remembers patch choices by name. It downloads that release's receipt and `SHA256SUMS.txt`, checks the receipt against the checksum list and its commit against the published tag, and reads `patches-list.json` at that commit. It runs on every push the hook checks, with or without a local receipt or bundle, and a published asset or catalog it can't read fails it. New patches need nothing.
+
+Renaming or removing a patch, or flipping its default, needs `scripts/patch-catalog-compatibility.json` with the published version and its full commit, the candidate version and each change, like this.
+
+```json
+{
+  "baselineVersion": "0.6.0",
+  "baselineCommit": "<full commit of the published release>",
+  "candidateVersion": "0.7.0",
+  "changes": [{
+    "before": { "name": "Old patch name", "use": true },
+    "after": { "name": "New patch name", "use": true },
+    "migrationNote": "Old patch name is now New patch name. This causes a selection reset and requires manual re-selection."
+  }]
+}
+```
+
+Use `"after": null` for a removal. Each `migrationNote` has to appear word for word in the candidate version's CHANGELOG section, or under `Unreleased` while the version is still the published one. Morphe doesn't carry a choice over to a new name, so a note for a rename or removal has to mention the selection reset and the manual re-selection. Duplicate, stale and unused entries fail the check. The index push compares the release with the index at its own tagged commit, which still names the release before it, and once that release is out the file has to go. A first release passes only when its commit has no `patches-bundle.json` and GitHub has no earlier version tag, so a failed download never counts as one.
 
 `scripts/install-hooks.ps1` installs a pre-push hook that runs the tests when a push changes `extensions/` or `patches/`, and the release check when it changes a published file. It runs Gradle twice: the quick pass without the fixture tests first, so a slip there stops the push in minutes, then the full run. When the patch sources or the version in `gradle.properties` change, it also builds the release bundle, patches every declared fixture with it and keeps each passing run in `patches/build/fixture-apply` for the receipt. Set `HUSHFACEBOOK_SKIP_PRE_PUSH=1` to push without it.
 
@@ -456,14 +508,32 @@ A release goes out in two commits. The first carries the new version with `patch
 
 `scripts/release/release.ps1` walks through all of that one stage at a time: `source` (with `-Summary`, a file holding the release's one-paragraph summary), `preflight`, `bundle`, `publish` (with `-Checked`, the What was checked paragraph) and `index` (with `-ReadmeSummary` and `-BundleSummary`). Commit after `source`, push after `preflight` so the full gate runs, and commit and push again after `index`. Each stage refuses to run until the one before it is done, so you can fix a failure and run just that stage again. The text steps run `tools/release_text.py`, and `py -3.13 -I -m unittest discover -s tools -p "test_*.py"` runs its tests.
 
+### Fuzzing the download parsers
+
+`DashManifest` reads what Facebook's servers send and `Mp4Join` reads two downloaded files, so they're the code most worth throwing junk at. `scripts/fuzz-parsers.ps1` runs [Jazzer](https://github.com/CodeIntelligenceTesting/jazzer) over both, on this machine only. Nothing else calls it, and Jazzer stays out of Gradle and the extension. Get the standalone Windows release from Jazzer's releases page, unpack it, and point `-Jazzer` or `HUSHFACEBOOK_JAZZER_HOME` at the folder. It compiles with a JDK 21, and the one Android Studio ships is fine.
+
+```powershell
+scripts/fuzz-parsers.ps1 -Seconds 600              # both targets, ten minutes each
+scripts/fuzz-parsers.ps1 -Target mp4 -Seconds 3600 # one target for an hour
+```
+
+It compiles the two parsers with plain javac, no Android needed. The three small pieces they borrow from Android-side classes (`Downloader.Progress`, `VideoTranscode.sourceType` and `AacReencode.isXhe`) get copied out of the real sources each run, so if one of them changes shape the run stops and tells you, rather than fuzzing an old copy. The targets and seeds are test sources: `DashManifestFuzz`, `Mp4JoinFuzz` and `ParserFuzzSeeds`, which builds small valid manifests and fragmented MP4 pairs plus damaged ones (cut short, a sample count far too big, box lengths that lie, a time scale of zero).
+
+Before any real target it fuzzes `FaultyBoxFuzz`, a box reader with a bug planted on purpose, and gives up if Jazzer can't find that bug, since a clean run from a harness that can't find anything means nothing. Each target then runs in one idle-priority process with set limits: `-MaxInputBytes`, `-MaxOutputMB` for a join's output, `-HeapMB`, `-TimeoutSeconds` an input and `-Seconds` a target.
+
+A refusal is fine (an `IOException` from the join, no tracks from the manifest). An unchecked exception, a hang, running out of heap, or a join that stops by itself or writes too much is a finding. The run minimizes it, leaves it under `build/fuzz/<time>/<target>/` and exits 1, with 2 meaning the harness itself broke. Fix the parser, then copy the `minimized-*` file into `tools/fuzz/regressions/<target>/`. `ParserFuzzSeedsTest` runs every seed and every file in there with the ordinary unit tests. Each input's files are deleted before the next one, and a run that gets killed leaves its work folder for the next run to clear.
+
 ## Settings for your machine
 
 Nothing in the repository points at a folder or a phone on anybody's machine. These variables do that instead, and none of them has a default:
 
 - `HUSHFACEBOOK_FIXTURE_DIR` is the folder holding the Facebook bundles the fixture tests and scripts read. They're hundreds of megabytes each, so they aren't in the repository.
 - `HUSHFACEBOOK_DESKTOP_JAR` is the Morphe desktop CLI jar. `HUSHFACEBOOK_WORKDIR` or a jar under `build/morphe-tools` works too.
+- `HUSHFACEBOOK_FINGERPRINT_HISTORY_DIR` is the folder holding the retired 577 and 580 bundles the fingerprint calibration reads. [The fingerprint history](#the-fingerprint-history) says how to set it up.
 - `HUSHFACEBOOK_BUILD_WRAPPER` names a PowerShell script the pre-push hook runs Gradle through, called as `<wrapper> -ProjectDir <repository> -Tasks <task>...`. Unset, the hook runs `gradlew.bat` itself.
 - `HUSHFACEBOOK_DEVICE_SERIAL` is the adb serial of a test phone for `scripts/patch-for-device.ps1` and `scripts/phone-smoke.ps1`. Keep your own phone out of it: a re-signed Facebook can't install over the Play Store copy without uninstalling it, which signs you out.
+
+`scripts/patch-for-device.ps1 -PatchOptions` sets patch options for that build, keyed by patch name, for example `-PatchOptions @{ 'Hushfacebook settings' = @('appName=HushBook') }` to check the App name option on a phone. The desktop CLI reads a value like `2026` or `true` as a number or a yes/no, so quote a name that looks like one: `@('appName="2026"')`.
 
 ## Source notices
 

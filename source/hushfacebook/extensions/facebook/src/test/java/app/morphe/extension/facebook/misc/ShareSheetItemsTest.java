@@ -5,7 +5,9 @@
 package app.morphe.extension.facebook.misc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
 import org.junit.Rule;
@@ -18,12 +20,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import app.morphe.extension.facebook.settings.PatchFamily;
 import app.morphe.extension.facebook.settings.PatchFamilyForTests;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.diagnostics.HookStatus;
+import app.morphe.extension.shared.settings.FailingStore;
 import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.PauseForTests;
 
@@ -143,6 +147,54 @@ public class ShareSheetItemsTest {
                 new ArrayList<>(ShareSheetItems.parse(" COPY_LINK, ,lower,SHARE_NOW,COPY_LINK,A-B")));
         ShareSheetItems.hide(Arrays.asList("nope", "COPY_LINK", "COPY_LINK"));
         assertEquals("COPY_LINK", Settings.HIDDEN_SHARE_ITEMS.savedValue());
+    }
+
+    /**
+     * A settings file can fill the list's room with types this build doesn't name. A pick past that
+     * room saves nothing rather than dropping a type in silence, and one within it keeps them all.
+     */
+    @Test
+    public void aPickPastTheListsRoomSavesNothing() {
+        StringBuilder one = new StringBuilder("A");
+        while (one.length() < ShareSheetItems.MAX_HIDDEN_CHARS) one.append('B');
+        String longType = one.toString();
+        assertTrue(ShareSheetItems.isClean(longType));
+        Settings.HIDDEN_SHARE_ITEMS.save(longType);
+        assertSame(ShareSheetItems.Hidden.NO_ROOM, ShareSheetItems.hide(Arrays.asList("COPY_LINK", longType)));
+        assertEquals(longType, Settings.HIDDEN_SHARE_ITEMS.savedValue());
+
+        // 128 short types of 15 letters fill 2,047 of the 2,048 characters.
+        List<String> many = new ArrayList<>();
+        for (int i = 0; i < 128; i++) many.add(String.format(Locale.ROOT, "UNKNOWN_%07d", i));
+        String saved = String.join(",", many);
+        assertTrue(ShareSheetItems.isClean(saved));
+        Settings.HIDDEN_SHARE_ITEMS.save(saved);
+        List<String> withCopyLink = new ArrayList<>(many);
+        withCopyLink.add(0, "COPY_LINK");
+        assertSame(ShareSheetItems.Hidden.NO_ROOM, ShareSheetItems.hide(withCopyLink));
+        assertEquals(saved, Settings.HIDDEN_SHARE_ITEMS.savedValue());
+
+        many.remove(many.size() - 1);
+        many.add(0, "COPY_LINK");
+        assertSame(ShareSheetItems.Hidden.SAVED, ShareSheetItems.hide(many));
+        assertEquals(new ArrayList<>(many), new ArrayList<>(ShareSheetItems.hidden()));
+    }
+
+    /**
+     * A pick the phone doesn't keep says so, and isn't taken for a save: the old list stands, live
+     * and on disk, and the same pick saved again once the phone keeps writes holds every type.
+     */
+    @Test
+    public void aPickThePhoneDoesntKeepSaysSoAndSavesOnRetry() {
+        assertSame(ShareSheetItems.Hidden.SAVED, ShareSheetItems.hide(Collections.singletonList("COPY_LINK")));
+        List<String> picked = Arrays.asList("COPY_LINK", "SHARE_NOW");
+        try (FailingStore ignored = FailingStore.install(FailingStore.Fault.COMMIT_THROWS)) {
+            assertSame(ShareSheetItems.Hidden.NOT_STORED, ShareSheetItems.hide(picked));
+        }
+        assertEquals("COPY_LINK", Settings.HIDDEN_SHARE_ITEMS.get());
+        assertEquals("COPY_LINK", Settings.HIDDEN_SHARE_ITEMS.savedValue());
+        assertSame(ShareSheetItems.Hidden.SAVED, ShareSheetItems.hide(picked));
+        assertEquals(picked, new ArrayList<>(ShareSheetItems.hidden()));
     }
 
     @Test

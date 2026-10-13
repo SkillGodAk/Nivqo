@@ -37,7 +37,7 @@ allprojects {
             }
             when ("${requested.group}:${requested.name}") {
                 "com.google.guava:guava" -> useVersion("33.7.2-jre")
-                "org.apache.commons:commons-lang3" -> useVersion("3.18.0")
+                "org.apache.commons:commons-lang3" -> useVersion("3.21.0")
                 "org.bitbucket.b_c:jose4j" -> useVersion("0.9.6")
             }
             if (alignUtpNetty && requested.group == "io.netty" && requested.name in reviewedNettyModules) {

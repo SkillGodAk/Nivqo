@@ -8,12 +8,14 @@ import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 /*
@@ -192,3 +194,65 @@ internal fun isPickHandler(method: Method): Boolean =
         !AccessFlags.ABSTRACT.isSet(method.accessFlags) && method.returnType == "V" &&
         method.parameterTypes.map { it.toString() } == listOf(USER_SESSION, STRING) &&
         holdsString(method, PICK_QUERY)
+
+/*
+ * The sort menu, on the 582 build (#110). Asked for All comments up front, Facebook answered some
+ * friends' posts with no comment at all, while their sheet showed comments in Facebook's order. So
+ * All comments is picked in the sheet's menu instead, as a tap does.
+ *
+ * The comment sheet's section renderer is the one method holding both "fetch_comment_intent" and
+ * "interranked_comment_order_pagination". When the answer's `selectable_intents` list has more than
+ * one order, it builds the menu's header component, with the FbUserSession, the post's feedback
+ * tree, a string and the Function1 a tap on a row calls with that row's token, and files it under
+ * "OrderingModeSelector", a key Redex keeps in a static map of its own class, read right after.
+ * First thing in that header's constructor, the extension gets the feedback tree and the Function1.
+ */
+
+/** Strings the comment sheet's section renderer holds. */
+internal const val INTENT_FLAG = "fetch_comment_intent"
+internal const val INTERRANKED = "interranked_comment_order_pagination"
+
+/** The key the sort menu's header is filed under, held by the class of the static map it's read from. */
+internal const val SELECTOR_KEY = "OrderingModeSelector"
+
+private const val FUNCTION1 = "Lkotlin/jvm/functions/Function1;"
+private const val MAP = "Ljava/util/Map;"
+
+/** How far below the header's constructor the renderer reads the key's map. 582 reads it four after. */
+private const val KEY_WINDOW = 8
+
+/** The extension's look at a sort menu as it's built. */
+internal const val SORT_MENU = "$EXTENSION_PACKAGE/comments/DefaultCommentOrder;->" +
+    "sortMenu(Ljava/lang/Object;Ljava/lang/Object;)V"
+
+/** Whether [reference] is the constructor of a sort menu's header: the session, the feedback, a string, the pick. */
+internal fun isSortHeaderConstructor(reference: MethodReference): Boolean =
+    reference.name == "<init>" && reference.parameterTypes.map { it.toString() }.let {
+        it.size == 4 && it[0] == USER_SESSION && it[2] == STRING && it[3] == FUNCTION1
+    }
+
+/** The static map fields of [keyOwners], the classes holding [SELECTOR_KEY], as `class->name:type`. */
+internal fun selectorKeyMaps(keyOwners: List<ClassDef>): Set<String> =
+    keyOwners.flatMap { owner -> owner.staticFields.filter { it.type == MAP }.map { "${owner.type}->${it.name}:$MAP" } }
+        .toSet()
+
+/**
+ * The constructor of the sort menu's header that [render] builds, when [render] is the comment
+ * sheet's section renderer: a constructor call [isSortHeaderConstructor] matches, with a read of one
+ * of [keyMaps] at most [KEY_WINDOW] instructions below it. Null when [render] isn't that renderer.
+ */
+internal fun sortHeaderIn(render: Method, keyMaps: Set<String>): MethodReference? {
+    if (!holdsString(render, INTENT_FLAG) || !holdsString(render, INTERRANKED)) return null
+    val code = render.implementation?.instructions?.toList() ?: return null
+    return code.withIndex().mapNotNull { (index, instruction) ->
+        if (instruction.opcode != Opcode.INVOKE_DIRECT && instruction.opcode != Opcode.INVOKE_DIRECT_RANGE) {
+            return@mapNotNull null
+        }
+        val reference = (instruction as ReferenceInstruction).reference as? MethodReference ?: return@mapNotNull null
+        if (!isSortHeaderConstructor(reference)) return@mapNotNull null
+        val keyRead = code.subList(index + 1, minOf(code.size, index + 1 + KEY_WINDOW)).any {
+            it.opcode == Opcode.SGET_OBJECT && it.field?.key() in keyMaps
+        }
+        if (keyRead) reference else null
+    }.distinctBy { "${it.definingClass}->${it.name}${it.parameterTypes}" }.singleOrNull()
+}

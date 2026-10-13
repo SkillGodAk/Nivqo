@@ -141,6 +141,14 @@ def read(path):
             if "\t" in translated:
                 sys.exit("%s:%d: more than one tab" % (path, number))
             add(entries, english, translated, path, number)
+    # A |category row is an extra form of a row that has to be there too. L10n reads the other
+    # form's row for every other count, and the translation check counts the variant as that row,
+    # so without it the text would quietly stay English.
+    for english in entries:
+        base = plural_base(english)
+        if base != english and base not in entries:
+            sys.exit("%s: %s has no row for its other form: %s"
+                     % (path, english.replace("\n", "\\n"), base.replace("\n", "\\n")))
     return entries
 
 

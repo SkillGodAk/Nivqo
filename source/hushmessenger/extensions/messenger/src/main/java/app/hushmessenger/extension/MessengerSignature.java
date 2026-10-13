@@ -98,6 +98,18 @@ public final class MessengerSignature {
         return null;
     }
 
+    /**
+     * The signers FBNS, the push service Meta's apps share, hashes for a package it may hand pushes
+     * to: the original certificate if {@code info} is this build, so a re-signed Messenger passes its
+     * own check, and {@code reported} for any other package. FBNS reads
+     * {@code PackageInfo.signatures} itself rather than through the method {@link #originalSigners}
+     * answers for.
+     */
+    public static Signature[] fbnsSigners(PackageInfo info, Signature[] reported) {
+        if (info == null || !ownPackage().equals(info.packageName)) return reported;
+        return original().toArray(new Signature[0]);
+    }
+
     private static List<Signature> original() {
         List<Signature> signers = original;
         if (signers == null) {

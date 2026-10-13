@@ -49,7 +49,7 @@ class ControlsTest {
 
     @Test fun missingOrAmbiguousAnchorsRejectTheApk() {
         assertFailsWith<PatchException> { validateControls(emptyMap()) }
-        assertFailsWith<PatchException> { validateControls(expectedHooks.keys.associateWith { listOf(method(), method()) }) }
+        assertFailsWith<PatchException> { validateControls(syntheticHooks.keys.associateWith { listOf(method(), method()) }) }
     }
 
     @Test fun changedSubtabAndBrowserBodiesFail() {
@@ -61,7 +61,7 @@ class ControlsTest {
         val supplier = "Lcom/facebook/messaging/inboxsubtabs/plugins/subtabs/itemsupplier/InboxSubtabsItemSupplierImplementation;"
         fun subtabs(value: String) = method(registers = 3, returnType = "V", body = """
             iget-object v0, p0, LX/2UL;->A00:$supplier
-            iget-object v1, v0, $supplier->A05:Ljava/util/concurrent/atomic/AtomicBoolean;
+            iget-object v1, v0, $supplier->A07:Ljava/util/concurrent/atomic/AtomicBoolean;
             const/4 v0, 0x1
             invoke-virtual {v1, $value}, Ljava/util/concurrent/atomic/AtomicBoolean;->set(Z)V
             return-void
@@ -72,6 +72,58 @@ class ControlsTest {
         val changed = subtabs("v2")
         assertFailsWith<PatchException> { changed.injectSubtabs() }
         assertEquals(5, changed.implementation!!.instructions.size)
+    }
+
+    @Test fun unsentLabelHookReadsTheRowStraightFromTheWrapperList() {
+        messageWrapperFixture().methods.single { it.name == "BWo" }.validateUnsentIndicator()
+        // Older releases went through a static helper instead, a shape no supported build has.
+        val helper = fixtureMethod("Lfixture/MessageWrapper;->BWo(I)Ljava/lang/String;", """
+            invoke-static {p0, p1}, Lfixture/MessageWrapper;->A00(Lfixture/MessageWrapper;I)Lfixture/KKn;
+            move-result-object v0
+            invoke-interface {v0}, Lfixture/KKn;->BWn()Ljava/lang/String;
+            move-result-object v0
+            return-object v0
+        """.trimIndent(), registers = 3)
+        assertFailsWith<PatchException> { helper.validateUnsentIndicator() }
+        val otherRegister = fixtureMethod("Lfixture/MessageWrapper;->BWo(I)Ljava/lang/String;", """
+            iget-object v0, p0, Lfixture/MessageWrapper;->A00:Ljava/util/List;
+            invoke-interface {v0, p1}, Ljava/util/List;->get(I)Ljava/lang/Object;
+            move-result-object v0
+            check-cast v0, Lfixture/KKn;
+            invoke-interface {v0}, Lfixture/KKn;->BWn()Ljava/lang/String;
+            move-result-object p1
+            return-object p1
+        """.trimIndent(), registers = 3)
+        assertFailsWith<PatchException> { otherRegister.validateUnsentIndicator() }
+    }
+
+    @Test fun unsentFlagHookMustAnswerFromV0OfAnInstanceMethod() {
+        messageWrapperFixture().methods.single { it.name == "Btd" }.validateDeltaUnsent()
+        fun flag(body: String, registers: Int = 3, flags: Int = AccessFlags.PUBLIC.value) =
+            fixtureMethod("Lfixture/MessageWrapper;->Btd(I)Z", body.trimIndent(), registers, flags)
+        val stock = """
+            invoke-static {p0, p1}, Lfixture/MessageWrapper;->A00(Lfixture/MessageWrapper;I)Lfixture/KKn;
+            move-result-object v0
+            invoke-interface {v0}, Lfixture/KKn;->Btc()Z
+            move-result v0
+            return v0
+        """
+        flag(stock).validateDeltaUnsent()
+        val otherRegister = stock.replace("move-result v0", "move-result p1").replace("return v0", "return p1")
+        assertFailsWith<PatchException> { flag(otherRegister).validateDeltaUnsent() }
+        assertFailsWith<PatchException> { flag(stock, registers = 4).validateDeltaUnsent() }
+        val static = stock.replace("{p0, p1}", "{p0, v1}")
+        assertFailsWith<PatchException> { flag(static, flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value).validateDeltaUnsent() }
+    }
+
+    @Test fun keptUnsentHookMustBeAnInstanceMethodWithItsIntentInReach() {
+        fun revoke(registers: Int, flags: Int = AccessFlags.PUBLIC.value) = fixtureMethod(
+            "Lfixture/Revoke;->A00(Landroid/content/Intent;Ljava/lang/String;Ljava/lang/Object;)V", "return-void", registers, flags)
+        revoke(5).validateKeepUnsent()
+        assertFailsWith<PatchException> { revoke(5, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value).validateKeepUnsent() }
+        // p1 lands on v15 with 18 registers and on v16 with 19, where a plain invoke can't reach it.
+        revoke(18).validateKeepUnsent()
+        assertFailsWith<PatchException> { revoke(19).validateKeepUnsent() }
     }
 
     @Test fun settingsHaveALauncherEntryAndAPrivateProviderWithoutChangingHostPermissions() {
@@ -95,28 +147,26 @@ class ControlsTest {
     }
 
     @Test fun notificationsSuggestionsJoinTheStockPreferenceAndSkipTheServerOverride() {
-        // The server branch sits at 20, or at 19 in 346013423 where the list reset is one call. 581 loads its own flag ID.
-        for (serverFlag in listOf("72344235860374863L", "72344231565407716L")) for ((inlined, serverBranch) in listOf(false to 20, true to 19)) {
-            val reader = peopleJewelMethod(serverFlag = serverFlag, inlinedReset = inlined)
-            val original = reader.implementation!!.instructions.toList()
-            assertEquals(Opcode.IF_NEZ, original[serverBranch].opcode)
-            reader.injectPeopleSection()
-            val code = reader.implementation!!.instructions.toList()
-            fun assertSwitch(index: Int, method: String) {
-                assertEquals("$SETTINGS->$method(Z)Z", (code[index] as ReferenceInstruction).reference.toString())
-                assertEquals(listOf(1, 0), (code[index] as FiveRegisterInstruction).let { listOf(it.registerCount, it.registerC) })
-                assertEquals(Opcode.MOVE_RESULT, code[index + 1].opcode)
-                assertEquals(0, (code[index + 1] as OneRegisterInstruction).registerA)
-            }
-            assertEquals(original.take(12), code.take(12))
-            assertSwitch(12, "hidePeopleSection")
-            assertEquals(original.subList(12, serverBranch), code.subList(14, serverBranch + 2))
-            assertSwitch(serverBranch + 2, "keepPeopleSection")
-            assertEquals(original.drop(serverBranch), code.drop(serverBranch + 4))
-            // Both stock branches still skip to the original "not hidden" return.
-            assertEquals(code.lastIndex, code.branchTarget(14))
-            assertEquals(code.lastIndex, code.branchTarget(serverBranch + 4))
+        val serverBranch = 20
+        val reader = peopleJewelMethod()
+        val original = reader.implementation!!.instructions.toList()
+        assertEquals(Opcode.IF_NEZ, original[serverBranch].opcode)
+        reader.injectPeopleSection()
+        val code = reader.implementation!!.instructions.toList()
+        fun assertSwitch(index: Int, method: String) {
+            assertEquals("$SETTINGS->$method(Z)Z", (code[index] as ReferenceInstruction).reference.toString())
+            assertEquals(listOf(1, 0), (code[index] as FiveRegisterInstruction).let { listOf(it.registerCount, it.registerC) })
+            assertEquals(Opcode.MOVE_RESULT, code[index + 1].opcode)
+            assertEquals(0, (code[index + 1] as OneRegisterInstruction).registerA)
         }
+        assertEquals(original.take(12), code.take(12))
+        assertSwitch(12, "hidePeopleSection")
+        assertEquals(original.subList(12, serverBranch), code.subList(14, serverBranch + 2))
+        assertSwitch(serverBranch + 2, "keepPeopleSection")
+        assertEquals(original.drop(serverBranch), code.drop(serverBranch + 4))
+        // Both stock branches still skip to the original "not hidden" return.
+        assertEquals(code.lastIndex, code.branchTarget(14))
+        assertEquals(code.lastIndex, code.branchTarget(serverBranch + 4))
     }
 
     @Test fun changedNotificationsSuggestionsReaderFailsBeforeEditing() {
@@ -126,12 +176,11 @@ class ControlsTest {
             peopleJewelMethod(flags = AccessFlags.PUBLIC.value),
             peopleJewelMethod(serverFlag = "0x1L"),
             peopleJewelMethod(serverTarget = ":hidden"),
-            peopleJewelMethod(inlinedReset = true, serverTarget = ":hidden"),
             // A second load of the flag makes the server branch ambiguous.
             peopleJewelMethod(extraFlag = true),
-            peopleJewelMethod(inlinedReset = true, extraFlag = true),
-            // So does loading both releases' flag IDs.
-            peopleJewelMethod(extraFlag = true, extraFlagValue = "72344231565407716L"),
+            // Older readers: one call for the list reset moves the flag to 16, and one without the logger.
+            peopleJewelMethod(inlinedReset = true),
+            peopleJewelMethod(logged = false),
         )) {
             val before = changed.implementation!!.instructions.toList()
             assertFailsWith<PatchException> { changed.injectPeopleSection() }

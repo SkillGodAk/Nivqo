@@ -924,3 +924,92 @@ Follow Facebook	跟隨 Facebook
 Traditional Chinese	繁體中文
 English	英文
 Turn this on to open the Messenger app from Facebook's top Messenger icon. Turn it off to open Facebook's built-in Chats directly instead of Meta's Messenger redirect prompt. A long press keeps Facebook's own behavior.	開啟時，點擊 Facebook 頂部的 Messenger 圖示會直接開啟 Messenger 應用程式。關閉時則直接開啟 Facebook 內建「聊天」，略過 Meta 的 Messenger 跳轉詢問。長按仍保留 Facebook 原本行為。
+%1$d of %2$d people, Pages or sites. The list fills %3$d%% of its room.	%1$d / %2$d 個人物、粉絲專頁或網站，已使用清單容量的 %3$d%%。
+%1$s a second	每秒 %1$s
+%1$s elapsed	已經過 %1$s
+%1$s for reels, whatever Playback quality is set to.	Reels 使用 %1$s，不受「播放畫質」設定影響。
+%1$s for video stories, whatever Playback quality is set to.	影片限時動態使用 %1$s，不受「播放畫質」設定影響。
+A diagnostic report is already being exported.	診斷報告正在匯出中。
+Back to defaults	恢復預設設定
+Changed %1$d setting	已變更 %1$d 項設定
+Changed %1$d settings	已變更 %1$d 項設定
+Copying diagnostic report...	正在複製診斷報告…
+Diagnostic report copied.	已複製診斷報告。
+Diagnostic report saved.	已儲存診斷報告。
+Facebook closes and reopens on this page.	Facebook 將關閉並重新開啟此頁面。
+Facebook stops ringing for calls and notifying you about chats while Messenger is installed, so only Messenger does. Without Messenger, or with it turned off, Facebook rings and notifies as before. If you're signed out of Messenger, you'll miss calls and messages.	安裝 Messenger 時，讓 Facebook 不再響鈴或通知聊天訊息，只由 Messenger 通知。未安裝 Messenger 或關閉此功能時，Facebook 會照常通知。若未登入 Messenger，可能錯過來電與訊息。
+Font file cleared. Restart Facebook to apply the font change.	已清除字型檔案。重新啟動 Facebook 才會套用字型變更。
+Frame step	逐格播放
+Hide Muse in the share sheet	在分享選單中隱藏 Muse
+Hide comments with shop links	隱藏含購物連結的留言
+Hide comments with your words	隱藏含指定關鍵字的留言
+Hides ads, suggestions, promos and prompts, and stops nagging notifications.	隱藏廣告、推薦、推廣及提示，並減少煩人的通知。
+Hides comments containing a word from your Words to hide list in News feed, along with their replies. Words that keep a post keep a comment too.	隱藏動態消息中包含「要隱藏的字詞」的留言及其回覆。「保留貼文的字詞」也能保留符合條件的留言。
+Hides comments that link to a shop like Shopee, Lazada or Amazon, along with their replies.	隱藏包含 Shopee、Lazada 或 Amazon 等商店連結的留言及其回覆。
+Holds back usage reports and camera roll scans, removes link tracking, and hides your typing and screenshots.	減少使用情形回報與相簿掃描，移除連結追蹤，並隱藏輸入狀態及截圖活動。
+Home shows	首頁顯示內容
+Home shows the newest posts from friends, groups and Pages you follow, like All in the Feeds tab, or the filter you pick below. The Feeds tab's filters don't change.	首頁顯示追蹤的朋友、社團和粉絲專頁最新貼文，與「動態消息」分頁的「全部」或下方所選篩選條件相同，不會改變動態消息分頁的篩選設定。
+Home shows the same posts as %1$s in the Feeds tab. If Facebook doesn't have that feed, Home shows All.	首頁會顯示「動態消息」分頁中 %1$s 的相同貼文；若無法使用該動態消息，則顯示「全部」。
+Home shows the same posts as All in the Feeds tab.	首頁會顯示與「動態消息」分頁的「全部」相同的貼文。
+Keep seen posts hidden for	已看過的貼文隱藏時間
+Keep the tab bar on screen	捲動時固定底部分頁列
+Keep the top bar on screen	捲動時固定頂部導覽列
+Last save	上次儲存
+Leave calls and chats to Messenger	讓 Messenger 處理來電與聊天通知
+Lets you pick the app icons Facebook keeps for Facebook Plus, on Facebook's App icon page. The Pick an app icon row opens that page. Your pick stays if you turn this off, so pick the blue one first to go back.	可在 Facebook 的「應用程式圖示」頁面中選擇 Facebook Plus 保留的圖示。點選「選擇應用程式圖示」會開啟該頁；即使停用此功能，選擇仍會保留。若要恢復，請先選回藍色圖示。
+Line %1$d can't be saved. Check its length or use the profile or Page ID, then save again.	第 %1$d 行無法儲存。請檢查長度，或改用個人檔案／粉絲專頁 ID 後重試。
+Marketplace only and your start tab	僅顯示 Marketplace 與起始分頁
+Marketplace only chooses the opening tab. Your previous choice stays saved.	僅顯示 Marketplace 只會決定開啟時的分頁，先前的選擇仍會保留。
+Marketplace only is off.	僅顯示 Marketplace 已關閉。
+Marketplace only is off. Restart Facebook to restore its normal tabs.	僅顯示 Marketplace 已關閉。重新啟動 Facebook 以恢復一般分頁。
+No file chosen. Choose a .ttf or .otf font file of up to %1$d MB.	尚未選擇檔案。請選擇不超過 %1$d MB 的 .ttf 或 .otf 字型檔。
+One name, ID or site per line	每行輸入一個名稱、ID 或網站
+Opens Facebook's App icon page, even on accounts where Facebook doesn't list it in Settings and privacy.	開啟 Facebook 的「應用程式圖示」頁面，即使帳號的「設定和隱私」沒有列出該頁面也能使用。
+Opens a GitHub report with your versions and settings filled in. Add what happened.	開啟 GitHub 問題回報頁面，並預先填入版本與設定資訊，請補充發生的情況。
+Pick an app icon	選擇應用程式圖示
+Puts every feature switch but Lock Facebook back the way it started.	將除了「鎖定 Facebook」以外的所有功能開關恢復預設值。
+Quick setups	快速設定
+Quiet	安靜模式
+Reels follow the Playback quality row.	Reels 使用「播放畫質」欄位的設定。
+Removes Muse, Meta's AI agent app, when you share something. All other ways to share stay, in the same order.	分享內容時移除 Meta 的 AI 助理應用程式 Muse，其餘分享方式及排序不變。
+Removes the saved font file. Restart Facebook to use your phone's font.	移除儲存的字型檔案。重新啟動 Facebook 以使用手機字型。
+Removes the saved font file. Use the system font stays off.	移除儲存的字型檔案。「使用系統字型」仍維持關閉。
+Report a problem	回報問題
+Restart Facebook to apply %1$d changes	重新啟動 Facebook 以套用 %1$d 項變更
+Restart Facebook to apply this change	重新啟動 Facebook 以套用此變更
+Restart needed. Marketplace only will turn on the next time Facebook starts.	需要重新啟動。僅顯示 Marketplace 將於下次啟動 Facebook 時生效。
+Same as Playback quality	與播放畫質相同
+Save crashes to Downloads	將當機紀錄儲存至下載資料夾
+Save the full report in Download/Hushfacebook.	將完整報告儲存至 Download/Hushfacebook。
+Saving diagnostic report...	正在儲存診斷報告…
+Selected %1$s. Font changes apply after restarting Facebook.	已選擇 %1$s。重新啟動 Facebook 後套用字型變更。
+Selected %1$s. Restart Facebook to apply the font change.	已選擇 %1$s。重新啟動 Facebook 以套用字型變更。
+Selected %1$s. Turn on Use the system font and restart Facebook to use it.	已選擇 %1$s。啟用「使用系統字型」並重新啟動 Facebook 才會使用該字型。
+Selected %1$s. Use the system font is off. Turn it on and restart Facebook to use this file.	已選擇 %1$s。「使用系統字型」目前關閉，請啟用並重新啟動 Facebook 以使用此檔案。
+Settings	設定
+Tap anywhere on a reel's or video's progress bar to jump there, instead of dragging the dot.	點擊 Reels 或影片進度條的任意位置即可跳轉播放，而不必拖曳圓點。
+Tap the bar to seek	點擊進度條跳轉
+The app holding that font file is taking too long, so Hushfacebook stopped waiting. Your font didn't change.	提供字型檔案的應用程式回應時間過長，Hushfacebook 已停止等待。字型未變更。
+The app holding the last font file still hasn't answered. Try again later.	提供上次字型檔案的應用程式仍未回應，請稍後再試。
+The bottom tab bar stays put while you scroll, on accounts where Facebook slides it away. Restart Facebook to see the change.	在 Facebook 原本會隨捲動隱藏底部分頁列的帳號上，讓分頁列固定顯示。重新啟動 Facebook 後生效。
+The diagnostic report couldn't be copied. Try again.	無法複製診斷報告，請重試。
+The list holds up to %1$d people, Pages or sites. Remove some, then save again.	清單最多容納 %1$d 個人物、粉絲專頁或網站。請刪除部分項目後再儲存。
+The photo wasn't saved. Try again.	照片儲存失敗，請再試一次。
+The report couldn't be copied. Try again.	無法複製報告，請再試一次。
+The report couldn't be saved. Try again.	無法儲存報告，請再試一次。
+The saved copy of %1$s is missing. Choose the file again.	%1$s 的儲存副本已遺失，請重新選擇檔案。
+The top bar with search and Messenger stays put while you scroll down, instead of sliding away.	捲動頁面時固定顯示包含搜尋與 Messenger 的頂部導覽列，不會向上滑出畫面。
+The video wasn't saved. Try again.	影片儲存失敗，請再試一次。
+This Facebook build has no App icon page.	此 Facebook 版本沒有「應用程式圖示」頁面。
+This list needs more room than it has. Shorten it, then save again.	清單內容超過容量，請縮短後再儲存。
+Too many saves at once. Try again when one finishes.	同時儲存的項目過多。請等其中一項完成後再試。
+Turn on %1$s to use this.	啟用 %1$s 才能使用此功能。
+Turn on a set of switches in one tap, or put every switch back the way it started.	一次啟用一組功能開關，或將所有開關恢復預設狀態。
+Video stories follow the Playback quality row.	影片限時動態使用「播放畫質」欄位的設定。
+Waiting for Facebook's tab bar. Marketplace only will apply when Facebook builds it.	正在等待 Facebook 建立分頁列。僅顯示 Marketplace 功能將在分頁列建立後生效。
+When Facebook crashes, the error goes in a text file in Download/Hushfacebook, so you can send it with a bug report even if Facebook won't open. Links and IDs are left out. The newest five are kept.	Facebook 當機時，錯誤資訊會寫入 Download/Hushfacebook 的文字檔。即使 Facebook 無法開啟，也能附在問題回報中。報告不含連結及識別碼，最多保留最新五份。
+While Marketplace only is on, loads less of the feed in the background. Some loading still happens at startup.	啟用僅顯示 Marketplace 時，可減少背景動態消息載入，但啟動時仍會載入部分內容。
+While Marketplace only is on, silences video suggestions, memories, birthdays and friend suggestions. Messages and trading updates still arrive.	啟用僅顯示 Marketplace 時，停止影片推薦、回顧、生日及好友推薦通知，訊息與交易更新仍會收到。
+With %1$s on, Home will show the same posts as %2$s in the Feeds tab.	啟用 %1$s 後，首頁會顯示與「動態消息」分頁的 %2$s 相同貼文。
+With a reel or video paused, tap its right side to step one frame forward and its left side to step one frame back. Tap the middle to play.	暫停 Reels 或影片後，點擊右側可前進一格，點擊左側可倒退一格，點擊中央可繼續播放。
+Your settings already match that file, so nothing will change.	目前設定已與該檔案相同，因此不需要變更。

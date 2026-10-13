@@ -192,6 +192,19 @@ public class DiagnosticRedactorTest {
     }
 
     /**
+     * The other Meta sites Facebook opens in its browser, as the screen list writes them: a path
+     * there is a handle or a short id, which the handle and id rules don't catch after a slash.
+     */
+    @Test public void anotherMetaSitesAddressGoesWholeToo() {
+        assertEquals("[host omitted] [host omitted] [host omitted]", DiagnosticRedactor.redact(
+                "m.me/1234567890 www.instagram.com/janedoe www.threads.net/@janedoe"));
+        assertEquals("[host omitted] and [host omitted]",
+                DiagnosticRedactor.redact("threads.com/@jane.doe and wa.whatsapp.com/send"));
+        String[] apps = {"app: com.instagram.android 400.0.0.1", "com.whatsapp.w4b", "com.instagram.barcelona"};
+        for (String line : apps) assertEquals(line, DiagnosticRedactor.redact(line));
+    }
+
+    /**
      * What only looks like a Facebook address: the package and class names a report prints, and
      * names that start the same way and go on. They're what a maintainer reads a report for.
      */

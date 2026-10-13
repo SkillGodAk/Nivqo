@@ -13,6 +13,7 @@ import app.morphe.patches.facebook.media.taptoplay.MOTION_EVENT
 import app.morphe.patches.facebook.misc.extension.SETTINGS_STATUS
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -241,14 +242,18 @@ class MessengerIconShapesTest {
     private fun classDef(type: String, vararg methods: Method) =
         ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, methods.map(ImmutableMethod::of))
 
-    /** A build with the icon's tap calling the button handler, and FbFragmentActivity declaring [screen]. */
+    /**
+     * A build with the icon's tap calling the button handler, FbFragmentActivity declaring
+     * [screen], and the places Leave calls and chats to Messenger goes first in, which the patch
+     * finds before it changes anything.
+     */
     private fun build(vararg screen: Method) = PatchContexts.of(
         listOf(
-            classDef("Lfixture/MessengerIcon;", tap(calls = listOf(invoke(Opcode.INVOKE_STATIC, handlerCall)))),
+            classDef(TAP_CLASS, tap(calls = listOf(invoke(Opcode.INVOKE_STATIC, handlerCall)))),
             classDef(handlerCall.definingClass, handler(owner = handlerCall.definingClass)),
             classDef(FRAGMENT_ACTIVITY, *screen),
             ExtensionDex.classDef(SETTINGS_STATUS),
-        ),
+        ) + HandoffShapes.classes(),
     )
 
     /** The touch, in the event's own register through the range form, then the dispatch's own code. */
@@ -294,11 +299,11 @@ class MessengerIconShapesTest {
             static = false, owner = owner)
         val context = PatchContexts.of(
             listOf(
-                classDef("Lfixture/MessengerIcon;", tap(calls = listOf(invoke(Opcode.INVOKE_VIRTUAL, wrapperCall)))),
+                classDef(TAP_CLASS, tap(calls = listOf(invoke(Opcode.INVOKE_VIRTUAL, wrapperCall)))),
                 classDef(owner, handler(owner = owner), wrapper),
                 classDef(FRAGMENT_ACTIVITY, dispatch()),
                 ExtensionDex.classDef(SETTINGS_STATUS),
-            ),
+            ) + HandoffShapes.classes(),
         )
         openMessengerFromTopBarPatch.execute(context)
         val methods = context.mutableClassDefBy(owner).methods
@@ -329,5 +334,22 @@ class MessengerIconShapesTest {
         var address = 0
         val addresses = instructions.map { val at = address; address += it.codeUnits; at }
         return addresses.indexOf(addresses[index] + branch.codeOffset)
+    }
+
+    companion object {
+        /** The made-up class holding the icon's tap. */
+        const val TAP_CLASS = "Lfixture/MessengerIcon;"
+
+        /**
+         * The icon's tap calling the button handler, and FbFragmentActivity with its touch dispatch:
+         * the rest of the patch, for the Leave calls and chats to Messenger tests.
+         */
+        fun iconClasses(): List<ClassDef> = MessengerIconShapesTest().run {
+            listOf(
+                classDef(TAP_CLASS, tap(calls = listOf(invoke(Opcode.INVOKE_STATIC, handlerCall)))),
+                classDef(handlerCall.definingClass, handler(owner = handlerCall.definingClass)),
+                classDef(FRAGMENT_ACTIVITY, dispatch()),
+            )
+        }
     }
 }

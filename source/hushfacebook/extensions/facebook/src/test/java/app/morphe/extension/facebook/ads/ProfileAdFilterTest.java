@@ -25,8 +25,10 @@ import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.diagnostics.FeedFilterCounters;
 import app.morphe.extension.shared.diagnostics.HookStatus;
+import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.PauseForTests;
+import app.morphe.extension.shared.settings.preference.LogBufferManager;
 
 /**
  * The hook first in the timeline story component's render method: a story that carries sponsored
@@ -84,6 +86,31 @@ public class ProfileAdFilterTest {
     public void aStoryWithNoSponsoredDataIsDrawn() {
         assertFalse(ProfileAdFilter.hide(new GraphQLStory(), ProfileAdFilterForTests.reads(null)));
         assertEquals(ProfileAdFilter.ROUTE + ": 1 lists, 1 items, 0 removed. Kinds: story 1", counterLine());
+    }
+
+    /**
+     * The render hook runs on every draw of every row, so only a hidden row writes to the log: a
+     * line per drawn row would push the rest of a report out of the log. The counters still see each.
+     */
+    @Test
+    public void onlyAHiddenRowIsLogged() {
+        LogBufferManager.clearLogBuffer();
+        try {
+            BaseSettings.DEBUG.save(true);
+            for (int draw = 0; draw < 5; draw++) {
+                assertFalse(ProfileAdFilter.hide(new GraphQLStory(), ProfileAdFilterForTests.reads(null)));
+            }
+            String log = LogBufferManager.buildExportText();
+            assertFalse(log, log.contains("Profile timeline row"));
+            assertTrue(ProfileAdFilter.hide(new GraphQLStory(), ProfileAdFilterForTests.reads(new SponsoredData())));
+            log = LogBufferManager.buildExportText();
+            assertTrue(log, log.contains("Profile timeline row: hid a sponsored story"));
+            assertEquals(ProfileAdFilter.ROUTE + ": 6 lists, 6 items, 1 removed. Last reason: sponsored_data. Removed: "
+                    + "sponsored_data 1. Kinds: story 5, sponsored story 1", counterLine());
+        } finally {
+            BaseSettings.DEBUG.resetToDefault();
+            LogBufferManager.clearLogBuffer();
+        }
     }
 
     /** A subclass of the story model counts as a story, the way the real one is found by its kept name. */

@@ -33,6 +33,8 @@ public final class CameraActivity extends Activity {
     private static final String PENDING = "hush_camera_photo";
     /** Messenger copies the photo as soon as it's back, so older captures are only leftovers. */
     static final long KEEP_MS = 10 * 60 * 1000L;
+    /** The name of the photo last handed back to the chat, the only one Messenger's copy checks let through. */
+    static volatile String handedBack;
 
     File photo;
 
@@ -105,7 +107,7 @@ public final class CameraActivity extends Activity {
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         if (requestCode != PERMISSION) return;
         if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) capture();
-        else give("Messenger needs camera access to open your camera app.");
+        else give("Messenger needs camera permission to open your camera app. You can allow it in Android's app settings.");
     }
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -113,6 +115,7 @@ public final class CameraActivity extends Activity {
         File taken = photo;
         if (resultCode == RESULT_OK && taken != null && taken.length() > 0) {
             Uri uri = CameraProvider.uriFor(this, taken);
+            handedBack = taken.getName();
             setResult(RESULT_OK, new Intent().setDataAndType(uri, "image/jpeg").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
         } else {
             if (taken != null && !taken.delete() && taken.exists()) Log.w("HushMessenger", "Can't remove an empty camera photo");
