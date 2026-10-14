@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-11T19:24:19",
-  "description": "繁體中文：Nivqo Manager 1.35.0 正式版，整合上游 Morphe Manager 1.35.0，並更新 HushFacebook 0.10.0-nivqo.1（87 個 Patch）與 HushMessenger 0.22.0-nivqo.1（43 個 Patch／37 個控制項）。Nivqo Patches 0.6.0 共 130 個 Patch；保留繁體中文／English 語言選擇、獨立品牌、Facebook 頂部 Messenger 雙向路由以及正式核心的更新／重新修補提示。Morphe Patcher 維持 1.15.1。English: Nivqo Manager 1.35.0 syncs formal Morphe Manager 1.35.0, HushFacebook 0.10.0-nivqo.1 (87 patches), and HushMessenger 0.22.0-nivqo.1 (43 patches / 37 controls). The combined source has 130 patches. Preserves Nivqo branding, Traditional Chinese localization and core re-patch update notifications.",
-  "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v1.35.0/Nivqo-Manager-1.35.0-20261011-release.apk",
+  "created_at": "2026-10-14T07:59:05",
+  "description": "Nivqo Manager 1.35.0 正式簽章替換更新（2026-10-14），保留原簽章、套件名稱、繁體中文／English 介面及自動更新流程。內建與遠端正式核心更新為 HushFacebook 0.12.0-nivqo.1（88 個 Patch）、HushMessenger 0.23.0-nivqo.1（50 個 Patch／44 個控制項識別鍵）和 Nivqo Patches 0.7.0（合計 138 個 Patch）。包含逐格播放、Reels 進度條跳轉、自動回覆、自訂字型、消失訊息及廣告追蹤設定。保留 Facebook 頂部 Messenger 雙向路由，Morphe Patcher 維持 1.15.1。重要：Messenger 新版僅支援 582.0.0.61.92，移除 580／581；已修補 APK 需使用相容版本重新修補。English: Signed same-version Nivqo Manager 1.35.0 replacement, with a higher versionCode and unchanged signing identity. Bundles formal Facebook 0.12.0 (88 patches), Messenger 0.23.0 (50 patches, 44 controls), and combined Nivqo 0.7.0 (138 patches), including Traditional Chinese settings and metadata. Messenger 582.0.0.61.92 only; 580/581 are no longer supported. Re-patch a compatible app to apply the updated core.",
+  "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v1.35.0/Nivqo-Manager-1.35.0-20261014-release.apk",
   "signature_download_url": "",
   "version": "1.35.0",
-  "version_code": 39872057
+  "version_code": 39875690
 }
