@@ -1,3 +1,8 @@
+# 0.13.0-nivqo.1 (2026-10-16)
+
+* **Facebook:** 繁體中文：同步正式 HushFacebook 0.13.0，維持 88 個 Patch。新增隱藏轉發貼文、聊天 Meta AI 按鈕、靜默儲存及帶音樂限時動態的相片儲存；改善 Reels 進度條、子母畫面、留言排序與下載錯誤提示。新增 19 筆繁中介面文字（共 1,034 筆），保留 Nivqo 語言選擇與頂部 Messenger 按鈕雙向路由，Manager 中文補丁說明 88／88。
+* **Facebook:** English: Syncs formal HushFacebook 0.13.0 (88 patches) with repost filtering, Meta AI button controls in Chats, quiet saves, music-Story photo saving, and fixes for Reels progress, picture-in-picture, comment ordering and download errors. Adds 19 Traditional Chinese UI translations (1,034 total), preserves Nivqo language selection and two-way Messenger-button routing, and covers all 88 Manager patch descriptions.
+
 # 0.12.0-nivqo.1 (2026-10-14)
 
 * **Facebook:** 繁體中文：同步上游正式 HushFacebook v0.12.0（bc40ddf147d4db0c146f0d5dda41c885cc7e77f3），由 87 增為 88 個 Patch。加入 Reels／影片逐格播放，整合進度條點擊跳轉、固定進度條、捲動時固定上下方導覽列、減少與 Messenger 重複聊天通知等更新。保留 Nivqo 繁體中文／English 介面語言切換及 Facebook 頂部 Messenger 圖示雙向路由（啟用開外部 Messenger、停用開內建聊天、長按維持原行為）。補齊新增的 89 條繁中設定字串，核心繁中表共 1015 筆，Manager Patch 名稱及說明 88／88。

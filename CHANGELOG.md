@@ -1,3 +1,14 @@
+## 0.8.0 (2026-10-16)
+
+### New Features
+
+* **Facebook:** 繁體中文：同步正式 HushFacebook 0.13.0，保留 88 個 Patch。新增隱藏轉發貼文、聊天 Meta AI 按鈕、靜默儲存及音樂限時動態相片下載，修正 Reels 進度條、子母畫面與下載問題；保留 Nivqo 繁中及 Messenger 按鈕行為。
+* **Messenger:** 繁體中文：同步正式 HushMessenger 0.24.0，57 個 Patch、51 個控制項。新增最多釘選 20 個聊天室、粗體／斜體、隱藏分頁與背景掃描控制，保留繁中設定。**只支援 Messenger 583.0.0.29.95（六個 arm64 build），不再支援 582。**
+* **General:** 繁體中文：Nivqo Patches 0.8.0 整合 Facebook 88＋Messenger 57，共 145 個 Patch；Nivqo Manager 維持正式 1.35.0，Morphe Patcher 維持正式 1.15.1，保留自動更新與繁體中文說明。
+* **Facebook:** English: Syncs formal HushFacebook 0.13.0 with 88 patches, repost filtering, Meta AI chat controls, quiet saves, music-Story photo saving, and Reels/download fixes. Retains Nivqo Traditional Chinese and Messenger button routing.
+* **Messenger:** English: Syncs formal HushMessenger 0.24.0 with 57 patches and 51 controls, pinned chats, bold/italic text, tab hiding, background-scan controls, and Traditional Chinese settings. **Messenger 583.0.0.29.95, six arm64 builds only; Messenger 582 is no longer supported.**
+* **General:** English: Nivqo Patches 0.8.0 combines 145 patches (Facebook 88 + Messenger 57), preserving Manager 1.35.0, Patcher 1.15.1, automatic updates and localization.
+
 ## 0.7.0 (2026-10-14)
 
 ### New Features
