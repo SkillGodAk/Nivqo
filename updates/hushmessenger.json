@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-14T07:49:16",
-  "description": "Nivqo HushMessenger 0.23.0 正式核心（上游 v0.23.0，50 個 Patch／44 個控制項識別鍵）。新增自動回覆、自訂字型、消失訊息上滑防誤觸、廣告歸因與收件匣紀錄控制，並修正相機、已讀及 xHE-AAC 影片分享。保留 Nivqo 跟隨系統／繁中／English 語言選擇與完整繁中控制項描述。**僅支援 Messenger 582.0.0.61.92，不支援 580／581，需使用相容版本重新修補。**",
+  "created_at": "2026-10-16T14:16:37",
+  "description": "Nivqo HushMessenger 0.24.0 正式核心（57 個補丁，51 個控制項）。新增釘選更多聊天室、粗體／斜體、隱藏用戶／通知分頁、阻止附近掃描、停止 MQTT 記錄與快速設定；保留 Nivqo 繁體中文／English／跟隨系統選擇，399／399 介面及控制項繁中翻譯。**僅支援 Messenger 583.0.0.29.95 的六個 arm64 build，582 已不支援，必須重新修補相容 APK。**",
   "changelog_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushmessenger-changelog.md",
   "signature_download_url": "",
-  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/1c18ea3f2f29d2915af52f70a0d87c6e8b41ac55/updates/bundles/hushmessenger.mpp",
-  "version": "0.23.0-nivqo.1"
+  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/6330ed28d6f5c2085b264337331a10fb9bd0b557/updates/bundles/hushmessenger.mpp",
+  "version": "0.24.0-nivqo.1"
 }

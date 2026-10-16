@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-14T07:49:16",
-  "description": "Nivqo HushFacebook 0.12.0 正式核心（上游 v0.12.0，88 個 Patch）。新增逐格播放，整合 Reels／影片進度條點擊跳轉、導覽列固定、Facebook／Messenger 聊天通知去重等修正。保留 Nivqo 繁體中文／English 介面及 Facebook 頂部 Messenger 按鈕雙向路由；核心繁中設定 1015 筆，Manager Patch 繁中說明 88／88。",
+  "created_at": "2026-10-16T14:16:37",
+  "description": "Nivqo HushFacebook 0.13.0 正式核心（88 個補丁）。新增隱藏轉發貼文、聊天 Meta AI 按鈕、靜默儲存、音樂限時動態相片儲存與 Reels／下載修正；保留 Nivqo 繁體中文／English、跟隨系統語言選擇與頂部 Messenger 按鈕雙向路由，繁中介面共 1034 筆。",
   "changelog_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook-changelog.md",
   "signature_download_url": "",
-  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/1c18ea3f2f29d2915af52f70a0d87c6e8b41ac55/updates/bundles/hushfacebook.mpp",
-  "version": "0.12.0-nivqo.1"
+  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/6330ed28d6f5c2085b264337331a10fb9bd0b557/updates/bundles/hushfacebook.mpp",
+  "version": "0.13.0-nivqo.1"
 }
