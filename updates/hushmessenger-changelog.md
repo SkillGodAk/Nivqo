@@ -1,3 +1,8 @@
+# 0.24.0-nivqo.1 (2026-10-16)
+
+* **Messenger:** 繁體中文：同步正式 HushMessenger 0.24.0，由 50 增至 57 個 Patch、51 個控制項。新增最多釘選 20 個聊天室、粗體／斜體文字、隱藏用戶／通知分頁、停止附近掃描與 MQTT 記錄，並改善訊息記錄、快速設定及重新啟動操作。新增／補齊 85 條介面文字及 14 條新控制項繁中翻譯，核心繁中涵蓋 399／399，Manager 中文補丁說明 57／57。**僅支援 Messenger 583.0.0.29.95 的六個 arm64 build；582 已移除，須使用相容的 583 APK 重新修補。**
+* **Messenger:** English: Syncs formal HushMessenger 0.24.0 (57 patches, 51 controls), adding up to 20 pinned chats, bold/italic text, tab hiding, nearby-scan and MQTT logging controls, plus message-log and settings enhancements. Traditional Chinese coverage is 399/399 (85 new UI strings and 14 new control translations); all 57 Manager patch descriptions are localized. **Only six arm64 builds of Messenger 583.0.0.29.95 are supported; 582 is no longer supported, so re-patch a compatible 583 APK.**
+
 # 0.23.0-nivqo.1 (2026-10-14)
 
 * **Messenger:** 繁體中文：同步上游正式 HushMessenger v0.23.0（f5384dd62cc332dda82906d36c8a83f57f3e7906），由 43 增為 50 個 Patch、44 個控制項識別鍵。新增自動回覆、自訂字型、停止上滑誤啟動消失訊息、商家聊天廣告橫幅隱藏、廣告歸因與收件匣紀錄控制、xHE-AAC 影片分享修復；包含已讀隱藏與相機修正。保留 Nivqo「跟隨系統／繁體中文／English」語言選擇，補齊 48 條新增介面文字及 7 組新控制項的繁中名稱／說明，Manager Patch 中繼資料涵蓋 50／50。**相容性變更：只支援 Messenger 582.0.0.61.92，不再支援 580／581；更新後應以對應版本重新修補 APK。**
