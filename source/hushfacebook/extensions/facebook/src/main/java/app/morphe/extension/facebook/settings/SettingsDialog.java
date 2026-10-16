@@ -53,6 +53,14 @@ public final class SettingsDialog extends DialogFragment {
     static final int CONTAINER_ID = 0x48464301;
     /** The argument naming the page the screen opens on: a route of {@link SettingsNavigation}. */
     static final String START_PAGE = "hushfacebook_start_page";
+    /**
+     * Saved when the screen goes away while the search box is being typed in. Android 17 no longer
+     * brings the keyboard back after a configuration change the app doesn't handle, and the box has
+     * no id for the window to put its focus back on, so the screen asks for both itself.
+     */
+    static final String TYPING = "hushfacebook_search_typing";
+    /** Whether the keyboard is up over a view. Replaced in tests, where no keyboard draws. */
+    static java.util.function.Predicate<View> keyboardUp = SettingsDialog::keyboardShowing;
 
     private TextView pageTitle;
     private TextView pageContext;
@@ -66,6 +74,10 @@ public final class SettingsDialog extends DialogFragment {
         if (!count.contentEquals(results.getText())) results.setText(count);
     };
     private boolean settingSearch;
+    /** The screen was recreated while its search box was being typed in. */
+    private boolean typingAgain;
+    /** The search box had the focus and the keyboard when the screen last paused. */
+    private boolean typingAtPause;
 
     /** The page's colours, or null for the black page. Read when the dialog is created. */
     @Nullable
@@ -145,6 +157,7 @@ public final class SettingsDialog extends DialogFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
+        typingAgain = savedInstanceState != null && savedInstanceState.getBoolean(TYPING);
         LinearLayout root = new LinearLayout(getContext());
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(background());
@@ -325,10 +338,49 @@ public final class SettingsDialog extends DialogFragment {
         settingSearch = true;
         if (!search.getText().toString().equals(query)) search.setText(query);
         settingSearch = false;
-        if (!home || query.isEmpty()) {
+        boolean typing = typingAgain && home;
+        typingAgain = false;
+        if (typing) {
+            // Posted, since a restored page can get here before the dialog's window holds the box.
+            search.post(() -> {
+                // A requested setting may have moved the page on since, and the box with it.
+                if (searchBox.getVisibility() != View.VISIBLE) return;
+                search.requestFocus();
+                search.setSelection(search.length());
+                WindowInsetsController keyboard = search.getWindowInsetsController();
+                if (keyboard != null) keyboard.show(WindowInsets.Type.ime());
+            });
+        } else if (!home || query.isEmpty()) {
             search.clearFocus();
             hideKeyboard();
         }
+    }
+
+    /**
+     * Read at pause, while the dialog still shows: its onStop hides the dialog, which takes the
+     * focus off the box before the state is saved on Android 9 and newer.
+     */
+    @Override
+    public void onPause() {
+        typingAtPause = search != null && search.hasFocus() && keyboardUp.test(search);
+        super.onPause();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        typingAtPause = false;
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (typingAtPause) outState.putBoolean(TYPING, true);
+    }
+
+    private static boolean keyboardShowing(View view) {
+        WindowInsets insets = view.getRootWindowInsets();
+        return insets != null && insets.isVisible(WindowInsets.Type.ime());
     }
 
     /** How many settings the search shows, or -1 when there is no search. */

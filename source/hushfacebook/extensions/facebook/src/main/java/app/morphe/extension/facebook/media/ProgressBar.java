@@ -55,6 +55,8 @@ public final class ProgressBar {
     static final String REEL_BAR_KEPT = "Reel progress bar kept";
     /** Counted each time the kept bar drops the last reel's graph and chapter marks for the next reel. */
     static final String NEXT_REEL_CLEARED = "Reel bar cleared for the next reel";
+    /** Counted each time the bar goes back to the start as the scrubber takes the next reel. */
+    static final String NEXT_REEL_STARTED_OVER = "Reel bar started over for the next reel";
     /** Counted each time a full-screen video's fade timer isn't set. */
     static final String CONTROLS_KEPT = "Video controls kept";
 
@@ -131,6 +133,33 @@ public final class ProgressBar {
      */
     public static boolean clearsLastReel() {
         return keeps("reel bar reset", NEXT_REEL_CLEARED);
+    }
+
+    /**
+     * The hook, as the scrubber takes another video, with its time label and its bar. Facebook
+     * leaves both where the last reel stopped, and only a playing reel's progress update moves them.
+     * A reel that waits, held by Tap to play or for a player that's slow to start, showed the last
+     * reel's position and time until it played, with Facebook's thin line as much as with the kept
+     * bar (#90, #120). While the bar is kept or Tap to play is on, this puts the bar back at the
+     * start, and a time label that stays up goes invisible until {@link #refreshesTime} puts it back
+     * with the reel's own time. Otherwise Facebook's code runs as it would.
+     */
+    public static void nextReel(@Nullable ViewGroup label, @Nullable View bar) {
+        try {
+            HookStatus.invoked(FAMILY);
+            if (!Utils.settingsReady() || !(Settings.KEEP_PROGRESS_BAR.get() || Settings.TAP_TO_PLAY.get())) return;
+            HookStatus.bound(FAMILY, "reel bar start over");
+            if (bar instanceof android.widget.ProgressBar && ((android.widget.ProgressBar) bar).getProgress() != 0) {
+                ((android.widget.ProgressBar) bar).setProgress(0);
+                HookStatus.counted(FAMILY, NEXT_REEL_STARTED_OVER);
+            }
+            if (label != null && showsTime()) {
+                label.setVisibility(View.INVISIBLE);
+                lastRefresh.remove(label);
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "reel bar start over", failure);
+        }
     }
 
     /**

@@ -52,18 +52,18 @@ class AttributionUploadsTest {
         activeProfile = SYNTHETIC_PROFILE
     }
 
-    private fun found(classes: List<MutableClass>) = findControls(classes).getValue(ATTRIBUTION_UPLOADS).map { it.hookId() }
+    private fun found(classes: List<MutableClass>) = mirroredControls(classes).getValue(ATTRIBUTION_UPLOADS).map { it.hookId() }
 
     @Test fun theWorkerIsFoundByItsClassShapeAndBothRoutesItNames() {
         assertEquals(listOf(ATTRIBUTION_WORKER), found(attributionUploadFixture()))
-        validateControls(findControls(attributionUploadFixture()), setOf(ATTRIBUTION_UPLOADS))
+        validateControls(mirroredControls(attributionUploadFixture()), setOf(ATTRIBUTION_UPLOADS))
     }
 
     @Test fun everyProfileHooksTheSameNamedWorker() {
-        for (profile in listOf(SYNTHETIC_PROFILE, BASE_PROFILE, PROFILE_346415706)) {
+        for (profile in listOf(SYNTHETIC_PROFILE, BASE_PROFILE, PROFILE_346611351)) {
             assertEquals(setOf(ATTRIBUTION_WORKER), profile.hooks.getValue(ATTRIBUTION_UPLOADS))
             activeProfile = profile
-            validateControls(findControls(attributionUploadFixture()), setOf(ATTRIBUTION_UPLOADS))
+            validateControls(mirroredControls(attributionUploadFixture()), setOf(ATTRIBUTION_UPLOADS))
         }
     }
 
@@ -80,7 +80,7 @@ class AttributionUploadsTest {
         )
         for ((case, classes) in cases) {
             assertTrue(found(classes).isEmpty(), case)
-            assertFailsWith<PatchException>(case) { validateControls(findControls(classes), setOf(ATTRIBUTION_UPLOADS)) }
+            assertFailsWith<PatchException>(case) { validateControls(mirroredControls(classes), setOf(ATTRIBUTION_UPLOADS)) }
         }
     }
 

@@ -4,16 +4,19 @@
  */
 package com.facebook.graphql.model;
 
+import com.facebook.graphql.modelutil.BaseModelWithTree;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 /**
- * A test stand-in for Facebook's kept attachment model. Its media getter and its list of the
- * attachments an album holds carry names of the shape Redex gives them; the patch reads the real
- * ones out of each build and hands them over.
+ * A test stand-in for Facebook's kept attachment model, a tree model like the real one, so a test
+ * can give it a {@code url}. Its media getter and its list of the attachments an album holds carry
+ * names of the shape Redex gives them; the patch reads the real ones out of each build and hands
+ * them over.
  */
-public class GraphQLStoryAttachment {
+public class GraphQLStoryAttachment extends BaseModelWithTree {
     private final GraphQLMedia media;
     private final List<GraphQLStoryAttachment> subattachments;
 
@@ -23,6 +26,7 @@ public class GraphQLStoryAttachment {
 
     /** An attachment holding others, as an album's attachment holds one per photo. */
     public GraphQLStoryAttachment(GraphQLMedia media, GraphQLStoryAttachment... subattachments) {
+        super("StoryAttachment");
         this.media = media;
         this.subattachments = new ArrayList<>(Arrays.asList(subattachments));
     }

@@ -151,15 +151,17 @@ final class DashSave {
 
         try {
             File folder = workFolder(application);
-            if (folder == null) return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "no cache folder");
+            if (folder == null) {
+                return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, Downloader.Cause.STORAGE, "no cache folder");
+            }
 
-            videoFile = File.createTempFile("video", ".mp4", folder);
+            videoFile = workFile("video", ".mp4", folder);
             Downloader.Result result = fetchWork(video.url, Downloader.Kind.VIDEO, videoFile, policy, maxBytes,
                 progress);
             if (!result.ok()) return result;
 
             if (audio != null) {
-                audioFile = File.createTempFile("audio", ".mp4", folder);
+                audioFile = workFile("audio", ".mp4", folder);
                 // One count for the pair: the sound's bytes go on from the picture's.
                 result = fetchWork(audio.url, Downloader.Kind.AUDIO, audioFile, policy,
                     maxBytes - videoFile.length(), Downloader.after(videoFile.length(), progress));
@@ -171,11 +173,12 @@ final class DashSave {
             if (transcodeVideo) {
                 if (progress.cancelled()) return Downloader.Result.fail(Downloader.Status.CANCELLED, "cancelled before the conversion");
                 progress.joining();
-                picture = File.createTempFile("picture", ".mp4", folder);
+                picture = workFile("picture", ".mp4", folder);
                 // H.264 at the bitrate VideoTranscode picks runs several times the VP9 or AV1 it came from.
                 long room = Math.min(maxBytes, Math.max(videoFile.length() * 6, 32L << 20));
                 if (reserve(picture, room) < room) {
-                    return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "not enough free space to convert the picture");
+                    return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, Downloader.Cause.NO_SPACE,
+                        "not enough free space to convert the picture");
                 }
                 long started = SystemClock.uptimeMillis();
                 try {
@@ -183,7 +186,7 @@ final class DashSave {
                         return Downloader.Result.fail(Downloader.Status.CANCELLED, "cancelled during the conversion");
                     }
                 } catch (OutputAllowance.Exceeded over) {
-                    return Downloader.Result.fail(Downloader.Status.WRITE_ERROR,
+                    return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, Downloader.Cause.CONVERSION,
                         "the converted picture outgrew the " + room + " bytes kept for it");
                 }
                 long took = SystemClock.uptimeMillis() - started;
@@ -199,12 +202,13 @@ final class DashSave {
 
             if (audioFile != null && reencodeSound) {
                 if (progress.cancelled()) return Downloader.Result.fail(Downloader.Status.CANCELLED, "cancelled before the re-encode");
-                sound = File.createTempFile("sound", ".m4a", folder);
+                sound = workFile("sound", ".m4a", folder);
                 // AAC-LC at its bitrate runs a few times the xHE-AAC it came from, so the room goes
                 // by how long the sound runs. A track over the cap couldn't join under it either.
                 long room = Math.min(maxBytes, AacReencode.room(audioFile));
                 if (reserve(sound, room) < room) {
-                    return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "not enough free space to re-encode the sound");
+                    return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, Downloader.Cause.NO_SPACE,
+                        "not enough free space to re-encode the sound");
                 }
                 long started = SystemClock.uptimeMillis();
                 try {
@@ -212,7 +216,7 @@ final class DashSave {
                         return Downloader.Result.fail(Downloader.Status.CANCELLED, "cancelled during the re-encode");
                     }
                 } catch (OutputAllowance.Exceeded over) {
-                    return Downloader.Result.fail(Downloader.Status.WRITE_ERROR,
+                    return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, Downloader.Cause.CONVERSION,
                         "the re-encoded sound outgrew the " + room + " bytes kept for it");
                 }
                 long took = SystemClock.uptimeMillis() - started;
@@ -225,12 +229,13 @@ final class DashSave {
             }
 
             if (progress.cancelled()) return Downloader.Result.fail(Downloader.Status.CANCELLED, "cancelled before the join");
-            joined = File.createTempFile("joined", ".mp4", folder);
+            joined = workFile("joined", ".mp4", folder);
             // The joined file is about the size of the two tracks, with boxes of its own on top.
             long tracks = videoFile.length() + (audioFile == null ? 0 : audioFile.length());
             long room = tracks + tracks / 16 + JOIN_BOXES;
             if (reserve(joined, room) < room) {
-                return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "not enough free space to join the tracks");
+                return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, Downloader.Cause.NO_SPACE,
+                    "not enough free space to join the tracks");
             }
             boolean own = ownWriter(pictureCodecs, Build.VERSION.SDK_INT);
             if (own) {
@@ -263,7 +268,14 @@ final class DashSave {
             // for one. It's still the person's cancel.
             if (progress.cancelled()) return cancelledJoining();
             Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "the DASH save failed", t);
-            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "the tracks could not be joined");
+            // A work file that couldn't be made is the storage's doing. Anything else thrown in
+            // here came out of a conversion or the join.
+            if (t instanceof Downloader.StorageFailure) {
+                return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, Downloader.Cause.STORAGE,
+                    "a work file could not be made");
+            }
+            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, Downloader.Cause.CONVERSION,
+                "the tracks could not be joined");
         } finally {
             discard(videoFile);
             discard(audioFile);
@@ -321,6 +333,18 @@ final class DashSave {
         }
     }
 
+    /**
+     * A new, empty work file in [folder]. One that can't be made is the storage's doing, told apart
+     * from a conversion or a join that failed.
+     */
+    static File workFile(String prefix, String suffix, File folder) throws Downloader.StorageFailure {
+        try {
+            return File.createTempFile(prefix, suffix, folder);
+        } catch (IOException e) {
+            throw new Downloader.StorageFailure(e);
+        }
+    }
+
     /** Whether a running save still uses [file]. Cleanup of work files leaves such a file alone. */
     static boolean inUse(File file) {
         synchronized (WORK) {
@@ -347,7 +371,8 @@ final class DashSave {
             Downloader.Progress progress) {
         long room = reserve(into, cap);
         if (room <= 0 && cap > 0) {
-            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "not enough free space for a work file");
+            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, Downloader.Cause.NO_SPACE,
+                "not enough free space for a work file");
         }
         Downloader.Result result = Downloader.fetch(url, kind, into, policy, room, new Downloader.Progress() {
             private boolean sized;
@@ -373,7 +398,7 @@ final class DashSave {
         // Fetched, it grows no more, whatever size was announced or not.
         holdTo(into, into.length());
         if (result.status == Downloader.Status.TOO_LARGE && room < cap) {
-            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR,
+            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, Downloader.Cause.NO_SPACE,
                 "not enough free space for a work file over " + room + " bytes");
         }
         return result;

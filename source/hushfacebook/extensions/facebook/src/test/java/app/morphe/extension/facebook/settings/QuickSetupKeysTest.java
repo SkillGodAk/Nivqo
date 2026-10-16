@@ -80,4 +80,21 @@ public class QuickSetupKeysTest {
             assertFalse(kept.key, defaults.containsKey(kept));
         }
     }
+
+    /** Hiding the home row is the person's own call: no choice, and no settings file, reaches it. */
+    @Test
+    public void hidingTheQuickSetupsRowIsInNoChoiceAndNoFile() {
+        BooleanSetting hidden = BaseSettings.HIDE_QUICK_SETUPS;
+        assertFalse(hidden.rebootApp);
+        assertFalse(hidden.includeWithImportExport);
+        assertTrue(hidden.isKeptWhenPaused());
+        assertFalse(SettingsBackup.ALLOWLIST.contains(hidden));
+        for (List<BooleanSetting> list : Arrays.asList(QuickSetupKeys.QUIET, QuickSetupKeys.PRIVACY, QuickSetupKeys.DEFAULTS)) {
+            assertFalse(list.contains(hidden));
+        }
+        for (Map<BooleanSetting, Boolean> choice : Arrays.asList(
+                QuickSetupKeys.quiet(), QuickSetupKeys.privacy(), QuickSetupKeys.defaults())) {
+            assertFalse(choice.containsKey(hidden));
+        }
+    }
 }

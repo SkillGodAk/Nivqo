@@ -1,5 +1,6 @@
 package app.hushmessenger.tools
 
+import app.hushmessenger.patches.controls.LOGO_LONG_PRESS
 import app.morphe.patcher.patch.Patch
 import app.morphe.patcher.patch.loadPatchesFromJar
 import com.android.tools.smali.dexlib2.ReferenceType
@@ -8,6 +9,7 @@ import com.android.tools.smali.dexlib2.dexbacked.raw.util.DexAnnotator
 import com.android.tools.smali.dexlib2.iface.instruction.DualReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.formats.UnknownInstruction
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.writer.io.MemoryDataStore
 import com.android.tools.smali.dexlib2.writer.pool.DexPool
 import java.io.File
@@ -105,12 +107,14 @@ object CatalogTool {
         }),
     ))
 
-    fun validateDefinitions(patchSource: String, uiSource: String, manifest: String, names: Set<String>): Int {
+    /** The control keys, once patches, settings and manifest agree on them and on the built patch names. */
+    fun validateDefinitions(patchSource: String, uiSource: String, manifest: String, names: Set<String>): Set<String> {
         val declarations = (Regex("""controlPatch\("([a-z_]+)",\s*"([^"]+)"""").findAll(patchSource)
             .map { it.groupValues[1] to it.groupValues[2] } +
             // Standalone patches that use recordControl directly instead of controlPatch:
             sequenceOf("material_you" to "Material You theme", "anonymous_stories" to "View stories anonymously",
-                "save_stories" to "Save any story", "chat_animation" to "Slide chats in and out")).toList()
+                "save_stories" to "Save any story", "chat_animation" to "Slide chats in and out",
+                "text_style" to "Bold and italic text")).toList()
         val uiKeys = Regex("""^\s*\{"([a-z_]+)",""", RegexOption.MULTILINE).findAll(uiSource)
             .map { it.groupValues[1] }.toList()
         val factory = DocumentBuilderFactory.newInstance().apply {
@@ -128,7 +132,73 @@ object CatalogTool {
         require(manifestKeys.size == keys.size && manifestKeys.toSet() == keys.toSet()) { "Manifest capabilities differ from patches" }
         require(declarations.map { it.second }.toSet().size == keys.size &&
             names == declarations.map { it.second }.toSet() + NON_CONTROL_PATCHES) { "Built patch names differ from control declarations" }
-        return keys.size
+        return keys.toSet()
+    }
+
+    /**
+     * Capabilities the patches record that aren't controls. Settings reads each by a key of its own, written separately
+     * in Java, so both DEX files have to carry the same one.
+     */
+    private val RECORDED_CAPABILITIES = setOf("menu_row", LOGO_LONG_PRESS)
+
+    private const val EXTENSION = "app/hushmessenger/extension/"
+    private val EXTENSION_METHOD = Regex("""L($EXTENSION[A-Za-z0-9_$/]+);->([A-Za-z0-9_$<>]+)\(([^)]*)\)(\[*(?:[ZBSCIJFDV]|L[^;\s]+;))""")
+    private val EXTENSION_FIELD = Regex("""L($EXTENSION[A-Za-z0-9_$/]+);->([A-Za-z0-9_$]+):(\[*(?:[ZBSCIJFD]|L[^;\s]+;))""")
+    private val EXTENSION_TYPE = Regex("""L$EXTENSION[A-Za-z0-9_$/]+;""")
+    /** An extension class and arrow with no whole member after it: the rest gets joined on at patch time, out of sight. */
+    private val EXTENSION_JOIN = Regex("""L$EXTENSION[A-Za-z0-9_$/]+;->(?![A-Za-z0-9_$<>]+[(:])""")
+
+    private fun strings(dex: DexBackedDexFile) = dex.getReferences(ReferenceType.STRING).map { (it as StringReference).string }
+
+    /**
+     * The packaged extension defines every class, method and field the patcher DEX names in its hook code, and both DEX
+     * files carry every control key. A swapped, stale or unrelated extension that's structurally fine fails here. The
+     * patches write each extension member out whole, so a reference joined at patch time is refused rather than skipped.
+     * Returns the number of extension references checked.
+     */
+    fun validateExtensionContract(patcherDex: ByteArray, extensionDex: ByteArray, controlKeys: Set<String>): Int {
+        val patcher = DexBackedDexFile.fromInputStream(null, patcherDex.inputStream())
+        val extension = DexBackedDexFile.fromInputStream(null, extensionDex.inputStream())
+        val classes = extension.classes.associateBy { it.type }
+        val named = strings(patcher)
+        var checked = 0
+        for (text in named) {
+            EXTENSION_JOIN.find(text)?.let { throw IllegalArgumentException("The patcher DEX builds ${it.value} at patch time, so it can't be checked") }
+            for (match in EXTENSION_METHOD.findAll(text)) {
+                val (type, name, parameters, returns) = match.destructured
+                val owner = requireNotNull(classes["L$type;"]) { "The extension has no L$type;" }
+                require(owner.methods.any { it.name == name && it.returnType == returns && it.parameterTypes.joinToString("") == parameters }) {
+                    "The extension has no ${match.value}"
+                }
+                checked++
+            }
+            for (match in EXTENSION_FIELD.findAll(text)) {
+                val (type, name, fieldType) = match.destructured
+                val owner = requireNotNull(classes["L$type;"]) { "The extension has no L$type;" }
+                require(owner.fields.any { it.name == name && it.type == fieldType }) { "The extension has no ${match.value}" }
+                checked++
+            }
+            for (match in EXTENSION_TYPE.findAll(text)) {
+                require(match.value in classes) { "The extension has no ${match.value}" }
+                checked++
+            }
+        }
+        require(checked > 0) { "The patcher DEX names no extension code" }
+        val patcherStrings = named.toSet()
+        val extensionStrings = strings(extension).toSet()
+        for (key in controlKeys.sorted()) {
+            require(key in extensionStrings) { "The extension has no $key control" }
+            require(key in patcherStrings) { "The patcher DEX has no $key control" }
+        }
+        return checked
+    }
+
+    /** Every patch class in the bundle's JVM half is in its patcher DEX, the half Android-side patching loads. */
+    fun validatePatcherClasses(jvmClasses: Collection<String>, patcherDex: ByteArray) {
+        require(jvmClasses.isNotEmpty()) { "The bundle has no patch classes" }
+        val types = DexBackedDexFile.fromInputStream(null, patcherDex.inputStream()).classes.map { it.type }.toSet()
+        val missing = jvmClasses.map { "L${it.removeSuffix(".class")};" }.filter { it !in types }.sorted()
+        require(missing.isEmpty()) { "The patcher DEX lacks ${missing.size} patch classes, ${missing.first()} first" }
     }
 
     fun validateDex(data: ByteArray): Int {
@@ -331,20 +401,26 @@ object CatalogTool {
             return
         }
         require(args.size in 3..4 && args[0] in setOf("generate", "check")) { "Expected generate|check, MPP path, repository root and optional evidence path" }
+        val bundle = File(args[1])
+        val root = File(args[2])
+        val report = args.getOrNull(3)?.takeIf { it.isNotEmpty() }?.let(::File) ?: root.resolve("patches/build/reports/catalog-evidence.json")
+        // A refused bundle must not leave an earlier run's success receipt in place, so it goes before any check.
+        require(!report.exists() || report.delete()) { "Couldn't remove the earlier catalog receipt" }
         require(runCatching { Class.forName("app.hushmessenger.patches.MessengerTarget") }.isFailure) {
             "Loose patch classes are on the tool classpath; refusing to bypass the built MPP"
         }
-        val bundle = File(args[1])
-        val root = File(args[2])
         val properties = Properties().apply { root.resolve("gradle.properties").reader().use(::load) }
+        lateinit var patcherDex: ByteArray
+        lateinit var extensionDex: ByteArray
+        lateinit var patchClasses: List<String>
         val version = JarFile(bundle).use { jar ->
             require(jar.getEntry("classes.dex") != null && jar.getEntry("extensions/messenger.mpe") != null) { "Incomplete Android bundle" }
-            require(jar.entries().asSequence().map { it.name }.toList().let { it.size == it.toSet().size }) { "Duplicate bundle entry" }
-            for (name in listOf("classes.dex", "extensions/messenger.mpe")) {
-                require(validateDex(jar.getInputStream(jar.getEntry(name)).use { it.readBytes() }) > 0) {
-                    "Bundle DEX contains no classes"
-                }
-            }
+            val names = jar.entries().asSequence().map { it.name }.toList()
+            require(names.size == names.toSet().size) { "Duplicate bundle entry" }
+            patcherDex = jar.getInputStream(jar.getEntry("classes.dex")).use { it.readBytes() }
+            extensionDex = jar.getInputStream(jar.getEntry("extensions/messenger.mpe")).use { it.readBytes() }
+            for (dex in listOf(patcherDex, extensionDex)) require(validateDex(dex) > 0) { "Bundle DEX contains no classes" }
+            patchClasses = names.filter { it.startsWith("app/hushmessenger/patches/") && it.endsWith(".class") }
             require(jar.manifest.mainAttributes.getValue("Timestamp") == properties.getProperty("bundleTimestampMillis")) { "Bundle timestamp differs from source" }
             jar.manifest.mainAttributes.getValue("Version")
         }
@@ -357,9 +433,10 @@ object CatalogTool {
             root.resolve("extensions/messenger/src/main/java/app/hushmessenger/extension/SettingsActivity.java").readText(),
             root.resolve("extensions/messenger/src/main/AndroidManifest.xml").readText(), patchNames,
         )
+        validatePatcherClasses(patchClasses, patcherDex)
+        val references = validateExtensionContract(patcherDex, extensionDex, controls + RECORDED_CAPABILITIES)
         val document = catalog(version, patches)
         val output = Json { prettyPrint = true }.encodeToString(JsonObject.serializer(), document) + "\n"
-        val report = args.getOrNull(3)?.let(::File) ?: root.resolve("patches/build/reports/catalog-evidence.json")
         report.parentFile.mkdirs()
         val digest = MessageDigest.getInstance("SHA-256").digest(bundle.readBytes()).joinToString("") { "%02x".format(it) }
         val published = root.resolve("patches-list.json")
@@ -368,7 +445,9 @@ object CatalogTool {
             "Public catalog differs from the built MPP; run :patches:generatePatchCatalog"
         }
         report.writeText(JsonObject(linkedMapOf("bundle" to JsonPrimitive(bundle.name), "sha256" to JsonPrimitive(digest),
-            "dexValidated" to JsonPrimitive(true), "controlCount" to JsonPrimitive(controls), "catalog" to document)).toString() + "\n")
-        println("Catalog ${args[0]} passed: ${patches.size} patches, $controls control keys, built bundle $version, DEX structurally checked")
+            "dexValidated" to JsonPrimitive(true), "controlCount" to JsonPrimitive(controls.size),
+            "extensionReferences" to JsonPrimitive(references), "catalog" to document)).toString() + "\n")
+        println("Catalog ${args[0]} passed: ${patches.size} patches, ${controls.size} control keys, built bundle $version, " +
+            "DEX structurally checked, $references extension references found in the packaged extension")
     }
 }

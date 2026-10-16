@@ -13,9 +13,9 @@ internal const val MESSAGE_SOUND_KEY = "soundFile"
 internal const val MESSAGE_SOUND_LIMIT = 1_048_576L
 
 /**
- * SHA-256 of Messenger's raw/new_message, the same 11,615-byte Ogg file in every supported 582 build.
- * Its path inside the APK is obfuscated and differs between builds (res/ll4.ogg, res/lns.ogg and
- * eight others), so the patch finds it by its bytes and refuses when there isn't exactly one copy.
+ * SHA-256 of Messenger's raw/new_message, the same 11,615-byte Ogg file in every supported 583 build.
+ * Its path inside the APK is obfuscated and differs between builds (res/ezh.ogg, res/ezl.ogg and
+ * res/ezo.ogg), so the patch finds it by its bytes and refuses when there isn't exactly one copy.
  */
 internal const val STOCK_NEW_MESSAGE_SHA256 = "724eedfb0f57edff1b82468d3f9f9076f790a7041e55c2df42113053ed7c10c2"
 

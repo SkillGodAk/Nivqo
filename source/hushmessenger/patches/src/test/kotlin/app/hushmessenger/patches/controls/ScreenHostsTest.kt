@@ -88,4 +88,33 @@ class ScreenHostsTest {
                 AccessFlags.STATIC.value).writeBundledControls(setOf("ads"))
         }
     }
+
+    @Test fun everySupportedBuildRecordsItsNameCodeAndMapping() {
+        for ((name, codes) in app.hushmessenger.patches.MessengerTarget.VERSIONS) for (code in codes) {
+            val mapping = if (code == 346611351) "346611351" else "base"
+            assertEquals("$name|$code|$mapping", originalBuild(name, code.toString(), controlProfiles), "$code")
+        }
+        // Anything that could break the string, or isn't a version at all, is left for the report to call unknown.
+        for ((name, code) in listOf(null to "346611369", "583.0.0.29.95" to null, "583 0" to "346611369", "583\"x" to "346611369",
+            "" to "346611369", "583.0.0.29.95" to "0", "583.0.0.29.95" to "2147483648", "583.0.0.29.95" to "-1", "x583" to "346611369")) {
+            assertEquals("", originalBuild(name, code, controlProfiles), "$name $code")
+        }
+    }
+
+    @Test fun theBuildRecordReplacesOnlyTheStubsConstant() {
+        val method = originalBuildMethod()
+        method.writeOriginalBuild("583.0.0.29.95|346611351|346611351")
+        val code = method.implementation!!.instructions.toList()
+        assertEquals(listOf(Opcode.CONST_STRING, Opcode.RETURN_OBJECT), code.map { it.opcode })
+        assertEquals("583.0.0.29.95|346611351|346611351", ((code[0] as ReferenceInstruction).reference as StringReference).string)
+        assertEquals(0, (code[0] as OneRegisterInstruction).registerA)
+        assertFailsWith<PatchException> { originalBuildMethod("const/4 v0, 0x0\nreturn-object v0").writeOriginalBuild("x") }
+        assertFailsWith<PatchException> {
+            fixtureMethod(ORIGINAL_BUILD, "const-string v0, \"\"\nreturn-object v1", 2, AccessFlags.STATIC.value).writeOriginalBuild("x")
+        }
+        assertFailsWith<PatchException> {
+            fixtureMethod(ORIGINAL_BUILD.replace("originalBuild", "other"), "const-string v0, \"\"\nreturn-object v0", 1,
+                AccessFlags.STATIC.value).writeOriginalBuild("x")
+        }
+    }
 }

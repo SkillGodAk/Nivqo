@@ -33,7 +33,7 @@ private const val COUNTER = "invoke-virtual {v7}, Ljava/util/concurrent/atomic/A
 private const val ADD_ROW = "$MENTION_LIST_BUILDER->add(Ljava/lang/Object;)$MENTION_LIST_BUILDER"
 
 /**
- * The Meta AI section as 582 runs it: the marker loads first, a cold cache stores it, and the section's own read and
+ * The Meta AI section as Messenger runs it: the marker loads first, a cold cache stores it, and the section's own read and
  * skip come right before its trace counter and plugin name.
  */
 private fun mentionAi(
@@ -93,7 +93,7 @@ private fun imagine() = fixtureMethod(SYNTHETIC_IMAGINE, """
 """.trimIndent(), registers = 12)
 
 /**
- * The community chat dispatcher as 582 runs it: its section reads the cache, loads the marker right there, moves two
+ * The community chat dispatcher as Messenger runs it: its section reads the cache, loads the marker right there, moves two
  * unrelated registers and only then compares.
  */
 private fun communityAi(
@@ -148,7 +148,7 @@ private fun Method.code() = implementation!!.instructions.toList()
 
 /**
  * The stock instructions are the same objects after an insertion, except a goto whose span the insertion pushed
- * past 127 code units, which dexlib2 widens to goto/16 (7R6 and 287 on 582 have such gotos around their sites).
+ * past 127 code units, which dexlib2 widens to goto/16.
  */
 internal fun assertStockKept(before: List<Instruction>, after: List<Instruction>, label: String) {
     assertEquals(before.size, after.size, label)
@@ -179,7 +179,7 @@ class AiMentionsTest {
 
     @Test fun eachMetaAiSectionReadsItsStateThroughTheExtension() {
         val classes = aiMentionsFixture()
-        val found = findControls(classes)
+        val found = mirroredControls(classes)
         assertEquals(setOf(SYNTHETIC_MENTION_AI, SYNTHETIC_IMAGINE, SYNTHETIC_COMMUNITY_AI), found.getValue(AI_MENTIONS).map { it.hookId() }.toSet())
         validateControls(found, setOf(AI_MENTIONS, AI_COMMANDS))
         for (method in listOf(mentionAi(), imagine(), communityAi())) {

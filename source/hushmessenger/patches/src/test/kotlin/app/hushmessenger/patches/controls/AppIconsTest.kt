@@ -66,18 +66,18 @@ class AppIconsTest {
         fixtureClass(MANAGER, (if (aliases) listOf(appIconAliasMap(MANAGER)) else emptyList()) + gates)
 
     @Test fun discoveryNeedsTheIconManagersAliasMapAndTheBenefitName() {
-        val found = findControls(listOf(manager(gate(PICKER_GATE), gate(SETTING_GATE))), null)
+        val found = mirroredControls(listOf(manager(gate(PICKER_GATE), gate(SETTING_GATE))), null)
         assertEquals(setOf(PICKER_GATE, SETTING_GATE), found.getValue(APP_ICONS).map { it.hookId() }.toSet())
         validateControls(found, setOf(APP_ICONS))
 
         // The subscription lookup itself names the benefit too, but it lives outside the icon manager.
         val lookup = fixtureClass("LX/1e0;", listOf(gate("LX/1e0;->A02($FB_USER_SESSION)Z")))
-        assertTrue(findControls(listOf(lookup), null).getValue(APP_ICONS).isEmpty())
+        assertTrue(mirroredControls(listOf(lookup), null).getValue(APP_ICONS).isEmpty())
         for (changed in listOf(
             listOf(manager(gate(PICKER_GATE), gate(SETTING_GATE), aliases = false)),
             listOf(manager(gate(PICKER_GATE), gate(SETTING_GATE, APP_ICON_GATE_BODY.replace(APP_ICON_BENEFIT, "CUSTOM_THEME")))),
             listOf(manager(gate(PICKER_GATE), gate(SETTING_GATE, flags = AccessFlags.PUBLIC.value))),
-        )) assertFailsWith<PatchException> { validateControls(findControls(changed, null), setOf(APP_ICONS)) }
+        )) assertFailsWith<PatchException> { validateControls(mirroredControls(changed, null), setOf(APP_ICONS)) }
     }
 
     @Test fun onAnswersYesAndOffRunsMessengersOwnCheckUntouched() {
@@ -139,7 +139,7 @@ class AppIconsTest {
                 assertEquals(before, after.drop(5), code)
             }
         }
-        // One icon manager per 582 naming.
+        // One icon manager per 583 naming.
         assertEquals(2, families.size)
     }
 }

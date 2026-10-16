@@ -527,6 +527,9 @@ public final class FeedFilter {
             if (reason == null && wordsPatched && typeReaders != null) {
                 reason = reactionsReason(feedUnit, typeReaders);
             }
+            if (reason == null && wordsPatched && Settings.HIDE_REPOSTS.get()) {
+                reason = repostReason(feedUnit, attachedAccessor);
+            }
             // The seen rule goes last so a post another rule would hide is counted under that rule.
             if (reason == null) reason = SeenPosts.hideReason(feedUnit);
             if (reason == null) return false;
@@ -776,6 +779,21 @@ public final class FeedFilter {
         if (!above) return null;
         FeedFilterCounters.removed(PostReactions.ROUTE, 1, PostReactions.ABOVE);
         return PostReactions.ABOVE;
+    }
+
+    /**
+     * Hide reposts' rule: {@link PostText#REPOST} when the post shares another post, with a caption
+     * or without, otherwise null. Nothing is read while the switch is off, and an original post or
+     * one that can't be read stays. Each post it reads is counted on its route by what the read
+     * found, a shape and never the post.
+     */
+    private static String repostReason(Object feedUnit, StoryFlag.Accessor attached) {
+        String kind = PostText.shareKind(feedUnit, attached);
+        FeedFilterCounters.sawList(PostText.REPOST_ROUTE, 1);
+        FeedFilterCounters.sawKind(PostText.REPOST_ROUTE, kind);
+        if (!PostText.REPOST.equals(kind)) return null;
+        FeedFilterCounters.removed(PostText.REPOST_ROUTE, 1, kind);
+        return kind;
     }
 
     /**

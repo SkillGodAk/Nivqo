@@ -97,6 +97,7 @@ public class SettingsNavigationTest {
         Settings.TAP_TO_PLAY.resetToDefault();
         Settings.DOWNLOAD_COMPATIBLE.resetToDefault();
         BaseSettings.PAUSED.resetToDefault();
+        BaseSettings.HIDE_QUICK_SETUPS.resetToDefault();
         PauseForTests.resume();
     }
 
@@ -128,7 +129,7 @@ public class SettingsNavigationTest {
         Preference row = (Preference) list().getItemAtPosition(last);
         assertEquals(HushfacebookPages.SUPPORT, row.getKey());
         assertEquals("Support Hushfacebook", String.valueOf(row.getTitle()));
-        assertEquals("Buy me a coffee on Ko-fi", String.valueOf(row.getSummary()));
+        assertNull(row.getSummary());
         assertEquals("Report a problem", String.valueOf(((Preference) list().getItemAtPosition(last - 1)).getTitle()));
         assertEquals("More settings", String.valueOf(((Preference) list().getItemAtPosition(last - 2)).getTitle()));
         assertTrue(list().getAdapter().isEnabled(last));
@@ -492,6 +493,70 @@ public class SettingsNavigationTest {
         } finally {
             for (BooleanSetting setting : QuickSetupKeys.DEFAULTS) setting.resetToDefault();
         }
+    }
+
+    /** A long press on the Quick setups row takes it off the home page and says where it comes back. */
+    @Test public void aLongPressOnQuickSetupsHidesTheRowAndSaysWhereItComesBack() {
+        Preference row = (Preference) list().getItemAtPosition(1);
+        assertEquals(SettingsNavigation.QUICK_SETUPS, row.getKey());
+        assertTrue(String.valueOf(row.getSummary()).endsWith(" Press and hold to hide this row."));
+        assertTrue(String.valueOf(row.getSummary()).startsWith("Turn on a set of switches in one tap"));
+        assertFalse(BaseSettings.HIDE_QUICK_SETUPS.savedValue());
+        // Any other row keeps its own behavior.
+        assertFalse(longPress(HushfacebookPages.SUPPORT));
+        assertFalse(BaseSettings.HIDE_QUICK_SETUPS.savedValue());
+        assertTrue(contains(SettingsNavigation.QUICK_SETUPS));
+
+        assertTrue(longPress(SettingsNavigation.QUICK_SETUPS));
+        assertTrue(BaseSettings.HIDE_QUICK_SETUPS.savedValue());
+        assertTrue(Setting.preferences.preferences.getBoolean(BaseSettings.HIDE_QUICK_SETUPS.key, false));
+        assertFalse("the row stayed on the home page", contains(SettingsNavigation.QUICK_SETUPS));
+        assertEquals(11, list().getCount());
+        assertEquals("Quick setups hidden. Bring it back from Pause, backup and diagnostics.",
+                ShadowToast.getTextOfLatestToast());
+        assertFalse("hiding the row waits for no restart", contains(SettingsNavigation.RESTART));
+    }
+
+    /** The row on Pause, backup and diagnostics shows the state and a tap flips it, home page included. */
+    @Test public void theRestoreRowBringsQuickSetupsBackAndFlipsItsSummary() {
+        assertTrue(longPress(SettingsNavigation.QUICK_SETUPS));
+        page.navigation.navigate("Pause, backup and diagnostics");
+        Preference restore = (Preference) list().getItemAtPosition(position(HushfacebookPages.QUICK_SETUPS_HOME));
+        assertEquals("Quick setups on the home page", String.valueOf(restore.getTitle()));
+        assertEquals("Hidden. Tap to show it again.", String.valueOf(restore.getSummary()));
+        assertNull("the row stores nothing of its own", Setting.getSettingFromPath(restore.getKey()));
+        tap(HushfacebookPages.QUICK_SETUPS_HOME);
+        assertFalse(BaseSettings.HIDE_QUICK_SETUPS.savedValue());
+        assertEquals("Shown. Tap to hide it.", String.valueOf(restore.getSummary()));
+        while (page.navigation.back()) { }
+        assertTrue(contains(SettingsNavigation.QUICK_SETUPS));
+        assertEquals(12, list().getCount());
+        // And back the other way from the same row.
+        page.navigation.navigate("Pause, backup and diagnostics");
+        tap(HushfacebookPages.QUICK_SETUPS_HOME);
+        assertTrue(BaseSettings.HIDE_QUICK_SETUPS.savedValue());
+        assertEquals("Hidden. Tap to show it again.", String.valueOf(restore.getSummary()));
+        while (page.navigation.back()) { }
+        assertFalse(contains(SettingsNavigation.QUICK_SETUPS));
+    }
+
+    /** The restore row shows up in the settings search. */
+    @Test public void searchFindsTheQuickSetupsRestoreRow() {
+        findSearch(dialog.getView()).setText("quick setups on the home page");
+        assertTrue(titles().toString(), titles().contains("Quick setups on the home page"));
+    }
+
+    private boolean longPress(String key) {
+        for (int i = 0; i < list().getCount(); i++) {
+            if (!key.equals(((Preference) list().getItemAtPosition(i)).getKey())) continue;
+            View row = list().getAdapter().getView(i, null, list());
+            boolean handled = list().getOnItemLongClickListener()
+                    .onItemLongClick(list(), row, i, list().getAdapter().getItemId(i));
+            ShadowLooper.idleMainLooper();
+            return handled;
+        }
+        fail("No visible row " + key);
+        return false;
     }
 
     /** How many of [settings] have a switch on this screen that's off now. */

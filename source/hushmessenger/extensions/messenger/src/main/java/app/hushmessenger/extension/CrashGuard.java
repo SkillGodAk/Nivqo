@@ -88,6 +88,7 @@ final class CrashGuard {
         // Preference listeners ran while the runtime guard was still active. Republish after recovery
         // commits, outside the record lock so startup and theme initialization can't invert their locks.
         if (HostScreens.started && !HostScreens.failed && Settings.installed.contains("material_you")) MaterialYouTheme.bind();
+        if (HostScreens.started && !HostScreens.failed && Settings.installed.contains(TextStyleActivity.KEY)) TextStyleActivity.refresh();
         return true;
     }
 

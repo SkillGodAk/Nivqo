@@ -11,7 +11,10 @@ import app.morphe.patches.facebook.feed.namesString
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
@@ -51,6 +54,80 @@ internal const val SAVE_STORY_ATTEMPTED = "save_story_attempted"
 internal fun isSaveStoryAction(method: Method, resolve: (MethodReference) -> Method?): Boolean =
     method.returnType == "V" && method.parameterTypes.size == 1 && method.implementation != null &&
         namesString(method, SAVE_STORY_ATTEMPTED, resolve)
+
+/** Kept name. The list builder the story menu's builder adds its items to. */
+internal const val LIST_BUILDER = "Lcom/google/common/collect/ImmutableList\$Builder;"
+
+/**
+ * Where the menu builder adds the save item, for Save photo to be built the same way right after:
+ * [addIndex] is the `ImmutableList$Builder.add` of the item, [init] the item's constructor, whose
+ * range call puts the item in [itemRegister] and its arguments up to [lastRegister], the first of
+ * them the save action in [actionRegister]. [titleRegister] holds the first String the constructor
+ * takes, the title the story menu draws in place of the item's string resource when it's set (the
+ * menu's renderer reads it first), and [listRegister] the list builder.
+ */
+internal class SaveItemSite(
+    val addIndex: Int,
+    val init: MethodReference,
+    val itemRegister: Int,
+    val lastRegister: Int,
+    val actionRegister: Int,
+    val titleRegister: Int,
+    val listRegister: Int,
+)
+
+/**
+ * The [SaveItemSite] of [builder], the menu method that creates [action]. The item is constructed
+ * by one range call, whose first argument after the item is the action the builder just created,
+ * the list builder's `add` of the item follows at once and the method returns right after, so
+ * reusing the call's registers for a second item disturbs nothing that still runs.
+ */
+internal fun saveItemSite(builder: Method, action: ClassDef): SaveItemSite {
+    val where = "${builder.definingClass}->${builder.name}"
+    val instructions = builder.implementation?.instructions?.toList().orEmpty()
+
+    val actionRegisters = instructions.filter {
+        it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as? TypeReference)?.type == action.type
+    }.map { (it as OneRegisterInstruction).registerA }
+    check(actionRegisters.size == 1) { "$where: expected 1 new ${action.type}, found ${actionRegisters.size}" }
+
+    val adds = instructions.withIndex().filter { (_, it) ->
+        val call = (it as? ReferenceInstruction)?.reference as? MethodReference
+        it.opcode == Opcode.INVOKE_VIRTUAL && call?.definingClass == LIST_BUILDER && call.name == "add"
+    }
+    check(adds.size == 1) { "$where: expected 1 add to the item list, found ${adds.size}" }
+    val (addIndex, add) = adds.single()
+    add as FiveRegisterInstruction
+
+    val construction = instructions.getOrNull(addIndex - 1)
+    val init = (construction as? ReferenceInstruction)?.reference as? MethodReference
+    check(construction is RegisterRangeInstruction && construction.opcode == Opcode.INVOKE_DIRECT_RANGE &&
+        init != null && init.name == "<init>" && construction.startRegister == add.registerD) {
+        "$where: the item list's add doesn't follow the item's range constructor"
+    }
+    check(construction.startRegister + 1 == actionRegisters.single() &&
+        init.parameterTypes.firstOrNull()?.toString() in action.interfaces) {
+        "$where: ${init.definingClass}'s constructor doesn't take the save action first"
+    }
+    check(instructions.getOrNull(addIndex + 1)?.opcode == Opcode.RETURN_VOID) {
+        "$where: the builder no longer returns right after adding the save item"
+    }
+
+    val parameters = init.parameterTypes.map { it.toString() }
+    val title = parameters.indexOf("Ljava/lang/String;")
+    check(title >= 0) { "$where: ${init.definingClass}'s constructor takes no String title" }
+    val titleRegister = construction.startRegister + 1 +
+        parameters.take(title).sumOf { if (it == "J" || it == "D") 2L else 1L }.toInt()
+
+    // iget-object and a non-range invoke name their registers in four bits.
+    val site = SaveItemSite(addIndex, init, construction.startRegister,
+        construction.startRegister + construction.registerCount - 1, actionRegisters.single(), titleRegister,
+        add.registerC)
+    check(maxOf(site.itemRegister, site.actionRegister, site.titleRegister, site.listRegister) < 16) {
+        "$where: the save item's registers are out of four-bit range"
+    }
+    return site
+}
 
 /** The types [owner]'s methods create with new-instance. */
 internal fun typesCreated(owner: ClassDef): Set<String> = owner.methods.flatMap { method ->

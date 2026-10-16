@@ -22,6 +22,10 @@
     The SBOM :patches:releaseSbom writes beside the bundle says what the bundle carries: every
     library and the version it resolved to. The receipt records its hash, and the SBOM records the
     bundle's, so neither can be swapped for another build's without the pair coming apart.
+
+    What a bundle says about its own build is the one fact taken from the build's word. A release
+    builds its commit a second time for that, and Compare-BundleContent and Test-RebuiltBundle hold
+    the staged bundle to the second build entry by entry.
 #>
 
 function Get-ReleaseReceiptSchemaVersion {
@@ -630,6 +634,350 @@ function Get-ExtensionPayloads {
 
     if ($payloads.Count -eq 0) { throw "The bundle carries no extension payload: $BundlePath" }
     return ,$payloads.ToArray()
+}
+
+function Compare-BundleContent {
+    <#
+    .SYNOPSIS
+        Every difference between two bundles in what executes or ships, whatever their ZIP framing
+        and whatever each says about its own build.
+    .DESCRIPTION
+        The identity a bundle carries (commit, clean flag, input digest) is written by the build
+        that made it, so it says where the bundle claims to come from and proves nothing. A second
+        build of the same commit is the proof, and this is how the two are compared: every entry
+        by its name and the SHA-256 of its bytes as they unpack, so the order of the entries, their
+        times and whether one is stored or deflated don't count. Classes, DEX files and resources
+        are read here, and the extension payloads through Get-ExtensionPayloads, which refuses one
+        that isn't a DEX and a bundle that carries none.
+
+        META-INF/MANIFEST.MF and META-INF/hushfacebook-build.identity hold that identity. Two
+        checkouts of one commit can differ in line endings, which moves the input digest in the
+        manifest and with it the payload hash in the identity record, while every class comes out
+        the same. So those two come back in Identity, each with whether it's the same on both
+        sides, and never decide: alone they can't make two bundles equal, and they can't make them
+        differ.
+
+        Answers @{ Equal; Compared; Differing; Missing; Extra; Identity }. Missing is what
+        -ReferencePath carries and -BundlePath lacks, Extra the other way round, and either is a
+        difference. Each entry names its Kind (class, DEX, extension payload or resource) and its
+        hash on each side. An entry named twice in a bundle throws: nothing says which of the two a
+        loader would read.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$BundlePath,
+        [Parameter(Mandatory = $true)][string]$ReferencePath
+    )
+
+    $identityNames = @('META-INF/MANIFEST.MF', 'META-INF/hushfacebook-build.identity')
+    function Read-BundleEntries([string]$Path) {
+        if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "There is no bundle to compare at $Path." }
+        # ZipFile reads a relative path against the process directory, not PowerShell's location.
+        $Path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $entries = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+        $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        $sha = [Security.Cryptography.SHA256]::Create()
+        $archive = [IO.Compression.ZipFile]::OpenRead($Path)
+        try {
+            foreach ($entry in $archive.Entries) {
+                $name = $entry.FullName
+                # A folder's own entry holds no bytes.
+                if ($name.EndsWith('/') -and $entry.Length -eq 0) { continue }
+                if (-not $seen.Add($name)) { throw "$Path carries $name twice." }
+                # Get-ExtensionPayloads reads these below, picked by this same pattern.
+                if ($name -like 'extensions/*.mpe') { continue }
+                $kind = 'resource'
+                if ($name.EndsWith('.class', [StringComparison]::OrdinalIgnoreCase)) { $kind = 'class' }
+                elseif ($name.EndsWith('.dex', [StringComparison]::OrdinalIgnoreCase)) { $kind = 'DEX' }
+                $stream = $entry.Open()
+                try { $hash = [BitConverter]::ToString($sha.ComputeHash($stream)) -replace '-', '' } finally { $stream.Dispose() }
+                $entries.Add($name, [pscustomobject]@{ Kind = $kind; Sha256 = $hash })
+            }
+        } finally {
+            $archive.Dispose()
+            $sha.Dispose()
+        }
+        foreach ($payload in (Get-ExtensionPayloads -BundlePath $Path)) {
+            $entries.Add([string]$payload.name, [pscustomobject]@{ Kind = 'extension payload'; Sha256 = [string]$payload.sha256 })
+        }
+        return ,$entries
+    }
+
+    $bundle = Read-BundleEntries $BundlePath
+    $reference = Read-BundleEntries $ReferencePath
+    $names = [Collections.Generic.SortedSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($name in $bundle.Keys) { [void]$names.Add($name) }
+    foreach ($name in $reference.Keys) { [void]$names.Add($name) }
+
+    $differing = [Collections.Generic.List[object]]::new()
+    $missing = [Collections.Generic.List[object]]::new()
+    $extra = [Collections.Generic.List[object]]::new()
+    $identity = [Collections.Generic.List[object]]::new()
+    $compared = 0
+    foreach ($name in $names) {
+        $ours = if ($bundle.ContainsKey($name)) { $bundle[$name] } else { $null }
+        $theirs = if ($reference.ContainsKey($name)) { $reference[$name] } else { $null }
+        $oursHash = if ($null -ne $ours) { $ours.Sha256 } else { $null }
+        $theirsHash = if ($null -ne $theirs) { $theirs.Sha256 } else { $null }
+        if ($identityNames -ccontains $name) {
+            $identity.Add([pscustomobject]@{ Name = $name; Sha256 = $oursHash; ReferenceSha256 = $theirsHash
+                Same = ($null -ne $ours -and $null -ne $theirs -and $oursHash -ceq $theirsHash) })
+            continue
+        }
+        $compared++
+        $kind = if ($null -ne $ours) { $ours.Kind } else { $theirs.Kind }
+        $found = [pscustomobject]@{ Name = $name; Kind = $kind; Sha256 = $oursHash; ReferenceSha256 = $theirsHash }
+        if ($null -eq $ours) { $missing.Add($found) }
+        elseif ($null -eq $theirs) { $extra.Add($found) }
+        elseif ($oursHash -cne $theirsHash) { $differing.Add($found) }
+    }
+    return [pscustomobject]@{
+        Equal     = ($differing.Count + $missing.Count + $extra.Count) -eq 0
+        Compared  = $compared
+        Differing = $differing.ToArray()
+        Missing   = $missing.ToArray()
+        Extra     = $extra.ToArray()
+        Identity  = $identity.ToArray()
+    }
+}
+
+function Get-ElfPageFacts {
+    <#
+    .SYNOPSIS
+        What an ELF file's program headers say about a page size: its PT_LOAD alignments and where
+        its PT_GNU_RELRO ends.
+    .DESCRIPTION
+        $Head is the start of the file, as much as the caller kept, and $Length the whole file's
+        size. format is 'not-elf' without the magic, 'elf64' or 'elf32' when the program headers
+        were read, and 'malformed' with a reason when the file starts as ELF and they couldn't be.
+        relro is 'aligned', 'misaligned' or 'absent', and relroEnd is VirtAddr + MemSiz of the
+        last PT_GNU_RELRO read.
+    #>
+    param([byte[]]$Head, [long]$Length, [int]$PageSize)
+
+    $facts = [ordered]@{ format = 'not-elf' }
+    if ($Head.Length -lt 4 -or $Head[0] -ne 0x7F -or $Head[1] -ne 0x45 -or $Head[2] -ne 0x4C -or $Head[3] -ne 0x46) {
+        return $facts
+    }
+    $facts.format = 'malformed'
+    if ($Head.Length -lt 6) { $facts.reason = 'ends inside the ELF identification'; return $facts }
+    if ($Head[4] -ne 1 -and $Head[4] -ne 2) { $facts.reason = "ELF class $($Head[4])"; return $facts }
+    if ($Head[5] -ne 1) { $facts.reason = 'not little-endian'; return $facts }
+    $wide = $Head[4] -eq 2
+    if ($Head.Length -lt $(if ($wide) { 64 } else { 52 })) { $facts.reason = 'ends inside the ELF header'; return $facts }
+    if ($wide) {
+        $tableAt = [decimal][System.BitConverter]::ToUInt64($Head, 0x20)
+        $entrySize = [int][System.BitConverter]::ToUInt16($Head, 0x36)
+        $count = [int][System.BitConverter]::ToUInt16($Head, 0x38)
+    } else {
+        $tableAt = [decimal][System.BitConverter]::ToUInt32($Head, 0x1C)
+        $entrySize = [int][System.BitConverter]::ToUInt16($Head, 0x2A)
+        $count = [int][System.BitConverter]::ToUInt16($Head, 0x2C)
+    }
+    if ($count -eq 0) { $facts.reason = 'no program headers'; return $facts }
+    # PN_XNUM: the real count sits in a section header, which nothing Android loads needs.
+    if ($count -eq 0xFFFF) { $facts.reason = 'its program header count is held elsewhere'; return $facts }
+    if ($entrySize -ne $(if ($wide) { 56 } else { 32 })) { $facts.reason = "program header size $entrySize"; return $facts }
+    $tableEnd = $tableAt + ([decimal]$count * $entrySize)
+    if ($tableEnd -gt $Length) { $facts.reason = 'its program headers run past the end of the file'; return $facts }
+    if ($tableEnd -gt $Head.Length) { $facts.reason = 'its program headers start too far into the file to read'; return $facts }
+
+    $loads = 0
+    $loadsOff = 0
+    $relro = 'absent'
+    $relroEnd = $null
+    for ($index = 0; $index -lt $count; $index++) {
+        $at = [int]$tableAt + $index * $entrySize
+        $type = [System.BitConverter]::ToUInt32($Head, $at)
+        if ($type -eq 1) {
+            $align = if ($wide) { [decimal][System.BitConverter]::ToUInt64($Head, $at + 48) }
+                else { [decimal][System.BitConverter]::ToUInt32($Head, $at + 28) }
+            $loads++
+            if ($align -eq 0 -or ($align % $PageSize) -ne 0) { $loadsOff++ }
+        } elseif ($type -eq 0x6474E552) {
+            $relroEnd = if ($wide) {
+                [decimal][System.BitConverter]::ToUInt64($Head, $at + 16) + [decimal][System.BitConverter]::ToUInt64($Head, $at + 40)
+            } else {
+                [decimal][System.BitConverter]::ToUInt32($Head, $at + 8) + [decimal][System.BitConverter]::ToUInt32($Head, $at + 20)
+            }
+            if (($relroEnd % $PageSize) -ne 0) { $relro = 'misaligned' }
+            elseif ($relro -eq 'absent') { $relro = 'aligned' }
+        }
+    }
+    # Nothing to load is nothing to hold to a page size, so it's named rather than passed.
+    if ($loads -eq 0) { $facts.reason = 'no loadable segment'; return $facts }
+    $facts.format = if ($wide) { 'elf64' } else { 'elf32' }
+    $facts.loadSegments = $loads
+    $facts.loadMisaligned = $loadsOff
+    $facts.relro = $relro
+    # A whole number in the receipt's JSON, which a decimal isn't on every PowerShell.
+    if ($null -ne $relroEnd) { $facts.relroEnd = if ($relroEnd -le [long]::MaxValue) { [long]$relroEnd } else { [string]$relroEnd } }
+    return $facts
+}
+
+function Get-NativeLibraryAlignment {
+    <#
+    .SYNOPSIS
+        What an APK's native libraries say about 16 KB pages, as three separate answers: where
+        each sits in the ZIP, how its PT_LOAD segments are aligned, and where its PT_GNU_RELRO ends.
+    .DESCRIPTION
+        One answer doesn't stand in for another. zipalign speaks for a stored library's offset in
+        the ZIP and nothing else. A phone with 16 KB pages also needs every loadable segment
+        aligned to 16 KB, and Android's own check
+        (developer.android.com/guide/practices/page-sizes#check-relro) wants the region made
+        read-only after relocation to end on a 16 KB boundary: (VirtAddr + MemSiz) % 16384 == 0.
+        Both are read here out of each library's program headers, a compressed library's too,
+        since Android extracts it and loads the same ELF. Whether an entry is stored comes from the
+        ZIP's own directory, which System.IO.Compression doesn't show.
+
+        Only the 64-bit ABI folders are judged: 16 KB pages are a 64-bit matter, and a 32-bit
+        library is listed with its hash and format alone. In a judged folder, a file that isn't ELF
+        is listed as that and left out of the verdict (Facebook ships a DEX named .so), one that
+        starts as ELF and can't be read to the end of its program headers is malformed and fails,
+        and a library with no PT_GNU_RELRO is listed as having none and doesn't fail.
+
+        staticChecksPass is $null with no 64-bit library to judge. $true says these checks found
+        nothing, never that the app was seen running on 16 KB pages. zipOffsets carries the
+        counts; the caller adds what zipalign said about the stored ones.
+    #>
+    param([Parameter(Mandatory = $true)][string]$Apk, [int]$PageSize = 16384)
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    # Entry names are case-sensitive in a ZIP, and a plain hashtable would fold libFoo.so into libfoo.so.
+    $stored = New-Object System.Collections.Hashtable ([System.StringComparer]::Ordinal)
+    $file = [System.IO.File]::OpenRead($Apk)
+    try {
+        $tail = New-Object byte[] ([int][Math]::Min($file.Length, 65557L))
+        $null = $file.Seek(-$tail.Length, [System.IO.SeekOrigin]::End)
+        $got = 0
+        while ($got -lt $tail.Length) {
+            $read = $file.Read($tail, $got, $tail.Length - $got)
+            if ($read -le 0) { break }
+            $got += $read
+        }
+        $end = -1
+        for ($index = $tail.Length - 22; $index -ge 0; $index--) {
+            if ($tail[$index] -eq 0x50 -and $tail[$index + 1] -eq 0x4B -and $tail[$index + 2] -eq 5 -and $tail[$index + 3] -eq 6) {
+                $end = $index
+                break
+            }
+        }
+        if ($end -lt 0) { throw "$Apk has no ZIP end record, so its native libraries can't be read." }
+        $directorySize = [System.BitConverter]::ToUInt32($tail, $end + 12)
+        $directoryAt = [System.BitConverter]::ToUInt32($tail, $end + 16)
+        if ($directorySize -eq [uint32]::MaxValue -or $directoryAt -eq [uint32]::MaxValue) {
+            throw "$Apk keeps its ZIP directory in ZIP64 records, which Android doesn't install."
+        }
+        if ([long]$directoryAt + $directorySize -gt $file.Length) { throw "$Apk has a ZIP directory that runs past its end." }
+        $directory = New-Object byte[] ([int]$directorySize)
+        $null = $file.Seek([long]$directoryAt, [System.IO.SeekOrigin]::Begin)
+        $got = 0
+        while ($got -lt $directory.Length) {
+            $read = $file.Read($directory, $got, $directory.Length - $got)
+            if ($read -le 0) { break }
+            $got += $read
+        }
+        $at = 0
+        while ($at + 46 -le $directory.Length) {
+            if ([System.BitConverter]::ToUInt32($directory, $at) -ne 0x02014B50) { throw "$Apk has a damaged ZIP directory." }
+            $nameLength = [int][System.BitConverter]::ToUInt16($directory, $at + 28)
+            $next = $at + 46 + $nameLength + [System.BitConverter]::ToUInt16($directory, $at + 30) +
+                [System.BitConverter]::ToUInt16($directory, $at + 32)
+            if ($next -gt $directory.Length) { throw "$Apk has a damaged ZIP directory." }
+            $stored[[System.Text.Encoding]::UTF8.GetString($directory, $at + 46, $nameLength)] =
+                ([System.BitConverter]::ToUInt16($directory, $at + 10) -eq 0)
+            $at = $next
+        }
+    } finally { $file.Dispose() }
+
+    $names = [string[]]@($stored.Keys | Where-Object { $_ -cmatch '^lib/[^/]+/[^/]+\.so$' })
+    [Array]::Sort($names, [System.StringComparer]::Ordinal)
+    $headLimit = 1048576
+    $libraries = New-Object System.Collections.Generic.List[object]
+    $loadMisaligned = New-Object System.Collections.Generic.List[string]
+    $relroMisaligned = New-Object System.Collections.Generic.List[string]
+    $relroAbsent = New-Object System.Collections.Generic.List[string]
+    $notElf = New-Object System.Collections.Generic.List[string]
+    $malformed = New-Object System.Collections.Generic.List[string]
+    $judged = 0
+    $segments = 0
+    $relroPresent = 0
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($Apk)
+    try {
+        foreach ($name in $names) {
+            $entry = $archive.GetEntry($name)
+            $sha = [System.Security.Cryptography.SHA256]::Create()
+            $head = New-Object System.IO.MemoryStream
+            $stream = $entry.Open()
+            try {
+                $buffer = New-Object byte[] 1048576
+                while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                    $null = $sha.TransformBlock($buffer, 0, $read, $null, 0)
+                    if ($head.Length -lt $headLimit) {
+                        $head.Write($buffer, 0, [int][Math]::Min([long]$read, $headLimit - $head.Length))
+                    }
+                }
+                $null = $sha.TransformFinalBlock($buffer, 0, 0)
+                $hash = ($sha.Hash | ForEach-Object { '{0:X2}' -f $_ }) -join ''
+                $facts = Get-ElfPageFacts -Head $head.ToArray() -Length $entry.Length -PageSize $PageSize
+            } finally {
+                $stream.Dispose()
+                $head.Dispose()
+                $sha.Dispose()
+            }
+
+            $record = [ordered]@{ entry = $name; stored = [bool]$stored[$name]; sha256 = $hash; format = $facts.format }
+            if (@('arm64-v8a', 'x86_64') -contains $name.Split('/')[1]) {
+                if ($facts.format -eq 'elf32') {
+                    $facts = [ordered]@{ format = 'malformed'; reason = 'a 32-bit ELF in a 64-bit folder' }
+                    $record.format = 'malformed'
+                }
+                if ($facts.format -eq 'not-elf') {
+                    $notElf.Add($name)
+                } elseif ($facts.format -eq 'malformed') {
+                    $record.reason = $facts.reason
+                    $malformed.Add("$name ($($facts.reason))")
+                } else {
+                    $judged++
+                    $segments += $facts.loadSegments
+                    $record.loadSegments = $facts.loadSegments
+                    $record.loadMisaligned = $facts.loadMisaligned
+                    $record.relro = $facts.relro
+                    if ($facts.Contains('relroEnd')) { $record.relroEnd = $facts.relroEnd }
+                    if ($facts.loadMisaligned -gt 0) { $loadMisaligned.Add($name) }
+                    if ($facts.relro -eq 'absent') { $relroAbsent.Add($name) } else { $relroPresent++ }
+                    if ($facts.relro -eq 'misaligned') { $relroMisaligned.Add($name) }
+                }
+            }
+            $libraries.Add($record)
+        }
+    } finally { $archive.Dispose() }
+
+    $storedCount = @($names | Where-Object { $stored[$_] }).Count
+    $verdict = $null
+    if ($judged -gt 0 -or $malformed.Count -gt 0) {
+        $verdict = ($loadMisaligned.Count -eq 0 -and $relroMisaligned.Count -eq 0 -and $malformed.Count -eq 0)
+    }
+    return [ordered]@{
+        pageSizeKb       = [int]($PageSize / 1024)
+        zipOffsets       = [ordered]@{ stored = $storedCount; compressed = $names.Length - $storedCount }
+        loadSegments     = [ordered]@{
+            libraries  = $judged
+            segments   = $segments
+            misaligned = @($loadMisaligned.ToArray())
+            aligned    = ($loadMisaligned.Count -eq 0)
+        }
+        relroEnds        = [ordered]@{
+            present    = $relroPresent
+            absent     = @($relroAbsent.ToArray())
+            misaligned = @($relroMisaligned.ToArray())
+            aligned    = ($relroMisaligned.Count -eq 0)
+        }
+        notElf           = @($notElf.ToArray())
+        malformed        = @($malformed.ToArray())
+        staticChecksPass = $verdict
+        libraries        = @($libraries.ToArray())
+    }
 }
 
 function Resolve-Aapt2 {
@@ -2155,4 +2503,85 @@ function Test-StagedReleaseAt {
     $mismatch = Get-BundleInputMismatch -Root $Root -BundlePath $bundlePath
     if ($mismatch) { return Fail "The staged $bundleName isn't a build of commit ${short}: $mismatch." }
     return $staged
+}
+
+function Test-RebuiltBundle {
+    <#
+    .SYNOPSIS
+        Whether a staged bundle is what its commit builds, held to a second build of that commit
+        made in a checkout of its own.
+    .DESCRIPTION
+        Test-StagedReleaseAt holds a bundle to the identity it carries, and the build wrote that
+        identity itself, so a bundle built from other source with a copied identity block reads the
+        same. The release's rebuild stage builds the commit again in a fresh worktree, and this
+        holds the staged bundle to what came out.
+
+        Each bundle is first held to the checkout it was built in: an intact identity naming
+        -Commit, clean, a checkout that is -Commit with nothing changed, and the input digest of
+        that checkout's files as they are on disk. Nothing is normalized first. Two checkouts of
+        one commit can hold a file with different line endings and git calls both clean, so the two
+        digests can differ while each bundle is right about its own checkout. The rebuild's
+        checkout has to be another folder than the staged bundle's, or the second build is the
+        first one again.
+
+        Compare-BundleContent then decides: every class, DEX, extension payload and resource has to
+        be the same in both, and the identity entries are left out of it. So a checkout with other
+        line endings that builds the same classes passes, and one changed class doesn't, whatever
+        the bundle says about itself. Answers @{ Valid; Reason; Comparison }, with Comparison $null
+        when a bundle was refused before the two were compared.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$BundlePath,
+        [Parameter(Mandatory = $true)][string]$RebuiltRoot,
+        [Parameter(Mandatory = $true)][string]$RebuiltPath,
+        [Parameter(Mandatory = $true)][string]$Commit
+    )
+
+    function Fail { param([string]$Reason, $Comparison) return [pscustomobject]@{ Valid = $false; Reason = $Reason; Comparison = $Comparison } }
+
+    if ($Commit -notmatch '^[0-9a-f]{40}$') { return Fail "$Commit isn't a full commit to hold the rebuilt bundle to." }
+    $short = $Commit.Substring(0, 8)
+    $folders = @($Root, $RebuiltRoot | ForEach-Object {
+        $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($_).TrimEnd('\', '/') })
+    if ($folders[0] -ieq $folders[1]) {
+        return Fail "The rebuild has to come from a checkout of its own, and $RebuiltRoot is the one the staged bundle was built in."
+    }
+    $bundleName = Split-Path -Leaf $BundlePath
+    foreach ($side in @(@{ What = 'staged'; Root = $Root; Path = $BundlePath }, @{ What = 'rebuilt'; Root = $RebuiltRoot; Path = $RebuiltPath })) {
+        $what = "$($side.What) $bundleName"
+        if (-not (Test-Path -LiteralPath $side.Path -PathType Leaf)) { return Fail "There is no $what at $($side.Path)." }
+        try {
+            $identity = Get-BundleIdentityFacts -BundlePath $side.Path
+            if (-not $identity.Valid) { return Fail "The $what carries no intact build identity, so nothing ties it to commit $short." }
+            if ($identity.SourceState -cne 'clean' -or $identity.SourceCommit -cne $Commit) {
+                return Fail "The $what was built from $($identity.SourceState) source at $($identity.SourceCommit), not commit $short."
+            }
+            $head = "$(Invoke-RepoGit -Root $side.Root -Arguments @('rev-parse', 'HEAD') | Select-Object -First 1)".Trim()
+            $global:LASTEXITCODE = -1
+            $changed = @(Invoke-RepoGit -Root $side.Root -Arguments @('status', '--porcelain'))
+            if ($LASTEXITCODE -ne 0 -or $head -cne $Commit -or $changed.Count -gt 0) {
+                return Fail "$($side.Root) isn't commit $short with nothing changed, so the $what can't be held to its sources."
+            }
+            $mismatch = Get-BundleInputMismatch -Root $side.Root -BundlePath $side.Path
+            if ($mismatch) { return Fail "The $what isn't a build of commit $short as $($side.Root) holds it: $mismatch." }
+        } catch {
+            return Fail "The $what can't be held to its sources: $($_.Exception.Message)"
+        }
+    }
+
+    try {
+        $comparison = Compare-BundleContent -BundlePath $BundlePath -ReferencePath $RebuiltPath
+    } catch {
+        return Fail "The staged and rebuilt $bundleName can't be compared: $($_.Exception.Message)"
+    }
+    if (-not $comparison.Equal) {
+        $found = @($comparison.Differing | ForEach-Object { "$($_.Kind) $($_.Name) differs" }) +
+            @($comparison.Missing | ForEach-Object { "$($_.Kind) $($_.Name) is only in the rebuild" }) +
+            @($comparison.Extra | ForEach-Object { "$($_.Kind) $($_.Name) isn't in the rebuild" })
+        $more = if ($found.Count -gt 5) { ", and $($found.Count - 5) more" } else { '' }
+        return Fail ("The staged $bundleName isn't what commit $short builds: " +
+            (@($found | Select-Object -First 5) -join '; ') + "$more.") $comparison
+    }
+    return [pscustomobject]@{ Valid = $true; Reason = $null; Comparison = $comparison }
 }

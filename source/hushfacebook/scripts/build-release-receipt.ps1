@@ -466,7 +466,6 @@ Invoke-HeavyJob -Label 'receipt' -ScriptBlock {
             } finally {
                 $ErrorActionPreference = $preference
             }
-            $libraries = @($alignment | Where-Object { $_ -match '\.so\b' }).Count
             if ($alignExitCode -ne 0) {
                 $misses = @($alignment | Where-Object { $_ -match '\(BAD' } | Select-Object -First 5)
                 if ($misses.Count -eq 0) {
@@ -477,7 +476,27 @@ Invoke-HeavyJob -Label 'receipt' -ScriptBlock {
                 }
                 throw "$label is not 16 KB aligned (zipalign exit $alignExitCode): $($misses -join '; ')"
             }
-            Write-Host "[receipt] $label`: $libraries native libraries checked, 16 KB aligned"
+
+            # zipalign answered for where a stored library sits in the ZIP, and for nothing else.
+            # What each library's own ELF says is read apart from that and written down, so a ZIP
+            # that lines up is never read as an app ready for 16 KB pages. A miss here doesn't stop
+            # the receipt: these are Facebook's libraries, which patching doesn't rebuild, and
+            # refusing them would refuse every release while the app still runs on 4 KB pages.
+            $native = Get-NativeLibraryAlignment -Apk $out
+            $native.zipOffsets.aligned = $true
+            Write-Host ("[receipt] $label`: $($native.zipOffsets.stored) stored and $($native.zipOffsets.compressed) " +
+                "compressed native libraries, every stored one at a 16 KB offset")
+            if ($null -eq $native.staticChecksPass) {
+                Write-Host "[receipt] $label`: no 64-bit library to hold to 16 KB pages"
+            } else {
+                Write-Host ("[receipt] $label`: $($native.loadSegments.libraries) 64-bit ELF libraries, " +
+                    "$($native.loadSegments.misaligned.Count) with a LOAD segment off 16 KB, " +
+                    "$($native.relroEnds.misaligned.Count) of $($native.relroEnds.present) RELRO ends off 16 KB, " +
+                    "$($native.malformed.Count) unreadable")
+                if (-not $native.staticChecksPass) {
+                    Write-Host "[receipt] $label`: not ready for 16 KB pages as built, and the receipt names each library"
+                }
+            }
 
             $patched = Get-ApkManifestFacts -Apk $out -Aapt2 $Aapt2
             # The manifest the patches started from is the APK the CLI patched, the merge for a split
@@ -501,7 +520,7 @@ Invoke-HeavyJob -Label 'receipt' -ScriptBlock {
                     forced      = $forced
                 }
                 patches       = $verdicts
-                nativeAlignment = [ordered]@{ pageSizeKb = 16; libraries = $libraries; aligned = $true }
+                nativeAlignment = $native
                 manifestDelta = [ordered]@{
                     permissionsAdded          = @($delta.permissionsAdded)
                     permissionsRemoved        = @($delta.permissionsRemoved)

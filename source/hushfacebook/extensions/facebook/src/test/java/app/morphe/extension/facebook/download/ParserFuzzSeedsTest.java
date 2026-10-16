@@ -136,6 +136,17 @@ public class ParserFuzzSeedsTest {
 
     @Test public void savedFindingsStayFixed() throws Throwable {
         Path regressions = repositoryRoot().resolve("tools/fuzz/regressions");
+        // Only the targets' own folders are replayed, so a finding saved anywhere else in there
+        // would never run.
+        if (Files.isDirectory(regressions)) {
+            try (Stream<Path> entries = Files.list(regressions)) {
+                for (Path entry : (Iterable<Path>) entries::iterator) {
+                    String name = entry.getFileName().toString();
+                    assertTrue("tools/fuzz/regressions/" + name + " isn't a target's folder, so nothing replays it",
+                            Files.isDirectory(entry) && (name.equals(ParserFuzzSeeds.DASH) || name.equals(ParserFuzzSeeds.MP4)));
+                }
+            }
+        }
         replay(regressions.resolve(ParserFuzzSeeds.DASH), DashManifestFuzz::fuzzerTestOneInput);
         replay(regressions.resolve(ParserFuzzSeeds.MP4), Mp4JoinFuzz::fuzzerTestOneInput);
     }

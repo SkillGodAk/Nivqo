@@ -53,6 +53,7 @@ public class ProgressBarTest {
     public void restore() {
         PauseForTests.resume();
         Settings.KEEP_PROGRESS_BAR.resetToDefault();
+        Settings.TAP_TO_PLAY.resetToDefault();
         HookStatus.clear();
     }
 
@@ -180,6 +181,87 @@ public class ProgressBarTest {
         String line = statusLine();
         assertTrue("only the kept reel was counted: " + line, line.endsWith(", 1 found, 0 missing. Counted: "
                 + ProgressBar.NEXT_REEL_CLEARED + " 1"));
+    }
+
+    /**
+     * The scrubber takes the next reel with the last one's bar position and time (#90, #120). While
+     * the bar is kept or Tap to play is on, the bar starts over and a time label that stays up hides
+     * until the reel's own time is written.
+     */
+    @Test
+    public void theNextReelStartsWithoutTheLastOnesPositionOrTime() {
+        LinearLayout reel = new LinearLayout(RuntimeEnvironment.getApplication());
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        SeekBar bar = new SeekBar(RuntimeEnvironment.getApplication());
+        reel.addView(label);
+        reel.addView(bar);
+
+        // Off: the last reel's position and time stay, as Facebook leaves them.
+        bar.setProgress(47);
+        ProgressBar.nextReel(label, bar);
+        assertEquals("off, the bar started over", 47, bar.getProgress());
+        assertEquals("off, the time label hid", View.VISIBLE, label.getVisibility());
+
+        // Tap to play alone holds reels on Facebook's thin line, which has no time label up.
+        Settings.TAP_TO_PLAY.save(true);
+        ProgressBar.nextReel(label, bar);
+        assertEquals("a held reel showed the last reel's position", 0, bar.getProgress());
+        assertEquals("the time label hid with the bar not kept", View.VISIBLE, label.getVisibility());
+        Settings.TAP_TO_PLAY.save(false);
+
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        bar.setProgress(47);
+        assertTrue(ProgressBar.refreshesTime(label, bar));
+        ProgressBar.nextReel(label, bar);
+        assertEquals("the kept bar showed the last reel's position", 0, bar.getProgress());
+        assertEquals("the last reel's time stayed up", View.INVISIBLE, label.getVisibility());
+        // Already at the start: nothing to do, nothing counted again.
+        ProgressBar.nextReel(label, bar);
+        assertEquals(0, bar.getProgress());
+        // The reel plays: its first update brings the label back with its own time, without the
+        // last reel's refresh holding it back.
+        assertTrue("the next reel's time waited on the last reel's refresh", ProgressBar.refreshesTime(label, bar));
+        assertEquals(View.VISIBLE, label.getVisibility());
+
+        // Without the time switch the label isn't the patch's to hide.
+        Settings.KEEP_PROGRESS_BAR_TIME.save(false);
+        try {
+            ProgressBar.nextReel(label, bar);
+            assertEquals("the label hid with the time switch off", View.VISIBLE, label.getVisibility());
+        } finally {
+            Settings.KEEP_PROGRESS_BAR_TIME.resetToDefault();
+        }
+
+        // A missing label or bar is left alone.
+        ProgressBar.nextReel(null, null);
+        String line = statusLine();
+        assertTrue("two start-overs weren't counted: " + line,
+                line.contains(ProgressBar.NEXT_REEL_STARTED_OVER + " 2"));
+        assertFalse("the hook threw: " + line, line.contains("threw"));
+    }
+
+    @Test
+    public void pausedOrNotReadyTheNextReelIsFacebooks() {
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        SeekBar bar = new SeekBar(RuntimeEnvironment.getApplication());
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        Settings.TAP_TO_PLAY.save(true);
+        bar.setProgress(47);
+        for (HushfacebookPause.Reason reason : new HushfacebookPause.Reason[] {
+                HushfacebookPause.Reason.SWITCH, HushfacebookPause.Reason.CRASH_LOOP,
+                HushfacebookPause.Reason.MARKER_FILE}) {
+            PauseForTests.pause(reason);
+            ProgressBar.nextReel(label, bar);
+            assertEquals("a Hushfacebook paused by " + reason + " moved the bar", 47, bar.getProgress());
+            assertEquals("a Hushfacebook paused by " + reason + " hid the time", View.VISIBLE, label.getVisibility());
+            PauseForTests.resume();
+        }
+        SettingsContextRule.withoutContext(() -> {
+            ProgressBar.nextReel(label, bar);
+            assertEquals("the bar moved before the settings were ready", 47, bar.getProgress());
+        });
+        String line = statusLine();
+        assertFalse("an answer that left it to Facebook was counted: " + line, line != null && line.contains("Counted"));
     }
 
     /** The looks that leave no bar are counted while it's kept, and the others aren't. */

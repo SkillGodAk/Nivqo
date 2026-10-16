@@ -15,17 +15,17 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 internal const val EPHEMERAL_VIEWER = "Lcom/facebook/messaging/media/ephemeralmedia/viewer/EphemeralMediaViewerFragment;"
 internal const val QUICKSNAP_VIEWER = "Lcom/facebook/messaging/quicksnap/consumption/viewer/MsgrQuicksnapViewerFragment;"
-/** "Generate AI stickers" in Messenger's string pack. */
-internal const val GENERATE_AI_LABEL = 0x7f14051c
-/** The viewer's onCreateDialog override: A1D, or A1F in builds 346415706 and 346415707. */
-internal val EPHEMERAL_DIALOGS = setOf("A1D", "A1F")
+/** "Generate AI stickers" in Messenger 583's string pack. */
+internal const val GENERATE_AI_LABEL = 0x7f140560
+/** The viewer's onCreateDialog override, A1F in every 583 build. */
+internal const val EPHEMERAL_DIALOG = "A1F"
 private const val WINDOW = "Landroid/view/Window;"
 private const val SET_FLAGS = "$WINDOW->setFlags(II)V"
 private const val ADD_FLAGS = "$WINDOW->addFlags(I)V"
 private const val SECURE = 0x2000
 
-internal fun screenshotViewerHooks(dialogMethod: String) = setOf(
-    "$EPHEMERAL_VIEWER->$dialogMethod(Landroid/os/Bundle;)Landroid/app/Dialog;",
+internal fun screenshotViewerHooks() = setOf(
+    "$EPHEMERAL_VIEWER->$EPHEMERAL_DIALOG(Landroid/os/Bundle;)Landroid/app/Dialog;",
     "$EPHEMERAL_VIEWER->onResume()V",
     "$QUICKSNAP_VIEWER->onCreateView(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;",
 )
@@ -63,7 +63,7 @@ internal fun Method.screenshotViewerSites(): List<Int> {
     val allowedJumps: Set<Int>
     var jumpSources = emptySet<Int>()
     val valid = when {
-        definingClass == EPHEMERAL_VIEWER && name in EPHEMERAL_DIALOGS &&
+        definingClass == EPHEMERAL_VIEWER && name == EPHEMERAL_DIALOG &&
             parameterTypes.map { it.toString() } == listOf("Landroid/os/Bundle;") && returnType == "Landroid/app/Dialog;" -> {
             sites = listOf(9); allowedJumps = emptySet()
             implementation!!.registerCount == 5 && code.size == 15 && result(4, "Landroid/app/Dialog;", 2) && window(5, "Landroid/app/Dialog;", 2, 1, 10) &&
@@ -83,7 +83,8 @@ internal fun Method.screenshotViewerSites(): List<Int> {
             parameterTypes.map { it.toString() } == listOf("Landroid/view/LayoutInflater;", "Landroid/view/ViewGroup;", "Landroid/os/Bundle;") &&
             returnType == "Landroid/view/View;" -> {
             sites = listOf(32); allowedJumps = emptySet()
-            implementation!!.registerCount == 23 && code.size in setOf(438, 441) &&
+            // 583 runs it to 449, or 450 in 346611351.
+            implementation!!.registerCount == 23 && code.size in setOf(449, 450) &&
                 result(26, "Landroid/app/Dialog;", 0) && nullCheck(27, 0, 33) && window(28, "Landroid/app/Dialog;", 0, 1, 33) &&
                 literal(31, 0) && call(32, ADD_FLAGS, listOf(1, 0))
         }
@@ -106,22 +107,29 @@ internal fun MutableMethod.injectScreenshotViewer() {
     validateScreenshotViewer()
     for (at in screenshotViewerSites()) {
         val old = getInstruction(at)
-        val setter = if (old.mediaRef() == SET_FLAGS) "setScreenshotFlags(${WINDOW}II)V" else "addScreenshotFlags(${WINDOW}I)V"
-        replaceInstruction(at, "invoke-static {${old.mediaArgs().joinToString(", ") { "v$it" }}}, $SETTINGS->$setter")
+        // Whole references, so each sits in the patcher DEX as one string the catalog check can find.
+        val setter = if (old.mediaRef() == SET_FLAGS) "$SETTINGS->setScreenshotFlags(${WINDOW}II)V" else "$SETTINGS->addScreenshotFlags(${WINDOW}I)V"
+        replaceInstruction(at, "invoke-static {${old.mediaArgs().joinToString(", ") { "v$it" }}}, $setter")
     }
 }
 
-/** The cell under each build's names. Its render has 105 instructions and 24 registers, and five renders offer the label. */
-internal data class AiCell(val type: String, val superclass: String, val scope: String, val component: String) {
+/**
+ * The cell under each 583 naming, the label it shows, how many renders offer that label and how many instructions its own
+ * render has (24 registers in both). Both offer the label from four renders; 346611351's render is one instruction shorter.
+ */
+internal data class AiCell(
+    val type: String, val superclass: String, val scope: String, val component: String,
+    val label: Int = GENERATE_AI_LABEL, val sources: Int = AI_CELL_SOURCES, val size: Int = AI_CELL_SIZE,
+) {
     val render = "$type->render($scope)$component"
 }
 internal val aiCells = listOf(
-    AiCell("LX/CoQ;", "LX/1N9;", "LX/2Cg;", "LX/1GU;"),
-    AiCell("LX/EyW;", "LX/1N8;", "LX/2Cf;", "LX/1GT;"),
+    AiCell("LX/F0Y;", "LX/1NT;", "LX/2Cf;", "LX/1Gu;", size = 104),
+    AiCell("LX/F3k;", "LX/1NT;", "LX/2Cf;", "LX/1Gu;"),
 )
 internal const val AI_CELL_SIZE = 105
 internal const val AI_CELL_REGISTERS = 24
-internal const val AI_CELL_SOURCES = 5
+internal const val AI_CELL_SOURCES = 4
 
 /** This is a single icon/click prefix cell, not the result grid. A00 is its label resource. */
 internal fun findAiStickerCells(classes: Iterable<ClassDef>): List<Method> {
@@ -146,27 +154,28 @@ internal fun findAiStickerCells(classes: Iterable<ClassDef>): List<Method> {
                 if (code[at].opcode !in setOf(Opcode.INVOKE_DIRECT, Opcode.INVOKE_DIRECT_RANGE) || code[at].mediaRef() != ctor.hookId()) continue
                 val arg = code[at].mediaArgs().lastOrNull() ?: continue
                 val literal = (at - 1 downTo maxOf(0, at - 24)).firstOrNull { code[it].writes(arg) } ?: continue
-                if ((code[literal] as? NarrowLiteralInstruction)?.narrowLiteral == GENERATE_AI_LABEL &&
+                if ((code[literal] as? NarrowLiteralInstruction)?.narrowLiteral == shape.label &&
                     (literal + 1 until at).none { code[it] is OffsetInstruction } && source.jumpTargets().none { it in literal + 1..at }) sources++
             }
         }
-        if (sources != AI_CELL_SOURCES) continue
+        if (sources != shape.sources) continue
         val render = cls.methods.singleOrNull { it.hookId() == shape.render } ?: continue
         if (!AccessFlags.STATIC.isSet(render.accessFlags) && render.implementation?.registerCount == AI_CELL_REGISTERS &&
-            render.mediaCode().size == AI_CELL_SIZE && render.implementation!!.tryBlocks.size == 4) found.add(render)
+            render.mediaCode().size == shape.size && render.implementation!!.tryBlocks.size == 4) found.add(render)
     }
     return found
 }
 
-internal fun MutableMethod.validateAiStickerCell() {
-    if (aiCells.none { it.render == hookId() } || hookId() !in activeProfile.hooks.getValue("ai_sticker_cell") ||
-        AccessFlags.STATIC.isSet(accessFlags) || implementation?.registerCount != AI_CELL_REGISTERS || mediaCode().size != AI_CELL_SIZE ||
+internal fun MutableMethod.validateAiStickerCell(): AiCell {
+    val cell = aiCells.singleOrNull { it.render == hookId() }
+    if (cell == null || hookId() !in activeProfile.hooks.getValue("ai_sticker_cell") ||
+        AccessFlags.STATIC.isSet(accessFlags) || implementation?.registerCount != AI_CELL_REGISTERS || mediaCode().size != cell.size ||
         implementation!!.tryBlocks.size != 4) mediaFailure(this)
+    return cell
 }
 
 internal fun MutableMethod.injectAiStickerCell() {
-    validateAiStickerCell()
-    val label = GENERATE_AI_LABEL
+    val label = validateAiStickerCell().label
     addInstructionsWithLabels(0, """
         move-object/from16 v0, p0
         iget v0, v0, $definingClass->A00:I

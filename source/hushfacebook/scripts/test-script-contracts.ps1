@@ -3097,6 +3097,23 @@ try {
         }
     }
 
+    # The release's CHANGELOG groups follow the facts in the description (#143), and a bullet there
+    # may name an older build or another count, so the facts are read up to the first ### line.
+    Set-FactsFile 'patches-bundle.json' {
+        param($text) $text -replace '("description":\s*"(?:[^"\\]|\\.)*)"', '$1\n\n### Fixed\n\n* **Facebook:** Builds before Facebook 9.9.9.9.9 kept 3 patches."'
+    }
+    try {
+        Assert-True ((Get-Content -LiteralPath (Join-Path $factsRoot 'patches-bundle.json') -Raw | ConvertFrom-Json).description -match
+            '(?m)^### Fixed$') 'The description edit added no ### group, so the groups case would prove nothing.'
+        try {
+            Invoke-Facts
+        } catch {
+            throw "The release facts check read a CHANGELOG bullet under the description's facts as one: $($_.Exception.Message)"
+        }
+    } finally {
+        Reset-FactsFile 'patches-bundle.json'
+    }
+
     # The same number in the README, which is the other half of the same promise.
     Set-FactsFile 'README.md' {
         param($text) $text -replace '(?<!\d)\d+ patches\b', '3 patches'
@@ -3577,8 +3594,8 @@ try {
             'fingerprint-calibration.txt', 'fingerprint-calibration-582-arm64.txt', 'fingerprint-calibration-582-armv7.txt',
             'fingerprint-candidates.ps1', 'fingerprint-history.ps1', 'fingerprint-history.txt',
             'fingerprint-signature.schema.json', 'test-fingerprint-candidates.ps1')
-        'scripts/test-facebook-sources.ps1' = @('audit-facebook-sources.ps1', 'facebook-sources.ps1', 'patch-target.ps1',
-            'test-facebook-sources.ps1')
+        'scripts/test-facebook-sources.ps1' = @('audit-facebook-sources.ps1', 'facebook-sources.ps1', 'gitlab-coverage.ps1',
+            'patch-target.ps1', 'scan-gitlab-coverage.ps1', 'test-facebook-sources.ps1')
         'scripts/test-release-text.ps1' = @('release/release.ps1', 'test-release-text.ps1')
         'scripts/test-phone-smoke.ps1' = @('phone-smoke.ps1', 'test-phone-smoke.ps1')
     }
@@ -6190,6 +6207,184 @@ try {
         }
     }
 
+    # What the libraries' own ELF headers say, which zipalign above can't. A library whose ZIP
+    # offset and LOAD segments line up and whose RELRO ends off a 16 KB boundary used to be
+    # recorded as aligned, because zipalign was the only thing asked. The receipt holds the three
+    # answers apart now, and its verdict passes only when all of them do. The stand-in APK is
+    # written byte for byte, so an entry is stored or deflated because this says so:
+    # System.IO.Compression picks the method itself, and not the same way on every runtime.
+    function New-TestElf([long[]]$LoadAlign = @(16384, 16384), [long]$RelroEnd = -1, [switch]$Narrow) {
+        $count = $LoadAlign.Length + $(if ($RelroEnd -ge 0) { 1 } else { 0 })
+        $memory = New-Object System.IO.MemoryStream
+        $writer = New-Object System.IO.BinaryWriter($memory)
+        $writer.Write([byte[]](0x7F, 0x45, 0x4C, 0x46, $(if ($Narrow) { 1 } else { 2 }), 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+        $writer.Write([uint16]3); $writer.Write([uint16]$(if ($Narrow) { 40 } else { 183 })); $writer.Write([uint32]1)
+        if ($Narrow) {
+            # Entry, program header offset, section header offset, flags, then the three sizes and counts.
+            $writer.Write([uint32]0); $writer.Write([uint32]52); $writer.Write([uint32]0); $writer.Write([uint32]0)
+            $writer.Write([uint16]52); $writer.Write([uint16]32); $writer.Write([uint16]$count)
+            $writer.Write([uint16]0); $writer.Write([uint16]0); $writer.Write([uint16]0)
+            # Type, offset, address, physical address, file size, memory size, flags, alignment.
+            foreach ($align in $LoadAlign) {
+                foreach ($value in @(1, 0, 0, 0, 4096, 4096, 5, $align)) { $writer.Write([uint32]$value) }
+            }
+            if ($RelroEnd -ge 0) {
+                foreach ($value in @(0x6474E552, 0, ($RelroEnd - 4096), 0, 4096, 4096, 4, 1)) { $writer.Write([uint32]$value) }
+            }
+        } else {
+            $writer.Write([uint64]0); $writer.Write([uint64]64); $writer.Write([uint64]0); $writer.Write([uint32]0)
+            $writer.Write([uint16]64); $writer.Write([uint16]56); $writer.Write([uint16]$count)
+            $writer.Write([uint16]0); $writer.Write([uint16]0); $writer.Write([uint16]0)
+            # Type and flags, then offset, address, physical address, file size, memory size, alignment.
+            foreach ($align in $LoadAlign) {
+                $writer.Write([uint32]1); $writer.Write([uint32]5)
+                foreach ($value in @(0, 0, 0, 4096, 4096, $align)) { $writer.Write([uint64]$value) }
+            }
+            if ($RelroEnd -ge 0) {
+                $writer.Write([uint32]0x6474E552); $writer.Write([uint32]4)
+                foreach ($value in @(0, ($RelroEnd - 4096), 0, 4096, 4096, 1)) { $writer.Write([uint64]$value) }
+            }
+        }
+        $writer.Flush()
+        return ,$memory.ToArray()
+    }
+    function New-TestLibraryApk([string]$Path, [object[]]$Entries) {
+        $crcTable = New-Object 'long[]' 256
+        for ($n = 0; $n -lt 256; $n++) {
+            $value = [long]$n
+            for ($bit = 0; $bit -lt 8; $bit++) {
+                $value = if ($value -band 1) { 3988292384L -bxor ($value -shr 1) } else { $value -shr 1 }
+            }
+            $crcTable[$n] = $value
+        }
+        $memory = New-Object System.IO.MemoryStream
+        $writer = New-Object System.IO.BinaryWriter($memory)
+        $directory = New-Object System.IO.MemoryStream
+        $index = New-Object System.IO.BinaryWriter($directory)
+        foreach ($entry in $Entries) {
+            [byte[]]$plain = $entry.Bytes
+            $crc = 4294967295L
+            foreach ($byte in $plain) { $crc = $crcTable[[int](($crc -bxor $byte) -band 255)] -bxor ($crc -shr 8) }
+            $crc = $crc -bxor 4294967295L
+            [byte[]]$data = $plain
+            if (-not $entry.Stored) {
+                $packed = New-Object System.IO.MemoryStream
+                $deflate = New-Object System.IO.Compression.DeflateStream($packed, [System.IO.Compression.CompressionMode]::Compress, $true)
+                $deflate.Write($plain, 0, $plain.Length)
+                $deflate.Dispose()
+                $data = $packed.ToArray()
+            }
+            [byte[]]$name = [System.Text.Encoding]::UTF8.GetBytes([string]$entry.Name)
+            $method = if ($entry.Stored) { 0 } else { 8 }
+            $at = $memory.Position
+            # The local header: version, flags, method, time, 1980-01-01, CRC, both sizes, name length.
+            $writer.Write([uint32]0x04034B50); $writer.Write([uint16]20); $writer.Write([uint16]0); $writer.Write([uint16]$method)
+            $writer.Write([uint16]0); $writer.Write([uint16]33)
+            $writer.Write([uint32]$crc); $writer.Write([uint32]$data.Length); $writer.Write([uint32]$plain.Length)
+            $writer.Write([uint16]$name.Length); $writer.Write([uint16]0)
+            $writer.Write($name); $writer.Write($data)
+            # Its directory record repeats those and adds where the local header is.
+            $index.Write([uint32]0x02014B50); $index.Write([uint16]20); $index.Write([uint16]20); $index.Write([uint16]0)
+            $index.Write([uint16]$method); $index.Write([uint16]0); $index.Write([uint16]33)
+            $index.Write([uint32]$crc); $index.Write([uint32]$data.Length); $index.Write([uint32]$plain.Length)
+            $index.Write([uint16]$name.Length); $index.Write([uint16]0); $index.Write([uint16]0)
+            $index.Write([uint16]0); $index.Write([uint16]0); $index.Write([uint32]0); $index.Write([uint32]$at)
+            $index.Write($name)
+        }
+        $index.Flush()
+        $directoryAt = $memory.Position
+        $writer.Write($directory.ToArray())
+        $writer.Write([uint32]0x06054B50); $writer.Write([uint16]0); $writer.Write([uint16]0)
+        $writer.Write([uint16]$Entries.Count); $writer.Write([uint16]$Entries.Count)
+        $writer.Write([uint32]$directory.Length); $writer.Write([uint32]$directoryAt); $writer.Write([uint16]0)
+        $writer.Flush()
+        [System.IO.File]::WriteAllBytes($Path, $memory.ToArray())
+    }
+    $apkStandIn = Join-Path $tools 'patched.apk'
+    $apkStandInBytes = [System.IO.File]::ReadAllBytes($apkStandIn)
+    $apkStandInEntries = @(
+        @{ Name = 'AndroidManifest.xml'; Bytes = [System.Text.Encoding]::ASCII.GetBytes('binary manifest'); Stored = $false },
+        @{ Name = 'classes.dex'; Bytes = [System.Text.Encoding]::ASCII.GetBytes("dex`n035"); Stored = $false })
+    $alignedElf = New-TestElf -RelroEnd 32768
+    function Get-BuiltNativeAlignment([object[]]$Libraries) {
+        New-TestLibraryApk -Path $apkStandIn -Entries ($apkStandInEntries + $Libraries)
+        try {
+            Invoke-ReceiptBuilder -Fixtures $allFixtures
+        } catch {
+            throw "build-release-receipt.ps1 refused a patched APK over what its libraries' ELF headers say: $($_.Exception.Message)"
+        }
+        return (Get-Content -LiteralPath $releaseReceipt -Raw | ConvertFrom-Json).targets[0].nativeAlignment
+    }
+    try {
+        # One stored and aligned in every way, one deflated whose RELRO ends 4 KB past a boundary.
+        $native = Get-BuiltNativeAlignment @(
+            @{ Name = 'lib/arm64-v8a/libgood.so'; Bytes = $alignedElf; Stored = $true },
+            @{ Name = 'lib/arm64-v8a/librelro.so'; Bytes = (New-TestElf -RelroEnd 36864); Stored = $false })
+        Assert-True ($native.zipOffsets.aligned -eq $true -and $native.zipOffsets.stored -eq 1 -and $native.zipOffsets.compressed -eq 1) `
+            "The receipt didn't count one stored and one compressed library at aligned ZIP offsets: $($native.zipOffsets | ConvertTo-Json -Compress)"
+        Assert-True ($native.loadSegments.aligned -eq $true -and $native.loadSegments.libraries -eq 2 -and $native.loadSegments.segments -eq 4) `
+            "The receipt didn't record four aligned LOAD segments in two libraries: $($native.loadSegments | ConvertTo-Json -Compress)"
+        Assert-True ($native.relroEnds.aligned -eq $false -and $native.relroEnds.present -eq 2 -and
+            (@($native.relroEnds.misaligned) -join ',') -ceq 'lib/arm64-v8a/librelro.so') `
+            "The receipt didn't name the one library whose RELRO ends off a 16 KB boundary: $($native.relroEnds | ConvertTo-Json -Compress)"
+        Assert-True ($native.staticChecksPass -eq $false) `
+            'A library whose RELRO ends off a 16 KB boundary got a passing 16 KB verdict from its ZIP offset and LOAD segments.'
+        $relroRecord = @($native.libraries | Where-Object { $_.entry -ceq 'lib/arm64-v8a/librelro.so' })[0]
+        Assert-True ($relroRecord.relro -ceq 'misaligned' -and $relroRecord.relroEnd -eq 36864 -and $relroRecord.stored -eq $false -and
+            $relroRecord.format -ceq 'elf64' -and $relroRecord.sha256 -match '^[0-9A-F]{64}$') `
+            "The receipt's record of the misaligned library isn't the library that was patched: $($relroRecord | ConvertTo-Json -Compress)"
+        Assert-True ($builderSaid -like '*1 of 2 RELRO ends off 16 KB*not ready for 16 KB pages as built*') `
+            "build-release-receipt.ps1 didn't say the libraries aren't ready for 16 KB pages: $builderSaid"
+
+        # Everything a 64-bit library can pass, beside a DEX named .so and a 32-bit library: the
+        # only run that passes, with the other two listed and left out of the verdict.
+        $native = Get-BuiltNativeAlignment @(
+            @{ Name = 'lib/arm64-v8a/libgood.so'; Bytes = $alignedElf; Stored = $true },
+            @{ Name = 'lib/arm64-v8a/libplain.dex.so'; Bytes = [System.Text.Encoding]::ASCII.GetBytes("dex`n035 and no library"); Stored = $false },
+            @{ Name = 'lib/armeabi-v7a/libold.so'; Bytes = (New-TestElf -LoadAlign @(4096) -Narrow); Stored = $false })
+        Assert-True ($native.staticChecksPass -eq $true -and $native.loadSegments.libraries -eq 1 -and $native.relroEnds.present -eq 1) `
+            "A library aligned in the ZIP, in its LOAD segments and at its RELRO end didn't pass: $($native | ConvertTo-Json -Depth 4 -Compress)"
+        Assert-True ((@($native.notElf) -join ',') -ceq 'lib/arm64-v8a/libplain.dex.so' -and @($native.malformed).Count -eq 0) `
+            "A DEX named .so wasn't listed as not ELF: $($native | ConvertTo-Json -Depth 4 -Compress)"
+        $oldRecord = @($native.libraries | Where-Object { $_.entry -ceq 'lib/armeabi-v7a/libold.so' })[0]
+        Assert-True ($oldRecord.format -ceq 'elf32' -and $null -eq $oldRecord.PSObject.Properties['relro']) `
+            "A 32-bit library was judged for 16 KB pages: $($oldRecord | ConvertTo-Json -Compress)"
+
+        # A LOAD segment aligned to 4 KB and no RELRO at all, a file cut off inside its ELF header,
+        # a 32-bit ELF in the 64-bit folder and an ELF with nothing to load: each named under its
+        # own check, none passed.
+        $native = Get-BuiltNativeAlignment @(
+            @{ Name = 'lib/arm64-v8a/libload.so'; Bytes = (New-TestElf -LoadAlign @(16384, 4096)); Stored = $false },
+            @{ Name = 'lib/arm64-v8a/libcut.so'; Bytes = [byte[]]($alignedElf[0..39]); Stored = $false },
+            @{ Name = 'lib/arm64-v8a/libnarrow.so'; Bytes = (New-TestElf -Narrow); Stored = $false },
+            @{ Name = 'lib/arm64-v8a/libstub.so'; Bytes = (New-TestElf -LoadAlign @() -RelroEnd 32768); Stored = $false })
+        Assert-True ($native.staticChecksPass -eq $false -and $native.loadSegments.aligned -eq $false -and
+            (@($native.loadSegments.misaligned) -join ',') -ceq 'lib/arm64-v8a/libload.so') `
+            "A LOAD segment aligned to 4 KB wasn't named as off 16 KB: $($native.loadSegments | ConvertTo-Json -Compress)"
+        Assert-True ($native.relroEnds.aligned -eq $true -and $native.relroEnds.present -eq 0 -and
+            (@($native.relroEnds.absent) -join ',') -ceq 'lib/arm64-v8a/libload.so') `
+            "A library with no RELRO wasn't recorded as having none: $($native.relroEnds | ConvertTo-Json -Compress)"
+        Assert-True ((@($native.malformed) -join '|') -ceq
+            ('lib/arm64-v8a/libcut.so (ends inside the ELF header)|lib/arm64-v8a/libnarrow.so (a 32-bit ELF in a 64-bit folder)|' +
+            'lib/arm64-v8a/libstub.so (no loadable segment)')) `
+            "The unreadable libraries weren't named with why: $(@($native.malformed) -join '|')"
+
+        # Entry names are case-sensitive in a ZIP: two that differ only by case stay two libraries,
+        # each with its own storage, hash and verdict.
+        $native = Get-BuiltNativeAlignment @(
+            @{ Name = 'lib/x86_64/libPair.so'; Bytes = $alignedElf; Stored = $true },
+            @{ Name = 'lib/x86_64/libpair.so'; Bytes = (New-TestElf -RelroEnd 36864); Stored = $false })
+        $pair = @($native.libraries)
+        Assert-True ($pair.Count -eq 2 -and $pair[0].entry -ceq 'lib/x86_64/libPair.so' -and $pair[0].stored -eq $true -and
+            $pair[1].entry -ceq 'lib/x86_64/libpair.so' -and $pair[1].stored -eq $false -and $pair[0].sha256 -cne $pair[1].sha256 -and
+            $native.zipOffsets.stored -eq 1 -and $native.zipOffsets.compressed -eq 1 -and
+            (@($native.relroEnds.misaligned) -join ',') -ceq 'lib/x86_64/libpair.so') `
+            "Two libraries whose names differ only by case weren't kept apart: $($native | ConvertTo-Json -Depth 5 -Compress)"
+    } finally {
+        [System.IO.File]::WriteAllBytes($apkStandIn, $apkStandInBytes)
+        [System.IO.File]::WriteAllBytes($releaseReceipt, $builtReceiptBytes)
+    }
+
     # patch-for-device.ps1 on the same root and stand-ins. It held every run's report to the
     # newest declared build, so an older declared build (README: 577 works too) was patched and
     # then refused with "unexpected package or version". Each declared build is held to its own
@@ -7345,12 +7540,249 @@ Assert-True ($libsReaders.Count -eq 0) `
 
 Write-Host '[scripts] release bundle path contracts passed'
 
+# --- a staged bundle held to a rebuild -------------------------------------------------------
+#
+# The identity a bundle carries (commit, clean flag, input digest) is the build's own word, so a
+# bundle built from other source with a copied identity block passed the publish stage's check. A
+# release builds its commit a second time in a fresh worktree now, and the two bundles are
+# compared entry by entry (Compare-BundleContent) once each has been held to its own checkout
+# (Test-RebuiltBundle). The bundles here are written entry by entry so each case moves one thing,
+# and the two checkouts are a fixture repository and a worktree of it: nothing is built. The
+# repository's checkout holds one source with CRLF endings and the worktree holds it with LF, the
+# way a real rebuild of 138edb6b found two files, and git calls both clean.
+
+$rebuildRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('hushfacebook-rebuilt-' + [guid]::NewGuid().ToString('N'))
+try {
+    $rebuildRepo = Join-Path $rebuildRoot 'repo'
+    $rebuildFresh = Join-Path $rebuildRoot 'fresh'
+    $rebuildSource = Join-Path $rebuildRepo 'patches/src/main/kotlin/Feed.kt'
+    New-Item -ItemType Directory -Path (Split-Path -Parent $rebuildSource), (Join-Path $rebuildRepo 'extensions/facebook/src/main/java') -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $rebuildRepo '.gitattributes'), "* text=auto eol=lf`n")
+    [System.IO.File]::WriteAllText((Join-Path $rebuildRepo 'gradle.properties'), "version = 9.9.9`n")
+    [System.IO.File]::WriteAllText($rebuildSource, "package app.morphe`nval feed = 1`n")
+    [System.IO.File]::WriteAllText((Join-Path $rebuildRepo 'extensions/facebook/src/main/java/Hook.java'), "class Hook {}`n")
+    Invoke-FixtureGit -Root $rebuildRepo -Arguments @('init', '--quiet') | Out-Null
+    $rebuildGitDir = "$(Invoke-FixtureGit -Root $rebuildRepo -Arguments @('rev-parse', '--absolute-git-dir') | Select-Object -First 1)".Trim()
+    Assert-True ($rebuildGitDir -and ([IO.Path]::GetFullPath($rebuildGitDir).TrimEnd('\', '/') -ieq
+            [IO.Path]::GetFullPath((Join-Path $rebuildRepo '.git')).TrimEnd('\', '/'))) `
+        "The rebuild fixture resolved to $rebuildGitDir, not its own repository. Refusing to write."
+    Invoke-FixtureGit -Root $rebuildRepo -Arguments @('config', 'user.email', 'contracts@example.invalid') | Out-Null
+    Invoke-FixtureGit -Root $rebuildRepo -Arguments @('config', 'user.name', 'Contracts') | Out-Null
+    Invoke-FixtureGit -Root $rebuildRepo -Arguments @('config', 'core.autocrlf', 'false') | Out-Null
+    # No warning on stderr about the line endings below, which Windows PowerShell would throw on.
+    Invoke-FixtureGit -Root $rebuildRepo -Arguments @('config', 'core.safecrlf', 'false') | Out-Null
+    Invoke-FixtureGit -Root $rebuildRepo -Arguments @('add', '-A') | Out-Null
+    Invoke-FixtureGit -Root $rebuildRepo -Arguments @('commit', '-m', 'release', '--quiet') | Out-Null
+    $rebuildCommit = "$(Invoke-FixtureGit -Root $rebuildRepo -Arguments @('rev-parse', 'HEAD') | Select-Object -First 1)".Trim()
+    # Added again, the CRLF copy is the blob the commit already holds, so the index only takes the
+    # file's new size and git goes on calling the checkout clean.
+    [System.IO.File]::WriteAllText($rebuildSource, "package app.morphe`r`nval feed = 1`r`n")
+    Invoke-FixtureGit -Root $rebuildRepo -Arguments @('add', '--', 'patches/src/main/kotlin/Feed.kt') | Out-Null
+    Invoke-FixtureGit -Root $rebuildRepo -Arguments @('worktree', 'add', '--quiet', '--detach', $rebuildFresh, $rebuildCommit) | Out-Null
+    $rebuildInputs = Get-ProducerInputSha256 -Root $rebuildRepo
+    $freshInputs = Get-ProducerInputSha256 -Root $rebuildFresh
+    Assert-True (@(Invoke-FixtureGit -Root $rebuildRepo -Arguments @('status', '--porcelain')).Count -eq 0 -and
+        @(Invoke-FixtureGit -Root $rebuildFresh -Arguments @('status', '--porcelain')).Count -eq 0 -and
+        [System.IO.File]::ReadAllText($rebuildSource).Contains("`r`n") -and
+        -not [System.IO.File]::ReadAllText((Join-Path $rebuildFresh 'patches/src/main/kotlin/Feed.kt')).Contains("`r") -and
+        $rebuildInputs -cne $freshInputs) `
+        'The two checkouts are not both clean with one source in CRLF here and LF there, so the line-ending cases prove nothing.'
+
+    # A bundle as buildAndroid leaves it, stamped for the checkout it was built in: the source
+    # fields in the manifest and the payload hash in the identity record. -Reframed writes the
+    # same entries in the opposite order, stored instead of deflated, with another time on each.
+    function New-RebuildBundle {
+        param([string]$Path, [string]$Checkout, [hashtable]$Change = @{}, [string[]]$Without = @(),
+            [string]$InputSha256, [string]$Commit = $rebuildCommit, [switch]$Reframed)
+        if (-not $InputSha256) { $InputSha256 = Get-ProducerInputSha256 -Root $Checkout }
+        $entries = [ordered]@{
+            'META-INF/MANIFEST.MF' = "Manifest-Version: 1.0`nVersion: 9.9.9`nTimestamp: 1700000000000`nPatcher-Version: 1.12.0`n" +
+                "Hushfacebook-Source-State: clean`nHushfacebook-Source-Commit: $Commit`nHushfacebook-Source-Tree: $('a' * 40)`n" +
+                "Hushfacebook-Input-SHA256: $InputSha256`n`n"
+            'app/morphe/patches/facebook/Feed.class' = 'feed class ' * 40
+            'app/morphe/util/BundleIdentity.class' = 'identity class'
+            'com/google/gson/Gson.class' = 'gson class'
+            'classes.dex' = "dex`n035 patches"
+            'extensions/facebook.mpe' = "dex`n035 facebook"
+            'extensions/shared.mpe' = "dex`n035 shared"
+            'META-INF/proguard/gson.pro' = '-keep class com.google.gson.** { *; }'
+            'META-INF/hushfacebook-build.identity' = 'not sealed yet'
+        }
+        foreach ($name in $Change.Keys) { $entries[$name] = $Change[$name] }
+        foreach ($name in $Without) { $entries.Remove($name) }
+        $names = @($entries.Keys)
+        $level = [System.IO.Compression.CompressionLevel]::Optimal
+        $time = [DateTimeOffset]::new(2021, 3, 4, 5, 6, 8, [TimeSpan]::Zero)
+        if ($Reframed) {
+            [array]::Reverse($names)
+            $level = [System.IO.Compression.CompressionLevel]::NoCompression
+            $time = [DateTimeOffset]::new(1999, 12, 31, 23, 59, 58, [TimeSpan]::Zero)
+        }
+        if (Test-Path -LiteralPath $Path) { Remove-Item -LiteralPath $Path -Force }
+        $zip = [System.IO.Compression.ZipFile]::Open($Path, [System.IO.Compression.ZipArchiveMode]::Create)
+        try {
+            foreach ($name in $names) {
+                $entry = $zip.CreateEntry($name, $level)
+                $entry.LastWriteTime = $time
+                [byte[]]$bytes = [System.Text.Encoding]::UTF8.GetBytes([string]$entries[$name])
+                $stream = $entry.Open()
+                try { $stream.Write($bytes, 0, $bytes.Length) } finally { $stream.Dispose() }
+            }
+        } finally { $zip.Dispose() }
+        if ($Without -ccontains 'META-INF/hushfacebook-build.identity') { return }
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($Path)
+        try { $payload = Get-BundlePayloadSha256 -Archive $zip } finally { $zip.Dispose() }
+        $zip = [System.IO.Compression.ZipFile]::Open($Path, [System.IO.Compression.ZipArchiveMode]::Update)
+        try {
+            $zip.GetEntry('META-INF/hushfacebook-build.identity').Delete()
+            $writer = [System.IO.StreamWriter]::new($zip.CreateEntry('META-INF/hushfacebook-build.identity').Open())
+            try { $writer.Write("hushfacebook-bundle-1`n$payload`n") } finally { $writer.Dispose() }
+        } finally { $zip.Dispose() }
+    }
+    function Get-BundleFraming([string]$Path) {
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($Path)
+        try {
+            $class = $zip.GetEntry('app/morphe/patches/facebook/Feed.class')
+            return [pscustomobject]@{ Order = (@($zip.Entries | ForEach-Object { $_.FullName }) -join '|')
+                Time = $class.LastWriteTime.UtcDateTime; Packed = $class.CompressedLength }
+        } finally { $zip.Dispose() }
+    }
+    function Test-RebuiltHere([string]$Root = $rebuildRepo, [string]$RebuiltRoot = $rebuildFresh) {
+        Test-RebuiltBundle -Root $Root -BundlePath $stagedBundle -RebuiltRoot $RebuiltRoot -RebuiltPath $rebuiltBundle -Commit $rebuildCommit
+    }
+
+    # The same build twice: the staged bundle from the CRLF checkout, the rebuilt one from the LF
+    # worktree, written in another order, stored and with other entry times. Their identity entries
+    # differ, since each names its own checkout's input digest, and nothing else does. Equal, with
+    # both identity entries reported as differing and neither counted.
+    $stagedBundle = Join-Path $rebuildRoot 'staged/patches-9.9.9.mpp'
+    $rebuiltBundle = Join-Path $rebuildRoot 'rebuilt/patches-9.9.9.mpp'
+    New-Item -ItemType Directory -Path (Split-Path -Parent $stagedBundle), (Split-Path -Parent $rebuiltBundle) -Force | Out-Null
+    New-RebuildBundle -Path $stagedBundle -Checkout $rebuildRepo
+    New-RebuildBundle -Path $rebuiltBundle -Checkout $rebuildFresh -Reframed
+    $stagedFraming = Get-BundleFraming $stagedBundle
+    $rebuiltFraming = Get-BundleFraming $rebuiltBundle
+    Assert-True ($stagedFraming.Order -cne $rebuiltFraming.Order -and $stagedFraming.Time -ne $rebuiltFraming.Time -and
+        $stagedFraming.Packed -ne $rebuiltFraming.Packed) `
+        'The two fixture bundles share an entry order, an entry time or a packed size, so the framing case proves nothing.'
+    $sameBuild = Compare-BundleContent -BundlePath $stagedBundle -ReferencePath $rebuiltBundle
+    Assert-True ($sameBuild.Equal -and $sameBuild.Compared -eq 7 -and $sameBuild.Differing.Count -eq 0 -and
+        $sameBuild.Missing.Count -eq 0 -and $sameBuild.Extra.Count -eq 0) `
+        "Two bundles that differ only in entry order, entry times, compression and build identity did not compare equal: $($sameBuild | ConvertTo-Json -Depth 4 -Compress)"
+    Assert-True ((@($sameBuild.Identity | ForEach-Object { $_.Name }) -join '|') -ceq 'META-INF/MANIFEST.MF|META-INF/hushfacebook-build.identity' -and
+        @($sameBuild.Identity | Where-Object { $_.Same -or -not $_.Sha256 -or -not $_.ReferenceSha256 }).Count -eq 0) `
+        "The identity entries that differ were not reported apart from the comparison: $($sameBuild.Identity | ConvertTo-Json -Compress)"
+    $held = Test-RebuiltHere
+    Assert-True ($held.Valid -and $held.Comparison.Equal) "A rebuild from a checkout with other line endings and the same classes was refused: $($held.Reason)"
+
+    # One changed entry of each kind, in a staged bundle whose identity is intact and names the
+    # clean commit and its checkout's inputs, the way a copied identity block reads. Each is named
+    # with its kind, and the rebuild check refuses the bundle for it.
+    foreach ($changed in @(
+            @{ Case = 'one changed class'; Entry = 'app/morphe/patches/facebook/Feed.class'; Kind = 'class'; Bytes = 'another class' },
+            @{ Case = 'a changed DEX'; Entry = 'classes.dex'; Kind = 'DEX'; Bytes = "dex`n035 other" },
+            @{ Case = 'one changed extension payload'; Entry = 'extensions/facebook.mpe'; Kind = 'extension payload'; Bytes = "dex`n035 other" },
+            @{ Case = 'one changed resource'; Entry = 'META-INF/proguard/gson.pro'; Kind = 'resource'; Bytes = '-dontwarn' })) {
+        New-RebuildBundle -Path $stagedBundle -Checkout $rebuildRepo -Change @{ $changed.Entry = $changed.Bytes }
+        Assert-True (Get-BundleIdentityFacts -BundlePath $stagedBundle).Valid "The bundle with $($changed.Case) lost its identity, so the case proves nothing."
+        $found = Compare-BundleContent -BundlePath $stagedBundle -ReferencePath $rebuiltBundle
+        Assert-True (-not $found.Equal -and $found.Differing.Count -eq 1 -and $found.Missing.Count -eq 0 -and $found.Extra.Count -eq 0 -and
+            $found.Differing[0].Name -ceq $changed.Entry -and $found.Differing[0].Kind -ceq $changed.Kind -and
+            $found.Differing[0].Sha256 -cmatch '\A[0-9A-F]{64}\z' -and $found.Differing[0].ReferenceSha256 -cmatch '\A[0-9A-F]{64}\z' -and
+            $found.Differing[0].Sha256 -cne $found.Differing[0].ReferenceSha256) `
+            "The comparison did not report $($changed.Case) as the one difference: $($found | ConvertTo-Json -Depth 4 -Compress)"
+        $held = Test-RebuiltHere
+        Assert-True (-not $held.Valid -and $held.Reason -like "*isn't what commit $($rebuildCommit.Substring(0, 8)) builds: $($changed.Kind) $($changed.Entry) differs*" -and
+            $held.Comparison.Differing.Count -eq 1) "A staged bundle with $($changed.Case) passed its rebuild: $($held.Reason)"
+    }
+
+    # An entry on one side only is a difference whichever side has it.
+    New-RebuildBundle -Path $stagedBundle -Checkout $rebuildRepo -Without 'com/google/gson/Gson.class'
+    $found = Compare-BundleContent -BundlePath $stagedBundle -ReferencePath $rebuiltBundle
+    Assert-True (-not $found.Equal -and $found.Missing.Count -eq 1 -and $found.Missing[0].Name -ceq 'com/google/gson/Gson.class' -and
+        $found.Missing[0].Kind -ceq 'class' -and $null -eq $found.Missing[0].Sha256 -and $found.Extra.Count -eq 0 -and $found.Differing.Count -eq 0) `
+        "An entry the staged bundle lacks was not reported as missing: $($found | ConvertTo-Json -Depth 4 -Compress)"
+    $held = Test-RebuiltHere
+    Assert-True (-not $held.Valid -and $held.Reason -like '*class com/google/gson/Gson.class is only in the rebuild*') `
+        "A staged bundle missing an entry passed its rebuild: $($held.Reason)"
+    $found = Compare-BundleContent -BundlePath $rebuiltBundle -ReferencePath $stagedBundle
+    Assert-True (-not $found.Equal -and $found.Extra.Count -eq 1 -and $found.Extra[0].Name -ceq 'com/google/gson/Gson.class' -and
+        $null -eq $found.Extra[0].ReferenceSha256 -and $found.Missing.Count -eq 0 -and $found.Differing.Count -eq 0) `
+        "An entry only the first bundle carries was not reported as extra: $($found | ConvertTo-Json -Depth 4 -Compress)"
+
+    # The identity entries never decide. One of them on one side only isn't a difference, and two
+    # bundles that hold nothing else can't be called equal: with no extension payload there is
+    # nothing to compare, and that throws. So does a bundle naming an entry twice.
+    New-RebuildBundle -Path $stagedBundle -Checkout $rebuildRepo -Without 'META-INF/hushfacebook-build.identity'
+    $found = Compare-BundleContent -BundlePath $stagedBundle -ReferencePath $rebuiltBundle
+    $record = @($found.Identity | Where-Object { $_.Name -ceq 'META-INF/hushfacebook-build.identity' })
+    Assert-True ($found.Equal -and $record.Count -eq 1 -and $null -eq $record[0].Sha256 -and $record[0].ReferenceSha256 -and -not $record[0].Same) `
+        "An identity record on one side only was counted as a difference, or not reported: $($found | ConvertTo-Json -Depth 4 -Compress)"
+    $held = Test-RebuiltHere
+    Assert-True (-not $held.Valid -and $held.Reason -like '*staged patches-9.9.9.mpp carries no intact build identity*' -and $null -eq $held.Comparison) `
+        "A staged bundle with no identity record passed its rebuild: $($held.Reason)"
+    $identityOnly = @('app/morphe/patches/facebook/Feed.class', 'app/morphe/util/BundleIdentity.class', 'com/google/gson/Gson.class',
+        'classes.dex', 'extensions/facebook.mpe', 'extensions/shared.mpe', 'META-INF/proguard/gson.pro')
+    $bareBundle = Join-Path $rebuildRoot 'bare.mpp'
+    New-RebuildBundle -Path $bareBundle -Checkout $rebuildRepo -Without $identityOnly
+    Assert-Throws { Compare-BundleContent -BundlePath $bareBundle -ReferencePath $bareBundle } '*carries no extension payload*' `
+        'Two bundles holding nothing but their identity entries compared equal.'
+    $twiceBundle = Join-Path $rebuildRoot 'twice.mpp'
+    $zip = [System.IO.Compression.ZipFile]::Open($twiceBundle, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach ($name in @('extensions/facebook.mpe', 'classes.dex', 'classes.dex')) {
+            $writer = [System.IO.StreamWriter]::new($zip.CreateEntry($name).Open())
+            try { $writer.Write("dex`n035 $name") } finally { $writer.Dispose() }
+        }
+    } finally { $zip.Dispose() }
+    Assert-Throws { Compare-BundleContent -BundlePath $twiceBundle -ReferencePath $rebuiltBundle } '*carries classes.dex twice*' `
+        'A bundle naming an entry twice was compared as if a loader could only read one of them.'
+
+    # Each bundle is held to the files of its own checkout as they are on disk, and nothing is
+    # normalized first. The staged bundle carrying the worktree's digest is the CRLF checkout's
+    # sources hashed as if they had LF endings, and it's refused, as is a rebuilt bundle carrying
+    # the staged checkout's digest: a copy of the staged bundle is not a second build.
+    New-RebuildBundle -Path $stagedBundle -Checkout $rebuildRepo -InputSha256 $freshInputs
+    $held = Test-RebuiltHere
+    Assert-True (-not $held.Valid -and $held.Reason -like "*staged patches-9.9.9.mpp isn't a build of commit*built from other sources*" -and $null -eq $held.Comparison) `
+        "A staged bundle carrying the digest of its sources with other line endings passed: $($held.Reason)"
+    New-RebuildBundle -Path $stagedBundle -Checkout $rebuildRepo
+    New-RebuildBundle -Path $rebuiltBundle -Checkout $rebuildFresh -InputSha256 $rebuildInputs -Reframed
+    $held = Test-RebuiltHere
+    Assert-True (-not $held.Valid -and $held.Reason -like "*rebuilt patches-9.9.9.mpp isn't a build of commit*built from other sources*") `
+        "A rebuilt bundle carrying the staged checkout's digest passed as a second build: $($held.Reason)"
+    # A rebuild of another commit, one from the staged bundle's own checkout, and one whose
+    # worktree holds a change are refused before anything is compared.
+    New-RebuildBundle -Path $rebuiltBundle -Checkout $rebuildFresh -Commit ('c' * 40) -Reframed
+    $held = Test-RebuiltHere
+    Assert-True (-not $held.Valid -and $held.Reason -like "*rebuilt patches-9.9.9.mpp was built from clean source at $('c' * 40), not commit*") `
+        "A rebuild of another commit backed the staged bundle: $($held.Reason)"
+    New-RebuildBundle -Path $rebuiltBundle -Checkout $rebuildFresh -Reframed
+    $held = Test-RebuiltHere -RebuiltRoot (Join-Path $rebuildRepo '.')
+    Assert-True (-not $held.Valid -and $held.Reason -like '*has to come from a checkout of its own*') `
+        "A rebuild from the staged bundle's own checkout counted as a second build: $($held.Reason)"
+    $strayFile = Join-Path $rebuildFresh 'stray.txt'
+    [System.IO.File]::WriteAllText($strayFile, 'stray')
+    try {
+        $held = Test-RebuiltHere
+        Assert-True (-not $held.Valid -and $held.Reason -like "*isn't commit * with nothing changed, so the rebuilt patches-9.9.9.mpp can't be held to its sources*") `
+            "A rebuild from a worktree holding a change backed the staged bundle: $($held.Reason)"
+    } finally { Remove-Item -LiteralPath $strayFile -Force }
+    $held = Test-RebuiltHere
+    Assert-True $held.Valid "The control after the refusals was refused: $($held.Reason)"
+} finally {
+    Remove-Item -LiteralPath $rebuildRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host '[scripts] rebuilt bundle comparison contracts passed'
+
 # --- scripts/release/release.ps1 -----------------------------------------------------------------
 #
 # The release stages, run in a fixture repository whose checks are stand-ins that log what they
 # were handed: the contract suite, the facts check, the receipt and the build wrapper as scripts,
 # and py and gh as functions here, which release.ps1 finds before the real commands. Nothing here
-# builds, patches or reaches GitHub. The origin is a bare repository beside the fixture.
+# builds, patches or reaches GitHub. The origin is a bare repository beside the fixture. The
+# rebuild stage's worktree is a real one, of the fixture, with the stand-in wrapper as its build.
 
 $releaseFlow = Join-Path ([System.IO.Path]::GetTempPath()) ('hushfacebook-release-flow-' + [guid]::NewGuid().ToString('N'))
 $flowNames = @('HUSHFACEBOOK_BUILD_WRAPPER', 'HUSHFACEBOOK_FIXTURE_DIR', 'GITHUB_ACTOR', 'GITHUB_TOKEN', 'BUILD_QUEUE_PRIORITY')
@@ -7417,6 +7849,18 @@ try {
         "    if ((Get-Content -LiteralPath '$failLiteral' -ErrorAction SilentlyContinue) -eq 'staged') {",
         '        return [pscustomobject]@{ Valid = $false; Reason = ''the stand-in refused it'' } }',
         '    return [pscustomobject]@{ Valid = $true; Reason = $null }',
+        '}',
+        # The rebuild stage's check logs the commit, the checkout it was handed and that checkout's
+        # HEAD, and whether both bundles are there. It tries to change the staged bundle the same
+        # way, and refuses the pair when fail.txt says rebuilt.
+        'function Test-RebuiltBundle([string]$Root, [string]$BundlePath, [string]$RebuiltRoot, [string]$RebuiltPath, [string]$Commit) {',
+        '    try { [IO.File]::AppendAllText($BundlePath, ''swapped''); $swap = ''went-through'' } catch { $swap = ''refused'' }',
+        '    $there = (Test-Path -LiteralPath $BundlePath -PathType Leaf) -and (Test-Path -LiteralPath $RebuiltPath -PathType Leaf)',
+        "    Add-Content -LiteralPath '$logLiteral' -Value (""rebuilt commit=`$Commit swap=`$swap head=`$(git -C `$RebuiltRoot rev-parse HEAD) "" +",
+        '        "staged=$(Split-Path -Leaf $BundlePath) bundle=$(Split-Path -Leaf $RebuiltPath) there=$there root=$RebuiltRoot")',
+        "    if ((Get-Content -LiteralPath '$failLiteral' -ErrorAction SilentlyContinue) -eq 'rebuilt') {",
+        '        return [pscustomobject]@{ Valid = $false; Reason = ''the stand-in found a changed class''; Comparison = $null } }',
+        '    return [pscustomobject]@{ Valid = $true; Reason = $null; Comparison = [pscustomobject]@{ Compared = 3; Identity = @() } }',
         '}')
     $flowWrapper = Join-Path $releaseFlow 'wrapper.ps1'
     Set-Content -LiteralPath $flowWrapper -Encoding UTF8 -Value @(
@@ -7595,6 +8039,118 @@ try {
     Assert-Throws { & $flowScript -Stage publish -Version 1.2.3 6> $null } '*-Checked*' 'Publish ran without a checked paragraph.'
     $flowChecked = Join-Path $releaseFlow 'checked.txt'
     Set-Content -LiteralPath $flowChecked -Value 'Checked.' -Encoding ASCII
+
+    # Rebuild comes first. Publish refuses a staged bundle no rebuild has backed, before the notes,
+    # the tag or GitHub.
+    $flowHead = "$(& git -C $flowRepo rev-parse HEAD)".Trim()
+    $flowBundle = Join-Path $flowAssets 'patches-1.2.3.mpp'
+    $flowNote = Join-Path $flowAssets 'rebuild-1.2.3.json'
+    function Test-FlowUntagged { return -not (& git -C $flowRepo tag --list v1.2.3) -and -not (& git -C $flowOrigin tag --list v1.2.3) }
+    Assert-Throws { & $flowScript -Stage publish -Version 1.2.3 -Checked $flowChecked 6> $null 3> $null } '*Run -Stage rebuild first*' `
+        'Publish went ahead with a bundle the rebuild stage never compared.'
+    Assert-True (@(Read-FlowLog).Count -eq 0 -and (Test-FlowUntagged)) 'Publish ran a step or tagged before the rebuild stage had run.'
+
+    # The stage builds the commit once more in a worktree of its own under the temp folder, and
+    # takes that worktree away again whatever happens. Another worktree of the repository, and a
+    # folder in the temp folder named the way the stage names its own, are somebody else's.
+    $flowBystander = Join-Path $releaseFlow 'bystander'
+    & git -C $flowRepo worktree add --quiet --detach $flowBystander $flowHead
+    $flowLookalike = Join-Path ([System.IO.Path]::GetTempPath()) ('hushfacebook-rebuild-' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $flowLookalike | Out-Null
+    try {
+        foreach ($kept in $flowBystander, $flowLookalike) { Set-Content -LiteralPath (Join-Path $kept 'keep.txt') -Value 'keep' -Encoding ASCII }
+        function Get-FlowWorktrees { return @(& git -C $flowRepo worktree list --porcelain | Where-Object { $_ -like 'worktree *' }) -join '|' }
+        $flowWorktrees = Get-FlowWorktrees
+        Assert-True (@($flowWorktrees -split '\|').Count -eq 2) "The fixture does not hold its own checkout and one more worktree: $flowWorktrees"
+        # The folder the build wrapper was sent to, which has to be a fresh one in the temp folder
+        # and gone again, with every other worktree and the two bystanders as they were.
+        function Assert-RebuildCleanedUp([string]$Line, [string]$When) {
+            $tree = [regex]::Match($Line, '^gradle dir=(.+) priority=release tasks= :patches:buildAndroid --no-build-cache $').Groups[1].Value
+            Assert-True ($tree -and (Split-Path -Leaf $tree) -cmatch '\Ahushfacebook-rebuild-[0-9a-f]{32}\z' -and
+                (Split-Path -Parent $tree).TrimEnd('\', '/') -ieq [System.IO.Path]::GetTempPath().TrimEnd('\', '/') -and $tree -ine $flowLookalike) `
+                "$When did not build in a fresh folder of its own under the temp folder: $Line"
+            Assert-True (-not (Test-Path -LiteralPath $tree)) "$When left its worktree behind: $tree"
+            Assert-True ((Get-FlowWorktrees) -ceq $flowWorktrees -and
+                (Test-Path -LiteralPath (Join-Path $flowBystander 'keep.txt') -PathType Leaf) -and
+                (Test-Path -LiteralPath (Join-Path $flowBystander 'gradle.properties') -PathType Leaf) -and
+                (Test-Path -LiteralPath (Join-Path $flowLookalike 'keep.txt') -PathType Leaf)) `
+                "$When took away a worktree or a folder that wasn't its own: $(Get-FlowWorktrees)"
+            return $tree
+        }
+
+        # A rebuild that fails stops the stage and leaves no note, so publish still refuses and
+        # nothing is tagged.
+        Set-Content -LiteralPath $flowFails -Value 'gradle' -Encoding ASCII
+        Assert-Throws { & $flowScript -Stage rebuild -Version 1.2.3 6> $null 3> $null } '*Gradle :patches:buildAndroid --no-build-cache did not pass*' `
+            'The rebuild stage carried on past a rebuild that failed.'
+        Remove-Item -LiteralPath $flowFails -Force
+        $flow = @(Read-FlowLog)
+        Assert-True ($flow.Count -eq 1) "A failed rebuild still ran what follows it: $($flow -join ' | ')"
+        $null = Assert-RebuildCleanedUp $flow[0] 'A failed rebuild'
+        Assert-True (-not (Test-Path -LiteralPath $flowNote)) 'A failed rebuild left a note for publish to read.'
+        Assert-Throws { & $flowScript -Stage publish -Version 1.2.3 -Checked $flowChecked 6> $null 3> $null } '*Run -Stage rebuild first*' `
+            'Publish went ahead after a rebuild that failed.'
+        Assert-True (@(Read-FlowLog).Count -eq 0 -and (Test-FlowUntagged)) 'Publish ran a step or tagged after a rebuild that failed.'
+
+        # A rebuilt bundle that doesn't match stops it the same way, after its one build.
+        Set-Content -LiteralPath $flowFails -Value 'rebuilt' -Encoding ASCII
+        Assert-Throws { & $flowScript -Stage rebuild -Version 1.2.3 6> $null 3> $null } `
+            "*doesn't back the staged bundle, so it can't be published: the stand-in found a changed class*" `
+            'The rebuild stage passed a staged bundle its check refused.'
+        Remove-Item -LiteralPath $flowFails -Force
+        $flow = @(Read-FlowLog)
+        Assert-True ($flow.Count -eq 2 -and $flow[1] -like 'rebuilt *') "A refused rebuild did not build once and compare: $($flow -join ' | ')"
+        $null = Assert-RebuildCleanedUp $flow[0] 'A refused rebuild'
+        Assert-True (-not (Test-Path -LiteralPath $flowNote) -and (Test-FlowUntagged)) 'A refused rebuild left a note for publish to read, or a tag.'
+
+        # A rebuild that matches: one Gradle run for the bundle, in a worktree detached at the source
+        # commit, at release priority, then the check on the staged bundle (held, so the stand-in's
+        # change is refused) and the bundle the worktree's build left. The note names the commit and
+        # the staged bundle's hash.
+        & $flowScript -Stage rebuild -Version 1.2.3 6> $null 3> $null
+        $flow = @(Read-FlowLog)
+        Assert-True ($flow.Count -eq 2) "The rebuild stage did not build once and compare: $($flow -join ' | ')"
+        $rebuiltTree = Assert-RebuildCleanedUp $flow[0] 'A rebuild that matched'
+        Assert-True ($flow[1] -ceq ("rebuilt commit=$flowHead swap=refused head=$flowHead staged=patches-1.2.3.mpp " +
+                "bundle=patches-1.2.3.mpp there=True root=$rebuiltTree")) `
+            "The rebuild's check was not handed the held staged bundle and the worktree's own, at the source commit: $($flow[1])"
+        $note = Get-Content -LiteralPath $flowNote -Raw | ConvertFrom-Json
+        Assert-True ($note.version -ceq '1.2.3' -and $note.commit -ceq $flowHead -and $note.bundle.file -ceq 'patches-1.2.3.mpp' -and
+            $note.bundle.sha256 -ceq (Get-FileHash -Algorithm SHA256 -LiteralPath $flowBundle).Hash.ToLowerInvariant() -and $note.compared -eq 3) `
+            "The rebuild's note does not name the commit and the staged bundle's hash: $(Get-Content -LiteralPath $flowNote -Raw)"
+        Assert-True (Test-FlowClean) 'The rebuild stage left the tree changed.'
+        Assert-True (-not $env:BUILD_QUEUE_PRIORITY) 'The rebuild stage left its release priority behind.'
+
+        # One more build a release, not one a run: with that note there the stage builds nothing.
+        & $flowScript -Stage rebuild -Version 1.2.3 6> $null 3> $null
+        Assert-True (@(Read-FlowLog).Count -eq 0) 'The rebuild stage built again for a bundle it had already compared.'
+
+        # A bundle changed since isn't the one that was compared, and publish refuses it before the tag.
+        $keptBundle = [System.IO.File]::ReadAllBytes($flowBundle)
+        [System.IO.File]::AppendAllText($flowBundle, 'changed')
+        Assert-Throws { & $flowScript -Stage publish -Version 1.2.3 -Checked $flowChecked 6> $null 3> $null } `
+            "*isn't the bundle a rebuild of $flowHead was compared with, so nothing was tagged*" `
+            'Publish went ahead with a bundle changed since its rebuild.'
+        [System.IO.File]::WriteAllBytes($flowBundle, $keptBundle)
+        $flow = @(Read-FlowLog)
+        Assert-True ($flow.Count -eq 1 -and $flow[0] -like 'staged *' -and (Test-FlowUntagged)) `
+            "Publish ran a step or tagged with a bundle changed since its rebuild: $($flow -join ' | ')"
+        # Nor does a note for another commit back this one: publish refuses, and the stage builds again.
+        $keptNote = Get-Content -LiteralPath $flowNote -Raw
+        Set-Content -LiteralPath $flowNote -Value $keptNote.Replace($flowHead, ('b' * 40)) -Encoding ASCII -NoNewline
+        Assert-Throws { & $flowScript -Stage publish -Version 1.2.3 -Checked $flowChecked 6> $null 3> $null } `
+            "*isn't the bundle a rebuild of $flowHead was compared with, so nothing was tagged*" `
+            'Publish went ahead on a rebuild of another commit.'
+        Assert-True (@(Read-FlowLog).Count -eq 1 -and (Test-FlowUntagged)) 'Publish ran a step or tagged on a rebuild of another commit.'
+        & $flowScript -Stage rebuild -Version 1.2.3 6> $null 3> $null
+        $flow = @(Read-FlowLog)
+        Assert-True ($flow.Count -eq 2 -and (Get-Content -LiteralPath $flowNote -Raw | ConvertFrom-Json).commit -ceq $flowHead) `
+            "The rebuild stage did not build again over a note for another commit: $($flow -join ' | ')"
+        $null = Assert-RebuildCleanedUp $flow[0] 'A second rebuild'
+    } finally {
+        Remove-Item -LiteralPath $flowLookalike -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
     # A receipt for another commit, or one naming none, is refused before anything is tagged: the
     # assets would go out under a tag on a commit they weren't built from.
     $flowReceipt = Join-Path $flowAssets 'release-receipt-1.2.3.json'
@@ -7630,7 +8186,6 @@ try {
     $linkedCopy = [regex]::Match($flow[0], ' folder=(.+) files=').Groups[1].Value
     Assert-True ($linkedCopy -and -not (Test-Path -LiteralPath $linkedCopy)) 'A publish refused for a link left its copy behind.'
     Assert-True (Test-Path -LiteralPath (Join-Path $flowLinkTarget 'keep.txt') -PathType Leaf) 'Removing the publish copy emptied what its link pointed at.'
-    $flowHead = "$(& git -C $flowRepo rev-parse HEAD)".Trim()
     & $flowScript -Stage publish -Version 1.2.3 -Checked $flowChecked 6> $null 3> $null
     $flow = @(Read-FlowLog)
     Assert-True ($flow.Count -eq 4 -and $flow[0] -like ("staged version=1.2.3 commit=$flowHead swap=refused folder=* files=patches-1.2.3.cdx.json," +
@@ -7694,6 +8249,384 @@ try {
 }
 
 Write-Host '[scripts] release stage contracts passed'
+
+# --- fuzz-parsers.ps1 ------------------------------------------------------------------------
+#
+# The parser fuzzer keeps what a run found for the next one, leaves a record of every run, clean or
+# not, and runs only between 19:00 and 07:00. Each case runs the real script on a root of its own,
+# holding the three sources its shims copy, against stand-ins for its tools, so nothing compiles or
+# fuzzes. One small program, built here with the .NET Framework's C# compiler since the script
+# looks for jazzer.exe and javac.exe by name, plays each tool by the name it's copied to. java
+# answers -version and writes one seed a target. javac does nothing. Jazzer answers --version,
+# notes each run's target, seed and starting corpus in calls.log, and does what mode.txt names for
+# that target: by default a clean run that adds one input named by its SHA-1, the way libFuzzer
+# names them, then finding (a crash), fail (an error and no crash) or, for the planted-bug check,
+# miss. Without one the check finds its bug.
+
+$fuzzScript = Join-Path $Root 'scripts/fuzz-parsers.ps1'
+$fuzzCases = [System.IO.Path]::GetFullPath((Join-Path ([System.IO.Path]::GetTempPath()) `
+    ('hushfacebook-fuzzcases-' + [guid]::NewGuid().ToString('N'))))
+$fuzzJdk = Join-Path $fuzzCases 'tools/jdk'
+$fuzzJazzerHome = Join-Path $fuzzCases 'tools/jazzer'
+$fuzzCalls = Join-Path $fuzzJazzerHome 'calls.log'
+$fuzzMode = Join-Path $fuzzJazzerHome 'mode.txt'
+$fuzzSha1 = [System.Security.Cryptography.SHA1]::Create()
+$fuzzLinks = @()
+function Get-FuzzSha1([byte[]]$Bytes) {
+    return [System.BitConverter]::ToString($fuzzSha1.ComputeHash($Bytes)).Replace('-', '').ToLowerInvariant()
+}
+function New-FuzzCaseRoot([string]$Name) {
+    $caseRoot = Join-Path $fuzzCases $Name
+    $download = Join-Path $caseRoot 'extensions/facebook/src/main/java/app/morphe/extension/facebook/download'
+    New-Item -ItemType Directory -Force -Path $download | Out-Null
+    foreach ($source in 'Downloader.java', 'VideoTranscode.java', 'AacReencode.java') {
+        Copy-Item -LiteralPath (Join-Path $Root "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/$source") -Destination $download
+    }
+    return $caseRoot
+}
+function Invoke-FuzzCase {
+    # The script on [CaseRoot] at 21:00 unless [With] says otherwise, answering its exit code.
+    # calls.log starts empty, and mode.txt holds [Mode].
+    param([string]$CaseRoot, [string[]]$Mode = @(), [hashtable]$With = @{})
+    Remove-Item -LiteralPath $fuzzCalls -Force -ErrorAction SilentlyContinue
+    [System.IO.File]::WriteAllText($fuzzMode, ($Mode -join "`n"))
+    $arguments = @{ Root = $CaseRoot; Java = $fuzzJdk; Jazzer = $fuzzJazzerHome; Seconds = 10; SelfCheckSeconds = 10
+        Now = [datetime]'2026-10-13T21:00:00' }
+    foreach ($key in $With.Keys) { $arguments[$key] = $With[$key] }
+    $global:LASTEXITCODE = 0
+    $null = & $fuzzScript @arguments 6> $null 3> $null
+    return $LASTEXITCODE
+}
+function Read-FuzzCalls([string]$Target) {
+    if (-not (Test-Path -LiteralPath $fuzzCalls -PathType Leaf)) { return }
+    [System.IO.File]::ReadAllLines($fuzzCalls) | Where-Object { $_ -like "$Target *" }
+}
+function Read-FuzzRecord([string]$CaseRoot, [string]$Target) {
+    # The newest run record of [Target].
+    $newest = Get-ChildItem -LiteralPath (Join-Path $CaseRoot 'build/fuzz/runs') -File -Filter "*-$Target.json" |
+        Sort-Object Name | Select-Object -Last 1
+    return (Get-Content -LiteralPath $newest.FullName -Raw | ConvertFrom-Json)
+}
+
+try {
+    New-Item -ItemType Directory -Force -Path (Join-Path $fuzzJdk 'bin'), $fuzzJazzerHome | Out-Null
+    $csc = @('Framework64', 'Framework') | ForEach-Object { Join-Path $env:WINDIR "Microsoft.NET/$_/v4.0.30319/csc.exe" } |
+        Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+    Assert-True ([bool]$csc) "The fuzz runner's cases build their tool stand-ins with the .NET Framework's csc.exe, and there's none under $env:WINDIR\Microsoft.NET."
+    $standInSource = Join-Path $fuzzCases 'tools/stand-in.cs'
+    $standIn = Join-Path $fuzzCases 'tools/stand-in.exe'
+    [System.IO.File]::WriteAllText($standInSource, @'
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+
+static class FuzzStandIn {
+    static readonly string Here = AppDomain.CurrentDomain.BaseDirectory;
+
+    static string Value(string[] args, string name) {
+        foreach (string arg in args) {
+            if (arg.StartsWith(name + "=", StringComparison.Ordinal)) return arg.Substring(name.Length + 1);
+        }
+        return null;
+    }
+
+    static string Sha1(byte[] data) {
+        using (SHA1 sha = SHA1.Create()) return BitConverter.ToString(sha.ComputeHash(data)).Replace("-", "").ToLowerInvariant();
+    }
+
+    static string Mode(string target) {
+        string file = Path.Combine(Here, "mode.txt");
+        if (File.Exists(file)) {
+            foreach (string line in File.ReadAllLines(file)) {
+                if (line.StartsWith(target + "=", StringComparison.Ordinal)) return line.Substring(target.Length + 1);
+            }
+        }
+        return "clean";
+    }
+
+    static int Main(string[] args) {
+        string tool = Path.GetFileNameWithoutExtension(System.Reflection.Assembly.GetEntryAssembly().Location).ToLowerInvariant();
+        if (tool == "javac") return 0;
+        if (tool == "java") {
+            if (args.Length > 0 && args[0] == "-version") { Console.WriteLine("openjdk version \"21.0.5\" 2024-10-15"); return 0; }
+            if (args.Length < 4 || !args[2].EndsWith(".ParserFuzzSeeds", StringComparison.Ordinal)) return 9;
+            foreach (string target in new string[] { "dash", "mp4", "faulty" }) {
+                string folder = Path.Combine(args[3], target);
+                Directory.CreateDirectory(folder);
+                File.WriteAllText(Path.Combine(folder, "seed-" + target), "a seed for " + target);
+            }
+            return 0;
+        }
+        if (args.Length == 1 && args[0] == "--version") { Console.WriteLine("Jazzer v9.9.9"); return 0; }
+        string targetClass = Value(args, "--target_class") ?? "";
+        string name = targetClass.EndsWith(".FaultyBoxFuzz") ? "faulty" : targetClass.EndsWith(".DashManifestFuzz") ? "dash"
+            : targetClass.EndsWith(".Mp4JoinFuzz") ? "mp4" : "unknown";
+        string corpus = args[args.Length - 1];
+        if (Value(args, "-minimize_crash") == "1") {
+            File.WriteAllText(Value(args, "-exact_artifact_path"), "minimized");
+            File.AppendAllText(Path.Combine(Here, "calls.log"), "minimize " + name + "\n");
+            return 0;
+        }
+        List<string> names = new List<string>();
+        foreach (string file in Directory.GetFiles(corpus)) names.Add(Path.GetFileName(file));
+        names.Sort(StringComparer.Ordinal);
+        string seed = Value(args, "-seed");
+        File.AppendAllText(Path.Combine(Here, "calls.log"), name + " seed=" + seed + " corpus=" + string.Join(",", names.ToArray()) + "\n");
+        string mode = Mode(name);
+        if ((name == "faulty" && mode != "miss") || mode == "finding") {
+            File.WriteAllText(Value(args, "-artifact_prefix") + "crash-" + Sha1(Encoding.ASCII.GetBytes(name)), "a crash in " + name);
+            Console.WriteLine("== Java Exception: java.lang.IllegalStateException: found in " + name);
+            return 77;
+        }
+        if (mode == "fail") { Console.WriteLine("ERROR: the stand-in failed on purpose"); return 3; }
+        if (name != "faulty") {
+            byte[] input = Encoding.ASCII.GetBytes(name + " " + Guid.NewGuid().ToString("N"));
+            File.WriteAllBytes(Path.Combine(corpus, Sha1(input)), input);
+        }
+        Console.WriteLine("INFO: Seed: " + seed);
+        Console.WriteLine("#2\tINITED cov: 10 ft: 20 corp: 2/64b exec/s: 0 rss: 100Mb");
+        Console.WriteLine("#1234\tDONE   cov: 42 ft: 84 corp: 3/96b lim: 64 exec/s: 617 rss: 101Mb");
+        Console.WriteLine("Done 1234 runs in 2 second(s)");
+        Console.WriteLine("stat::number_of_executed_units: 1234");
+        Console.WriteLine("stat::average_exec_per_sec:     617");
+        Console.WriteLine("stat::new_units_added:          1");
+        Console.WriteLine("stat::peak_rss_mb:              101");
+        return 0;
+    }
+}
+'@)
+    $built = & $csc /nologo /target:exe "/out:$standIn" $standInSource
+    Assert-True ($LASTEXITCODE -eq 0) "csc couldn't build the fuzz runner's tool stand-ins: $($built -join ' ')"
+    foreach ($copy in (Join-Path $fuzzJdk 'bin/java.exe'), (Join-Path $fuzzJdk 'bin/javac.exe'), (Join-Path $fuzzJazzerHome 'jazzer.exe')) {
+        Copy-Item -LiteralPath $standIn -Destination $copy
+    }
+    [System.IO.File]::WriteAllText((Join-Path $fuzzJazzerHome 'jazzer_standalone.jar'), '')
+    $null = @(Read-QueueLog)
+
+    # Two runs: the second starts from what the first kept, but not from a file whose bytes don't
+    # match its name (what a run killed mid-write leaves) or one Jazzer didn't name.
+    $reuseRoot = New-FuzzCaseRoot 'reuse'
+    $keptDash = Join-Path $reuseRoot 'build/fuzz/corpus/dash'
+    Assert-True ((Invoke-FuzzCase $reuseRoot -With @{ Target = 'dash' }) -eq 0) 'A clean fuzz run did not exit 0.'
+    Assert-True (@(Read-QueueLog) -contains 'hushfacebook parser fuzzing') 'A fuzz run did not go through the build queue.'
+    $firstKept = @(Get-ChildItem -LiteralPath $keptDash -File | ForEach-Object { $_.Name })
+    Assert-True ($firstKept.Count -eq 1 -and $firstKept[0] -cmatch '\A[0-9a-f]{40}\z') `
+        "A clean fuzz run did not keep the one input Jazzer added: $($firstKept -join ', ')"
+    $torn = Join-Path $keptDash ('0' * 40)
+    $stray = Join-Path $keptDash 'notes.txt'
+    [System.IO.File]::WriteAllText($torn, 'not the bytes this name is the hash of')
+    [System.IO.File]::WriteAllText($stray, 'not an input Jazzer kept')
+    Assert-True ((Invoke-FuzzCase $reuseRoot -With @{ Target = 'dash' }) -eq 0) 'A second clean fuzz run did not exit 0.'
+    $secondCall = @(Read-FuzzCalls 'dash')
+    Assert-True ($secondCall.Count -eq 1 -and $secondCall[0] -like "*corpus=*$($firstKept[0])*" -and $secondCall[0] -like '*seed-dash*') `
+        "The second fuzz run did not start from the input the first one kept and the seeds: $secondCall"
+    Assert-True ($secondCall[0] -notlike "*$('0' * 40)*" -and $secondCall[0] -notlike '*notes.txt*') `
+        "A fuzz run started from a kept file that isn't an input named by its SHA-1: $secondCall"
+    $secondKept = @(Get-ChildItem -LiteralPath $keptDash -File | ForEach-Object { $_.Name })
+    Assert-True ($secondKept.Count -eq 2 -and $secondKept -contains $firstKept[0] -and
+        -not (Test-Path -LiteralPath $torn) -and -not (Test-Path -LiteralPath $stray)) `
+        "The kept corpus after two runs isn't both runs' inputs alone: $($secondKept -join ', ')"
+    # The planted-bug check starts from its seeds every time, and keeps nothing.
+    Assert-True ((@(Read-FuzzCalls 'faulty') -join '|') -like '*corpus=seed-faulty' -and
+        -not (Test-Path -LiteralPath (Join-Path $reuseRoot 'build/fuzz/corpus/faulty'))) `
+        "The fuzzer's planted-bug check started from or kept more than its seeds: $(@(Read-FuzzCalls 'faulty'))"
+
+    # A clean run leaves its record and its log, and its empty findings folder goes as before.
+    $evidenceRoot = New-FuzzCaseRoot 'evidence'
+    & git -C $evidenceRoot init --quiet
+    & git -C $evidenceRoot add -A
+    & git -C $evidenceRoot -c user.name=Fixture -c user.email=fixture@example.invalid commit -q -m fixture
+    $evidenceCommit = (& git -C $evidenceRoot rev-parse HEAD).Trim()
+    Assert-True ((Invoke-FuzzCase $evidenceRoot -With @{ Target = 'mp4'; Seed = 4242 }) -eq 0) 'A clean fuzz run with a set seed did not exit 0.'
+    $evidenceRuns = Join-Path $evidenceRoot 'build/fuzz/runs'
+    $evidenceFiles = @(Get-ChildItem -LiteralPath $evidenceRuns -File | ForEach-Object { $_.Name } | Sort-Object)
+    Assert-True ($evidenceFiles.Count -eq 4 -and @($evidenceFiles -like '*-faulty.json').Count -eq 1 -and @($evidenceFiles -like '*-faulty.log').Count -eq 1 -and
+        @($evidenceFiles -like '*-mp4.json').Count -eq 1 -and @($evidenceFiles -like '*-mp4.log').Count -eq 1) `
+        "A clean fuzz run did not leave a record and a log for the check and the target: $($evidenceFiles -join ', ')"
+    $evidence = Read-FuzzRecord $evidenceRoot 'mp4'
+    Assert-True ($evidence.target -eq 'mp4' -and $evidence.seed -eq 4242 -and $evidence.jazzer.version -eq '9.9.9' -and
+        $evidence.jdk.version -eq '21.0.5' -and $evidence.commit -eq $evidenceCommit) `
+        "A clean run's record has the wrong target, seed, tool versions or commit: $($evidence | ConvertTo-Json -Depth 6 -Compress)"
+    Assert-True ($evidence.requestedSeconds -eq 10 -and $evidence.actualSeconds -ge 0 -and $evidence.executions -eq 1234 -and
+        $evidence.execPerSecond -eq 617 -and $evidence.coverage.edges -eq 42 -and $evidence.coverage.features -eq 84 -and
+        $evidence.exitReason -eq 'clean' -and @($evidence.findings).Count -eq 0) `
+        "A clean run's record has the wrong duration, executions, coverage or exit reason: $($evidence | ConvertTo-Json -Depth 6 -Compress)"
+    Assert-True ($evidence.corpus.seeds -eq 1 -and $evidence.corpus.keptBefore -eq 0 -and $evidence.corpus.added -eq 1 -and
+        $evidence.corpus.keptAfter -eq 1 -and $evidence.corpus.keptBytesAfter -gt 0) `
+        "A clean run's record has the wrong corpus sizes: $($evidence.corpus | ConvertTo-Json -Compress)"
+    Assert-True (([datetime]$evidence.window.start) -eq [datetime]'2026-10-13T19:00:00' -and
+        ([datetime]$evidence.window.end) -eq [datetime]'2026-10-14T07:00:00' -and $evidence.allowDaytime -eq $false) `
+        "A clean run's record has the wrong off-hours window: $($evidence.window | ConvertTo-Json -Compress)"
+    $evidenceLog = Join-Path $evidenceRuns $evidence.log
+    Assert-True ((Test-Path -LiteralPath $evidenceLog -PathType Leaf) -and ([System.IO.File]::ReadAllText($evidenceLog)) -like '*DONE*cov: 42*') `
+        "A clean run's log did not survive beside its record: $evidenceLog"
+    Assert-True ((Read-FuzzRecord $evidenceRoot 'faulty').exitReason -eq 'planted-bug-found') `
+        "The planted-bug check's record does not say it found the bug."
+    $evidenceLeft = @(Get-ChildItem -LiteralPath (Join-Path $evidenceRoot 'build/fuzz') -Directory | ForEach-Object { $_.Name } | Sort-Object)
+    Assert-True (($evidenceLeft -join ',') -eq 'corpus,runs') "A clean fuzz run left a findings folder: $($evidenceLeft -join ', ')"
+
+    # The bounds remove the oldest: by bytes, three kept inputs of 400,000 bytes a day apart and
+    # a 1 MB limit, then by count, and the records past -KeepRuns, a target at a time.
+    $boundRoot = New-FuzzCaseRoot 'bounds'
+    $keptMp4 = Join-Path $boundRoot 'build/fuzz/corpus/mp4'
+    $boundRuns = Join-Path $boundRoot 'build/fuzz/runs'
+    New-Item -ItemType Directory -Force -Path $keptMp4, $boundRuns | Out-Null
+    $plantedKept = @(foreach ($daysAgo in 3, 2, 1) {
+        $bytes = New-Object byte[] 400000
+        $bytes[0] = [byte]$daysAgo
+        $plantedPath = Join-Path $keptMp4 (Get-FuzzSha1 $bytes)
+        [System.IO.File]::WriteAllBytes($plantedPath, $bytes)
+        [System.IO.File]::SetLastWriteTimeUtc($plantedPath, [datetime]::UtcNow.AddDays(-$daysAgo))
+        Split-Path -Leaf $plantedPath
+    })
+    foreach ($stamp in '20200101-000000-000', '20200102-000000-000', '20200103-000000-000') {
+        [System.IO.File]::WriteAllText((Join-Path $boundRuns "$stamp-mp4.json"), '{}')
+        [System.IO.File]::WriteAllText((Join-Path $boundRuns "$stamp-mp4.log"), 'an old log')
+    }
+    [System.IO.File]::WriteAllText((Join-Path $boundRuns '20200101-000000-000-dash.json'), '{}')
+    [System.IO.File]::WriteAllText((Join-Path $boundRuns 'notes.txt'), 'not a run record')
+    Assert-True ((Invoke-FuzzCase $boundRoot -With @{ Target = 'mp4'; CorpusMaxMB = 1; KeepRuns = 2 }) -eq 0) 'A bounded fuzz run did not exit 0.'
+    $byBytes = @(Get-ChildItem -LiteralPath $keptMp4 -File | ForEach-Object { $_.Name })
+    Assert-True ($byBytes.Count -eq 3 -and $byBytes -notcontains $plantedKept[0] -and $byBytes -contains $plantedKept[1] -and
+        $byBytes -contains $plantedKept[2]) "The corpus byte bound did not remove the oldest kept input alone: $($byBytes -join ', ')"
+    $boundLeft = @(Get-ChildItem -LiteralPath $boundRuns -File | ForEach-Object { $_.Name } | Sort-Object)
+    Assert-True ($boundLeft -notcontains '20200101-000000-000-mp4.json' -and $boundLeft -notcontains '20200101-000000-000-mp4.log' -and
+        $boundLeft -notcontains '20200102-000000-000-mp4.json' -and $boundLeft -notcontains '20200102-000000-000-mp4.log' -and
+        $boundLeft -contains '20200103-000000-000-mp4.json' -and $boundLeft -contains '20200103-000000-000-mp4.log' -and
+        $boundLeft -contains '20200101-000000-000-dash.json' -and $boundLeft -contains 'notes.txt' -and
+        @($boundLeft -like '*-mp4.json').Count -eq 2) `
+        "The run record bound did not remove the oldest of that target's records and logs alone: $($boundLeft -join ', ')"
+    $addedFirst = @($byBytes | Where-Object { $plantedKept -notcontains $_ })
+    Assert-True ((Invoke-FuzzCase $boundRoot -With @{ Target = 'mp4'; CorpusMaxFiles = 2 }) -eq 0) 'A fuzz run bounded by count did not exit 0.'
+    $byCount = @(Get-ChildItem -LiteralPath $keptMp4 -File | ForEach-Object { $_.Name })
+    Assert-True ($byCount.Count -eq 2 -and $byCount -contains $addedFirst[0] -and $byCount -notcontains $plantedKept[1] -and
+        $byCount -notcontains $plantedKept[2]) "The corpus count bound did not keep the newest inputs: $($byCount -join ', ')"
+
+    # Saved findings are read into each run, as copies, and nothing of theirs is pruned or written,
+    # whatever the bounds. Their bytes would read as text but for the line endings.
+    $savedRoot = New-FuzzCaseRoot 'regressions'
+    $savedFolder = Join-Path $savedRoot 'tools/fuzz/regressions/mp4'
+    New-Item -ItemType Directory -Force -Path $savedFolder | Out-Null
+    $savedFinding = Join-Path $savedFolder 'minimized-crash-1'
+    $savedBytes = [byte[]](0x66, 0x74, 0x79, 0x70, 0x0D, 0x0A, 0x6D, 0x6F, 0x6F, 0x76, 0x0A)
+    [System.IO.File]::WriteAllBytes($savedFinding, $savedBytes)
+    $savedTime = [datetime]'2026-01-02T03:04:05Z'
+    [System.IO.File]::SetLastWriteTimeUtc($savedFinding, $savedTime.ToUniversalTime())
+    foreach ($attempt in 1, 2) {
+        Assert-True ((Invoke-FuzzCase $savedRoot -With @{ Target = 'mp4'; CorpusMaxFiles = 1 }) -eq 0) "Fuzz run $attempt with a saved finding did not exit 0."
+        Assert-True ((@(Read-FuzzCalls 'mp4') -join '|') -like '*regression-minimized-crash-1*') `
+            "Fuzz run $attempt did not start from a copy of the saved finding: $(@(Read-FuzzCalls 'mp4'))"
+    }
+    $savedLeft = @(Get-ChildItem -LiteralPath $savedFolder -Force | ForEach-Object { $_.Name })
+    Assert-True (($savedLeft -join ',') -eq 'minimized-crash-1' -and
+        ([System.BitConverter]::ToString([System.IO.File]::ReadAllBytes($savedFinding))) -eq [System.BitConverter]::ToString($savedBytes) -and
+        [System.IO.File]::GetLastWriteTimeUtc($savedFinding) -eq $savedTime.ToUniversalTime()) `
+        "A fuzz run pruned or rewrote a saved finding: $($savedLeft -join ', ')"
+    $savedKept = @(Get-ChildItem -LiteralPath (Join-Path $savedRoot 'build/fuzz/corpus/mp4') -File | ForEach-Object { $_.Name })
+    Assert-True ($savedKept.Count -eq 1 -and $savedKept[0] -cmatch '\A[0-9a-f]{40}\z') `
+        "The kept corpus took in the copy of a saved finding: $($savedKept -join ', ')"
+    # A kept folder that's a link to the saved findings stops the run before anything is read.
+    $linkedKept = Join-Path $savedRoot 'build/fuzz/corpus/mp4'
+    Remove-Item -LiteralPath $linkedKept -Recurse -Force
+    New-Item -ItemType Junction -Path $linkedKept -Target $savedFolder | Out-Null
+    $fuzzLinks += $linkedKept
+    Assert-True ((Invoke-FuzzCase $savedRoot -With @{ Target = 'mp4'; CorpusMaxFiles = 1 }) -eq 2) `
+        'A kept corpus folder linked to the saved findings did not stop the fuzz run as a harness failure (2).'
+    Assert-True (-not (Test-Path -LiteralPath $fuzzCalls) -and
+        ([System.BitConverter]::ToString([System.IO.File]::ReadAllBytes($savedFinding))) -eq [System.BitConverter]::ToString($savedBytes)) `
+        'A fuzz run went ahead through a kept corpus folder linked to the saved findings.'
+
+    # .gitattributes keeps a saved finding's bytes through git. The same bytes anywhere else go in
+    # with LF endings, which shows the check would see a conversion.
+    $attributesRepo = Join-Path $fuzzCases 'attributes'
+    New-Item -ItemType Directory -Force -Path $attributesRepo | Out-Null
+    & git -C $attributesRepo init --quiet
+    & git -C $attributesRepo config core.autocrlf true
+    & git -C $attributesRepo config core.safecrlf false
+    Copy-Item -LiteralPath (Join-Path $Root '.gitattributes') -Destination $attributesRepo
+    $textLike = [byte[]](0x3C, 0x61, 0x3E, 0x0D, 0x0A, 0x3C, 0x2F, 0x61, 0x3E, 0x0D, 0x0A)
+    $attributeCases = [ordered]@{ 'tools/fuzz/regressions/dash/minimized-crash-1' = $true; 'tools/fuzz/other/sample.mpd' = $false }
+    foreach ($relative in $attributeCases.Keys) {
+        $path = Join-Path $attributesRepo $relative
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $path) | Out-Null
+        [System.IO.File]::WriteAllBytes($path, $textLike)
+    }
+    & git -C $attributesRepo add -A
+    foreach ($relative in $attributeCases.Keys) {
+        $raw = (& git -C $attributesRepo hash-object --no-filters -- $relative).Trim()
+        $staged = (@(& git -C $attributesRepo ls-files -s -- $relative)[0] -split '\s+')[1]
+        if ($attributeCases[$relative]) {
+            Assert-True ($raw -eq $staged) "git changed the bytes of $relative on the way in, so its replay would test another input."
+        } else {
+            Assert-True ($raw -ne $staged) "git kept the CRLF bytes of $relative, so the saved-finding check above can't tell a conversion."
+        }
+    }
+    & git -C $attributesRepo -c user.name=Fixture -c user.email=fixture@example.invalid commit -q -m fixture
+    $checkedOut = Join-Path $attributesRepo 'tools/fuzz/regressions/dash/minimized-crash-1'
+    Remove-Item -LiteralPath $checkedOut -Force
+    & git -C $attributesRepo checkout -- 'tools/fuzz/regressions/dash/minimized-crash-1'
+    Assert-True (([System.BitConverter]::ToString([System.IO.File]::ReadAllBytes($checkedOut))) -eq [System.BitConverter]::ToString($textLike)) `
+        'A checkout changed the bytes of a saved finding.'
+
+    # Outside 19:00 to 07:00, or too long to be over by 07:00, a run does nothing and exits 3.
+    # -AllowDaytime runs it, and its record says so.
+    $dayRoot = New-FuzzCaseRoot 'daytime'
+    $null = @(Read-QueueLog)
+    Assert-True ((Invoke-FuzzCase $dayRoot -With @{ Now = [datetime]'2026-10-13T12:00:00' }) -eq 3) 'A fuzz run at noon did not refuse with exit 3.'
+    Assert-True (-not (Test-Path -LiteralPath $fuzzCalls) -and -not (Test-Path -LiteralPath (Join-Path $dayRoot 'build'))) `
+        'A fuzz run refused for the hour still did something.'
+    Assert-True ((Invoke-FuzzCase $dayRoot -With @{ Now = [datetime]'2026-10-14T06:58:00'; Seconds = 600 }) -eq 3) `
+        'A fuzz run that would go past 07:00 did not refuse with exit 3.'
+    Assert-True ((Invoke-FuzzCase $dayRoot -With @{ Now = [datetime]'2026-10-13T18:59:00' }) -eq 3) 'A fuzz run at 18:59 did not refuse with exit 3.'
+    Assert-True (-not (Test-Path -LiteralPath $fuzzCalls) -and -not (Test-Path -LiteralPath (Join-Path $dayRoot 'build')) -and
+        @(Read-QueueLog) -notcontains 'hushfacebook parser fuzzing') 'A fuzz run refused for the hour still did something.'
+    Assert-True ((Invoke-FuzzCase $dayRoot -With @{ Now = [datetime]'2026-10-14T03:00:00'; Target = 'dash' }) -eq 0) `
+        'A fuzz run at 03:00 did not go ahead.'
+    Assert-True (([datetime](Read-FuzzRecord $dayRoot 'dash').window.start) -eq [datetime]'2026-10-13T19:00:00') `
+        "A run after midnight did not record the window that started the evening before."
+    Assert-True ((Invoke-FuzzCase $dayRoot -With @{ Now = [datetime]'2026-10-13T12:00:00'; AllowDaytime = $true; Target = 'dash' }) -eq 0) `
+        'A fuzz run at noon with -AllowDaytime did not go ahead.'
+    $dayRecord = Read-FuzzRecord $dayRoot 'dash'
+    Assert-True ($dayRecord.allowDaytime -eq $true -and $null -eq $dayRecord.window) `
+        "A daytime run's record does not say it ran outside the window: $($dayRecord | ConvertTo-Json -Depth 6 -Compress)"
+
+    # A finding exits 1 as before, minimized, with its log, under -FindingsPath, and the other
+    # target still runs. A Jazzer that fails without a finding, a planted bug it misses and a JDK
+    # with no javac are the harness failing, 2, never the 1 of a finding.
+    $findingRoot = New-FuzzCaseRoot 'finding'
+    $findings = Join-Path $findingRoot 'found'
+    Assert-True ((Invoke-FuzzCase $findingRoot -Mode @('dash=finding') -With @{ FindingsPath = $findings }) -eq 1) 'A fuzz finding did not exit 1.'
+    $foundLeft = @(Get-ChildItem -LiteralPath (Join-Path $findings 'dash') -File | ForEach-Object { $_.Name })
+    Assert-True ($foundLeft -contains 'jazzer.log' -and @($foundLeft -like 'crash-*').Count -eq 1 -and @($foundLeft -like 'minimized-crash-*').Count -eq 1) `
+        "A fuzz finding was not left with its log and a minimized copy: $($foundLeft -join ', ')"
+    Assert-True (@(Read-FuzzCalls 'minimize').Count -eq 1 -and @(Read-FuzzCalls 'mp4').Count -eq 1) `
+        'A fuzz finding was not minimized once, or the other target did not run after it.'
+    $findingRecord = Read-FuzzRecord $findingRoot 'dash'
+    Assert-True ($findingRecord.exitReason -eq 'finding' -and @($findingRecord.findings | Where-Object { $_ -like 'crash-*' }).Count -eq 1) `
+        "A finding's record does not name it: $($findingRecord | ConvertTo-Json -Depth 6 -Compress)"
+    Assert-True ((Invoke-FuzzCase $findingRoot -Mode @('mp4=fail') -With @{ Target = 'mp4'; FindingsPath = (Join-Path $findingRoot 'failed') }) -eq 2) `
+        'A Jazzer that failed without a finding was not a harness failure (2).'
+    Assert-True ((Read-FuzzRecord $findingRoot 'mp4').exitReason -eq 'jazzer-error') "A failed Jazzer's record does not say so."
+    Assert-True ((Invoke-FuzzCase $findingRoot -Mode @('faulty=miss') -With @{ Target = 'mp4' }) -eq 2) `
+        'A planted bug Jazzer missed was not a harness failure (2).'
+    Assert-True ((Read-FuzzRecord $findingRoot 'faulty').exitReason -eq 'planted-bug-missed' -and @(Read-FuzzCalls 'mp4').Count -eq 0) `
+        'A missed planted bug was not recorded, or a target ran after it.'
+    $noJavac = Join-Path $fuzzCases 'tools/no-javac'
+    New-Item -ItemType Directory -Force -Path (Join-Path $noJavac 'bin') | Out-Null
+    Copy-Item -LiteralPath $standIn -Destination (Join-Path $noJavac 'bin/java.exe')
+    Assert-True ((Invoke-FuzzCase $findingRoot -With @{ Java = $noJavac }) -eq 2) 'A JDK with no javac was not a harness failure (2).'
+    $null = @(Read-QueueLog)
+} finally {
+    # The junction first, so removing the cases can't reach through it.
+    foreach ($link in $fuzzLinks) { if (Test-Path -LiteralPath $link) { [System.IO.Directory]::Delete($link) } }
+    $fuzzSha1.Dispose()
+    Remove-Item -LiteralPath $fuzzCases -Recurse -Force -ErrorAction SilentlyContinue
+}
+$global:LASTEXITCODE = 0
+
+Write-Host '[scripts] parser fuzzing contracts passed'
 
 # --- tracked files name no machine -----------------------------------------------------------
 #

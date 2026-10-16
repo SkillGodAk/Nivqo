@@ -6,14 +6,30 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.os.Bundle;
 
-/** Exercises the host device-test transport without changing settings or account data. */
+/**
+ * Exercises the host device-test transport without changing settings or account data. With `-e probe
+ * message_log_render` it runs MessageLogRenderProbe instead.
+ */
 public final class BuildTransportProbe extends Instrumentation {
+    private String probe;
+
     @Override public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
+        probe = arguments == null ? null : arguments.getString("probe");
         start();
     }
 
     @Override public void onStart() {
+        if ("message_log_render".equals(probe)) {
+            Bundle result = new Bundle();
+            try {
+                result.putString("stream", "\n" + new MessageLogRenderProbe(this).run() + "\nOK (1 probe)\n");
+            } catch (Exception | AssertionError error) {
+                result.putString("stream", "\nFAILURES!!!\n" + error + "\n");
+            }
+            finish(Activity.RESULT_OK, result);
+            return;
+        }
         Bundle test = new Bundle();
         test.putString("id", "InstrumentationTestRunner");
         test.putString("class", getClass().getName());

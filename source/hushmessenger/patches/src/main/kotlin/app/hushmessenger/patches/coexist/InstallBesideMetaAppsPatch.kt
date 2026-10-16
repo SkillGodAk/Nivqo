@@ -49,7 +49,7 @@ private val expectedManifestRoles = mapOf(
     ),
 )
 
-// Component names and instruction sites match every supported 582 arm64 APK.
+// Component names and instruction sites match every supported 583 arm64 APK.
 internal val expectedGuardOwners = mapOf(
     APP_COMMUNICATION to mapOf(
         "activity" to setOf(
@@ -88,42 +88,34 @@ internal val expectedGuardOwners = mapOf(
     ),
 )
 
-/** The six permission loads in twelve of the 582.0.0.61.92 builds. Generated from 346415686's record. */
+/** The six permission loads in five of the 583.0.0.29.95 builds. Generated from 346611369's record. */
 internal val expectedDexSites = mapOf(
-    "LX/0iP;->A04(Landroid/app/Application;)V@18" to APP_COMMUNICATION_FORMAT,
-    "LX/0qM;->A03()V@25" to APP_COMMUNICATION,
+    "LX/0WG;->A03()V@25" to APP_COMMUNICATION,
+    "LX/0iq;->A04(Landroid/app/Application;)V@18" to APP_COMMUNICATION_FORMAT,
     "LX/1dG;->A05(Lcom/facebook/auth/usersession/FbUserSession;LX/1dG;Ljava/lang/String;Ljava/lang/String;)V@36" to APP_COMMUNICATION,
-    "LX/2FD;->A01(Landroid/content/Intent;LX/2FD;)V@24" to APP_COMMUNICATION_FORMAT,
-    "LX/341;->A05(Ljava/lang/Object;ILX/5f9;I)Ljava/lang/Object;@1109" to APP_COMMUNICATION_FORMAT,
-    "Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;->A0a(Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;I)V@507" to APP_COMMUNICATION_FORMAT,
+    "LX/2FC;->A01(Landroid/content/Intent;LX/2FC;)V@24" to APP_COMMUNICATION_FORMAT,
+    "LX/33t;->A05(Ljava/lang/Object;ILX/5eL;I)Ljava/lang/Object;@1168" to APP_COMMUNICATION_FORMAT,
+    "Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;->A0d(Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;I)V@253" to APP_COMMUNICATION_FORMAT,
 )
 
-/** The same six loads in builds 346415706 and 346415707, under their names. Generated from 346415706's record. */
-internal val expectedDexSites346415706 = mapOf(
-    "LX/0iP;->A04(Landroid/app/Application;)V@18" to APP_COMMUNICATION_FORMAT,
-    "LX/0qM;->A03()V@25" to APP_COMMUNICATION,
-    "LX/1dF;->A05(Lcom/facebook/auth/usersession/FbUserSession;LX/1dF;Ljava/lang/String;Ljava/lang/String;)V@36" to APP_COMMUNICATION,
+/** The same six loads in build 346611351, under its names. Generated from its record. */
+internal val expectedDexSites346611351 = mapOf(
+    "LX/0WG;->A03()V@25" to APP_COMMUNICATION,
+    "LX/0iq;->A04(Landroid/app/Application;)V@18" to APP_COMMUNICATION_FORMAT,
+    "LX/1dG;->A05(Lcom/facebook/auth/usersession/FbUserSession;LX/1dG;Ljava/lang/String;Ljava/lang/String;)V@36" to APP_COMMUNICATION,
     "LX/2FC;->A01(Landroid/content/Intent;LX/2FC;)V@24" to APP_COMMUNICATION_FORMAT,
-    "LX/340;->A05(Ljava/lang/Object;ILX/5db;I)Ljava/lang/Object;@1109" to APP_COMMUNICATION_FORMAT,
-    "Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;->A0a(Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;I)V@507" to APP_COMMUNICATION_FORMAT,
+    "LX/33t;->A05(Ljava/lang/Object;ILX/5bZ;I)Ljava/lang/Object;@1168" to APP_COMMUNICATION_FORMAT,
+    "Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;->A0d(Lcom/facebook/common/appinit/invoker/OnApplicationInitInvoker;I)V@253" to APP_COMMUNICATION_FORMAT,
 )
 
 /** Each supported build's permission loads, by version code, as scripts/profiles records them. */
 internal val expectedDexSitesByBuild: Map<Int, Map<String, String>> = mapOf(
-    346415686 to expectedDexSites,
-    346415687 to expectedDexSites,
-    346415690 to expectedDexSites,
-    346415706 to expectedDexSites346415706,
-    346415707 to expectedDexSites346415706,
-    346415720 to expectedDexSites,
-    346415721 to expectedDexSites,
-    346415723 to expectedDexSites,
-    346415759 to expectedDexSites,
-    346415772 to expectedDexSites,
-    346415773 to expectedDexSites,
-    346415774 to expectedDexSites,
-    346415776 to expectedDexSites,
-    346415777 to expectedDexSites,
+    346611351 to expectedDexSites346611351,
+    346611369 to expectedDexSites,
+    346611423 to expectedDexSites,
+    346611438 to expectedDexSites,
+    346611439 to expectedDexSites,
+    346611440 to expectedDexSites,
 )
 
 internal fun expectedDexSitesFor(

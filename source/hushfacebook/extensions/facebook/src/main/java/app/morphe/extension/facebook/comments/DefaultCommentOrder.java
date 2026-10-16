@@ -93,6 +93,9 @@ public final class DefaultCommentOrder {
     /** Counted each time a sheet's menu didn't offer All comments, so Facebook's order stayed. */
     static final String NOT_OFFERED = "Menu without All comments";
 
+    /** Counted each time a post that kept All comments came back in another order and it was picked again. */
+    static final String PICKED_AGAIN = "All comments picked again";
+
     // Facebook's trees are read by the hash of each field's GraphQL name.
     private static final int ID = "id".hashCode();
     private static final int RENDERING = "comment_rendering_instance".hashCode();
@@ -147,6 +150,19 @@ public final class DefaultCommentOrder {
             new LinkedHashMap<String, Long>(16, 0.75f, true) {
                 @Override
                 protected boolean removeEldestEntry(Map.Entry<String, Long> eldest) {
+                    return size() > REMEMBERED_POSTS;
+                }
+            });
+
+    /**
+     * Feedback id to whether an answer came back on the kept order since that post's last pick,
+     * least recently used first. A post that's false here isn't picked in again, so a menu drawn
+     * again before the pick's answer, or a server that won't answer that order, gets one pick.
+     */
+    private static final Map<String, Boolean> answered = Collections.synchronizedMap(
+            new LinkedHashMap<String, Boolean>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
                     return size() > REMEMBERED_POSTS;
                 }
             });
@@ -218,6 +234,9 @@ public final class DefaultCommentOrder {
             CommentOrder order = chosen();
             if (order == null) return token;
             if (!isEmpty(focusedCommentId)) {
+                // A link's view stays Facebook's: a post that kept the order isn't picked again
+                // in its menu until an answer comes back on that order.
+                if (picks.containsKey(feedbackId)) answered.put(feedbackId, Boolean.FALSE);
                 log("left a link to one comment in Facebook's order.");
                 return token;
             }
@@ -268,6 +287,7 @@ public final class DefaultCommentOrder {
         pending.remove();
         if (isEmpty(feedbackId) || !pick.token.equals(token) || now() - pick.at > PICK_WINDOW_MS) return;
         String before = picks.put(feedbackId, token);
+        answered.put(feedbackId, Boolean.FALSE);
         if (!token.equals(before)) {
             String how = Boolean.TRUE.equals(picking.get()) ? "which its menu offered" : "picked in a post's comments";
             log("kept " + describe(token) + ", " + how + ", for that post until Facebook restarts.");
@@ -284,7 +304,9 @@ public final class DefaultCommentOrder {
      * builds only when its answer offers more than one order. [feedback] is the post's feedback
      * tree, [pick] what a tap on one of the menu's rows calls with that row's token. When the
      * request for this post was left for the menu and the menu offers the chosen order, that order
-     * is picked here, on the main thread, as a tap would. Never throws.
+     * is picked here, on the main thread, as a tap would. A post that kept that order and came back
+     * in another one, as a refetch built from the first request's params does, gets it picked
+     * again, once per answer. Never throws.
      */
     public static void sortMenu(@Nullable Object feedback, @Nullable Object pick) {
         try {
@@ -295,8 +317,13 @@ public final class DefaultCommentOrder {
             CommentOrder order = chosen();
             if (order == null || !deferred(order)) return;
             String feedbackId = string(feedback, ID);
-            Long asked = isEmpty(feedbackId) ? null : awaiting.remove(feedbackId);
-            if (asked == null || now() - asked > AWAIT_WINDOW_MS) return;
+            if (isEmpty(feedbackId)) return;
+            Long asked = awaiting.remove(feedbackId);
+            boolean left = asked != null && now() - asked <= AWAIT_WINDOW_MS;
+            // A post that kept the order, from a tap or a pick here, can come back in another one: a
+            // refetch built from the first request's params names none and leaves nothing waiting.
+            boolean kept = !left && order.isNamedBy(picks.get(feedbackId));
+            if (!left && !kept) return;
             Object rendering = tree(feedback, RENDERING);
             if (rendering == null) {
                 HookStatus.missingMember(FamilyNames.DEFAULT_COMMENT_ORDER, "comment sort menu",
@@ -309,17 +336,28 @@ public final class DefaultCommentOrder {
             // Answered when Facebook is on the row this menu would be picked at. On another of the
             // order's rows while the usual one is offered, the usual one is picked.
             if (token != null ? token.equals(selected) : order.isNamedBy(selected)) {
+                answered.put(feedbackId, Boolean.TRUE);
+                if (kept) return;
                 HookStatus.counted(FamilyNames.DEFAULT_COMMENT_ORDER, ANSWERED);
                 log("Facebook answered " + describe(selected) + " already.");
                 return;
             }
             if (token == null) {
+                if (kept) return;
                 HookStatus.counted(FamilyNames.DEFAULT_COMMENT_ORDER, NOT_OFFERED);
                 log("left a post whose menu offers " + offered + " in Facebook's order.");
                 return;
             }
-            HookStatus.counted(FamilyNames.DEFAULT_COMMENT_ORDER, PICKED_IN_MENU);
-            log("picked " + describe(token) + " in the post's menu.");
+            if (kept && Boolean.FALSE.equals(answered.get(feedbackId))) return;
+            answered.put(feedbackId, Boolean.FALSE);
+            if (kept) {
+                HookStatus.counted(FamilyNames.DEFAULT_COMMENT_ORDER, PICKED_AGAIN);
+                log("picked " + describe(token) + " again in the post's menu, which came back "
+                        + describe(selected) + ".");
+            } else {
+                HookStatus.counted(FamilyNames.DEFAULT_COMMENT_ORDER, PICKED_IN_MENU);
+                log("picked " + describe(token) + " in the post's menu.");
+            }
             @SuppressWarnings("unchecked")
             Function1<Object, Object> menu = (Function1<Object, Object>) pick;
             Runnable tap = () -> {
@@ -399,6 +437,7 @@ public final class DefaultCommentOrder {
         picks.clear();
         pending.remove();
         awaiting.clear();
+        answered.clear();
         decisions.set(0);
     }
 }

@@ -45,6 +45,7 @@ internal const val TAB_BAR_SCROLL_AWAY = "Lapp/morphe/extension/facebook/navigat
 internal const val SLIDES_AWAY = "$TAB_BAR_SCROLL_AWAY->slidesAway()Z"
 internal const val STAYS_PUT = "$TAB_BAR_SCROLL_AWAY->staysPut()Z"
 internal const val TOP_BAR_OFFSET = "$TAB_BAR_SCROLL_AWAY->topBarOffset(Ljava/lang/String;I)I"
+internal const val TOP_BAR_FADE = "$TAB_BAR_SCROLL_AWAY->topBarFade(Ljava/lang/String;F)F"
 internal const val PADS_PAGER = "$TAB_BAR_SCROLL_AWAY->padsPager(Landroid/view/View;IIII)V"
 
 /** The trace name Facebook gives the tab pager's setup, where it pads its pages for the bar. */
@@ -89,7 +90,11 @@ private const val GATE_WINDOW = 16
  * [SET_TOP_VIEWS] (582 `LX/25q;->A0x`) whatever the server settings say. Each method of the entry
  * class that moves its view starts by adding the entry's resting place to the distance it's asked
  * to move (582 `LX/2Ir;->A01` and `A03`). The extension goes in front of that with the entry's name
- * and the distance, and a kept top bar gets 0, so it stays where it rests and keeps its inset.
+ * and the distance, and a kept top bar gets 0, so it stays where it rests and keeps its inset. Both
+ * moves also take a float, how far out of sight the move takes the entry, which Facebook fades the
+ * view by (582 `LX/2Ir;->A02`, from `A01` and from `A03`'s animation): over a see-through
+ * navigation bar, and for one part of the top bar under a server setting. That float goes through
+ * the extension too, and a kept top bar gets 0, so it doesn't fade out in place.
  */
 internal val tabBarScrollAwayPatch = bytecodePatch {
     dependsOn(facebookExtensionPatch)
@@ -112,8 +117,8 @@ internal val tabBarScrollAwayPatch = bytecodePatch {
         )
         val name = scrollAwayEntryName(topViews)
         val entry = mutableClassDefBy(name.definingClass)
-        for ((move, distance) in entryMoves(entry)) {
-            entry.findMutableMethodOf(move).holdsTopBar(name, distance)
+        for (move in entryMoves(entry)) {
+            entry.findMutableMethodOf(move.method).holdsTopBar(name, move.distance, move.hidden)
         }
     }
 }
@@ -251,12 +256,20 @@ internal fun scrollAwayEntryName(topViews: Method): FieldReference {
 }
 
 /**
- * The methods of the scroll-away [entry] that move its view, each with the register holding the
- * distance it's asked to move it. Every method that moves a view with setTranslationY or a
- * ViewPropertyAnimator's translationY has to start by adding an int field of the entry to its one
- * int parameter, or the patch refuses, since the hook would miss that move. Refuses when none moves.
+ * A move of the scroll-away entry: the register of the [distance] it's asked to move its view and,
+ * when it takes one float, the register of how far out of sight that takes the view, [hidden], which
+ * Facebook fades some entries by.
  */
-internal fun entryMoves(entry: ClassDef): List<Pair<Method, Int>> {
+internal data class EntryMove(val method: Method, val distance: Int, val hidden: Int?)
+
+/**
+ * The methods of the scroll-away [entry] that move its view. Every method that moves a view with
+ * setTranslationY or a ViewPropertyAnimator's translationY has to start by adding an int field of
+ * the entry to its one int parameter, or the patch refuses, since the hook would miss that move. A
+ * move taking more than one float is refused too, since which one fades the view isn't known.
+ * Refuses when none moves.
+ */
+internal fun entryMoves(entry: ClassDef): List<EntryMove> {
     val moves = entry.methods.filter { method ->
         method.implementation?.instructions?.any {
             calledMethod(it)?.toString().let { called -> called == SET_TRANSLATION_Y || called == ANIMATE_TRANSLATION_Y }
@@ -264,12 +277,22 @@ internal fun entryMoves(entry: ClassDef): List<Pair<Method, Int>> {
     }
     if (moves.isEmpty()) refuse("${entry.type} has no method that moves its view")
     return moves.map { method ->
-        method to (movedDistance(method)
-            ?: refuse("${entry.type}->${method.name} moves its view without first adding a field to the int it's given"))
+        val distance = movedDistance(method)
+            ?: refuse("${entry.type}->${method.name} moves its view without first adding a field to the int it's given")
+        val floats = parameterRegisters(method).filter { (type) -> type == "F" }
+        if (floats.size > 1) refuse("${entry.type}->${method.name} takes ${floats.size} floats, expected at most one")
+        EntryMove(method, distance, floats.singleOrNull()?.second)
     }
 }
 
 private fun parameterSize(type: String) = if (type == "J" || type == "D") 2 else 1
+
+/** Each parameter's type and register of the instance method [method], this left out. */
+private fun parameterRegisters(method: Method): List<Pair<String, Int>> {
+    val types = method.parameterTypes.map(CharSequence::toString)
+    var next = method.implementation!!.registerCount - types.sumOf { parameterSize(it) }
+    return types.map { type -> (type to next).also { next += parameterSize(type) } }
+}
 
 /**
  * The register of [method]'s one int parameter, when the method is an instance method whose first
@@ -280,14 +303,8 @@ private fun movedDistance(method: Method): Int? {
     val types = method.parameterTypes.map(CharSequence::toString)
     if (types.count { it == "I" } != 1) return null
     val implementation = method.implementation ?: return null
-    val sizes = types.map(::parameterSize)
-    val self = implementation.registerCount - sizes.sum() - 1
-    var next = self + 1
-    var distance = -1
-    types.forEachIndexed { index, type ->
-        if (type == "I") distance = next
-        next += sizes[index]
-    }
+    val self = implementation.registerCount - types.sumOf { parameterSize(it) } - 1
+    val distance = parameterRegisters(method).single { (type) -> type == "I" }.second
     val code = implementation.instructions.toList()
     val read = code.getOrNull(0)?.takeIf { it.opcode == Opcode.IGET } as? TwoRegisterInstruction ?: return null
     val field = (read as ReferenceInstruction).reference as FieldReference
@@ -298,23 +315,30 @@ private fun movedDistance(method: Method): Int? {
 
 /**
  * Puts the extension at the start of this move of a scroll-away entry: the entry's [entryName] and
- * the [distance] go in, and the distance comes back, 0 for a kept top bar. The name goes in a local
- * nothing reads before writing it.
+ * the [distance] go in, and the distance comes back, 0 for a kept top bar. Then, for a move that
+ * takes one, the same with [hidden], how far out of sight the move takes the view. The name goes in
+ * a local nothing reads before writing it.
  */
-internal fun MutableMethod.holdsTopBar(entryName: FieldReference, distance: Int) {
+internal fun MutableMethod.holdsTopBar(entryName: FieldReference, distance: Int, hidden: Int?) {
     val self = implementation!!.registerCount - parameterTypes.sumOf { parameterSize(it.toString()) } - 1
-    if (self > 15 || distance > 15) refuse("$definingClass->$name keeps this or its distance past v15")
+    if (self > 15 || distance > 15 || (hidden ?: 0) > 15) refuse("$definingClass->$name keeps this or what it's given past v15")
     // A jump back to the start would land past the hold and move the bar a second time.
     val first = implementation!!.instructions[0] as BuilderInstruction
     if (first.location.labels.isNotEmpty()) refuse("$definingClass->$name has a jump back to its start")
     val local = freeLocalsAt(PATCH, 0, 1, highest = 15).single()
+    val unfaded = hidden?.let {
+        """
+            invoke-static { v$local, v$it }, $TOP_BAR_FADE
+            move-result v$it
+        """
+    }.orEmpty()
     addInstructions(
         0,
         """
             iget-object v$local, v$self, $entryName
             invoke-static { v$local, v$distance }, $TOP_BAR_OFFSET
             move-result v$distance
-        """,
+        """ + unfaded,
     )
 }
 

@@ -36,8 +36,8 @@ import java.io.File
  * position check passes, then a sliding bar's yes, a no going on to Facebook's next instruction, and
  * nothing else in the method moved. Second the top bar: the method that adds it to the scroll-away
  * views, the name it reads off the entry it makes (followed from the "app_header_container" string
- * into that very field), and each move of that entry handing its distance
- * through the extension first. Reads the fixture bundles from HUSHFACEBOOK_FIXTURE_DIR and skips
+ * into that very field), and each move of that entry handing its distance, then how far out of
+ * sight it takes the view, through the extension first. Reads the fixture bundles from HUSHFACEBOOK_FIXTURE_DIR and skips
  * without it.
  */
 class TabBarScrollAwayFixtureTest {
@@ -168,11 +168,13 @@ class TabBarScrollAwayFixtureTest {
                 val context = pieces.context()
                 tabBarScrollAwayPatch.execute(context)
                 val patchedEntry = context.mutableClassDefBy(pieces.entry.type)
-                for ((move, distance) in moves) {
+                for ((move, distance, hidden) in moves) {
                     val where = "$name: ${move.definingClass}->${move.name}"
+                    // 582's two moves both take how far out of sight they take the view, which A02 fades it by.
+                    assertTrue("$where takes no float to fade its view by", hidden != null)
                     val original = move.code()
                     val patched = patchedEntry.methods.single { it.sameAs(move) }.code()
-                    assertEquals("$where gains three instructions", original.size + 3, patched.size)
+                    assertEquals("$where gains five instructions", original.size + 5, patched.size)
                     val read = patched[0]
                     assertEquals("$where: the entry's name is read first", Opcode.IGET_OBJECT, read.opcode)
                     assertEquals("$where: the entry's name is read first", entryName.toString(),
@@ -183,7 +185,12 @@ class TabBarScrollAwayFixtureTest {
                     assertEquals("$where: then handed to the extension", TOP_BAR_OFFSET, patched[1].calls())
                     assertEquals("$where: the distance comes back", Opcode.MOVE_RESULT, patched[2].opcode)
                     assertEquals("$where: the distance comes back", distance, (patched[2] as OneRegisterInstruction).registerA)
-                    assertEquals("$where: Facebook's code stays", original.map { it.opcode }, patched.drop(3).map { it.opcode })
+                    assertEquals("$where: then the fade is handed to the extension", TOP_BAR_FADE, patched[3].calls())
+                    val fade = patched[3] as FiveRegisterInstruction
+                    assertEquals("$where: with the name and the fade", listOf(local, hidden), listOf(fade.registerC, fade.registerD))
+                    assertEquals("$where: the fade comes back", Opcode.MOVE_RESULT, patched[4].opcode)
+                    assertEquals("$where: the fade comes back", hidden, (patched[4] as OneRegisterInstruction).registerA)
+                    assertEquals("$where: Facebook's code stays", original.map { it.opcode }, patched.drop(5).map { it.opcode })
                 }
                 checked += version
             }

@@ -193,6 +193,7 @@ public class ColdStartHooksTest {
                 Category.ORGANIC, new GraphQLStory(), FeedGuardForTests.postText("Big SPOILER inside")));
         assertFalse("a photo post before the context was hidden", FeedGuardForTests.hidesPhotoPost(Category.ORGANIC));
         assertFalse("a popular post before the context was hidden", FeedGuardForTests.hidesPopularPost(Category.ORGANIC));
+        assertFalse("a repost before the context was hidden", FeedGuardForTests.hidesRepost(Category.ORGANIC));
         assertFalse(FeedGuardForTests.hidesAiReel(new FeedGuardForTests.ReelItem(FeedGuardForTests.reelModel(true))));
         assertFalse("a seen post before the context was hidden", SeenPostsForTests.hidesBeforeTheContext());
         assertFalse("a start before the context locked Facebook", AppLockForTests.aStartLocks());

@@ -11,17 +11,17 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 internal data class DrawerFixtureMapping(
     val provider: String, val getter: String, val row: String, val section: String,
     val dispatcher: String, val iconBase: String, val icon: String, val glyph: String, val enums: String,
-    /** 582's main family builds the Settings icon in place instead of calling the icon's static factory. */
+    /** The Settings icon is built in place instead of coming from the icon's static factory, a 582 form that's refused. */
     val inlineIcon: Boolean = false,
-    /** 582 builds its QR code row after Settings, from the same row class and its own folder key. */
+    /** 583 builds its QR code row after Settings, from the same row class and its own folder key. */
     val qrRow: Boolean = false,
 )
 
 private fun drawerMapping(refreshOwner: String) = when (refreshOwner) {
     "LX/9rv;" -> DrawerFixtureMapping("LX/CTJ;", "Ax4", "LX/HRf;", "LX/HRe;", "LX/Cfq;", "LX/Imx;", "LX/HNS;", "LX/1hJ;", "LX/0R2;")
-    "LX/9wI;" -> DrawerFixtureMapping("LX/Cdx;", "AyA", "LX/KGS;", "LX/KGU;", "LX/Eqy;", "LX/3YW;", "LX/KGb;", "LX/1hx;", "LX/0Qs;",
-        inlineIcon = true, qrRow = true)
-    "LX/9uz;" -> DrawerFixtureMapping("LX/CdA;", "Ay9", "LX/HGy;", "LX/HH7;", "LX/HJ3;", "LX/IMc;", "LX/HHG;", "LX/1hw;", "LX/0Qs;",
+    "LX/9vp;" -> DrawerFixtureMapping("LX/Cgk;", "B08", "LX/HVv;", "LX/HVy;", "LX/CqN;", "LX/Izq;", "LX/HVn;", "LX/1hx;", "LX/0Qp;",
+        qrRow = true)
+    "LX/9sA;" -> DrawerFixtureMapping("LX/CcU;", "B08", "LX/HSN;", "LX/HSQ;", "LX/CmI;", "LX/IwW;", "LX/HSE;", "LX/1hx;", "LX/0Qp;",
         qrRow = true)
     else -> error("Unrecorded drawer mapping: $refreshOwner")
 }
@@ -59,15 +59,15 @@ private fun drawerConstructor(owner: String, params: List<String>, names: List<S
         append("return-void")
     }, registers = params.size + 2, flags = PUBLIC_CONSTRUCTOR)
 
-/** The Settings icon: built in place for 582's main family, from the icon's static factory otherwise. */
+/** The Settings icon from the icon's static factory, as 583 gets it, or built in place the way 582 did. */
 private fun settingsIcon(model: DrawerFixtureMapping, broken: String): String {
     val glyph = "${model.glyph}->${if (broken == "glyph") "A64" else "A65"}:${model.glyph}"
     return (if (model.inlineIcon) listOf(
         "sget-object v9, $glyph",
         "sget-object v10, $FIXTURE_COLOR->A0A:$FIXTURE_COLOR",
-        if (broken == "icon-shared") "sget-object v3, ${model.icon}->shared:${model.icon}" else "new-instance v3, ${model.icon}",
-        "invoke-direct {${if (broken == "icon-return") "v2" else "v3"}, v9, v10}, ${model.icon}-><init>(${model.glyph}$FIXTURE_COLOR_TYPE)V",
-        if (broken == "icon-origin") "const/4 v3, 0x0" else "nop",
+        "new-instance v3, ${model.icon}",
+        "invoke-direct {v3, v9, v10}, ${model.icon}-><init>(${model.glyph}$FIXTURE_COLOR_TYPE)V",
+        "nop",
     ) else listOf(
         "sget-object v3, $glyph",
         "invoke-static {v3}, ${model.icon}->A00(${model.glyph})${model.icon}",
@@ -87,12 +87,12 @@ private fun qrCodeRow(row: String, rowParams: List<String>) = listOf(
     "invoke-direct/range {v0 .. v8}, $row-><init>(${rowParams.joinToString("")})V",
 ).joinToString("\n                ")
 
-/** All five menu targets plus only the native contracts the new factory needs. */
-internal fun legacyDrawerFixture(profile: ControlProfile, broken: String = "none"): LegacyDrawerFixture {
+/** All five menu targets plus only the native contracts the new factory needs. [inlineIcon] overrides the mapping's icon shape. */
+internal fun legacyDrawerFixture(profile: ControlProfile, broken: String = "none", inlineIcon: Boolean? = null): LegacyDrawerFixture {
     val ids = profile.hooks.getValue("menu_settings")
     val refresh = ids.single { it.endsWith("()V") }
     val owner = refresh.substringBefore("->")
-    val model = drawerMapping(owner)
+    val model = drawerMapping(owner).let { if (inlineIcon == null) it else it.copy(inlineIcon = inlineIcon) }
     val binder = ids.single { it.contains(";I)V") }.substringBefore("->")
     val rowParams = listOf(FIXTURE_CONTEXT, model.dispatcher, model.iconBase, DRAWER_KEY, DRAWER_METADATA,
         FIXTURE_INTEGER, FIXTURE_STRING, FIXTURE_LIST)
@@ -239,7 +239,7 @@ internal fun legacyDrawerFixture(profile: ControlProfile, broken: String = "none
         fixtureClass(model.enums, extraFields = listOf(drawerField(model.enums, "A1P", FIXTURE_INTEGER, true), drawerField(model.enums, "A01", FIXTURE_INTEGER, true))),
         fixtureClass(FIXTURE_COLOR_TYPE), fixtureClass(FIXTURE_COLOR, interfaces = listOf(FIXTURE_COLOR_TYPE),
             extraFields = listOf(drawerField(FIXTURE_COLOR, "A0A", FIXTURE_COLOR, true))),
-        fixtureClass(model.icon, (if (model.inlineIcon) emptyList() else listOf(iconFactoryMethod)) + drawerConstructor(model.icon,
+        fixtureClass(model.icon, listOf(iconFactoryMethod) + drawerConstructor(model.icon,
             listOf(model.glyph, FIXTURE_COLOR_TYPE), listOf("A00", "A01"), setOf(1)), superclass = model.iconBase,
             extraFields = listOf(drawerField(model.icon, "A00", model.glyph), drawerField(model.icon, "A01", FIXTURE_COLOR_TYPE)),
             flags = allocatedFlags("icon")),

@@ -39,5 +39,5 @@ internal fun MutableMethod.validateAppIconGate() {
 /** Answers yes while the control is on, so the picker unlocks every icon and applies it through Messenger's own alias switch. */
 internal fun MutableMethod.injectAppIconGate() {
     validateAppIconGate()
-    injectSwitch("unlockAppIcons", "0x1")
+    injectSwitch("$SETTINGS->unlockAppIcons()Z", "0x1")
 }

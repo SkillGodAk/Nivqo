@@ -53,6 +53,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
+import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.settings.preference.LogBufferManager;
@@ -483,6 +484,34 @@ public class SaveProgressTest {
         assertEquals(elsewhere, startMessage());
     }
 
+    /**
+     * With Quiet saves on (issue #142), a save says nothing as it starts, finishes or is canceled,
+     * with its notification or without one. A save that fails still says why.
+     */
+    @Test
+    public void quietSavesKeepOnlyTheFailureToast() throws Exception {
+        Settings.DOWNLOAD_QUIET.save(true);
+        try {
+            assertNull("the start toasted", startMessage());
+            Shadows.shadowOf(notifications()).setNotificationsEnabled(false);
+            assertNull("the start toasted with no notification", startMessage());
+
+            server.serveGenerated("/whole.mp4", "video/mp4", MP4_HEAD, 256 * 1024, Long.MAX_VALUE, null);
+            Shadows.shadowOf(context.getContentResolver()).registerOutputStream(gallery.videoUri(1), published);
+            ShadowToast.reset();
+            finish(save("/whole.mp4"));
+            assertEquals("the save didn't finish", 256 * 1024, published.count.get());
+            assertNull("the finished save toasted", ShadowToast.getTextOfLatestToast());
+
+            finish(MediaDownload.start(context, true, (writer, progress) ->
+                    Downloader.Result.fail(Downloader.Status.HTTP_ERROR, Downloader.Cause.NETWORK, "offline")));
+            assertEquals("The connection failed. Check your internet and try again.",
+                    ShadowToast.getTextOfLatestToast());
+        } finally {
+            Settings.DOWNLOAD_QUIET.resetToDefault();
+        }
+    }
+
     /** What a save says as it starts. It runs until that's been read, then ends cancelled. */
     private String startMessage() throws InterruptedException {
         ShadowToast.reset();
@@ -791,7 +820,9 @@ public class SaveProgressTest {
                 finish(worker);
                 assertEquals(Downloader.Status.WRITE_ERROR, result.get(20, TimeUnit.SECONDS).status);
                 assertEquals(SaveControl.State.FAILED, save.state());
-                assertEquals("Download failed. Try again in a moment.", ShadowToast.getTextOfLatestToast());
+                assertEquals("The file couldn't be copied into your phone's gallery. Try again in a moment.",
+                        ShadowToast.getTextOfLatestToast());
+                assertEquals(Downloader.Cause.GALLERY, SaveControl.lastCause());
                 assertTrue("failed publication left a gallery row", gallery.rows.isEmpty());
                 assertTrue(pendingList().isEmpty());
             } finally {
@@ -905,7 +936,9 @@ public class SaveProgressTest {
         Thread worker = MediaDownload.start(context, true,
                 MediaDownload.dashJob(context, video, null, server.origin() + "/fallback.mp4"));
         finish(worker);
-        assertEquals("Download failed. Try again in a moment.", ShadowToast.getTextOfLatestToast());
+        assertEquals("The file couldn't be copied into your phone's gallery. Try again in a moment.",
+                ShadowToast.getTextOfLatestToast());
+        assertEquals(Downloader.Cause.GALLERY, SaveControl.lastCause());
         assertEquals("a terminal gallery failure fetched the fallback", 0, server.hits("/fallback.mp4"));
         assertEquals(1, gallery.updates);
         assertTrue(gallery.rows.isEmpty());

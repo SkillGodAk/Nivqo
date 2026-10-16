@@ -980,13 +980,23 @@ public class HushfacebookPreferenceFragmentTest {
                 assertEquals("Fixes saved videos that play without sound in WhatsApp, video editors such as CapCut and InShot, or "
                         + "some galleries and players. May lower quality.",
                         String.valueOf(row.getSummary()));
+                // Quiet saves (issue #142) is every save's too, right above it.
+                Preference quiet = rows.get(compatible - 1);
+                assertEquals(download + ": quiet saves isn't above saves other apps can open",
+                        Settings.DOWNLOAD_QUIET.key, quiet.getKey());
+                assertFalse(((SwitchPreference) quiet).isChecked());
+                assertEquals("Quiet saves", String.valueOf(quiet.getTitle()));
+                assertEquals("No toast when a save starts, finishes or is canceled. A save that fails still says why.",
+                        String.valueOf(quiet.getSummary()));
             }
         }
 
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.SPONSORED_POSTS);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(controller);
             assertEquals("a compatible-saves row with no download in the build",
-                    -1, indexOfKey(rowsOf(controller), Settings.DOWNLOAD_COMPATIBLE.key));
+                    -1, indexOfKey(rows, Settings.DOWNLOAD_COMPATIBLE.key));
+            assertEquals("a quiet-saves row with no download in the build", -1, indexOfKey(rows, Settings.DOWNLOAD_QUIET.key));
         }
     }
 

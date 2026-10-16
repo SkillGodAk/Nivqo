@@ -31,7 +31,7 @@ public class SettingsNavigationTest {
             View root = screen.get().getWindow().getDecorView();
             TextView count = root.findViewWithTag("search_status");
             root.findViewWithTag("category_chats").performClick();
-            assertEquals(ExpectedTotals.shown(17), count.getText().toString());
+            assertEquals(ExpectedTotals.shown(18), count.getText().toString());
             assertEquals(View.GONE, ((View) root.findViewWithTag("people").getParent()).getVisibility());
             ((EditText) root.findViewWithTag("find_control")).setText("People You");
             assertEquals(View.VISIBLE, root.findViewWithTag("empty_state").getVisibility());
@@ -40,7 +40,7 @@ public class SettingsNavigationTest {
             assertEquals(View.GONE, root.findViewWithTag("empty_state").getVisibility());
             assertTrue(root.findViewWithTag("category_all").isSelected());
             root.findViewWithTag("category_more").performClick();
-            assertEquals(ExpectedTotals.shown(19), count.getText().toString());
+            assertEquals(ExpectedTotals.shown(23), count.getText().toString());
             assertEquals(View.VISIBLE, ((View) root.findViewWithTag("facebook").getParent()).getVisibility());
         }
     }
@@ -58,6 +58,24 @@ public class SettingsNavigationTest {
                 assertEquals(1, wordmark.getMaxLines());
                 assertEquals(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM, wordmark.getAutoSizeTextType());
             }
+        }
+    }
+
+    @Test public void clearingTheQueryKeepsTheSelectedCategoryAndReturnsFocusToSearch() {
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View root = screen.get().getWindow().getDecorView();
+            EditText search = root.findViewWithTag("find_control");
+            View clear = root.findViewWithTag("clear_query");
+            assertEquals(View.GONE, clear.getVisibility());
+            root.findViewWithTag("category_chats").performClick();
+            search.setText("no matching control");
+            assertEquals(View.VISIBLE, clear.getVisibility());
+            clear.performClick();
+            assertEquals("", search.getText().toString());
+            assertTrue(root.findViewWithTag("category_chats").isSelected());
+            assertEquals(ExpectedTotals.shown(18), ((TextView) root.findViewWithTag("search_status")).getText().toString());
+            assertTrue(search.hasFocus());
+            assertEquals(View.GONE, clear.getVisibility());
         }
     }
 
@@ -79,7 +97,8 @@ public class SettingsNavigationTest {
             View root = screen.get().getWindow().getDecorView();
             ((Switch) root.findViewWithTag("people")).performClick();
             root.findViewWithTag("category_inbox").performClick();
-            ((EditText) root.findViewWithTag("find_control")).setText("People You");
+            // Each word on its own: "People You" alone also finds Hide growth prompts ("people", "your").
+            ((EditText) root.findViewWithTag("find_control")).setText("People You May");
             root.findViewWithTag("tab_app").performClick();
             assertEquals(View.GONE, root.findViewWithTag("controls_page").getVisibility());
             assertEquals(View.VISIBLE, root.findViewWithTag("app_page").getVisibility());
@@ -93,7 +112,7 @@ public class SettingsNavigationTest {
             View root = screen.get().getWindow().getDecorView();
             assertEquals(View.VISIBLE, root.findViewWithTag("app_page").getVisibility());
             root.findViewWithTag("tab_controls").performClick();
-            assertEquals("People You", ((EditText) root.findViewWithTag("find_control")).getText().toString());
+            assertEquals("People You May", ((EditText) root.findViewWithTag("find_control")).getText().toString());
             assertTrue(root.findViewWithTag("category_inbox").isSelected());
             assertEquals(ExpectedTotals.shown(1), ((TextView) root.findViewWithTag("search_status")).getText().toString());
             assertTrue(((Switch) root.findViewWithTag("people")).isChecked());
@@ -130,7 +149,9 @@ public class SettingsNavigationTest {
                 assertTrue(control.getMinimumWidth() >= 48 * density);
                 assertTrue(((View) control.getParent()).getPaddingTop() > 0);
             }
-            assertTrue(root.findViewWithTag("ads").getContentDescription().toString().contains("Experimental"));
+            for (String key : SettingsActivity.EXPERIMENTAL) {
+                assertTrue(key, root.findViewWithTag(key).getContentDescription().toString().contains("Experimental"));
+            }
         }
     }
 

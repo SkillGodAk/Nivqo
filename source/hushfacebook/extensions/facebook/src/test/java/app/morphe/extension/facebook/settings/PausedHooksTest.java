@@ -21,6 +21,7 @@ import com.facebook.common.util.TriState;
 import com.facebook.graphql.model.GraphQLComment;
 import com.facebook.graphql.model.GraphQLPagesYouMayLikeFeedUnit;
 import com.facebook.graphql.model.GraphQLStory;
+import com.facebook.graphservice.tree.TreeJNI;
 
 import org.junit.After;
 import org.junit.Rule;
@@ -51,6 +52,7 @@ import app.morphe.extension.facebook.ads.ProfileAdFilterForTests;
 import app.morphe.extension.facebook.ads.FeedAdPills;
 import app.morphe.extension.facebook.ads.ReelsAdFilter;
 import app.morphe.extension.facebook.ads.SearchAdFilterForTests;
+import app.morphe.extension.facebook.chats.ChatList;
 import app.morphe.extension.facebook.chats.ChatListForTests;
 import app.morphe.extension.facebook.chats.MessengerCardForTests;
 import app.morphe.extension.facebook.chats.MessengerHandoffForTests;
@@ -65,6 +67,7 @@ import app.morphe.extension.facebook.download.PhotoSave;
 import app.morphe.extension.facebook.download.PlayerSourcesForTests;
 import app.morphe.extension.facebook.download.ReelDownload;
 import app.morphe.extension.facebook.download.SaveRulesForTests;
+import app.morphe.extension.facebook.download.StoryPhoto;
 import app.morphe.extension.facebook.download.VideoMenuItemForTests;
 import app.morphe.extension.facebook.emoji.SystemEmoji;
 import app.morphe.extension.facebook.feed.AutoTranslationForTests;
@@ -194,6 +197,16 @@ public class PausedHooksTest {
         }
     }
 
+    /**
+     * A photo Story with music's card: its node holds the tree Facebook's card kind asks for
+     * (StoryPhoto.MADE_FROM_PHOTO), and its media the video and the photo it was made from.
+     */
+    public static final class MusicPhotoStoryCard {
+        final TreeJNI story = new TreeJNI().with(0xaa18ee7f, new TreeJNI());
+        final TreeJNI media = new TreeJNI().with("playable_url", "https://video.xx.fbcdn.net/v/t42/story.mp4")
+                .with("stories_photo_uri", new TreeJNI().with("uri", "https://scontent.xx.fbcdn.net/v/t39/story.jpg"));
+    }
+
     /** One hook with its switch on: true when it changed what Facebook would have done. */
     interface Probe {
         boolean changedFacebook();
@@ -248,6 +261,8 @@ public class PausedHooksTest {
         Map<BooleanSetting, Probe> probes = new LinkedHashMap<>();
         // A save takes the H.264 picture over the sharper AV1 one.
         probes.put(Settings.DOWNLOAD_COMPATIBLE, SaveRulesForTests::picksAFileOtherAppsOpen);
+        // A finished save goes without its Saved to toast.
+        probes.put(Settings.DOWNLOAD_QUIET, SaveRulesForTests::finishesQuietly);
         return probes;
     }
 
@@ -355,7 +370,8 @@ public class PausedHooksTest {
                     return !section.items.contains(reel);
                 }));
         // A story whose own words hold a phrase from the hide list, and one drawn as a photo, which
-        // the kinds of post switches read without any list. Paused, the list reads empty too.
+        // the kinds of post switches read without any list. Paused, the list reads empty too. The
+        // last is a story that shares another, with no words on either.
         // Saved here, with the context, so a probe run without one reads it rather than loading it.
         Settings.HIDDEN_WORDS.save("spoiler");
         Settings.HIDE_POSTS_OVER_REACTIONS.save(app.morphe.extension.facebook.feed.ReactionCeiling.K1);
@@ -363,7 +379,8 @@ public class PausedHooksTest {
                 () -> FeedGuardForTests.hidesByWords(Category.ORGANIC, new GraphQLStory(),
                         FeedGuardForTests.postText("Big SPOILER inside")),
                 () -> FeedGuardForTests.hidesPhotoPost(Category.ORGANIC),
-                () -> FeedGuardForTests.hidesPopularPost(Category.ORGANIC)));
+                () -> FeedGuardForTests.hidesPopularPost(Category.ORGANIC),
+                () -> FeedGuardForTests.hidesRepost(Category.ORGANIC)));
         // A story with a bumper is answered as one without, so no strip is drawn and no room kept, and a
         // header whose title plugin would add "Follow" is told it has nothing to add.
         probes.put(PatchFamily.POST_PROMPTS, Arrays.asList(
@@ -531,6 +548,8 @@ public class PausedHooksTest {
                 },
                 // The menu offers Save on someone else's story.
                 () -> MediaDownload.offersSave(false),
+                // A photo Story with music gets Save photo beside Save.
+                () -> StoryPhoto.menuTitle(new MusicPhotoStoryCard()) != null,
                 // The recorder runs in every player Facebook builds, not only in stories.
                 PlayerSourcesForTests::recordsAPlayer));
         // Every reel's sidebar gets the Download button.
@@ -572,12 +591,13 @@ public class PausedHooksTest {
         probes.put(PatchFamily.HIDDEN_TABS, Collections.singletonList(HiddenTabsForTests::hidesTheTab));
         // Facebook's own override of where the tab bar goes reads YES, for the bottom, where it read NO.
         // With the bar at the bottom, Facebook's check of whether it slides away answers yes. The top
-        // bar's entry is told to move 0. (A kept bottom bar has its own test: with every switch on,
-        // the slide wins over it.)
+        // bar's entry is told to move 0 and fade by 0. (A kept bottom bar has its own test: with every
+        // switch on, the slide wins over it.)
         probes.put(PatchFamily.BOTTOM_TAB_BAR, Arrays.asList(
                 () -> BottomTabBar.override(TriState.NO.ordinal()) == TriState.YES.ordinal(),
                 TabBarScrollAway::slidesAway,
-                () -> TabBarScrollAway.topBarOffset("app_header_container", -120) == 0));
+                () -> TabBarScrollAway.topBarOffset("app_header_container", -120) == 0,
+                () -> TabBarScrollAway.topBarFade("app_header_container", 1f) == 0f));
         // Facebook's dark mode controller answers dark where it answered light.
         probes.put(PatchFamily.FORCE_DARK_MODE, Collections.singletonList(ForceDarkModeForTests::forcesDark));
         // A request for a post's comments that names no order asks for the chosen one, and with
@@ -611,7 +631,10 @@ public class PausedHooksTest {
         // The notes tray's tiles go in Chats, and a promotion banner's show question answers no.
         probes.put(PatchFamily.CHAT_LIST, Arrays.asList(
                 ChatListForTests::dropsTheNotesTiles,
-                ChatListForTests::hidesAPromotion));
+                ChatListForTests::hidesAPromotion,
+                // The search row at the top of Chats loses its Meta AI button, and so does the search screen.
+                () -> ChatList.metaAiButton(new Object()) == null,
+                () -> !ChatList.showsSearchMetaAiButton(true)));
         // With Messenger installed, a tap on the top bar's Messenger icon opens Messenger instead of
         // Chats, and an incoming call's push, its ring and a new message are left to Messenger.
         probes.put(PatchFamily.MESSENGER_ICON, Arrays.asList(
@@ -677,10 +700,11 @@ public class PausedHooksTest {
         probes.put(PatchFamily.HDR_BRIGHTNESS, Arrays.asList(
                 HdrBrightnessForTests::keepsAnHdrWindowInTheUsualRange, HdrBrightnessForTests::holdsTheHeadroom,
                 HdrBrightnessForTests::answersTheScreenAsShowingNoHdr));
-        // A reel's bar is kept full size, a full-screen video sets no fade timer, and a press off the
-        // bar's thumb is held as a tap to seek.
+        // A reel's bar is kept full size, a full-screen video sets no fade timer, a press off the
+        // bar's thumb is held as a tap to seek, and the next reel's bar starts over.
         probes.put(PatchFamily.PROGRESS_BAR, Arrays.asList(ProgressBar::keepsReelBar, ProgressBar::keepsControls,
-                ProgressBar::liftsFooter, ProgressBar::noFadedBar, PausedHooksTest::holdsATapOnTheBar));
+                ProgressBar::liftsFooter, ProgressBar::noFadedBar, PausedHooksTest::holdsATapOnTheBar,
+                PausedHooksTest::startsTheNextReelOver));
         // A tab asked for shows without its slide.
         probes.put(PatchFamily.SCREEN_TRANSITIONS, Collections.singletonList(() -> !ScreenTransitionsForTests.slides()));
         // The app icon benefit is answered yes, at the provider's check and at the picker's own look,
@@ -755,6 +779,14 @@ public class PausedHooksTest {
             if (!family.switches.isEmpty()) switched.add(family);
         }
         return switched;
+    }
+
+    /** The scrubber takes the next reel with its bar where the last reel stopped. */
+    private static boolean startsTheNextReelOver() {
+        android.widget.SeekBar bar = new android.widget.SeekBar(RuntimeEnvironment.getApplication());
+        bar.setProgress(47);
+        ProgressBar.nextReel(null, bar);
+        return bar.getProgress() == 0;
     }
 
     /** A press at the far end of a bar whose thumb sits at its start, then a cancel to end it. */

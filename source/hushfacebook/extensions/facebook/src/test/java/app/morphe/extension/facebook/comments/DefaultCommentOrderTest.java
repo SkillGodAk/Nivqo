@@ -22,6 +22,7 @@ import org.robolectric.annotation.Config;
 import com.facebook.graphservice.tree.TreeJNI;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -248,6 +249,66 @@ public class DefaultCommentOrderTest {
         assertEquals(report, 1, occurrences(report, "Default comment order: left a post whose menu offers ["
                 + RELEVANT + ", " + NEWEST + "] in Facebook's order."));
         assertEquals(report, 0, occurrences(report, POST));
+    }
+
+    /**
+     * #110: a refetch built from the first request's params names no order, so its answer comes back
+     * in Facebook's order with nothing left waiting for the menu. A post that kept All comments gets
+     * it picked again, once per answer: a menu drawn again before the pick's answer, or a server that
+     * won't answer All comments, gets no second pick, and neither does a link to one of its comments.
+     * A post picked on another order keeps that one.
+     */
+    @Test
+    public void aPostThatKeptAllCommentsGetsItPickedAgainOncePerAnswer() {
+        Settings.COMMENT_ORDER.save(CommentOrder.ALL_COMMENTS);
+        DefaultCommentOrder.mainForTests = Runnable::run;
+        BaseSettings.DEBUG.save(true);
+        LogBufferManager.clearLogBuffer();
+        List<Object> sent = new ArrayList<>();
+        Function1<Object, Unit> sheet = token -> {
+            DefaultCommentOrder.picked((String) token);
+            sent.add(DefaultCommentOrder.requestedOrder((String) token, POST, null));
+            return Unit.INSTANCE;
+        };
+        TreeJNI onRelevant = DefaultCommentOrderForTests.feedback(POST, RELEVANT, RELEVANT, NEWEST, ALL);
+        TreeJNI onAll = DefaultCommentOrderForTests.feedback(POST, ALL, RELEVANT, NEWEST, ALL);
+
+        DefaultCommentOrder.requestedOrder(null, POST, null);
+        DefaultCommentOrder.sortMenu(onRelevant, sheet);
+        assertEquals(Collections.singletonList(ALL), sent);
+        DefaultCommentOrder.sortMenu(onRelevant, sheet);
+        assertEquals("drawn again before the pick's answer", 1, sent.size());
+        DefaultCommentOrder.sortMenu(onAll, sheet);
+        assertEquals(1, sent.size());
+
+        // The refetch: Facebook's order again, and no request left waiting.
+        DefaultCommentOrder.sortMenu(onRelevant, sheet);
+        assertEquals(Arrays.asList(ALL, ALL), sent);
+        DefaultCommentOrder.sortMenu(onRelevant, sheet);
+        assertEquals("a server that won't answer All comments is asked once", 2, sent.size());
+        DefaultCommentOrder.sortMenu(onAll, sheet);
+        DefaultCommentOrder.sortMenu(onRelevant, sheet);
+        assertEquals("answered, so the next refetch is picked again", 3, sent.size());
+
+        // A link to one comment of that post: Facebook's view stays until it answers All comments.
+        DefaultCommentOrder.sortMenu(onAll, sheet);
+        DefaultCommentOrder.requestedOrder(null, POST, COMMENT);
+        DefaultCommentOrder.sortMenu(onRelevant, sheet);
+        assertEquals("a link to one comment keeps Facebook's order", 3, sent.size());
+
+        // Picked on Most relevant by hand, a post keeps it.
+        DefaultCommentOrder.picked(RELEVANT);
+        assertEquals(RELEVANT, DefaultCommentOrder.requestedOrder(RELEVANT, OTHER_POST, null));
+        assertTrue(openMenu(OTHER_POST, RELEVANT, RELEVANT, ALL).isEmpty());
+
+        String line = statusLine();
+        assertNotNull(line);
+        assertTrue(line, line.contains("All comments picked in the menu 1"));
+        assertTrue(line, line.contains("All comments picked again 2"));
+        assertFalse("a kept post's answers aren't counted", line.contains("Answer already All comments"));
+        String report = LogBufferManager.buildExportText();
+        assertEquals(report, 2, occurrences(report, "Default comment order: picked all_comments (" + ALL
+                + ") again in the post's menu, which came back most_relevant (" + RELEVANT + ")."));
     }
 
     /**

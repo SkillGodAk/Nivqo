@@ -111,18 +111,18 @@ class AdEventsTest {
         activeProfile = SYNTHETIC_PROFILE
     }
 
-    private fun found(classes: List<MutableClass>) = findControls(classes).getValue(AD_EVENTS).map { it.hookId() }.toSet()
+    private fun found(classes: List<MutableClass>) = mirroredControls(classes).getValue(AD_EVENTS).map { it.hookId() }.toSet()
 
     @Test fun bothEventsAreFoundByShapeAndTheNamesTheyLog() {
         assertEquals(setOf(SYNTHETIC_INBOX_VISIBILITY, SYNTHETIC_AD_ENTRY), found(adEventsFixture()))
-        validateControls(findControls(adEventsFixture()), setOf(AD_EVENTS))
+        validateControls(mirroredControls(adEventsFixture()), setOf(AD_EVENTS))
     }
 
     @Test fun everyProfileHooksBothEvents() {
-        assertEquals(setOf("LX/27U;->Dgy(LX/0Co;Z)V", "LX/6N0;->A00(LX/6G1;$FB_USER_SESSION$S$S$S$S)V"),
+        assertEquals(setOf("LX/27U;->Dnw(LX/0Cn;Z)V", "LX/6Ma;->A00(LX/6FH;$FB_USER_SESSION$S$S$S$S)V"),
             BASE_PROFILE.hooks.getValue(AD_EVENTS))
-        assertEquals(setOf("LX/27T;->Dgl(LX/0Co;Z)V", "LX/6Lz;->A00(LX/6Ez;$FB_USER_SESSION$S$S$S$S)V"),
-            PROFILE_346415706.hooks.getValue(AD_EVENTS))
+        assertEquals(setOf("LX/27U;->Dnl(LX/0Cn;Z)V", "LX/6Js;->A00(LX/6CS;$FB_USER_SESSION$S$S$S$S)V"),
+            PROFILE_346611351.hooks.getValue(AD_EVENTS))
         assertEquals(setOf(SYNTHETIC_INBOX_VISIBILITY, SYNTHETIC_AD_ENTRY), SYNTHETIC_PROFILE.hooks.getValue(AD_EVENTS))
     }
 
@@ -139,7 +139,7 @@ class AdEventsTest {
         )
         for ((case, classes) in cases) {
             assertEquals(1, found(classes).size, case)
-            assertFailsWith<PatchException>(case) { validateControls(findControls(classes), setOf(AD_EVENTS)) }
+            assertFailsWith<PatchException>(case) { validateControls(mirroredControls(classes), setOf(AD_EVENTS)) }
         }
     }
 

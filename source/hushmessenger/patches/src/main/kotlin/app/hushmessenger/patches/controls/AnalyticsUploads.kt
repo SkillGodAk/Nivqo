@@ -110,30 +110,20 @@ internal fun Method.isInlinedUploadTask() =
         TASK_SERVICE_COMPAT in typeChecks(Opcode.INSTANCE_OF) && GOOGLE_PLAY_UPLOAD_SERVICE in typeChecks(Opcode.CHECK_CAST) &&
         taskServiceField() != null && taskReporter() != null
 
-/** A bound task in builds that kept GooglePlayUploadService's override of the base's abstract (task)I method. */
-internal fun Method.isDelegatedUploadTask() =
-    definingClass == GOOGLE_PLAY_UPLOAD_SERVICE && returnType == "I" && parameterTypes.size == 1 &&
-        !AccessFlags.STATIC.isSet(accessFlags) && !AccessFlags.ABSTRACT.isSet(accessFlags) && holdsBoundUploadMark()
-
 /**
  * Google Play can also bind GooglePlayUploadService and hand it a task through the binder its obfuscated GcmTaskService
  * base returns from onBind, so the task never passes onStartCommand. The base runs each task on a Runnable that reports
- * the result and frees the tag. The hook is that Runnable's run() where the upload is inlined into it, or else the
- * uploader's own task override, which run() calls. Unrelated GcmTaskServiceCompat tasks share the Runnable and stay stock.
+ * the result and frees the tag. Every 583 build inlines the upload into that Runnable's run(), which is the hook.
+ * Unrelated GcmTaskServiceCompat tasks share the Runnable and stay stock.
  */
 internal fun findBoundUploadTasks(classes: Iterable<ClassDef>): List<Method> {
     val play = classes.singleOrNull { it.type == GOOGLE_PLAY_UPLOAD_SERVICE } ?: return emptyList()
     val base = play.superclass ?: return emptyList()
     val baseClass = classes.singleOrNull { it.type == base } ?: return emptyList()
     if (baseClass.superclass != SERVICE) return emptyList()
-    val abstractTasks = baseClass.methods
-        .filter { AccessFlags.ABSTRACT.isSet(it.accessFlags) && it.returnType == "I" && it.parameterTypes.size == 1 }
-        .map { it.entryPoint() }.toSet()
-    val delegated = play.methods.filter { it.entryPoint() in abstractTasks && it.isDelegatedUploadTask() }
-    val inlined = classes.filter { cls ->
+    return classes.filter { cls ->
         "Ljava/lang/Runnable;" in cls.interfaces && cls.fields.any { it.type == base && !AccessFlags.STATIC.isSet(it.accessFlags) }
     }.flatMap { it.methods }.filter { it.isInlinedUploadTask() && it.taskServiceField()?.type == base }
-    return delegated + inlined
 }
 
 internal const val XANALYTICS_FLUSH = "Lcom/facebook/xanalytics/XAnalyticsHolder;->flush()V"
@@ -168,7 +158,7 @@ internal fun findXAnalyticsUploadTimers(classes: Iterable<ClassDef>): List<Metho
 internal fun MutableMethod.validateAnalyticsUpload() {
     val entry = entryPoint()
     val inlined = isInlinedUploadTask()
-    if (!inlined && !isDelegatedUploadTask() && !isXAnalyticsUploadTimer() &&
+    if (!inlined && !isXAnalyticsUploadTimer() &&
         (AccessFlags.STATIC.isSet(accessFlags) || entry !in setOf(START_COMMAND, START_JOB, RECEIVE))) {
         throw PatchException("Messenger controls: ${hookId()} isn't an analytics upload entry point")
     }
@@ -208,7 +198,6 @@ internal fun MutableMethod.injectAnalyticsUpload() {
         return
     }
     val stop = when {
-        isDelegatedUploadTask() -> "const/4 v0, 0x0\nreturn v0"
         entryPoint() == START_COMMAND -> "invoke-static {p1}, $SETTINGS->releaseUploadStarter(Landroid/content/Intent;)V\n" +
             "invoke-virtual {p0, p3}, Landroid/app/Service;->stopSelf(I)V\nconst/4 v0, 0x2\nreturn v0"
         entryPoint() == START_JOB -> "const/4 v0, 0x0\nreturn v0"

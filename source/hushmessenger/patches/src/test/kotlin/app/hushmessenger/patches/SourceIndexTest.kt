@@ -26,11 +26,11 @@ class SourceIndexTest {
     @Test
     fun aSecondVersionNameGetsItsOwnTarget() {
         val targets = MessengerTarget.compatibility(mapOf(
-            "582.0.0.61.92" to listOf(346415686, 346415706),
-            "583.0.0.1.91" to listOf(347000001),
+            "583.0.0.29.95" to listOf(346611369, 346611351),
+            "584.0.0.1.91" to listOf(347000001),
         )).targets
-        assertEquals(listOf("582.0.0.61.92", "583.0.0.1.91"), targets.map { it.version })
-        assertEquals("Arm64 builds 346415686 and 346415706; checked again during patching", targets[0].description)
+        assertEquals(listOf("583.0.0.29.95", "584.0.0.1.91"), targets.map { it.version })
+        assertEquals("Arm64 builds 346611369 and 346611351; checked again during patching", targets[0].description)
         assertEquals("Arm64 build 347000001; checked again during patching", targets[1].description)
     }
 

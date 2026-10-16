@@ -6,10 +6,13 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
+import android.text.StaticLayout;
+import android.text.TextPaint;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
@@ -96,8 +99,12 @@ public class OwnFontTest {
     }
 
     private static Paint paint(Typeface typeface) {
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setTextSize(60);
+        return paint(typeface, 60);
+    }
+
+    private static TextPaint paint(Typeface typeface, float size) {
+        TextPaint paint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        paint.setTextSize(size);
         paint.setColor(Color.BLACK);
         paint.setTypeface(typeface);
         return paint;
@@ -107,10 +114,18 @@ public class OwnFontTest {
         return paint(typeface).measureText(text);
     }
 
+    private static float width(Typeface typeface, String text, float size) {
+        return paint(typeface, size).measureText(text);
+    }
+
     /** How many pixels [text] darkens: more for a heavier weight, whatever the advances do. */
     private static int ink(Typeface typeface, String text) {
+        return ink(typeface, text, 60);
+    }
+
+    private static int ink(Typeface typeface, String text, float size) {
         Bitmap bitmap = Bitmap.createBitmap(1400, 120, Bitmap.Config.ARGB_8888);
-        new Canvas(bitmap).drawText(text, 10, 90, paint(typeface));
+        new Canvas(bitmap).drawText(text, 10, 90, paint(typeface, size));
         int[] pixels = new int[bitmap.getWidth() * bitmap.getHeight()];
         bitmap.getPixels(pixels, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
         return (int) Arrays.stream(pixels).filter(pixel -> Color.alpha(pixel) > 128).count();
@@ -323,5 +338,120 @@ public class OwnFontTest {
         }
         assertArrayEquals(before, Files.readAllBytes(copy.toPath()));
         assertTrue(OwnFont.loads(copy));
+    }
+
+    private static final String CJK = "汉字测试中文";
+
+    /** The units per em of the font whose directory is at [start]. */
+    private static int unitsPerEm(byte[] font, int start) {
+        return ByteBuffer.wrap(font).getShort(FontFileTest.table(font, start, "head") + 18) & 0xFFFF;
+    }
+
+    /** The size the font as it comes is drawn at to match its copy sized to [scale] percent and drawn at 60 px. */
+    private static float drawnAt(byte[] font, int start, int scale) {
+        int upem = unitsPerEm(font, start);
+        return 60f * upem / Math.round(upem * 100f / scale);
+    }
+
+    private static void choose(int scale, int shift) {
+        Settings.preferences.edit().putInt(OwnFont.SCALE_KEY, scale).putInt(OwnFont.SHIFT_KEY, shift).commit();
+        OwnFont.forget();
+    }
+
+    /** #48: a size draws the picked file as Messenger's text would look that much larger or smaller. */
+    @Test public void aSizeDrawsThePickedFileLargerOrSmaller() throws Exception {
+        Typeface rubik = new Typeface.Builder(pick(FontFileTest.STATIC_FONT, "Rubik-Regular.ttf")).build();
+        byte[] font = FontFileTest.font(FontFileTest.STATIC_FONT);
+        choose(125, 0);
+        Typeface larger = OwnFont.typeface(400, false);
+        float drawn = drawnAt(font, 0, 125);
+        assertTrue("the control: 75 px is visibly larger", ink(rubik, LATIN, drawn) > ink(rubik, LATIN, 60) * 1.4);
+        assertEquals(width(rubik, LATIN, drawn), width(larger, LATIN, 60), 0.01f);
+        assertEquals(ink(rubik, LATIN, drawn), ink(larger, LATIN, 60));
+        assertEquals("a weight Android draws keeps the size", width(OwnFont.typeface(700, false), LATIN, 60),
+            width(Typeface.create(rubik, 700, false), LATIN, drawn), 0.01f);
+
+        choose(80, 0);
+        Typeface smaller = OwnFont.typeface(400, false);
+        assertEquals(width(rubik, LATIN, drawnAt(font, 0, 80)), width(smaller, LATIN, 60), 0.01f);
+        assertEquals(ink(rubik, LATIN, drawnAt(font, 0, 80)), ink(smaller, LATIN, 60));
+    }
+
+    /** #48: a move lowers the text inside its line. The line keeps its height and the letters don't change. */
+    @Test public void aMoveLowersTheTextAndTheLineKeepsItsHeight() throws Exception {
+        Typeface rubik = new Typeface.Builder(pick(FontFileTest.STATIC_FONT, "Rubik-Regular.ttf")).build();
+        int upem = unitsPerEm(FontFileTest.font(FontFileTest.STATIC_FONT), 0);
+        choose(100, 10);
+        Typeface lower = OwnFont.typeface(400, false);
+        float moved = Math.round(upem * 10 / 100f) * 60f / upem;
+        Paint.FontMetrics plain = paint(rubik).getFontMetrics(), shifted = paint(lower).getFontMetrics();
+        assertEquals(plain.ascent - moved, shifted.ascent, 0.01f);
+        assertEquals(plain.descent - moved, shifted.descent, 0.01f);
+        assertEquals(plain.top - moved, shifted.top, 0.01f);
+        assertEquals(plain.bottom - moved, shifted.bottom, 0.01f);
+        StaticLayout before = layout(rubik), after = layout(lower);
+        assertEquals("the line keeps its height", before.getHeight(), after.getHeight());
+        assertEquals(before.getLineBaseline(0) + Math.round(moved), after.getLineBaseline(0));
+        assertEquals("the letters don't change", ink(rubik, LATIN), ink(lower, LATIN));
+        assertEquals(width(rubik, LATIN), width(lower, LATIN), 0.01f);
+
+        choose(100, -10);
+        assertEquals("up is the other way", plain.ascent + moved, paint(OwnFont.typeface(400, false)).getFontMetrics().ascent, 0.01f);
+    }
+
+    private static StaticLayout layout(Typeface typeface) {
+        return StaticLayout.Builder.obtain(LATIN, 0, LATIN.length(), paint(typeface, 60), 2000).build();
+    }
+
+    /** Noto Sans CJK's outlines are CFF, and they scale from the head table's units per em like TrueType's. */
+    @Test public void aCollectionsCffFontIsSizedToo() throws Exception {
+        Typeface cjk = new Typeface.Builder(pick(FontFileTest.COLLECTION, "NotoSansCJK-Regular.ttc")).build();
+        byte[] font = FontFileTest.font(FontFileTest.COLLECTION);
+        choose(125, 0);
+        Typeface larger = OwnFont.typeface(400, false);
+        float drawn = drawnAt(font, ByteBuffer.wrap(font).getInt(12), 125);
+        assertTrue("the control: the larger size is visibly larger", ink(cjk, CJK, drawn) > ink(cjk, CJK, 60) * 1.4);
+        assertEquals(width(cjk, CJK, drawn), width(larger, CJK, 60), 0.01f);
+        assertEquals(ink(cjk, CJK, drawn), ink(larger, CJK, 60));
+    }
+
+    /** #48: a sized copy that Android won't load leaves the picked file as it comes, not the phone's font. */
+    @Test public void aSizedCopyThatWontLoadIsThePickedFileAsItComes() throws Exception {
+        File copy = pick(FontFileTest.STATIC_FONT, "Rubik-Regular.ttf");
+        Typeface rubik = new Typeface.Builder(copy).build();
+        // A file under the copy's own name and length is taken as finished, so this broken one is what gets loaded.
+        byte[] broken = new byte[(int) copy.length()];
+        broken[1] = 1;
+        File sized = new File(copy.getParentFile(), FontFile.ADJUSTED + "-125-" + FontFile.SHIFT_MOST + "-"
+            + Long.toHexString(copy.lastModified()) + "-" + copy.length());
+        Files.write(sized.toPath(), broken);
+        assertEquals("the control: the broken copy is the one sizing hands back", sized, FontFile.adjusted(copy, 125, 0));
+        choose(125, 0);
+        Typeface used = OwnFont.typeface(400, false);
+        assertEquals(copy, OwnFont.picked().file);
+        assertEquals(width(rubik, LATIN, 60), width(used, LATIN, 60), 0.01f);
+        assertEquals(ink(rubik, LATIN), ink(used, LATIN));
+    }
+
+    /** #48: back at 100% with no move, the sized copies go. */
+    @Test public void noSizeOrMoveRemovesTheSizedCopies() throws Exception {
+        File copy = pick(FontFileTest.STATIC_FONT, "Rubik-Regular.ttf");
+        File sized = FontFile.adjusted(copy, 125, 4);
+        assertNotNull(sized);
+        choose(100, 0);
+        assertNotNull(OwnFont.typeface(400, false));
+        assertEquals(copy, OwnFont.picked().file);
+        assertFalse(sized.exists());
+    }
+
+    @Test public void aSavedSizeOrMoveOffTheStepsIsTheFontAsItComes() {
+        assertEquals(100, OwnFont.scale(Settings.preferences));
+        assertEquals(0, OwnFont.shift(Settings.preferences));
+        Settings.preferences.edit().putInt(OwnFont.SCALE_KEY, 200).putInt(OwnFont.SHIFT_KEY, -30).commit();
+        assertEquals(100, OwnFont.scale(Settings.preferences));
+        assertEquals(0, OwnFont.shift(Settings.preferences));
+        Settings.preferences.edit().putInt(OwnFont.SCALE_KEY, 70).putInt(OwnFont.SHIFT_KEY, -20).commit();
+        assertEquals(70, OwnFont.scale(Settings.preferences));
+        assertEquals(-20, OwnFont.shift(Settings.preferences));
     }
 }

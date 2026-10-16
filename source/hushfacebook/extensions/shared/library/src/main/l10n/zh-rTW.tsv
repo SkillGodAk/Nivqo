@@ -1013,3 +1013,22 @@ While Marketplace only is on, silences video suggestions, memories, birthdays an
 With %1$s on, Home will show the same posts as %2$s in the Feeds tab.	啟用 %1$s 後，首頁會顯示與「動態消息」分頁的 %2$s 相同貼文。
 With a reel or video paused, tap its right side to step one frame forward and its left side to step one frame back. Tap the middle to play.	暫停 Reels 或影片後，點擊右側可前進一格，點擊左側可倒退一格，點擊中央可繼續播放。
 Your settings already match that file, so nothing will change.	目前設定已與該檔案相同，因此不需要變更。
+Quiet saves	靜默儲存
+No toast when a save starts, finishes or is canceled. A save that fails still says why.	儲存開始、完成或取消時不顯示提示；儲存失敗仍會說明原因。
+Hide the Meta AI button in Chats	隱藏聊天中的 Meta AI 按鈕
+Removes the Meta AI button beside the search box in Chats, at the top of the list and on the search screen. The search box stays, and so do your chats with Meta AI.	移除聊天列表頂部與搜尋畫面中搜尋框旁的 Meta AI 按鈕；保留搜尋框和既有 Meta AI 對話。
+Couldn't save this story's photo. Try again in a moment.	無法儲存這則限時動態的照片，請稍後再試。
+Hide reposts	隱藏轉發貼文
+Hides posts that share another post, with or without a caption. Original posts stay. Untested on a real feed, so it starts off.	隱藏轉發其他貼文的內容，不論是否附上說明；原創貼文會保留。尚未在實際動態消息測試，因此預設關閉。
+Turn on a set of switches in one tap, or put every switch back the way it started. Press and hold to hide this row.	點一下即可啟用一組開關，或將所有開關恢復預設。長按可隱藏這一列。
+Quick setups hidden. Bring it back from %1$s.	快速設定已隱藏。可從「%1$s」恢復顯示。
+Quick setups on the home page	在首頁顯示快速設定
+Shown. Tap to hide it.	目前顯示中。點一下即可隱藏。
+Hidden. Tap to show it again.	目前已隱藏。點一下即可重新顯示。
+The connection failed. Check your internet and try again.	連線失敗。請檢查網路後再試。
+Facebook's server didn't send the file. Try again in a moment.	Facebook 伺服器未傳送檔案，請稍後重試。
+The download ended before the whole file arrived. Try again.	檔案尚未下載完整就已中斷，請重試。
+Your phone couldn't write the file. Check your free space and try again.	手機無法寫入檔案。請檢查剩餘空間後再試。
+Not enough free space to save this. Free some up and try again.	儲存空間不足。請清出空間後再試。
+Your phone couldn't put this video together. Try another Download quality.	手機無法合成這段影片，請改用其他下載畫質。
+The file couldn't be copied into your phone's gallery. Try again in a moment.	無法將檔案存入手機相簿，請稍後再試。

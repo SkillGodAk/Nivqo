@@ -103,7 +103,7 @@ class RestoreTrustShapesTest {
         assertEquals(before, method.body())
     }
 
-    /** FBNS's package check as 582 writes it, cut down: the package in v0, its signers read into v2. */
+    /** FBNS's package check as Messenger writes it, cut down: the package in v0, its signers read into v2. */
     private fun fbnsCheck(read: String = "iget-object v2, v0, $SIGNATURES", jump: String = "") = fixtureMethod(
         "LX/09z;->A00(Landroid/content/Context;LX/0CQ;)V",
         """

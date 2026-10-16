@@ -156,7 +156,7 @@ internal fun MutableMethod.validateAdEvent() {
  */
 internal fun MutableMethod.injectAdEvent() {
     validateAdEvent()
-    if (isAdEntryEvent()) return injectSwitch("stopAdEvents", "0x0")
+    if (isAdEntryEvent()) return injectSwitch("$SETTINGS->stopAdEvents()Z", "0x0")
     val at = inboxVisibilitySubmit()
     addInstructionsWithLabels(at.skipFrom, """
         invoke-static {}, $SETTINGS->stopAdEvents()Z

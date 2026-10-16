@@ -28,6 +28,35 @@ object PatchMetadataLocalizer {
     )
 
     private val zh = mapOf(
+        // HushMessenger 0.24.0 formal additions (2026-10-16)
+        "Bold and italic text" to Zh(
+            "粗體與斜體文字",
+            "在選取自己輸入的文字後，可從選單使用粗體或斜體（以 Unicode 字元呈現）。部分螢幕閱讀器可能無法正常朗讀。預設關閉，可在 HushMessenger 控制項中啟用。"
+        ),
+        "Hide Mark as read" to Zh(
+            "隱藏標記為已讀",
+            "隱藏長按聊天室時的「標記為已讀」，避免誤觸；「標記為未讀」仍會保留。預設關閉。"
+        ),
+        "Hide Notifications tab" to Zh(
+            "隱藏通知分頁",
+            "從底部導覽列隱藏「通知」分頁，重新啟動 Messenger 後生效。預設關閉。"
+        ),
+        "Hide People tab" to Zh(
+            "隱藏用戶分頁",
+            "從底部導覽列隱藏「用戶」分頁，重新啟動 Messenger 後生效。預設關閉。"
+        ),
+        "Pin more chats" to Zh(
+            "增加釘選聊天室數量",
+            "將聊天室釘選數量上限從 3 個提高至 20 個。此功能仍可能受 Messenger 伺服器限制，預設關閉。"
+        ),
+        "Stop MQTT logging" to Zh(
+            "停止 MQTT 記錄",
+            "停止 Messenger 的 MQTT 用戶端傳送健康報告與推播記錄，訊息、通話與上線狀態仍可使用。預設關閉。"
+        ),
+        "Stop nearby scans" to Zh(
+            "阻止附近裝置與網路掃描",
+            "阻止 Messenger 讀取附近 Wi-Fi 網路清單、目前連線 Wi-Fi 的識別資訊，以及定期掃描附近 Wi-Fi／藍牙與定位資訊。此功能屬實驗性質，預設關閉。"
+        ),
         "Frame step" to Zh(
             "逐格播放",
             "Reels 或影片暫停時，點擊畫面右側前進一格、左側倒退一格，方便精準選擇畫面。預設關閉，可在播放設定中啟用。"

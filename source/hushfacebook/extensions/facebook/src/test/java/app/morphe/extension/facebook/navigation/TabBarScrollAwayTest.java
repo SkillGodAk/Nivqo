@@ -153,6 +153,24 @@ public class TabBarScrollAwayTest {
     }
 
     @Test
+    public void aKeptTopBarDoesNotFadeOutAndTheOtherEntriesStillDo() {
+        assertEquals("off, the top bar was kept from fading", 0.75f,
+                TabBarScrollAway.topBarFade(TabBarScrollAway.APP_HEADER, 0.75f), 0f);
+
+        Settings.KEEP_TOP_BAR.save(true);
+        assertEquals("the top bar faded", 0f, TabBarScrollAway.topBarFade(TabBarScrollAway.APP_HEADER, 0.75f), 0f);
+        assertEquals("the top bar with the tabs in it faded", 0f,
+                TabBarScrollAway.topBarFade(TabBarScrollAway.TITLE_AND_TABS, 1f), 0f);
+        // Nothing hidden passes straight through, so it isn't counted: the count below stays 2.
+        assertEquals("a top bar in full view faded", 0f, TabBarScrollAway.topBarFade(TabBarScrollAway.APP_HEADER, 0f), 0f);
+        assertEquals("the bottom bar's entry was kept from fading", 0.5f,
+                TabBarScrollAway.topBarFade("bottom_tabs_container", 0.5f), 0f);
+        assertEquals("an entry with no name was kept from fading", 0.5f, TabBarScrollAway.topBarFade(null, 0.5f), 0f);
+        String line = statusLine();
+        assertTrue(line, line != null && line.contains("Counted: " + TabBarScrollAway.TOP_BAR_UNFADED + " 2"));
+    }
+
+    @Test
     public void pausedOrNotReadyBothBarsAreFacebooks() {
         Settings.KEEP_TAB_BAR.save(true);
         Settings.KEEP_TOP_BAR.save(true);
@@ -163,6 +181,8 @@ public class TabBarScrollAwayTest {
             assertFalse("a Hushfacebook paused by " + reason + " kept the bar", TabBarScrollAway.staysPut());
             assertEquals("a Hushfacebook paused by " + reason + " held the top bar", -120,
                     TabBarScrollAway.topBarOffset(TabBarScrollAway.APP_HEADER, -120));
+            assertEquals("a Hushfacebook paused by " + reason + " kept the top bar from fading", 1f,
+                    TabBarScrollAway.topBarFade(TabBarScrollAway.APP_HEADER, 1f), 0f);
             PauseForTests.resume();
         }
         SettingsContextRule.withoutContext(() -> {

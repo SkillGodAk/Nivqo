@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "0.7.0",
+    [string]$Version = "0.8.0",
     [string]$OutputPath,
     [string]$AndroidSdk = ""
 )
@@ -88,8 +88,8 @@ try {
     Copy-Tree -Source (Join-Path $messenger "patches\src\main") -Destination (Join-Path $temp "patches\src\main")
     Copy-Tree -Source (Join-Path $messenger "extensions\messenger") -Destination (Join-Path $temp "extensions\messenger") -ExcludeDirectories @("build", ".gradle")
 
-    # HushFacebook v0.12.0 forces Guava 33.7.2-jre on all project configurations for its
-    # reviewed tooling graph. HushMessenger v0.23.0 still locks its unit-test configurations to
+    # HushFacebook v0.13.0 forces Guava 33.7.2-jre on all project configurations for its
+    # reviewed tooling graph. HushMessenger v0.24.0 still locks its unit-test configurations to
     # 33.6.0-jre. The combined tree is temporary, so align only its copied Messenger lockfile;
     # do not modify the standalone HushMessenger core.
     # The combined build uses the HushFacebook root build, whose reviewed dependency strategy forces
@@ -165,7 +165,7 @@ try {
     }
 
     $duplicates = @($patches | Group-Object name | Where-Object { $_.Count -gt 1 })
-    if ($patches.Count -ne 138 -or $facebookCount -ne 88 -or $messengerCount -ne 50 -or $otherCount -ne 0) {
+    if ($patches.Count -ne 145 -or $facebookCount -ne 88 -or $messengerCount -ne 57 -or $otherCount -ne 0) {
         throw "Unexpected catalog split: total=$($patches.Count), Facebook=$facebookCount, Messenger=$messengerCount, other=$otherCount"
     }
     if ($duplicates.Count -ne 0) {

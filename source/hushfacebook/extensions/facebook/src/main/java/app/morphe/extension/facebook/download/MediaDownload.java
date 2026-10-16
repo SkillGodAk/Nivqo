@@ -195,6 +195,16 @@ public final class MediaDownload {
     }
 
     /**
+     * The same, for a tap on [tapped], the item of the story menu that was tapped: Save photo, which
+     * the menu got beside Save for a photo Story with music, saves the photo the Story was made
+     * from ({@link StoryPhoto}); Save saves the story's media as above.
+     */
+    public static boolean saveStory(Context context, Object host, Object tapped) {
+        if (StoryPhoto.isOffered(tapped)) return StoryPhoto.save(context, host);
+        return saveStory(context, host);
+    }
+
+    /**
      * Save the video that the player is streaming.
      *
      * <p>[hdField] and [sdField] are the real names of the two fields of the source that hold a
@@ -566,6 +576,27 @@ public final class MediaDownload {
         }
     }
 
+    /**
+     * Whether the save starting now goes without the toasts that only say how it went
+     * ({@link Settings#DOWNLOAD_QUIET}). Read when the save starts, so one save's toasts follow one
+     * setting. Never throws: before the settings are ready, or when they can't be read, it's off.
+     */
+    static boolean quietSaves() {
+        try {
+            return Utils.settingsReady() && Settings.DOWNLOAD_QUIET.get();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
+     * Whether the toast at the end of a save shows. A quiet save keeps a failure's, which says why,
+     * and the WhatsApp warning when no notification card carries it ([carded] false).
+     */
+    static boolean endToast(boolean quiet, boolean failed, boolean refused, boolean carded) {
+        return !quiet || failed || (refused && !carded);
+    }
+
     /** What the report adds to a DASH save line whose tracks were kept to what other apps can open. */
     private static String compatibleNote(boolean compatible) {
         return compatible ? ", kept to files other apps can open" : "";
@@ -637,10 +668,12 @@ public final class MediaDownload {
             List<DashManifest.Track> offered, DashManifest.Track writable, DownloadQuality quality,
             MediaStoreWriter writer, Downloader.Progress progress) {
         java.io.File folder = DashSave.workFolder(application);
-        if (folder == null) return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "no cache folder");
+        if (folder == null) {
+            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, Downloader.Cause.STORAGE, "no cache folder");
+        }
         java.io.File file = null;
         try {
-            file = java.io.File.createTempFile(kind.name().toLowerCase(Locale.US), ".part", folder);
+            file = DashSave.workFile(kind.name().toLowerCase(Locale.US), ".part", folder);
             Downloader.Result fetched = DashSave.fetchWork(url, kind, file, policyFor(application), cap(), progress);
             if (!fetched.ok()) return fetched;
             // A photo the CDN sent as AVIF goes to the gallery as a JPEG, like Facebook's own saves.
@@ -678,7 +711,10 @@ public final class MediaDownload {
             Downloader.Result saved = published.ok() && lower ? published.lower() : published;
             return refused ? saved.refused() : saved;
         } catch (Throwable t) {
-            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "the cache could not hold the file");
+            // Only a work file that couldn't be made is known to be the storage's doing.
+            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR,
+                t instanceof Downloader.StorageFailure ? Downloader.Cause.STORAGE : Downloader.Cause.UNKNOWN,
+                "the cache could not hold the file");
         } finally {
             DashSave.discard(file);
         }
@@ -1015,9 +1051,12 @@ public final class MediaDownload {
             if (watching != null) watching.accept(known);
             final SaveControl.Save save = SaveControl.begin(application, video);
             begun = save;
+            final boolean quiet = quietSaves();
             // With no notification to cancel it from, the list of saves in the settings is the only way
             // to stop it, so the start says where that is, for long enough to read.
-            if (save.manager != null) {
+            if (quiet) {
+                info(() -> "quiet saves: no toast as the save starts or ends, unless it fails");
+            } else if (save.manager != null) {
                 Feedback.show(application, L10n.t(application, "Saving..."), false);
             } else {
                 Feedback.show(application,
@@ -1034,16 +1073,23 @@ public final class MediaDownload {
                     Downloader.Result result = job.run(writer, save);
                     boolean cancelled = result.status == Downloader.Status.CANCELLED;
                     if (result.ok() || cancelled) info(() -> "save finished: " + result);
-                    else failure(() -> "save finished: " + result, null);
-                    String text = message(application, result.status, writer.savedLocation(), result.lower);
+                    else {
+                        failure(() -> "save finished: " + result, null);
+                        save.failed(result.cause);
+                    }
+                    String text = message(application, result.status, result.cause, writer.savedLocation(),
+                        result.lower);
                     boolean refused = result.ok() && result.refused && !compatibleSaves();
                     boolean carded = result.ok() && SaveControl.showCompleted(save, writer, refused ? text : null);
+                    boolean failed = !result.ok() && !cancelled;
                     if (refused) {
                         info(() -> "the saved file has a track WhatsApp and some editors refuse, with Save videos "
                             + "other apps can open off");
-                        Feedback.show(application, refusedMessage(application, carded), true);
-                    } else {
-                        Feedback.show(application, text, !result.ok() && !cancelled);
+                        if (endToast(quiet, failed, true, carded)) {
+                            Feedback.show(application, refusedMessage(application, carded), true);
+                        }
+                    } else if (endToast(quiet, failed, false, carded)) {
+                        Feedback.show(application, text, failed);
                     }
                 } catch (Throwable t) {
                     // Nothing can leave this thread. Facebook installs its own handler for uncaught
@@ -1084,9 +1130,11 @@ public final class MediaDownload {
 
     /**
      * What the toast at the end of a save says, in the phone's language. [lower] when the saved
-     * picture is below the best one Facebook offered within the quality setting.
+     * picture is below the best one Facebook offered within the quality setting. A save that failed
+     * says why from its [cause], and the plain answer when that isn't known.
      */
-    static String message(Context application, Downloader.Status status, String location, boolean lower) {
+    static String message(Context application, Downloader.Status status, Downloader.Cause cause, String location,
+            boolean lower) {
         switch (status) {
             case OK:
                 if (lower) {
@@ -1097,16 +1145,44 @@ public final class MediaDownload {
                 return location == null
                     ? L10n.t(application, "Saved to the gallery")
                     : L10n.f(application, "Saved to %1$s", L10n.isolate(location));
-            case EXPIRED:
-                return L10n.t(application, "Link expired. Reopen the item and try again.");
-            case REFUSED:
-                return L10n.t(application, "Not saved: that isn't a Facebook photo or video");
-            case TOO_LARGE:
-                return L10n.t(application, "Not saved: the file is over 512 MB");
             case CANCELLED:
                 return L10n.t(application, "Save canceled");
             default:
-                return L10n.t(application, "Download failed. Try again in a moment.");
+                String why = failureText(application, cause);
+                return why != null ? why : L10n.t(application, "Download failed. Try again in a moment.");
+        }
+    }
+
+    /**
+     * Why a save failed and what to do about it, for the toast at its end and for the last save in
+     * the settings, or null when [cause] says nothing more than that it failed. Two lines at most,
+     * since Android 12 cuts a toast there. Never worked out from a result's reason text.
+     */
+    static String failureText(Context application, Downloader.Cause cause) {
+        if (cause == null) return null;
+        switch (cause) {
+            case NETWORK:
+                return L10n.t(application, "The connection failed. Check your internet and try again.");
+            case EXPIRED:
+                return L10n.t(application, "Link expired. Reopen the item and try again.");
+            case SERVER:
+                return L10n.t(application, "Facebook's server didn't send the file. Try again in a moment.");
+            case NOT_MEDIA:
+                return L10n.t(application, "Not saved: that isn't a Facebook photo or video");
+            case TOO_LARGE:
+                return L10n.t(application, "Not saved: the file is over 512 MB");
+            case INCOMPLETE:
+                return L10n.t(application, "The download ended before the whole file arrived. Try again.");
+            case STORAGE:
+                return L10n.t(application, "Your phone couldn't write the file. Check your free space and try again.");
+            case NO_SPACE:
+                return L10n.t(application, "Not enough free space to save this. Free some up and try again.");
+            case CONVERSION:
+                return L10n.t(application, "Your phone couldn't put this video together. Try another Download quality.");
+            case GALLERY:
+                return L10n.t(application, "The file couldn't be copied into your phone's gallery. Try again in a moment.");
+            default:
+                return null;
         }
     }
 

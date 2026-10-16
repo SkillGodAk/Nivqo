@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import app.morphe.extension.shared.L10n;
+import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.Setting;
@@ -45,6 +46,8 @@ final class SettingsNavigation extends BaseAdapter {
     /** The restart row's key. Like the other rows only this view draws, it stores nothing. */
     static final String RESTART = "action_restart_to_apply";
     static final String QUICK_SETUPS = "action_quick_setups";
+    /** The page whose Quick setups on the home page row brings the home row back. */
+    static final String QUICK_SETUPS_PAGE = "Pause, backup and diagnostics";
     static final String REPORT = "action_report_problem";
     private final HushfacebookPreferenceFragment page;
     private final SettingsDialog host;
@@ -131,7 +134,7 @@ final class SettingsNavigation extends BaseAdapter {
         browse.setTitle(L10n.t("Browse settings"));
         more = link(context, L10n.t("More settings"), L10n.t("Additional Facebook preferences"), SettingsIcons.SETTINGS);
         more.setOnPreferenceClickListener(ignored -> { navigate(MORE); return true; });
-        support = link(context, L10n.t("Support Hushfacebook"), L10n.t("Buy me a coffee on Ko-fi"), SettingsIcons.OPENING);
+        support = link(context, L10n.t("Support Hushfacebook"), null, SettingsIcons.OPENING);
         support.setKey(HushfacebookPages.SUPPORT);
         support.setOnPreferenceClickListener(row -> { HushfacebookPages.openSupport(row.getContext()); return true; });
         report = link(context, L10n.t("Report a problem"),
@@ -139,7 +142,8 @@ final class SettingsNavigation extends BaseAdapter {
         report.setKey(REPORT);
         report.setOnPreferenceClickListener(row -> { ReportProblemForm.open(row.getContext(), screen); return true; });
         quickSetups = link(context, L10n.t("Quick setups"),
-                L10n.t("Turn on a set of switches in one tap, or put every switch back the way it started."), SettingsIcons.TOOLS);
+                L10n.t("Turn on a set of switches in one tap, or put every switch back the way it started. Press and hold to hide this row."),
+                SettingsIcons.TOOLS);
         quickSetups.setKey(QUICK_SETUPS);
         quickSetups.setOnPreferenceClickListener(ignored -> { page.showQuickSetups(); return true; });
         restart = new SettingsRows.Row(context);
@@ -192,6 +196,11 @@ final class SettingsNavigation extends BaseAdapter {
             } else if (item.getOnPreferenceClickListener() != null) {
                 item.getOnPreferenceClickListener().onPreferenceClick(item);
             }
+        });
+        list.setOnItemLongClickListener((parent, view, position, id) -> {
+            if (getItem(position) != quickSetups) return false;
+            hideQuickSetups();
+            return true;
         });
         rebuild();
         host.showPage(title(), route.isEmpty(), query);
@@ -343,6 +352,18 @@ final class SettingsNavigation extends BaseAdapter {
         AbstractPreferenceFragment.clearRestartFeedbackPresenter(restartFeedback);
     }
 
+    /** The long press on the Quick setups row: it leaves the home page, and the toast says where it comes back. */
+    private void hideQuickSetups() {
+        BaseSettings.HIDE_QUICK_SETUPS.save(true);
+        Preference restore = screen.findPreference(HushfacebookPages.QUICK_SETUPS_HOME);
+        if (restore != null) restore.setSummary(HushfacebookPages.quickSetupsHomeSummary());
+        rebuild();
+        Utils.showToastLong(L10n.f("Quick setups hidden. Bring it back from %1$s.", L10n.t(QUICK_SETUPS_PAGE)));
+    }
+
+    /** The row on {@link #QUICK_SETUPS_PAGE} flipped the flag: the home page follows the next time it's drawn. */
+    void quickSetupsChanged() { rebuild(); }
+
     /** A change that waits for a restart was made or taken back: the restart row comes, goes or counts again. */
     void restartChanged() { rebuild(); }
 
@@ -383,7 +404,7 @@ final class SettingsNavigation extends BaseAdapter {
             // Only in a build that lacks another default patch: the card's own line under it.
             Preference missing = screen.findPreference(HushfacebookPreferenceFragment.MISSING_DEFAULTS);
             if (missing != null) visible.add(missing);
-            visible.add(quickSetups);
+            if (!BaseSettings.HIDE_QUICK_SETUPS.get()) visible.add(quickSetups);
             visible.add(browse);
             for (Section section : sections) if (section.primary) visible.add(section.link);
             visible.add(more);

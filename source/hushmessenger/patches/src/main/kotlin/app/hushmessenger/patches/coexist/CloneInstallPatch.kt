@@ -7,7 +7,7 @@ package app.hushmessenger.patches.coexist
 
 import app.hushmessenger.patches.MessengerTarget
 import app.hushmessenger.patches.controls.BASE_PROFILE
-import app.hushmessenger.patches.controls.PROFILE_346415706
+import app.hushmessenger.patches.controls.PROFILE_346611351
 import app.hushmessenger.patches.controls.controlProfileFor
 import app.hushmessenger.patches.controls.hookId
 import app.hushmessenger.patches.controls.resolveShortcutsPath
@@ -193,9 +193,13 @@ internal fun Document.retargetShortcuts(newPackage: String): Int {
 private fun Method.literals() = implementation?.instructions
     ?.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }.orEmpty()
 
-/** The encrypted-backup preference lookup, which throws NoSuchElementException under any other package name. */
-internal fun Method.isBackupLookup() = name == "<init>" && parameterTypes.isEmpty() && AccessFlags.PUBLIC.isSet(accessFlags) &&
-    literals().let { BACKUP_PREFS in it && FACEBOOK_BACKUP_PREFS in it && ORIGINAL in it }
+/**
+ * The encrypted-backup preference lookup, which throws NoSuchElementException under any other package name. 583 takes
+ * Messenger's name from a string pool, so a lookup by one of [pools]' keys stands in for the constant.
+ */
+internal fun Method.isBackupLookup(pools: Set<String> = emptySet()) = name == "<init>" && parameterTypes.isEmpty() &&
+    AccessFlags.PUBLIC.isSet(accessFlags) && literals().let { BACKUP_PREFS in it && FACEBOOK_BACKUP_PREFS in it } &&
+    (ORIGINAL in literals() || implementation!!.instructions.toList().let { code -> code.indices.any { code.ownNameFromPool(it, pools) } })
 
 /** Messenger's list of attachment provider authorities, its own first. */
 internal fun Method.isAttachmentCheck() = AccessFlags.STATIC.isSet(accessFlags) && returnType == "Z" &&
@@ -258,13 +262,18 @@ private fun List<Instruction>.ownNameLoad(call: Int, pools: Set<String>): Int? {
     val register = invoke.registers()[1]
     val load = (call - 1 downTo 0).firstOrNull { this[it].writes(register) } ?: return null
     if (this[load].ownName()) return load
-    if (this[load].opcode != Opcode.MOVE_RESULT_OBJECT || load == 0) return null
+    return load.takeIf { ownNameFromPool(load, pools) }
+}
+
+/** Whether the move-result at [load] takes Messenger's name from a string pool lookup by a constant key. */
+private fun List<Instruction>.ownNameFromPool(load: Int, pools: Set<String>): Boolean {
+    if (this[load].opcode != Opcode.MOVE_RESULT_OBJECT || load == 0) return false
     val lookup = this[load - 1]
-    val pool = (lookup as? ReferenceInstruction)?.reference as? MethodReference ?: return null
-    if (lookup.opcode != Opcode.INVOKE_STATIC || lookup.registers().size != 1) return null
+    val pool = (lookup as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+    if (lookup.opcode != Opcode.INVOKE_STATIC || lookup.registers().size != 1) return false
     val key = (load - 2 downTo 0).firstOrNull { this[it].writes(lookup.registers()[0]) }?.let(::get)
         ?.takeIf { it.opcode in setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST, Opcode.CONST_HIGH16) } as? NarrowLiteralInstruction
-    return load.takeIf { key != null && "$pool#${key.narrowLiteral}" in pools }
+    return key != null && "$pool#${key.narrowLiteral}" in pools
 }
 
 /** Every setPackage call in [this] that gets Messenger's own name, by instruction index. */
@@ -277,7 +286,7 @@ private fun Method.selfIntentCalls(pools: Set<String>): List<Int> {
 internal fun findCloneSites(classes: Iterable<ClassDef>, pools: Set<String> = ownNamePoolKeys(classes)): Set<String> =
     classes.flatMap { it.methods }.flatMap { method ->
         val calls = method.selfIntentCalls(pools)
-        val pinned = method.isBackupLookup() || method.isAttachmentCheck()
+        val pinned = method.isBackupLookup(pools) || method.isAttachmentCheck()
         if (calls.isEmpty() && !pinned) emptyList() else (if (pinned) listOf(method.hookId()) else emptyList()) + calls.map { "${method.hookId()}@$it" }
     }.toSet()
 
@@ -289,15 +298,15 @@ private const val CLICK = "->onClick(Landroid/view/View;)V"
 /**
  * Each build family's backup lookup and attachment check, then every setPackage call that sends Messenger to itself:
  * the in-app broadcast sender, the push notification's click and link intents, the bulk delete link in the inbox and
- * the story link button. The native test checks them on all 14 builds.
+ * the story link button. The native test checks them on every supported build.
  */
 internal fun expectedCloneSitesFor(versionCode: String): Set<String> {
     validateVersionCode(versionCode)
     return when (controlProfileFor(versionCode)) {
-        BASE_PROFILE -> setOf("LX/J7q;-><init>()V", "LX/4KQ;$ATTACHMENT_CHECK", "LX/391;$BROADCAST@1", "LX/Q85;${NOTIFICATION}LX/RZC;@228",
-            "LX/Q85;${NOTIFICATION}LX/RZC;@321", "LX/C9t;$CLICK@81", "LX/MH9;$CLICK@160")
-        PROFILE_346415706 -> setOf("LX/Umq;-><init>()V", "LX/4Is;$ATTACHMENT_CHECK", "LX/38v;$BROADCAST@1", "LX/Q2n;${NOTIFICATION}LX/RWk;@225",
-            "LX/Q2n;${NOTIFICATION}LX/RWk;@318", "LX/C98;$CLICK@81", "LX/JL0;$CLICK@104")
+        BASE_PROFILE -> setOf("LX/EIF;-><init>()V", "LX/4K8;$ATTACHMENT_CHECK", "LX/38o;$BROADCAST@1", "LX/T9J;${NOTIFICATION}LX/Uh6;@227",
+            "LX/T9J;${NOTIFICATION}LX/Uh6;@321", "LX/CBZ;$CLICK@79", "LX/JpW;$CLICK@176")
+        PROFILE_346611351 -> setOf("LX/EEi;-><init>()V", "LX/4HM;$ATTACHMENT_CHECK", "LX/38n;$BROADCAST@1", "LX/KRb;${NOTIFICATION}LX/Lpm;@231",
+            "LX/KRb;${NOTIFICATION}LX/Lpm;@328", "LX/C7O;$CLICK@79", "LX/JmU;$CLICK@108")
         else -> fail("version code $versionCode has no checked clone sites")
     }
 }
@@ -309,8 +318,8 @@ private fun Method.register(index: Int, what: String): Int {
 }
 
 /** Where Messenger's original name goes over the result of getPackageName, and the register it lands in. */
-internal fun Method.backupLookupSite(): Pair<Int, Int> {
-    if (!isBackupLookup()) fail("${hookId()} is no longer the backup lookup")
+internal fun Method.backupLookupSite(pools: Set<String> = emptySet()): Pair<Int, Int> {
+    if (!isBackupLookup(pools)) fail("${hookId()} is no longer the backup lookup")
     val code = implementation!!.instructions.toList()
     val calls = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == GET_PACKAGE_NAME }
     val call = calls.singleOrNull() ?: fail("the backup lookup reads its package name ${calls.size} times")
@@ -410,7 +419,7 @@ internal fun applyCloneSites(
     if (!isClonePackage(newPackage)) fail("$newPackage can't be used as a package name")
     if (selfIntents.map { (method, call) -> method.hookId() to call }.toSet().size != selfIntents.size) fail("an intent site is listed twice")
     // Every site passes before any changes.
-    val (lookupAt, lookupRegister) = lookup.backupLookupSite()
+    val (lookupAt, lookupRegister) = lookup.backupLookupSite(pools)
     val (checkAt, checkRegister) = check.attachmentSite()
     val loads = selfIntents.map { (method, call) -> method to method.selfIntentSite(call, pools) }
     lookup.addInstruction(lookupAt, "const-string/jumbo v$lookupRegister, \"$ORIGINAL\"")

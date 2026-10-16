@@ -42,10 +42,16 @@ param(
     [string]$DesktopJar,
     [string]$CompatClasspath,
     [string]$Java,
+    [switch]$Development,
+    [string]$Bundle,
+    [string]$BundleSha256,
+    [string]$HeldIndexSha256,
     [string]$Repository = 'SysAdminDoc/HushMessenger'
 )
 
 $ErrorActionPreference = 'Stop'
+$stageStartedUtc = [DateTimeOffset]::UtcNow
+$stageTimer = [Diagnostics.Stopwatch]::StartNew()
 # Not a parameter default: Windows PowerShell leaves $PSScriptRoot empty while it evaluates them.
 $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 if (-not $Date) { $Date = (Get-Date).ToString('yyyy-MM-dd') }
@@ -54,7 +60,7 @@ $tag = "v$Version"
 $bundleName = "patches-$Version.mpp"
 $work = Join-Path $root "build/release/$Version"
 $assets = Join-Path $work 'assets'
-$statePath = Join-Path $work 'state.json'
+$statePath = Join-Path $work $(if ($Development) { 'development-state.json' } else { 'state.json' })
 
 # Run from a pwsh prompt, this script shares the prompt's process, so it puts back the variables it sets.
 $savedEnvironment = @{}
@@ -66,6 +72,18 @@ function Restore-Environment {
     foreach ($name in $savedEnvironment.Keys) { [Environment]::SetEnvironmentVariable($name, $savedEnvironment[$name], 'Process') }
 }
 trap { Restore-Environment; break }
+
+if ($Development -and $Stage -ne 'preflight') { throw '-Development is only available for the local preflight stage.' }
+if ($Development -and (-not $Bundle -or $BundleSha256 -notmatch '^[0-9a-f]{64}\z' -or $HeldIndexSha256 -notmatch '^[0-9a-f]{64}\z')) {
+    throw '-Development requires a frozen -Bundle, its -BundleSha256 and the recorded -HeldIndexSha256.'
+}
+if (-not $Development -and ($Bundle -or $BundleSha256 -or $HeldIndexSha256)) { throw 'Frozen development inputs require -Development.' }
+if ($Development) {
+    $Bundle = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Bundle)
+    # -notmatch above ignores case, and the rechecks after the test run compare case-sensitively with lowercase hashes.
+    $BundleSha256 = $BundleSha256.ToLowerInvariant()
+    $HeldIndexSha256 = $HeldIndexSha256.ToLowerInvariant()
+}
 
 foreach ($name in 'HUSHMESSENGER_BUILD_WRAPPER', 'BUILD_QUEUE_SCRIPT', 'HUSH_NATIVE_FIXTURES',
         'HUSHMESSENGER_DESKTOP_JAR', 'HUSHMESSENGER_COMPAT_CLASSPATH') {
@@ -135,9 +153,16 @@ function Read-State {
 
 function Save-Stage([string]$Name, [hashtable]$Facts) {
     $state = Read-State
-    $state[$Name] = $Facts + @{ finished = (Get-Date).ToUniversalTime().ToString('o') }
+    $seconds = [Math]::Round($stageTimer.Elapsed.TotalSeconds, 3)
+    $state[$Name] = $Facts + @{
+        started = $stageStartedUtc.ToString('o')
+        finished = [DateTimeOffset]::UtcNow.ToString('o')
+        seconds = $seconds
+        development = [bool]$Development
+    }
     New-Item -ItemType Directory -Force -Path $work | Out-Null
     $state | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $statePath -Encoding utf8
+    Write-Step "$Name completed in $seconds seconds, including queue waits."
 }
 
 function Assert-Stage([string]$Name, [switch]$SameCommit) {
@@ -263,9 +288,20 @@ switch ($Stage) {
     }
 
     'preflight' {
-        Assert-Stage 'prepare' | Out-Null
+        # A failed rerun must not leave a previous development pass available as current evidence.
+        if ($Development -and (Test-Path -LiteralPath $statePath)) { Remove-Item -LiteralPath $statePath }
+        $preflightCommit = Get-Head
+        if (-not $Development) { Assert-Stage 'prepare' | Out-Null }
         Assert-Clean
-        Assert-Facts
+        if ($Development) {
+            $properties = Get-Content -LiteralPath (Join-Path $root 'gradle.properties') -Raw
+            if ($properties -notmatch "(?m)^version=$([regex]::Escape($Version))\r?$") { throw "gradle.properties isn't at $Version." }
+            Write-Step 'frozen development bundle and held public feed'
+            Push-Location -LiteralPath $root
+            try {
+                Invoke-Python scripts/check_release.py --development --held-index-sha256 $HeldIndexSha256 --bundle $Bundle --bundle-sha256 $BundleSha256
+            } finally { Pop-Location }
+        } else { Assert-Facts }
         Write-Step 'script tests'
         Push-Location -LiteralPath $root
         try { Invoke-Python -m unittest discover -s scripts/tests } finally { Pop-Location }
@@ -278,8 +314,18 @@ switch ($Stage) {
         } finally {
             if ($fixtures) { $env:HUSH_NATIVE_FIXTURES = $fixtures }
         }
-        Save-Stage 'preflight' @{ commit = (Get-Head) }
-        Write-Step 'passed. Next: -Stage build.'
+        Assert-Clean
+        if ((Get-Head) -ne $preflightCommit) { throw 'HEAD changed during preflight. Run it again on the new commit.' }
+        $facts = @{ commit = $preflightCommit }
+        if ($Development) {
+            if ((Get-FileSha256 $Bundle) -cne $BundleSha256) { throw 'The frozen bundle changed during preflight.' }
+            if ((Get-FileSha256 (Join-Path $root 'patches-bundle.json')) -cne $HeldIndexSha256) { throw 'The held public feed changed during preflight.' }
+            $facts.bundle_sha256 = $BundleSha256
+            $facts.held_index_sha256 = $HeldIndexSha256
+        }
+        Save-Stage 'preflight' $facts
+        if ($Development) { Write-Step 'local development preflight passed.' }
+        else { Write-Step 'passed. Next: -Stage build.' }
     }
 
     'build' {

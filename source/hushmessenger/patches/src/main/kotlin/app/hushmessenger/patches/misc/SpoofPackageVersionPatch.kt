@@ -50,6 +50,8 @@ val spoofPackageVersionPatch = resourcePatch(
 ) {
     category("Updates")
     compatibleWith(MessengerTarget.COMPATIBILITY)
+    // Messenger's own version reads keep its real code, so its checks don't see the raised one.
+    dependsOn(spoofSelfReadsPatch)
 
     val versionCode by intOption(
         key = SPOOF_VERSION_KEY,

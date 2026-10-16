@@ -247,6 +247,10 @@ class NotesTest(Repo):
 
 
 class IndexTest(Repo):
+    def setUp(self):
+        super().setUp()
+        self.cut()
+
     def index(self, summary="Two new switches and faster Reels.", readme="two new switches", created="2026-02-03T17:04:05",
               version="0.2.0"):
         return release_text.index(self.root, version, created, summary, readme, 2276, 820)
@@ -272,6 +276,10 @@ class IndexTest(Repo):
             "Needs Morphe Manager 1.34.0 or newer. Patch the arm64-v8a bundle of Facebook 581.0.0.45.58, build "
             "475215365, or its 32-bit build 475215364. Build 580.0.0.51.74 (475019344) still works. The .mpp is a "
             "patch bundle, not a Facebook APK. Keep the manager's existing signing key when updating.",
+            "### Added",
+            "* **Facebook:** New patch, `Hide x`, with a switch under **News feed**.",
+            "### Changed",
+            "* **Facebook - Reels:** Reels open on the **first** frame.\n* **Tooling:** The gate runs twice.",
         ])
         self.assertIn("The latest release is [v0.2.0](https://github.com/SysAdminDoc/Hushfacebook/releases/tag/v0.2.0), "
                       "with 3 patches. It includes all changes since v0.1.0, among them two new switches, as the "
@@ -290,6 +298,23 @@ class IndexTest(Repo):
     def test_refuses_a_summary_that_names_another_count_or_build(self):
         self.refused(lambda: self.index(summary="It brings 90 patches."), "name 3 patches and Facebook 581.0.0.45.58 alone")
         self.refused(lambda: self.index(summary="Built for Facebook 580.0.0.51.74 first."), "Facebook 580.0.0.51.74")
+
+    def test_reads_the_facts_from_the_prose_and_not_the_changelog_groups(self):
+        # Morphe Manager shows the description for the release an app was patched with (#143), so
+        # it carries the section's groups, and a bullet there may name an older build or count.
+        write(self.root / "CHANGELOG.md", self.text("CHANGELOG.md").replace(
+            "Reels open on the **first** frame.", "Reels open on the **first** frame, as on Facebook 580.0.0.51.74 with 90 patches."))
+        self.index()
+        description = json.loads(self.text("patches-bundle.json"))["description"]
+        facts, groups = description.split("\n\n### ", 1)
+        self.assertNotIn("580.0.0.51.74 with 90 patches", facts)
+        self.assertTrue(groups.startswith("Added\n\n* **Facebook:** New patch"))
+        self.assertIn("as on Facebook 580.0.0.51.74 with 90 patches.", groups)
+        self.assertNotIn("Two new switches for Facebook", description, "the cut summary bullet is the prose's job")
+
+    def test_refuses_a_release_the_changelog_has_not_cut(self):
+        write(self.root / "CHANGELOG.md", CHANGELOG)
+        self.refused(self.index, "no dated 0.2.0 heading")
 
     def test_refuses_the_published_version_and_a_bad_time(self):
         self.refused(lambda: self.index(version="0.1.0"), "already names 0.1.0")

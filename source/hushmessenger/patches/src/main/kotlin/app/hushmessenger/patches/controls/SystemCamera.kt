@@ -29,7 +29,7 @@ internal const val NAVIGATION_TRIGGER = "Lcom/facebook/messaging/send/trigger/Na
 internal const val MONTAGE_ACTIVITY = "Lcom/facebook/messaging/montage/composer/MontageComposerActivity;"
 /** The request code the chat composer starts Messenger's own camera with, and reads its sent message back under. */
 internal const val CAMERA_REQUEST = 7377
-/** The request code Messenger 582's chat screen starts Messenger's own camera with, through its activity launcher. */
+/** The request code Messenger 583's chat screen starts Messenger's own camera with, through its activity launcher. */
 internal const val CHAT_CAMERA_REQUEST = 7376
 /** The request code a photo picked in another app comes back under, which opens Messenger's editor for the open chat. */
 internal const val EXTERNAL_MEDIA_REQUEST = 1112
@@ -89,7 +89,7 @@ internal fun Method.isComposerResult(): Boolean {
 }
 
 /**
- * Messenger 582's chat screen asks this static factory for its camera button (#40). It copies the camera screen's extras
+ * Messenger 583's chat screen asks this static factory for its camera button (#40). It copies the camera screen's extras
  * into an activity launcher that starts [MONTAGE_ACTIVITY] with [CHAT_CAMERA_REQUEST] on the chat's fragment. Story and
  * note replies build the same kind of launcher with the same request code elsewhere, so only this one gets marked.
  */
@@ -118,7 +118,7 @@ internal fun Method.isLauncherStart(): Boolean = returnType == "Z" && parameterT
     implementation?.instructions?.any { it.methodRef()?.isFragmentLauncher() == true } == true
 
 /**
- * Messenger 582's chat copies a photo picked in another app only once this check says the URI's provider belongs to an
+ * Messenger 583's chat copies a photo picked in another app only once this check says the URI's provider belongs to an
  * app outside Meta's. The capture screen's provider lives inside Messenger, so without the hook its photo is refused
  * with a SecurityException that closes Messenger (#40).
  */
@@ -292,7 +292,7 @@ internal fun MutableMethod.validateSystemCamera(): Int = when {
  * Swaps the intent and its request code right before the launch. With the switch on, the intent opens the extension's
  * capture screen, which hands the phone camera's photo back the way another app's picked photo comes back, so the chat
  * fragment's own code opens it in Messenger's editor for this chat. Off, Pause and safe mode get Messenger's camera.
- * Messenger 582's chat screen starts its camera through the activity launcher instead, so its factory marks that
+ * Messenger 583's chat screen starts its camera through the activity launcher instead, so its factory marks that
  * launcher's extras, and the launcher's start swaps only an intent that carries the mark. Its checks on where a picked
  * photo comes from and who owns its file let the capture screen's own photo through, and keep Messenger's answer for
  * the rest.

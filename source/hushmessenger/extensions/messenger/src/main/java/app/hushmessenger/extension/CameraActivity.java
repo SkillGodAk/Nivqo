@@ -97,17 +97,17 @@ public final class CameraActivity extends Activity {
             camera.setClipData(ClipData.newRawUri("", uri));
             startActivityForResult(camera, CAPTURE);
         } catch (ActivityNotFoundException error) {
-            give("No camera app is installed that can take a photo for Messenger.");
+            give("camera_missing");
         } catch (IOException | RuntimeException error) {
             Settings.hookFailedPrivately(KEY, "Can't open the phone's camera app", error);
-            give("Can't open your camera app. Try again, or turn off Use the phone's camera app.");
+            give("camera_failed");
         }
     }
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         if (requestCode != PERMISSION) return;
         if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) capture();
-        else give("Messenger needs camera permission to open your camera app. You can allow it in Android's app settings.");
+        else give("camera_permission");
     }
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -135,7 +135,7 @@ public final class CameraActivity extends Activity {
         File unused = photo;
         if (unused != null && !unused.delete() && unused.exists()) Log.w("HushMessenger", "Can't remove an unused camera photo");
         photo = null;
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+        Toast.makeText(this, new SettingsText(this).get(message), Toast.LENGTH_LONG).show();
         setResult(RESULT_CANCELED);
         finish();
     }

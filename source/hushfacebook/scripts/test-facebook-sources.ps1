@@ -20,7 +20,17 @@
     ledger's dates, and a parse of its source finds nothing that clones, downloads to disk or
     copies files, with a copy that does each of those as the proof the parse can see them.
 
-    The pre-push hook runs this for the audit, its rules, the ledger, provenance.json and NOTICE.
+    scripts/gitlab-coverage.ps1 and scripts/scan-gitlab-coverage.ps1 run against a stand-in for
+    gitlab.com the same way. A run pages through the project list, pins every branch at its commit
+    and reads every tree by that commit. It carries on from its ledger after a stop mid-page, a
+    record cut short, a 429 and a used-up rate-limit window, with nothing lost, duplicated or asked
+    for twice. A repeated page, a page out of sequence, a failed or oversized tree, an unreadable
+    repository and a list that ends below the ceiling each keep the ledger from being complete, and
+    projects created after the ceiling was pinned are never read. The sentinel check has to match
+    the stand-in asked directly and name each kind of difference. None of it may touch the census.
+
+    The pre-push hook runs this for the audit, its rules, the ledger, provenance.json and NOTICE,
+    and for the coverage ledger's two scripts.
 #>
 [CmdletBinding()]
 param([string]$Root)
@@ -28,6 +38,7 @@ param([string]$Root)
 $ErrorActionPreference = 'Stop'
 if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
 . (Join-Path $PSScriptRoot 'facebook-sources.ps1')
+. (Join-Path $PSScriptRoot 'gitlab-coverage.ps1')
 
 function Assert-True {
     param([bool]$Condition, [string]$Message)
@@ -874,12 +885,647 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
 
 Write-Host '[sources] the audit reports every kind of drift, collapses copies by content and stamps only a clean census'
 
+# --- the GitLab coverage ledger, against a stand-in for gitlab.com --------------------------------
+
+# scripts/gitlab-coverage.ps1 is a prototype of what a census of GitLab would have to keep, and it
+# counts for nothing in the census yet. So the checked-in census has to go on saying GitLab's code
+# search was skipped, and nothing below may change that file.
+$scanScript = Join-Path $PSScriptRoot 'scan-gitlab-coverage.ps1'
+$coverageRoot = Join-Path $caseRoot 'coverage'
+New-Item -ItemType Directory -Path $coverageRoot -Force | Out-Null
+$censusBefore = [IO.File]::ReadAllText($ledgerPath)
+Assert-True (@($ledger.census.skipped) -contains 'gitlab-code-search') `
+    'The checked-in census stopped recording gitlab-code-search as skipped, and no full coverage ledger stands behind that.'
+
+& {
+    $c11a = '1a' * 20
+    $c11b = '1b' * 20
+    $c15 = '15' * 20
+    $c20 = '20' * 20
+    $c21 = '21' * 20
+    $c30 = '30' * 20
+
+    function ConvertTo-FakeList {
+        param($Items)
+        if (@($Items).Count -eq 0) { return '[]' }
+        return (ConvertTo-Json -InputObject @($Items) -Depth 6 -Compress)
+    }
+
+    function New-FakeTree {
+        # A tree of blobs for one commit, each with an id of its own.
+        param([string]$Seed, [int]$Count)
+        return @(for ($i = 1; $i -le $Count; $i++) {
+            [ordered]@{ id = (Get-Sha256Text "$Seed-$i").Substring(0, 40); name = ('f{0:d4}.kt' -f $i); type = 'blob'
+                path = ('src/{0}/f{1:d4}.kt' -f $Seed, $i); mode = '100644' } })
+    }
+
+    function Add-FakeProject {
+        # -Branches is name to commit, in the order GitLab lists them. -Trees is commit to entry count.
+        param($Lab, [long]$Id, [string]$Path, $Branches, $Trees)
+        $Lab.Projects["$Id"] = @{ id = $Id; path = $Path; branches = $Branches }
+        foreach ($commit in @($Trees.Keys)) { $Lab.Trees["$Id@$commit"] = @(New-FakeTree "$Id-$commit" $Trees[$commit]) }
+    }
+
+    function New-FakeLab {
+        <#
+            Six public projects, ids 11 to 30. Project 11 has three branches, two of them at one
+            commit, and a tree of 150 entries that takes two pages. Project 12 is empty, 21 has a
+            commit with no files, and 30 is the newest, so it is the ceiling a run pins.
+        #>
+        $lab = @{ Projects = @{}; Trees = @{}; Pages = @{}; Remaining = $null; RepeatTree = $null
+            Requests = (New-Object System.Collections.Generic.List[object])
+            Failures = (New-Object System.Collections.Generic.List[object]) }
+        Add-FakeProject $lab 11 'one/alpha' ([ordered]@{ main = $c11a; dev = $c11b; copy = $c11a }) @{ $c11a = 3; $c11b = 150 }
+        Add-FakeProject $lab 12 'one/empty' ([ordered]@{}) @{}
+        Add-FakeProject $lab 15 'two/beta' ([ordered]@{ main = $c15 }) @{ $c15 = 2 }
+        Add-FakeProject $lab 20 'two/gamma' ([ordered]@{ main = $c20 }) @{ $c20 = 1 }
+        Add-FakeProject $lab 21 'three/delta' ([ordered]@{ main = $c21 }) @{ $c21 = 0 }
+        Add-FakeProject $lab 30 'three/omega' ([ordered]@{ 'release/1.0' = $c30 }) @{ $c30 = 4 }
+        return $lab
+    }
+
+    function Get-FakeProjectPage {
+        # What the keyset project list answers after an id. GitLab names a next page whenever the
+        # one it served is full, and continues it from that page's last id.
+        param($Lab, [long]$After, [int]$PerPage)
+        $rest = @($Lab.Projects.Values | Where-Object { $_.id -gt $After } | Sort-Object { $_.id } | Select-Object -First $PerPage)
+        $headers = @{}
+        if ($rest.Count -eq $PerPage) {
+            $headers['Link'] = "<https://gitlab.com/api/v4/projects?id_after=$($rest[-1].id)&imported=false&order_by=id&owned=false&page=1" +
+                "&pagination=keyset&per_page=$PerPage&sort=asc>; rel=`"next`""
+        }
+        $items = @($rest | ForEach-Object { [ordered]@{ id = $_.id; path_with_namespace = $_.path; default_branch = 'main' } })
+        return @{ Status = 200; Content = (ConvertTo-FakeList $items); Headers = $headers }
+    }
+
+    # Stands in for gitlab.com, so no case needs the network. A request it doesn't recognize fails
+    # the case that made it. $fakeLab.Failures answers a matching request with a status instead,
+    # .Pages replaces one page of the project list, .RepeatTree serves a tree's first page for
+    # every page, and .Remaining counts the rate-limit window down in the headers.
+    function Invoke-WebRequest {
+        param($Uri, $Headers, $UserAgent, [switch]$UseBasicParsing, $TimeoutSec, $Method, $OutFile, $MaximumRedirection, [switch]$PassThru, $Body)
+        $url = [string]$Uri
+        $lab = $fakeLab
+        $lab.Requests.Add([pscustomobject]@{ Uri = $url; Headers = $Headers; Method = $Method; Body = $Body; OutFile = $OutFile })
+        $answer = $null
+        foreach ($failure in $lab.Failures) {
+            if ($null -eq $answer -and $failure.Times -gt 0 -and $url -match $failure.Pattern) {
+                $failure.Times--
+                $answer = @{ Status = $failure.Status; Content = $null; Headers = $failure.Headers }
+            }
+        }
+        if ($null -eq $answer) {
+            switch -Regex ($url) {
+                '^https://gitlab\.com/api/v4/projects\?pagination=keyset&order_by=id&sort=desc&per_page=1$' {
+                    $newest = @($lab.Projects.Values | Sort-Object { $_.id } | Select-Object -Last 1 |
+                        ForEach-Object { [ordered]@{ id = $_.id; path_with_namespace = $_.path } })
+                    $answer = @{ Status = 200; Content = (ConvertTo-FakeList $newest); Headers = @{} }
+                    break
+                }
+                '^https://gitlab\.com/api/v4/projects\?pagination=keyset&order_by=id&sort=asc&per_page=(\d+)&id_after=(\d+)$' {
+                    $perPage = [int]$Matches[1]
+                    $after = [long]$Matches[2]
+                    $answer = if ($lab.Pages.ContainsKey("$after")) { $lab.Pages["$after"] } else { Get-FakeProjectPage $lab $after $perPage }
+                    break
+                }
+                '^https://gitlab\.com/api/v4/projects/(\d+)$' {
+                    $project = $lab.Projects[$Matches[1]]
+                    $answer = if ($null -eq $project) { @{ Status = 404 } } else {
+                        @{ Status = 200; Content = ([ordered]@{ id = $project.id; path_with_namespace = $project.path } | ConvertTo-Json -Compress) } }
+                    break
+                }
+                '^https://gitlab\.com/api/v4/projects/(\d+)/repository/branches\?per_page=(\d+)(?:&page=(\d+))?$' {
+                    $project = $lab.Projects[$Matches[1]]
+                    $perPage = [int]$Matches[2]
+                    $page = if ($Matches[3]) { [int]$Matches[3] } else { 1 }
+                    if ($null -eq $project) { $answer = @{ Status = 404 }; break }
+                    $all = @($project.branches.Keys | ForEach-Object { [ordered]@{ name = $_; commit = [ordered]@{ id = $project.branches[$_] }; default = $false } })
+                    $slice = @($all | Select-Object -Skip (($page - 1) * $perPage) -First $perPage)
+                    $nextPage = if ($page * $perPage -lt $all.Count) { [string]($page + 1) } else { '' }
+                    $answer = @{ Status = 200; Content = (ConvertTo-FakeList $slice); Headers = @{ 'x-total' = [string]$all.Count; 'x-next-page' = $nextPage } }
+                    break
+                }
+                '^https://gitlab\.com/api/v4/projects/(\d+)/repository/branches/([^/?]+)$' {
+                    $project = $lab.Projects[$Matches[1]]
+                    $name = [Uri]::UnescapeDataString($Matches[2])
+                    $answer = if ($null -eq $project -or -not $project.branches.Contains($name)) { @{ Status = 404 } } else {
+                        @{ Status = 200; Content = ([ordered]@{ name = $name; commit = [ordered]@{ id = $project.branches[$name] } } | ConvertTo-Json -Compress) } }
+                    break
+                }
+                '^https://gitlab\.com/api/v4/projects/(\d+)/repository/commits\?per_page=1$' {
+                    $project = $lab.Projects[$Matches[1]]
+                    if ($null -eq $project) { $answer = @{ Status = 404 }; break }
+                    $commits = @($project.branches.Values | Select-Object -First 1 | ForEach-Object { [ordered]@{ id = $_ } })
+                    $answer = @{ Status = 200; Content = (ConvertTo-FakeList $commits) }
+                    break
+                }
+                '^https://gitlab\.com/api/v4/projects/(\d+)/repository/tree\?ref=([^&]+)&recursive=true&pagination=keyset&per_page=100(?:&page_token=([^&]+))?$' {
+                    # Only a commit has a tree here: a branch name for ref answers 404.
+                    $treeKey = "$($Matches[1])@$($Matches[2])"
+                    $projectId = $Matches[1]
+                    $ref = $Matches[2]
+                    $token = $Matches[3]
+                    $entries = $lab.Trees[$treeKey]
+                    if ($null -eq $entries) { $answer = @{ Status = 404 }; break }
+                    $start = 0
+                    if ($token -and $lab.RepeatTree -ne $treeKey) {
+                        $after = ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String([Uri]::UnescapeDataString($token))) | ConvertFrom-Json).file_name
+                        for ($k = 0; $k -lt $entries.Count; $k++) { if ($entries[$k].path -ceq $after) { $start = $k + 1 } }
+                    }
+                    $slice = @($entries | Select-Object -Skip $start -First 100)
+                    $treeHeaders = @{}
+                    if ($start + $slice.Count -lt $entries.Count) {
+                        $next = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(
+                            ([ordered]@{ file_name = $slice[-1].path; tree_oid = ('7e' * 20) } | ConvertTo-Json -Compress)))
+                        $treeHeaders['Link'] = "<https://gitlab.com/api/v4/projects/$projectId/repository/tree?id=$projectId&page=1" +
+                            "&page_token=$([Uri]::EscapeDataString($next))&pagination=keyset&per_page=100&recursive=true&ref=$ref>; rel=`"next`""
+                    }
+                    $answer = @{ Status = 200; Content = (ConvertTo-FakeList $slice); Headers = $treeHeaders }
+                    break
+                }
+                '^https://gitlab\.com/api/v4/projects/(\d+)/repository/tree\?ref=([^&]+)&recursive=true&per_page=100&page=(\d+)$' {
+                    $entries = $lab.Trees["$($Matches[1])@$($Matches[2])"]
+                    $page = [int]$Matches[3]
+                    if ($null -eq $entries) { $answer = @{ Status = 404 }; break }
+                    $slice = @($entries | Select-Object -Skip (($page - 1) * 100) -First 100)
+                    $nextPage = if ($page * 100 -lt $entries.Count) { [string]($page + 1) } else { '' }
+                    $answer = @{ Status = 200; Content = (ConvertTo-FakeList $slice); Headers = @{ 'x-total' = [string]$entries.Count; 'x-next-page' = $nextPage } }
+                    break
+                }
+            }
+        }
+        if ($null -eq $answer) { throw "The coverage code made a request no stand-in answers: $url" }
+        $sent = @{}
+        if ($answer.Headers) { foreach ($name in @($answer.Headers.Keys)) { $sent[$name] = $answer.Headers[$name] } }
+        if ($null -ne $lab.Remaining) {
+            $lab.Remaining = [Math]::Max(0, $lab.Remaining - 1)
+            $sent['ratelimit-remaining'] = [string]$lab.Remaining
+            $sent['ratelimit-reset'] = '1791936900'
+        }
+        if ($answer.Status -ne 200) {
+            $failed = New-Object System.Exception "Response status code does not indicate success: $($answer.Status)."
+            Add-Member -InputObject $failed -NotePropertyName Response -NotePropertyValue ([pscustomobject]@{ StatusCode = $answer.Status; Headers = $sent })
+            throw $failed
+        }
+        return [pscustomobject]@{ StatusCode = 200; Content = [string]$answer.Content; Headers = $sent }
+    }
+
+    function Invoke-Run {
+        param([string]$Path, [hashtable]$Extra = @{})
+        $arguments = @{ Path = $Path; PerPage = 2; DelayMilliseconds = 0 }
+        foreach ($key in $Extra.Keys) { $arguments[$key] = $Extra[$key] }
+        $fakeLab.Requests.Clear()
+        return Invoke-GitLabCoverageRun @arguments
+    }
+
+    function Get-Open {
+        # The unresolved records of one kind, each as 'key result'.
+        param($Coverage, [string]$Kind)
+        return @($Coverage.Unresolved | Where-Object { $_.Kind -eq $Kind } | ForEach-Object { "$($_.Key) $($_.Result)" })
+    }
+
+    function Get-LedgerRecords {
+        param([string]$Path)
+        return @([IO.File]::ReadAllLines($Path) | Where-Object { $_ } | ForEach-Object { $_ | ConvertFrom-Json })
+    }
+
+    function Get-LedgerLines {
+        # A ledger's records without the time each was written, sorted, so two ledgers that hold
+        # the same records compare equal whatever order two runs wrote them in.
+        param([string]$Path)
+        return (@([IO.File]::ReadAllLines($Path) | Where-Object { $_ } | ForEach-Object { $_ -replace ',"at":"[^"]*"', '' } | Sort-Object) -join "`n")
+    }
+
+    function Save-Lines {
+        param([string]$Path, [string[]]$Lines)
+        [IO.File]::WriteAllText($Path, (($Lines -join "`n") + "`n"), (New-Object Text.UTF8Encoding $false))
+    }
+
+    # The control: one run with nothing in its way. Three pages of two, every project with a record
+    # of its own, every branch at a commit, and a tree for every commit, read by that commit.
+    $fakeLab = New-FakeLab
+    $control = Join-Path $coverageRoot 'control.jsonl'
+    $none = Test-GitLabCoverage -Path $control
+    Assert-True (-not $none.Complete -and @($none.Problems -like '*no ledger yet*').Count -eq 1) 'A ledger that does not exist was called complete.'
+    $outcome = Invoke-Run $control
+    $coverage = Test-GitLabCoverage -Path $control
+    Assert-True ($null -eq $outcome.Stopped -and $coverage.Complete -and $coverage.FullRun -and $coverage.StartAfter -eq 0 -and $coverage.Ceiling -eq 30) `
+        ("A run with nothing in its way did not finish a full range up to the newest project: stopped '$($outcome.Stopped)', " +
+            (@($coverage.Problems) + @($coverage.Unresolved | ForEach-Object { "$($_.Kind) $($_.Key) $($_.Result) $($_.Detail)" }) -join ' | '))
+    Assert-True ($coverage.Pages -eq 3 -and $coverage.Projects -eq 6 -and $coverage.Branches -eq 7 -and $coverage.Trees -eq 6 -and
+        $coverage.Unresolved.Count -eq 0 -and $coverage.Problems.Count -eq 0) `
+        "The control ledger does not hold 3 pages, 6 projects, 7 branches and 6 trees: $($coverage | ConvertTo-Json -Depth 3 -Compress)"
+    Assert-True ($outcome.Requests -eq 17 -and $fakeLab.Requests.Count -eq 17 -and
+        @($fakeLab.Requests | Group-Object Uri | Where-Object { $_.Count -gt 1 }).Count -eq 0) `
+        "The control run made $($fakeLab.Requests.Count) requests, not one each for the ceiling, 3 pages, 6 branch lists and 7 tree pages."
+    Assert-True (@($fakeLab.Requests | Where-Object { $_.Uri -notlike 'https://gitlab.com/api/v4/*' -or $null -ne $_.Headers -or $_.Method -or
+        $_.Body -or $_.OutFile }).Count -eq 0) 'The run sent a header, a body or a file request, or asked somewhere other than gitlab.com.'
+    $refs = @($fakeLab.Requests | Where-Object { $_.Uri -like '*/repository/tree?*' } | ForEach-Object { if ($_.Uri -match '[?&]ref=([^&]+)') { $Matches[1] } })
+    Assert-True ($refs.Count -eq 7 -and @($refs | Where-Object { $_ -notmatch '^[0-9a-f]{40}$' }).Count -eq 0) `
+        "A tree was asked for by something other than a commit id: $($refs -join ', ')"
+    $records = @(Get-LedgerRecords $control)
+    $header = $records[0]
+    Assert-True ($header.kind -eq 'run' -and $header.ceiling -eq 30 -and $header.startAfter -eq 0 -and $header.ceilingSource -eq 'highest-public-id' -and
+        @($records | Where-Object { $_.kind -eq 'run' }).Count -eq 1) 'The ledger does not open with the one record that pins its range.'
+    $empty = @($records | Where-Object { $_.kind -eq 'project' -and $_.id -eq 12 })
+    Assert-True ($empty.Count -eq 1 -and $empty[0].result -eq 'empty' -and @($empty[0].branches).Count -eq 0) `
+        'The empty project has no record of its own saying it is empty.'
+    $alpha = @($records | Where-Object { $_.kind -eq 'project' -and $_.id -eq 11 })[0]
+    Assert-True ((@($alpha.branches | ForEach-Object { "$($_.name)=$($_.commit)" }) -join ' ') -eq "main=$c11a dev=$c11b copy=$c11a") `
+        'A project''s record does not hold every branch it declares at its commit.'
+    Assert-True (@($records | Where-Object { $_.kind -eq 'tree' -and $_.project -eq 11 }).Count -eq 2) `
+        'Two branches at one commit did not share one tree record.'
+    $big = @($records | Where-Object { $_.kind -eq 'tree' -and $_.commit -eq $c11b })
+    Assert-True ($big.Count -eq 1 -and $big[0].result -eq 'pinned' -and $big[0].pages -eq 2 -and $big[0].entries -eq 150 -and
+        @($big[0].files).Count -eq 150 -and @($big[0].files | Where-Object { $_.id -notmatch '^[0-9a-f]{40}$' -or -not $_.path }).Count -eq 0) `
+        'The two-page tree was not recorded whole, every path with its blob id.'
+    $bare = @($records | Where-Object { $_.kind -eq 'tree' -and $_.commit -eq $c21 })
+    Assert-True ($bare.Count -eq 1 -and $bare[0].result -eq 'pinned' -and $bare[0].entries -eq 0) 'A commit with no files has no pinned tree record.'
+
+    # Stopped anywhere and carried on. Three requests a run stops the first one with a page half
+    # done: its first project read, its second not yet. Every run after picks up from the ledger.
+    $fakeLab = New-FakeLab
+    $resumed = Join-Path $coverageRoot 'resumed.jsonl'
+    $asked = New-Object System.Collections.Generic.List[string]
+    $runs = 0
+    do {
+        $runs++
+        $outcome = Invoke-Run $resumed @{ MaxRequests = 3 }
+        foreach ($request in $fakeLab.Requests) { $asked.Add($request.Uri) }
+        $coverage = Test-GitLabCoverage -Path $resumed
+        Assert-True ($coverage.Problems.Count -eq 0) "A stopped run left a ledger its own rules refuse: $($coverage.Problems -join ' | ')"
+        if ($runs -eq 1) {
+            Assert-True ($outcome.Stopped -eq 'request-budget' -and -not $coverage.Complete -and
+                (Get-Open $coverage 'project') -contains '12 not-read' -and (Get-Open $coverage 'page') -contains 'after 12 not-read' -and
+                @(Get-Open $coverage 'tree').Count -eq 2) `
+                ("A run stopped mid-page was called complete, or did not list what it had not read: " +
+                    (@($coverage.Unresolved | ForEach-Object { "$($_.Kind) $($_.Key) $($_.Result)" }) -join ' | '))
+        }
+    } while ($outcome.Stopped -and $runs -lt 30)
+    Assert-True ($null -eq $outcome.Stopped -and $runs -gt 3 -and (Test-GitLabCoverage -Path $resumed).Complete) `
+        "Carrying on three requests at a time never finished ($runs runs, stopped '$($outcome.Stopped)')."
+    Assert-True ((Get-LedgerLines $resumed) -ceq (Get-LedgerLines $control)) 'A ledger carried on across stops lost or duplicated a record.'
+    $twice = @($asked | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { $_.Name })
+    Assert-True (@($twice | Where-Object { $_ -notlike '*/repository/tree?*' }).Count -eq 0 -and @($asked | Where-Object { $_ -like '*sort=desc*' }).Count -eq 1) `
+        "Carrying on asked again for something the ledger had settled, or read the ceiling twice: $($twice -join ', ')"
+
+    # A run killed while it was writing leaves a last record cut short. That is never complete, and
+    # the next run drops the stump and reads that part again without touching what came before.
+    $controlBytes = [IO.File]::ReadAllBytes($control)
+    $newlines = @(0..($controlBytes.Length - 1) | Where-Object { $controlBytes[$_] -eq 10 })
+    $torn = Join-Path $coverageRoot 'torn.jsonl'
+    foreach ($cut in @(($controlBytes.Length - 9), ($newlines[4] + 26))) {
+        [IO.File]::WriteAllBytes($torn, [byte[]]@($controlBytes[0..($cut - 1)]))
+        $coverage = Test-GitLabCoverage -Path $torn
+        Assert-True (-not $coverage.Complete -and @($coverage.Problems -like '*never finished*').Count -eq 1) 'A ledger ending in half a record was called complete.'
+        $outcome = Invoke-Run $torn
+        Assert-True ($null -eq $outcome.Stopped -and (Test-GitLabCoverage -Path $torn).Complete -and (Get-LedgerLines $torn) -ceq (Get-LedgerLines $control)) `
+            'A ledger ending in half a record was not carried on to the same records as the control.'
+        Assert-True (@($fakeLab.Requests | Where-Object { $_.Uri -like '*sort=desc*' -or $_.Uri -like '*id_after=0' -or
+            $_.Uri -like '*/projects/11/repository/branches*' -or $_.Uri -like "*ref=$c11a*" }).Count -eq 0) `
+            'Carrying on from half a record asked again for records that were whole.'
+    }
+
+    # A repeated page, and a page that starts at the cursor instead of after it, are refused: the
+    # list stops there, nothing on the page is taken, and the ledger is not complete until a later
+    # run gets a page that follows on.
+    foreach ($servedAfter in 0, 11) {
+        $fakeLab = New-FakeLab
+        $repeated = Join-Path $coverageRoot "repeated-$servedAfter.jsonl"
+        $fakeLab.Pages['12'] = Get-FakeProjectPage $fakeLab $servedAfter 2
+        $outcome = Invoke-Run $repeated
+        $coverage = Test-GitLabCoverage -Path $repeated
+        Assert-True ($null -eq $outcome.Stopped -and -not $coverage.Complete -and $coverage.Projects -eq 2 -and
+            (Get-Open $coverage 'page') -contains 'after 12 repeated-page' -and $coverage.Unresolved.Count -eq 1) `
+            "A page served again after project 12 (the page after $servedAfter) was accepted, or the ledger was called complete."
+        $outcome = Invoke-Run $repeated
+        Assert-True ($outcome.Requests -eq 1 -and -not (Test-GitLabCoverage -Path $repeated).Complete) 'A refused page was asked for more than once in a run, or stopped being listed.'
+        $fakeLab.Pages.Remove('12')
+        $outcome = Invoke-Run $repeated
+        $pageRecords = @(Get-LedgerRecords $repeated | Where-Object { $_.kind -eq 'page' -and $_.after -eq 12 } | ForEach-Object { $_.result })
+        Assert-True ((Test-GitLabCoverage -Path $repeated).Complete -and ($pageRecords -join ',') -eq 'repeated-page,repeated-page,read') `
+            "A refused page was not kept in the ledger and read again once GitLab served the right one: $($pageRecords -join ',')"
+    }
+    $fakeLab = New-FakeLab
+    $mislinked = Join-Path $coverageRoot 'mislinked.jsonl'
+    $fakeLab.Pages['0'] = Get-FakeProjectPage $fakeLab 0 2
+    $fakeLab.Pages['0'].Headers['Link'] = $fakeLab.Pages['0'].Headers['Link'].Replace('id_after=12', 'id_after=11')
+    $outcome = Invoke-Run $mislinked
+    $coverage = Test-GitLabCoverage -Path $mislinked
+    Assert-True (-not $coverage.Complete -and $coverage.Projects -eq 0 -and (Get-Open $coverage 'page') -contains 'after 0 link-mismatch') `
+        'A page whose next link does not carry on from its last project was accepted.'
+
+    # The same rules hold for a ledger read cold: a page twice, a page missing, a record for
+    # something already settled, a record nothing listed and a line that isn't a record each make
+    # the check say no by name, and a run won't add to a ledger like that.
+    $lines = @([IO.File]::ReadAllLines($control))
+    $pageAt = @(0..($lines.Count - 1) | Where-Object { $lines[$_] -like '{"kind":"page"*' })
+    $projectLine = @($lines | Where-Object { $_ -like '{"kind":"project","id":15,*' })[0]
+    $doctored = Join-Path $coverageRoot 'doctored.jsonl'
+    Save-Lines $doctored $lines
+    Assert-True (Test-GitLabCoverage -Path $doctored).Complete 'The unchanged copy was refused, so the cases below would prove nothing.'
+    foreach ($case in @(
+            @{ Lines = @($lines[0..$pageAt[0]]) + @($lines[$pageAt[0]]) + @($lines[($pageAt[0] + 1)..($lines.Count - 1)])
+                Pattern = '*asked after 0 is out of sequence*missing or repeated*'; What = 'A page recorded twice' }
+            @{ Lines = @($lines | Where-Object { $_ -cne $lines[$pageAt[1]] }); Pattern = '*asked after 20 is out of sequence*'; What = 'A missing page' }
+            @{ Lines = @($lines) + @($projectLine); Pattern = '*project 15 has a record after the one that settled it*'; What = 'A project recorded twice' }
+            @{ Lines = @($lines) + @($lines[$lines.Count - 1]); Pattern = "*tree 30@$c30 has a record after the one that settled it*"; What = 'A tree recorded twice' }
+            @{ Lines = @($lines) + @($projectLine.Replace('"id":15,', '"id":16,')); Pattern = "*names '16', which no page before it lists*"; What = 'A record for a project no page lists' }
+            @{ Lines = @($lines[0..3]) + @('not a record') + @($lines[4..($lines.Count - 1)]); Pattern = '*line 5 of the ledger is not a record*'; What = 'A line that is not a record' }
+            @{ Lines = @($lines) + @($lines[0]); Pattern = '*a run record is not the first record*'; What = 'A second run record' })) {
+        Save-Lines $doctored $case.Lines
+        $coverage = Test-GitLabCoverage -Path $doctored
+        Assert-True (-not $coverage.Complete -and @($coverage.Problems -like $case.Pattern).Count -gt 0) `
+            "$($case.What) did not keep the ledger from being complete, or not by name: $($coverage.Problems -join ' | ')"
+        $doctoredText = [IO.File]::ReadAllText($doctored)
+        Assert-Throws { Invoke-Run $doctored } '*can''t be added to until this is settled*' "$($case.What) did not stop a run from adding to the ledger."
+        Assert-True ([IO.File]::ReadAllText($doctored) -ceq $doctoredText -and $fakeLab.Requests.Count -eq 0) "$($case.What): the refused run still wrote or asked."
+    }
+
+    # A tree that fails, a tree too large to finish, a tree whose pages repeat and a repository
+    # that can't be read each stay in the ledger as unresolved, with the status where there is
+    # one. The rest of the run carries on, and the ledger is not complete until a later run
+    # settles them.
+    $fakeLab = New-FakeLab
+    $failed = Join-Path $coverageRoot 'failed.jsonl'
+    $fakeLab.Failures.Add(@{ Pattern = '/projects/15/repository/tree\?'; Status = 500; Headers = @{}; Times = 1 })
+    $fakeLab.Failures.Add(@{ Pattern = '/projects/20/repository/branches\?'; Status = 404; Headers = @{}; Times = 1 })
+    $outcome = Invoke-Run $failed
+    $coverage = Test-GitLabCoverage -Path $failed
+    $failedTree = @($coverage.Unresolved | Where-Object { $_.Kind -eq 'tree' })
+    $closedProject = @($coverage.Unresolved | Where-Object { $_.Kind -eq 'project' })
+    Assert-True ($null -eq $outcome.Stopped -and -not $coverage.Complete -and $coverage.Unresolved.Count -eq 2 -and $coverage.Problems.Count -eq 0 -and
+        $failedTree.Count -eq 1 -and $failedTree[0].Key -eq "15@$c15" -and $failedTree[0].Result -eq 'http-failure' -and $failedTree[0].Status -eq 500 -and
+        $closedProject.Count -eq 1 -and $closedProject[0].Key -eq '20' -and $closedProject[0].Result -eq 'inaccessible' -and $closedProject[0].Status -eq 404) `
+        ("A failed tree and an unreadable repository did not each keep the ledger incomplete with their status: " +
+            (@($coverage.Unresolved | ForEach-Object { "$($_.Kind) $($_.Key) $($_.Result) $($_.Status)" }) -join ' | '))
+    Assert-True ($coverage.Trees -eq 4 -and $coverage.Pages -eq 3) 'One failed tree stopped the rest of the run from being read.'
+    $outcome = Invoke-Run $failed
+    $treeRecords = @(Get-LedgerRecords $failed | Where-Object { $_.kind -eq 'tree' -and $_.project -eq 15 } | ForEach-Object { $_.result })
+    Assert-True ($outcome.Requests -eq 3 -and (Test-GitLabCoverage -Path $failed).Complete -and ($treeRecords -join ',') -eq 'http-failure,pinned') `
+        "The next run did not settle only what was unresolved ($($outcome.Requests) requests; tree records $($treeRecords -join ','))."
+
+    $fakeLab = New-FakeLab
+    $large = Join-Path $coverageRoot 'large.jsonl'
+    $outcome = Invoke-Run $large @{ MaxTreePages = 1 }
+    $coverage = Test-GitLabCoverage -Path $large
+    Assert-True (-not $coverage.Complete -and (Get-Open $coverage 'tree') -contains "11@$c11b too-large" -and $coverage.Unresolved.Count -eq 1) `
+        'A tree that ran past the page limit was recorded as read, or not listed.'
+    $outcome = Invoke-Run $large
+    Assert-True ($outcome.Requests -eq 2 -and (Test-GitLabCoverage -Path $large).Complete) 'A tree that was too large was not read again once the limit allowed it.'
+
+    $fakeLab = New-FakeLab
+    $looping = Join-Path $coverageRoot 'looping.jsonl'
+    $fakeLab.RepeatTree = "11@$c11b"
+    $outcome = Invoke-Run $looping
+    $coverage = Test-GitLabCoverage -Path $looping
+    $loopingTree = @($coverage.Unresolved | Where-Object { $_.Kind -eq 'tree' })
+    Assert-True (-not $coverage.Complete -and $loopingTree.Count -eq 1 -and $loopingTree[0].Result -eq 'truncated' -and $loopingTree[0].Detail -like '*served twice*') `
+        'A tree whose pages repeat was recorded as read.'
+    $fakeLab.RepeatTree = $null
+    $outcome = Invoke-Run $looping
+    Assert-True (Test-GitLabCoverage -Path $looping).Complete 'A truncated tree was not read again.'
+
+    # A 429 is recorded against what was being read, with the wait GitLab asked for, and ends the
+    # run on the spot. So does a rate-limit window with nothing left in it, before the request
+    # that would overrun it. Either way the next run carries on.
+    # The wait is kept for the whole directory, so the 429 cases get directories of their own.
+    $fakeLab = New-FakeLab
+    $limited = Join-Path (Join-Path $coverageRoot 'limited') 'limited.jsonl'
+    $fakeLab.Failures.Add(@{ Pattern = '/projects/12/repository/branches\?'; Status = 429; Headers = @{ 'Retry-After' = '30' }; Times = 1 })
+    $outcome = Invoke-Run $limited
+    $coverage = Test-GitLabCoverage -Path $limited
+    $held = @(Get-LedgerRecords $limited | Where-Object { $_.kind -eq 'project' -and $_.id -eq 12 })
+    Assert-True ($outcome.Stopped -eq 'rate-limited' -and $outcome.RetryAfter -eq 30 -and $outcome.Requests -eq 4 -and
+        $fakeLab.Requests[$fakeLab.Requests.Count - 1].Uri -like '*/projects/12/repository/branches?*') `
+        "A 429 did not end the run with the request that got it (stopped '$($outcome.Stopped)' after $($outcome.Requests) requests)."
+    Assert-True ($held.Count -eq 1 -and $held[0].result -eq 'rate-limited' -and $held[0].status -eq 429 -and $held[0].retryAfter -eq 30 -and
+        -not $coverage.Complete -and (Get-Open $coverage 'project') -contains '12 rate-limited') 'A 429 was not recorded against the project it stopped at.'
+    # The wait holds for the next run as well: started inside it, a run asks for nothing.
+    $limitedText = [IO.File]::ReadAllText($limited)
+    $outcome = Invoke-Run $limited
+    Assert-True ($outcome.Stopped -eq 'rate-limited' -and $outcome.Requests -eq 0 -and $fakeLab.Requests.Count -eq 0 -and
+        $outcome.RetryAfter -gt 0 -and $outcome.RetryAfter -le 30 -and [IO.File]::ReadAllText($limited) -ceq $limitedText) `
+        "A run started inside the wait a 429 asked for made a request or wrote a record ($($outcome.Requests) requests, $($outcome.RetryAfter) s left)."
+    # GitLab limits the address, not the ledger: another ledger beside it waits too.
+    $beside = Join-Path (Join-Path $coverageRoot 'limited') 'beside.jsonl'
+    $outcome = Invoke-Run $beside
+    Assert-True ($outcome.Stopped -eq 'rate-limited' -and $outcome.Requests -eq 0 -and $fakeLab.Requests.Count -eq 0 -and
+        -not (Test-Path -LiteralPath $beside)) "A ledger beside one that got a 429 made $($fakeLab.Requests.Count) request(s) inside its wait."
+    $outcome = Invoke-Run $limited @{ Now = [datetime]::UtcNow.AddSeconds(31) }
+    $held = @(Get-LedgerRecords $limited | Where-Object { $_.kind -eq 'project' -and $_.id -eq 12 } | ForEach-Object { $_.result })
+    Assert-True ($null -eq $outcome.Stopped -and (Test-GitLabCoverage -Path $limited).Complete -and ($held -join ',') -eq 'rate-limited,empty' -and
+        @($fakeLab.Requests | Where-Object { $_.Uri -like '*sort=desc*' -or $_.Uri -like '*id_after=0' -or
+            $_.Uri -like '*/projects/11/repository/branches*' }).Count -eq 0) `
+        'The run after a 429 did not carry on from the ledger to a complete one.'
+
+    $fakeLab = New-FakeLab
+    $window = Join-Path $coverageRoot 'window.jsonl'
+    $fakeLab.Remaining = 4
+    $outcome = Invoke-Run $window
+    Assert-True ($outcome.Stopped -eq 'rate-limit-window' -and $outcome.Requests -eq 4 -and $fakeLab.Requests.Count -eq 4 -and $outcome.WindowReset -eq '1791936900') `
+        "A used-up rate-limit window did not stop the run before its next request (stopped '$($outcome.Stopped)' after $($fakeLab.Requests.Count) requests)."
+    Assert-True (-not (Test-GitLabCoverage -Path $window).Complete -and
+        @(Get-LedgerRecords $window | Where-Object { $_.kind -ne 'run' -and $_.result -notin @('read', 'pinned', 'empty') }).Count -eq 0) `
+        'Stopping for the rate-limit window recorded a failure, or the ledger was called complete.'
+    $fakeLab.Remaining = $null
+    $outcome = Invoke-Run $window
+    Assert-True ((Test-GitLabCoverage -Path $window).Complete -and (Get-LedgerLines $window) -ceq (Get-LedgerLines $control)) 'The run after a used-up window did not finish the ledger.'
+
+    $fakeLab = New-FakeLab
+    $unstarted = Join-Path $coverageRoot 'unstarted.jsonl'
+    $fakeLab.Failures.Add(@{ Pattern = 'sort=desc'; Status = 429; Headers = @{}; Times = 1 })
+    $outcome = Invoke-Run $unstarted
+    Assert-True ($outcome.Stopped -eq 'rate-limited' -and -not (Test-Path -LiteralPath $unstarted)) 'A ledger was started without a ceiling to pin.'
+    # A 429 on the ceiling read has no ledger to hold its wait, and the next run keeps to it anyway.
+    $fakeLab = New-FakeLab
+    $unread = Join-Path (Join-Path $coverageRoot 'unread') 'unread.jsonl'
+    $fakeLab.Failures.Add(@{ Pattern = 'sort=desc'; Status = 429; Headers = @{ 'Retry-After' = '45' }; Times = 1 })
+    $outcome = Invoke-Run $unread
+    Assert-True ($outcome.Stopped -eq 'rate-limited' -and $outcome.RetryAfter -eq 45 -and $outcome.Requests -eq 1 -and -not (Test-Path -LiteralPath $unread) -and
+        (Test-Path -LiteralPath (Get-GitLabCoverageWaitPath -Path $unread))) 'A 429 on the ceiling read kept no wait.'
+    $outcome = Invoke-Run $unread
+    Assert-True ($outcome.Stopped -eq 'rate-limited' -and $outcome.Requests -eq 0 -and $fakeLab.Requests.Count -eq 0 -and
+        $outcome.RetryAfter -gt 0 -and $outcome.RetryAfter -le 45 -and -not (Test-Path -LiteralPath $unread)) `
+        "A run started inside the wait a 429 on the ceiling read asked for made $($fakeLab.Requests.Count) request(s)."
+    $outcome = Invoke-Run $unread @{ Now = [datetime]::UtcNow.AddSeconds(46) }
+    Assert-True ($null -eq $outcome.Stopped -and (Test-GitLabCoverage -Path $unread).Complete) 'The run after the ceiling read''s wait did not start the ledger.'
+
+    # The ceiling is pinned by the first run. Projects created after it are past the ceiling: they
+    # are counted on the page that reaches it and never read, and no later run can move it.
+    $fakeLab = New-FakeLab
+    $pinned = Join-Path $coverageRoot 'pinned.jsonl'
+    $outcome = Invoke-Run $pinned @{ MaxRequests = 2 }
+    Add-FakeProject $fakeLab 31 'late/one' ([ordered]@{ main = ('31' * 20) }) @{ ('31' * 20) = 1 }
+    Add-FakeProject $fakeLab 44 'late/two' ([ordered]@{ main = ('44' * 20) }) @{ ('44' * 20) = 1 }
+    Assert-Throws { Invoke-Run $pinned @{ Ceiling = 44 } } '*pinned to the projects after 0 up to 30*' 'A later run moved the ceiling.'
+    $outcome = Invoke-Run $pinned @{ PerPage = 3 }
+    $coverage = Test-GitLabCoverage -Path $pinned
+    $lastPage = @(Get-LedgerRecords $pinned | Where-Object { $_.kind -eq 'page' })[-1]
+    Assert-True ($coverage.Complete -and $coverage.Ceiling -eq 30 -and $coverage.Projects -eq 6 -and
+        @($fakeLab.Requests | Where-Object { $_.Uri -like '*sort=desc*' -or $_.Uri -match '/projects/(31|44)/' }).Count -eq 0) `
+        'Projects created after the ceiling was pinned moved it or were read.'
+    Assert-True ($lastPage.end -eq 'ceiling' -and $lastPage.beyond -eq 2 -and $lastPage.last -eq 44 -and
+        (@($lastPage.projects | ForEach-Object { $_.id }) -join ',') -eq '30') `
+        "The page that reached the ceiling did not keep project 30 and leave out the two after it: $($lastPage | ConvertTo-Json -Depth 3 -Compress)"
+
+    # A list that runs out below the ceiling ended early, whatever the reason, and stays open until
+    # a page reaches the ceiling.
+    $fakeLab = New-FakeLab
+    $early = Join-Path $coverageRoot 'early.jsonl'
+    $outcome = Invoke-Run $early @{ MaxRequests = 2 }
+    $fakeLab.Projects.Remove('30')
+    $outcome = Invoke-Run $early
+    $coverage = Test-GitLabCoverage -Path $early
+    Assert-True (-not $coverage.Complete -and (Get-Open $coverage 'page') -contains 'after 20 ended-early' -and $coverage.Projects -eq 4) `
+        'A project list that ran out below the ceiling was taken as finished.'
+    Add-FakeProject $fakeLab 44 'late/two' ([ordered]@{ main = ('44' * 20) }) @{ ('44' * 20) = 1 }
+    $outcome = Invoke-Run $early
+    $coverage = Test-GitLabCoverage -Path $early
+    Assert-True ($coverage.Complete -and $coverage.Projects -eq 5) 'A list that ended early was not read again once it reached past the ceiling.'
+
+    # The second way. A project's records match GitLab asked directly, field by field, and each
+    # kind of difference between the two is named.
+    $fakeLab = New-FakeLab
+    foreach ($case in @(@{ Id = 11; Shape = 'multi-branch'; Requests = 8 }, @{ Id = 11; Shape = 'large-tree'; Requests = 8 }, @{ Id = 12; Shape = 'empty'; Requests = 2 })) {
+        $fakeLab.Requests.Clear()
+        $check = Compare-GitLabCoverageSentinel -Path $control -ProjectId $case.Id -Shape $case.Shape -DelayMilliseconds 0
+        Assert-True ($check.Matches -and $check.Compared -gt 0 -and $check.Requests -eq $case.Requests -and $fakeLab.Requests.Count -eq $case.Requests) `
+            "Project $($case.Id) as a $($case.Shape) sentinel did not match the stand-in it was read from: $($check.Differences -join ' | ')"
+        Assert-True (@($fakeLab.Requests | Where-Object { $_.Uri -notlike 'https://gitlab.com/api/v4/*' -or $null -ne $_.Headers -or $_.Method }).Count -eq 0 -and
+            @($fakeLab.Requests | Where-Object { $_.Uri -like '*pagination=keyset*' }).Count -eq 0) `
+            'The second way went through the keyset pages the ledger was read from, or sent a header.'
+    }
+    $controlText = [IO.File]::ReadAllText($control)
+    function Assert-Difference {
+        param([long]$Id, [string]$Shape, [string]$Pattern, [string]$Case)
+        $check = Compare-GitLabCoverageSentinel -Path $control -ProjectId $Id -Shape $Shape -DelayMilliseconds 0
+        Assert-True (-not $check.Matches -and @($check.Differences -like $Pattern).Count -gt 0) "$Case was not reported ($Pattern): $($check.Differences -join ' | ')"
+    }
+    $fakeLab.Trees["11@$c11b"][76].id = 'f' * 40
+    Assert-Difference 11 'multi-branch' "*f0077.kt' id: the ledger has*GitLab has '$('f' * 40)'*" 'A blob id that differs'
+    $fakeLab = New-FakeLab
+    $fakeLab.Projects['11'].branches['dev'] = 'd' * 40
+    Assert-Difference 11 'multi-branch' "*branch 'dev': the ledger pins $c11b, GitLab has $('d' * 40)*" 'A branch at another commit'
+    $fakeLab = New-FakeLab
+    $fakeLab.Projects['11'].branches['extra'] = $c11a
+    Assert-Difference 11 'multi-branch' "*branches: the ledger has 3, GitLab counts '4'*" 'A branch the ledger does not hold'
+    $fakeLab = New-FakeLab
+    $fakeLab.Trees["11@$c11a"] = @($fakeLab.Trees["11@$c11a"] | Select-Object -First 2)
+    Assert-Difference 11 'multi-branch' '*f0003.kt'' is in the ledger and not in the tree read directly*' 'A path GitLab no longer lists'
+    Assert-Difference 11 'multi-branch' '*the ledger has 3 entries, GitLab counts 2*' 'A tree total that differs'
+    $fakeLab = New-FakeLab
+    $fakeLab.Projects['11'].path = 'one/renamed'
+    Assert-Difference 11 'multi-branch' "*path: the ledger has 'one/alpha', GitLab has 'one/renamed'*" 'A project path that differs'
+    $fakeLab = New-FakeLab
+    $fakeLab.Projects['12'].branches['main'] = $c15
+    Assert-Difference 12 'empty' '*the ledger calls it empty, and its commit list is not*' 'An empty project that has commits'
+    $fakeLab = New-FakeLab
+    Assert-Difference 12 'multi-branch' '*picked as a multi-branch project and no longer is one*' 'A sentinel that lost its shape'
+    Assert-Difference 15 'large-tree' '*picked as a large-tree project and no longer is one*' 'A large-tree sentinel whose tree fits one page'
+    Assert-Difference 99 'empty' '*holds no record of project 99*' 'A sentinel the ledger never listed'
+    Assert-True ([IO.File]::ReadAllText($control) -ceq $controlText) 'The second way wrote to the ledger it was checking.'
+
+    # The script, start to finish, in a root whose census records the GitLab skip: the ledger goes
+    # under build/, a run that hits its budget exits 1 and says how to carry on, a finished full
+    # range exits 0 and still says the census skips GitLab, and the census file is never touched.
+    $scanRoot = Join-Path $caseRoot 'scan-root'
+    New-Item -ItemType Directory -Path (Join-Path $scanRoot 'sources') -Force | Out-Null
+    $scanCensus = Get-SourceLedgerPath -Root $scanRoot
+    [IO.File]::WriteAllText($scanCensus, $censusBefore, (New-Object Text.UTF8Encoding $false))
+    function Invoke-Scan {
+        param([hashtable]$Extra = @{})
+        $arguments = @{ Root = $scanRoot; DelayMilliseconds = 0 }
+        foreach ($key in $Extra.Keys) { $arguments[$key] = $Extra[$key] }
+        $fakeLab.Requests.Clear()
+        $global:LASTEXITCODE = 0
+        $said = @(& $scanScript @arguments 6>&1 | ForEach-Object { "$_" }) -join "`n"
+        return [pscustomobject]@{ ExitCode = $LASTEXITCODE; Said = $said }
+    }
+    $fakeLab = New-FakeLab
+    $scan = Invoke-Scan @{ PerPage = 2; MaxRequests = 5 }
+    Assert-True ($scan.ExitCode -eq 1 -and $scan.Said -like '*stopped after 5 request(s)*run again*' -and $scan.Said -like '*unresolved page after 12: not-read*' -and
+        $scan.Said -like '*not complete*') "A scan that hit its request budget did not exit 1 and say what is open: $($scan.Said)"
+    $turns = 1
+    do {
+        $turns++
+        $scan = Invoke-Scan @{ PerPage = 2; MaxRequests = 5 }
+    } while ($scan.ExitCode -ne 0 -and $turns -lt 20)
+    Assert-True ($scan.ExitCode -eq 0 -and $turns -gt 2 -and $scan.Said -like '*complete for a full run*still records gitlab-code-search as skipped*') `
+        "Running the scan again did not finish it, or a finished scan claimed the census: $($scan.Said)"
+    $scan = Invoke-Scan @{ CheckOnly = $true }
+    Assert-True ($scan.ExitCode -eq 0 -and $fakeLab.Requests.Count -eq 0) "-CheckOnly made $($fakeLab.Requests.Count) requests or refused a complete ledger."
+    Assert-True ((Get-LedgerLines (Join-Path $scanRoot 'build/gitlab-coverage/ledger.jsonl')) -ceq (Get-LedgerLines $control)) `
+        'The scan did not leave the same ledger under build/gitlab-coverage as the control run.'
+
+    # -Sentinels reads the fixed sentinel projects, each as a range of one id, and checks each the
+    # second way. A complete sentinel ledger is still not the census.
+    foreach ($sentinel in Get-GitLabCoverageSentinels) {
+        $one = ('{0:x8}' -f $sentinel.Id) * 5
+        $two = ('{0:x8}' -f ($sentinel.Id + 1)) * 5
+        switch ($sentinel.Shape) {
+            'empty' { Add-FakeProject $fakeLab $sentinel.Id 'sentinel/empty' ([ordered]@{}) @{} }
+            'multi-branch' { Add-FakeProject $fakeLab $sentinel.Id 'sentinel/branches' ([ordered]@{ main = $one; next = $two }) @{ $one = 5; $two = 7 } }
+            'large-tree' { Add-FakeProject $fakeLab $sentinel.Id 'sentinel/large' ([ordered]@{ main = $one }) @{ $one = 230 } }
+        }
+    }
+    Assert-True (@(Get-GitLabCoverageSentinels).Count -ge 3 -and
+        (@(Get-GitLabCoverageSentinels | ForEach-Object { $_.Shape } | Sort-Object -Unique) -join ',') -eq 'empty,large-tree,multi-branch') `
+        'The sentinel set no longer has an empty project, one with several branches and one with a large tree.'
+    $scan = Invoke-Scan @{ Sentinels = $true }
+    Assert-True ($scan.ExitCode -eq 0 -and [regex]::Matches($scan.Said, 'matches GitLab asked directly').Count -eq @(Get-GitLabCoverageSentinels).Count -and
+        $scan.Said -like '*not all of GitLab*' -and $scan.Said -notlike '*complete for a full run*') "The sentinel check did not pass on a stand-in that matches: $($scan.Said)"
+    Assert-True (@($fakeLab.Requests | Where-Object { $_.Uri -match '/projects/(11|12|15|20|21|30)(/|$)' }).Count -eq 0) `
+        'A sentinel range of one project read projects outside it.'
+    $emptyId = @(Get-GitLabCoverageSentinels | Where-Object { $_.Shape -eq 'empty' })[0].Id
+    $fakeLab.Projects["$emptyId"].branches['main'] = $c15
+    $scan = Invoke-Scan @{ Sentinels = $true }
+    Assert-True ($scan.ExitCode -eq 1 -and $scan.Said -like '*difference: project*calls it empty, and its commit list is not*' -and $scan.Said -like '*differs in*') `
+        "A sentinel that no longer matches GitLab did not fail the check: $($scan.Said)"
+    # Each sentinel has a ledger of its own, so a 429 on one has to end the check for all of them,
+    # whether it came while reading or while checking the second way, and the wait holds after.
+    $firstId = @(Get-GitLabCoverageSentinels)[0].Id
+    $fakeLab.Failures.Add(@{ Pattern = "/projects/$firstId`$"; Status = 429; Headers = @{ 'Retry-After' = '60' }; Times = 1 })
+    $scan = Invoke-Scan @{ Sentinels = $true }
+    Assert-True ($scan.ExitCode -eq 1 -and $fakeLab.Requests.Count -eq 1 -and $scan.Said -like '*the sentinel check stops here*') `
+        "A 429 while checking a sentinel did not end the check after that request ($($fakeLab.Requests.Count) requests): $($scan.Said)"
+    # That 429 wrote no ledger record, and its wait still holds for the next scan and for a check asked for directly.
+    $scan = Invoke-Scan @{ Sentinels = $true }
+    Assert-True ($scan.ExitCode -eq 1 -and $fakeLab.Requests.Count -eq 0 -and $scan.Said -like '*of the wait GitLab asked for are left; nothing was requested*') `
+        "A scan started inside the wait a 429 asked for while checking a sentinel made $($fakeLab.Requests.Count) request(s): $($scan.Said)"
+    $fakeLab.Requests.Clear()
+    $check = Compare-GitLabCoverageSentinel -Path (Join-Path (Join-Path $scanRoot 'build/gitlab-coverage') "sentinel-$firstId.jsonl") -ProjectId $firstId -DelayMilliseconds 0
+    Assert-True (-not $check.Matches -and $check.Requests -eq 0 -and $fakeLab.Requests.Count -eq 0 -and $check.Stopped -eq 'rate-limited' -and $check.RetryAfter -gt 0) `
+        "A second-way check started inside a kept wait made $($fakeLab.Requests.Count) request(s)."
+    $again =Join-Path $scanRoot 'build/gitlab-coverage/again'
+    $fakeLab.Failures.Add(@{ Pattern = 'id_after='; Status = 429; Headers = @{ 'Retry-After' = '60' }; Times = 1 })
+    $scan = Invoke-Scan @{ Sentinels = $true; LedgerDirectory = $again }
+    Assert-True ($scan.ExitCode -eq 1 -and $fakeLab.Requests.Count -eq 1 -and $scan.Said -like '*rate limited (HTTP 429) after 1 request(s); GitLab asked for 60 s*' -and
+        $scan.Said -like '*the sentinel check stops here*') `
+        "A 429 while reading a sentinel did not end the check after that request ($($fakeLab.Requests.Count) requests): $($scan.Said)"
+    $scan = Invoke-Scan @{ Sentinels = $true; LedgerDirectory = $again }
+    Assert-True ($scan.ExitCode -eq 1 -and $fakeLab.Requests.Count -eq 0 -and $scan.Said -like '*of the wait GitLab asked for are left; nothing was requested*') `
+        "A sentinel check started inside the wait a 429 asked for made $($fakeLab.Requests.Count) request(s): $($scan.Said)"
+    Assert-Throws { Invoke-Scan @{ LedgerDirectory = (Join-Path $scanRoot 'sources') } } '*can''t go under sources/*' 'The scan put its ledger beside the census.'
+
+    $census = [IO.File]::ReadAllText($scanCensus) | ConvertFrom-Json
+    Assert-True ([IO.File]::ReadAllText($scanCensus) -ceq $censusBefore -and (@($census.census.skipped) -join ',') -eq 'gitlab-code-search' -and
+        $census.census.checkedAt -eq $ledger.census.checkedAt) 'The scan changed the census, its date or its gitlab-code-search skip.'
+    $written = @(Get-ChildItem -LiteralPath $scanRoot -Recurse -File | ForEach-Object { $_.FullName.Substring($scanRoot.Length + 1).Replace('\', '/') } |
+        Where-Object { $_ -notlike 'build/gitlab-coverage/*.jsonl' })
+    Assert-True (($written -join ',') -eq 'sources/facebook-sources.json') "The scan wrote outside build/gitlab-coverage: $($written -join ', ')"
+}
+Assert-True ([IO.File]::ReadAllText($ledgerPath) -ceq $censusBefore) 'The coverage ledger cases changed the checked-in census.'
+
+Write-Host '[sources] the GitLab coverage ledger carries on after any stop, refuses repeated pages and failed trees, and leaves the census alone'
+
 # --- the audit never imports code ----------------------------------------------------------------
 
 # What the two files can do, read through the parser: no git, no archive or download tool, no
 # -OutFile, nothing that copies or writes files except the audit's two WriteAllText calls, one for
 # the report and one for the ledger's dates. Each forbidden shape is added to a copy, and the copy
-# has to be caught, so the check can't pass by seeing nothing.
+# has to be caught, so the check can't pass by seeing nothing. The coverage ledger's two files are
+# held to the same, with the one append that writes its ledger as their only way to write.
 function Get-ImportProblems {
     param([string]$Text, [string]$Name)
     $tokens = $null
@@ -903,22 +1549,65 @@ function Get-ImportProblems {
         }
     }
     $writes = 0
+    $appends = 0
     foreach ($member in $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.InvokeMemberExpressionAst] }, $true)) {
         $memberName = [string]$member.Member.Extent.Text
-        if ($memberName -in @('WriteAllBytes', 'Copy', 'Move', 'ExtractToDirectory', 'CreateFromDirectory', 'DownloadFile', 'AppendAllText')) {
+        if ($memberName -in @('WriteAllBytes', 'Copy', 'Move', 'ExtractToDirectory', 'CreateFromDirectory', 'DownloadFile')) {
             $problems.Add("$Name calls $memberName`: $($member.Extent.Text)")
         }
         if ($memberName -eq 'WriteAllText') { $writes++ }
+        if ($memberName -eq 'AppendAllText') { $appends++ }
     }
     $allowed = if ($Name -like 'audit*') { 2 } else { 0 }
     if ($writes -gt $allowed) { $problems.Add("$Name writes $writes files with WriteAllText, and only the report and the ledger stamp may.") }
+    # The coverage ledger is appended to a record at a time, from one place.
+    $allowed = if ($Name -like 'gitlab-coverage*') { 1 } else { 0 }
+    if ($appends -gt $allowed) { $problems.Add("$Name calls AppendAllText $appends time(s), and only the coverage ledger's one append may.") }
+    return $problems.ToArray()
+}
+
+# The coverage ledger's requests are anonymous reads, so nothing in its two files may hand a
+# request a header, a method, a body or a credential.
+function Get-RequestProblems {
+    param([string]$Text, [string]$Name)
+    $tokens = $null
+    $errors = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseInput($Text, [ref]$tokens, [ref]$errors)
+    $problems = New-Object System.Collections.Generic.List[string]
+    foreach ($parameter in $ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandParameterAst] }, $true)) {
+        if ($parameter.ParameterName -in @('Headers', 'Method', 'Body', 'InFile', 'Credential', 'Token', 'Authentication', 'CustomMethod')) {
+            $problems.Add("$Name hands a command -$($parameter.ParameterName): $($parameter.Parent.Extent.Text)")
+        }
+    }
+    if ($Text -cmatch '[A-Z]_TOKEN\b|PRIVATE-TOKEN|[Aa]uthorization') { $problems.Add("$Name names a token or an Authorization header.") }
     return $problems.ToArray()
 }
 $auditText = [IO.File]::ReadAllText($auditScript)
 $libraryText = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'facebook-sources.ps1'))
-foreach ($pair in @(@('audit-facebook-sources.ps1', $auditText), @('facebook-sources.ps1', $libraryText))) {
+$coverageText = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'gitlab-coverage.ps1'))
+$scanText = [IO.File]::ReadAllText($scanScript)
+foreach ($pair in @(@('audit-facebook-sources.ps1', $auditText), @('facebook-sources.ps1', $libraryText),
+        @('gitlab-coverage.ps1', $coverageText), @('scan-gitlab-coverage.ps1', $scanText))) {
     $found = @(Get-ImportProblems -Text $pair[1] -Name $pair[0])
     Assert-True ($found.Count -eq 0) ($found -join ' | ')
+}
+foreach ($pair in @(@('gitlab-coverage.ps1', $coverageText), @('scan-gitlab-coverage.ps1', $scanText))) {
+    $found = @(Get-RequestProblems -Text $pair[1] -Name $pair[0])
+    Assert-True ($found.Count -eq 0) ($found -join ' | ')
+}
+Assert-True ([regex]::Matches($coverageText, 'Invoke-WebRequest').Count -eq 1 -and $scanText -notmatch 'Invoke-WebRequest|Invoke-RestMethod|Net\.WebClient|HttpClient') `
+    'The coverage ledger makes requests somewhere other than the one place that holds them to gitlab.com.'
+foreach ($bad in @(
+        @{ Line = '[IO.File]::AppendAllText((Join-Path $rootPath ''sources/facebook-sources.json''), $line)'; Pattern = '*calls AppendAllText 2 time(s)*'; Check = 'import' }
+        @{ Line = '[IO.File]::WriteAllText($Path, $text)'; Pattern = '*writes 1 files with WriteAllText*'; Check = 'import' }
+        @{ Line = '& git clone "https://gitlab.com/$path.git" $env:TEMP'; Pattern = '*runs git*'; Check = 'import' }
+        @{ Line = 'Invoke-WebRequest -Uri $Uri -Headers @{ ''PRIVATE-TOKEN'' = $secret }'; Pattern = '*hands a command -Headers*'; Check = 'request' }
+        @{ Line = 'Invoke-WebRequest -Uri $Uri -Method Post -Body $payload'; Pattern = '*hands a command -Method*'; Check = 'request' }
+        @{ Line = '$secret = $env:GITLAB_TOKEN'; Pattern = '*names a token*'; Check = 'request' })) {
+    $copy = $coverageText + "`n" + $bad.Line + "`n"
+    $found = if ($bad.Check -eq 'import') { @(Get-ImportProblems -Text $copy -Name 'gitlab-coverage.ps1 (copy)') } else {
+        @(Get-RequestProblems -Text $copy -Name 'gitlab-coverage.ps1 (copy)') }
+    Assert-True (@($found | Where-Object { $_ -like $bad.Pattern }).Count -gt 0) "The coverage check missed: $($bad.Line)"
 }
 foreach ($bad in @(
         @{ Line = '& git clone https://github.com/example/patches.git $env:TEMP'; Pattern = '*runs git*' }

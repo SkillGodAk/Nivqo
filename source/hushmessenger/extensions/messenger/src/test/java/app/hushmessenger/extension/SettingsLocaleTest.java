@@ -80,7 +80,7 @@ public class SettingsLocaleTest {
         Bundle state = new Bundle();
         state.putString("page", "App");
         state.putString("category", "Inbox");
-        state.putString("query", "People You");
+        state.putString("query", "People You May");
         Settings.preferences.edit().putBoolean("people", true).commit();
         for (String locale : new String[] {"en-rXA", "ar-rXB", "fr-rFR"}) {
             RuntimeEnvironment.setQualifiers(locale + "-w400dp-h800dp-mdpi");
@@ -93,7 +93,7 @@ public class SettingsLocaleTest {
                 root.findViewWithTag("tab_controls").performClick();
                 assertTrue(root.findViewWithTag("tab_controls").isSelected());
                 assertTrue(root.findViewWithTag("category_inbox").isSelected());
-                assertEquals("People You", ((EditText) root.findViewWithTag("find_control")).getText().toString());
+                assertEquals("People You May", ((EditText) root.findViewWithTag("find_control")).getText().toString());
                 assertEquals(1, visibleControls(root));
                 assertTrue(((Switch) root.findViewWithTag("people")).isChecked());
                 assertTrue(Settings.enabled("people"));

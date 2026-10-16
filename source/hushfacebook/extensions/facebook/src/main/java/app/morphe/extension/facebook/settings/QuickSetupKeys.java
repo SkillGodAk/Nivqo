@@ -19,8 +19,8 @@ import app.morphe.extension.shared.settings.preference.QuickSetups;
  * <p>Quiet and Privacy only turn switches on, and only switches whose effect is plain from their
  * name and takes nothing away that someone would miss. Left out on purpose: the tabs, Marketplace
  * only and Hide Reels in the feed, which change what Facebook shows; Memories, birthdays, events
- * and the other notifications people ask for; Meta AI's Imagine, its buttons under posts and its
- * comment summaries, which some people use; Hide read receipts, which can leave a chat unread on
+ * and the other notifications people ask for; Meta AI's Imagine, its buttons under posts and in
+ * Chats and its comment summaries, which some people use; Hide read receipts, which can leave a chat unread on
  * this phone; Don't send reel watch history, which changes how reels are ranked; View stories
  * anonymously, which leaves stories unseen; and Open links in your browser, which changes how
  * every link opens. Back to defaults puts every switch a settings file carries back the way it

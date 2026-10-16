@@ -54,6 +54,7 @@ final class SwitchLabels {
         if (setting == Settings.HIDE_VIDEO_POSTS) return L10n.t("Hide video posts");
         if (setting == Settings.HIDE_LINK_POSTS) return L10n.t("Hide link posts");
         if (setting == Settings.HIDE_BACKGROUND_POSTS) return L10n.t("Hide posts on a colored background");
+        if (setting == Settings.HIDE_REPOSTS) return L10n.t("Hide reposts");
         if (setting == Settings.HIDE_SPONSORED_STORIES) return L10n.t("Hide sponsored stories");
         if (setting == Settings.HIDE_SUGGESTED_STORIES) return L10n.t("Hide suggested stories");
         if (setting == Settings.HIDE_CONTACT_IMPORT_CARD) return L10n.t("Hide \"Find friends from contacts\"");
@@ -138,9 +139,11 @@ final class SwitchLabels {
         if (setting == Settings.DOWNLOAD_PHOTOS) return L10n.t("Save any photo");
         if (setting == Settings.POST_MENU_PHOTO_SAVE) return L10n.t("Save photo in post menus");
         if (setting == Settings.DOWNLOAD_COMPATIBLE) return L10n.t("Save videos other apps can open");
+        if (setting == Settings.DOWNLOAD_QUIET) return L10n.t("Quiet saves");
         if (setting == Settings.HIDE_GET_MESSENGER_CARD) return L10n.t("Hide the Get Messenger card");
         if (setting == Settings.HIDE_CHAT_NOTES_TRAY) return L10n.t("Hide the notes and active now row");
         if (setting == Settings.HIDE_CHAT_PROMOTIONS) return L10n.t("Hide chat list promotions");
+        if (setting == Settings.HIDE_CHAT_META_AI_BUTTON) return L10n.t("Hide the Meta AI button in Chats");
         if (setting == Settings.OPEN_MESSENGER_APP) return L10n.t("Open the Messenger app");
         if (setting == Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER) return L10n.t("Leave calls and chats to Messenger");
         if (setting == Settings.SAVED_SHORTCUT) return L10n.t("Saved shortcut");
