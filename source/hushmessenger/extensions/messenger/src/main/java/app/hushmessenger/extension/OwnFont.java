@@ -22,6 +22,60 @@ final class OwnFont {
     static final String KEY = "custom_font";
     /** The picked file's name. Empty means the phone's font. */
     static final String NAME_KEY = "custom_font_name";
+    /** #48: the picked file's size in percent, 100 as the font comes. */
+    static final String SCALE_KEY = "custom_font_scale";
+    /** #48: how far the picked file's text sits lower in the line, in percent of its size. Negative is higher. */
+    static final String SHIFT_KEY = "custom_font_shift";
+
+    /** The saved size, held to the steps the settings offer. */
+    static int scale(SharedPreferences prefs) {
+        int scale = prefs.getInt(SCALE_KEY, 100);
+        return scale < FontFile.SCALE_LEAST || scale > FontFile.SCALE_MOST ? 100 : scale;
+    }
+
+    /** The saved move, held to the steps the settings offer. */
+    static int shift(SharedPreferences prefs) {
+        int shift = prefs.getInt(SHIFT_KEY, 0);
+        return Math.abs(shift) > FontFile.SHIFT_MOST ? 0 : shift;
+    }
+
+    /**
+     * Saves [value], a String or an Integer, under [key], or puts back the value it had when the save fails. Android takes
+     * a commit into memory before it learns whether the disk took it, so a failed one would otherwise stay in use, and the
+     * next write of any setting would save it.
+     */
+    static boolean save(SharedPreferences prefs, String key, Object value) {
+        Object before = prefs.getAll().get(key);
+        boolean saved;
+        try {
+            saved = put(prefs.edit(), key, value).commit();
+        } catch (RuntimeException failure) {
+            saved = false;
+        }
+        if (!saved) restore(prefs, key, before);
+        return saved;
+    }
+
+    /** Puts [before] back under [key], and a null as no value at all. Memory takes it even when the disk still won't. */
+    static void restore(SharedPreferences prefs, String key, Object before) {
+        try {
+            put(prefs.edit(), key, before).commit();
+        } catch (RuntimeException ignored) {
+            // Nothing more to try. Saving the choice again mends it.
+        }
+    }
+
+    /** Every type a preference can hold, so an old value of a type these keys don't use still goes back as it was. */
+    @SuppressWarnings("unchecked")
+    private static SharedPreferences.Editor put(SharedPreferences.Editor edit, String key, Object value) {
+        if (value == null) return edit.remove(key);
+        if (value instanceof Integer) return edit.putInt(key, (Integer) value);
+        if (value instanceof Boolean) return edit.putBoolean(key, (Boolean) value);
+        if (value instanceof Long) return edit.putLong(key, (Long) value);
+        if (value instanceof Float) return edit.putFloat(key, (Float) value);
+        if (value instanceof java.util.Set) return edit.putStringSet(key, (java.util.Set<String>) value);
+        return edit.putString(key, String.valueOf(value));
+    }
 
     /** The phone's sans-serif and its named weights, the families {@link #isPhoneTypeface} knows. */
     private static final String[] PHONE_SANS = {"sans-serif", "sans-serif-thin", "sans-serif-light", "sans-serif-medium", "sans-serif-black"};
@@ -192,7 +246,7 @@ final class OwnFont {
             if (prefs == null || context == null) return null;
             synchronized (OwnFont.class) {
                 font = picked;
-                if (font == null) picked = font = Picked.read(prefs.getString(NAME_KEY, ""), context);
+                if (font == null) picked = font = Picked.read(prefs.getString(NAME_KEY, ""), context, scale(prefs), shift(prefs));
             }
         }
         return font == NONE ? null : font;
@@ -218,19 +272,28 @@ final class OwnFont {
             length = file == null ? 0 : file.length();
         }
 
-        static Picked read(String name, Context context) {
+        /** The picked copy, sized and moved first when [scale] or [shift] asks. One that can't be is used as it is. */
+        static Picked read(String name, Context context, int scale, int shift) {
             if (name == null || name.isEmpty()) return NONE;
             File file = FontFile.file(context);
-            Typeface base = null;
-            if (file.isFile()) {
-                try {
-                    base = new Typeface.Builder(file).build();
-                } catch (RuntimeException failure) {
-                    base = null;
-                }
+            if (file.isFile() && (scale != 100 || shift != 0)) {
+                File adjusted = FontFile.adjusted(file, scale, shift);
+                Typeface sized = adjusted == null ? null : build(adjusted);
+                if (sized != null) return new Picked(adjusted, sized);
+            } else if (file.isFile()) {
+                FontFile.dropAdjusted(file.getParentFile(), null);
             }
+            Typeface base = file.isFile() ? build(file) : null;
             if (base == null) android.util.Log.w("HushMessenger", "custom_font: the picked font file is missing or didn't load, so the phone's font is used");
             return new Picked(file, base);
+        }
+
+        private static Typeface build(File file) {
+            try {
+                return new Typeface.Builder(file).build();
+            } catch (RuntimeException failure) {
+                return null;
+            }
         }
 
         /** The copy at [weight] and [italic], or null when it has nothing to build. */

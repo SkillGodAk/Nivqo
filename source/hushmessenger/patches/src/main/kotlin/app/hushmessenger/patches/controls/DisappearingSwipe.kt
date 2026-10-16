@@ -13,7 +13,7 @@ internal const val DISAPPEARING_SWIPE = "disappearing_swipe"
 /**
  * The chat's overscroll behavior. Messenger attaches it under the message list only for the swipe up that turns on
  * disappearing messages (the timer is set in its onStopNestedScroll), and one chat-view helper is its only creator. It
- * keeps this name on every 582 build.
+ * keeps this name on every 583 build.
  */
 internal const val OVERSCROLL_BEHAVIOR = "Lcom/facebook/messaging/threadview/overscroll/ui/OverScrollActionBehavior;"
 
@@ -48,5 +48,5 @@ internal fun MutableMethod.validateDisappearingSwipe() {
  */
 internal fun MutableMethod.injectDisappearingSwipe() {
     validateDisappearingSwipe()
-    injectSwitch("blockDisappearingSwipe", "0x0")
+    injectSwitch("$SETTINGS->blockDisappearingSwipe()Z", "0x0")
 }

@@ -258,6 +258,56 @@ class KeepProgressBarFixtureTest {
     }
 
     @Test
+    fun `each declared build starts the next reel's bar and time over as the scrubber takes another video`() = bundles { bundle ->
+        val name = bundle.name
+        val holders = FixtureDex.classesHolding(bundle, SCRUBBER_PASSIVE).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
+        val looks = vddScrubber(holders)
+        val scrubber = holders.single { it.type == looks.type }
+        val graph = graphHide(looks) { type -> FixtureDex.classes(bundle, setOf(type))[type] }
+        val chapters = chapterReset(scrubber, looks)
+        val base = FixtureDex.classes(bundle, setOf(scrubber.superclass!!)).values.single()
+        val another = anotherVideo(base, barInfo(base, minimumLengthCheck(scrubber)).builder.returnType)
+        assertTrue("$name: the views holder isn't ${base.type}'s, so the base can't read it", looks.viewsField.startsWith("${base.type}->"))
+
+        val context = PatchContexts.of(listOf(base))
+        val mount = context.mutableClassDefBy(base.type).methods.single { it.sameAs(another.mount) }
+        val original = mount.code()
+        val at = another.at
+        // In the patch's order: the start over goes in first, so the clear lands in front of it.
+        mount.startsNextReelOver(looks, at)
+        mount.clearsLastReel(looks, graph, chapters, at)
+        val patched = mount.code()
+        val where = "$name: ${base.type}->${another.mount.name}"
+        val local = mount.localRegisterCount()
+        val start = at + 15
+        assertEquals("$where gains six instructions after the clear's fifteen", original.size + 21, patched.size)
+        assertEquals("$where: the clear comes first", CLEARS_LAST_REEL, patched[at].reference())
+        val flow = ControlFlow.of(mount)
+        assertEquals("$where: a no to the clear still starts the reel over", setOf(at + 3, start), flow.normal[at + 2].toSet())
+        assertEquals("$where: another scrubber class still starts the reel over", setOf(at + 6, start), flow.normal[at + 5].toSet())
+        assertEquals("$where: a missing graph still starts the reel over", setOf(at + 12, start), flow.normal[at + 11].toSet())
+        assertEquals("$where: a cleared reel goes on to start over", setOf(start), flow.normal[at + 14].toSet())
+
+        val holder = (patched[start] as TwoRegisterInstruction).let {
+            assertEquals("$where: the instance moves into a local", local, it.registerB)
+            it.registerA
+        }
+        assertTrue("$where: the start over writes v$holder, which isn't a local", holder < local)
+        assertEquals("$where: the views holder", looks.viewsField, patched[start + 1].reference())
+        assertEquals("$where: a views holder not there yet goes on to Facebook", setOf(start + 3, start + 6),
+            flow.normal[start + 2].toSet())
+        assertEquals("$where: the bar", looks.barField, patched[start + 3].reference())
+        val bar = (patched[start + 3] as TwoRegisterInstruction).registerA
+        assertTrue("$where: the bar goes in v$bar, a local apart from the holder", bar < local && bar != holder)
+        assertEquals("$where: the time label", looks.labelField, patched[start + 4].reference())
+        assertEquals("$where: the extension takes both", NEXT_REEL, patched[start + 5].reference())
+        assertEquals("$where: the label, then the bar", listOf(2, holder, bar),
+            (patched[start + 5] as FiveRegisterInstruction).let { listOf(it.registerCount, it.registerC, it.registerD) })
+        assertEquals("$where: then the bar info is reset as always", setOf(start + 6), flow.normal[start + 5].toSet())
+        assertEquals("$where: Facebook's code stays", original.drop(at).map { it.opcode }, patched.drop(start + 6).map { it.opcode })
+    }
+
+    @Test
     fun `each declared build hides the most replayed graph the way the passive look does`() = bundles { bundle ->
         val name = bundle.name
         val holders = FixtureDex.classesHolding(bundle, SCRUBBER_PASSIVE).filterNot { it.type.startsWith(EXTENSION_CLASSES) }

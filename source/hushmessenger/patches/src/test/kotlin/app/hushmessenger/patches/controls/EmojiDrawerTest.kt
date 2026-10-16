@@ -20,8 +20,10 @@ private const val CONFIG = "Lcom/facebook/mobileconfig/factory/MobileConfigUnsaf
 private const val DRAWER_HELPER = "$CONFIG->A02()Z"
 internal const val DRAWER_EFFECT = "LX/H1n;->invoke(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val DRAWER_RENDERER = "LX/4wu;->render(LX/5Sd;)V"
-/** The drawer's flag in every supported build. */
-private const val FLAG = 36320652931710646L
+/** The drawer's flag in 583. */
+private const val FLAG = EMOJI_DRAWER_FLAG
+/** 582's number for it. */
+private const val FLAG_582 = 36320652931710646L
 /** An older release's number for the same flag. */
 private const val OLD_FLAG = 36320704471318256L
 private val STATIC = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
@@ -119,11 +121,11 @@ class EmojiDrawerTest {
         activeProfile = SYNTHETIC_PROFILE
     }
 
-    private fun found(classes: List<MutableClass>) = findControls(classes).getValue(EMOJI_DRAWER).map { it.hookId() }.toSet()
+    private fun found(classes: List<MutableClass>) = mirroredControls(classes).getValue(EMOJI_DRAWER).map { it.hookId() }.toSet()
 
     @Test fun theDrawerIsFoundWhereTheRendererReadsTheFlagItself() {
         assertEquals(setOf(DRAWER_RENDERER, DRAWER_EFFECT), found(emojiDrawerFixture()))
-        validateControls(findControls(emojiDrawerFixture()), setOf(EMOJI_DRAWER))
+        validateControls(mirroredControls(emojiDrawerFixture()), setOf(EMOJI_DRAWER))
     }
 
     @Test fun theFlagCountsOnlyWhenTheRendererThatThrowsTheAnchorReadsIt() {
@@ -138,15 +140,18 @@ class EmojiDrawerTest {
         )
         for ((case, classes) in cases) {
             assertTrue(found(classes).isEmpty(), case)
-            assertFailsWith<PatchException>(case) { validateControls(findControls(classes), setOf(EMOJI_DRAWER)) }
+            assertFailsWith<PatchException>(case) { validateControls(mirroredControls(classes), setOf(EMOJI_DRAWER)) }
         }
     }
 
     @Test fun anOlderReleasesFlagIsNotTheDrawer() {
-        val other = drawerEffect("LX/EfL;->invoke(Ljava/lang/Object;)Ljava/lang/Object;", OLD_FLAG)
-        val classes = listOf(fixtureClass("LX/51i;", listOf(drawerRenderer("LX/51i;->render(LX/5XD;)V", OLD_FLAG))), fixtureClass("LX/EfL;", listOf(other)))
-        assertTrue(found(classes).isEmpty())
-        assertFailsWith<PatchException> { validateControls(findControls(classes), setOf(EMOJI_DRAWER)) }
+        for (flag in listOf(FLAG_582, OLD_FLAG)) {
+            val other = drawerEffect("LX/EfL;->invoke(Ljava/lang/Object;)Ljava/lang/Object;", flag)
+            val classes = listOf(fixtureClass("LX/51i;", listOf(drawerRenderer("LX/51i;->render(LX/5XD;)V", flag))), fixtureClass("LX/EfL;", listOf(other)))
+            assertTrue(found(classes).isEmpty(), "$flag")
+            assertFailsWith<PatchException>("$flag") { validateControls(mirroredControls(classes), setOf(EMOJI_DRAWER)) }
+            assertFailsWith<PatchException>("$flag") { drawerRenderer(flag = flag).validateEmojiDrawer() }
+        }
     }
 
     @Test fun everyFlagReadPassesThroughTheExtension() {

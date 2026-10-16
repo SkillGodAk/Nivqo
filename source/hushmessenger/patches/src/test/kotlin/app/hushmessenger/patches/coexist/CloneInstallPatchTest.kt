@@ -390,6 +390,24 @@ class CloneInstallPatchTest {
         assertEquals(checkBefore.filterIndexed { i, _ -> i != 6 }, replaced.filterIndexed { i, _ -> i != 6 })
     }
 
+    @Test fun messenger583sBackupLookupTakesMessengersNameFromTheStringPool() {
+        val pooled = LOOKUP_BODY.replace("const-string v0, \"com.facebook.orca\"", "const/16 v0, 0x51\ninvoke-static {v0}, $POOL\nmove-result-object v0")
+        val pools = ownNamePoolKeys(listOf(fixtureClass("LX/000;", listOf(stringPool()))))
+        // Without the pool's keys it no longer names Messenger, and the pool's other key names another app.
+        assertFalse(backupLookup(pooled).isBackupLookup())
+        assertFalse(backupLookup(pooled.replace("0x51", "0x50")).isBackupLookup(pools))
+        assertFailsWith<PatchException> { applyCloneSites(backupLookup(pooled), attachmentCheck(), COPY) }
+        val lookup = backupLookup(pooled)
+        val check = attachmentCheck()
+        assertEquals(setOf("LX/E6y;-><init>()V", "LX/4M6;->A00(Ljava/lang/String;)Z"),
+            findCloneSites(listOf(fixtureClass("LX/E6y;", listOf(lookup)), fixtureClass("LX/4M6;", listOf(check))), pools))
+        val before = lookup.code()
+        applyCloneSites(lookup, check, COPY, pools = pools)
+        assertEquals(7 to "com.facebook.orca", lookup.loads(5))
+        assertEquals(before.take(5), lookup.code().take(5))
+        assertEquals(before.drop(5), lookup.code().drop(6))
+    }
+
     @Test fun aChangedLookupOrCheckStopsThePatchBeforeEitherChanges() {
         val readTwice = LOOKUP_BODY.replace("move-result-object v7\n", "move-result-object v7\n" +
             "invoke-virtual {v4}, Landroid/content/Context;->getPackageName()Ljava/lang/String;\nmove-result-object v6\n")
@@ -463,11 +481,11 @@ class CloneInstallPatchTest {
         val families = MessengerTarget.VERSION_CODES.map { expectedCloneSitesFor(it.toString()) }.toSet()
         assertEquals(2, families.size)
         assertTrue(families.all { it.size == 7 && it.count { id -> '@' in id } == 5 })
-        assertEquals(setOf("LX/Umq;-><init>()V", "LX/4Is;->A00(Ljava/lang/String;)Z",
-            "LX/38v;->A00(Landroid/content/Intent;Landroid/content/Context;)V@1",
-            "LX/Q2n;->A04(Landroid/os/Bundle;)LX/RWk;@225", "LX/Q2n;->A04(Landroid/os/Bundle;)LX/RWk;@318",
-            "LX/C98;->onClick(Landroid/view/View;)V@81", "LX/JL0;->onClick(Landroid/view/View;)V@104"), expectedCloneSitesFor("346415707"))
-        assertFailsWith<PatchException> { expectedCloneSitesFor("346415999") }
+        assertEquals(setOf("LX/EEi;-><init>()V", "LX/4HM;->A00(Ljava/lang/String;)Z",
+            "LX/38n;->A00(Landroid/content/Intent;Landroid/content/Context;)V@1",
+            "LX/KRb;->A04(Landroid/os/Bundle;)LX/Lpm;@231", "LX/KRb;->A04(Landroid/os/Bundle;)LX/Lpm;@328",
+            "LX/C7O;->onClick(Landroid/view/View;)V@79", "LX/JmU;->onClick(Landroid/view/View;)V@108"), expectedCloneSitesFor("346611351"))
+        assertFailsWith<PatchException> { expectedCloneSitesFor("346611999") }
     }
 
     @Test fun theManifestMovesOnlyWhenACloneIsRequestedAndAfterSettingsAreAdded(@TempDir temporary: Path) {
@@ -551,7 +569,7 @@ class CloneInstallPatchTest {
             val loads = sites.map { (method, call) -> method.selfIntentSite(call, pools) }
             // Four calls only send the name. The story link button also checks it's installed and opens its store page.
             assertEquals(listOf(1, 1, 1, 1, 3), sites.zip(loads).map { (site, load) -> site.first.readersOf(load.first, load.second).size }.sorted(), code)
-            val (at, register) = lookup.backupLookupSite()
+            val (at, register) = lookup.backupLookupSite(pools)
             val before = lookup.code()
             val sitesBefore = sites.map { it.first }.distinct().associateWith { it.code() }
             applyCloneSites(lookup, check, CLONE_DEFAULT_PACKAGE, sites, pools)

@@ -5,11 +5,16 @@
 package app.morphe.extension.facebook.media;
 
 import android.app.Activity;
+import android.app.Application;
 import android.app.PictureInPictureParams;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.View;
 
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import java.lang.ref.WeakReference;
@@ -53,6 +58,11 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * screen. Its checks for ads, live videos and the video's shape stay Facebook's, so those still open
  * no window.
  *
+ * <p>When the Reels tab's window floats, it holds Facebook's main screen and the task every Facebook
+ * activity joins, so a link, a notification or a settings shortcut opened meanwhile drew its page in
+ * the window and left it there. A page opening in that task while the window floats brings Facebook
+ * back full screen ({@link #arrived}).
+ *
  * <p>Off, paused, before the settings are ready, or when anything here fails, the answer is
  * Facebook's own.
  */
@@ -87,8 +97,17 @@ public final class PictureInPicture {
     /** Counted each time the Video tab's flag for its deep-dive viewer says yes where Facebook's answer was no. */
     static final String HOME_FLAG = "video tab flag opened";
 
+    /** Counted each time a page opened in the floating window's task brought Facebook back full screen. */
+    static final String BROUGHT_BACK = "page opened in the window brought back full screen";
+
     /** How many new view ids the viewer may go through for one nothing on screen holds. */
     private static final int VIEWER_ID_TRIES = 64;
+
+    /**
+     * How long after bringing Facebook back another page in the window waits before it may do so
+     * again, so a start that didn't bring the window back can't start Facebook over and over.
+     */
+    static final long BRING_BACK_GAP_MS = 3000;
 
     private static final String FAMILY = FamilyNames.PICTURE_IN_PICTURE;
 
@@ -108,6 +127,12 @@ public final class PictureInPicture {
      * keeps its own: a swipe arms again with them for the next reel's player.
      */
     private static Object[] arming;
+
+    /** When a page in the window last brought Facebook back, in uptime milliseconds. */
+    private static long broughtBackAt = -BRING_BACK_GAP_MS;
+
+    /** The application the page watch went on, so arming again adds no second one. */
+    private static WeakReference<Application> watching = new WeakReference<>(null);
 
     private PictureInPicture() {
     }
@@ -156,9 +181,101 @@ public final class PictureInPicture {
     public static void armed(Activity activity, Object player, Object[] arguments) {
         try {
             arm(activity, player, arguments);
+            if (activity != null) watch(activity.getApplication());
             Logger.printDebug(() -> "Picture-in-picture: armed for player " + System.identityHashCode(player));
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "arming", failure);
+        }
+    }
+
+    /**
+     * Puts the page watch on [application] once. The first arming comes long after Facebook's
+     * application set itself up, which its override of the registration needs.
+     */
+    private static synchronized void watch(Application application) {
+        if (application == null || watching.get() == application) return;
+        application.registerActivityLifecycleCallbacks(new Arrivals());
+        watching = new WeakReference<>(application);
+    }
+
+    /** Hands each Facebook activity as it's created to {@link #arrived}. */
+    static final class Arrivals implements Application.ActivityLifecycleCallbacks {
+        @Override
+        public void onActivityCreated(Activity activity, @Nullable Bundle state) {
+            arrived(activity);
+        }
+
+        @Override
+        public void onActivityStarted(Activity activity) {
+        }
+
+        @Override
+        public void onActivityResumed(Activity activity) {
+        }
+
+        @Override
+        public void onActivityPaused(Activity activity) {
+        }
+
+        @Override
+        public void onActivityStopped(Activity activity) {
+        }
+
+        @Override
+        public void onActivitySaveInstanceState(Activity activity, Bundle state) {
+        }
+
+        @Override
+        public void onActivityDestroyed(Activity activity) {
+        }
+    }
+
+    /**
+     * [activity] was just created. While the window floats with the armed screen in it, that screen's
+     * task is the one Facebook's activities join, so a page created in it opened inside the window.
+     * Android brings a floating task back full screen only for a start it counts as starting the app
+     * again, which a new page in the task isn't and the launcher's own start is (the icon tap that
+     * already brought it back on the S22). So Facebook is started that way a moment later, once the
+     * page is up, and the window comes back full screen with the page on top. Facebook's own answer,
+     * closing the window's screen when another activity resumes, is for its separate Reels viewer:
+     * nothing in a floating task resumes, and here the screen is Facebook's main one.
+     */
+    static void arrived(Activity activity) {
+        try {
+            if (activity == null || !bringingBack(activity, SystemClock.uptimeMillis())) return;
+            Intent launch = activity.getPackageManager().getLaunchIntentForPackage(activity.getPackageName());
+            if (launch == null) return;
+            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+            String page = activity.getClass().getSimpleName();
+            Utils.runOnMainThread(() -> bringBack(activity, launch, page));
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "page in the window", failure);
+        }
+    }
+
+    /**
+     * Whether [activity] opened in the armed screen's task while that screen floats in the window,
+     * with the switch on and Facebook not brought back in the last {@link #BRING_BACK_GAP_MS}, as of
+     * [now]. Answering yes starts that gap.
+     */
+    static synchronized boolean bringingBack(Activity activity, long now) {
+        Activity screen = armedScreen.get();
+        if (screen == null || screen == activity) return false;
+        if (!screen.isInPictureInPictureMode() || screen.getTaskId() != activity.getTaskId() || !on()) return false;
+        if (now - broughtBackAt < BRING_BACK_GAP_MS) return false;
+        broughtBackAt = now;
+        return true;
+    }
+
+    /** Starts Facebook from [activity] with its own launcher [launch], counting it under [page]. */
+    private static void bringBack(Activity activity, Intent launch, String page) {
+        try {
+            activity.startActivity(launch);
+            HookStatus.bound(FAMILY, "page in the window");
+            HookStatus.counted(FAMILY, BROUGHT_BACK);
+            Logger.printDebug(() -> "Picture-in-picture: " + page + " opened in the window, so Facebook was brought back full screen");
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "page in the window", failure);
         }
     }
 
@@ -418,8 +535,11 @@ public final class PictureInPicture {
         return Utils.settingsReady() && Settings.PICTURE_IN_PICTURE.get() && apiLevel >= Build.VERSION_CODES.S;
     }
 
-    /** Forgets what was armed. Tests only. */
+    /** Forgets what was armed and when a page last brought Facebook back. Tests only. */
     static void forget() {
         arm(null, null, null);
+        synchronized (PictureInPicture.class) {
+            broughtBackAt = -BRING_BACK_GAP_MS;
+        }
     }
 }

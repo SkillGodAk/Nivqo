@@ -25,7 +25,7 @@ internal const val SYNTHETIC_SEARCH_BAR = "LX/28Z;->A00(LX/1SO;LX/1vn;Lcom/faceb
 
 private const val CHECK = "invoke-virtual {v4, v9}, LX/2Sx;->A09(Lcom/facebook/auth/usersession/FbUserSession;)Z"
 
-/** The search bar builder as 582 writes it: the Meta AI check, then the plain hint unless the check passed. */
+/** The search bar builder as Messenger writes it: the Meta AI check, then the plain hint unless the check passed. */
 private fun searchBar(check: String = CHECK, branch: String = "if-eqz v8, :pick", jump: String = "", id: String = SYNTHETIC_SEARCH_BAR) =
     fixtureMethod(id, """
         $jump
@@ -68,7 +68,7 @@ class AiSearchHintTest {
 
     @Test fun theMetaAiCheckGoesThroughTheExtensionBeforeTheHintIsPicked() {
         val method = searchBar()
-        val found = findControls(searchBarFixture())
+        val found = mirroredControls(searchBarFixture())
         assertEquals(listOf(SYNTHETIC_SEARCH_BAR), found.getValue(AI_SEARCH_HINT).map { it.hookId() })
         validateControls(found, setOf(AI_SEARCH_HINT))
         val before = method.code()

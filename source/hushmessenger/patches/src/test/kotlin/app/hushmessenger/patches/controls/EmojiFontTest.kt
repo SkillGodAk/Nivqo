@@ -19,6 +19,8 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 private const val GETTER = "LX/1L4;->A00()Landroid/graphics/Typeface;"
 private const val HOLDER = "LX/2pq;"
@@ -50,6 +52,24 @@ private val HOLDER_INIT_BODY = """
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
     iput-object p2, p0, $HOLDER->A01:Ljava/io/File;
     iput-object p1, p0, $HOLDER->A00:Landroid/graphics/Typeface;
+    return-void
+""".trimIndent()
+
+private const val SNIPPET = "LX/2jP;"
+private const val SNIPPET_INIT = "$SNIPPET-><init>(Ljava/lang/CharSequence;)V"
+
+/** 346611369's LastMessageSnippetImpl.A01 cut down: it wraps a copy in a SpannableString, then builds the snippet. */
+private val MAKER_BODY = """
+    new-instance v0, Landroid/text/SpannableString;
+    invoke-direct {v0, p1}, Landroid/text/SpannableString;-><init>(Ljava/lang/CharSequence;)V
+    new-instance v1, $SNIPPET
+    invoke-direct {v1, p1}, $SNIPPET_INIT
+    return-object v1
+""".trimIndent()
+
+private val SNIPPET_INIT_BODY = """
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+    iput-object p1, p0, $SNIPPET->A00:Ljava/lang/CharSequence;
     return-void
 """.trimIndent()
 
@@ -125,6 +145,72 @@ class EmojiFontTest {
         // With 17 registers the file parameter sits in v16, which the hook's plain invoke can't pass.
         val wide = fixtureMethod(HOLDER_INIT, HOLDER_INIT_BODY.lf(), 17, AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value)
         assertFailsWith<PatchException> { wide.validateEmojiFontHolder() }
+    }
+
+    private val constructor = AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value
+
+    private fun maker(body: String = MAKER_BODY.lf()) =
+        fixtureClass(SNIPPET_MAKER, listOf(fixtureMethod("$SNIPPET_MAKER->A01(Ljava/lang/CharSequence;)Ljava/lang/Object;", body, 4)))
+
+    private fun snippetInit(registers: Int = 2) = fixtureMethod(SNIPPET_INIT, SNIPPET_INIT_BODY.lf(), registers, constructor)
+
+    private fun snippet(
+        type: String = SNIPPET,
+        inits: List<com.android.tools.smali.dexlib2.iface.Method> = listOf(snippetInit()),
+        flags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value,
+        name: String = "LastMessageThreadSnippet(text=",
+        fields: List<String> = listOf("Ljava/lang/CharSequence;"),
+    ) = fixtureClass(type, inits + fixtureMethod("$type->toString()Ljava/lang/String;", "const-string v0, \"$name\"\nreturn-object v0", 1),
+        flags = flags, extraFields = fields.mapIndexed { n, field -> ImmutableField(type, "A0$n", field, AccessFlags.FINAL.value, null, null, null) })
+
+    @Test fun theChatListSnippetIsTheClassLastMessageSnippetImplBuildsThatNamesItself() {
+        // The SpannableString it also builds isn't one of Messenger's classes, so the lookup passes over it.
+        assertEquals(SNIPPET_INIT, likeSnippetInit(mapOf(SNIPPET_MAKER to maker(), SNIPPET to snippet())::get))
+    }
+
+    @Test fun theSnippetsTextGoesThroughTheExtensionBeforeItIsStored() {
+        val init = snippetInit()
+        val original = init.implementation!!.instructions.toList()
+        init.injectLikeSnippet()
+        val code = init.implementation!!.instructions.toList()
+        assertEquals(CHAT_LIST_SNIPPET_CALL, reference(code[1]))
+        assertEquals(1, (code[1] as FiveRegisterInstruction).registerC)
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, code[2].opcode)
+        assertEquals(1, (code[2] as OneRegisterInstruction).registerA)
+        assertEquals(original.map { it.opcode }, (code.take(1) + code.drop(3)).map { it.opcode })
+    }
+
+    @Test fun aChangedSnippetIsLeftAloneAndTheRestOfUseSystemEmojiStillApplies() {
+        val other = "LX/9zz;"
+        val twoInits = listOf(snippetInit(), fixtureMethod("$SNIPPET-><init>()V", "return-void", 1, constructor))
+        for (classes in listOf(
+            mapOf(SNIPPET to snippet()),
+            mapOf(SNIPPET_MAKER to maker()),
+            mapOf(SNIPPET_MAKER to maker(), SNIPPET to snippet(flags = AccessFlags.PUBLIC.value)),
+            mapOf(SNIPPET_MAKER to maker(), SNIPPET to snippet(inits = twoInits)),
+            mapOf(SNIPPET_MAKER to maker(), SNIPPET to snippet(name = "ThreadSnippet(text=")),
+            mapOf(SNIPPET_MAKER to maker(), SNIPPET to snippet(fields = listOf("Ljava/lang/CharSequence;", "I"))),
+            // With 17 registers the text sits in v16, which the hook's plain invoke can't pass.
+            mapOf(SNIPPET_MAKER to maker(), SNIPPET to snippet(inits = listOf(snippetInit(17)))),
+            // Two classes it builds that both name themselves: no telling which one the chat list shows.
+            mapOf(SNIPPET_MAKER to maker(MAKER_BODY.lf().replace("Landroid/text/SpannableString;", other)),
+                SNIPPET to snippet(), other to snippet(type = other)),
+        )) assertNull(likeSnippetInit(classes::get), classes.keys.toString())
+        assertFailsWith<PatchException> { snippetInit(17).injectLikeSnippet() }
+    }
+
+    @Test fun everyStockBuildBuildsItsChatListSnippetTheSameWay() {
+        val root = System.getenv("HUSH_NATIVE_FIXTURES")
+        assumeTrue(root != null, "Set HUSH_NATIVE_FIXTURES to the exact stock fixture directory")
+        val apks = Files.list(Path.of(root!!)).use { it.filter { p -> p.toString().endsWith(".apk") }.sorted().toList() }
+        for (apk in apks) {
+            val dex = DexFileFactory.loadDexContainer(apk.toFile(), Opcodes.forApi(35))
+            val byType = dex.dexEntryNames.flatMap { dex.getEntry(it)!!.dexFile.classes }.associateBy { it.type }
+            val init = assertNotNull(likeSnippetInit { byType[it] }, apk.fileName.toString())
+            val method = MutableMethod(byType.getValue(init.substringBefore("->")).methods.single { it.hookId() == init })
+            method.injectLikeSnippet()
+            assertEquals(CHAT_LIST_SNIPPET_CALL, reference(method.implementation!!.instructions.elementAt(1)), apk.fileName.toString())
+        }
     }
 
     @Test fun everyStockBuildLoadsMessengersFontThroughOneHolder() {

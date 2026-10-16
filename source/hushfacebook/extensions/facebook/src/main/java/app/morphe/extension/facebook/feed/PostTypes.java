@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
+import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -19,9 +20,11 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * posts written on a colored background, read the way Facebook's own code reads them.
  *
  * <p>A post's attachments each carry a {@code style_list}, the GraphQL attachment styles Facebook
- * may draw it in, best first. The first is the one it draws, so that's the one judged: PHOTO and
+ * may draw it in, best first. Facebook's AttachmentStyleUtil draws the first one a surface supports,
+ * and the first is the one judged: PHOTO and
  * ALBUM are photos, VIDEO, VIDEO_INLINE and VIDEO_AUTOPLAY videos, SHARE, SHARE_LARGE_IMAGE and
- * IMAGE_SHARE a shared link. The styles are an enum Redex renames, but a constant's
+ * IMAGE_SHARE a shared link. An attachment led by a style none of those name is a shared link when
+ * {@link #siteVerdict} finds a site. The styles are an enum Redex renames, but a constant's
  * {@link Enum#name()} is the literal it was built with. A colored background is the story's
  * {@code text_format_metadata}, a TextFormatMetadata model, holding a colour, a background colour,
  * a font style, a font weight or a text alignment: the five fields Facebook's own check of a
@@ -57,6 +60,15 @@ public final class PostTypes {
     static final Set<String> VIDEO_STYLES = new HashSet<>(Arrays.asList("VIDEO", "VIDEO_INLINE", "VIDEO_AUTOPLAY",
             "VIDEO_DIRECT_RESPONSE", "VIDEO_DIRECT_RESPONSE_AUTOPLAY"));
     static final Set<String> LINK_STYLES = new HashSet<>(Arrays.asList("SHARE", "SHARE_LARGE_IMAGE", "IMAGE_SHARE"));
+    /** The two styles Facebook's own check of a link story looks for anywhere in an attachment's list. */
+    static final Set<String> SHARE_STYLES = new HashSet<>(Arrays.asList("SHARE", "SHARE_LARGE_IMAGE"));
+
+    /** What {@link #siteVerdict} found. Only a site makes the attachment a shared link. */
+    static final String SITE = "a site";
+    static final String NO_SHARE_STYLE = "no SHARE style";
+    static final String NOT_A_TREE = "not a tree model";
+    static final String NO_URL = "no url";
+    static final String FACEBOOK_LINK = "a Facebook link";
 
     /** The GraphQL type of a story's text format, and the fields Facebook's check of one reads. */
     static final String TEXT_FORMAT_TYPE = "TextFormatMetadata";
@@ -222,6 +234,12 @@ public final class PostTypes {
                 String style = firstStyle(styles);
                 if (style == null) continue;
                 String kind = kind(style);
+                if (wanted.links && kind.equals(style)) {
+                    String verdict = siteVerdict(attachment, styles);
+                    Logger.printDebug(() -> "Post types: an attachment drawn first as " + style + " "
+                            + names(styles) + ": " + verdict);
+                    if (SITE.equals(verdict)) kind = LINK;
+                }
                 if (wanted.hides(kind)) return kind;
                 if (first == null) first = style;
             }
@@ -240,6 +258,50 @@ public final class PostTypes {
             return style instanceof Enum ? ((Enum<?>) style).name() : null;
         }
         return null;
+    }
+
+    /**
+     * Whether an attachment whose first style is none of the kinds still shares a website, as one of
+     * the verdicts below: {@link #SITE} when its list holds SHARE or SHARE_LARGE_IMAGE anywhere, the
+     * pair Facebook's own check of a link story looks for, and its {@code url} leads off Facebook. On
+     * 582 Home a website link's list reads NATIVE_TEMPLATES, SHARE, FALLBACK, and Facebook draws the
+     * first style a surface supports, so the first style alone missed every one. A shared reel
+     * (MESSENGER_GENERIC_TEMPLATE, FB_SHORTS) has no SHARE, and a shared event links to facebook.com,
+     * so both stay. The verdict never holds the link.
+     */
+    static String siteVerdict(Object attachment, Object styles) {
+        boolean share = false;
+        for (Object style : (Iterable<?>) styles) {
+            if (style instanceof Enum && SHARE_STYLES.contains(((Enum<?>) style).name())) {
+                share = true;
+                break;
+            }
+        }
+        if (!share) return NO_SHARE_STYLE;
+        PostText.Members found = PostText.members();
+        if (!found.complete() || !found.treeModel.isInstance(attachment)) return NOT_A_TREE;
+        try {
+            Object url = found.cachedString.invoke(attachment, PostSources.URL_KEY);
+            String host = url instanceof String ? PostSources.host((String) url) : null;
+            if (host == null) return NO_URL;
+            return PostSources.isFacebook(host) ? FACEBOOK_LINK : SITE;
+        } catch (InvocationTargetException failure) {
+            HookStatus.threw(FAMILY, "attachment url reader", failure.getCause());
+            return READ_FAILED;
+        } catch (ReflectiveOperationException | RuntimeException failure) {
+            HookStatus.threw(FAMILY, "attachment url reader", failure);
+            return READ_FAILED;
+        }
+    }
+
+    /** The names of an attachment's styles, in order, for the debug log. */
+    private static String names(Object styles) {
+        StringBuilder out = new StringBuilder("[");
+        for (Object style : (Iterable<?>) styles) {
+            if (out.length() > 1) out.append(", ");
+            out.append(style instanceof Enum ? ((Enum<?>) style).name() : "?");
+        }
+        return out.append(']').toString();
     }
 
     /** The kind a drawn style makes a post, or the style itself when it's none of them. */

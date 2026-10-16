@@ -24,14 +24,17 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 private const val CHAT_LIST = "$EXTENSION_PACKAGE/chats/ChatList;"
 internal const val NOTES_TILES_HOOK = "$CHAT_LIST->notesTiles(Ljava/util/List;)Ljava/util/List;"
 internal const val HIDES_PROMOTION = "$CHAT_LIST->hidesPromotion()Z"
+internal const val META_AI_BUTTON_HOOK = "$CHAT_LIST->metaAiButton(Ljava/lang/Object;)Ljava/lang/Object;"
+internal const val PICKER_META_AI_HOOK = "$CHAT_LIST->showsSearchMetaAiButton(Z)Z"
 internal const val IMMUTABLE_COPY_OF = "$IMMUTABLE_LIST_TYPE->copyOf(Ljava/util/Collection;)$IMMUTABLE_LIST_TYPE"
 
 /**
- * Two switches for the list inside Facebook's own Chats: the row of notes and active friends above
- * the chats, and the promotion banners at the top. See ChatListAnchors.kt for what each hook sits
- * on and why only these two pieces are here.
+ * Three switches for the list inside Facebook's own Chats: the row of notes and active friends
+ * above the chats, the promotion banners at the top, and the Meta AI button in the search row and
+ * on the search screen. See
+ * ChatListAnchors.kt for what each hook sits on and why only these pieces are here.
  *
- * Both hooks ask their switch when Chats builds the piece, so the patch can stay in a build with
+ * Every hook asks its switch when Chats builds the piece, so the patch can stay in a build with
  * the switches off. Every anchor is found before the first edit.
  */
 @Suppress("unused")
@@ -39,8 +42,9 @@ val cleanUpChatListPatch = bytecodePatch(
     // The README table check reads this literal; CHAT_LIST_PATCH carries the same text for the messages.
     name = "Clean up Facebook's chat list",
     description = "Tidies Chats inside Facebook. One switch empties the row of notes and who's active above your " +
-        "chats, and another removes promotional banners like the one asking you to turn on notifications. Your " +
-        "chats stay. Starts off. Turn on the parts you want in Hushfacebook settings > Chats.",
+        "chats, and another removes promotional banners like the one asking you to turn on notifications. A third " +
+        "takes the Meta AI button off the search row and the search screen. Your chats stay. Starts off. Turn on the parts you want in " +
+        "Hushfacebook settings > Chats.",
     default = true,
 ) {
     category("Chats")
@@ -60,6 +64,25 @@ val cleanUpChatListPatch = bytecodePatch(
                     "takes ThreadListParams, found ${found.size}",
             )
         }
+        val openers = classDefByStrings(META_AI_ICON_CLICKED, StringComparisonType.EQUALS)
+            .filter(::opensMetaAiFromSearchRow).map { it.type }.toSet()
+        val buttons = classDefByStrings(SEARCH_BAR_TAG, StringComparisonType.EQUALS)
+            .flatMap { owner -> owner.methods.mapNotNull { metaAiButtonSite(it, openers) } }
+        val button = buttons.singleOrNull() ?: throw PatchException(
+            "$CHAT_LIST_PATCH: expected one search row that tags \"$SEARCH_BAR_TAG\" and builds a Meta AI button " +
+                "reporting \"$META_AI_ICON_CLICKED\", found ${buttons.size}",
+        )
+        val pickers = classDefByStrings(PEOPLE_PICKER_ENTRY, StringComparisonType.EQUALS)
+            .mapNotNull { opener -> pickerRowOf(opener)?.let { row -> opener.type to row } }
+        val (pickerOpener, pickerRow) = pickers.singleOrNull() ?: throw PatchException(
+            "$CHAT_LIST_PATCH: expected one Meta AI tap opening \"$PEOPLE_PICKER_ENTRY\" after reading its row's " +
+                "CallerContext, found ${pickers.size}",
+        )
+        val gates = classDefByOrNull(pickerRow)?.methods?.mapNotNull { pickerButtonGate(it, pickerOpener) }.orEmpty()
+        val gate = gates.singleOrNull() ?: throw PatchException(
+            "$CHAT_LIST_PATCH: expected one method of $pickerRow that sets its Meta AI flag once and builds the " +
+                "button behind it, found ${gates.size}",
+        )
         // Everything that edits needs room first, so a build without it is refused before any edit.
         val tray = mutableClassDefBy(store.method.definingClass).methods.single {
             it.name == store.method.name && it.parameterTypes.map(Any::toString) == store.method.parameterTypes.map(Any::toString)
@@ -69,7 +92,15 @@ val cleanUpChatListPatch = bytecodePatch(
                 it.name == question.name && it.parameterTypes.map(Any::toString) == question.parameterTypes.map(Any::toString)
             }
         }
+        val row = mutableClassDefBy(button.method.definingClass).methods.single {
+            it.name == button.method.name && it.parameterTypes.map(Any::toString) == button.method.parameterTypes.map(Any::toString)
+        }
+        val picker = mutableClassDefBy(gate.method.definingClass).methods.single {
+            it.name == gate.method.name && it.parameterTypes.map(Any::toString) == gate.method.parameterTypes.map(Any::toString)
+        }
         tray.emptyTilesWhileHidden(store.store, store.list)
+        row.dropMetaAiButtonWhileHidden(button)
+        picker.lowerMetaAiFlagWhileHidden(gate)
         // 577's diode question has no local at all (it works in its parameter registers), so a
         // question without one is replaced by a copy with its parameters moved down, freeing v0.
         asks.forEach { ask ->
@@ -97,6 +128,40 @@ internal fun MutableMethod.emptyTilesWhileHidden(store: Int, list: Int) {
             move-result-object v$list
             invoke-static/range { v$list .. v$list }, $IMMUTABLE_COPY_OF
             move-result-object v$list
+        """,
+    )
+}
+
+/**
+ * Right after the search row builds its Meta AI button, the button goes through the extension,
+ * which hands back null while the switch is on; the row's own null check then leaves the button
+ * out. The cast gives the register back its type for whatever reads it next.
+ */
+internal fun MutableMethod.dropMetaAiButtonWhileHidden(site: MetaAiButtonSite) {
+    val register = site.register
+    addInstructions(
+        site.result + 1,
+        """
+            invoke-static/range { v$register .. v$register }, $META_AI_BUTTON_HOOK
+            move-result-object v$register
+            check-cast v$register, ${site.type}
+        """,
+    )
+}
+
+/**
+ * Right before the search screen's row tests its Meta AI flag to build the button, the flag goes
+ * through the extension, which answers 0 while the switch is on and keeps a 0 a 0. The row's earlier
+ * test still sees Facebook's own flag, so the search box keeps the end margin it has beside the
+ * button instead of running to the screen's edge. No jump lands on the test, so every way there asks.
+ */
+internal fun MutableMethod.lowerMetaAiFlagWhileHidden(gate: PickerButtonGate) {
+    val flag = gate.register
+    addInstructions(
+        gate.test,
+        """
+            invoke-static/range { v$flag .. v$flag }, $PICKER_META_AI_HOOK
+            move-result v$flag
         """,
     )
 }

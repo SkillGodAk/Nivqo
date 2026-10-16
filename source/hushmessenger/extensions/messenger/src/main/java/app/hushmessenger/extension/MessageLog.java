@@ -11,6 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.security.KeyStore;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -51,6 +53,7 @@ public final class MessageLog {
     /** One message keeps at most this much text, and the whole log at most this many bytes before encryption. */
     static final int MAX_TEXT_CHARS = 8_000;
     static final int MAX_THREAD_CHARS = 256;
+    static final int MAX_ID_CHARS = 256;
     static final int MAX_PLAIN_BYTES = 2 * 1024 * 1024;
     /** A file bigger than this was never written by this log, so it's set aside without reading it. */
     static final long MAX_FILE_BYTES = 8L * 1024 * 1024;
@@ -60,8 +63,8 @@ public final class MessageLog {
     static final long NAME_DELAY_MS = 2_000;
     static final int MAX_NAME_CHARS = 200;
     /**
-     * Messenger can build one message's notification twice, from the push and again from the sync, so the same text in
-     * the same chat this soon after is that message again.
+     * Messenger can build one message's notification twice, from the push and again from the sync, so the same message id
+     * in the same chat this soon after is that message again.
      */
     static final long DUPLICATE_WINDOW_MS = 60_000;
     /** Names auto reply read off a notification, kept for this many captures at most. */
@@ -82,10 +85,10 @@ public final class MessageLog {
     /** Messages captured but not yet written, oldest first. Guarded by itself. */
     private static final ArrayDeque<Entry> PENDING = new ArrayDeque<>();
     private static boolean drainScheduled;
-    /** When each recent capture came in, by chat and text, oldest first. Guarded by PENDING. */
+    /** When each recent capture came in, by chat and message id or a digest of its words, oldest first. Guarded by PENDING. */
     private static final LinkedHashMap<String, Long> RECENT = new LinkedHashMap<>();
-    /** Sender and group name auto reply read before answering, by chat and text. Guarded by itself. */
-    private static final LinkedHashMap<String, String[]> NOTED = new LinkedHashMap<>();
+    /** Sender and group name auto reply read before answering, by chat and message id. Guarded by itself. */
+    static final LinkedHashMap<String, String[]> NOTED = new LinkedHashMap<>();
 
     /**
      * One stored message. The thread is Messenger's key for the chat, used only to group and match entries. The sender
@@ -97,15 +100,21 @@ public final class MessageLog {
         public final String text;
         public final String sender;
         public final String chat;
+        /** Messenger's id for the message, empty when the hook had none. Kept in memory only, never in the file. */
+        final String id;
         Entry(long time, String thread, String text) {
             this(time, thread, text, "", "");
         }
         Entry(long time, String thread, String text, String sender, String chat) {
+            this(time, thread, text, sender, chat, "");
+        }
+        Entry(long time, String thread, String text, String sender, String chat, String id) {
             this.time = time;
             this.thread = thread;
             this.text = text;
             this.sender = sender == null ? "" : sender;
             this.chat = chat == null ? "" : chat;
+            this.id = id == null ? "" : id;
         }
     }
 
@@ -137,24 +146,34 @@ public final class MessageLog {
      * The hook calls this after it reads the message. It only adds the message to a short in-memory queue and returns;
      * one write on the log's own thread takes everything queued, so a burst of notifications costs one rewrite.
      */
-    static void record(String text, String thread) {
+    static void record(String text, String thread, String id) {
         // The write waits a moment so Messenger has posted the notification the sender's name is read from.
-        if (queue(text, thread)) WRITER.schedule(MessageLog::drain, NAME_DELAY_MS, TimeUnit.MILLISECONDS);
+        if (queue(text, thread, id)) WRITER.schedule(MessageLog::drain, NAME_DELAY_MS, TimeUnit.MILLISECONDS);
     }
 
     /** Queues and writes on the calling thread. Tests use it to skip the background thread. */
-    static void storeNow(String text, String thread) {
-        queue(text, thread);
+    static void storeNow(String text, String thread, String id) {
+        queue(text, thread, id);
         drain();
     }
 
-    /** Returns true when no write is scheduled for the queue yet. */
+    /** A capture the hook had no id for. Tests use it where the id doesn't matter. */
+    static void storeNow(String text, String thread) {
+        storeNow(text, thread, null);
+    }
+
     static boolean queue(String text, String thread) {
+        return queue(text, thread, null);
+    }
+
+    /** Returns true when no write is scheduled for the queue yet. */
+    static boolean queue(String text, String thread, String id) {
         if (text == null) return false;
         long now = System.currentTimeMillis();
-        Entry entry = new Entry(now, clip(thread == null ? "" : thread, MAX_THREAD_CHARS), clip(text, MAX_TEXT_CHARS));
+        Entry entry = new Entry(now, clip(thread == null ? "" : thread, MAX_THREAD_CHARS), clip(text, MAX_TEXT_CHARS), "", "",
+            clip(id == null ? "" : id, MAX_ID_CHARS));
         synchronized (PENDING) {
-            if (repeated(entry.thread, entry.text, now)) return false;
+            if (repeated(entry.thread, entry.id, entry.text, now)) return false;
             if (PENDING.size() >= MAX_ENTRIES) PENDING.removeFirst();
             PENDING.addLast(entry);
             if (drainScheduled) return false;
@@ -164,23 +183,75 @@ public final class MessageLog {
     }
 
     /**
-     * Whether this chat had the same text captured within DUPLICATE_WINDOW_MS, which means it's the second notification
-     * Messenger built for one message. Otherwise remembers this capture and returns false. Keeps its record across Clear,
-     * so the second half of a message that came in before a Clear can't land after it.
+     * Whether this chat had the same message id captured within DUPLICATE_WINDOW_MS, which means it's the second
+     * notification Messenger built for one message. Otherwise remembers this capture and returns false. Keeps its record
+     * across Clear, so the second half of a message that came in before a Clear can't land after it.
+     *
+     * A capture the hook had no id for falls back to its words: it pairs with one capture in the chat with the same text
+     * that hasn't been paired yet, with or without an id, either way round. Each capture pairs once, so a third "ok" in
+     * the minute is a new message, and a message whose two copies both had the id leaves nothing to pair with.
      */
-    static boolean repeated(String thread, String text, long now) {
+    static boolean repeated(String thread, String id, String text, long now) {
+        boolean hasId = id != null && !id.isEmpty();
+        // Only a digest of the words is held, and only for the window.
+        String words = text == null ? "" : digest(text);
+        String loose = thread + '\u0001' + words;
+        String unpaired = thread + '\u0002' + words + '\u0003';
         synchronized (PENDING) {
             // A clock moved back leaves times in the future, and those can't vouch for anything either.
             RECENT.values().removeIf(at -> now - at > DUPLICATE_WINDOW_MS || at > now);
-            String key = thread + '\u0000' + text;
-            if (RECENT.containsKey(key)) return true;
-            RECENT.put(key, now);
-            while (RECENT.size() > MAX_ENTRIES) {
-                Iterator<String> oldest = RECENT.keySet().iterator();
-                oldest.next();
-                oldest.remove();
+            if (hasId) {
+                String byId = thread + '\u0000' + id;
+                if (RECENT.containsKey(byId)) {
+                    RECENT.remove(unpaired + id);
+                    return true;
+                }
+                remember(byId, now);
+                if (RECENT.remove(loose) != null) return true;
+                remember(unpaired + id, now);
+                return false;
             }
+            if (RECENT.remove(loose) != null) return true;
+            for (Iterator<String> keys = RECENT.keySet().iterator(); keys.hasNext(); ) {
+                if (keys.next().startsWith(unpaired)) {
+                    keys.remove();
+                    return true;
+                }
+            }
+            remember(loose, now);
             return false;
+        }
+    }
+
+    /**
+     * SHA-256 of the words. A 32-bit hash let two different messages ("Aa" and "BB" share one) pass for the same message
+     * and lose the second. It reads the UTF-16 code units as they are, since encoding to UTF-8 would turn a lone
+     * surrogate into "?" and make two different texts one.
+     */
+    private static String digest(String text) {
+        try {
+            MessageDigest sha = MessageDigest.getInstance("SHA-256");
+            for (int i = 0; i < text.length(); i++) {
+                char unit = text.charAt(i);
+                sha.update((byte) (unit >> 8));
+                sha.update((byte) unit);
+            }
+            byte[] hash = sha.digest();
+            StringBuilder hex = new StringBuilder(hash.length * 2);
+            for (byte b : hash) hex.append(Character.forDigit((b >> 4) & 0xf, 16)).append(Character.forDigit(b & 0xf, 16));
+            return hex.toString();
+        } catch (NoSuchAlgorithmException e) {
+            // Every Java and Android runtime must provide SHA-256.
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static void remember(String key, long now) {
+        RECENT.put(key, now);
+        while (RECENT.size() > 2 * MAX_ENTRIES) {
+            Iterator<String> oldest = RECENT.keySet().iterator();
+            oldest.next();
+            oldest.remove();
         }
     }
 
@@ -196,14 +267,15 @@ public final class MessageLog {
 
     /**
      * Auto reply answers through the chat's notification, and Messenger takes that notification down once the reply goes,
-     * often before the log reads the sender's name off it. Auto reply hands the names over just before it answers.
+     * often before the log reads the sender's name off it. Auto reply hands the names over just before it answers, keyed
+     * by the message's id so they can only land on that message. Without an id nothing is noted.
      */
-    static void noteNames(String thread, String text, android.app.Notification notification) {
-        if (thread == null || text == null || notification == null || !Settings.wouldUse(KEY)) return;
-        String sender = ChatNotifications.sender(notification, text);
+    static void noteNames(String thread, String id, String text, android.app.Notification notification) {
+        if (thread == null || id == null || id.isEmpty() || text == null || notification == null || !Settings.wouldUse(KEY)) return;
+        String sender = ChatNotifications.sender(notification, text, thread);
         String chat = ChatNotifications.conversation(notification);
         if (sender == null && chat == null) return;
-        String key = clip(thread, MAX_THREAD_CHARS) + '\u0000' + clip(text, MAX_TEXT_CHARS);
+        String key = clip(thread, MAX_THREAD_CHARS) + '\u0000' + clip(id, MAX_ID_CHARS);
         synchronized (NOTED) {
             NOTED.put(key, new String[] {sender, chat});
             while (NOTED.size() > MAX_NOTED) {
@@ -229,16 +301,21 @@ public final class MessageLog {
             if (!Settings.wouldUse(KEY)) return;
             Context context = Settings.appContext;
             if (context == null) return;
+            List<Entry> retry = batch;
             try {
                 List<Entry> entries = load(context);
-                for (Entry entry : batch) entries.add(named(context, entry));
+                List<Entry> withNames = new ArrayList<>(batch.size());
+                for (Entry entry : batch) withNames.add(named(context, entry));
+                // Naming uses up Auto reply's notes, so a failed write retries these with their names.
+                retry = withNames;
+                entries.addAll(withNames);
                 prune(entries, System.currentTimeMillis());
                 save(context, entries);
                 Settings.activeAt.put(KEY, System.currentTimeMillis());
             } catch (Throwable failure) {
                 // Back in front of the queue, so the next notification's write tries them again. The cap still holds.
                 synchronized (PENDING) {
-                    for (int i = batch.size() - 1; i >= 0; i--) PENDING.addFirst(batch.get(i));
+                    for (int i = retry.size() - 1; i >= 0; i--) PENDING.addFirst(retry.get(i));
                     while (PENDING.size() > MAX_ENTRIES) PENDING.removeFirst();
                 }
                 Settings.hookFailedPrivately(KEY, "Can't keep the message log", failure);
@@ -253,9 +330,11 @@ public final class MessageLog {
      */
     static Entry named(Context context, Entry entry) {
         if (!entry.sender.isEmpty()) return entry;
-        String[] noted;
-        synchronized (NOTED) {
-            noted = NOTED.remove(entry.thread + '\u0000' + entry.text);
+        String[] noted = null;
+        if (!entry.id.isEmpty()) {
+            synchronized (NOTED) {
+                noted = NOTED.remove(entry.thread + '\u0000' + entry.id);
+            }
         }
         try {
             String sender;
@@ -266,12 +345,12 @@ public final class MessageLog {
             } else {
                 android.service.notification.StatusBarNotification shown = ChatNotifications.find(context, entry.thread);
                 if (shown == null) return entry;
-                sender = ChatNotifications.sender(shown.getNotification(), entry.text);
+                sender = ChatNotifications.sender(shown.getNotification(), entry.text, entry.thread);
                 chat = ChatNotifications.conversation(shown.getNotification());
             }
             if (sender == null && chat == null) return entry;
             return new Entry(entry.time, entry.thread, entry.text, clip(sender == null ? "" : sender, MAX_NAME_CHARS),
-                clip(chat == null || chat.equals(sender) ? "" : chat, MAX_NAME_CHARS));
+                clip(chat == null || chat.equals(sender) ? "" : chat, MAX_NAME_CHARS), entry.id);
         } catch (RuntimeException unreadable) {
             return entry;
         }
@@ -279,19 +358,47 @@ public final class MessageLog {
 
     /** Newest first, for the viewer. Reads and decrypts off the main thread, and removes expired entries from disk. */
     static List<Entry> entries() {
+        return loadResult().entries;
+    }
+
+    static final class LoadResult {
+        final List<Entry> entries;
+        final boolean failed;
+        /** An older file was moved aside as unreadable. The log itself works, so this isn't a failure. */
+        final boolean setAside;
+        LoadResult(List<Entry> entries, boolean failed, boolean setAside) {
+            this.entries = entries;
+            this.failed = failed;
+            this.setAside = setAside;
+        }
+    }
+
+    static LoadResult loadResult() {
         Context context = Settings.appContext;
-        if (context == null) return new ArrayList<>();
+        if (context == null) return new LoadResult(new ArrayList<>(), true, false);
         try {
             synchronized (LOCK) {
                 List<Entry> entries = load(context);
                 if (prune(entries, System.currentTimeMillis()) || repairedOnRead) save(context, entries);
                 List<Entry> newestFirst = new ArrayList<>(entries.size());
                 for (int i = entries.size() - 1; i >= 0; i--) newestFirst.add(entries.get(i));
-                return newestFirst;
+                return new LoadResult(newestFirst, false, new File(context.getFilesDir(), DAMAGED).exists());
             }
         } catch (Throwable failure) {
             Settings.hookFailedPrivately(KEY, "Can't read the message log", failure);
-            return new ArrayList<>();
+            return new LoadResult(new ArrayList<>(), true, false);
+        }
+    }
+
+    /** Deletes only the file {@link #load} set aside. Nothing can open it, and the live log stays as it is. */
+    static boolean removeSetAside() {
+        Context context = Settings.appContext;
+        if (context == null) return false;
+        synchronized (LOCK) {
+            File aside = new File(context.getFilesDir(), DAMAGED);
+            if (!aside.exists() || aside.delete()) return true;
+            Settings.hookFailedPrivately(KEY, "Can't delete the set-aside message log", new IOException("delete failed: " + DAMAGED));
+            return false;
         }
     }
 
@@ -324,22 +431,28 @@ public final class MessageLog {
      */
     static java.util.concurrent.Future<?> dropLeftovers(Context context) {
         for (String name : new String[] {FILE, FILE + ".tmp", DAMAGED}) {
-            if (new File(context.getFilesDir(), name).exists()) return WRITER.submit(MessageLog::clear);
+            if (new File(context.getFilesDir(), name).exists()) return WRITER.submit(() -> { clear(); });
         }
         return null;
     }
 
     /** Deletes the file, anything set aside and the key, and drops messages still waiting to be written. */
-    static void clear() {
+    static boolean clear() {
         Context context = Settings.appContext;
+        boolean cleared = context != null;
         synchronized (LOCK) {
             synchronized (PENDING) {
                 PENDING.clear();
+            }
+            // Names Auto reply noted for messages not written yet go with them.
+            synchronized (NOTED) {
+                NOTED.clear();
             }
             if (context != null) {
                 for (String name : new String[] {FILE, FILE + ".tmp", DAMAGED}) {
                     File file = new File(context.getFilesDir(), name);
                     if (file.exists() && !file.delete()) {
+                        cleared = false;
                         Settings.hookFailedPrivately(KEY, "Can't delete the message log",
                             new IOException("delete failed: " + name));
                     }
@@ -348,9 +461,11 @@ public final class MessageLog {
             try {
                 vault().forget();
             } catch (Throwable failure) {
+                cleared = false;
                 Settings.hookFailedPrivately(KEY, "Can't drop the message log key", failure);
             }
         }
+        return cleared;
     }
 
     /**

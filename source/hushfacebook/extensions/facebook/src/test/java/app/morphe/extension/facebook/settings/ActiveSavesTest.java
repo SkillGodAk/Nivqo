@@ -341,6 +341,30 @@ public class ActiveSavesTest {
                 page.findPreference("last_save_outcome").getSummary().toString());
     }
 
+    /**
+     * A save that failed for a reason it knows says which under Last save, where a person with
+     * notifications off looks after the toast has gone, and still says it on a rebuilt page.
+     */
+    @Test public void aFailedSavesReasonRemainsReadableWithoutNotifications() {
+        Shadows.shadowOf(notifications()).setNotificationsEnabled(false);
+        int id = SavesForTests.begin(RuntimeEnvironment.getApplication(), true);
+        show();
+        SavesForTests.failedOffline(id);
+        SavesForTests.end(id);
+        layout();
+        Preference result = page.findPreference("last_save_outcome");
+        assertNotNull("the failure disappeared with its progress row", result);
+        assertEquals("The connection failed. Check your internet and try again.", result.getSummary().toString());
+        controller.recreate();
+        ShadowLooper.idleMainLooper();
+        dialog = (SettingsDialog) controller.get().getFragmentManager().findFragmentByTag("hushfacebook_settings");
+        page = SettingsL10nTest.pageOf(dialog);
+        page.navigation.navigate("Downloads");
+        layout();
+        assertEquals("The connection failed. Check your internet and try again.",
+                page.findPreference("last_save_outcome").getSummary().toString());
+    }
+
     /** Two saves on the Downloads page, drawn as a phone draws them. */
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
     public void renderTheRunningSaves() throws Exception {

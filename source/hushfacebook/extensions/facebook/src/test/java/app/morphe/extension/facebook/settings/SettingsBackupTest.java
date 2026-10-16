@@ -27,6 +27,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.SwitchPreference;
+import android.preference.TwoStatePreference;
 
 import org.json.JSONObject;
 import org.junit.After;
@@ -151,7 +152,7 @@ public class SettingsBackupTest {
                 BaseSettings.DEBUG_LOG_FILTERS, BaseSettings.DEBUG_STACKTRACE, BaseSettings.DEBUG_TOAST_ON_ERROR,
                 BaseSettings.CAPTURE_JAVA_CRASHES, BaseSettings.MORPHE_LANGUAGE, BaseSettings.SHOW_MENU_ICONS,
                 BaseSettings.FIRST_TIME_APP_LAUNCHED, BaseSettings.EXPERIMENTAL_APP_CONFIRMED,
-                BaseSettings.CHECK_ENVIRONMENT_WARNINGS_ISSUED);
+                BaseSettings.CHECK_ENVIRONMENT_WARNINGS_ISSUED, BaseSettings.HIDE_QUICK_SETUPS);
     }
 
     private static final String EXPORT_ROW = "action_export_settings";
@@ -2680,6 +2681,114 @@ public class SettingsBackupTest {
         }
     }
 
+    /**
+     * An export asked for just before a Quick setup, whose worker gets to run only once the setup
+     * is halfway down its rows. A worker reading the switches at that moment finds some of the
+     * setup's switches on and the rest still off, a mix nobody chose, and that's where exports used
+     * to read them. The file holds every switch as it was when the export was asked for, and an
+     * export asked for after the setup holds all of it.
+     */
+    @Test
+    public void anExportOverlappingAQuickSetupHoldsTheChoicesFromBeforeIt() throws Exception {
+        for (BooleanSetting setting : QuickSetupKeys.QUIET) setting.save(false);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            HushfacebookPreferenceFragment page = SettingsL10nTest.pageOf(SettingsL10nTest.show(activity));
+            List<BooleanSetting> flipped = new ArrayList<>();
+            for (BooleanSetting setting : QuickSetupKeys.QUIET) {
+                Preference row = page.findPreference(setting.key);
+                if (row instanceof TwoStatePreference && !((TwoStatePreference) row).isChecked()) flipped.add(setting);
+            }
+            assertTrue("Quiet flips too few rows here to stop between two of them", flipped.size() >= 3);
+            String middle = flipped.get(flipped.size() / 2).key;
+            String before = SettingsBackup.create();
+            Uri uri = SettingsFileProvider.put(AUTHORITY, "during-setup.json", new byte[0]);
+            ShadowActivity.IntentForResult picker = tap(activity, page, EXPORT_ROW);
+
+            String[] midway = new String[1];
+            try (WorkerPoolForTests held = WorkerPoolForTests.hold()) {
+                // Each row's write is announced on this thread as it lands, with the setup still going.
+                SharedPreferences.OnSharedPreferenceChangeListener betweenRows = (changed, key) -> {
+                    if (midway[0] == null && middle.equals(key)) midway[0] = letTheExportRunAndRead(held);
+                };
+                Setting.preferences.preferences.registerOnSharedPreferenceChangeListener(betweenRows);
+                try {
+                    shadowOf(activity).receiveResult(picker.intent, Activity.RESULT_OK, new Intent().setData(uri));
+                    page.applyQuickSetup(QuickSetupKeys.quiet());
+                } finally {
+                    Setting.preferences.preferences.unregisterOnSharedPreferenceChangeListener(betweenRows);
+                }
+            }
+            settle();
+            String after = SettingsBackup.create();
+
+            assertNotNull("the export's worker never ran inside the Quick setup", midway[0]);
+            assertEquals(0, switchesOn(before, flipped));
+            assertEquals(flipped.size(), switchesOn(after, flipped));
+            int mixed = switchesOn(midway[0], flipped);
+            assertTrue("a worker reading halfway through found " + mixed + " of " + flipped.size()
+                    + " switches on, which is no mix", mixed > 0 && mixed < flipped.size());
+            assertEquals("the file holds part of a Quick setup", before,
+                    new String(SettingsFileProvider.get(uri), StandardCharsets.UTF_8));
+
+            Uri later = SettingsFileProvider.put(AUTHORITY, "after-setup.json", new byte[0]);
+            export(activity, page, later);
+            assertEquals(after, new String(SettingsFileProvider.get(later), StandardCharsets.UTF_8));
+        }
+    }
+
+    /**
+     * The same for the two word lists, which are saved one at a time: a phrase moved from the hide
+     * list to the keep list, with the export's worker running between the two saves. A worker
+     * reading then finds the phrase in neither list. The file holds both lists as they were when
+     * the export was asked for.
+     */
+    @Test
+    public void anExportOverlappingAChangeToBothWordListsHoldsBothFromBeforeIt() throws Exception {
+        Settings.HIDDEN_WORDS.save("spoiler\nmy team");
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            HushfacebookPreferenceFragment page = SettingsL10nTest.pageOf(SettingsL10nTest.show(activity));
+            String before = SettingsBackup.create();
+            Uri uri = SettingsFileProvider.put(AUTHORITY, "during-lists.json", new byte[0]);
+            ShadowActivity.IntentForResult picker = tap(activity, page, EXPORT_ROW);
+
+            String midway;
+            try (WorkerPoolForTests held = WorkerPoolForTests.hold()) {
+                shadowOf(activity).receiveResult(picker.intent, Activity.RESULT_OK, new Intent().setData(uri));
+                Settings.HIDDEN_WORDS.save("spoiler");
+                midway = letTheExportRunAndRead(held);
+                Settings.KEPT_WORDS.save("my team");
+            }
+            settle();
+
+            JSONObject mixed = new JSONObject(midway).getJSONObject("settings");
+            assertEquals("spoiler", mixed.get(SettingsBackup.HIDDEN.key));
+            assertEquals("a worker reading between the two saves found the phrase", "", mixed.get(SettingsBackup.KEPT.key));
+            String file = new String(SettingsFileProvider.get(uri), StandardCharsets.UTF_8);
+            assertEquals("the file holds half of a change to both word lists", before, file);
+            JSONObject carried = new JSONObject(file).getJSONObject("settings");
+            assertEquals("spoiler\nmy team", carried.get(SettingsBackup.HIDDEN.key));
+            assertEquals("", carried.get(SettingsBackup.KEPT.key));
+            assertEquals("my team", Settings.KEPT_WORDS.savedValue());
+        }
+    }
+
+    /** A file is written from what was saved when it was read, whatever is saved before it's written. */
+    @Test
+    public void aFileIsWrittenFromWhatWasSavedWhenItWasRead() throws Exception {
+        Settings.HIDDEN_WORDS.save("spoiler");
+        SettingsBackup.Saved saved = SettingsBackup.savedNow();
+        String then = SettingsBackup.create();
+
+        for (BooleanSetting setting : SettingsBackup.ALLOWLIST) setting.save(!setting.savedValue());
+        Settings.HIDDEN_WORDS.save("leak");
+        Settings.START_TAB.save(StartTab.FRIENDS);
+
+        assertEquals(then, saved.file());
+        assertFalse("the saves after it never landed", then.equals(SettingsBackup.create()));
+    }
+
     /** With nothing on the phone to answer either picker, both rows say so and stay usable. */
     @Test
     public void aPhoneWithNoFilePickerSaysSo() throws Exception {
@@ -3401,6 +3510,29 @@ public class SettingsBackupTest {
     private static void export(Activity activity, HushfacebookPreferenceFragment page, Uri uri) throws Exception {
         shadowOf(activity).receiveResult(tap(activity, page, EXPORT_ROW).intent, Activity.RESULT_OK, new Intent().setData(uri));
         settle();
+    }
+
+    /**
+     * Lets the workers [held] go, waits for the export among them to finish, and answers the file a
+     * worker reading the settings at this moment writes, which is how exports read them before.
+     */
+    private static String letTheExportRunAndRead(WorkerPoolForTests held) {
+        try {
+            held.close();
+            return Utils.submitOnBackgroundThread(SettingsBackup::create).get(10, TimeUnit.SECONDS);
+        } catch (Exception failure) {
+            throw new AssertionError("the export's worker didn't finish inside the change", failure);
+        }
+    }
+
+    /** How many of [switches] a file has on. */
+    private static int switchesOn(String file, List<BooleanSetting> switches) throws Exception {
+        JSONObject carried = new JSONObject(file).getJSONObject("settings");
+        int on = 0;
+        for (BooleanSetting setting : switches) {
+            if (carried.getBoolean(setting.key)) on++;
+        }
+        return on;
     }
 
     /** Lets the screen's wait for the file's app run out. */

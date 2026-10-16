@@ -369,7 +369,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             saveRows.put(save.id, row);
             group.addPreference(row);
         }
-        SaveControl.Outcome outcome = SaveControl.lastOutcome();
+        String outcome = SaveControl.lastOutcomeText(group.getContext());
         Preference last = group.findPreference("last_save_outcome");
         if (outcome == null) {
             if (last != null) group.removePreference(last);
@@ -382,10 +382,10 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             last.setPersistent(false);
             last.setSelectable(false);
             last.setOrder(Integer.MIN_VALUE / 4);
-            last.setSummary(SaveControl.outcomeText(outcome));
+            last.setSummary(outcome);
             group.addPreference(last);
         } else {
-            last.setSummary(SaveControl.outcomeText(outcome));
+            last.setSummary(outcome);
         }
     }
 

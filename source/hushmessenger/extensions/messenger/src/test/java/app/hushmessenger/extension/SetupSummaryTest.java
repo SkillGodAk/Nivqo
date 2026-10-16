@@ -65,6 +65,8 @@ public class SetupSummaryTest {
             assertTrue(text.contains("\nHost package: " + activity.getPackageName() + "\nSettings provider: found\n"));
             assertTrue(text.contains("\nHost version: 582.0.0.61.92\n"));
             assertTrue(text.contains("\nHost version code: " + ((7L << 32) | 346415686L) + "\n"));
+            // The extension alone was patched from nothing, and says so rather than reading Android's version code.
+            assertTrue(text.contains("\nPatched from: unknown\n"));
             assertTrue(text.contains("\nAndroid API: " + Build.VERSION.SDK_INT + "\nPaused: false\nSafe mode: false\n"));
             assertTrue(text.contains("people: installed=true, selected=true, active=true,"));
             assertTrue(text.contains("stories: installed=false, selected=true, active=false,"));
@@ -119,14 +121,17 @@ public class SetupSummaryTest {
         }
     }
 
-    @Test public void quickAccessNamesTheMenuTabOnlyWhenTheRowWasPatchedIn() throws Exception {
-        for (boolean menuRow : new boolean[] {false, true}) {
-            if (menuRow) installedFeatures("people", "menu_row"); else installedFeatures("people");
+    @Test public void quickAccessNamesTheMenuTabAndTheLogoOnlyWhereTheyWerePatchedIn() throws Exception {
+        for (String[] features : new String[][] {{"people"}, {"people", "menu_row"}, {"people", "menu_row", Settings.LOGO_LONG_PRESS}}) {
+            installedFeatures(features);
+            boolean menuRow = features.length > 1, logo = features.length > 2;
             try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
                 View root = screen.get().getWindow().getDecorView();
                 root.findViewWithTag("tab_app").performClick();
                 String text = ((android.widget.TextView) root.findViewWithTag("access_help")).getText().toString();
-                assertEquals(menuRow, text.contains("Menu tab"));
+                assertEquals(menuRow, text.contains("Messenger's Menu"));
+                // The logo's long press comes with the same patch, recorded only where its handler was found.
+                assertEquals(logo, text.contains("Messenger logo at the top of Chats"));
                 assertTrue(text.contains("app drawer"));
                 assertTrue(text.contains("Patch controls"));
             }
@@ -142,7 +147,7 @@ public class SetupSummaryTest {
             android.widget.TextView people = root.findViewWithTag("active_people");
             android.widget.TextView stories = root.findViewWithTag("active_stories");
             assertEquals(View.VISIBLE, people.getVisibility());
-            assertEquals("Not used yet since Messenger started", people.getText().toString());
+            assertEquals("On. Waiting for Messenger to use it", people.getText().toString());
             // An off switch has nothing to report, and turning it on shows its label.
             assertEquals(View.GONE, stories.getVisibility());
             ((android.widget.Switch) root.findViewWithTag("stories")).setChecked(true);
@@ -349,6 +354,69 @@ public class SetupSummaryTest {
         assertNotEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED, packages.getComponentEnabledSetting(alias));
     }
 
+    /** #22: Hide the Menu row stays off until settings have opened from the long-press shortcut on this install. */
+    @Test public void hideTheMenuRowWaitsForTheLongPressShortcut() throws Exception {
+        installedFeatures("people", "menu_row", Settings.LOGO_LONG_PRESS);
+        try {
+            HostScreensTest.answerControlsShortcut(true);
+            try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+                View root = screen.get().getWindow().getDecorView();
+                root.findViewWithTag("tab_app").performClick();
+                android.widget.Switch hide = root.findViewWithTag("hide_menu_row");
+                assertFalse(hide.isEnabled());
+                String reason = new SettingsText(screen.get()).format("menu_row_needs_shortcut");
+                assertTrue(hide.getContentDescription().toString().endsWith(reason));
+                assertEquals(new SettingsText(screen.get()).get("access_help_missing_menu"),
+                    ((android.widget.TextView) root.findViewWithTag("access_help")).getText().toString());
+                // The shortcut brings this same screen back, so it has to unlock without a new one.
+                screen.pause();
+                Settings.noteShortcutUsed();
+                screen.resume();
+                hide = root.findViewWithTag("hide_menu_row");
+                assertTrue(hide.isEnabled());
+                assertFalse(hide.getContentDescription().toString().contains(reason));
+            }
+            try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+                View root = screen.get().getWindow().getDecorView();
+                root.findViewWithTag("tab_app").performClick();
+                android.widget.Switch hide = root.findViewWithTag("hide_menu_row");
+                assertTrue(hide.isEnabled());
+                hide.setChecked(true);
+                assertTrue(Settings.menuRowHidden());
+                // The same screen stops pointing at the row as soon as it's hidden, but the logo still opens settings.
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+                String hidden = ((android.widget.TextView) root.findViewWithTag("access_help")).getText().toString();
+                assertEquals(new SettingsText(screen.get()).get("access_help_missing_logo"), hidden);
+                assertFalse(hidden.contains("Menu tab"));
+                assertTrue(hidden.contains("Messenger logo"));
+            }
+            // With the row gone, the App tab stops pointing at it.
+            try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+                View root = screen.get().getWindow().getDecorView();
+                root.findViewWithTag("tab_app").performClick();
+                assertEquals(new SettingsText(screen.get()).get("access_help_missing_logo"),
+                    ((android.widget.TextView) root.findViewWithTag("access_help")).getText().toString());
+            }
+            // A build where the logo's handler wasn't found never points at the logo, with the row hidden or showing.
+            installedFeatures("people", "menu_row");
+            try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+                View root = screen.get().getWindow().getDecorView();
+                root.findViewWithTag("tab_app").performClick();
+                SettingsText words = new SettingsText(screen.get());
+                android.widget.TextView help = root.findViewWithTag("access_help");
+                assertEquals(words.get("access_help_missing"), help.getText().toString());
+                android.widget.Switch hide = root.findViewWithTag("hide_menu_row");
+                assertTrue(hide.getContentDescription().toString().contains(words.format("hide_menu_row_help_without_logo").toString()));
+                hide.setChecked(false);
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+                assertEquals(words.get("access_help_missing_menu_without_logo"), help.getText().toString());
+                assertFalse(help.getText().toString().contains("Messenger logo"));
+            }
+        } finally {
+            HostScreens.controlsShortcut = null;
+        }
+    }
+
     @Test public void drawerAliasExplainsThatUninstallingItRemovesMessenger() throws Exception {
         installedFeatures("people", "menu_row");
         var app = RuntimeEnvironment.getApplication();
@@ -359,7 +427,7 @@ public class SetupSummaryTest {
             try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
                 android.widget.TextView help = screen.get().getWindow().getDecorView().findViewWithTag("shared_install_help");
                 assertNotNull(help);
-                assertTrue(help.getText().toString().contains("Messenger is removed and its data on your phone is erased"));
+                assertTrue(help.getText().toString().contains("removes Messenger and its local data"));
                 assertTrue(help.getText().toString().contains("Hide app drawer icon"));
                 assertNotEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO, help.getImportantForAccessibility());
             }

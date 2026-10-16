@@ -364,6 +364,23 @@ public class UpdateCheckTest {
         assertEquals(RELEASE_PAGE, Shadows.shadowOf(lastOpened).getNextStartedActivity().getDataString());
     }
 
+    /** View release goes through the same guarded launch as the other links, so a refused one only shows a note. */
+    @Test public void aRefusedReleasePageLaunchSaysSo() throws Exception {
+        reply = json(200, release("v99.0.0", RELEASE_PAGE));
+        View root = openWithCheckOn();
+        assertEquals("Version 99.0.0 is available", awaitStatus(root).getText().toString());
+        Runnable undo = SupportRowTest.denyLaunches(lastOpened);
+        try {
+            root.findViewWithTag("update_release").performClick();
+        } finally {
+            undo.run();
+        }
+        assertEquals("Your phone didn't allow opening that page", org.robolectric.shadows.ShadowToast.getTextOfLatestToast());
+        assertFalse(lastOpened.isFinishing());
+        root.findViewWithTag("update_release").performClick();
+        assertEquals(RELEASE_PAGE, Shadows.shadowOf(lastOpened).getNextStartedActivity().getDataString());
+    }
+
     @Test public void notModifiedNeedsAValidatedConditionalRepresentation() throws Exception {
         for (String cache : new String[] {"", cache("", now.get() - ReleaseCheck.COOLDOWN_MS)}) {
             Settings.preferences.edit().putString(ReleaseCheck.CACHE_KEY, cache).commit();

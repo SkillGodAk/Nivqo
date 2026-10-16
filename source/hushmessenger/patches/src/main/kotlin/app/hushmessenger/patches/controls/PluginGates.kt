@@ -16,6 +16,8 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 internal data class PluginGate(val anchors: Set<String>)
 
 internal const val AD_CONTEXT_BANNER = "ad_context_banner"
+internal const val TAB_PEOPLE = "tab_people"
+internal const val TAB_NOTIFICATIONS = "tab_notifications"
 
 internal val pluginGates = mapOf(
     "people" to PluginGate(
@@ -106,11 +108,30 @@ internal val pluginGates = mapOf(
             "com.facebook.messaging.aibot.plugins.tab.tabcontent.MetaAiTabContentImplementation",
         ),
     ),
+    // The People and Notifications bottom tabs, anchored the same way. Each tab content is named by its bottom bar gate
+    // and, for Notifications, a static initializer that discovery never reads.
+    TAB_PEOPLE to PluginGate(
+        setOf(
+            "com.facebook.messaging.peopletab.plugins.tab.tabcontent.PeopleTabContentImplementation",
+        ),
+    ),
+    TAB_NOTIFICATIONS to PluginGate(
+        setOf(
+            "com.facebook.messaging.inbox.jewel.jeweltab.plugins.core.tabcontent.JewelTabContentImplementation",
+        ),
+    ),
+    // Mark as read in the menu a long press on a chat opens. Both of the menu's builders gate the row by this plugin
+    // name. Mark as unread and the community chats' own Mark as read are other plugins.
+    "mark_read_action" to PluginGate(
+        setOf(
+            "com.facebook.messaging.threadlist.threaditemmenu.plugins.core.markreadmenuitem.MarkReadMenuItemImplementation",
+        ),
+    ),
 )
 
 /**
  * Redex's string tables: static (I)String methods that switch on the key straight to a constant, by method and key.
- * 582 moved some kill switch names into one, so a gate loads its anchor with `const/16 key` and a lookup, not a literal.
+ * 583 keeps some kill switch names in one, so a gate loads its anchor with `const/16 key` and a lookup, not a literal.
  */
 internal fun redexStringTables(classes: Iterable<ClassDef>): Map<String, Map<Int, String>> = buildMap {
     for (method in classes.asSequence().flatMap { it.methods }) {

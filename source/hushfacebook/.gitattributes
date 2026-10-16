@@ -10,3 +10,6 @@
 # These are Windows script files and should use crlf
 *.bat           text eol=crlf
 
+# Saved fuzz findings are raw input bytes, so no line ending conversion may touch them
+/tools/fuzz/regressions/** binary
+

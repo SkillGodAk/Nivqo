@@ -60,6 +60,9 @@ final class AppPages {
                                 + "go too. Your chats stay.")));
                 chats.addPreference(toggle(context, Settings.HIDE_CHAT_PROMOTIONS,
                         L10n.t("Hides the banners at the top of Chats, like the one asking you to turn on notifications.")));
+                chats.addPreference(toggle(context, Settings.HIDE_CHAT_META_AI_BUTTON,
+                        L10n.t("Removes the Meta AI button beside the search box in Chats, at the top of the list and on the "
+                                + "search screen. The search box stays, and so do your chats with Meta AI.")));
             }
             if (build.contains(PatchFamily.MESSENGER_ICON)) {
                 chats.addPreference(toggle(context, Settings.OPEN_MESSENGER_APP,

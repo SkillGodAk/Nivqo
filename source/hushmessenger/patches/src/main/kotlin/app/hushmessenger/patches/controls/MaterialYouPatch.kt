@@ -32,13 +32,16 @@ private const val THEME = "Lapp/hushmessenger/extension/MaterialYouTheme;"
 internal const val DARK_SCHEME = "Lcom/facebook/mig/scheme/schemes/DarkColorScheme;"
 internal const val FDS_COLORS = "Lcom/facebook/fds/core/theme/component/FDSColors;"
 
-/** Route 3: dark surface constants and the MaterialYouTheme fields that replace them. scripts/CompatReport.java counts the same constants. */
+/**
+ * Route 3: dark surface constants and the MaterialYouTheme fields that replace them. scripts/CompatReport.java counts the
+ * same constants. Whole references, like every extension member the patches name, so the catalog check can find them.
+ */
 internal val materialYouSurfaces = mapOf(
-    0xFF080809.toInt() to "DARK_080809",
-    0xFF1C1C1D.toInt() to "DARK_1C1C1D",
-    0xFF252728.toInt() to "DARK_252728",
-    0xFF333334.toInt() to "DARK_333334",
-    0xFF323339.toInt() to "DARK_323339",
+    0xFF080809.toInt() to "$THEME->DARK_080809:I",
+    0xFF1C1C1D.toInt() to "$THEME->DARK_1C1C1D:I",
+    0xFF252728.toInt() to "$THEME->DARK_252728:I",
+    0xFF333334.toInt() to "$THEME->DARK_333334:I",
+    0xFF323339.toInt() to "$THEME->DARK_323339:I",
 )
 
 /** Route 4: colour calls and their MaterialYouTheme replacements. scripts/CompatReport.java counts the same calls. */
@@ -102,7 +105,7 @@ val materialYouPatch = bytecodePatch(
                 val call = if (register < 16) "invoke-static {v$register}"
                     else "invoke-static/range {v$register .. v$register}"
                 edits.getOrPut(method) { mutableListOf() }.add(
-                    Edit(index, "$call, $THEME->$helper", "move-result v$register\nreturn v$register"))
+                    Edit(index, "$call, $helper", "move-result v$register\nreturn v$register"))
                 count++
             }
             if (count == 0) throw app.morphe.patcher.patch.PatchException("No return in ${method.hookId()}")
@@ -110,7 +113,7 @@ val materialYouPatch = bytecodePatch(
 
         val resolver = classDefBy(DARK_SCHEME).methods.filter(::isTokenColorMethod).singleOrNull()
             ?: throw app.morphe.patcher.patch.PatchException("DarkColorScheme's color token method not found")
-        planReturns(resolver, "mig(I)I")
+        planReturns(resolver, "$THEME->mig(I)I")
 
         val fdsMethods = classDefBy(FDS_COLORS).methods.filter {
             it.returnType == "I" && it.implementation != null
@@ -131,8 +134,8 @@ val materialYouPatch = bytecodePatch(
         val darkCheck = classDefBy(darkCheckRef.definingClass).methods.singleOrNull {
             it.hookId() == darkCheckRef.toString() && AccessFlags.STATIC.isSet(it.accessFlags)
         } ?: throw app.morphe.patcher.patch.PatchException("Dark mode check not found: $darkCheckRef")
-        planReturns(darkCheck, "darkModeAnswer(Z)Z")
-        // A method that only returns another FDSColors method's answer (582's A02 hands its token to A01) already gets
+        planReturns(darkCheck, "$THEME->darkModeAnswer(Z)Z")
+        // A method that only returns another FDSColors method's answer (583's A02 hands its token to A01) already gets
         // the remapped color from that one, so wrapping it too would remap twice.
         val fdsIds = fdsMethods.map { it.hookId() }.toSet()
         fun Method.delegatedReturns(): Set<Int> {
@@ -149,7 +152,7 @@ val materialYouPatch = bytecodePatch(
         for (method in fdsMethods) {
             val skip = method.delegatedReturns()
             if (skip.size < method.implementation!!.instructions.count { it.opcode == Opcode.RETURN }) {
-                planReturns(method, "fds(I)I", skip)
+                planReturns(method, "$THEME->fds(I)I", skip)
             }
         }
 
@@ -165,7 +168,7 @@ val materialYouPatch = bytecodePatch(
                         if (field != null) {
                             val register = (instruction as OneRegisterInstruction).registerA
                             edits.getOrPut(method) { mutableListOf() }.add(
-                                Edit(index, "sget v$register, $THEME->$field:I"))
+                                Edit(index, "sget v$register, $field"))
                             surfaceCount++
                         }
                     } else if (instruction.opcode == Opcode.INVOKE_STATIC || instruction.opcode == Opcode.INVOKE_VIRTUAL ||

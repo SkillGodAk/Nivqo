@@ -27,7 +27,7 @@ import java.util.List;
  * duration, flags and composition offset out of the fragments' runs and writes one plain MP4, the
  * kind MediaMuxer writes and every player reads: {@code ftyp}, then a {@code moov} with both tracks
  * and their full sample tables, then one {@code mdat}. Each track's sample descriptions
- * ({@code stsd}) are copied byte for byte, so {@code vp09} with its {@code vpcC}, {@code av01} with
+ * ({@code stsd}) are copied byte for byte up to the last entry they count, so {@code vp09} with its {@code vpcC}, {@code av01} with
  * its {@code av1C} and {@code mp4a} with its {@code esds} go through unchanged, and so would any
  * other codec. Nothing is decoded or encoded.
  *
@@ -138,7 +138,7 @@ final class Mp4Join {
         long timescale;
         int language;
         long movieTimescale;
-        /** The stsd box's payload, copied whole. */
+        /** The stsd box's payload, up to the end of the last entry it counts. */
         ByteBuffer descriptions;
         int descriptionCount;
         byte[] matrix;
@@ -360,15 +360,17 @@ final class Mp4Join {
             List<Box> tables = children(stbl.data);
             Box stsd = find(tables, STSD);
             if (stsd == null) throw new IOException("the " + kind + " track has no sample description");
-            descriptions = stsd.data;
-            descriptionCount = descriptions.getInt(4);
-            List<Box> entries = children(slice(descriptions, 8, descriptions.limit()));
+            descriptionCount = stsd.data.getInt(4);
+            List<Box> entries = children(slice(stsd.data, 8, stsd.data.limit()));
             if (descriptionCount < 1 || entries.size() < descriptionCount) {
                 throw new IOException("the " + kind + " track's sample descriptions are cut short");
             }
             for (Box entry : entries) {
                 if (entry.type == ENCV || entry.type == ENCA) throw new IOException("the " + kind + " track is encrypted");
             }
+            // Up to the end of the last entry it counts: stray bytes or boxes after that would be
+            // read as more entries by the players that walk the box to its end.
+            descriptions = slice(stsd.data, 0, 8 + entries.get(descriptionCount - 1).end);
             Box stsz = find(tables, STSZ);
             Box stts = find(tables, STTS);
             if ((stsz != null && stsz.data.getInt(8) != 0) || (stts != null && stts.data.getInt(4) != 0)) {
@@ -907,7 +909,8 @@ final class Mp4Join {
         }
         out.full(STSC, 0, 0).u32(stsc.size / 3).ints(stsc).end();
 
-        boolean uniform = true;
+        // A shared size of 0 would say every size follows in a table, so empty samples get the table.
+        boolean uniform = count > 0 && track.sizes.get(0) != 0;
         for (int i = 1; i < count && uniform; i++) uniform = track.sizes.get(i) == track.sizes.get(0);
         out.full(STSZ, 0, 0);
         if (uniform) {
@@ -953,10 +956,13 @@ final class Mp4Join {
     private static final class Box {
         final int type;
         final ByteBuffer data;
+        /** Where the box ends in the buffer it was read from. */
+        final int end;
 
-        Box(int type, ByteBuffer data) {
+        Box(int type, ByteBuffer data, int end) {
             this.type = type;
             this.data = data;
+            this.end = end;
         }
     }
 
@@ -977,7 +983,7 @@ final class Mp4Join {
                 size = end - at;
             }
             if (size < header || size > end - at) throw new IOException("a box runs past the box that holds it");
-            boxes.add(new Box(type, slice(parent, at + header, at + (int) size)));
+            boxes.add(new Box(type, slice(parent, at + header, at + (int) size), at + (int) size));
             at += (int) size;
         }
         return boxes;

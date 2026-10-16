@@ -19,9 +19,9 @@ PERMISSION = "app.hushfacebook.receiver.permission.ACCESS"
 OWNERS = f"+ permission:android.permission.INTERNET\n  package:android\n+ permission:{PERMISSION}\n  package:com.facebook.katana\n"
 
 
-def apk(package="com.facebook.orca", signers=(A,), code=346415686):
+def apk(package="com.facebook.orca", signers=(A,), code=346611369):
     return checker.Apk(
-        package, code, "582.0.0.61.92", frozenset({PERMISSION}), frozenset(signers)
+        package, code, "583.0.0.29.95", frozenset({PERMISSION}), frozenset(signers)
     )
 
 
@@ -140,15 +140,15 @@ class CertificateChecks(unittest.TestCase):
     def test_downgrade_and_unreadable_owner_fail(self):
         self.assertIn(
             "downgrade",
-            checker.conflicts(apk(), {"com.facebook.orca": apk(code=346415687)}, {})[0],
+            checker.conflicts(apk(), {"com.facebook.orca": apk(code=346611423)}, {})[0],
         )
         with self.assertRaises(ValueError):
             checker.conflicts(apk(), {}, {PERMISSION: "com.facebook.katana"})
 
     def test_normal_downgrade_keeps_the_plain_message(self):
         self.assertEqual(
-            checker.conflicts(apk(), {"com.facebook.orca": apk(code=346415687)}, {}),
-            ["Version downgrade: installed 346415687, candidate 346415686."],
+            checker.conflicts(apk(), {"com.facebook.orca": apk(code=346611423)}, {}),
+            ["Version downgrade: installed 346611423, candidate 346611369."],
         )
 
     def test_spoofed_version_code_is_named_with_the_readme_fix(self):
@@ -174,7 +174,7 @@ class CertificateChecks(unittest.TestCase):
     def test_leftover_data_only_conflicts_when_newer(self):
         self.assertIn(
             "Android refuses anything lower",
-            checker.conflicts(apk(), {}, {}, leftover=346415687)[0],
+            checker.conflicts(apk(), {}, {}, leftover=346611423)[0],
         )
         self.assertEqual(checker.conflicts(apk(), {}, {}, leftover=346000000), [])
         self.assertEqual(checker.conflicts(apk(), {}, {}, leftover=None), [])
@@ -414,7 +414,7 @@ class CertificateChecks(unittest.TestCase):
 class ParserAndCliChecks(unittest.TestCase):
     def setUp(self):
         self.args = argparse.Namespace(build_tools=Path("tools"), java=Path("java"))
-        self.badging = "package: name='com.facebook.orca' versionCode='346415686' versionName='582.0.0.61.92'\n"
+        self.badging = "package: name='com.facebook.orca' versionCode='346611369' versionName='583.0.0.29.95'\n"
         self.permissions = f"package: com.facebook.orca\npermission: {PERMISSION}\n"
         self.certificates = (
             f"Number of signers: 1\nSigner #1 certificate SHA-256 digest: {A}\n"

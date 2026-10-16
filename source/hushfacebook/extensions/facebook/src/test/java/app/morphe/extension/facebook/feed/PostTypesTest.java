@@ -49,7 +49,10 @@ public class PostTypesTest {
     enum Category { ORGANIC }
 
     /** Stands in for Facebook's attachment style enum, which Redex renames but whose constants keep their names. */
-    enum Style { PHOTO, ALBUM, VIDEO_INLINE, SHARE_LARGE_IMAGE, FALLBACK }
+    enum Style {
+        PHOTO, ALBUM, VIDEO_INLINE, SHARE, SHARE_LARGE_IMAGE, FALLBACK, NATIVE_TEMPLATES, MESSENGER_GENERIC_TEMPLATE,
+        FB_SHORTS, EVENT
+    }
 
     /** Stands in for the three stubs the patch fills, and counts what was asked. */
     private static final class Stand {
@@ -173,6 +176,32 @@ public class PostTypesTest {
         assertTrue(guard(new GraphQLStory(shared), stand.readers()));
         assertEquals(PostTypes.ROUTE + ": 1 lists, 1 items, 1 removed. Last reason: link post. "
                 + "Removed: link post 1. Kinds: link post 1", line(PostTypes.ROUTE));
+    }
+
+    /** The style lists as 582's Home logged them on the emulator: a website link, a shared reel, an event. */
+    @Test
+    public void aLinkLedByAnotherStyleGoesWhenItLeadsOffFacebook() {
+        Settings.HIDE_LINK_POSTS.save(true);
+        Stand stand = new Stand();
+        GraphQLStoryAttachment site = stand.attachment(Style.NATIVE_TEMPLATES, Style.SHARE, Style.FALLBACK);
+        site.with("url", "https://l.facebook.com/l.php?u=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dx&h=AT0");
+        GraphQLStoryAttachment event = stand.attachment(Style.EVENT, Style.SHARE);
+        event.with("url", "https://www.facebook.com/events/123/");
+        GraphQLStoryAttachment noUrl = stand.attachment(Style.NATIVE_TEMPLATES, Style.SHARE);
+        GraphQLStoryAttachment reel = stand.attachment(Style.MESSENGER_GENERIC_TEMPLATE, Style.FB_SHORTS, Style.FALLBACK);
+        reel.with("url", "https://example.com/");
+        assertTrue(guard(new GraphQLStory(null, site), stand.readers()));
+        assertFalse("a shared event links to Facebook", guard(new GraphQLStory(null, event), stand.readers()));
+        assertFalse("no url to go on", guard(new GraphQLStory(null, noUrl), stand.readers()));
+        assertFalse("a shared reel has no SHARE style", guard(new GraphQLStory(null, reel), stand.readers()));
+        assertEquals(PostTypes.ROUTE + ": 4 lists, 4 items, 1 removed. Last reason: link post. Removed: link post 1. "
+                + "Kinds: link post 1, style EVENT 1, style MESSENGER_GENERIC_TEMPLATE 1, style NATIVE_TEMPLATES 1",
+                line(PostTypes.ROUTE));
+
+        Settings.HIDE_LINK_POSTS.save(false);
+        Settings.HIDE_PHOTO_POSTS.save(true);
+        assertTrue("the photo switch hides", guard(new GraphQLStory(null, stand.attachment(Style.PHOTO)), stand.readers()));
+        assertFalse("only the link switch asks", guard(new GraphQLStory(null, site), stand.readers()));
     }
 
     @Test

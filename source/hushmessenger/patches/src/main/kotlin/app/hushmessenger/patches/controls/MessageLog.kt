@@ -12,6 +12,8 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -28,6 +30,8 @@ internal const val THREAD_SUMMARY = "Lcom/facebook/messaging/model/threads/Threa
 internal const val THREAD_KEY_TYPE = "Lcom/facebook/messaging/model/threadkey/ThreadKey;"
 internal const val SECRET_STRING = "Lcom/facebook/secure/secrettypes/SecretString;"
 internal const val MESSAGES_NOTIFICATION_MANAGER = "Lcom/facebook/messaging/notify/client/MessagesNotificationManager;"
+internal const val MESSENGER_BROWSER_LAUNCHER = "Lcom/facebook/messaging/browser/util/MessengerBrowserLauncher;"
+private const val JSON_PUT = "Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;"
 
 /** Messenger's own spelling. Its notification manager logs this when an unsend takes a chat's notification back. */
 internal const val UNSEND_RETRACTION = "messenger_android_unsend_notificaiton_retraction"
@@ -58,6 +62,17 @@ internal class MessageLogContract(
      * this check on it before taking the chat's notification back.
      */
     val unsentCheck: String,
+    /**
+     * Message's own id, the String field Messenger's browser launcher puts under "message_id" when it hands a message to
+     * a web page. The push and the sync copy of one message share it, and two messages with the same text don't.
+     */
+    val messageIdField: String,
+    /**
+     * Message's boolean that marks text Messenger hid from the notification. A chat with disappearing messages on gets a
+     * stand-in Message whose text is "Secret conversation" and whose notification has no Reply action. Messenger's own
+     * notification text builder, the one (Message, ThreadSummary)String method, reads this flag and nothing else.
+     */
+    val hiddenField: String,
 )
 
 internal var messageLogContract: MessageLogContract? = null
@@ -74,8 +89,8 @@ private fun Method.fieldReads(owner: String, type: String) =
         .filter { it.definingClass == owner && it.type == type }
 
 /**
- * Picks the three field references the hook needs out of the stock classes. Returns null when any of them is missing or
- * ambiguous, so the control stops instead of guessing.
+ * Picks the field and method references the hook needs out of the stock classes. Returns null when any of them is
+ * missing or ambiguous, so the control stops instead of guessing.
  */
 internal fun resolveMessageLogContract(classes: Iterable<ClassDef>): MessageLogContract? {
     val message = classes.firstOrNull { it.type == MESSAGE } ?: return null
@@ -112,8 +127,49 @@ internal fun resolveMessageLogContract(classes: Iterable<ClassDef>): MessageLogC
 
     val unsentCheck = findUnsentChecks(classes).singleOrNull() ?: return null
 
-    return MessageLogContract(body, secretField, threadKeyField, unsentCheck)
+    val messageId = findMessageIdFields(classes).singleOrNull() ?: return null
+    if (!message.declaresReadable(messageId, NEW_MESSAGE_NOTIFICATION)) return null
+
+    val hidden = findHiddenTextFields(classes).singleOrNull() ?: return null
+    if (!message.declaresReadable(hidden, NEW_MESSAGE_NOTIFICATION)) return null
+
+    return MessageLogContract(body, secretField, threadKeyField, unsentCheck, messageId, hidden)
 }
+
+/** The Message boolean fields every (Message, ThreadSummary)String method reads. More than one can't be told apart. */
+internal fun findHiddenTextFields(classes: Iterable<ClassDef>): List<String> =
+    classes.flatMap { it.methods }.filter {
+        it.returnType == "Ljava/lang/String;" && it.parameterTypes.map { type -> type.toString() } == listOf(MESSAGE, THREAD_SUMMARY)
+    }.flatMap { method ->
+        method.implementation?.instructions?.toList().orEmpty().filter { it.opcode == Opcode.IGET_BOOLEAN }
+            .mapNotNull { (it as? ReferenceInstruction)?.reference as? FieldReference }
+            .filter { it.definingClass == MESSAGE && it.type == "Z" }
+            .map { fieldId(it) }
+    }.distinct()
+
+/**
+ * Every Message String field the browser launcher reads straight after loading "message_id" and puts into a JSONObject
+ * under that key, all three on the same registers. More than one means the id can't be told apart.
+ */
+internal fun findMessageIdFields(classes: Iterable<ClassDef>): List<String> =
+    classes.filter { it.type == MESSENGER_BROWSER_LAUNCHER }.flatMap { it.methods }.flatMap { method ->
+        val code = method.implementation?.instructions?.toList().orEmpty()
+        (0 until (code.size - 2).coerceAtLeast(0)).mapNotNull { at ->
+            val key = code[at]
+            if ((key.opcode != Opcode.CONST_STRING && key.opcode != Opcode.CONST_STRING_JUMBO) ||
+                ((key as ReferenceInstruction).reference as? StringReference)?.string != "message_id") return@mapNotNull null
+            val read = code[at + 1]
+            val field = (read as? ReferenceInstruction)?.reference as? FieldReference
+            if (read.opcode != Opcode.IGET_OBJECT || field == null || field.definingClass != MESSAGE ||
+                field.type != "Ljava/lang/String;") return@mapNotNull null
+            val put = code[at + 2] as? FiveRegisterInstruction
+            if (code[at + 2].opcode != Opcode.INVOKE_VIRTUAL || put == null ||
+                ((put as ReferenceInstruction).reference as? MethodReference)?.toString() != JSON_PUT ||
+                put.registerCount != 3 || put.registerD != (key as OneRegisterInstruction).registerA ||
+                put.registerE != (read as TwoRegisterInstruction).registerA) return@mapNotNull null
+            fieldId(field)
+        }
+    }.distinct()
 
 /** Static, public, (Message)Z, and all it reads is one long field of the message, compared with 0. */
 private fun Method.isUnsentCheck(): Boolean {
@@ -182,24 +238,30 @@ internal fun MutableMethod.validateMessageLog() {
 }
 
 /**
- * At the constructor's start, before the super call, the hook reads the incoming message's text and thread from the
+ * At the constructor's start, before the super call, the hook reads the incoming message's id, text and thread from the
  * parameter object (never the one being built), and hands them to the extension off Messenger's own thread. Off, Pause
  * and safe mode read nothing: the extension's gate is checked first, so the text is never even loaded. An unsent
- * message is skipped, since its text is only Messenger's stand-in.
+ * message is skipped, since its text is only Messenger's stand-in, and so is one whose text Messenger hid.
+ *
+ * The constructor has only two free registers, so the id goes over first, on its own, and the sink picks it up on the
+ * same thread. Every path to a sink passes its own handover first, so a sink can't get an earlier message's id.
  */
-internal fun MutableMethod.injectMessageLog() = injectIncomingMessage("logReceivedMessages", "recordReceivedMessage")
+internal fun MutableMethod.injectMessageLog() = injectIncomingMessage("$SETTINGS->logReceivedMessages()Z",
+    "$SETTINGS->recordReceivedMessage(Ljava/lang/String;Ljava/lang/String;)V")
 
 /**
  * Auto reply reads the same message at the same constructor, behind its own gate, so either control works without the
  * other. When both are in, each block runs its own gate and reads the fields itself.
  */
-internal fun MutableMethod.injectAutoReply() = injectIncomingMessage("autoReplyWanted", "autoReplyTo")
+internal fun MutableMethod.injectAutoReply() = injectIncomingMessage("$SETTINGS->autoReplyWanted()Z",
+    "$SETTINGS->autoReplyTo(Ljava/lang/String;Ljava/lang/String;)V")
 
+/** [gate] and [sink] are whole references, so the patcher DEX holds each as one string the catalog check can find. */
 private fun MutableMethod.injectIncomingMessage(gate: String, sink: String) {
     validateMessageLog()
     val contract = messageLogContract!!
     addInstructionsWithLabels(0, """
-        invoke-static {}, $SETTINGS->$gate()Z
+        invoke-static {}, $gate
         move-result v0
         if-eqz v0, :stock_behavior
         move-object/from16 v0, p2
@@ -207,6 +269,10 @@ private fun MutableMethod.injectIncomingMessage(gate: String, sink: String) {
         invoke-static {v0}, ${contract.unsentCheck}
         move-result v1
         if-nez v1, :stock_behavior
+        iget-boolean v1, v0, ${contract.hiddenField}
+        if-nez v1, :stock_behavior
+        iget-object v1, v0, ${contract.messageIdField}
+        invoke-static {v1}, $SETTINGS->incomingMessageId(Ljava/lang/String;)V
         iget-object v1, v0, ${contract.bodyField}
         if-eqz v1, :stock_behavior
         iget-object v1, v1, ${contract.secretField}
@@ -218,6 +284,6 @@ private fun MutableMethod.injectIncomingMessage(gate: String, sink: String) {
         :incoming_no_thread
         const/4 v0, 0x0
         :incoming_hand_over
-        invoke-static {v1, v0}, $SETTINGS->$sink(Ljava/lang/String;Ljava/lang/String;)V
+        invoke-static {v1, v0}, $sink
     """.trimIndent(), ExternalLabel("stock_behavior", getInstruction(0)))
 }

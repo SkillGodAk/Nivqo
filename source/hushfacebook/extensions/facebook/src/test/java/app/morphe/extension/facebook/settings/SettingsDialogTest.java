@@ -52,6 +52,8 @@ public class SettingsDialogTest {
     private static final String RETRY = "morphe_settings_error_retry";
     private static final String BACK = "morphe_settings_error_back";
 
+    private static final java.util.function.Predicate<View> KEYBOARD_UP = SettingsDialog.keyboardUp;
+
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
     private final ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup();
@@ -59,6 +61,7 @@ public class SettingsDialogTest {
     @After
     public void tearDown() {
         HushfacebookPreferenceFragment.failNextInitialization = null;
+        SettingsDialog.keyboardUp = KEYBOARD_UP;
         controller.close();
     }
 
@@ -146,6 +149,65 @@ public class SettingsDialogTest {
         assertEquals(SettingsDialog.CONTAINER_ID, ((View) view.getParent()).getId());
         assertNull(page.findPreference(ERROR));
         assertTrue(page.getPreferenceScreen().getPreferenceCount() > 0);
+    }
+
+    /**
+     * Android 17 leaves the keyboard down after a configuration change the app doesn't handle, so a
+     * screen recreated while its search box was being typed in puts the box back in focus with what
+     * was typed (and asks for the keyboard), and one recreated with the keyboard down leaves both.
+     */
+    @Test
+    public void recreationWhileTypingPutsTheSearchBoxBackInFocus() {
+        SettingsDialog.keyboardUp = view -> true;
+        android.widget.EditText box = searchOf(show(controller.get()));
+        box.requestFocus();
+        box.setText("speed");
+        ShadowLooper.idleMainLooper();
+
+        controller.recreate();
+        ShadowLooper.idleMainLooper();
+
+        android.widget.EditText restored = searchOf(restored());
+        assertEquals("speed", restored.getText().toString());
+        assertTrue("the search box lost its focus to the recreation", restored.hasFocus());
+    }
+
+    @Test
+    public void recreationWithTheKeyboardDownLeavesTheSearchBoxAlone() {
+        SettingsDialog.keyboardUp = view -> false;
+        android.widget.EditText box = searchOf(show(controller.get()));
+        box.requestFocus();
+        box.setText("speed");
+        ShadowLooper.idleMainLooper();
+
+        controller.recreate();
+        ShadowLooper.idleMainLooper();
+
+        assertFalse("a box nobody was typing in took focus", searchOf(restored()).hasFocus());
+    }
+
+    private SettingsDialog restored() {
+        SettingsDialog restored = (SettingsDialog) controller.get().getFragmentManager().findFragmentByTag(TAG);
+        assertNotNull("the settings didn't come back after recreation", restored);
+        return restored;
+    }
+
+    private static android.widget.EditText searchOf(SettingsDialog dialog) {
+        android.widget.EditText box = firstEditor(dialog.getView());
+        assertNotNull("no search box on the screen", box);
+        return box;
+    }
+
+    /** The first text editor under the view, or null. */
+    private static android.widget.EditText firstEditor(View view) {
+        if (view instanceof android.widget.EditText) return (android.widget.EditText) view;
+        if (!(view instanceof android.view.ViewGroup)) return null;
+        android.view.ViewGroup group = (android.view.ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            android.widget.EditText found = firstEditor(group.getChildAt(i));
+            if (found != null) return found;
+        }
+        return null;
     }
 
     private static SettingsDialog show(Activity activity) {

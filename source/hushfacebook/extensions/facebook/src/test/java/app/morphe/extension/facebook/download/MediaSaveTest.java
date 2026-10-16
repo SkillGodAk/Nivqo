@@ -573,7 +573,8 @@ public class MediaSaveTest {
         assertFalse("the save never finished", worker.isAlive());
         Shadows.shadowOf(Looper.getMainLooper()).idle();
 
-        assertEquals("Download failed. Try again in a moment.", ShadowToast.getTextOfLatestToast());
+        assertEquals("The file couldn't be copied into your phone's gallery. Try again in a moment.",
+                ShadowToast.getTextOfLatestToast());
         assertTrue("the unlisted row was left in the gallery", gallery.rows.isEmpty());
         assertEquals(0, published.size());
     }

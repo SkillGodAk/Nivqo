@@ -29,4 +29,9 @@ public final class SaveRulesForTests {
                 MediaDownload.compatibleSaves());
         return pick != null && DashManifest.isCompatibleVideo(pick.video);
     }
+
+    /** Whether a save starting now would finish without its Saved to toast, as quiet saves does. */
+    public static boolean finishesQuietly() {
+        return !MediaDownload.endToast(MediaDownload.quietSaves(), false, false, false);
+    }
 }

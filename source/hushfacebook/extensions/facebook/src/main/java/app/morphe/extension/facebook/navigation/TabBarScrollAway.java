@@ -35,8 +35,9 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * bar's entry is made as the main screen starts, so a change shows after a restart.
  *
  * <p>The top bar is a scroll-away entry of its own, added whatever the server settings say. Each
- * move of an entry asks {@link #topBarOffset}, which keeps a kept top bar where it rests. Its entry
- * keeps its place in Facebook's insets, so the feed still starts below it.
+ * move of an entry asks {@link #topBarOffset}, which keeps a kept top bar where it rests, and
+ * {@link #topBarFade}, which keeps it from fading out as it would have gone. Its entry keeps its
+ * place in Facebook's insets, so the feed still starts below it.
  */
 public final class TabBarScrollAway {
     /** Counted under the patch's name each time the check is answered yes. */
@@ -45,6 +46,8 @@ public final class TabBarScrollAway {
     static final String STAYS_PUT = "Tab bar kept on screen";
     /** Counted under the patch's name each time a kept top bar is held where it rests. */
     static final String TOP_BAR_HELD = "Top bar held on screen";
+    /** Counted each time a kept top bar is kept from fading as Facebook moves it. */
+    static final String TOP_BAR_UNFADED = "Top bar kept from fading";
     /** Counted each time a kept bar's pages are padded past the navigation bar under it. */
     static final String PAGES_CLEARED = "Pages kept clear of the kept tab bar";
 
@@ -114,6 +117,26 @@ public final class TabBarScrollAway {
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "top bar kept", failure);
             return offset;
+        }
+    }
+
+    /**
+     * The hook beside {@link #topBarOffset} in the same moves, with how far out of sight the move
+     * takes the entry, 0 to 1. Facebook fades some entries by it as they go (an entry over a
+     * see-through navigation bar, and one part of the top bar on some accounts), which a held
+     * distance doesn't stop. A kept top bar gets 0, so it stays fully drawn.
+     */
+    public static float topBarFade(@Nullable String entry, float hidden) {
+        try {
+            if (hidden == 0f || !(APP_HEADER.equals(entry) || TITLE_AND_TABS.equals(entry))) return hidden;
+            HookStatus.invoked(FAMILY);
+            if (!Utils.settingsReady() || !Settings.KEEP_TOP_BAR.get()) return hidden;
+            HookStatus.bound(FAMILY, "top bar kept drawn");
+            HookStatus.counted(FAMILY, TOP_BAR_UNFADED);
+            return 0f;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "top bar kept drawn", failure);
+            return hidden;
         }
     }
 

@@ -200,12 +200,44 @@ public class ChoiceBackupTest {
             assertTrue(Settings.preferences.getBoolean("people", false));
             assertTrue(Settings.preferences.getBoolean("typing", false));
             assertFalse(Settings.preferences.contains("new_control"));
-            assertEquals("Restored 1 choice Skipped 1 choice this version doesn't know. Skipped 1 choice whose patch isn't installed.", ShadowToast.getTextOfLatestToast());
+            assertEquals("Restored 1 choice. Skipped 1 choice this version doesn't know. Skipped 1 choice whose patch isn't installed.", ShadowToast.getTextOfLatestToast());
             Map<String, ?> before = Settings.preferences.getAll();
             clipboard(ChoiceCodec.HEADER + "\nnew_control=false\n");
             screen.get().getWindow().getDecorView().findViewWithTag("import_choices").performClick();
             assertEquals(before, Settings.preferences.getAll());
             assertTrue(ShadowToast.getTextOfLatestToast().startsWith("Nothing to restore"));
+        }
+    }
+
+    /**
+     * A backup carries Auto reply's switch but not its replies, so restoring it on would start this phone's own replies.
+     * The switch stays off, this phone's replies and group choice are kept, and the toast says why. Off still applies.
+     */
+    @Test public void aRestoredBackupNeverTurnsOnThisPhonesAutoReplies() {
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            Settings.installed = new HashSet<>(Set.of("stories", AutoReply.KEY));
+            AutoReply.save(Settings.preferences, java.util.List.of(new AutoReply.Rule("", "Not this one")), true);
+            String rules = Settings.preferences.getString(AutoReply.RULES, null);
+            String notice = new SettingsText(screen.get()).get("import_auto_reply_off");
+            clipboard(ChoiceCodec.HEADER + "\nstories=true\nauto_reply=true\n");
+            screen.get().getWindow().getDecorView().findViewWithTag("import_choices").performClick();
+            assertTrue(Settings.preferences.getBoolean("stories", false));
+            assertFalse(Settings.preferences.getBoolean(AutoReply.KEY, false));
+            assertEquals(rules, Settings.preferences.getString(AutoReply.RULES, null));
+            assertTrue(Settings.preferences.getBoolean(AutoReply.GROUPS, false));
+            assertEquals("Restored 1 choice. " + notice, ShadowToast.getTextOfLatestToast());
+
+            clipboard(ChoiceCodec.HEADER + "\nauto_reply=true\n");
+            screen.get().getWindow().getDecorView().findViewWithTag("import_choices").performClick();
+            assertFalse(Settings.preferences.getBoolean(AutoReply.KEY, false));
+            assertEquals(notice, ShadowToast.getTextOfLatestToast());
+
+            Settings.preferences.edit().putBoolean(AutoReply.KEY, true).commit();
+            clipboard(ChoiceCodec.HEADER + "\nauto_reply=false\n");
+            screen.get().getWindow().getDecorView().findViewWithTag("import_choices").performClick();
+            assertFalse(Settings.preferences.getBoolean(AutoReply.KEY, false));
+            assertEquals("Restored 1 choice.", ShadowToast.getTextOfLatestToast());
+            assertEquals(rules, Settings.preferences.getString(AutoReply.RULES, null));
         }
     }
 

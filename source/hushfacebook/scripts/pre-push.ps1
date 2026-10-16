@@ -569,6 +569,7 @@ try {
     }).Count -gt 0
     # The source ledger's rules read NOTICE, provenance.json and the catalog's declared builds, and
     # hold docs/sources.md to the ledger, so a push of any of them runs the ledger's suite too.
+    # The same suite holds the GitLab coverage ledger and the script that runs it.
     $facebookSourcePaths = @(
         'NOTICE',
         'docs/sources.md',
@@ -576,7 +577,9 @@ try {
         'provenance.json',
         'scripts/audit-facebook-sources.ps1',
         'scripts/facebook-sources.ps1',
+        'scripts/gitlab-coverage.ps1',
         'scripts/patch-target.ps1',
+        'scripts/scan-gitlab-coverage.ps1',
         'scripts/test-facebook-sources.ps1',
         'sources/facebook-sources.json'
     )

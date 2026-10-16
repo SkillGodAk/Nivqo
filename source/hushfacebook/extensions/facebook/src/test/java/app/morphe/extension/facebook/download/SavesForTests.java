@@ -68,6 +68,11 @@ public final class SavesForTests {
         return STARTED.get(id).cancelled();
     }
 
+    /** The save's worker found no connection, as it says just before it ends a save that failed. */
+    public static void failedOffline(int id) {
+        STARTED.get(id).failed(Downloader.Cause.NETWORK);
+    }
+
     /** The save is over, as its worker ends it. */
     public static void end(int id) {
         SaveControl.Save save = STARTED.remove(id);

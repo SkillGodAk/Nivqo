@@ -158,5 +158,5 @@ internal fun MutableMethod.validateAiCommands() {
 /** With the switch on the chat has no AI commands, the same answer Messenger gives a chat without any. */
 internal fun MutableMethod.injectAiCommands() {
     validateAiCommands()
-    injectSwitch("hideMetaAi", "0x0")
+    injectSwitch("$SETTINGS->hideMetaAi()Z", "0x0")
 }

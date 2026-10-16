@@ -17,6 +17,7 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 internal const val HOST_SCREENS = "Lapp/hushmessenger/extension/HostScreens;"
 internal const val BUNDLED_CONTROLS = "$HOST_SCREENS->bundledControls()Ljava/lang/String;"
+internal const val ORIGINAL_BUILD = "$HOST_SCREENS->originalBuild()Ljava/lang/String;"
 internal val FACTORY_TYPE = "L${APP_COMPONENT_FACTORY.replace('.', '/')};"
 internal val INSTANTIATE_ACTIVITY =
     "$FACTORY_TYPE->instantiateActivity(Ljava/lang/ClassLoader;Ljava/lang/String;Landroid/content/Intent;)Landroid/app/Activity;"
@@ -66,6 +67,33 @@ internal fun MutableMethod.writeBundledControls(keys: Collection<String>) {
         throw PatchException("Messenger controls: the extension's control list differs from this patch version")
     }
     replaceInstruction(0, "const-string v${constant.registerA}, \"${keys.sorted().joinToString(",")}\"")
+}
+
+/**
+ * "583.0.0.29.95|346611369|base": the build being patched and the mapping its hooks come from ("base", or the version
+ * code of the one build with a profile of its own). Settings' reports show it, since Spoof package version changes
+ * Android's version code and a Root Mount install has no patched manifest to read. A name or code of any other shape
+ * gives "", which the reports show as unknown; a report line never stops a patch.
+ */
+internal fun originalBuild(versionName: String?, versionCode: String?, profiles: Map<Int, ControlProfile> = controlProfilesInUse): String {
+    if (versionName?.matches(Regex("[0-9][0-9A-Za-z.]{0,31}")) != true || versionCode?.matches(Regex("[1-9][0-9]{0,9}")) != true ||
+        versionCode.toLongOrNull()?.let { it > Int.MAX_VALUE } != false) return ""
+    val profile = controlProfileFor(versionCode, profiles)
+    val mapping = if (profile === BASE_PROFILE) "base" else profiles.filterValues { it === profile }.keys.min().toString()
+    return "$versionName|$versionCode|$mapping"
+}
+
+/** Writes [value] as what HostScreens.originalBuild returns. Its stock body is one constant string and the return. */
+internal fun MutableMethod.writeOriginalBuild(value: String) {
+    val instructions = implementation?.instructions?.toList().orEmpty()
+    val constant = instructions.getOrNull(0) as? OneRegisterInstruction
+    val exit = instructions.getOrNull(1) as? OneRegisterInstruction
+    if (hookId() != ORIGINAL_BUILD || instructions.size != 2 || instructions[0].opcode != Opcode.CONST_STRING ||
+        instructions[1].opcode != Opcode.RETURN_OBJECT || constant == null || constant.registerA != exit?.registerA ||
+        (instructions[0] as? ReferenceInstruction)?.reference !is StringReference) {
+        throw PatchException("Messenger controls: the extension's build record differs from this patch version")
+    }
+    replaceInstruction(0, "const-string v${constant.registerA}, \"$value\"")
 }
 
 /** Records an applied control in the patched code, which Root Mount installs read instead of the manifest. */

@@ -222,10 +222,15 @@ public class SettingsBackupPreference extends Preference {
         Context context = appContext(page);
         Run run = start(EXPORT, L10n.t("Saving the settings file"));
         if (run == null) return;
+        // Read here, on the main thread, where a Quick setup or a word list save is never halfway.
+        // The worker only writes these out, so an edit made while it runs can't land in the file in
+        // part. An import is the one change to them written off this thread, and it holds the rows
+        // until it's done, so none is halfway once this run has them.
+        SettingsBackup.Saved saved = SettingsBackup.savedNow();
         boolean accepted = Utils.runOnBackgroundThread(() -> {
             String said = null;
             try {
-                said = write(context.getContentResolver(), uri, SettingsBackup.create().getBytes(StandardCharsets.UTF_8), run);
+                said = write(context.getContentResolver(), uri, saved.file().getBytes(StandardCharsets.UTF_8), run);
             } catch (Exception error) {
                 Logger.printInfo(() -> "Settings export failed: " + error.getClass().getSimpleName());
                 said = L10n.t("Couldn't save the settings file. Try again.");

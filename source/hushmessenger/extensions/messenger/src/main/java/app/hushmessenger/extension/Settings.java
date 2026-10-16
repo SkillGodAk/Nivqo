@@ -4,12 +4,14 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
+import android.os.SystemClock;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.Window;
 import android.view.WindowManager;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -199,6 +201,8 @@ public final class Settings {
     public static boolean hideMetaAiTab() {
         Boolean hidden = metaAiTab;
         if (hidden != null) return hidden;
+        // Started before the lock below, so nothing waits on HostScreens' startup lock while holding it.
+        if (!HostScreens.started) HostScreens.initializeLate();
         // Its own lock, so two first askers can't get different answers if the switch flips between them.
         synchronized (META_AI_TAB) {
             if (metaAiTab == null) metaAiTab = hideMetaAi();
@@ -207,6 +211,28 @@ public final class Settings {
     }
 
     private static final Object META_AI_TAB = new Object();
+
+    /** Bottom tabs with a switch of their own, held for the run like the Meta AI tab. */
+    static final List<String> BOTTOM_TABS = Collections.unmodifiableList(Arrays.asList("tab_people", "tab_notifications"));
+    /** First answer this process gave for each of {@link #BOTTOM_TABS}, by key, once the bottom bar asked. */
+    static final ConcurrentHashMap<String, Boolean> bottomTabs = new ConcurrentHashMap<>();
+
+    public static boolean hidePeopleTab() { return hideBottomTab("tab_people"); }
+    public static boolean hideNotificationsTab() { return hideBottomTab("tab_notifications"); }
+
+    private static boolean hideBottomTab(String key) {
+        // putIfAbsent keeps whichever answer landed first, so two first askers can't get different answers. wouldUse runs
+        // outside the map's lock because it can reach HostScreens.initializeLate, which takes a lock of its own.
+        Boolean held = bottomTabs.get(key);
+        if (held == null) {
+            boolean answer = wouldUse(key);
+            held = bottomTabs.putIfAbsent(key, answer);
+            if (held == null) held = answer;
+        }
+        boolean hidden = held;
+        if (hidden) activeAt.put(key, System.currentTimeMillis());
+        return hidden;
+    }
 
     /** First answer this process gave for the emoji drawer, or null before Messenger asked. */
     static volatile Boolean oldEmojiDrawer;
@@ -222,6 +248,7 @@ public final class Settings {
         if (!original) return false;
         Boolean old = oldEmojiDrawer;
         if (old == null) {
+            if (!HostScreens.started) HostScreens.initializeLate();
             synchronized (EMOJI_DRAWER) {
                 if (oldEmojiDrawer == null) oldEmojiDrawer = wouldUse("emoji_drawer");
                 old = oldEmojiDrawer;
@@ -238,7 +265,7 @@ public final class Settings {
      */
     static Boolean heldUntilRestart(String key) {
         Boolean held = "meta_ai".equals(key) ? metaAiTab : "emoji_drawer".equals(key) ? oldEmojiDrawer
-            : OwnFont.KEY.equals(key) ? customFont : null;
+            : OwnFont.KEY.equals(key) ? customFont : bottomTabs.get(key);
         return held == null || held == wouldUse(key) ? null : held;
     }
 
@@ -287,6 +314,79 @@ public final class Settings {
     public static boolean stopAttributionUploads() { return enabled("attribution_uploads"); }
     /** Asked before the inbox visibility event and the ad deep link's entry event are logged; true drops that one event. */
     public static boolean stopAdEvents() { return enabled("ad_events"); }
+
+    static final String MQTT_TELEMETRY = "mqtt_telemetry";
+    /** The topics Messenger publishes its own connection logging on. Messages, typing and presence use other topics. */
+    static final Set<String> MQTT_TELEMETRY_TOPICS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("/mqtt_health_stats", "/fbns_exp_logging")));
+    /**
+     * Asked before every publish on Messenger's MQTT connection. True drops a logging publish as if the connection were
+     * down, which the health report's senders shrug off. Every other topic, and every topic while the switch is off,
+     * goes out as before. A failure here sends the publish, since this sits in front of every message too.
+     */
+    public static boolean dropMqttPublish(String topic) {
+        try {
+            return topic != null && MQTT_TELEMETRY_TOPICS.contains(topic) && enabled(MQTT_TELEMETRY);
+        } catch (RuntimeException error) {
+            hookFailed(MQTT_TELEMETRY, "Can't check an MQTT publish", error);
+            return false;
+        }
+    }
+    /**
+     * Messenger's config can make the keepalive send the health report instead of a plain ping. With the switch on the
+     * keepalive keeps to the plain ping, so the connection stays up without the report.
+     */
+    public static boolean mqttHealthKeepalive(boolean healthReport) {
+        try {
+            return healthReport && !enabled(MQTT_TELEMETRY);
+        } catch (RuntimeException error) {
+            hookFailed(MQTT_TELEMETRY, "Can't check the MQTT keepalive", error);
+            return healthReport;
+        }
+    }
+    /**
+     * Asked each time Messenger is about to queue its foreground location task, the one that requests a location and
+     * starts its Wi-Fi and Bluetooth scans. True keeps the task from being queued.
+     */
+    public static boolean stopNearbyScans() { return enabled("nearby_scans"); }
+
+    /** What Android tells an app that can't see the phone's location about the Wi-Fi network it's on. */
+    static final String HIDDEN_WIFI_NAME = "<unknown ssid>";
+    static final String HIDDEN_WIFI_BSSID = "02:00:00:00:00:00";
+
+    /**
+     * Asked each time Messenger reads the name of the Wi-Fi network the phone is connected to. With Stop nearby scans on
+     * it gets Android's answer for an app without location access. No name stays no name.
+     */
+    public static String wifiName(String name) { return hideWifi(name, HIDDEN_WIFI_NAME); }
+
+    /** The same for the network's BSSID, the access point's hardware address, which can place the phone on a map. */
+    public static String wifiBssid(String bssid) { return hideWifi(bssid, HIDDEN_WIFI_BSSID); }
+
+    private static String hideWifi(String value, String hidden) {
+        if (value == null) return null;
+        try {
+            return enabled("nearby_scans") ? hidden : value;
+        } catch (RuntimeException error) {
+            hookFailed("nearby_scans", "Can't check Stop nearby scans", error);
+            return value;
+        }
+    }
+
+    static final String PINNED_CHATS = "pinned_chats";
+    /** How many chats can be pinned with the switch on. Messenger's own limit is three. */
+    static final int PINNED_CHAT_LIMIT = 20;
+    /**
+     * Asked each time Messenger reads how many chats can be pinned. With the switch on the answer is 20, or Messenger's
+     * own number if that's ever higher. Off, Pause and safe mode give Messenger's number back.
+     */
+    public static int pinnedChatLimit(int stock) {
+        try {
+            return enabled(PINNED_CHATS) ? Math.max(stock, PINNED_CHAT_LIMIT) : stock;
+        } catch (RuntimeException error) {
+            hookFailed(PINNED_CHATS, "Can't check the pinned chat limit", error);
+            return stock;
+        }
+    }
     /** Asked each time a chat's swipe up for disappearing messages could start; true keeps the gesture from starting. */
     public static boolean blockDisappearingSwipe() { return enabled("disappearing_swipe"); }
     /** Messenger's own original-upload check allows 25 MB, so a bigger video keeps its re-encode. */
@@ -303,14 +403,29 @@ public final class Settings {
     /** The notification hook asks this before it reads a message, so nothing is read when the switch is off or paused. */
     public static boolean logReceivedMessages() { return wouldUse("message_log"); }
 
+    /**
+     * The message's own id, which the notification hook hands over just before the text and thread (the constructor it
+     * runs in has room for two values at a time). The sink right after takes it on the same thread.
+     */
+    private static final ThreadLocal<String> INCOMING_ID = new ThreadLocal<>();
+
+    public static void incomingMessageId(String id) { INCOMING_ID.set(id); }
+
+    static String takeIncomingMessageId() {
+        String id = INCOMING_ID.get();
+        INCOMING_ID.remove();
+        return id;
+    }
+
     /** The notification hook hands the message here; the log stores it off this thread and swallows its own failures. */
-    public static void recordReceivedMessage(String text, String thread) { MessageLog.record(text, thread); }
+    public static void recordReceivedMessage(String text, String thread) { MessageLog.record(text, thread, takeIncomingMessageId()); }
 
     /** The same notification hook asks this for an auto reply: on, not paused, and with at least one reply written. */
     public static boolean autoReplyWanted() { return AutoReply.wanted(); }
 
     /** Hands an incoming message to the auto reply, which answers it off this thread. */
-    public static void autoReplyTo(String text, String thread) { AutoReply.received(text, thread); }
+    public static void autoReplyTo(String text, String thread) { AutoReply.received(text, thread, takeIncomingMessageId()); }
+
     /**
      * The chat camera button's intent, right before Messenger starts it. With the switch on it opens the capture screen,
      * which uses the phone's camera app. Off, Pause, safe mode and an install without the capture screen get Messenger's.
@@ -384,6 +499,11 @@ public final class Settings {
             Context context = appContext;
             return context == null || CameraActivity.captureIntent(context) != null;
         }
+        if (TextStyleActivity.KEY.equals(key)) {
+            Context context = appContext;
+            return context == null || TextStyleActivity.present(context);
+        }
+        if ("hide_menu_row".equals(key)) return menuRowCanHide();
         if (!"bubbles".equals(key)) return true;
         if (Build.VERSION.SDK_INT < 30) return false;
         if (!HostScreens.started) HostScreens.initializeLate();
@@ -413,21 +533,41 @@ public final class Settings {
     }
     /** How long after you send something the open chat may mark itself read, which shows Seen as stock Messenger does. */
     static final long REPLY_READ_MS = 5_000;
-    static volatile long lastSentAt;
+    static volatile ReplyMarker lastReply;
+
+    static final class ReplyMarker {
+        final WeakReference<Object> session;
+        final WeakReference<Object> thread;
+        final long sentAt;
+
+        ReplyMarker(Object session, Object thread, long sentAt) {
+            this.session = new WeakReference<>(session);
+            this.thread = new WeakReference<>(thread);
+            this.sentAt = sentAt;
+        }
+    }
 
     /**
      * Hide read receipts: whether the open chat skips the job that marks it read and sends Seen. Right after you send
-     * something from it, the job runs, since a reply shows you read the chat anyway.
+     * something from it, only that chat in the same session may run the job, since a reply shows you read it anyway.
      */
-    public static boolean hideChatSeen() {
+    public static boolean hideChatSeen(Object session, Object thread) {
         if (!wouldUse("hide_read_receipts")) return false;
-        long since = System.currentTimeMillis() - lastSentAt;
-        if (since >= 0 && since < REPLY_READ_MS) return false;
+        ReplyMarker reply = lastReply;
+        if (session != null && thread != null && reply != null && reply.session.get() == session) {
+            Object sentThread = reply.thread.get();
+            long since = SystemClock.elapsedRealtime() - reply.sentAt;
+            if (sentThread != null && since >= 0 && since < REPLY_READ_MS && sentThread.equals(thread)) return false;
+        }
         return enabled("hide_read_receipts");
     }
 
-    /** The composer's send event, built each time you send from a chat. */
-    public static void noteMessageSent() { lastSentAt = System.currentTimeMillis(); }
+    /** Record the account and thread only after the native composer dispatch returns. */
+    public static void noteMessageSent(Object session, Object thread) {
+        if (session != null && thread != null && wouldUse("hide_read_receipts")) {
+            lastReply = new ReplyMarker(session, thread, SystemClock.elapsedRealtime());
+        }
+    }
     public static boolean keepUnsent() { return wouldUse("keep_unsent"); }
     public static boolean viewStoriesAnonymously() { return enabled("anonymous_stories"); }
     public static boolean saveAnyStory() { return enabled("save_stories"); }
@@ -565,6 +705,35 @@ public final class Settings {
     static boolean drawerIconHidden() {
         SharedPreferences prefs = preferences;
         return installed.contains("menu_row") && prefs != null && prefs.getBoolean("hide_drawer_icon", false);
+    }
+
+    /** Set the first time settings open from the long-press shortcut, which proves that way in works on this phone. */
+    static final String SHORTCUT_USED = "shortcut_used";
+
+    static void noteShortcutUsed() {
+        SharedPreferences prefs = preferences;
+        if (prefs != null && !prefs.getBoolean(SHORTCUT_USED, false)) prefs.edit().putBoolean(SHORTCUT_USED, true).apply();
+    }
+
+    /**
+     * The Menu row can stay out only once the long-press shortcut has opened settings here and is still published. If
+     * the shortcut goes missing, as after a Root Mount start that couldn't publish it, the row comes back.
+     */
+    static boolean menuRowCanHide() {
+        SharedPreferences prefs = preferences;
+        return prefs != null && prefs.getBoolean(SHORTCUT_USED, false) && HostScreens.controlsShortcutPresent(appContext);
+    }
+
+    static boolean menuRowHidden() {
+        SharedPreferences prefs = preferences;
+        return prefs != null && prefs.getBoolean("hide_menu_row", false) && menuRowCanHide();
+    }
+
+    /** Recorded with the Menu row only when the long press on the Messenger logo at the top of Chats went in too. */
+    static final String LOGO_LONG_PRESS = "logo_long_press";
+
+    static boolean logoOpensSettings() {
+        return installed.contains(LOGO_LONG_PRESS);
     }
 
     private static final String KEPT_UNSENT_KEY = "kept_unsent_ids";
@@ -723,6 +892,7 @@ public final class Settings {
         if (file == null || android.os.Build.VERSION.SDK_INT < 29) {
             logEmoji("phone emoji only (" + (file == null ? "no Messenger font file yet" : "Android " + android.os.Build.VERSION.SDK_INT)
                 + "), source " + systemEmojiSource);
+            likeWithoutFont = true;
             return system;
         }
         synchronized (Settings.class) {
@@ -741,8 +911,62 @@ public final class Settings {
             }
             logEmoji(mergedEmoji != null ? "phone emoji with Messenger's font behind it, source " + systemEmojiSource
                 : "phone emoji only (merge failed), source " + systemEmojiSource);
+            if (mergedEmoji == null) likeWithoutFont = true;
             return mergedEmoji != null ? mergedEmoji : system;
         }
+    }
+
+    /**
+     * Set once this run hands Messenger an emoji typeface without Messenger's font behind it (Android 9, no font file
+     * yet, or a failed merge). Messenger keeps its first answer, so the Like stays a box until the next start even if
+     * the font turns up later.
+     */
+    static volatile boolean likeWithoutFont;
+
+    private static final String LIKE = new String(Character.toChars(0xF0000));
+    private static final String THUMBS_UP = new String(Character.toChars(0x1F44D));
+
+    /**
+     * The chat list's last-message snippet as Messenger builds it (#34 follow-up). A Like there is U+F0000, which only
+     * Messenger's downloaded emoji font can draw. With Use system emoji on, the phone's own thumbs up stands in whenever
+     * the typeface Messenger got this run can't draw it. Both are two chars long, so spans over the text stay where they
+     * were.
+     */
+    public static CharSequence chatListSnippet(CharSequence text) {
+        try {
+            if (text == null || android.text.TextUtils.indexOf(text, LIKE) < 0 || !wouldUse("use_system_emoji")
+                || likeDrawn()) return text;
+            CharSequence swapped = withThumbsUp(text);
+            if (swapped != text) enabled("use_system_emoji");
+            return swapped;
+        } catch (RuntimeException error) {
+            hookFailedPrivately("use_system_emoji", "Can't show the Like in the chat list", error);
+            return text;
+        }
+    }
+
+    /** Whether this run's emoji typeface draws the Like, as far as Hush can tell before Messenger asks for one. */
+    static boolean likeDrawn() {
+        if (likeWithoutFont) return false;
+        // Android 9 can't put Messenger's font behind the phone's, unless the phone's failed and Messenger's own is used.
+        if (android.os.Build.VERSION.SDK_INT < 29 && !systemEmojiMissing) return false;
+        return messengerEmojiFile != null || rememberedEmojiFont() != null;
+    }
+
+    /** The text with every Like swapped, as the same class so Messenger's own code sees what it built. */
+    static CharSequence withThumbsUp(CharSequence text) {
+        if (text instanceof String) return ((String) text).replace(LIKE, THUMBS_UP);
+        Class<?> type = text.getClass();
+        if (type != android.text.SpannableStringBuilder.class && type != android.text.SpannableString.class
+            && type != android.text.SpannedString.class) return text;
+        android.text.SpannableStringBuilder swapped = new android.text.SpannableStringBuilder(text);
+        for (int at = android.text.TextUtils.indexOf(swapped, LIKE); at >= 0;
+             at = android.text.TextUtils.indexOf(swapped, LIKE, at + THUMBS_UP.length())) {
+            swapped.replace(at, at + LIKE.length(), THUMBS_UP);
+        }
+        if (type == android.text.SpannableString.class) return new android.text.SpannableString(swapped);
+        if (type == android.text.SpannedString.class) return new android.text.SpannedString(swapped);
+        return swapped;
     }
 
     @android.annotation.TargetApi(29)
@@ -950,6 +1174,7 @@ public final class Settings {
     public static List addLegacyDrawerEntry(Object fragment, List sections) {
         if (fragment == null || sections == null) return sections;
         try {
+            if (menuRowHidden()) return sections;
             java.lang.reflect.Method getContext = fragment.getClass().getMethod("getContext");
             getContext.setAccessible(true);
             Object current = getContext.invoke(fragment);
@@ -1022,7 +1247,7 @@ public final class Settings {
     @SuppressWarnings("unchecked")
     public static void addMenuSettingsEntry(ArrayList list) {
         try {
-            if (list == null || list.isEmpty()) return;
+            if (list == null || list.isEmpty() || menuRowHidden()) return;
             // Messenger builds its QR code row into the same list, so find Settings by its folder key.
             int at = -1;
             for (int i = 0; i < list.size() && at < 0; i++) if (holdsSettingsKey(list.get(i))) at = i;
@@ -1112,10 +1337,11 @@ public final class Settings {
     }
 
     // The menu entry hooks don't ask Pause or safe mode first, on purpose: they're the way back into settings to undo either.
+    // Only Hide the Menu row takes them out, and only while the long-press shortcut is a proven way back.
     @SuppressWarnings("unchecked")
     public static java.util.List addMenuDrawerEntry(java.util.List list) {
         try {
-            if (list == null || list.size() < 2) return list;
+            if (list == null || list.size() < 2 || menuRowHidden()) return list;
             for (Object item : list) {
                 try {
                     java.lang.reflect.Field f = item.getClass().getDeclaredField("A05");
@@ -1196,6 +1422,28 @@ public final class Settings {
                 }
             } else if (stock != null) {
                 stock.onClick(v);
+            }
+        }
+    }
+
+    /**
+     * A long press on the Messenger logo at the top of Chats, or on the Menu tab's title, ends here, after Messenger's own
+     * handling of that press. The patch calls this just before each title's long press handler returns, with the
+     * toolbar's context. Messenger hands the press to a title shortcut plugin that only its internal builds have, so for
+     * everyone else it did nothing but vibrate. Like the Menu rows, this doesn't ask Pause or safe mode first: it's a way back into settings to undo
+     * either. A launch Android refuses gets the same toast as the side menu row, pointing at the launcher shortcut.
+     */
+    public static void logoLongPressed(Context context) {
+        if (context == null) return;
+        try {
+            HostScreens.open(context, HostScreens.SETTINGS);
+        } catch (RuntimeException | LinkageError error) {
+            hookFailed("menu_row", "Opening settings from a tab title failed", error);
+            try {
+                android.widget.Toast.makeText(context, new SettingsText(context).get("settings_open_failed"),
+                        android.widget.Toast.LENGTH_LONG).show();
+            } catch (RuntimeException | LinkageError feedbackError) {
+                hookFailedPrivately("menu_row", "Tab title feedback unavailable", feedbackError);
             }
         }
     }

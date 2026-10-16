@@ -3,6 +3,7 @@ package app.hushmessenger.extension;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -133,7 +134,12 @@ public class FontFileTest {
     private void assertUntouched(File target) throws IOException {
         assertEquals("the copy picked before changed", "the font picked before",
                 new String(Files.readAllBytes(target.toPath()), StandardCharsets.UTF_8));
-        assertFalse("a partial copy was left behind", new File(folder.getRoot(), FontFile.PARTIAL).exists());
+        assertNoPartial();
+    }
+
+    private void assertNoPartial() {
+        String[] partials = folder.getRoot().list((dir, name) -> name.startsWith(FontFile.PARTIAL));
+        assertEquals("a partial copy was left behind", 0, partials == null ? 0 : partials.length);
     }
 
     @Test
@@ -172,7 +178,62 @@ public class FontFileTest {
         assertEquals("the check didn't see the whole file", 1, checked.size());
         assertArrayEquals(rubik, checked.get(0));
         assertTrue("the picker's stream was left open", input.closed);
-        assertFalse(new File(folder.getRoot(), FontFile.PARTIAL).exists());
+        assertNoPartial();
+    }
+
+    /**
+     * A stream that answers every read with nothing is broken, not slow, so it's turned down instead of read forever,
+     * before or after the font header. A stopped copy reads no further either.
+     */
+    @Test
+    public void aStreamThatReadsNothingOrAStoppedCopyIsTurnedDown() throws Exception {
+        File target = existingCopy();
+        for (int header : new int[] {0, 4}) {
+            AtomicInteger reads = new AtomicInteger();
+            InputStream nothing = new InputStream() {
+                private int served;
+
+                @Override
+                public int read() {
+                    throw new AssertionError("reads go through the buffer");
+                }
+
+                @Override
+                public int read(byte[] buffer, int offset, int length) {
+                    reads.incrementAndGet();
+                    if (served >= header) return 0;
+                    buffer[offset] = (byte) (served == 1 ? 1 : 0);
+                    served++;
+                    return 1;
+                }
+            };
+            assertEquals(FontFile.Refusal.UNREADABLE, refusal(nothing, target, file -> true));
+            assertTrue("read " + reads.get() + " times", reads.get() <= header + FontFile.MOST_EMPTY_READS + 1);
+            assertUntouched(target);
+        }
+        Thread.currentThread().interrupt();
+        try {
+            assertEquals(FontFile.Refusal.UNREADABLE, refusal(new ByteArrayInputStream(font(STATIC_FONT)), target, file -> true));
+        } finally {
+            Thread.interrupted();
+        }
+        assertUntouched(target);
+    }
+
+    /** A partial copy a crash or a stopped copy left behind goes once it's old, and one still being written stays. */
+    @Test
+    public void anOldPartialCopyIsRemoved() throws Exception {
+        File old = new File(folder.getRoot(), FontFile.PARTIAL + "-1.tmp");
+        File fresh = new File(folder.getRoot(), FontFile.PARTIAL + "-2.tmp");
+        File legacy = new File(folder.getRoot(), FontFile.PARTIAL);
+        for (File partial : new File[] {old, fresh, legacy}) Files.write(partial.toPath(), new byte[] {1});
+        long stale = System.currentTimeMillis() - FontFile.SIZING_STALE_MS - 60_000;
+        assertTrue(old.setLastModified(stale));
+        assertTrue(legacy.setLastModified(stale));
+        FontFile.dropAdjusted(folder.getRoot(), null);
+        assertFalse(old.exists());
+        assertFalse(legacy.exists());
+        assertTrue(fresh.exists());
     }
 
     @Test
@@ -286,7 +347,8 @@ public class FontFileTest {
         assertEquals(Arrays.asList("check", "save, the copy before still in place"), said);
         assertArrayEquals(rubik, Files.readAllBytes(target.toPath()));
 
-        // A name that won't save, or whose saving throws, leaves the copy before where it was.
+        // A name that won't save, or whose saving throws, leaves the copy before where it was. Android takes a commit into
+        // memory before the disk answers, so the old name is put back either way.
         File again = existingCopy();
         AtomicInteger undone = new AtomicInteger();
         for (boolean throwing : new boolean[]{false, true}) {
@@ -309,7 +371,7 @@ public class FontFileTest {
             }
             assertUntouched(again);
         }
-        assertEquals("a name that never saved was put back", 0, undone.get());
+        assertEquals("a name that didn't save was left in memory", 2, undone.get());
     }
 
     /**
@@ -395,6 +457,187 @@ public class FontFileTest {
         boastful[4] = (byte) 0xFF;
         boastful[5] = (byte) 0xFF;
         assertNull("a directory claiming 65535 tables", FontFile.weightAxis(write("boastful.ttf", boastful)));
+    }
+
+    /** #48: a size rewrites the units per em alone, and a move trades ascent for descent so the line keeps its height. */
+    @Test
+    public void aSizeChangesOnlyTheUnitsPerEmAndAMoveTradesAscentForDescent() throws Exception {
+        byte[] plain = font(STATIC_FONT);
+        ByteBuffer before = ByteBuffer.wrap(plain);
+        int head = table(plain, 0, "head"), hhea = table(plain, 0, "hhea"), os2 = table(plain, 0, "OS/2");
+        int upem = before.getShort(head + 18) & 0xFFFF;
+
+        byte[] sized = plain.clone();
+        assertTrue(FontFile.adjust(sized, 125, 0));
+        assertEquals(Math.round(upem / 1.25f), ByteBuffer.wrap(sized).getShort(head + 18) & 0xFFFF);
+        ByteBuffer.wrap(sized).putShort(head + 18, (short) upem);
+        assertArrayEquals("the outlines and every metric stay in the font's own units", plain, sized);
+
+        byte[] lower = plain.clone();
+        assertTrue(FontFile.adjust(lower, 100, 10));
+        ByteBuffer moved = ByteBuffer.wrap(lower);
+        int units = Math.round(upem * 10 / 100f);
+        assertEquals(upem, moved.getShort(head + 18) & 0xFFFF);
+        // yMin, yMax, hhea ascender and descender, OS/2 typo ascender and descender: all up by the same units.
+        for (int at : new int[] {head + 38, head + 42, hhea + 4, hhea + 6, os2 + 68, os2 + 70})
+            assertEquals("at " + at, before.getShort(at) + units, moved.getShort(at));
+        assertEquals((before.getShort(os2 + 74) & 0xFFFF) + units, moved.getShort(os2 + 74) & 0xFFFF);
+        assertEquals("usWinDescent counts down from the baseline", (before.getShort(os2 + 76) & 0xFFFF) - units,
+                moved.getShort(os2 + 76) & 0xFFFF);
+        assertEquals(before.getShort(hhea + 4) - before.getShort(hhea + 6), moved.getShort(hhea + 4) - moved.getShort(hhea + 6));
+
+        byte[] higher = plain.clone();
+        assertTrue(FontFile.adjust(higher, 100, -10));
+        assertEquals(before.getShort(hhea + 4) - units, ByteBuffer.wrap(higher).getShort(hhea + 4));
+
+        byte[] both = plain.clone();
+        assertTrue(FontFile.adjust(both, 125, 10));
+        assertEquals("the move counts in the new units", before.getShort(hhea + 4) + Math.round(Math.round(upem / 1.25f) * 10 / 100f),
+                ByteBuffer.wrap(both).getShort(hhea + 4));
+    }
+
+    /** #48: hhea or OS/2 metrics left at zero tell the reader to look at the next pair, so a move keeps them at zero. */
+    @Test
+    public void aMoveLeavesMetricsTheFontLeftUnsetAtZero() throws Exception {
+        byte[] plain = font(STATIC_FONT);
+        int head = table(plain, 0, "head"), hhea = table(plain, 0, "hhea"), os2 = table(plain, 0, "OS/2");
+        ByteBuffer.wrap(plain).putShort(hhea + 4, (short) 0).putShort(hhea + 6, (short) 0);
+        ByteBuffer before = ByteBuffer.wrap(plain.clone());
+        assertTrue("the control: typo metrics are set", before.getShort(os2 + 68) != 0);
+        byte[] lower = plain.clone();
+        assertTrue(FontFile.adjust(lower, 100, 10));
+        ByteBuffer moved = ByteBuffer.wrap(lower);
+        int units = Math.round((before.getShort(head + 18) & 0xFFFF) * 10 / 100f);
+        assertEquals(0, moved.getShort(hhea + 4));
+        assertEquals(0, moved.getShort(hhea + 6));
+        assertEquals(before.getShort(os2 + 68) + units, moved.getShort(os2 + 68));
+        assertEquals(before.getShort(head + 42) + units, moved.getShort(head + 42));
+
+        ByteBuffer.wrap(plain).putShort(os2 + 68, (short) 0).putShort(os2 + 70, (short) 0);
+        lower = plain.clone();
+        assertTrue(FontFile.adjust(lower, 100, 10));
+        moved = ByteBuffer.wrap(lower);
+        assertEquals(0, moved.getShort(os2 + 68));
+        assertEquals(0, moved.getShort(os2 + 70));
+        assertEquals("the win pair still moves", (before.getShort(os2 + 74) & 0xFFFF) + units, moved.getShort(os2 + 74) & 0xFFFF);
+
+        // Unsigned, so a win descent moved off zero would leave its range and turn the whole move down.
+        ByteBuffer.wrap(plain).putShort(os2 + 74, (short) 0).putShort(os2 + 76, (short) 0);
+        lower = plain.clone();
+        assertTrue(FontFile.adjust(lower, 100, 10));
+        moved = ByteBuffer.wrap(lower);
+        assertEquals(0, moved.getShort(os2 + 74));
+        assertEquals(0, moved.getShort(os2 + 76));
+        assertEquals("the head box still moves", before.getShort(head + 38) + units, moved.getShort(head + 38));
+    }
+
+    @Test
+    public void aSizeOrMoveTheFontCantTakeLeavesItAlone() throws Exception {
+        byte[] plain = font(STATIC_FONT);
+        for (int[] choice : new int[][] {{65, 0}, {165, 0}, {100, 22}, {100, -22}}) {
+            byte[] font = plain.clone();
+            assertFalse(Arrays.toString(choice), FontFile.adjust(font, choice[0], choice[1]));
+            assertArrayEquals(plain, font);
+        }
+        byte[] tall = plain.clone();
+        ByteBuffer.wrap(tall).putShort(table(tall, 0, "hhea") + 4, (short) 32700);
+        byte[] tallBefore = tall.clone();
+        assertFalse("an ascender past what its field holds", FontFile.adjust(tall, 100, 20));
+        assertArrayEquals("nothing is written before every field is checked", tallBefore, tall);
+        byte[] shallow = plain.clone();
+        ByteBuffer.wrap(shallow).putShort(table(shallow, 0, "OS/2") + 76, (short) 10);
+        byte[] shallowBefore = shallow.clone();
+        assertFalse("a win descent below zero", FontFile.adjust(shallow, 100, 20));
+        assertArrayEquals(shallowBefore, shallow);
+
+        byte[] noHhea = plain.clone();
+        retag(noHhea, "hhea", "xxxx");
+        assertFalse(FontFile.adjust(noHhea, 125, 0));
+        assertFalse("a table cut off", FontFile.adjust(Arrays.copyOf(plain, table(plain, 0, "head") + 20), 125, 0));
+        assertFalse(FontFile.adjust("not a font at all, only words".getBytes(StandardCharsets.UTF_8), 125, 0));
+        assertFalse(FontFile.adjust(new byte[3], 125, 0));
+    }
+
+    @Test
+    public void theFirstFontOfACollectionIsTheOneSized() throws Exception {
+        byte[] plain = font(COLLECTION);
+        int first = ByteBuffer.wrap(plain).getInt(12);
+        int head = table(plain, first, "head"), hhea = table(plain, first, "hhea");
+        int upem = ByteBuffer.wrap(plain).getShort(head + 18) & 0xFFFF;
+        byte[] sized = plain.clone();
+        assertTrue(FontFile.adjust(sized, 80, -4));
+        int units = Math.round(upem * 100 / 80f);
+        assertEquals(units, ByteBuffer.wrap(sized).getShort(head + 18) & 0xFFFF);
+        assertEquals(ByteBuffer.wrap(plain).getShort(hhea + 4) + Math.round(units * -4 / 100f), ByteBuffer.wrap(sized).getShort(hhea + 4));
+    }
+
+    @Test
+    public void aSizedCopyIsNamedForItsChoicesAndReplacesTheOneBefore() throws Exception {
+        File source = write(FontFile.NAME, font(STATIC_FONT));
+        File sized = FontFile.adjusted(source, 125, 4);
+        assertNotNull(sized);
+        assertEquals(source.getParentFile(), sized.getParentFile());
+        assertTrue(sized.getName(), sized.getName().startsWith(FontFile.ADJUSTED + "-125-24-"));
+        assertTrue(sized.getName(), sized.getName().endsWith("-" + source.length()));
+        byte[] expected = font(STATIC_FONT);
+        assertTrue(FontFile.adjust(expected, 125, 4));
+        assertArrayEquals(expected, Files.readAllBytes(sized.toPath()));
+        assertArrayEquals("the picked copy stays as picked", font(STATIC_FONT), Files.readAllBytes(source.toPath()));
+
+        long stamped = sized.lastModified() - 60_000;
+        Files.setLastModifiedTime(sized.toPath(), java.nio.file.attribute.FileTime.fromMillis(stamped));
+        assertEquals(sized, FontFile.adjusted(source, 125, 4));
+        assertEquals("the same choices reuse the copy", stamped, sized.lastModified());
+
+        File smaller = FontFile.adjusted(source, 90, 0);
+        assertNotEquals(sized, smaller);
+        assertFalse("the copy before goes", sized.exists());
+        Files.setLastModifiedTime(source.toPath(), java.nio.file.attribute.FileTime.fromMillis(source.lastModified() + 5_000));
+        File repicked = FontFile.adjusted(source, 90, 0);
+        assertNotEquals("a new pick isn't the old copy", smaller.getName(), repicked.getName());
+        assertFalse(smaller.exists());
+        assertEquals("no partial file is left", Arrays.asList(FontFile.NAME, repicked.getName()), sorted(folder.getRoot().list()));
+
+        // Another process's copy still being written stays. One a crash left behind goes once it's old.
+        File writing = File.createTempFile(FontFile.SIZING + "-", null, folder.getRoot());
+        File abandoned = File.createTempFile(FontFile.SIZING + "-", null, folder.getRoot());
+        Files.setLastModifiedTime(abandoned.toPath(),
+                java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis() - FontFile.SIZING_STALE_MS - 60_000));
+        FontFile.dropAdjusted(folder.getRoot(), null);
+        assertFalse(repicked.exists());
+        assertTrue(source.exists());
+        assertTrue(writing.exists());
+        assertFalse(abandoned.exists());
+        assertTrue(writing.delete());
+        assertNull(FontFile.adjusted(new File(folder.getRoot(), "not-there"), 125, 0));
+        File words = new File(folder.newFolder("words"), FontFile.NAME);
+        Files.write(words.toPath(), "not a font at all, only words".getBytes(StandardCharsets.UTF_8));
+        assertNull(FontFile.adjusted(words, 125, 0));
+        assertEquals(Arrays.asList(FontFile.NAME), sorted(words.getParentFile().list()));
+    }
+
+    private static List<String> sorted(String[] names) {
+        List<String> list = new ArrayList<>(Arrays.asList(names));
+        list.sort(null);
+        return list;
+    }
+
+    /** Where the [name] table of the font whose directory is at [start] begins, or -1. */
+    static int table(byte[] font, int start, String name) {
+        ByteBuffer bytes = ByteBuffer.wrap(font);
+        int tables = bytes.getShort(start + 4) & 0xFFFF;
+        for (int index = 0; index < tables; index++) {
+            int record = start + 12 + 16 * index;
+            if (bytes.getInt(record) == tag(name)) return bytes.getInt(record + 8);
+        }
+        return -1;
+    }
+
+    private static void retag(byte[] font, String from, String to) {
+        ByteBuffer bytes = ByteBuffer.wrap(font);
+        int tables = bytes.getShort(4) & 0xFFFF;
+        for (int index = 0; index < tables; index++)
+            if (bytes.getInt(12 + 16 * index) == tag(from)) bytes.putInt(12 + 16 * index, tag(to));
     }
 
     private File write(String name, byte[] bytes) throws IOException {

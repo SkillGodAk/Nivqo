@@ -152,6 +152,16 @@ public final class FeedGuardForTests {
                 ShowcaseType.PATCHED, true, unit -> null, unit -> null, unit -> null, null, null, readers);
     }
 
+    /**
+     * The guard for a story that shares another story, through a stand-in for the attached story
+     * stub Hide posts by words fills. Neither story has a message.
+     */
+    public static boolean hidesRepost(Object category) {
+        GraphQLStory share = new GraphQLStory(new GraphQLStory());
+        return FeedFilter.hideEdge(category, share, true, true, unit -> null, false, GenAiLabel.PATCHED, false,
+                ShowcaseType.PATCHED, true, unit -> null, unit -> ((GraphQLStory) unit).A04());
+    }
+
     /** A story's message, of the type Facebook's posts carry, holding [text]. */
     public static BaseModelWithTree postText(String text) {
         return new BaseModelWithTree(PostText.TEXT_TYPE_TAG).with(PostText.TEXT_FIELD, text);

@@ -246,6 +246,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_hide_background_posts", FALSE);
 
     /**
+     * Feed posts that share another post, with a caption or without: a story whose attached story
+     * is a story ({@link app.morphe.extension.facebook.feed.PostText#shareKind}). Off by default:
+     * no served repost has been checked on a signed-in feed yet.
+     */
+    public static final BooleanSetting HIDE_REPOSTS =
+            new BooleanSetting("hushfacebook_hide_reposts", FALSE);
+
+    /**
      * The reaction count above which feed posts are hidden, read from the feed unit's own feedback
      * ({@link app.morphe.extension.facebook.feed.PostReactions}). Off hides nothing. Not a switch:
      * a list picks the count, and a paused Facebook reads Off.
@@ -781,6 +789,13 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting HIDE_CHAT_PROMOTIONS =
             new BooleanSetting("hushfacebook_hide_chat_promotions", FALSE);
+
+    /**
+     * The Meta AI button beside the search box in Facebook's own Chats, at the top of the list and
+     * on the search screen. Starts off. The search box and chats with Meta AI stay.
+     */
+    public static final BooleanSetting HIDE_CHAT_META_AI_BUTTON =
+            new BooleanSetting("hushfacebook_hide_chat_meta_ai_button", FALSE);
 
     /**
      * A tap on the Messenger icon at the top of Facebook opens the Messenger app, while it's
@@ -1353,6 +1368,15 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting DOWNLOAD_COMPATIBLE =
             new BooleanSetting("hushfacebook_download_compatible", FALSE);
+
+    /**
+     * Saves go without the toasts that only say how a save went: Saving as it starts, Saved to as
+     * it finishes, and Save canceled (issue #142). A failed save still says why, and the WhatsApp
+     * warning still shows when no notification card carries it. Off by default. Every download
+     * patch reads it ({@link PatchFamily#DOWNLOAD_SWITCHES}).
+     */
+    public static final BooleanSetting DOWNLOAD_QUIET =
+            new BooleanSetting("hushfacebook_download_quiet", FALSE);
 
     /**
      * The name a saved video gets: {date}, {video_id}, {owner}, {owner_id} and {posted} fill in per

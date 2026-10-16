@@ -43,8 +43,8 @@ class LegacyDrawerPatchTest {
     }
 
     @Test fun factoryUsesFreshNativeModelsAndItsOwnCachedKeyAcrossAllMappings() {
-        // One 582 family builds the Settings icon in place and the other calls its factory; both must be covered.
-        assertEquals(setOf(true, false), controlProfiles.values.distinct().map { legacyDrawerFixture(it).mapping.inlineIcon }.toSet())
+        // Every 583 build calls the icon's factory.
+        assertEquals(setOf(false), controlProfiles.values.distinct().map { legacyDrawerFixture(it).mapping.inlineIcon }.toSet())
         for (profile in controlProfiles.values.distinct()) {
             val fixture = legacyDrawerFixture(profile)
             val before = fixture.methods.map { it.implementation?.instructions?.toList() }
@@ -54,9 +54,8 @@ class LegacyDrawerPatchTest {
             val references = code.mapNotNull { (it as? ReferenceInstruction)?.reference?.toString() }
             val allocations = code.filter { it.opcode == Opcode.NEW_INSTANCE }.map { (it as ReferenceInstruction).reference.toString() }
             val (icon, glyph) = fixture.mapping.icon to fixture.mapping.glyph
-            assertEquals((if (fixture.mapping.inlineIcon) listOf(icon) else emptyList()) +
-                listOf(SETTINGS_KEY, DRAWER_METADATA, fixture.mapping.row, fixture.mapping.section), allocations)
-            assertContains(references, if (fixture.mapping.inlineIcon) "$icon-><init>(${glyph}Lfixture/Color;)V" else "$icon->A00($glyph)$icon")
+            assertEquals(listOf(SETTINGS_KEY, DRAWER_METADATA, fixture.mapping.row, fixture.mapping.section), allocations)
+            assertContains(references, "$icon->A00($glyph)$icon")
             assertContains(references, "$glyph->A65:$glyph")
             assertContains(references, "Ljava/util/Collections;->emptyMap()Ljava/util/Map;")
             assertContains(references, "Ljava/util/Collections;->singletonList(Ljava/lang/Object;)Ljava/util/List;")
@@ -68,6 +67,15 @@ class LegacyDrawerPatchTest {
             assertEquals(7, prepared.refresh.fragment)
             assertEquals(0, prepared.refresh.sections)
             assertEquals(2, code.count { it.opcode == Opcode.INVOKE_DIRECT_RANGE })
+        }
+    }
+
+    @Test fun a582SettingsIconBuiltInPlaceIsRefusedWithoutEditingAnyMethod() {
+        for (profile in controlProfiles.values.distinct()) {
+            val fixture = legacyDrawerFixture(profile, inlineIcon = true)
+            val before = fixture.methods.map { it.implementation?.instructions?.toList() }
+            assertFailsWith<PatchException> { plan(fixture, profile) }
+            assertEquals(before, fixture.methods.map { it.implementation?.instructions?.toList() })
         }
     }
 
@@ -156,11 +164,11 @@ class LegacyDrawerPatchTest {
     @Test fun legacyRefreshIsMandatoryAndLookalikesCannotReplaceItsRecordedId() {
         val fixture = legacyDrawerFixture(SYNTHETIC_PROFILE)
         activeProfile = SYNTHETIC_PROFILE
-        validateControls(findControls(fixture.classes), setOf("menu_settings"))
+        validateControls(mirroredControls(fixture.classes), setOf("menu_settings"))
         val owner = fixture.resolve("LX/9rv;")!!
         owner.methods.remove(fixture.method("LX/9rv;->A1i()V"))
         owner.methods.add(fixtureMethod("LX/9rv;->lookalike()V", "const-string v0, \"$DRAWER_REFRESH\"\nreturn-void"))
-        val found = findControls(fixture.classes)
+        val found = mirroredControls(fixture.classes)
         assertTrue(found.getValue("menu_settings").any { it.name == "lookalike" })
         assertFailsWith<PatchException> { validateControls(found, setOf("menu_settings")) }
     }

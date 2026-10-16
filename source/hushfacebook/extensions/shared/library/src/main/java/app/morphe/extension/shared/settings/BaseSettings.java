@@ -67,12 +67,19 @@ public class BaseSettings {
     /** Set by {@link HushfacebookPause} after three starts in a row crashed within a minute. */
     public static final BooleanSetting SAFE_MODE = new BooleanSetting("hushfacebook_safe_mode", FALSE, true, false, null, null);
 
+    /**
+     * Whether the Quick setups row is off the settings home page, after a long press on it. No
+     * restart, and left out of backups and of every Quick setups choice.
+     */
+    public static final BooleanSetting HIDE_QUICK_SETUPS =
+            new BooleanSetting("hushfacebook_hide_quick_setups", FALSE, false, false, null, null);
+
     static {
         // Hushfacebook's own state and its diagnostics, which keep working while it is paused.
         Setting.keepWhenPaused(DEBUG, DEBUG_LOG_FILTERS, CAPTURE_JAVA_CRASHES, DEBUG_STACKTRACE,
                 DEBUG_TOAST_ON_ERROR, CHECK_ENVIRONMENT_WARNINGS_ISSUED, MORPHE_LANGUAGE,
                 HUSHFACEBOOK_LANGUAGE, SHOW_MENU_ICONS,
-                FIRST_TIME_APP_LAUNCHED, EXPERIMENTAL_APP_CONFIRMED, PAUSED, SAFE_MODE);
+                FIRST_TIME_APP_LAUNCHED, EXPERIMENTAL_APP_CONFIRMED, PAUSED, SAFE_MODE, HIDE_QUICK_SETUPS);
 
         final long now = System.currentTimeMillis();
 

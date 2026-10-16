@@ -48,7 +48,9 @@ internal const val PATCH = "Hide posts by words"
  * posts) read an attachment's styles and the story's text format through PostTypes' two stubs (see
  * PostTypeAnchors.kt), which a build without them leaves unfilled in the same way. Its reaction
  * ceiling reads a story's feedback and the feedback's reactors through PostReactions' two stubs (see
- * ReactionAnchors.kt), and counts them with the kept `getCachedInt(int)`.
+ * ReactionAnchors.kt), and counts them with the kept `getCachedInt(int)`. Its Hide reposts switch
+ * needs nothing more: it asks the shared post accessor whether a story wraps another, and reads
+ * no text.
  *
  * The lists live in Hushfacebook's settings on the phone. Nothing here reads a post until a
  * switch is on and its list has something in it, and nothing of the text, the names or the lists

@@ -110,6 +110,7 @@ internal const val HIDE_TIME_LABEL = "$PROGRESS_BAR->hideTimeLabel(Landroid/view
 internal const val BARS_EVERY_REEL = "$PROGRESS_BAR->barsEveryReel()Z"
 internal const val HAS_BAR = "$PROGRESS_BAR->hasBar(ZI)Z"
 internal const val REFRESHES_TIME = "$PROGRESS_BAR->refreshesTime(Landroid/view/ViewGroup;Landroid/view/View;)Z"
+internal const val NEXT_REEL = "$PROGRESS_BAR->nextReel(Landroid/view/ViewGroup;Landroid/view/View;)V"
 internal const val SMOOTHS_BAR = "$PROGRESS_BAR->smoothsBar()Z"
 internal const val LIFTS_FOOTER = "$PROGRESS_BAR->liftsFooter()Z"
 internal const val NO_FADED_BAR = "$PROGRESS_BAR->noFadedBar()Z"
@@ -307,8 +308,12 @@ val keepProgressBarPatch = bytecodePatch(
 
         mutableClassDefBy(scrubber.type).methods.single { it.sameAs(scrubber.passive) }
             .activeInstead(scrubber, graph)
-        mutableClassDefBy(progress.base.type).methods.single { it.sameAs(another.mount) }
-            .clearsLastReel(scrubber, graph, chapters, another.at)
+        // The bar's start-over goes in first, so the clear lands in front of it and every way out of
+        // the clear, a no included, runs it.
+        mutableClassDefBy(progress.base.type).methods.single { it.sameAs(another.mount) }.apply {
+            startsNextReelOver(scrubber, another.at)
+            clearsLastReel(scrubber, graph, chapters, another.at)
+        }
         mutableClassDefBy(scrubber.type).methods.single { it.sameAs(lengthCheck) }.longEnoughWhileKept()
         mutableClassDefBy(scrubber.type).methods.single { it.sameAs(shortCheck) }.notShortWhileKept()
         for ((type, check) in overrides) {
@@ -1163,6 +1168,28 @@ internal fun MutableMethod.clearsLastReel(looks: ScrubberLooks, graph: GraphHide
             const/4 v$flag, 0x1
             iput-boolean v$flag, v$v, ${graph.hiddenField}
             invoke-virtual { v$v }, $INVALIDATE
+        """,
+        ExternalLabel("facebook", getInstruction(at)),
+    )
+}
+
+/**
+ * In the scrubber base's light mount, on its branch for another video, at [at]: hand the extension
+ * the scrubber's time label and bar, which Facebook leaves where the last reel stopped until the
+ * next one's progress update runs (#90, #120). A views holder that isn't there yet goes straight on.
+ * The hook borrows two low locals that nothing reads from there on.
+ */
+internal fun MutableMethod.startsNextReelOver(looks: ScrubberLooks, at: Int) {
+    val (v, bar) = freeLocalsAt(PATCH, at, 2)
+    addInstructionsWithLabels(
+        at,
+        """
+            move-object/from16 v$v, p0
+            iget-object v$v, v$v, ${looks.viewsField}
+            if-eqz v$v, :facebook
+            iget-object v$bar, v$v, ${looks.barField}
+            iget-object v$v, v$v, ${looks.labelField}
+            invoke-static { v$v, v$bar }, $NEXT_REEL
         """,
         ExternalLabel("facebook", getInstruction(at)),
     )

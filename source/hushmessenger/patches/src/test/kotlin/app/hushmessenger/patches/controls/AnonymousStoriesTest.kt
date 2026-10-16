@@ -217,7 +217,7 @@ class AnonymousStoriesTest {
             assertTrue(STORY_PREVIEW_INIT in hooks, code)
             val handlerType = hooks.single { it != STORY_PREVIEW_INIT }.substringBefore("->")
             val preview = byType.getValue(MONTAGE_BUCKET_PREVIEW)
-            val discovered = findControls(listOf(byType.getValue(handlerType), preview))
+            val discovered = mirroredControls(listOf(byType.getValue(handlerType), preview))
             validateControls(discovered, setOf("anonymous_stories"))
 
             val handler = MutableMethod(discovered.getValue("anonymous_stories").single { it.definingClass == handlerType })
@@ -236,7 +236,7 @@ class AnonymousStoriesTest {
             assertEquals("$MONTAGE_BUCKET_PREVIEW->$STORY_RING_HELPER($MONTAGE_BUCKET_PREVIEW)V", reference(init[init.size - 2]), code)
             assertEquals(Opcode.RETURN_VOID, init.last().opcode, code)
         }
-        // Every 582 build keeps the card in A06 and the flag in A0G.
+        // Every 583 build keeps the card in A06 and the flag in A0G.
         assertEquals(setOf(
             "$MONTAGE_BUCKET_PREVIEW->A06:$MONTAGE_CARD $MONTAGE_BUCKET_PREVIEW->A0G:Z $MONTAGE_BUCKET_PREVIEW->A02:I",
         ), ringFields)

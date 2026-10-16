@@ -375,6 +375,10 @@ Go straight to one group of settings. Back returns to where you were.	Direkt zu 
 Save videos other apps can open	Videos speichern, die andere Apps öffnen können
 # context: summary of that switch; WhatsApp is a name and stays as it is, and saves are the videos the user saved to the phone
 Fixes saved videos that play without sound in WhatsApp, video editors such as CapCut and InShot, or some galleries and players. May lower quality.	Behebt gespeicherte Videos, die in WhatsApp, Videoeditoren wie CapCut und InShot oder manchen Galerien und Playern ohne Ton laufen. Kann die Qualität senken.
+# context: switch title under Downloads; on, a save shows no message when it starts, finishes or is canceled
+Quiet saves	Leise speichern
+# context: summary of that switch; a toast is Android's short message at the bottom of the screen
+No toast when a save starts, finishes or is canceled. A save that fails still says why.	Keine Meldung, wenn ein Speichervorgang beginnt, endet oder abgebrochen wird. Schlägt einer fehl, wird der Grund trotzdem angezeigt.
 # context: section title for the Chats settings, named like Facebook's own Chats screen
 Chats	Chats
 # context: switch title under Chats; the card is Facebook's own "Get the Messenger app" card
@@ -389,6 +393,10 @@ Removes the row above your chats that shows friends' notes and who's active. You
 Hide chat list promotions	Hinweisbanner in der Chatliste ausblenden
 # context: summary of that switch
 Hides the banners at the top of Chats, like the one asking you to turn on notifications.	Blendet die Banner oben in den Chats aus, etwa das, das dich bittet, Benachrichtigungen einzuschalten.
+# context: switch title under Chats; Meta AI is Meta's assistant and keeps its name; the button sits beside the search box at the top of Chats and on Chats' search screen
+Hide the Meta AI button in Chats	Meta-AI-Schaltfläche in den Chats ausblenden
+# context: summary of that switch; your chats with Meta AI are conversations with the assistant, which stay in the list
+Removes the Meta AI button beside the search box in Chats, at the top of the list and on the search screen. The search box stays, and so do your chats with Meta AI.	Entfernt die Meta-AI-Schaltfläche neben dem Suchfeld in den Chats, oben in der Liste und auf dem Suchbildschirm. Das Suchfeld bleibt, und deine Chats mit Meta AI auch.
 # context: switch title under Chats; on, Facebook's Messenger icon opens the Messenger app
 Open the Messenger app	Messenger-App öffnen
 # context: summary of that switch; Messenger is the app's name, Chats is Facebook's own chat screen as named above
@@ -1055,6 +1063,7 @@ Save photo	Foto speichern
 Save all photos	Alle Fotos speichern
 # context: short message shown when the photos of a post could not start saving
 Couldn't save this post's photos. Try again in a moment.	Die Fotos dieses Beitrags ließen sich nicht speichern. Versuche es gleich noch einmal.
+Couldn't save this story's photo. Try again in a moment.	Das Foto dieser Story ließ sich nicht speichern. Versuche es gleich noch einmal.
 Too many saves at once. Try again when one finishes.	Zu viele Speichervorgänge gleichzeitig. Versuche es erneut, wenn einer fertig ist.
 # context: settings switch under Block Instant Games ads that makes a game's rewarded ad count as watched
 Answer rewarded game ads as watched	Belohnte Spielwerbung als angesehen melden
@@ -1160,6 +1169,10 @@ Hides posts with a video, including shares. Reels in the feed have their own swi
 Hides posts that share a link to a website, with its preview card.	Blendet Beiträge aus, die einen Link zu einer Website mit Vorschaukarte teilen.
 # context: summary of the Hide posts on a colored background switch
 Hides short posts shown as big text on a colored background.	Blendet kurze Beiträge aus, die als großer Text auf farbigem Hintergrund erscheinen.
+# context: switch title under News feed: hides posts that share someone else's post, the ones Facebook heads "shared a post"; use Facebook's own word for a shared post in this language
+Hide reposts	Geteilte Beiträge ausblenden
+# context: summary of the Hide reposts switch; a caption is what the sharer wrote above the shared post
+Hides posts that share another post, with or without a caption. Original posts stay. Untested on a real feed, so it starts off.	Blendet Beiträge aus, die einen anderen Beitrag teilen, mit oder ohne eigenen Text. Originalbeiträge bleiben. Auf einem echten Feed noch nicht getestet, daher startet es ausgeschaltet.
 # context: switch title in Privacy: asks for the phone's own screen lock before Facebook shows
 Lock Facebook	Facebook sperren
 Save crashes to Downloads	Abstürze in Downloads speichern
@@ -1353,8 +1366,6 @@ Your list of share sheet items to hide will hold %1$d item.	Deine Liste der beim
 Your list of share sheet items to hide will hold %1$d items.	Deine Liste der beim Teilen ausgeblendeten Einträge enthält dann %1$d Einträge.
 # context: title of the last row on the settings home page; a tap opens the maintainer's Ko-fi page in a browser
 Support Hushfacebook	Hushfacebook unterstützen
-# context: that row's summary; Ko-fi is a tipping site's name and stays as it is
-Buy me a coffee on Ko-fi	Spendier mir einen Kaffee auf Ko-fi
 # context: heading row at the end of the Privacy settings page, above a list of the places Facebook shows ads or reports usage
 Where ads and tracking are blocked	Wo Anzeigen und Tracking blockiert werden
 # context: that heading's summary; build means this patched copy of Facebook, switch is a settings toggle
@@ -1447,7 +1458,13 @@ Report a problem	Problem melden
 Opens a GitHub report with your versions and settings filled in. Add what happened.	Öffnet eine GitHub-Meldung, in der deine Versionen und Einstellungen schon stehen. Ergänze, was passiert ist.
 # context: row near the top of the settings home page; a list of ready-made sets of switches
 Quick setups	Schnelleinstellungen
-Turn on a set of switches in one tap, or put every switch back the way it started.	Schalte mehrere Schalter mit einem Tippen ein oder setze alle Schalter auf ihren Ausgangszustand zurück.
+Turn on a set of switches in one tap, or put every switch back the way it started. Press and hold to hide this row.	Schalte mehrere Schalter mit einem Tippen ein oder setze alle Schalter auf ihren Ausgangszustand zurück. Halte gedrückt, um diese Zeile auszublenden.
+# context: toast after a long press hides the Quick setups row from the settings home page; the page name is the one holding the row that brings it back
+Quick setups hidden. Bring it back from %1$s.	Schnelleinstellungen ausgeblendet. Du bekommst sie unter %1$s zurück.
+# context: row on the Pause, backup and diagnostics page; shows or hides the Quick setups row on the settings home page
+Quick setups on the home page	Schnelleinstellungen auf der Startseite
+Shown. Tap to hide it.	Angezeigt. Tippe zum Ausblenden.
+Hidden. Tap to show it again.	Ausgeblendet. Tippe, um sie wieder anzuzeigen.
 # context: name of a Quick setups choice that hides ads and nags; an adjective, as in a quiet feed
 Quiet	Ruhig
 Hides ads, suggestions, promos and prompts, and stops nagging notifications.	Blendet Werbung, Vorschläge, Werbeaktionen und Aufforderungen aus und stoppt lästige Benachrichtigungen.
@@ -1461,3 +1478,17 @@ Puts every feature switch but Lock Facebook back the way it started.	Setzt jeden
 Changed %1$d setting	%1$d Einstellung geändert
 # context: the same toast for none, or for two or more
 Changed %1$d settings	%1$d Einstellungen geändert
+# context: toast and Last save row: a save failed for want of a connection
+The connection failed. Check your internet and try again.	Die Verbindung ist fehlgeschlagen. Prüfe dein Internet und versuche es noch einmal.
+# context: toast and Last save row: the server answered a save with an error, not the file
+Facebook's server didn't send the file. Try again in a moment.	Facebooks Server hat die Datei nicht gesendet. Versuche es gleich noch einmal.
+# context: toast and Last save row: the file a save fetched came empty or cut short
+The download ended before the whole file arrived. Try again.	Der Download endete, bevor die ganze Datei da war. Versuche es noch einmal.
+# context: toast and Last save row: a save's work file couldn't be written, for a reason the phone didn't give
+Your phone couldn't write the file. Check your free space and try again.	Dein Handy konnte die Datei nicht schreiben. Prüfe den freien Speicher und versuche es erneut.
+# context: toast and Last save row: the phone was measured and has too little free space for a save
+Not enough free space to save this. Free some up and try again.	Zu wenig freier Speicher zum Speichern. Gib etwas Platz frei und versuche es erneut.
+# context: toast and Last save row: a video's picture and sound couldn't be converted or joined; Download quality is the setting's name
+Your phone couldn't put this video together. Try another Download quality.	Dein Handy konnte das Video nicht zusammensetzen. Probiere eine andere Download-Qualität.
+# context: toast and Last save row: the gallery refused a finished photo or video
+The file couldn't be copied into your phone's gallery. Try again in a moment.	Die Datei ließ sich nicht in die Galerie deines Handys kopieren. Versuche es gleich erneut.

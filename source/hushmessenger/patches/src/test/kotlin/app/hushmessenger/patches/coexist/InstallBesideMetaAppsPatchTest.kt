@@ -17,22 +17,21 @@ class InstallBesideMetaAppsPatchTest {
 
     @Test
     fun acceptsAllCheckedVersionCodes() {
-        validateVersionCode("346415686")
-        validateVersionCode("346415706")
-        validateVersionCode("346415707")
-        validateVersionCode("346415777")
+        validateVersionCode("346611369")
+        validateVersionCode("346611351")
+        validateVersionCode("346611440")
     }
 
     @Test
     fun rejectsAnotherBuildWithTheSameVersionName() {
-        val failure = assertFailsWith<PatchException> { validateVersionCode("346415700") }
-        assertContains(failure.message.orEmpty(), "version code 346415700 is not supported")
+        val failure = assertFailsWith<PatchException> { validateVersionCode("346611400") }
+        assertContains(failure.message.orEmpty(), "version code 346611400 is not supported")
         assertActionable(failure)
     }
 
     private fun assertActionable(failure: PatchException) {
-        assertContains(failure.message.orEmpty(), "Use an unmodified arm64 Messenger 582.0.0.61.92 APK")
-        assertContains(failure.message.orEmpty(), "version code 346415686 or 346415687 or 346415690")
+        assertContains(failure.message.orEmpty(), "Use an unmodified arm64 Messenger 583.0.0.29.95 APK")
+        assertContains(failure.message.orEmpty(), "version code 346611351 or 346611369 or 346611423")
     }
 
     private fun manifest(): Document {

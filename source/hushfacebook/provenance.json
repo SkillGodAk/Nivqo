@@ -136,6 +136,15 @@
     },
     {
       "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/StoryPhoto.java"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook from Facebook 582 (#38): finds the photo a music photo Story was made from in the story card's media model and gives the story menu its Save photo item."
+    },
+    {
+      "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/DownloadQuality.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/FileNameTemplate.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/PostDetails.java",

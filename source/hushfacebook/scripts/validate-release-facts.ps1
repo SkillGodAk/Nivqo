@@ -115,10 +115,13 @@ function Get-DescriptionFacts {
         or it says two things and this throws. The lag check used to read the first of each and the
         equality check any of them, so a description quoting the catalog's count in one sentence and
         a stale one in another passed the equality check, whichever the lag check had read. Answers
-        @{ PatchCount; TargetVersion }, each $null when the description names none.
+        @{ PatchCount; TargetVersion }, each $null when the description names none. Only the text
+        before the first ### line counts: the bundle description goes on with the release's
+        CHANGELOG groups (#143), and a bullet there may name an older build or count.
     #>
     param([string]$Text, [string]$Source)
 
+    $Text = ($Text -split '(?m)^### ', 2)[0]
     $counts = @([regex]::Matches($Text, '(?<![\d.])(\d+) patches\b') | ForEach-Object { $_.Groups[1].Value } |
         Select-Object -Unique)
     $builds = @([regex]::Matches($Text, 'Facebook\s+(\d+(?:\.\d+)+)(?!\d)') | ForEach-Object { $_.Groups[1].Value } |
@@ -331,7 +334,9 @@ Write-Host ("[release] README's version badge names $($badgeNamed[0]), and it na
 # The one line GitHub shows above the README, which is also what search results, the awesome
 # lists and the Manager's community button repeat. Nothing here read it until now, and it had
 # gone two releases and two patches stale before anyone noticed. The repository it reads is the
-# one the index points at, so this cannot drift onto some other fork.
+# one the index points at, so this cannot drift onto some other fork. Since 2026-10-14 every Hush
+# repository's description says what its patches do and names no release, which can't go stale:
+# only a version, patch count or Facebook build it does name has to be this release's.
 if ($SkipUrlCheck) {
     Write-Host '[release] the repository description was not read because -SkipUrlCheck was given'
 } else {
@@ -348,18 +353,22 @@ if ($SkipUrlCheck) {
 
     # Its count and build are read the way the index description's are, all of them at once.
     $githubFacts = Get-DescriptionFacts -Text $description -Source "The GitHub description of $slug"
+    $namesVersion = $description -match '\bv\d+\.\d+\.\d+\b'
     $missing = @()
-    if ($description -notmatch "\b$([regex]::Escape($descriptionVersion))\b") { $missing += $descriptionVersion }
-    if ($githubFacts.PatchCount -ne $descriptionPatchCount) { $missing += "$descriptionPatchCount patches" }
-    if ($githubFacts.TargetVersion -ne $descriptionTargetVersion) { $missing += "Facebook $descriptionTargetVersion" }
+    if ($namesVersion -and $description -notmatch "\b$([regex]::Escape($descriptionVersion))\b") { $missing += $descriptionVersion }
+    if ($null -ne $githubFacts.PatchCount -and $githubFacts.PatchCount -ne $descriptionPatchCount) { $missing += "$descriptionPatchCount patches" }
+    if ($null -ne $githubFacts.TargetVersion -and $githubFacts.TargetVersion -ne $descriptionTargetVersion) { $missing += "Facebook $descriptionTargetVersion" }
     if ($missing.Count -gt 0) {
-        throw ("The GitHub description of $slug does not say " + ($missing -join ', ') + '. It reads: ' +
-            $description + [Environment]::NewLine +
-            'Set it with: gh repo edit ' + $slug + ' --description "Hushfacebook ' + $descriptionVersion +
-            ': ... ' + $descriptionPatchCount + ' patches for Facebook ' + $descriptionTargetVersion + '."')
+        throw ("The GitHub description of $slug names release facts that aren't " + ($missing -join ', ') +
+            '. It reads: ' + $description + [Environment]::NewLine +
+            'Bring them up to date, or describe the patches without naming a release.')
     }
-    Write-Host ("[release] the GitHub description of " + $slug + " names " + $descriptionVersion +
-        ", " + $descriptionPatchCount + " patches and Facebook " + $descriptionTargetVersion)
+    if (-not $namesVersion -and $null -eq $githubFacts.PatchCount -and $null -eq $githubFacts.TargetVersion) {
+        Write-Host "[release] the GitHub description of $slug names no release, patch count or Facebook build, so it can't go stale"
+    } else {
+        Write-Host ("[release] the GitHub description of " + $slug + " names only " + $descriptionVersion +
+            ", " + $descriptionPatchCount + " patches and Facebook " + $descriptionTargetVersion + " where it names them")
+    }
 }
 
 $testRoot = Join-Path $rootPath 'extensions/facebook/build/test-results/testDebugUnitTest'

@@ -88,14 +88,14 @@ class InboxRefreshTest {
     }
 
     @Test fun discoveryFindsOnlyTheSuppliersTracedItemsRead() {
-        assertEquals(listOf(INBOX_ITEMS_HOOK), findControls(inboxRefreshClasses()).getValue(INBOX_REFRESH_HOOK).map { it.hookId() })
-        validateControls(findControls(inboxRefreshClasses()), setOf(INBOX_REFRESH_HOOK))
+        assertEquals(listOf(INBOX_ITEMS_HOOK), mirroredControls(inboxRefreshClasses()).getValue(INBOX_REFRESH_HOOK).map { it.hookId() })
+        validateControls(mirroredControls(inboxRefreshClasses()), setOf(INBOX_REFRESH_HOOK))
         for (items in listOf(
             inboxItemsMethod(trace = "ThreadListItemSupplierImplementation.getItems"),
             inboxItemsMethod(flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value),
             inboxItemsMethod(id = "LX/34A;->A0B()$IMMUTABLE_LIST"),
         )) {
-            val found = findControls(listOf(fixtureClass(items.definingClass, listOf(items))))
+            val found = mirroredControls(listOf(fixtureClass(items.definingClass, listOf(items))))
             assertTrue(found.getValue(INBOX_REFRESH_HOOK).isEmpty(), items.hookId())
             assertFailsWith<PatchException> { validateControls(found, setOf(INBOX_REFRESH_HOOK)) }
         }
@@ -149,7 +149,7 @@ class InboxRefreshTest {
             val dex = DexFileFactory.loadDexContainer(apk.toFile(), Opcodes.forApi(35))
             val byType = dex.dexEntryNames.flatMap { dex.getEntry(it)!!.dexFile.classes }.associateBy { it.type }
             // Discovery of this hook reads only the supplier's own class. The route resolves against the whole app.
-            val discovered = findControls(listOf(byType.getValue(INBOX_SUPPLIER)))
+            val discovered = mirroredControls(listOf(byType.getValue(INBOX_SUPPLIER)))
             validateControls(discovered, setOf(INBOX_REFRESH_HOOK))
             val native = discovered.getValue(INBOX_REFRESH_HOOK).single()
             assertEquals(INBOX_ROUTE, resolveInboxRefresh(native) { byType[it] }, code)

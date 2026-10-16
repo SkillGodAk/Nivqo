@@ -54,7 +54,7 @@ import app.morphe.extension.shared.L10n;
  * <p>With Facebook's notifications off, or this channel switched off, a save shows a toast at each
  * end and no notification, and the first toast says where to cancel it. Hushfacebook's settings
  * list every running save under Downloads, with what it's doing and a Cancel of its own
- * ({@link #running}, {@link #watch}), so a save can be stopped either way. Only the last generic outcome remains in memory: no address, name or saved history.
+ * ({@link #running}, {@link #watch}), so a save can be stopped either way. Only the last outcome remains in memory, with the kind of failure when it failed: no address, name or saved history.
  *
  * <p>Both say how long the save has run and, while it downloads, how fast ({@link TransferRate}),
  * from the same clock and the same measurement. A tick once a second keeps the time going while
@@ -111,9 +111,44 @@ public final class SaveControl {
 
     /** Only the last generic result, in memory for this process. No save identity is retained. */
     public enum Outcome { VIDEO_SAVED, PHOTO_SAVED, VIDEO_FAILED, PHOTO_FAILED, CANCELLED }
-    private static volatile Outcome lastOutcome;
 
-    @Nullable public static Outcome lastOutcome() { return lastOutcome; }
+    /**
+     * How the last save ended and, when it failed, why. One object, so a reader never pairs one
+     * save's result with another's cause. Two enums and nothing else: no address, name or message.
+     */
+    private static final class Ended {
+        final Outcome outcome;
+        @Nullable final Downloader.Cause cause;
+
+        Ended(Outcome outcome, @Nullable Downloader.Cause cause) {
+            this.outcome = outcome;
+            this.cause = cause;
+        }
+    }
+
+    private static volatile Ended lastOutcome;
+
+    @Nullable public static Outcome lastOutcome() {
+        Ended last = lastOutcome;
+        return last == null ? null : last.outcome;
+    }
+
+    /** Why the last save failed, UNKNOWN when it didn't say, or null when it didn't fail. */
+    @Nullable static Downloader.Cause lastCause() {
+        Ended last = lastOutcome;
+        return last == null ? null : last.cause;
+    }
+
+    /**
+     * The last save's outcome for the settings, or null before any save ended: a failure's own
+     * words when its cause is known, the same ones its toast used, else the generic answer.
+     */
+    @Nullable public static String lastOutcomeText(Context context) {
+        Ended last = lastOutcome;
+        if (last == null) return null;
+        String why = MediaDownload.failureText(context, last.cause);
+        return why != null ? why : outcomeText(last.outcome);
+    }
 
     public static String outcomeText(Outcome outcome) {
         switch (outcome) {
@@ -473,6 +508,8 @@ public final class SaveControl {
         private volatile long toldAt;
         /** Closes the connection the save is reading, handed over by Downloader. */
         private volatile Runnable closeReading;
+        /** Why this save failed, once its worker knows. Kept only if it does end as a failure. */
+        private volatile Downloader.Cause cause = Downloader.Cause.UNKNOWN;
         /** When the notification last changed; set by the first show, which begin() makes. */
         private volatile long shownAt;
         private int shownPercent = -2;
@@ -576,6 +613,11 @@ public final class SaveControl {
             return state.get();
         }
 
+        /** Says why the save failed, before {@link #end}, for the last outcome the settings show. */
+        void failed(@Nullable Downloader.Cause cause) {
+            this.cause = cause == null ? Downloader.Cause.UNKNOWN : cause;
+        }
+
         @Override
         public void joining() {
             phase = Phase.JOINING;
@@ -638,9 +680,10 @@ public final class SaveControl {
             ticks.removeCallbacks(tick);
             if (RUNNING.remove(id, this)) {
                 State result = state();
-                lastOutcome = result == State.CANCELLED ? Outcome.CANCELLED
+                Outcome outcome = result == State.CANCELLED ? Outcome.CANCELLED
                         : result == State.SUCCEEDED ? (video ? Outcome.VIDEO_SAVED : Outcome.PHOTO_SAVED)
                         : (video ? Outcome.VIDEO_FAILED : Outcome.PHOTO_FAILED);
+                lastOutcome = new Ended(outcome, result == State.FAILED ? cause : null);
                 tell();
             }
             if (manager == null) return;

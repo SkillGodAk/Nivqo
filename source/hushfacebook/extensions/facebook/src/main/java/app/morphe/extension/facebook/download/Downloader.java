@@ -65,6 +65,56 @@ final class Downloader {
     }
 
     /**
+     * Why a save failed, for the words the person saving reads. A {@link Status} says which step
+     * gave up, and WRITE_ERROR alone covers a download cut short, a phone out of room, a join that
+     * failed and a gallery that said no, which need different advice. Set where the failure
+     * happens and carried as it is: never worked out from {@link Result#reason}, which is for the
+     * log.
+     */
+    enum Cause {
+        /** Nothing more is known than that it failed. */
+        UNKNOWN,
+        /** No connection, a lookup that failed or lied, or a read that never finished. */
+        NETWORK,
+        /** The server refused the signature. The address is too old to use. */
+        EXPIRED,
+        /** The server answered, and not with the file. */
+        SERVER,
+        /** The address, a redirect or the answer is not a media file from Meta. */
+        NOT_MEDIA,
+        /** The file is bigger than a save will hold. */
+        TOO_LARGE,
+        /** The body was empty, ended before the length it announced, or a read failed once it was arriving. */
+        INCOMPLETE,
+        /** A work file couldn't be made or written, and the phone didn't say why. Not known to be a full disk. */
+        STORAGE,
+        /** The storage was measured, and has too little free for the work files. */
+        NO_SPACE,
+        /** A conversion or the join of the tracks failed. */
+        CONVERSION,
+        /** The gallery took no entry, or the copy into it or its publication failed. */
+        GALLERY
+    }
+
+    /** What a status says of a failure by itself. WRITE_ERROR says too little, so its callers say more. */
+    private static Cause causeOf(Status status) {
+        switch (status) {
+            case EXPIRED:
+                return Cause.EXPIRED;
+            case HTTP_ERROR:
+                return Cause.SERVER;
+            case NETWORK_ERROR:
+                return Cause.NETWORK;
+            case REFUSED:
+                return Cause.NOT_MEDIA;
+            case TOO_LARGE:
+                return Cause.TOO_LARGE;
+            default:
+                return Cause.UNKNOWN;
+        }
+    }
+
+    /**
      * How a running save says how far it has got, and learns that it was cancelled. Pure Java
      * like the rest of this class: {@link SaveControl} turns it into a notification, and a test
      * can drive it without one.
@@ -169,8 +219,8 @@ final class Downloader {
         }
     }
 
-    /** The cache file couldn't be opened or written: the phone's storage, not the network. */
-    private static final class StorageFailure extends IOException {
+    /** A work file couldn't be made, opened or written: the phone's storage, not the network or a codec. */
+    static final class StorageFailure extends IOException {
         StorageFailure(IOException cause) {
             super(cause);
         }
@@ -222,6 +272,8 @@ final class Downloader {
     static final class Result {
         final Status status;
         final String reason;
+        /** Why it failed, for the message to the person saving, or null for OK. */
+        final Cause cause;
         /** The type of what was fetched, once it is known to be one. */
         final String mime;
         /**
@@ -235,8 +287,9 @@ final class Downloader {
          */
         final boolean refused;
 
-        private Result(Status status, String reason, String mime, boolean lower, boolean refused) {
+        private Result(Status status, Cause cause, String reason, String mime, boolean lower, boolean refused) {
             this.status = status;
+            this.cause = cause;
             this.reason = reason;
             this.mime = mime;
             this.lower = lower;
@@ -244,21 +297,27 @@ final class Downloader {
         }
 
         static Result ok(String mime) {
-            return new Result(Status.OK, null, mime, false, false);
+            return new Result(Status.OK, null, null, mime, false, false);
         }
 
+        /** A failure whose status says all the message needs. */
         static Result fail(Status status, String reason) {
-            return new Result(status, reason, null, false, false);
+            return fail(status, causeOf(status), reason);
+        }
+
+        /** A failure that knows more than its status says. */
+        static Result fail(Status status, Cause cause, String reason) {
+            return new Result(status, cause, reason, null, false, false);
         }
 
         /** This result, told that the saved picture is below the manifest's. */
         Result lower() {
-            return new Result(status, reason, mime, true, refused);
+            return new Result(status, cause, reason, mime, true, refused);
         }
 
         /** This result, told that the saved file holds a track other apps refuse. */
         Result refused() {
-            return new Result(status, reason, mime, lower, true);
+            return new Result(status, cause, reason, mime, lower, true);
         }
 
         boolean ok() {
@@ -326,6 +385,8 @@ final class Downloader {
     static Result fetch(String url, Kind kind, File into, MediaUrlPolicy policy, long maxBytes, Progress progress) {
         HttpURLConnection connection = null;
         boolean kept = false;
+        // Whether the file had started to arrive when a read failed.
+        boolean arriving = false;
 
         try {
             Object opened = connect(url, policy, progress);
@@ -360,9 +421,10 @@ final class Downloader {
             }
 
             InputStream in = connection.getInputStream();
+            arriving = true;
             byte[] head = new byte[HEAD];
             int headLength = readHead(in, head);
-            if (headLength == 0) return Result.fail(Status.WRITE_ERROR, "the body was empty");
+            if (headLength == 0) return Result.fail(Status.WRITE_ERROR, Cause.INCOMPLETE, "the body was empty");
 
             String sniffed = sniff(kind, head, headLength);
             if (sniffed == null) {
@@ -380,7 +442,8 @@ final class Downloader {
             // file that reports success and will not play. That failure is worse than no file,
             // because the user has no reason to try again.
             if (expected >= 0 && total != expected) {
-                return Result.fail(Status.WRITE_ERROR, "the body was " + total + " of " + expected + " bytes");
+                return Result.fail(Status.WRITE_ERROR, Cause.INCOMPLETE,
+                    "the body was " + total + " of " + expected + " bytes");
             }
 
             kept = true;
@@ -397,13 +460,22 @@ final class Downloader {
             // error. It's still the person's cancel, not a network failure.
             if (progress.cancelled()) return cancelled();
             if (e instanceof StorageFailure) {
-                return Result.fail(Status.WRITE_ERROR, "the cache could not hold the file: "
+                return Result.fail(Status.WRITE_ERROR, Cause.STORAGE, "the cache could not hold the file: "
                     + e.getCause().getClass().getSimpleName());
+            }
+            // A body shorter than the length it announced doesn't reach the length check above:
+            // Android's HTTP stack and the JVM's both throw from the read that hits the early end.
+            // So a read that fails once the file is arriving is a download cut short, and only a
+            // failure before that is the connection's.
+            if (arriving) {
+                return Result.fail(Status.NETWORK_ERROR, Cause.INCOMPLETE, "the fetch failed: " + e.getClass().getSimpleName());
             }
             return Result.fail(Status.NETWORK_ERROR, "the fetch failed: " + e.getClass().getSimpleName());
         } catch (Throwable t) {
             if (progress.cancelled()) return cancelled();
-            return Result.fail(Status.NETWORK_ERROR, "the fetch failed: " + t.getClass().getSimpleName());
+            // Not an I/O failure, so not known to be the network's doing: the person saving gets
+            // the plain answer rather than advice about a connection that may be fine.
+            return Result.fail(Status.NETWORK_ERROR, Cause.UNKNOWN, "the fetch failed: " + t.getClass().getSimpleName());
         } finally {
             if (!kept) delete(into);
             if (connection != null) {
@@ -448,7 +520,8 @@ final class Downloader {
             return Result.ok(mime);
         } catch (Throwable t) {
             if (progress.cancelled()) return cancelled();
-            return Result.fail(Status.WRITE_ERROR, "the gallery refused the file: " + t.getClass().getSimpleName());
+            return Result.fail(Status.WRITE_ERROR, Cause.GALLERY,
+                "the gallery refused the file: " + t.getClass().getSimpleName());
         } finally {
             // Anything not committed is abandoned, even when open() itself threw: the gallery's
             // open inserts its pending row before it asks for a stream, so a failure there has

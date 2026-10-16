@@ -1,5 +1,6 @@
 package app.hushmessenger.patches.controls
 
+import app.hushmessenger.patches.CompatMirror
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatch
 import app.morphe.patcher.patch.Patch
@@ -218,6 +219,36 @@ class ExpandedControlsTest {
         }
     }
 
+    @Test fun compatReportRefusesEveryPluginGateThePatchRefuses() {
+        // CompatReport checks the gates' shape where it reads their sentinel, so a refused gate fails the profile there.
+        val body = """
+            iget-object v0, p0, Lfixture/Gate;->cache:Ljava/lang/Object;
+            const/4 v6, 0x1
+            const/4 v5, 0x0
+            iget-object v1, p0, Lfixture/Gate;->cache:Ljava/lang/Object;
+            sget-object v0, LX/1dj;->A03:Ljava/lang/Object;
+            if-eq v1, v0, :disabled
+            return v6
+            :disabled
+            return v5
+        """.trimIndent()
+        fun takenBy(text: String): Pair<Boolean, Boolean> {
+            val gate = method("Lfixture/Gate;", "gate", 8, "Z", text)
+            return runCatching { gate.validatePluginGate() }.isSuccess to CompatMirror.pluginGate(gate)
+        }
+        assertEquals(true to true, takenBy(body))
+        for (changed in listOf(
+            body.replace("if-eq", "if-ne"),
+            body.replace("return v5", "return v6"),
+            body.replace("v5", "v6"),
+            body.replace("iget-object v1", "const/4 v6, 0x0\niget-object v1"),
+            body.replace("iget-object v1", "const-wide/16 v4, 0x0\niget-object v1"),
+            body.replace("v6, 0x1", "v6, 0x0").replace("v5, 0x0", "v5, 0x1"),
+            body.replace("iget-object v1, p0, Lfixture/Gate;->cache", "iget-object v1, p0, Lfixture/Gate;->other"),
+            body.replace("iget-object v0, p0", "iget-object v2, p0"),
+        )) assertEquals(false to false, takenBy(changed), changed)
+    }
+
     @Test fun adExitsCoverIncomingBranchesAndEachKeepTheirOwnResultRegister() {
         val body = "goto/16 :first_exit\n" + "nop\n".repeat(1452) + ":first_exit\nreturn-object v7\n" +
             "nop\n".repeat(8) + "return-object v2\n" + "nop\n".repeat(3)
@@ -313,9 +344,10 @@ class ExpandedControlsTest {
         val both = builder(folderRow("LX/HRf;", settingsKey) + folderRow("LX/HRf;", qrKey))
         assertEquals("LX/HRf;", both.menuFolderItemType())
         assertEquals(2, both.settingsRowCall())
-        // 582's main family builds each row's icon in place, straight into the constructor's icon argument (v3).
-        assertEquals("LX/HRf;", builder("new-instance v3, LX/KGb;\n" + folderRow("LX/HRf;", settingsKey)).menuFolderItemType())
         for (changed in listOf(
+            // 582's main family built each row's icon in place, straight into the constructor's icon argument (v3).
+            // 583 creates no row icons in the builder, so one made there is refused.
+            "new-instance v3, LX/KGb;\n" + folderRow("LX/HRf;", settingsKey),
             folderRow("LX/HRf;", settingsKey) + "new-instance v2, LX/HRg;\n",
             "new-instance v2, LX/KGb;\n" + folderRow("LX/HRf;", settingsKey),
             folderRow("LX/HRf;", settingsKey) + folderRow("LX/HRf;", settingsKey),

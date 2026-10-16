@@ -33,6 +33,9 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  *
  * <p>Nothing here keeps, logs or reports the text. What a read found is one of the shapes in
  * {@link Outcome}, and only the rule that asked sees the words.
+ *
+ * <p>Hide reposts asks the same accessor only whether a story wraps another ({@link #shareKind}),
+ * and reads no text at all.
  */
 public final class PostText {
     /** The GraphQL names. See the patch's PostTextAnchors.kt for how the keys were read. */
@@ -49,6 +52,16 @@ public final class PostText {
 
     static final StoryFlag.Accessor MESSAGE = PostText::message;
     static final StoryFlag.Accessor ATTACHED = PostText::attachedStory;
+
+    /** The route the report counts each post on while Hide reposts is on. */
+    static final String REPOST_ROUTE = "Reposts";
+    /** A story that wraps another story: the kind the report counts it under, and why it was hidden. */
+    static final String REPOST = "repost";
+    /** What {@link #shareKind} found when the post stays. */
+    static final String ORIGINAL = "original post";
+    static final String RELEASED = "tree released";
+    static final String SHARED_NOT_A_STORY = "ambiguous: shared post not a story";
+    static final String SHARED_RELEASED = "shared post's tree released";
 
     /** What reading one feed unit found. Only {@link #TEXT} carries words. */
     enum Outcome {
@@ -141,6 +154,39 @@ public final class PostText {
 
         if (texts.isEmpty()) return Read.of(Outcome.NO_TEXT);
         return new Read(Outcome.TEXT, Collections.unmodifiableList(texts));
+    }
+
+    /**
+     * Whether a feed unit is a share: {@link #REPOST} for a GraphQLStory whose {@code attached_story}
+     * accessor answers another GraphQLStory, with both trees still there. The accessor is typed, so
+     * it answers only a model Facebook built as a Story. Anything else is what the read found, for
+     * the report, and stays: a post that wraps none is {@link #ORIGINAL}. Neither post's message is
+     * read, so a share with a caption and one without read the same. Never throws.
+     */
+    static String shareKind(@Nullable Object feedUnit, StoryFlag.Accessor attached) {
+        if (feedUnit == null) return Outcome.NO_UNIT.reason;
+        Class<?> story = members().story;
+        report();
+        if (story == null) return Outcome.NO_READER.reason;
+        if (!story.isInstance(feedUnit)) return Outcome.NOT_A_STORY.reason;
+        if (FeedFilter.released(feedUnit)) return RELEASED;
+
+        Object wrapped;
+        try {
+            wrapped = attached.model(feedUnit);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.POST_WORDS, "attached story accessor", failure);
+            return Outcome.READ_FAILED.reason;
+        }
+        if (wrapped == StoryFlag.NOT_PATCHED) {
+            HookStatus.missingMember(FamilyNames.POST_WORDS, "method", StoryFlag.STORY_CLASS,
+                    "the " + ATTACHED_STORY_FIELD + " accessor");
+            return Outcome.NO_ACCESSOR.reason;
+        }
+        if (wrapped == null) return ORIGINAL;
+        if (!story.isInstance(wrapped)) return SHARED_NOT_A_STORY;
+        if (FeedFilter.released(wrapped)) return SHARED_RELEASED;
+        return REPOST;
     }
 
     /** Whether a part read cleanly, with words or with none. */

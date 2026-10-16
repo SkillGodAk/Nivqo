@@ -80,6 +80,12 @@ public class TreeJNI {
         return this;
     }
 
+    /** Sets the model field with GraphQL id {@code field}, for one whose name the client never spells. */
+    public TreeJNI with(int field, TreeJNI value) {
+        trees.put(field, value);
+        return this;
+    }
+
     /** Sets the model list field named {@code field}. */
     public TreeJNI with(String field, List<? extends TreeJNI> value) {
         lists.put(field.hashCode(), value);

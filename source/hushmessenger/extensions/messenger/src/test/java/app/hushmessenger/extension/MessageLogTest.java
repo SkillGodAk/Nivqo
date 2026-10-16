@@ -55,6 +55,63 @@ public class MessageLogTest {
         return new File(Settings.appContext.getFilesDir(), MessageLog.FILE);
     }
 
+    @Test public void aReadFailureIsDifferentFromAnEmptyLog() throws Exception {
+        assertFalse(MessageLog.loadResult().failed);
+        MessageLog.storeNow("kept", "t");
+        MessageLog.vault = new MessageLog.Vault() {
+            @Override public byte[] seal(byte[] plain) throws Exception { return softwareVault.seal(plain); }
+            @Override public byte[] open(byte[] blob) throws Exception { throw new java.io.IOException("unavailable"); }
+            @Override public void forget() { softwareVault.forget(); }
+        };
+        MessageLog.LoadResult result = MessageLog.loadResult();
+        assertTrue(result.failed);
+        assertFalse(result.setAside);
+        assertTrue(result.entries.isEmpty());
+        assertTrue(logFile().exists());
+        MessageLog.vault = softwareVault;
+        assertFalse(MessageLog.loadResult().failed);
+        assertEquals("kept", MessageLog.loadResult().entries.get(0).text);
+    }
+
+    @Test public void clearingReportsAFailedKeyRemovalAndCanBeRetried() throws Exception {
+        MessageLog.storeNow("kept", "t");
+        MessageLog.vault = new MessageLog.Vault() {
+            @Override public byte[] seal(byte[] plain) throws Exception { return softwareVault.seal(plain); }
+            @Override public byte[] open(byte[] blob) throws Exception { return softwareVault.open(blob); }
+            @Override public void forget() throws Exception { throw new java.io.IOException("key unavailable"); }
+        };
+        assertFalse(MessageLog.clear());
+        assertFalse(logFile().exists());
+        MessageLog.vault = softwareVault;
+        assertTrue(MessageLog.clear());
+        assertFalse(MessageLog.loadResult().failed);
+    }
+
+    /** A set-aside file stays reported, but as a notice: the log keeps working, so it isn't a read failure. */
+    @Test public void aSetAsideLogIsReportedApartFromFailuresUntilRemoved() throws Exception {
+        Files.write(logFile().toPath(), new byte[] {1, 2, 3});
+        MessageLog.LoadResult first = MessageLog.loadResult();
+        assertFalse(first.failed);
+        assertTrue(first.setAside);
+        assertTrue(damagedFile().exists());
+        MessageLog.storeNow("after", "t");
+        MessageLog.LoadResult later = MessageLog.loadResult();
+        assertFalse(later.failed);
+        assertTrue(later.setAside);
+        assertEquals("after", later.entries.get(0).text);
+        assertTrue(MessageLog.removeSetAside());
+        assertFalse(damagedFile().exists());
+        MessageLog.LoadResult removed = MessageLog.loadResult();
+        assertFalse(removed.setAside);
+        assertEquals("after", removed.entries.get(0).text);
+        assertTrue(MessageLog.removeSetAside());
+
+        Files.write(logFile().toPath(), new byte[] {1, 2, 3});
+        assertTrue(MessageLog.loadResult().setAside);
+        assertTrue(MessageLog.clear());
+        assertFalse(MessageLog.loadResult().setAside);
+    }
+
     @Test public void keepsAnEncryptedCopyThatAnUnsendCantTakeBack() throws Exception {
         MessageLog.storeNow("secret note", "ONE_TO_ONE:1:2");
         // Messenger unsending the message later can't touch this file; the copy is independent.
@@ -111,16 +168,20 @@ public class MessageLogTest {
             assertEquals("Ana\tB", entry.sender);
             assertEquals("", entry.chat);
             assertEquals("hi\tthere", entry.text);
+            // A one-to-one chat has only one other person, so words the notification doesn't show are still theirs.
+            MessageLog.storeNow("a photo", "ADVANCED_CRYPTO_ONE_TO_ONE:9", "mid.2");
+            assertEquals("Ana\tB", MessageLog.entries().get(0).sender);
         } finally {
             manager.cancelAll();
         }
     }
 
     @Test public void aMessageWhoseNotificationIsBuiltTwiceIsKeptOnce() throws Exception {
-        MessageLog.storeNow("same words", "ONE_TO_ONE:1:2");
-        MessageLog.storeNow("same words", "ONE_TO_ONE:1:2");
-        MessageLog.storeNow("same words", "ONE_TO_ONE:3:4");
-        MessageLog.storeNow("other words", "ONE_TO_ONE:1:2");
+        // The push and the sync copy of one message carry the same id.
+        MessageLog.storeNow("same words", "ONE_TO_ONE:1:2", "mid.1");
+        MessageLog.storeNow("same words", "ONE_TO_ONE:1:2", "mid.1");
+        MessageLog.storeNow("same words", "ONE_TO_ONE:3:4", "mid.2");
+        MessageLog.storeNow("other words", "ONE_TO_ONE:1:2", "mid.3");
         List<MessageLog.Entry> entries = MessageLog.entries();
         assertEquals(3, entries.size());
         assertEquals("other words", entries.get(0).text);
@@ -128,14 +189,163 @@ public class MessageLogTest {
         assertEquals("ONE_TO_ONE:1:2", entries.get(2).thread);
     }
 
-    @Test public void theSameWordsAfterTheWindowAreANewMessage() {
+    /** Two messages that say the same thing are two messages. Only the id says a notification is the same one again. */
+    @Test public void differentMessagesWithTheSameWordsAreAllKept() throws Exception {
+        MessageLog.storeNow("ok", "GROUP:7", "mid.1");
+        MessageLog.storeNow("ok", "GROUP:7", "mid.2");
+        // Long messages that only differ past the part the log keeps.
+        String start = "x".repeat(MessageLog.MAX_TEXT_CHARS);
+        MessageLog.storeNow(start + "one", "GROUP:7", "mid.3");
+        MessageLog.storeNow(start + "two", "GROUP:7", "mid.4");
+        assertEquals(4, MessageLog.entries().size());
+    }
+
+    /**
+     * When the hook has no id for a capture, its words are all there is: it pairs with the same words in that chat, with
+     * or without an id, either way round. Different words or another chat stay separate.
+     */
+    @Test public void aCopyWithoutAnIdPairsWithTheSameWordsInItsChat() throws Exception {
+        MessageLog.storeNow("on my way", "ONE_TO_ONE:1:2");
+        MessageLog.storeNow("on my way", "ONE_TO_ONE:1:2", "mid.1");
+        MessageLog.storeNow("see you", "ONE_TO_ONE:1:2", "mid.2");
+        MessageLog.storeNow("see you", "ONE_TO_ONE:1:2");
+        MessageLog.storeNow("ok", "GROUP:7");
+        MessageLog.storeNow("ok", "GROUP:7");
+        MessageLog.storeNow("ok", "GROUP:8");
+        MessageLog.storeNow("okay", "GROUP:7");
+        List<MessageLog.Entry> entries = MessageLog.entries();
+        assertEquals(5, entries.size());
+        assertEquals("on my way", entries.get(4).text);
+        assertEquals("see you", entries.get(3).text);
+        assertEquals("GROUP:8", entries.get(1).thread);
+    }
+
+    /** A copy without an id pairs with one capture only, so the same words sent again in that minute are all kept. */
+    @Test public void eachCopyWithoutAnIdPairsOnce() throws Exception {
+        MessageLog.storeNow("ok", "GROUP:7");
+        MessageLog.storeNow("ok", "GROUP:7", "mid.1");
+        MessageLog.storeNow("ok", "GROUP:7", "mid.2");
+        MessageLog.storeNow("ok", "GROUP:7", "mid.3");
+        MessageLog.storeNow("lol", "GROUP:7", "mid.4");
+        MessageLog.storeNow("lol", "GROUP:7");
+        MessageLog.storeNow("lol", "GROUP:7");
+        // Both copies of this one came with the id, so the copy without one after it is another message.
+        MessageLog.storeNow("yes", "GROUP:7", "mid.5");
+        MessageLog.storeNow("yes", "GROUP:7", "mid.5");
+        MessageLog.storeNow("yes", "GROUP:7");
+        List<MessageLog.Entry> entries = MessageLog.entries();
+        assertEquals(7, entries.size());
+        assertEquals(3, entries.stream().filter(entry -> entry.text.equals("ok")).count());
+        assertEquals(2, entries.stream().filter(entry -> entry.text.equals("lol")).count());
+        assertEquals(2, entries.stream().filter(entry -> entry.text.equals("yes")).count());
+    }
+
+    /** "Aa" and "BB" share String.hashCode() and length, and they're still two messages, with or without ids. */
+    @Test public void wordsThatShareAHashAreStillDifferentMessages() throws Exception {
+        assertEquals("Aa".hashCode(), "BB".hashCode());
+        // Times only move forward here: a capture from the future would be dropped as a clock set back.
+        assertFalse(MessageLog.repeated("t", "", "Aa", 1_000));
+        assertFalse(MessageLog.repeated("t", "", "BB", 1_001));
+        assertFalse(MessageLog.repeated("u", "mid.1", "Aa", 1_002));
+        assertFalse(MessageLog.repeated("u", null, "BB", 1_003));
+        // The real second copies still pair, once each.
+        assertTrue(MessageLog.repeated("t", null, "Aa", 1_004));
+        assertTrue(MessageLog.repeated("t", null, "BB", 1_005));
+        assertTrue(MessageLog.repeated("u", null, "Aa", 1_006));
+        assertFalse(MessageLog.repeated("u", null, "Aa", 1_007));
+        // A lone surrogate isn't folded into "?" on the way to the digest.
+        assertFalse(MessageLog.repeated("v", null, "x\uD800", 1_008));
+        assertFalse(MessageLog.repeated("v", null, "x?", 1_009));
+
+        MessageLog.forgetCaptures();
+        MessageLog.storeNow("Aa", "GROUP:7");
+        MessageLog.storeNow("BB", "GROUP:7");
+        MessageLog.storeNow("Aa", "GROUP:8", "mid.2");
+        MessageLog.storeNow("BB", "GROUP:8");
+        assertEquals(4, MessageLog.entries().size());
+    }
+
+    /** The recent record keeps at most 2 * MAX_ENTRIES keys and drops the oldest first. */
+    @Test public void theRecentRecordDropsItsOldestCapturesPastItsBound() {
+        int bound = 2 * MessageLog.MAX_ENTRIES;
+        // A capture with an id holds two keys. With the rest of the record full, its second copy still pairs...
+        assertFalse(MessageLog.repeated("t", "mid.old", "x", 1_000));
+        for (int i = 0; i < bound - 2; i++) assertFalse(MessageLog.repeated("t", null, "filler " + i, 1_000));
+        assertTrue(MessageLog.repeated("t", "mid.old", "x", 1_000));
+        // ...and one capture more pushes it out, so it reads as new.
+        MessageLog.forgetCaptures();
+        assertFalse(MessageLog.repeated("t", "mid.old", "x", 1_000));
+        for (int i = 0; i < bound - 1; i++) assertFalse(MessageLog.repeated("t", null, "filler " + i, 1_000));
+        assertFalse(MessageLog.repeated("t", "mid.old", "x", 1_000));
+    }
+
+    /** Clear keeps the recent record, so the second copy of a message from before a Clear isn't logged after it. */
+    @Test public void theSecondCopyOfAMessageFromBeforeAClearStaysOut() throws Exception {
+        MessageLog.storeNow("on my way", "ONE_TO_ONE:1:2", "mid.1");
+        MessageLog.storeNow("see you", "ONE_TO_ONE:1:2");
+        assertTrue(MessageLog.clear());
+        MessageLog.storeNow("on my way", "ONE_TO_ONE:1:2", "mid.1");
+        MessageLog.storeNow("see you", "ONE_TO_ONE:1:2", "mid.2");
+        MessageLog.storeNow("new after the clear", "ONE_TO_ONE:1:2", "mid.3");
+        List<MessageLog.Entry> entries = MessageLog.entries();
+        assertEquals(1, entries.size());
+        assertEquals("new after the clear", entries.get(0).text);
+    }
+
+    @Test public void theSameIdAfterTheWindowIsANewCapture() {
         long start = 1_000;
-        assertFalse(MessageLog.repeated("t", "ok", start));
-        assertTrue(MessageLog.repeated("t", "ok", start + MessageLog.DUPLICATE_WINDOW_MS));
-        assertFalse(MessageLog.repeated("t", "ok", start + MessageLog.DUPLICATE_WINDOW_MS + 1));
+        assertFalse(MessageLog.repeated("t", "mid.1", "a", start));
+        assertTrue(MessageLog.repeated("t", "mid.1", "b", start + MessageLog.DUPLICATE_WINDOW_MS));
+        assertFalse(MessageLog.repeated("t", "mid.1", "a", start + MessageLog.DUPLICATE_WINDOW_MS + 1));
         // A clock moved back doesn't hide the next message behind a capture from the future.
-        assertFalse(MessageLog.repeated("t", "later", 50_000));
-        assertFalse(MessageLog.repeated("t", "later", 40_000));
+        assertFalse(MessageLog.repeated("t", "mid.2", "c", 50_000));
+        assertFalse(MessageLog.repeated("t", "mid.2", "c", 40_000));
+        // Without an id the words decide, within the same window.
+        assertFalse(MessageLog.repeated("t", "", "d", 40_000));
+        assertTrue(MessageLog.repeated("t", null, "d", 40_000));
+        assertFalse(MessageLog.repeated("t", null, "d", 40_000 + MessageLog.DUPLICATE_WINDOW_MS + 1));
+    }
+
+    /** The hook hands each id over just before its message, and the sink takes it, so the next message can't reuse it. */
+    @Test public void eachHandedOverIdIsTakenOnceOnItsOwnThread() throws Exception {
+        Settings.incomingMessageId("mid.1");
+        assertEquals("mid.1", Settings.takeIncomingMessageId());
+        assertNull(Settings.takeIncomingMessageId());
+        Settings.incomingMessageId("mid.2");
+        String[] other = {"unset"};
+        Thread elsewhere = new Thread(() -> other[0] = Settings.takeIncomingMessageId());
+        elsewhere.start();
+        elsewhere.join();
+        assertNull(other[0]);
+        assertEquals("mid.2", Settings.takeIncomingMessageId());
+    }
+
+    /**
+     * Two people send the same words in a group. The notification can't say whose line is whose, so neither capture is
+     * named, and a capture whose words it no longer shows isn't given its newest sender either.
+     */
+    @Test public void aGroupSenderTheNotificationCantPlaceStaysUnknown() throws Exception {
+        Context context = Settings.appContext;
+        android.app.NotificationManager manager = context.getSystemService(android.app.NotificationManager.class);
+        android.app.Notification.MessagingStyle style = new android.app.Notification.MessagingStyle(new android.app.Person.Builder().setName("Me").build())
+            .setConversationTitle("Climbing").setGroupConversation(true)
+            .addMessage("on my way", 1, new android.app.Person.Builder().setName("Ana").build())
+            .addMessage("on my way", 2, new android.app.Person.Builder().setName("Bo").build());
+        manager.notify("GROUP:77", 1, new android.app.Notification.Builder(context, "chats")
+            .setSmallIcon(android.R.drawable.sym_def_app_icon).setContentTitle("Bo").setStyle(style).build());
+        try {
+            MessageLog.storeNow("on my way", "GROUP:77", "mid.1");
+            MessageLog.storeNow("on my way", "GROUP:77", "mid.2");
+            MessageLog.storeNow("an older message", "GROUP:77", "mid.3");
+            List<MessageLog.Entry> entries = MessageLog.entries();
+            assertEquals(3, entries.size());
+            for (MessageLog.Entry entry : entries) {
+                assertEquals("", entry.sender);
+                assertEquals("Climbing", entry.chat);
+            }
+        } finally {
+            manager.cancelAll();
+        }
     }
 
     @Test public void namesAutoReplyNotedOutliveTheNotificationItAnswered() throws Exception {
@@ -144,21 +354,72 @@ public class MessageLogTest {
         android.app.Notification answered = new android.app.Notification.Builder(Settings.appContext, "chats")
             .setSmallIcon(android.R.drawable.sym_def_app_icon).setContentTitle("Ana").setStyle(style).build();
         // Auto reply read it, and the reply took it down before the log got to it, so it's never posted here.
-        MessageLog.noteNames("ADVANCED_CRYPTO_ONE_TO_ONE:9", "ping test", answered);
-        MessageLog.storeNow("ping test", "ADVANCED_CRYPTO_ONE_TO_ONE:9");
+        MessageLog.noteNames("ADVANCED_CRYPTO_ONE_TO_ONE:9", "mid.1", "ping test", answered);
+        MessageLog.storeNow("ping test", "ADVANCED_CRYPTO_ONE_TO_ONE:9", "mid.1");
         assertEquals("Ana", MessageLog.entries().get(0).sender);
-        // Used once: a later capture of other words in that chat isn't named from it.
-        MessageLog.storeNow("ping again", "ADVANCED_CRYPTO_ONE_TO_ONE:9");
+        // Kept for that message only: another message with the same words isn't named from it.
+        MessageLog.noteNames("ADVANCED_CRYPTO_ONE_TO_ONE:9", "mid.2", "ping test", answered);
+        MessageLog.storeNow("ping test", "ADVANCED_CRYPTO_ONE_TO_ONE:9", "mid.3");
         assertEquals("", MessageLog.entries().get(0).sender);
+        MessageLog.storeNow("ping test", "ADVANCED_CRYPTO_ONE_TO_ONE:9", "mid.2");
+        assertEquals("Ana", MessageLog.entries().get(0).sender);
+    }
+
+    @Test public void namesAreNotNotedForAMessageWithoutAnId() throws Exception {
+        android.app.Notification answered = new android.app.Notification.Builder(Settings.appContext, "chats")
+            .setSmallIcon(android.R.drawable.sym_def_app_icon).setContentTitle("Ana").build();
+        MessageLog.noteNames("ONE_TO_ONE:1:2", null, "hello", answered);
+        MessageLog.noteNames("ONE_TO_ONE:1:2", "", "hello", answered);
+        synchronized (MessageLog.NOTED) {
+            assertTrue(MessageLog.NOTED.isEmpty());
+        }
+        MessageLog.storeNow("hello", "ONE_TO_ONE:1:2");
+        assertEquals("", MessageLog.entries().get(0).sender);
+    }
+
+    private static android.app.Notification answeredBy(String sender, String text) {
+        android.app.Notification.MessagingStyle style = new android.app.Notification.MessagingStyle(new android.app.Person.Builder().setName("Me").build())
+            .addMessage(text, 1, new android.app.Person.Builder().setName(sender).build());
+        return new android.app.Notification.Builder(Settings.appContext, "chats")
+            .setSmallIcon(android.R.drawable.sym_def_app_icon).setContentTitle(sender).setStyle(style).build();
+    }
+
+    /** Writing the message uses up Auto reply's note, so a write that fails tries again with the names it already had. */
+    @Test public void notedNamesSurviveAWriteThatFails() throws Exception {
+        String chat = "ADVANCED_CRYPTO_ONE_TO_ONE:9";
+        MessageLog.noteNames(chat, "mid.1", "ping test", answeredBy("Ana", "ping test"));
+        MessageLog.vault = new MessageLog.Vault() {
+            @Override public byte[] seal(byte[] plain) throws Exception { throw new java.io.IOException("disk full"); }
+            @Override public byte[] open(byte[] blob) throws Exception { return softwareVault.open(blob); }
+            @Override public void forget() { softwareVault.forget(); }
+        };
+        MessageLog.storeNow("ping test", chat, "mid.1");
+        MessageLog.vault = softwareVault;
+        MessageLog.storeNow("next one", chat, "mid.2");
+        List<MessageLog.Entry> entries = MessageLog.entries();
+        assertEquals(2, entries.size());
+        MessageLog.Entry retried = entries.stream().filter(entry -> "ping test".equals(entry.text)).findFirst().orElseThrow();
+        assertEquals("Ana", retried.sender);
+    }
+
+    @Test public void clearForgetsNamesNotedForMessagesNotWrittenYet() {
+        MessageLog.noteNames("ADVANCED_CRYPTO_ONE_TO_ONE:9", "mid.1", "ping test", answeredBy("Ana", "ping test"));
+        synchronized (MessageLog.NOTED) {
+            assertEquals(1, MessageLog.NOTED.size());
+        }
+        assertTrue(MessageLog.clear());
+        synchronized (MessageLog.NOTED) {
+            assertTrue(MessageLog.NOTED.isEmpty());
+        }
     }
 
     @Test public void namesAreNotNotedWhileTheLogIsOff() throws Exception {
         Settings.preferences.edit().putBoolean("message_log", false).commit();
         android.app.Notification answered = new android.app.Notification.Builder(Settings.appContext, "chats")
             .setSmallIcon(android.R.drawable.sym_def_app_icon).setContentTitle("Ana").build();
-        MessageLog.noteNames("ONE_TO_ONE:1:2", "hello", answered);
+        MessageLog.noteNames("ONE_TO_ONE:1:2", "mid.1", "hello", answered);
         Settings.preferences.edit().putBoolean("message_log", true).commit();
-        MessageLog.storeNow("hello", "ONE_TO_ONE:1:2");
+        MessageLog.storeNow("hello", "ONE_TO_ONE:1:2", "mid.1");
         assertEquals("", MessageLog.entries().get(0).sender);
     }
 
@@ -417,10 +678,10 @@ public class MessageLogTest {
             @Override public void forget() { softwareVault.forget(); }
         };
         try {
-            MessageLog.record("slow write", "t");
+            MessageLog.record("slow write", "t", null);
             assertTrue(writing.await(10, java.util.concurrent.TimeUnit.SECONDS));
             // The writer holds the file now; a new notification must still return at once.
-            Thread capture = new Thread(() -> MessageLog.record("during the write", "t"));
+            Thread capture = new Thread(() -> MessageLog.record("during the write", "t", null));
             capture.start();
             capture.join(2_000);
             assertFalse(capture.isAlive());
@@ -437,7 +698,7 @@ public class MessageLogTest {
     }
 
     /** AES-GCM with a key held in memory, same blob layout as the keystore path: 12-byte nonce, then ciphertext. */
-    private static final class SoftwareVault implements MessageLog.Vault {
+    static final class SoftwareVault implements MessageLog.Vault {
         int generation;
         private SecretKey key = freshKey();
         private final SecureRandom random = new SecureRandom();

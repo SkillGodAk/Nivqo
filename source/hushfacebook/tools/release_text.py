@@ -23,7 +23,9 @@ github-notes The notes for a GitHub release, from the whole CHANGELOG section: e
              build a release targets from the notes, so the first sentence it would read has to
              name the newest declared build.
 index        patches-bundle.json, the README's latest-release sentence and the bug form's version
-             placeholder, for the release that was just published.
+             placeholder, for the release that was just published. The bundle description is
+             the release facts, then the section's ### groups, which Morphe Manager shows for the
+             release an app was patched with.
 """
 
 import argparse
@@ -345,6 +347,28 @@ def github_notes(root: Path, version: str, checked: str | None, draft: bool = Fa
     return notes, summary
 
 
+def changelog_groups(root: Path, version: str) -> str:
+    """The ### groups of the version's CHANGELOG section, every bullet as the CHANGELOG writes it.
+
+    Morphe Manager shows the bundle description, not the CHANGELOG, for a release an app was
+    patched with (its changelog dialog lists only what came after that version, and falls back to
+    the description when nothing did). Morphe's own description is its changelog section, so the
+    groups go in for the newest release to read like every older one (#143).
+    """
+    text = read(root / "CHANGELOG.md")
+    match = re.search(rf"^## {re.escape(version)} \(\d{{4}}-\d{{2}}-\d{{2}}\)$", text, re.MULTILINE)
+    if not match:
+        fail(f"CHANGELOG has no dated {version} heading. Run cut first.")
+    bounds = section_bounds(text, match.group(0)[3:])
+    _, grouped = parse_section(text[bounds[0]:bounds[1]], version)
+    if not grouped:
+        fail(f"the {version} section has no bullets under a ### heading for the description")
+    blocks: dict[str, list[str]] = {}
+    for heading, scope, bullet in grouped:
+        blocks.setdefault(heading, []).append(f"* **{scope}:** {bullet}")
+    return "\n\n".join(f"### {heading}\n\n" + "\n".join(bullets) for heading, bullets in blocks.items())
+
+
 def facts_in(text: str) -> tuple[set, set]:
     counts = set(re.findall(r"(?<![\d.])(\d+) patches\b", text))
     builds = set(re.findall(r"Facebook\s+(\d+(?:\.\d+)+)(?!\d)", text))
@@ -408,6 +432,9 @@ def index(root: Path, version: str, created: str, bundle_summary: str, readme_su
         fail(f"the description has to name {count} patches and Facebook {newest} alone, and it names "
              f"{', '.join(sorted(counts)) or 'no'} patch counts and Facebook {', '.join(sorted(builds))}. "
              "Check the bundle summary.")
+    # After the facts check, which reads the prose alone: a bullet may name an older build or count.
+    # validate-release-facts.ps1 reads the description up to its first ### line for the same reason.
+    description += "\n\n" + changelog_groups(root, version)
     bundle.update({
         "created_at": created,
         "description": description,

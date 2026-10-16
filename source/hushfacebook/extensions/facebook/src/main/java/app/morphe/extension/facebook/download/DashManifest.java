@@ -453,11 +453,11 @@ final class DashManifest {
         String url = unescape(base.group(1).trim());
         if (!url.toLowerCase(Locale.US).startsWith("https://")) return null;
 
-        // A track gives its type on itself or on its adaptation set.
-        String mime = attribute(attributes, "mimeType");
-        if (mime == null) mime = attribute(setAttributes, "mimeType");
+        // A track gives its type on itself or on its adaptation set. An empty one gives none.
+        String mime = given(attribute(attributes, "mimeType"));
+        if (mime == null) mime = given(attribute(setAttributes, "mimeType"));
         if (mime == null) {
-            String content = attribute(setAttributes, "contentType");
+            String content = given(attribute(setAttributes, "contentType"));
             if (content != null) mime = content + "/mp4";
         }
         if (mime == null) return null;
@@ -474,6 +474,13 @@ final class DashManifest {
             url,
             qualityLabel(attribute(attributes, "FBQualityLabel"))
         );
+    }
+
+    /** [value] without the spaces around it, or null when nothing is left. */
+    private static String given(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     /** The number in a label such as {@code 720p}, or 0 for anything else. */

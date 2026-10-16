@@ -29,7 +29,7 @@ private const val COPY = "invoke-static {v2, v3}, LX/8Bb;->A00(Ljava/io/InputStr
 private const val CLOSE = "invoke-virtual {v3}, Ljava/io/OutputStream;->close()V"
 private const val FROM_FILE = "invoke-static {v8}, Landroid/net/Uri;->fromFile(Ljava/io/File;)Landroid/net/Uri;"
 
-/** The share copy's end as 582 writes it: open the copy on the File, copy the stream in, close it, point a Uri at it. */
+/** The share copy's end as Messenger writes it: open the copy on the File, copy the stream in, close it, point a Uri at it. */
 private fun shareCopy(
     name: String = SHARE_MEDIA_NAME, copy: String = COPY, close: String = CLOSE, fromFile: String = FROM_FILE,
     jump: String = "", id: String = SYNTHETIC_SHARE_COPY,
@@ -71,7 +71,7 @@ class XheAudioTest {
 
     @Test fun theFinishedCopyGoesThroughTheExtensionBeforeMessengerReadsIt() {
         val method = shareCopy()
-        val found = findControls(shareCopyFixture())
+        val found = mirroredControls(shareCopyFixture())
         assertEquals(listOf(SYNTHETIC_SHARE_COPY), found.getValue(XHE_AUDIO).map { it.hookId() })
         validateControls(found, setOf(XHE_AUDIO))
         val before = method.code()

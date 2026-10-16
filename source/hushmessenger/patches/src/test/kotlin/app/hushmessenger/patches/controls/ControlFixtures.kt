@@ -63,6 +63,9 @@ internal fun factoryApplication(body: String = """
 internal fun bundledControlsMethod(body: String = "const-string v0, \"\"\nreturn-object v0") =
     fixtureMethod(BUNDLED_CONTROLS, body, 1, AccessFlags.STATIC.value)
 
+internal fun originalBuildMethod(body: String = "const-string v0, \"\"\nreturn-object v0") =
+    fixtureMethod(ORIGINAL_BUILD, body, 1, AccessFlags.STATIC.value)
+
 internal fun nativeBubbleRoutesMethod(body: String = "const/4 v0, 0x0\nreturn v0") =
     fixtureMethod(NATIVE_BUBBLE_ROUTES, body, 1, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)
 
@@ -121,7 +124,7 @@ internal fun inboxRefreshRouteMethod(body: String = "const-string v0, \"\"\nretu
 /** The factory and the extension classes every settings run touches, as a supported APK plus the extension has them. */
 internal fun screenHostClasses() = listOf(
     fixtureClass(FACTORY_TYPE, listOf(factoryActivity(), factoryApplication())),
-    fixtureClass(HOST_SCREENS, listOf(bundledControlsMethod(), nativeBubbleRoutesMethod(), inboxRefreshRouteMethod())),
+    fixtureClass(HOST_SCREENS, listOf(bundledControlsMethod(), originalBuildMethod(), nativeBubbleRoutesMethod(), inboxRefreshRouteMethod())),
     fixtureClass(INBOX_REFRESH, listOf(fixtureMethod(INBOX_ITEMS_CALL, "return-void", 1, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value))),
 )
 
@@ -283,20 +286,23 @@ internal fun peopleStoryMethod(
 
 /**
  * Instructions 0-20 match the supported APKs; one instruction stands in for the list reset. The suggestions logger
- * comes first, so the owner is p1, and false lives in v5 of ten registers. The older shapes are only there to be
- * refused: with [inlinedReset] one call replaces the two at 14-15, so the server flag moves from 17 to 16, and
- * without [logged] the reader takes only its owner and keeps false in v4 of six registers.
+ * comes first, so the owner is p1, and false lives in v3 of eight registers, with the [logger] load in v4. The older
+ * shapes are only there to be refused: with [inlinedReset] one call replaces the two at 14-15, so the server flag moves
+ * from 17 to 16, and without [logged] the reader takes only its owner and keeps false in v4 of six registers.
  */
 internal fun peopleJewelMethod(
     key: String = "LX/JTx;->A01:LX/1BL;",
     resultRegister: String = "v0",
-    serverFlag: String = "72344188615734930L",
+    serverFlag: String = "72344188615735036L",
     serverTarget: String = ":shown",
     flags: Int = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value,
     inlinedReset: Boolean = false,
     extraFlag: Boolean = false,
     extraFlagValue: String = serverFlag,
     logged: Boolean = true,
+    default: String = if (logged) "v3" else "v4",
+    registers: Int = if (logged) 8 else 6,
+    logger: String = if (logged) "v4" else "v3",
 ) = fixtureMethod(if (logged) PEOPLE_JEWEL_HOOK else PEOPLE_JEWEL_HOOK.replace("(LX/3nt;", "("), """
     iget-object v0, ${if (logged) "p1" else "p0"}, LX/HAR;->A07:LX/17Z;
     invoke-static {v0}, LX/17Z;->A0F(LX/17Z;)Ljava/lang/Object;
@@ -307,26 +313,26 @@ internal fun peopleJewelMethod(
     invoke-static {v0}, LX/17Z;->A0C(LX/17Z;)Lcom/facebook/prefs/shared/FbSharedPreferences;
     move-result-object v1
     sget-object v0, $key
-    const/4 ${if (logged) "v5" else "v4"}, 0x0
-    invoke-interface {v1, v0, ${if (logged) "v5" else "v4"}}, $PREFERENCE_GETTER
+    const/4 $default, 0x0
+    invoke-interface {v1, v0, $default}, $PREFERENCE_GETTER
     move-result $resultRegister
     if-eqz v0, :shown
     iget-object v0, ${if (logged) "p1" else "p0"}, LX/HAR;->A06:LX/17Z;
     ${if (inlinedReset) "invoke-static {v0, v2}, LX/H7e;->A0T(LX/17Z;Ljava/lang/Object;)LX/4qb;"
-      else "invoke-static {v0}, LX/17Z;->A0I(LX/17Z;)V\n    invoke-static {v2, ${if (logged) "v5" else "v4"}}, LX/1Aa;->A07(Ljava/lang/Object;I)LX/4nI;"}
+      else "invoke-static {v0}, LX/17Z;->A0I(LX/17Z;)V\n    invoke-static {v2, $default}, LX/1Aa;->A07(Ljava/lang/Object;I)LX/4nI;"}
     move-result-object v2
     const-wide v0, $serverFlag
     invoke-static {v2, v0, v1}, LX/16z;->A1Z(Ljava/lang/Object;J)Z
     move-result v0
     if-nez v0, $serverTarget
-    iget-object v3, ${if (logged) "p1" else "p0"}, LX/HAR;->A0F:LX/WZw;
+    iget-object $logger, ${if (logged) "p1" else "p0"}, LX/HAR;->A0F:LX/WZw;
     ${if (extraFlag) "const-wide v0, $extraFlagValue" else ""}
     :hidden
     const/4 v0, 0x1
     return v0
     :shown
-    return ${if (logged) "v5" else "v4"}
-""".trimIndent(), registers = if (logged) 10 else 6, flags = flags)
+    return $default
+""".trimIndent(), registers = registers, flags = flags)
 
 internal fun peopleJewelKeyHolder() = fixtureClass("LX/JTx;", listOf(fixtureMethod("LX/JTx;-><clinit>()V", """
     const-string v0, "pymk_jewel_section_hidden"
@@ -380,7 +386,7 @@ internal fun messageWrapperFixture(
     idGetter: String = "B9d",
     unsentGetter: String = "Btd",
 ): MutableClass {
-    // 582 reads the text getter's row straight from the list; the other getters still go through the helper.
+    // 583 reads the text getter's row straight from the list; the other getters still go through the helper.
     val bwoMethod = fixtureMethod("$type->$textGetter(I)Ljava/lang/String;", """
         iget-object v0, p0, $type->A00:Ljava/util/List;
         invoke-interface {v0, p1}, Ljava/util/List;->get(I)Ljava/lang/Object;

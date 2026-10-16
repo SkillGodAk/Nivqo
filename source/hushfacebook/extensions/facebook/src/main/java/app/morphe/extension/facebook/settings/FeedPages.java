@@ -251,6 +251,9 @@ final class FeedPages {
                         L10n.t("Hides posts that share a link to a website, with its preview card.")));
                 feed.addPreference(toggle(context, Settings.HIDE_BACKGROUND_POSTS,
                         L10n.t("Hides short posts shown as big text on a colored background.")));
+                feed.addPreference(toggle(context, Settings.HIDE_REPOSTS,
+                        L10n.t("Hides posts that share another post, with or without a caption. Original posts stay. Untested "
+                                + "on a real feed, so it starts off.")));
                 feed.addPreference(reactionCeilingRow(context));
             }
         }

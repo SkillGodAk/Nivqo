@@ -22,6 +22,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * test. That's how LogBufferManagerClipboardTest's full-queue test failed in the full suite on
  * 2026-09-26. Fillers park on a latch until close() lets them go, and close() waits for all of
  * them to finish.
+ *
+ * <p>{@link #hold()} keeps the workers busy the same way and leaves the queue room, so the next
+ * task is taken and waits its turn until close().
  */
 public final class WorkerPoolForTests implements AutoCloseable {
     private final ThreadPoolExecutor pool;
@@ -37,9 +40,7 @@ public final class WorkerPoolForTests implements AutoCloseable {
 
     /** Drains the pool, then fills it until every worker holds a filler and the queue is full. */
     public static WorkerPoolForTests fill() throws Exception {
-        Field field = Utils.class.getDeclaredField("backgroundThreadPool");
-        field.setAccessible(true);
-        WorkerPoolForTests full = new WorkerPoolForTests((ThreadPoolExecutor) field.get(null));
+        WorkerPoolForTests full = new WorkerPoolForTests(pool());
         Utils.awaitBackgroundTasksForTests();
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
         try {
@@ -63,6 +64,31 @@ public final class WorkerPoolForTests implements AutoCloseable {
             full.close();
             throw failure;
         }
+    }
+
+    /**
+     * Drains the pool, then hands it one filler for each worker it can ever have, with room left
+     * in the queue. A task handed over after that is taken and waits until close(): every worker
+     * that's free takes a filler ahead of it and parks, and there's a filler for each of them.
+     */
+    public static WorkerPoolForTests hold() throws Exception {
+        WorkerPoolForTests held = new WorkerPoolForTests(pool());
+        Utils.awaitBackgroundTasksForTests();
+        try {
+            for (int filler = 0; filler < held.pool.getMaximumPoolSize(); filler++) {
+                if (!held.offer()) throw new AssertionError("the drained worker pool refused a filler");
+            }
+            return held;
+        } catch (Throwable failure) {
+            held.close();
+            throw failure;
+        }
+    }
+
+    private static ThreadPoolExecutor pool() throws Exception {
+        Field field = Utils.class.getDeclaredField("backgroundThreadPool");
+        field.setAccessible(true);
+        return (ThreadPoolExecutor) field.get(null);
     }
 
     private boolean offer() {

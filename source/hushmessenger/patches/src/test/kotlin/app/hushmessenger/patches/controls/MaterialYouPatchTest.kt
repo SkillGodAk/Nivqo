@@ -201,7 +201,7 @@ class MaterialYouPatchTest {
         }
     }
 
-    /** 582's A02 only hands its token to A01, which is already wrapped, so wrapping A02 would remap the color twice. */
+    /** 583's A02 only hands its token to A01, which is already wrapped, so wrapping A02 would remap the color twice. */
     @Test fun aReturnThatOnlyHandsBackAnotherColorsAnswerIsntRemappedTwice(@TempDir temporary: Path) {
         val resolver = "$FDS_COLORS->A00(Landroid/content/Context;II)I"
         val classes = themeClasses().map { cls ->

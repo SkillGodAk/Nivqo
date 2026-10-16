@@ -158,7 +158,7 @@ class CatalogToolTest {
             category("Example")
             dependsOn(dependency)
             compatibleWith(Compatibility("com.example.app", "Example", targets = listOf(
-                AppTarget("582", versionCodes = null, minSdk = 28, description = "346415686, 346415687 and 346415690"),
+                AppTarget("582", versionCodes = null, minSdk = 28, description = "346611369, 346611423 and 346611438"),
             )))
         }
         val catalog = CatalogTool.catalog("1.2.3", setOf(patch))
@@ -173,7 +173,7 @@ class CatalogToolTest {
         assertEquals("Fixture dependency", dependencyEntry.getValue("description").jsonPrimitive.content)
         val target = entry.getValue("compatiblePackages").jsonArray.single().jsonObject.getValue("targets").jsonArray.single().jsonObject
         assertEquals(JsonNull, target.getValue("versionCodes"))
-        assertEquals("346415686, 346415687 and 346415690", target.getValue("description").jsonPrimitive.content)
+        assertEquals("346611369, 346611423 and 346611438", target.getValue("description").jsonPrimitive.content)
     }
 
     @Test fun optionsKeepTheirKeyTypeDefaultAndRequirement() {
@@ -212,8 +212,9 @@ class CatalogToolTest {
         val ui = root.resolve("extensions/messenger/src/main/java/app/hushmessenger/extension/SettingsActivity.java").readText()
         val manifest = root.resolve("extensions/messenger/src/main/AndroidManifest.xml").readText()
         val names = Regex("""controlPatch\("[a-z_]+",\s*"([^"]+)"""").findAll(patch)
-            .map { it.groupValues[1] }.toSet() + CatalogTool.NON_CONTROL_PATCHES + "Material You theme" + "View stories anonymously" + "Save any story" + "Slide chats in and out"
-        CatalogTool.validateDefinitions(patch, ui, manifest, names)
+            .map { it.groupValues[1] }.toSet() + CatalogTool.NON_CONTROL_PATCHES + "Material You theme" + "View stories anonymously" + "Save any story" + "Slide chats in and out" +
+            "Bold and italic text"
+        assertTrue("people" in CatalogTool.validateDefinitions(patch, ui, manifest, names))
         assertFailsWith<IllegalArgumentException> { CatalogTool.validateDefinitions(patch.replace("controlPatch(\"people\"", "controlPatch(\"changed\""), ui, manifest, names) }
         assertFailsWith<IllegalArgumentException> { CatalogTool.validateDefinitions(patch, ui.replace("{\"people\",", "{\"changed\","), manifest, names) }
         assertFailsWith<IllegalArgumentException> { CatalogTool.validateDefinitions(patch, ui, manifest.replace("hush.feature.people", "hush.feature.changed"), names) }
@@ -242,5 +243,86 @@ class CatalogToolTest {
         assertFailsWith<IllegalArgumentException> {
             CatalogTool.catalog("1", setOf(bytecodePatch("Untitled") { stringOption("bare", "a", null, null, null, false) }))
         }
+    }
+
+    private fun dex(vararg classes: com.android.tools.smali.dexlib2.iface.ClassDef): ByteArray {
+        val store = MemoryDataStore()
+        DexPool.writeTo(store, ImmutableDexFile(Opcodes.getDefault(), classes.toList()))
+        return store.data.copyOf().also { store.close() }
+    }
+
+    private val logoCall = "Lapp/hushmessenger/extension/Settings;->logoLongPressed(Landroid/content/Context;)V"
+
+    /** Patch code naming one extension method and two control keys, as the built patches' hook code does. */
+    private fun patcherDex(vararg strings: String) = dex(fixtureClass("Lapp/hushmessenger/patches/Fixture;", listOf(
+        fixtureMethod("Lapp/hushmessenger/patches/Fixture;->hook()V",
+            strings.joinToString("\n") { "const-string v0, \"$it\"" } + "\nreturn-void", 1))))
+
+    private fun extensionDex(method: String = "logoLongPressed", vararg keys: String) = dex(fixtureClass(
+        "Lapp/hushmessenger/extension/Settings;", listOf(fixtureMethod(
+            "Lapp/hushmessenger/extension/Settings;->$method(Landroid/content/Context;)V",
+            keys.joinToString("\n") { "const-string v0, \"$it\"" } + "\nreturn-void", 2))))
+
+    /**
+     * A structurally sound extension still has to be this bundle's: one with nothing of HushMessenger's, one missing a
+     * method the hooks call and an older one missing a current control are all turned down.
+     */
+    @Test fun thePackagedExtensionMustHaveWhatThePatchesCall() {
+        val keys = setOf("people", "ads")
+        val patcher = patcherDex("invoke-static/range {p1 .. p1}, $logoCall", "people", "ads")
+        val extension = extensionDex("logoLongPressed", "people", "ads")
+        for (data in listOf(patcher, extension)) assertTrue(CatalogTool.validateDex(data) > 0)
+        // The method reference and its class.
+        assertEquals(2, CatalogTool.validateExtensionContract(patcher, extension, keys))
+        val unrelated = assertFailsWith<IllegalArgumentException> { CatalogTool.validateExtensionContract(patcher, patcher, keys) }
+        assertEquals("The extension has no Lapp/hushmessenger/extension/Settings;", unrelated.message)
+        val missing = assertFailsWith<IllegalArgumentException> {
+            CatalogTool.validateExtensionContract(patcher, extensionDex("settingsOpened", "people", "ads"), keys)
+        }
+        assertEquals("The extension has no $logoCall", missing.message)
+        val older = assertFailsWith<IllegalArgumentException> {
+            CatalogTool.validateExtensionContract(patcher, extensionDex("logoLongPressed", "people"), keys)
+        }
+        assertEquals("The extension has no ads control", older.message)
+        val stale = assertFailsWith<IllegalArgumentException> {
+            CatalogTool.validateExtensionContract(patcherDex("invoke-static/range {p1 .. p1}, $logoCall", "people"), extension, keys)
+        }
+        assertEquals("The patcher DEX has no ads control", stale.message)
+        val nothing = assertFailsWith<IllegalArgumentException> {
+            CatalogTool.validateExtensionContract(patcherDex("people", "ads"), extension, keys)
+        }
+        assertEquals("The patcher DEX names no extension code", nothing.message)
+    }
+
+    /** A getter joined on at patch time never sits in the DEX whole, so the check refuses it instead of passing it by. */
+    @Test fun anExtensionReferenceFinishedAtPatchTimeIsRefused() {
+        val keys = setOf("people")
+        val extension = extensionDex("logoLongPressed", "people")
+        for (joined in listOf("invoke-static {}, Lapp/hushmessenger/extension/Settings;->",
+            "sget v0, Lapp/hushmessenger/extension/MaterialYouTheme;-> v1")) {
+            val refused = assertFailsWith<IllegalArgumentException>(joined) {
+                CatalogTool.validateExtensionContract(patcherDex("invoke-static/range {p1 .. p1}, $logoCall", joined, "people"), extension, keys)
+            }
+            assertTrue(refused.message!!.endsWith("at patch time, so it can't be checked"), refused.message)
+        }
+        // A whole member right after the arrow is an ordinary reference.
+        assertEquals(2, CatalogTool.validateExtensionContract(patcherDex("invoke-static/range {p1 .. p1}, $logoCall", "people"), extension, keys))
+    }
+
+    @Test fun everyPatchClassInTheJarIsInThePatcherDex() {
+        val patcher = patcherDex("people")
+        CatalogTool.validatePatcherClasses(listOf("app/hushmessenger/patches/Fixture.class"), patcher)
+        assertFailsWith<IllegalArgumentException> {
+            CatalogTool.validatePatcherClasses(listOf("app/hushmessenger/patches/Fixture.class", "app/hushmessenger/patches/Newer.class"), patcher)
+        }
+        assertFailsWith<IllegalArgumentException> { CatalogTool.validatePatcherClasses(emptyList(), patcher) }
+    }
+
+    /** A run that refuses its bundle, however early, leaves no success receipt from an earlier run behind. */
+    @Test fun aRefusedBundleLeavesNoReceipt(@TempDir temporary: Path) {
+        val receipt = temporary.resolve("catalog-evidence.json").toFile()
+        receipt.writeText("{\"dexValidated\":true}\n")
+        assertFails { CatalogTool.main(arrayOf("check", temporary.resolve("missing.mpp").toString(), temporary.toString(), receipt.path)) }
+        assertFalse(receipt.exists())
     }
 }

@@ -31,9 +31,10 @@ import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.PauseForTests;
 
 /**
- * The two hooks of Clean up Facebook's chat list: with a switch on, the notes tiles go or a
- * promotion banner answers no, and with it off, paused, not ready or failing, Facebook gets what
- * it would have built.
+ * The four hooks of Clean up Facebook's chat list: with a switch on, the notes tiles go, a
+ * promotion banner answers no, the search row's Meta AI button is handed back as none or the search
+ * screen's row is told not to show its button, and with it off, paused, not ready or failing,
+ * Facebook gets what it would have built.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)
@@ -51,6 +52,7 @@ public class ChatListTest {
         PauseForTests.resume();
         Settings.HIDE_CHAT_NOTES_TRAY.resetToDefault();
         Settings.HIDE_CHAT_PROMOTIONS.resetToDefault();
+        Settings.HIDE_CHAT_META_AI_BUTTON.resetToDefault();
         FeedFilterCounters.clear();
         HookStatus.clear();
     }
@@ -172,6 +174,74 @@ public class ChatListTest {
         assertEquals(missing.toString(), 1, missing.size());
         assertTrue(missing.get(0), missing.get(0).contains(
                 "'notes tray tiles' hook (it threw " + IllegalStateException.class.getName() + ")"));
+    }
+
+    @Test
+    public void theMetaAiButtonStaysUntilItsSwitchIsOn() {
+        assertFalse(Settings.HIDE_CHAT_META_AI_BUTTON.get());
+        Object button = new Object();
+        assertSame(button, ChatList.metaAiButton(button));
+        assertEquals(ChatList.META_AI_ROUTE + ": 1 lists, 1 items, 0 removed", counterLine(ChatList.META_AI_ROUTE));
+
+        Settings.HIDE_CHAT_META_AI_BUTTON.save(true);
+        assertNull("the row's own null check leaves it out", ChatList.metaAiButton(button));
+        assertEquals(ChatList.META_AI_ROUTE + ": 2 lists, 2 items, 1 removed. Last reason: " + ChatList.META_AI_HIDDEN
+                + ". Removed: " + ChatList.META_AI_HIDDEN + " 1", counterLine(ChatList.META_AI_ROUTE));
+        // The other switches are their own.
+        assertFalse(ChatList.hidesPromotion());
+        List<String> tiles = ChatListForTests.tiles();
+        assertSame(tiles, ChatList.notesTiles(tiles));
+    }
+
+    @Test
+    public void noButtonIsHandedBackAsNoneAndNotCounted() {
+        Settings.HIDE_CHAT_META_AI_BUTTON.save(true);
+        assertNull(ChatList.metaAiButton(null));
+        assertNull(counterLine(ChatList.META_AI_ROUTE));
+    }
+
+    @Test
+    public void pausedOrNotReadyTheMetaAiButtonIsFacebooks() {
+        Settings.HIDE_CHAT_META_AI_BUTTON.save(true);
+        Object button = new Object();
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertSame(button, ChatList.metaAiButton(button));
+        PauseForTests.resume();
+        Object[] kept = new Object[1];
+        SettingsContextRule.withoutContext(() -> kept[0] = ChatList.metaAiButton(button));
+        assertSame(button, kept[0]);
+        assertNull(ChatList.metaAiButton(button));
+    }
+
+    @Test
+    public void theSearchScreensMetaAiButtonGoesWithTheSameSwitch() {
+        assertTrue("off, the row keeps its button", ChatList.showsSearchMetaAiButton(true));
+        assertEquals(ChatList.META_AI_ROUTE + ": 1 lists, 1 items, 0 removed", counterLine(ChatList.META_AI_ROUTE));
+
+        Settings.HIDE_CHAT_META_AI_BUTTON.save(true);
+        assertFalse("on, the row is built without it", ChatList.showsSearchMetaAiButton(true));
+        assertEquals(ChatList.META_AI_ROUTE + ": 2 lists, 2 items, 1 removed. Last reason: " + ChatList.META_AI_HIDDEN
+                + ". Removed: " + ChatList.META_AI_HIDDEN + " 1", counterLine(ChatList.META_AI_ROUTE));
+    }
+
+    @Test
+    public void aSearchScreenWithNoButtonIsLeftAloneAndNotCounted() {
+        assertFalse(ChatList.showsSearchMetaAiButton(false));
+        Settings.HIDE_CHAT_META_AI_BUTTON.save(true);
+        assertFalse(ChatList.showsSearchMetaAiButton(false));
+        assertNull(counterLine(ChatList.META_AI_ROUTE));
+    }
+
+    @Test
+    public void pausedOrNotReadyTheSearchScreensButtonIsFacebooks() {
+        Settings.HIDE_CHAT_META_AI_BUTTON.save(true);
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertTrue(ChatList.showsSearchMetaAiButton(true));
+        PauseForTests.resume();
+        boolean[] shown = new boolean[1];
+        SettingsContextRule.withoutContext(() -> shown[0] = ChatList.showsSearchMetaAiButton(true));
+        assertTrue(shown[0]);
+        assertFalse(ChatList.showsSearchMetaAiButton(true));
     }
 
     @Test
