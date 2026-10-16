@@ -161,9 +161,6 @@ If Nivqo is useful to you, you can support the author.
 
 <a href="https://buymeacoffee.com/SkillGodAK"><img src="assets/donate-buymeacoffee.svg" alt="Buy Me a Coffee" width="180"></a>
 
-### Bank transfer
-
-<img src="assets/donate-bank.jpg" alt="Bank donation QR code" width="180">
 
 ### WeChat
 
