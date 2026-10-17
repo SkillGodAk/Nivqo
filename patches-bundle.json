@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-10-16T14:16:37",
-  "description": "Nivqo Patches 0.8.0：合併正式 HushFacebook 0.13.0-nivqo.1（88 個補丁）及 HushMessenger 0.24.0-nivqo.1（57 個補丁），共 145 個補丁，保留繁中與跨核心同名辨識。Morphe Manager 1.35.0、Patcher 1.15.1；Messenger 583.0.0.29.95 六個 arm64 build 專用。",
-  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/6330ed28d6f5c2085b264337331a10fb9bd0b557/updates/bundles/nivqo-patches.mpp",
+  "created_at": "2026-10-17T16:58:52",
+  "description": "Nivqo Patches 0.9.0：合併正式 HushFacebook 0.14.0-nivqo.1（91 個 Patch）及 HushMessenger 0.24.0-nivqo.1（57 個 Patch），共 148 個補丁。Manager 維持 1.35.0，Patcher 維持 1.15.1；Messenger 僅支援 583.0.0.29.95 六個 arm64 build，不再支援 582。",
+  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/61bb525b09204b879f79ffbebaf6c927c57d4d93/updates/bundles/nivqo-patches.mpp",
   "signature_download_url": "",
-  "version": "0.8.0"
+  "version": "0.9.0"
 }
