@@ -3003,15 +3003,22 @@ try {
     }
 
     # The sync's version edit is bounded on both sides, because a version can sit in the build
-    # number the index describes. Inside one, as 0.10.1 is in 583.0.0.10.10, either bound stops the
-    # edit; at the end of one, as in 583.0.0.10.1, only the dot before it does; at the start, as in
+    # number the index describes. Inside one, as 0.10.1 is in 586.0.0.10.10, either bound stops the
+    # edit; at the end of one, as in 586.0.0.10.1, only the dot before it does; at the start, as in
     # 0.10.15, only the digit after it. Unbounded, syncing that index to 0.10.2 rewrote the build, the
     # build edit then found nothing to move, and the control would have refused the tree over a
-    # build nobody released.
-    foreach ($describedBuild in @('583.0.0.10.10', '583.0.0.10.1', '0.10.15')) {
+    # build nobody released. The described builds sit three majors past the catalog's, so none is
+    # the catalog's own, and the edit starts from what the index names: between a retarget and its
+    # release the index still names the last release's version and build, not the catalog's.
+    $indexBefore = Get-Content -LiteralPath (Join-Path $factsRoot 'patches-bundle.json') -Raw | ConvertFrom-Json
+    $indexedVersion = [string]$indexBefore.version
+    $indexedBuild = [regex]::Match([string]$indexBefore.description, 'Facebook (\d+(?:\.\d+){4})').Groups[1].Value
+    Assert-True ($indexedVersion -and $indexedBuild) "The index names no version or Facebook build: $($indexBefore.description)"
+    $unreleasedMajor = [int]($newestBuild -split '\.')[0] + 3
+    foreach ($describedBuild in @("$unreleasedMajor.0.0.10.10", "$unreleasedMajor.0.0.10.1", '0.10.15')) {
         Set-FactsFile 'patches-bundle.json' {
-            param($text) ($text -replace ('(?<![\d.])' + [regex]::Escape($catalogVersion) + '(?!\d)'), '0.10.1').Replace(
-                $newestBuild, $describedBuild)
+            param($text) ($text -replace ('(?<![\d.])' + [regex]::Escape($indexedVersion) + '(?!\d)'), '0.10.1').Replace(
+                $indexedBuild, $describedBuild)
         }
         Set-FactsFile 'gradle.properties' { param($text) $text -replace '(?m)^(\s*version\s*=\s*)\S+', '${1}0.10.2' }
         try {
@@ -3019,7 +3026,7 @@ try {
             $syncedDescription = [string](Get-Content -LiteralPath (Join-Path $factsRoot 'patches-bundle.json') -Raw | ConvertFrom-Json).description
             Assert-True ($syncedDescription -match "\bv0\.10\.2\b" -and
                 $syncedDescription -match "Facebook $([regex]::Escape($newestBuild))(?!\d)" -and
-                $syncedDescription -notmatch 'Facebook (?:583|0\.10)\.') `
+                $syncedDescription -notmatch "Facebook (?:$unreleasedMajor|0\.10)\.") `
                 "Syncing an index at 0.10.1 that describes Facebook $describedBuild to 0.10.2 did not move it to the catalog's build: $syncedDescription"
         } finally {
             Reset-FactsFile 'gradle.properties'
@@ -3597,7 +3604,8 @@ try {
         'scripts/test-facebook-sources.ps1' = @('audit-facebook-sources.ps1', 'facebook-sources.ps1', 'gitlab-coverage.ps1',
             'patch-target.ps1', 'scan-gitlab-coverage.ps1', 'test-facebook-sources.ps1')
         'scripts/test-release-text.ps1' = @('release/release.ps1', 'test-release-text.ps1')
-        'scripts/test-phone-smoke.ps1' = @('phone-smoke.ps1', 'test-phone-smoke.ps1')
+        'scripts/test-phone-smoke.ps1' = @('phone-smoke.ps1', 'test-phone-smoke.ps1', 'device-audit.ps1',
+            'device-audit-expectations.json')
     }
     foreach ($suite in @('scripts/test-script-contracts.ps1') + @($verifierRoutes.Keys)) {
         Assert-True (Test-PushGateRunsSuite $prePushScript $suite) "The push gate does not run $suite."
@@ -4266,13 +4274,13 @@ try {
         $applySaved = @{ Fixtures = $env:HUSHFACEBOOK_FIXTURE_DIR; Jar = $env:HUSHFACEBOOK_DESKTOP_JAR }
         try {
             New-Item -ItemType Directory -Path $applyFixtures -Force | Out-Null
-            foreach ($name in @('facebook-582.0.0.50.54-arm64.apkm', 'facebook-582.0.0.50.54-armv7.apkm', 'facebook-580.0.0.51.74.apkm')) {
+            foreach ($name in @('facebook-583.0.0.39.55-arm64.apkm', 'facebook-583.0.0.39.55-armv7.apkm', 'facebook-580.0.0.51.74.apkm')) {
                 Set-Content -LiteralPath (Join-Path $applyFixtures $name) -Value 'fixture' -Encoding ASCII
             }
             Set-Content -LiteralPath $applyJar -Value 'cli' -Encoding ASCII
             Set-Content -LiteralPath $applyFiles[0] -Value 'version = 9.9.9' -Encoding ASCII
             Set-Content -LiteralPath $applyFiles[1] -Encoding UTF8 -Value ('{"patches":[{"name":"A","compatibility":' +
-                '[{"packageName":"com.facebook.katana","targets":[{"version":"582.0.0.50.54"}]}]}]}')
+                '[{"packageName":"com.facebook.katana","targets":[{"version":"583.0.0.39.55"}]}]}]}')
             Set-Content -LiteralPath $applyFiles[2] -Encoding UTF8 -Value @(
                 'param([string]$Apk, [string]$DesktopJar, [string]$WorkDir, [string]$Bundle, [string]$KeepIn)',
                 "Add-Content -LiteralPath '$applyLog' -Value (""apk="" + (Split-Path -Leaf `$Apk) + "" bundle=`$Bundle keep=`$KeepIn"")",
@@ -4301,7 +4309,7 @@ try {
                     $builds[1] -like '* :patches:buildAndroid *') `
                     "A push of $moved did not build the release bundle in the full pass alone: $($builds -join ' | ')"
                 $applied = @(Get-Content -LiteralPath $applyLog -ErrorAction SilentlyContinue | Sort-Object)
-                $declared = @('facebook-582.0.0.50.54-arm64.apkm', 'facebook-582.0.0.50.54-armv7.apkm')
+                $declared = @('facebook-583.0.0.39.55-arm64.apkm', 'facebook-583.0.0.39.55-armv7.apkm')
                 $rightRuns = @(for ($at = 0; $at -lt $applied.Count; $at++) {
                     $run = [regex]::Match($applied[$at], '^apk=(?<apk>\S+) bundle=(?<bundle>.+) keep=(?<keep>.+)$')
                     if ($run.Success -and $at -lt $declared.Count -and $run.Groups['apk'].Value -eq $declared[$at] -and
@@ -7803,8 +7811,8 @@ try {
     Set-Content -LiteralPath (Join-Path $flowRepo 'CHANGELOG.md') -Value '# Changelog' -Encoding ASCII
     Set-Content -LiteralPath (Join-Path $flowRepo '.gitignore') -Value @('build/', 'patches/build/', 'extensions/facebook/build/',
         'release-receipt-*.json') -Encoding ASCII
-    $flowTarget = '"compatiblePackages":{"com.facebook.katana":["582.0.0.50.54"]},' +
-        '"compatibility":[{"packageName":"com.facebook.katana","targets":[{"version":"582.0.0.50.54"}]}]'
+    $flowTarget = '"compatiblePackages":{"com.facebook.katana":["583.0.0.39.55"]},' +
+        '"compatibility":[{"packageName":"com.facebook.katana","targets":[{"version":"583.0.0.39.55"}]}]'
     Set-Content -LiteralPath (Join-Path $flowRepo 'patches-list.json') -Encoding ASCII -Value (
         '{"patches":[{"name":"A",' + $flowTarget + '},{"name":"B",' + $flowTarget + '}]}')
     $logLiteral = $flowLog.Replace("'", "''")
@@ -8009,10 +8017,10 @@ try {
     $flowFixtures = Join-Path $releaseFlow 'fixtures'
     New-Item -ItemType Directory -Force -Path $flowFixtures | Out-Null
     $env:HUSHFACEBOOK_FIXTURE_DIR = $flowFixtures
-    Assert-Throws { & $flowScript -Stage bundle -Version 1.2.3 6> $null 3> $null } '*no fixture of Facebook 582.0.0.50.54*' `
+    Assert-Throws { & $flowScript -Stage bundle -Version 1.2.3 6> $null 3> $null } '*no fixture of Facebook 583.0.0.39.55*' `
         'The bundle stage cut a receipt without a fixture of the declared build.'
     Assert-True (@(Read-FlowLog).Count -eq 1) 'The bundle stage went past a declared build with no fixture.'
-    foreach ($abi in 'arm64-v8a', 'armeabi-v7a') { Set-Content -LiteralPath (Join-Path $flowFixtures "facebook-582.0.0.50.54-$abi.apkm") -Value $abi }
+    foreach ($abi in 'arm64-v8a', 'armeabi-v7a') { Set-Content -LiteralPath (Join-Path $flowFixtures "facebook-583.0.0.39.55-$abi.apkm") -Value $abi }
     Set-Content -LiteralPath (Join-Path $flowFixtures 'facebook-580.0.0.51.74-arm64-v8a.apkm') -Value 'undeclared'
 
     # Bundle builds once, hands the receipt every declared build's fixtures and the gate's kept
@@ -8020,7 +8028,7 @@ try {
     & $flowScript -Stage bundle -Version 1.2.3 6> $null 3> $null
     $flow = @(Read-FlowLog)
     Assert-True ($flow.Count -eq 2 -and $flow[0] -like 'gradle * tasks= :patches:buildAndroid ' -and
-        $flow[1] -like ('receipt fixtures=facebook-582.0.0.50.54-arm64-v8a.apkm,facebook-582.0.0.50.54-armeabi-v7a.apkm ' +
+        $flow[1] -like ('receipt fixtures=facebook-583.0.0.39.55-arm64-v8a.apkm,facebook-583.0.0.39.55-armeabi-v7a.apkm ' +
             'bundle=patches-1.2.3.mpp applied=*/repo/patches/build/fixture-apply')) `
         "The bundle stage did not build and cut the receipt over the declared fixtures: $($flow -join ' | ')"
     $sums = @(Get-Content -LiteralPath (Join-Path $flowAssets 'SHA256SUMS.txt'))
@@ -8238,7 +8246,7 @@ try {
     Assert-True ($flow.Count -eq 4 -and $flow[0] -eq 'gh release view v1.2.3 -R SysAdminDoc/HushFacebook --json publishedAt --jq .publishedAt' -and
         $flow[1] -like 'py * index --version 1.2.3 --created 2026-10-09T21:03:04 --bundle-summary * --readme-summary * --runtime 2 --patch 4' -and
         $flow[2] -like 'gh repo view *' -and
-        $flow[3] -eq 'gh repo edit SysAdminDoc/HushFacebook --description Hushfacebook v1.2.3: 2 patches for Facebook 582.0.0.50.54 with Morphe.') `
+        $flow[3] -eq 'gh repo edit SysAdminDoc/HushFacebook --description Hushfacebook v1.2.3: 2 patches for Facebook 583.0.0.39.55 with Morphe.') `
         "Index did not read the release, write the index and update the description: $($flow -join ' | ')"
     Assert-True (Test-Path -LiteralPath (Join-Path $flowRepo 'release-receipt-1.2.3.json') -PathType Leaf) `
         'Index did not put the receipt back where the facts check reads it.'

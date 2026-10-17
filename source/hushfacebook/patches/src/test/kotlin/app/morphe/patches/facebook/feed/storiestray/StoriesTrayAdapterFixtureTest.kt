@@ -8,12 +8,15 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.hook.EDGE_SWAP_DROPPED
+import app.morphe.patches.facebook.feed.hook.HIDES_EDGE
+import app.morphe.patches.facebook.feed.hook.HIDES_EDGE_HELPER
 import app.morphe.patches.facebook.feed.hook.feedFilterHookPatch
 import app.morphe.patches.facebook.feed.methodsHolding
 import app.morphe.patches.facebook.misc.extension.SETTINGS_STATUS
 import app.morphe.patches.facebook.shared.AddNewEdgeToCollectionFingerprint
 import app.morphe.patches.facebook.shared.FEED_UNIT_EDGE
 import app.morphe.patches.facebook.shared.admittedAsFeedFunnel
+import app.morphe.patches.facebook.shared.outlinedFunnelBody
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -157,10 +160,18 @@ class StoriesTrayAdapterFixtureTest {
             fun calls(method: Method, target: String) = method.implementation!!.instructions.count {
                 (it as? ReferenceInstruction)?.reference?.toString() == target
             }
+            // On 583 the guard goes on the body the funnel hands its edge to.
+            val body = outlinedFunnelBody(funnels.single())
             val feed = context.mutableClassDefBy(funnels.single().definingClass).methods.single {
-                it.name == "addNewEdgeToCollection" && it.parameterTypes == funnels.single().parameterTypes
+                if (body == null) {
+                    it.name == "addNewEdgeToCollection" && it.parameterTypes == funnels.single().parameterTypes
+                } else {
+                    it.name == body.name && it.parameterTypes.map(CharSequence::toString) == body.parameterTypes.map(CharSequence::toString)
+                }
             }
-            assertEquals("${bundle.name}: feed guard count", 1, calls(feed, hideEdge))
+            assertEquals("${bundle.name}: feed guard count", 1, calls(feed, HIDES_EDGE))
+            val helper = context.mutableClassDefBy(FEED_UNIT_EDGE).methods.single { it.name == HIDES_EDGE_HELPER }
+            assertEquals("${bundle.name}: the edge helper asks the extension once", 1, calls(helper, hideEdge))
             val configuration = context.mutableClassDefBy(adapters.configuration.type).methods
             for (adapter in listOf(adapters.classic, adapters.unified, adapters.composer)) {
                 val patched = configuration.single { it.name == adapter.name && it.parameterTypes == adapter.parameterTypes }

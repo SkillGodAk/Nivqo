@@ -50,6 +50,8 @@ public final class TabBarScrollAway {
     static final String TOP_BAR_UNFADED = "Top bar kept from fading";
     /** Counted each time a kept bar's pages are padded past the navigation bar under it. */
     static final String PAGES_CLEARED = "Pages kept clear of the kept tab bar";
+    /** Counted each time a kept top bar lets a move through because Facebook left the bars' surface. */
+    static final String TOP_BAR_LET_GO = "Top bar let go off the feed";
 
     /** The name Facebook's main screen gives the top bar's scroll-away entry. */
     static final String APP_HEADER = "app_header_container";
@@ -58,7 +60,28 @@ public final class TabBarScrollAway {
 
     private static final String FAMILY = FamilyNames.BOTTOM_TAB_BAR;
 
+    /**
+     * Whether the main screen has left the surface the bars belong on. Facebook turns scroll-away
+     * off as it opens the Reels tab or a full-screen page and hides the bars itself, then back on as
+     * it returns to the feed. Between the two, a kept top bar lets Facebook's moves through, so it
+     * goes with the feed instead of sitting over a reel (issue #159).
+     */
+    private static volatile boolean offTheFeed;
+
     private TabBarScrollAway() {
+    }
+
+    /**
+     * The hook at the start of Facebook's deactivate of scroll-away: the main screen is leaving the
+     * bars' surface and is about to hide them. Never throws.
+     */
+    public static void topBarsLetGo() {
+        offTheFeed = true;
+    }
+
+    /** The hook at the start of Facebook's reactivate of scroll-away: the main screen is back on the feed. */
+    public static void topBarsTakenBack() {
+        offTheFeed = false;
     }
 
     /**
@@ -104,7 +127,8 @@ public final class TabBarScrollAway {
      * The hook at the start of each method that moves a scroll-away view, with the entry's name and
      * the distance Facebook is about to move it from where it rests. A kept top bar gets 0, so it
      * stays where it rests; every other entry, and the top bar while the switch is off, keeps
-     * Facebook's distance.
+     * Facebook's distance. So does a kept top bar while the main screen is off the feed, where
+     * Facebook hides the bars itself.
      */
     public static int topBarOffset(@Nullable String entry, int offset) {
         try {
@@ -112,6 +136,10 @@ public final class TabBarScrollAway {
             HookStatus.invoked(FAMILY);
             if (!Utils.settingsReady() || !Settings.KEEP_TOP_BAR.get()) return offset;
             HookStatus.bound(FAMILY, "top bar kept");
+            if (offTheFeed) {
+                HookStatus.counted(FAMILY, TOP_BAR_LET_GO);
+                return offset;
+            }
             HookStatus.counted(FAMILY, TOP_BAR_HELD);
             return 0;
         } catch (Throwable failure) {
@@ -130,7 +158,7 @@ public final class TabBarScrollAway {
         try {
             if (hidden == 0f || !(APP_HEADER.equals(entry) || TITLE_AND_TABS.equals(entry))) return hidden;
             HookStatus.invoked(FAMILY);
-            if (!Utils.settingsReady() || !Settings.KEEP_TOP_BAR.get()) return hidden;
+            if (!Utils.settingsReady() || !Settings.KEEP_TOP_BAR.get() || offTheFeed) return hidden;
             HookStatus.bound(FAMILY, "top bar kept drawn");
             HookStatus.counted(FAMILY, TOP_BAR_UNFADED);
             return 0f;

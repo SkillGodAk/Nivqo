@@ -10,6 +10,8 @@ import app.morphe.PatchContexts
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.misc.extension.SETTINGS_STATUS
+import app.morphe.patches.facebook.misc.extension.parameterRegister
+import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -20,6 +22,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -52,6 +55,12 @@ class ReturnRefreshFixtureTest {
     private fun Method.body(): List<Instruction> = implementation!!.instructions.toList()
 
     private fun Instruction.call(): String? = ((this as? ReferenceInstruction)?.reference)?.toString()
+
+    private fun Instruction.callRegisters(): List<Int> = when (this) {
+        is RegisterRangeInstruction -> (startRegister until startRegister + registerCount).toList()
+        is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
+        else -> emptyList()
+    }
 
     private fun signature(method: Method) =
         method.definingClass + "->" + method.name + method.parameterTypes.joinToString("", "(", ")") + method.returnType
@@ -146,9 +155,8 @@ class ReturnRefreshFixtureTest {
         val executor = executors.single()
         val hotStart = hotStarts.single()
         val fetch = fetches.single()
-        // Throws on a shape the hook can't go into: see tabAutoRefreshCause.
-        val cause = tabAutoRefreshCause(fetch)
-        val causeRegister = (fetch.body()[cause] as OneRegisterInstruction).registerA
+        // Throws on a shape the hook can't go into: see tabAutoRefresh.
+        val autoRefresh = tabAutoRefresh(fetch)
 
         // On accounts with the friendly feed: NewsFeedFragment's onTabEntered, the one onTabEntered
         // marking the tab's badge, reloads the friendly feed with HOT_LOAD once Home was left long
@@ -213,12 +221,15 @@ class ReturnRefreshFixtureTest {
         assertEquals("$name: the rest of the check", before.map { it.opcode },
             after.filterIndexed { index, _ -> index !in answer + 1..answer + 6 }.map { it.opcode })
 
-        // The log hands on its outcome and destination, the two parameters after the context.
+        // The log hands on the two parameters it writes under the outcome and destination keys, on
+        // 583 the two strings after the runnable's exit.
         val logBody = patched(log).body()
         assertEquals("$name: the log's first call", resetToFeed, logBody[0].call())
-        val registers = log.implementation!!.registerCount
-        assertEquals("$name: what the log hands on", listOf(registers - 2, registers - 1),
-            (logBody[0] as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD) })
+        val (outcome, destination) = resetToFeedArguments(log)!!
+        assertEquals("$name: the outcome and destination", listOf("p2", "p3"),
+            listOf(log.parameterRegister(outcome), log.parameterRegister(destination)))
+        assertEquals("$name: what the log hands on", listOf(log.parameterRegisterNumber(outcome), log.parameterRegisterNumber(destination)),
+            logBody[0].callRegisters())
         assertEquals("$name: the rest of the log", log.body().map { it.opcode }, logBody.drop(1).map { it.opcode })
 
         // The teardown asks first and returns without tearing down while the switch is on.
@@ -258,15 +269,19 @@ class ReturnRefreshFixtureTest {
         // The dispatch asks where it loaded the refresh's cause, in that register, and a yes lands
         // right after the refresh, on the data fetch's own callback.
         val fetchBody = patched(fetch).body()
+        val refresh = autoRefresh.refresh
         assertEquals("$name: the dispatch's hook", listOf(Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_NEZ),
-            fetchBody.subList(cause, cause + 3).map { it.opcode })
-        assertEquals("$name: the dispatch's question", holdTabAutoRefresh, fetchBody[cause].call())
-        assertEquals("$name: the dispatch's registers", listOf(causeRegister, causeRegister),
-            listOf(fetchBody[cause + 1], fetchBody[cause + 2]).map { (it as OneRegisterInstruction).registerA })
-        assertTrue("$name: a yes doesn't skip the refresh", cause + 5 in ControlFlow.of(patched(fetch)).normal[cause + 2])
-        assertEquals("$name: the refresh", fetch.body()[cause + 1].call(), fetchBody[cause + 4].call())
+            fetchBody.subList(refresh, refresh + 3).map { it.opcode })
+        assertEquals("$name: the dispatch's question", holdTabAutoRefresh, fetchBody[refresh].call())
+        assertEquals("$name: the dispatch's registers", listOf(autoRefresh.register, autoRefresh.register),
+            listOf(fetchBody[refresh + 1], fetchBody[refresh + 2]).map { (it as OneRegisterInstruction).registerA })
+        val patchedFlow = ControlFlow.of(patched(fetch))
+        assertTrue("$name: a yes goes past the refresh", refresh + 4 in patchedFlow.normal[refresh + 2])
+        assertTrue("$name: every way to the refresh asks first",
+            patchedFlow.instructions.indices.none { it != refresh + 2 && refresh + 3 in patchedFlow.normal[it] })
+        assertEquals("$name: the refresh", fetch.body()[refresh].call(), fetchBody[refresh + 3].call())
         assertEquals("$name: the rest of the dispatch", fetch.body().map { it.opcode },
-            fetchBody.filterIndexed { index, _ -> index !in cause..cause + 2 }.map { it.opcode })
+            fetchBody.filterIndexed { index, _ -> index !in refresh..refresh + 2 }.map { it.opcode })
 
         // The tab entry asks where it loaded HOT_LOAD, with a call that takes no register, answers in
         // that register, and a yes lands right after the reload, on the rest of the tab entry.

@@ -31,10 +31,15 @@ class MessengerCardFixtureTest {
      * Facebook keeps its English strings out of resources.arsc, in assets/strings/default.frsc.xz:
      * xz over a table of id ranges and offsets, where these ids were read. The card loads it. 582
      * ships that file as default.frsc.spo (SuperPack) instead and unpacks it on first launch into
-     * app_strings/uncompressed_default.frsc.xz, the same table, where 582's id was read.
+     * app_strings/uncompressed_default.frsc.xz, the same table, where 582's id was read (0x7f1436ed).
+     * 583 packs it the same way and the bundle holds nothing else with that text, so its id is 582's
+     * moved by the shift between the two builds' tables: the locale packs both ship (which stay
+     * plain FRSC) place the ids around it 867 higher, and the dex agrees, as 583's neighbouring
+     * ids sit the same distance apart as 582's. The test below only passes on the one card class
+     * that loads it, and the unpacked 583 table is the check still owed.
      */
     private val upsellText = mapOf(
-        "582.0.0.50.54" to 0x7f1436ed,
+        "583.0.0.39.55" to 0x7f143a50,
     )
 
     private val packageManager = "Landroid/content/pm/PackageManager;"

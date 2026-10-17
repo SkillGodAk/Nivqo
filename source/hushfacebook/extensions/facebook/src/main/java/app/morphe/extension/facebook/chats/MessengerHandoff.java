@@ -20,31 +20,43 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
 
 /**
  * What the Open Messenger from the top bar patch asks before Facebook rings for a call or posts a
- * chat notification, for the Leave calls and chats to Messenger switch (issues #39 and #100).
+ * chat notification, for the Leave calls and chats to Messenger switch (issues #39, #100 and
+ * #157).
  *
- * <p>Facebook and Messenger both get every call and message for the account pushed to them, so
- * with both installed a call rings twice and a message notifies twice. The patch runs
- * {@link #dropCallPush} first in Facebook's push handlers for VOIP pushes, {@link #dropRing} first
- * in the parser every incoming ring goes through (from FCM, from Facebook's own MQTT connection and
- * from its call signaling), and {@link #dropChat} first where Facebook hands a chat notification to
- * its notifiers. While the switch is on and Meta's Messenger is installed and enabled, the push is
- * dropped, the ring parses to nothing, which Facebook already reads as nothing to ring, and a new
- * message, reaction, message request or missed call isn't posted. Messenger rings and notifies as it
- * always does.
+ * <p>Facebook normally advertises the VOIP bit in the client capabilities of its MQTT connection.
+ * With both apps installed, Meta often sends the call to both, but an account can have its usable
+ * call routed only to Facebook. Dropping that push would then leave neither app ringing. The patch
+ * runs {@link #clientCapabilities} before Facebook builds its MQTT connection so the switch removes
+ * that VOIP claim and leaves server-side call ownership to Messenger. The setting restarts Facebook
+ * when it changes so the connection is rebuilt with the new value.
+ *
+ * <p>The local hooks stay as a fallback for already-routed work: {@link #dropCallPush} runs first in
+ * Facebook's push handlers for VOIP pushes, {@link #dropRing} runs first in the parser every
+ * incoming ring goes through (from FCM, from Facebook's own MQTT connection and from its call
+ * signaling), and {@link #dropChat} runs first where Facebook hands a chat notification to its
+ * notifiers. While the switch is on and Meta's Messenger is installed and enabled, a call push is
+ * dropped, a ring parses to nothing, and a new message, reaction, message request or missed call
+ * isn't posted by Facebook.
  *
  * <p>Messenger is looked up afresh on every question, never kept. A missed call costs far more than
- * a package lookup, and a Messenger uninstalled or disabled a minute ago has to give the ring back
- * to Facebook straight away. Only Meta's own package counts: a copy under another package name, as
- * HushMessenger's install beside Meta's apps makes, may not get Meta's pushes at all, so Facebook
- * keeps ringing beside it. Whether Messenger is signed in can't be seen from here, which the
- * switch's summary says.
+ * a package lookup, and a Messenger uninstalled or disabled a minute ago has to stop the local drop
+ * hooks straight away. Restarting Facebook then restores its server registration. Only Meta's own
+ * package counts: a copy under another package name, as HushMessenger's install beside Meta's apps
+ * makes, may not get Meta's pushes at all, so Facebook keeps ringing beside it. Whether Messenger
+ * is signed in can't be seen from here, which the switch's summary says.
  *
  * <p>It fails open: with the switch off, a pause, settings that aren't ready, no context yet, no
  * Messenger, a disabled one, or any failure in here, Facebook rings and notifies as it always did.
- * The switch is read on every question, and every hook runs in Facebook's main process, so a change
- * applies to the next call without a restart.
+ * The local drop hooks read the switch on every question. The advertised MQTT capability changes on
+ * the next Facebook start.
  */
 public final class MessengerHandoff {
+    /** The VOIP bit, ordinal 1 in Facebook's kept MQTT capability enum. */
+    static final long VOIP_CAPABILITY = 1L << 1;
+
+    /** Counted when Facebook leaves VOIP out of the next MQTT connection. */
+    static final String CALL_REGISTRATION_LEFT = "call registration left to Messenger";
+
     /** Counted under the patch's name when a VOIP push was dropped. */
     static final String CALL_PUSH_DROPPED = "call push left to Messenger";
 
@@ -71,6 +83,22 @@ public final class MessengerHandoff {
             "com.facebook.messaging.tincan.tincanoverwamsys.backgroundsync.generic.notify.MessengerGenericTincanMessage")));
 
     private MessengerHandoff() {
+    }
+
+    /**
+     * Injection point for the client capabilities passed to Facebook's MQTT connection. Removes
+     * only VOIP while Messenger owns calls. A value that never claimed VOIP is returned untouched,
+     * and any failure leaves Facebook's stock capabilities in place.
+     */
+    public static long clientCapabilities(long capabilities) {
+        try {
+            HookStatus.invoked(FamilyNames.MESSENGER_ICON);
+            if ((capabilities & VOIP_CAPABILITY) == 0L) return capabilities;
+            return handOff(CALL_REGISTRATION_LEFT) ? capabilities & ~VOIP_CAPABILITY : capabilities;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.MESSENGER_ICON, "Messenger call registration", failure);
+            return capabilities;
+        }
     }
 
     /**

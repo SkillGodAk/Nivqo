@@ -54,6 +54,7 @@ public class TabBarScrollAwayTest {
         Settings.KEEP_TAB_BAR.resetToDefault();
         Settings.KEEP_TOP_BAR.resetToDefault();
         Settings.BOTTOM_TAB_BAR.resetToDefault();
+        TabBarScrollAway.topBarsTakenBack();
         HookStatus.clear();
     }
 
@@ -168,6 +169,38 @@ public class TabBarScrollAwayTest {
         assertEquals("an entry with no name was kept from fading", 0.5f, TabBarScrollAway.topBarFade(null, 0.5f), 0f);
         String line = statusLine();
         assertTrue(line, line != null && line.contains("Counted: " + TabBarScrollAway.TOP_BAR_UNFADED + " 2"));
+    }
+
+    @Test
+    public void aKeptTopBarGoesWithFacebooksOwnHideOffTheFeedAndComesBackWithIt() {
+        Settings.KEEP_TOP_BAR.save(true);
+        assertEquals("on the feed, the top bar slid away", 0, TabBarScrollAway.topBarOffset(TabBarScrollAway.APP_HEADER, -120));
+
+        // The main screen opens the Reels tab: Facebook turns scroll-away off and hides the bars itself.
+        TabBarScrollAway.topBarsLetGo();
+        assertEquals("the top bar was held over a reel", -120, TabBarScrollAway.topBarOffset(TabBarScrollAway.APP_HEADER, -120));
+        assertEquals("the tabs in the top bar were held over a reel", -80,
+                TabBarScrollAway.topBarOffset(TabBarScrollAway.TITLE_AND_TABS, -80));
+        assertEquals("the top bar was kept from fading over a reel", 1f,
+                TabBarScrollAway.topBarFade(TabBarScrollAway.APP_HEADER, 1f), 0f);
+        assertEquals("the bottom bar's entry was held", 96, TabBarScrollAway.topBarOffset("bottom_tabs_container", 96));
+
+        // Back on the feed: Facebook turns scroll-away on again and shows the bars, then the feed's scrolls hold it.
+        TabBarScrollAway.topBarsTakenBack();
+        assertEquals("back on the feed, the top bar slid away", 0, TabBarScrollAway.topBarOffset(TabBarScrollAway.APP_HEADER, -120));
+        assertEquals("back on the feed, the top bar faded", 0f, TabBarScrollAway.topBarFade(TabBarScrollAway.APP_HEADER, 0.5f), 0f);
+        String line = statusLine();
+        assertTrue(line, line != null && line.contains(TabBarScrollAway.TOP_BAR_LET_GO + " 2"));
+        assertTrue(line, line.contains(TabBarScrollAway.TOP_BAR_HELD + " 2"));
+        assertTrue(line, line.contains(TabBarScrollAway.TOP_BAR_UNFADED + " 1"));
+    }
+
+    @Test
+    public void offTheFeedWithTheSwitchOffNothingIsCounted() {
+        TabBarScrollAway.topBarsLetGo();
+        assertEquals(-120, TabBarScrollAway.topBarOffset(TabBarScrollAway.APP_HEADER, -120));
+        String line = statusLine();
+        assertFalse("a move left to Facebook was counted: " + line, line != null && line.contains("Counted"));
     }
 
     @Test

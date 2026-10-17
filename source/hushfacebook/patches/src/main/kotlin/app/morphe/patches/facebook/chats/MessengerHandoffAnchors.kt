@@ -9,6 +9,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -70,6 +71,13 @@ internal const val RING_PAYLOAD = "getBinaryPayloadFromPushNotif$"
 /** The kept class that hands chat notifications to Facebook's notifiers. */
 internal const val MESSAGES_NOTIFICATION_MANAGER = "Lcom/facebook/messaging/notify/client/MessagesNotificationManager;"
 
+/** The kept MQTT delegate that builds Facebook's native connection configuration. */
+internal const val MQTT_XPLAT_SERVICE_DELEGATE =
+    "Lcom/facebook/push/mqtt/service/xplat/MqttXplatServiceDelegate;"
+
+/** The kept connection value whose first long is client capabilities and second is endpoint capabilities. */
+internal const val MQTT_CONNECTION_CONFIG = "Lcom/facebook/mqtt/service/ConnectionConfig;"
+
 /** The kept base class of every chat notification. */
 internal const val MESSAGING_NOTIFICATION = "Lcom/facebook/messaging/notify/type/MessagingNotification;"
 
@@ -83,6 +91,11 @@ internal const val PUSH_INFRA = "Lcom/facebook/pushlite/model/PushInfraMetaData;
 
 private const val STRING_TYPE = "Ljava/lang/String;"
 private const val LONG_OBJECT = "Ljava/lang/Long;"
+
+private val CONNECTION_CONFIG_PREFIX = listOf(
+    STRING_TYPE, STRING_TYPE, STRING_TYPE, "I", STRING_TYPE, STRING_TYPE,
+    STRING_TYPE, STRING_TYPE, STRING_TYPE, "I", "J", "J",
+)
 
 /** The most instructions a claim of one type takes: read the constant, ask it, answer, with room to spare. */
 internal const val CLAIM_SIZE = 8
@@ -187,3 +200,38 @@ internal fun isChatDispatch(method: Method): Boolean =
     method.implementation != null && AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
         method.parameters() == listOf(PUSH_SESSION, MESSAGES_NOTIFICATION_MANAGER, MESSAGING_NOTIFICATION) &&
         method.code().any(::isNotifierCall)
+
+/** The MQTT method and constructor argument that carry Facebook's advertised client capabilities. */
+internal data class MqttCapabilitiesTarget(
+    val method: Method,
+    val constructionIndex: Int,
+    val capabilitiesRegister: Int,
+)
+
+/**
+ * Finds the one ConnectionConfig construction in the kept MQTT delegate. Its constructor is a
+ * Kotlin data-class constructor: after the receiver and ten one-register parameters, its first
+ * long is the named `capabilities` field and its second long is `endpointCapabilities`.
+ */
+internal fun mqttCapabilitiesTarget(delegate: ClassDef): MqttCapabilitiesTarget? {
+    val providers = delegate.methods.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == MQTT_CONNECTION_CONFIG &&
+            method.parameters() == listOf("Z") && method.implementation != null
+    }
+    val provider = providers.singleOrNull() ?: return null
+    val constructions = provider.code().mapIndexedNotNull { index, instruction ->
+        val call = instruction.method() ?: return@mapIndexedNotNull null
+        val range = instruction as? RegisterRangeInstruction ?: return@mapIndexedNotNull null
+        if (instruction.opcode != Opcode.INVOKE_DIRECT_RANGE || call.definingClass != MQTT_CONNECTION_CONFIG ||
+            call.name != "<init>" || call.returnType != "V" ||
+            call.parameterTypes.map(Any::toString).take(CONNECTION_CONFIG_PREFIX.size) != CONNECTION_CONFIG_PREFIX
+        ) {
+            return@mapIndexedNotNull null
+        }
+        // Argument 0 is the receiver. The first ten constructor parameters each take one register.
+        val capabilities = range.startRegister + 11
+        if (capabilities + 1 >= range.startRegister + range.registerCount) return@mapIndexedNotNull null
+        MqttCapabilitiesTarget(provider, index, capabilities)
+    }
+    return constructions.singleOrNull()
+}

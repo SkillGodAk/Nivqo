@@ -65,12 +65,13 @@ public class SectionJumpTest {
         assertEquals(SettingsNavigation.QUICK_SETUPS, ((Preference) list.getItemAtPosition(1)).getKey());
         assertEquals("Browse settings", ((Preference) list.getItemAtPosition(2)).getTitle());
         List<String> titles = new ArrayList<>();
-        // The sections run from under the heading to More settings. Report a problem and Support
-        // Hushfacebook come last.
-        for (int i = 3; i < list.getCount() - 3; i++) titles.add(((Preference) list.getItemAtPosition(i)).getTitle().toString());
-        Preference more = (Preference) list.getItemAtPosition(list.getCount() - 3);
+        // The sections run from under the heading to More settings. Report a problem, Restart
+        // Facebook and Support Hushfacebook come last.
+        for (int i = 3; i < list.getCount() - 4; i++) titles.add(((Preference) list.getItemAtPosition(i)).getTitle().toString());
+        Preference more = (Preference) list.getItemAtPosition(list.getCount() - 4);
         assertEquals("More settings", more.getTitle());
-        assertEquals(SettingsNavigation.REPORT, ((Preference) list.getItemAtPosition(list.getCount() - 2)).getKey());
+        assertEquals(SettingsNavigation.REPORT, ((Preference) list.getItemAtPosition(list.getCount() - 3)).getKey());
+        assertEquals(SettingsNavigation.RESTART_NOW, ((Preference) list.getItemAtPosition(list.getCount() - 2)).getKey());
         assertEquals(HushfacebookPages.SUPPORT, ((Preference) list.getItemAtPosition(list.getCount() - 1)).getKey());
         assertTrue(more.getOnPreferenceClickListener().onPreferenceClick(more));
         for (int i = 0; i < list.getCount(); i++) titles.add(((Preference) list.getItemAtPosition(i)).getTitle().toString());

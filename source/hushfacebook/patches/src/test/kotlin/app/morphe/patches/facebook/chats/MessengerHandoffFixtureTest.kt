@@ -15,8 +15,10 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -33,13 +35,23 @@ import org.junit.Test
  */
 internal object HandoffFixture {
     fun classes(bundle: File): List<ClassDef> {
-        val kept = FixtureDex.classes(bundle, setOf(NOTIFICATION_TYPE, MESSAGES_NOTIFICATION_MANAGER))
+        val kept = FixtureDex.classes(bundle, setOf(
+            NOTIFICATION_TYPE,
+            MESSAGES_NOTIFICATION_MANAGER,
+            MQTT_XPLAT_SERVICE_DELEGATE,
+            MQTT_CONNECTION_CONFIG,
+        ))
         val notificationType = kept[NOTIFICATION_TYPE] ?: throw AssertionError("${bundle.name} has no $NOTIFICATION_TYPE")
         val voip = voipConstant(notificationType) ?: throw AssertionError("${bundle.name}: $NOTIFICATION_TYPE stores no $VOIP")
         val found = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
-                if (isRingParser(classDef) || claimsVoip(classDef, voip)) found += ImmutableClassDef.of(classDef)
+                val capabilityEnum = listOf(VOIP, "ENDPOINT_IS_FACEBOOK", "RTC_DROP_IN_CAPABLE").all { wanted ->
+                    classDef.methods.any { holdsString(it, wanted) }
+                }
+                if (isRingParser(classDef) || claimsVoip(classDef, voip) || capabilityEnum) {
+                    found += ImmutableClassDef.of(classDef)
+                }
             }
         }
         return (kept.values + found).distinctBy { it.type }
@@ -99,6 +111,52 @@ class MessengerHandoffFixtureTest {
                 val classes = HandoffFixture.classes(bundle)
                 val voip = voipConstant(classes.single { it.type == NOTIFICATION_TYPE })
                 assertNotNull("$name: NotificationType's VOIP constant", voip)
+
+                // Facebook's kept MQTT provider passes stock client capabilities as the first long
+                // of ConnectionConfig. Its source is 0x17 or 0x217, both of which claim the VOIP
+                // bit at ordinal 1 in the build's capability enum.
+                val mqtt = mqttCapabilitiesTarget(classes.single { it.type == MQTT_XPLAT_SERVICE_DELEGATE })
+                assertNotNull("$name: MQTT client capabilities", mqtt)
+                val mqttCode = mqtt!!.method.implementation!!.instructions.toList()
+                val handoffMove = mqttCode.take(mqtt.constructionIndex).mapIndexedNotNull { index, instruction ->
+                    val move = instruction as? TwoRegisterInstruction ?: return@mapIndexedNotNull null
+                    if (move.registerA == mqtt.capabilitiesRegister && instruction.opcode in setOf(
+                            Opcode.MOVE_WIDE, Opcode.MOVE_WIDE_FROM16, Opcode.MOVE_WIDE_16,
+                        )
+                    ) index to move.registerB else null
+                }.lastOrNull()
+                assertNotNull("$name: client capabilities aren't moved into ConnectionConfig", handoffMove)
+                val widened = mqttCode.take(handoffMove!!.first).mapIndexedNotNull { index, instruction ->
+                    val conversion = instruction as? TwoRegisterInstruction ?: return@mapIndexedNotNull null
+                    if (instruction.opcode == Opcode.INT_TO_LONG && conversion.registerA == handoffMove.second) {
+                        index to conversion.registerB
+                    } else null
+                }.lastOrNull()
+                assertNotNull("$name: client capabilities aren't widened from their bit mask", widened)
+                val stockMasks = mqttCode.take(widened!!.first).mapNotNull { instruction ->
+                    val register = (instruction as? OneRegisterInstruction)?.registerA
+                    val literal = instruction as? NarrowLiteralInstruction
+                    if (register == widened.second) literal?.narrowLiteral else null
+                }.toSet()
+                assertTrue("$name: stock MQTT client masks $stockMasks don't claim VOIP",
+                    0x17 in stockMasks && 0x217 in stockMasks &&
+                        (0x17 and MessengerHandoffCapability.VOIP) != 0 &&
+                        (0x217 and MessengerHandoffCapability.VOIP) != 0)
+                val capabilityEnums = classes.filter { classDef ->
+                    listOf(VOIP, "ENDPOINT_IS_FACEBOOK", "RTC_DROP_IN_CAPABLE").all { wanted ->
+                        classDef.methods.any { holdsString(it, wanted) }
+                    }
+                }
+                assertEquals("$name: MQTT capability enums", 1, capabilityEnums.size)
+                val enumCode = capabilityEnums.single().methods.single { it.name == "<clinit>" }
+                    .implementation!!.instructions.toList()
+                val voipName = enumCode.indexOfFirst { instruction ->
+                    (instruction as? ReferenceInstruction)?.reference.let { it as? StringReference }?.string == VOIP
+                }
+                val voipOrdinal = enumCode.drop(voipName + 1).takeWhile { instruction ->
+                    ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string == null
+                }.filterIsInstance<NarrowLiteralInstruction>().firstOrNull()?.narrowLiteral
+                assertEquals("$name: VOIP capability ordinal", MessengerHandoffCapability.VOIP_ORDINAL, voipOrdinal)
 
                 // Calls: two handlers claim VOIP alone, each with one handle method, one parsing a
                 // ring and one handing the push to the RTC plugins, and both are push handlers of
@@ -186,4 +244,10 @@ class MessengerHandoffFixtureTest {
         }
         assertEquals("a declared build has no fixture", versions, checked)
     }
+}
+
+/** Values shared with the runtime hook, repeated here so a fixture change fails before packaging. */
+private object MessengerHandoffCapability {
+    const val VOIP_ORDINAL = 1
+    const val VOIP = 1 shl VOIP_ORDINAL
 }

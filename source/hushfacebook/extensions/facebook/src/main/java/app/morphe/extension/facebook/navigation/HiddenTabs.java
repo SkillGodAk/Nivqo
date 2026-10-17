@@ -141,9 +141,14 @@ public final class HiddenTabs {
         }
     }
 
-    /** Whether Marketplace only, which keeps Marketplace on the bar, wins over [tab]'s switch. */
+    /**
+     * Whether Marketplace only or Events only, which keep Marketplace or Events on the bar, wins
+     * over [tab]'s switch.
+     */
     private static boolean marketplaceOnlyKeeps(Tab tab) {
-        return tab == Tab.MARKETPLACE && MarketplaceOnly.on();
+        if (tab != Tab.MARKETPLACE && tab != Tab.EVENTS) return false;
+        StartTab kept = MarketplaceOnly.keptTab();
+        return kept != null && kept.tabClasses.equals(tab.classes);
     }
 
     /**

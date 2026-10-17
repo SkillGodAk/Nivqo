@@ -27,6 +27,8 @@ import com.android.tools.smali.dexlib2.iface.Method
 internal const val HIDE_SECTION = "$EXTENSION_PACKAGE/menu/MenuSections;->hideSection(Ljava/lang/Object;)Z"
 internal const val HIDE_SERVER_SECTION = "$EXTENSION_PACKAGE/menu/MenuSections;->hideServerSection(Ljava/lang/Object;)Z"
 internal const val MUSE_DISMISSED = "$EXTENSION_PACKAGE/menu/MuseCard;->dismissed(ZLjava/lang/Object;)Z"
+internal const val SHORTCUTS_KEPT = "$EXTENSION_PACKAGE/menu/MenuShortcuts;->kept(Ljava/util/List;)Ljava/util/List;"
+internal const val LIST_COPY_OF = "$IMMUTABLE_LIST->copyOf(Ljava/util/Collection;)$IMMUTABLE_LIST"
 
 /**
  * Both sections of a Menu group ask the extension about the group as soon as they know it, and
@@ -36,13 +38,17 @@ internal const val MUSE_DISMISSED = "$EXTENSION_PACKAGE/menu/MuseCard;->dismisse
  * The Muse card is a bookmark, not a group: right after its component reads whether the card was
  * dismissed, the answer and the bookmark go to the extension, which can answer yes instead. See
  * MuseCardAnchors.kt.
+ *
+ * The Meta AI shortcut is a bookmark too, one of the Menu's shortcut rows: right after their
+ * section reads its list of bookmarks, the list goes through the extension, which can leave Meta
+ * AI's out, and back into an ImmutableList. See MenuShortcutAnchors.kt.
  */
 @Suppress("unused")
 val hideMenuPromotionsPatch = bytecodePatch(
     name = "Hide Menu promotions",
     description = "Hides the Upgrades and Also from Meta sections and the Muse card in Facebook's Menu, so the " +
         "Menu has fewer ads for Meta's products. Settings, Help and your shortcuts stay. On by default. Turn it " +
-        "off in Hushfacebook settings > Menu.",
+        "off in Hushfacebook settings > Menu. A switch there, off by default, also hides the Meta AI shortcut.",
     default = true,
 ) {
     category("Interface")
@@ -79,6 +85,12 @@ val hideMenuPromotionsPatch = bytecodePatch(
                 "\"$NT_DISMISSED_UPDATE\" and compare its answer at once",
         )
         component.findMutableMethodOf(render).askAboutDismissal(dismissal)
+
+        val folder = single(FOLDER_SECTION, "Menu bookmarks folder section", ::isFolderSectionChildren)
+        val listRead = bookmarkListRead(folder) ?: throw PatchException(
+            "$PATCH: ${folder.definingClass}->${folder.name} doesn't read one bookmark list of its own class",
+        )
+        mutableClassDefBy(folder.definingClass).findMutableMethodOf(folder).passBookmarksThroughShortcuts(listRead)
         enableStatus("menuPromotions")
     }
 }
@@ -118,6 +130,27 @@ internal fun MutableMethod.buildNothingWhenHidden(read: GroupRead, list: Childre
             invoke-direct/range { v$answer .. v$answer }, ${list.builder}-><init>()V
             iget-object v$answer, v$answer, ${list.children}
             return-object v$answer
+        """.trimIndent(),
+        ExternalLabel("facebook", getInstruction(index)),
+    )
+}
+
+/**
+ * Right after the folder section reads its bookmarks, a list that's there goes through
+ * [SHORTCUTS_KEPT], which never answers null for one, and back through ImmutableList.copyOf into
+ * the same register. `copyOf` hands an ImmutableList back as it is, so a list the extension left
+ * alone is Facebook's own. A missing list goes on to the section's own null check untouched.
+ */
+internal fun MutableMethod.passBookmarksThroughShortcuts(read: BookmarkListRead) {
+    val index = read.index + 1
+    addInstructionsWithLabels(
+        index,
+        """
+            if-eqz v${read.register}, :facebook
+            invoke-static/range { v${read.register} .. v${read.register} }, $SHORTCUTS_KEPT
+            move-result-object v${read.register}
+            invoke-static/range { v${read.register} .. v${read.register} }, $LIST_COPY_OF
+            move-result-object v${read.register}
         """.trimIndent(),
         ExternalLabel("facebook", getInstruction(index)),
     )

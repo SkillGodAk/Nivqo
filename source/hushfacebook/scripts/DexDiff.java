@@ -84,9 +84,9 @@ import java.util.TreeSet;
  * wide off-by-one), a register the body wrote at the wrong width (a narrow const left where a
  * const-wide was, which the AMOLED sweep did on 580), a move-result cut off from its invoke, and a
  * try range or handler off an instruction boundary. A contract file adds
- * rules about the whole APK: the feed filter's guard has exactly one call site, in
- * addNewEdgeToCollection, because two guards stacked on that method is what broke Froggo's
- * builds; and each extension stub a patch fills in with one of Facebook's renamed accessors calls
+ * rules about the whole APK: the feed filter's guard is called once, first thing, in the one
+ * method doing the funnel's work (addNewEdgeToCollection, or the body 583's wrapper hands its edge
+ * to), because two guards stacked on that method is what broke Froggo's builds; and each extension stub a patch fills in with one of Facebook's renamed accessors calls
  * it before it returns, so a patch that stopped filling one fails here instead of shipping a stub
  * that answers its marker forever; and each of the two Stories tray adapter classes and Home's
  * composer row gets one
@@ -1498,6 +1498,15 @@ public class DexDiff {
             List<String> findings) throws Exception {
         String rule = "contract " + contract.rule();
         String held = describePicked(contract);
+        // A signature defined in more than one dex entry is one method, and the copy calling the
+        // rule's method is the patched one the other checks read, so it stands for the rest.
+        Map<String, Holder> bySignature = new LinkedHashMap<>();
+        for (Holder holder : holders) {
+            Holder seen = bySignature.get(holder.method);
+            if (seen == null || (callSites(instructions(seen.m), contract.callee).isEmpty()
+                    && !callSites(instructions(holder.m), contract.callee).isEmpty())) bySignature.put(holder.method, holder);
+        }
+        holders = new ArrayList<>(bySignature.values());
         List<String> shaped = new ArrayList<>();
         Holder only = null;
         for (Holder holder : holders) {

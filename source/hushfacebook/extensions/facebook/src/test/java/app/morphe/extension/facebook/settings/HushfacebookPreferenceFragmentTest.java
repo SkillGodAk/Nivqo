@@ -289,7 +289,7 @@ public class HushfacebookPreferenceFragmentTest {
 
     /**
      * The AI character switch sits right below the Meta AI cards' row, in the same family, and says
-     * it starts off.
+     * it is off by default.
      */
     @Test
     public void theAiCharacterRowSitsRightBelowTheMetaAiCardsRow() {
@@ -302,7 +302,7 @@ public class HushfacebookPreferenceFragmentTest {
             assertEquals("the AI character row isn't right below the Meta AI cards row", cards + 1, characters);
             assertEquals("Hide AI character posts", String.valueOf(rows.get(characters).getTitle()));
             assertTrue(String.valueOf(rows.get(characters).getSummary()), String.valueOf(rows.get(characters)
-                    .getSummary()).contains("so it starts off"));
+                    .getSummary()).contains("Off by default"));
         }
     }
 
@@ -337,13 +337,13 @@ public class HushfacebookPreferenceFragmentTest {
 
     /**
      * A version is a value set into a sentence, so both rows that show one isolate it: in a
-     * right-to-left sentence "582.0.0.50.54" then keeps the order it was written in.
+     * right-to-left sentence "583.0.0.39.55" then keeps the order it was written in.
      */
     @Test
     public void theVersionRowsIsolateTheVersions() {
         android.content.Context context = RuntimeEnvironment.getApplication();
         org.robolectric.Shadows.shadowOf(context.getPackageManager())
-                .getInternalMutablePackageInfo(context.getPackageName()).versionName = "582.0.0.50.54";
+                .getInternalMutablePackageInfo(context.getPackageName()).versionName = "583.0.0.39.55";
         String facebook = app.morphe.extension.shared.Utils.getAppVersionName();
         assertTrue("no Facebook version to look for", facebook != null && !facebook.isEmpty());
 
@@ -1030,7 +1030,7 @@ public class HushfacebookPreferenceFragmentTest {
             List<String> values = new ArrayList<>();
             for (CharSequence value : start.getEntryValues()) values.add(String.valueOf(value));
             List<String> names = new ArrayList<>();
-            for (StartTab each : StartTab.values()) names.add(each.name());
+            for (StartTab each : StartTab.choices()) names.add(each.name());
             assertEquals(names, values);
 
             assertEquals("MARKETPLACE", start.getValue());

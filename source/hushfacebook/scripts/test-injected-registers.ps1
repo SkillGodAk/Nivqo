@@ -34,7 +34,7 @@
     holding part of what its rule picks by (onPause, another method naming both surfaces, a method
     holding the emoji provider's log tag alone, an instance method holding the emoji pictures' base
     address, a method of the tap's shape holding one entry point, a method of another shape holding
-    "long_press", a static method holding the like's trace, a static method holding "translationY",
+    "peek_state_requested", a static method holding the like's trace, a static method holding "translationY",
     an instance method holding the toast's selector name, another method of the jewel count's
     shape), and one rule is given two methods to choose from; all eleven fail naming the method the
     rule picks. The Stories tray's count call is left out of one tray class, made twice in the
@@ -620,9 +620,15 @@ try {
         'classes.dex' = (Get-Dex 'good') })) -Allowlist $emptyAllowlist -Name 'good' -Contracts $contracts
     Assert-True ($good.ExitCode -eq 0) "The patched build that breaks nothing failed.`n$($good.Output -join "`n")"
     Assert-True ((Get-Findings $good).Fails.Count -eq 0) "The good build printed a FAIL line.`n$($good.Output -join "`n")"
+    foreach ($where in @('first', 'once')) {
+        Assert-True (($good.Output -join "`n") -match [regex]::Escape(
+            'GraphQLFeedUnitEdge;->hushfacebookHidesEdge(Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;)Z ' +
+            "holding eof_edge_added_to_ui FeedEdgeAddedToUi: $where in Lfixture/Feed;->addNewEdgeToCollection(")) `
+            "The good build's guard was not reported $where in the funnel.`n$($good.Output -join "`n")"
+    }
     Assert-True (($good.Output -join "`n") -match [regex]::Escape(
-        'FeedFilter;->hideEdge(Ljava/lang/Object;Ljava/lang/Object;)Z: 1 call site, in Lfixture/Feed;->addNewEdgeToCollection(')) `
-        "The good build's guard was not reported at its one call site.`n$($good.Output -join "`n")"
+        'FeedFilter;->hideEdge(Ljava/lang/Object;Ljava/lang/Object;)Z: 1 call site, in Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;->hushfacebookHidesEdge(')) `
+        "The good build's edge helper was not reported at its one call site.`n$($good.Output -join "`n")"
     Assert-True (($good.Output -join "`n") -match 'structural findings: 0') `
         "The good build did not report its structural count.`n$($good.Output -join "`n")"
     # The badge writer's count handed over as a range from v17 is a changed method the good build
@@ -672,7 +678,7 @@ try {
         "The good build's Messenger icon hook was not first in the icon's tap.`n$($good.Output -join "`n")"
     Assert-True (($good.Output -join "`n") -match [regex]::Escape(
         ('MessengerIcon;->open(Landroid/content/Context;Z)Z in static (Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;' +
-            'Ljava/lang/String;ZZ)V holding long_press: first in Lfixture/MessengerBar;->button('))) `
+            'Ljava/lang/String;Ljava/lang/String;ZZ)V holding peek_state_requested: first in Lfixture/MessengerBar;->button('))) `
         "The good build's Messenger icon hook was not first in the Messenger button handler.`n$($good.Output -join "`n")"
     Assert-True (($good.Output -join "`n") -match [regex]::Escape(
         ('TypingIndicator;->chatTyping(Z)Z holding setTypingIndicatorForThreadWithThreadIdentifier: ' +
@@ -765,11 +771,13 @@ try {
     Assert-True (($good.Output -join "`n") -match [regex]::Escape(
         "contract $watchRule`: in place of it on v2, v1 in $watchFlush")) `
         "The good build's watch-history hook was not reported in place of the executor call.`n$($good.Output -join "`n")"
-    # The feed guard asks the extension once in the runnable that swaps an edge into the feed, Hide
-    # read receipts once in Mailbox's mark-read, and the tab links patch once in each of the three
-    # places Facebook looks a link's tab up in its configured tabs. The contract file's once-call
-    # rules are those five, so a rule this suite builds no bad fixtures for can't pass on a count
-    # nobody checks.
+    # The feed guard calls its edge helper once in the funnel and asks the extension once in the
+    # runnable that swaps an edge into the feed, Hide read receipts asks once in Mailbox's mark-read,
+    # and the tab links patch once in each of the three places Facebook looks a link's tab up in its
+    # configured tabs. The contract file's once-call rules are those six, so a rule this suite builds
+    # no bad fixtures for can't pass on a count nobody checks.
+    $edgeRule = 'once-call Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;->hushfacebookHidesEdge(' +
+        'Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;)Z holding eof_edge_added_to_ui FeedEdgeAddedToUi'
     $swapHook = 'Lapp/morphe/extension/facebook/feed/FeedFilter;->hideSwappedEdge(Ljava/lang/Object;Ljava/lang/Object;)Z'
     $swapRun = 'Lfixture/EdgeSwap;->run()V'
     $swapHeld = '"sizeBefore" and "sizeAfter" with the shape instance ()V'
@@ -793,9 +801,9 @@ try {
     }
     $onceCallRules = @(Get-Content -LiteralPath $contracts | Where-Object { $_ -match '^\s*once-call\s' } |
         ForEach-Object { ($_.Trim() -split '\s+') -join ' ' })
-    $expectedOnceCalls = @($swapRule, $readRule) + @($tabLinkRules.Keys)
+    $expectedOnceCalls = @($edgeRule, $swapRule, $readRule) + @($tabLinkRules.Keys)
     Assert-True (($onceCallRules -join "`n") -ceq ($expectedOnceCalls -join "`n")) `
-        "The contract file's once-call rules are not the swap guard, read receipts and tab links this suite builds bad fixtures for:`n$($onceCallRules -join "`n")"
+        "The contract file's once-call rules are not the edge helper, swap guard, read receipts and tab links this suite builds bad fixtures for:`n$($onceCallRules -join "`n")"
     Assert-True (($good.Output -join "`n") -match [regex]::Escape("contract $swapRule`: once in $swapRun")) `
         "The good build's swap guard was not reported once in the swap runnable.`n$($good.Output -join "`n")"
     Assert-True (($good.Output -join "`n") -match [regex]::Escape("contract $readRule`: once in $readSite")) `
@@ -877,6 +885,7 @@ try {
         'bad-double-guard' = 'contract'
         'bad-guard-elsewhere' = 'contract'
         'bad-no-guard' = 'contract'
+        'bad-edge-helper-unasked' = 'contract'
         'bad-stub-not-filled' = 'contract'
         'bad-self-label-stub-not-filled' = 'contract'
         'bad-stub-other-class' = 'contract'
@@ -1132,10 +1141,10 @@ try {
             'static (Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;*)V; the host methods that call it: ' +
             '*Lfixture/MessengerBar;->tapEntry(Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;Z)V*'))
         'bad-messenger-button-hook-wrong-method' = @(('*contract: Lapp/morphe/extension/facebook/chats/MessengerIcon;->open(Landroid/content/Context;Z)Z ' +
-            'is not called in Lfixture/MessengerBar;->button(Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;ZZ)V, ' +
-            'the one method holding "long_press" with the shape static (Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;' +
-            'Ljava/lang/String;ZZ)V; the host methods that call it: ' +
-            '*Lfixture/MessengerBar;->buttonLog(Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;Z)V*'))
+            'is not called in Lfixture/MessengerBar;->button(Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;Ljava/lang/String;ZZ)V, ' +
+            'the one method holding "peek_state_requested" with the shape static (Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;' +
+            'Ljava/lang/String;Ljava/lang/String;ZZ)V; the host methods that call it: ' +
+            '*Lfixture/MessengerBar;->buttonLog(Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;Ljava/lang/String;Z)V*'))
         'bad-double-tap-like-hook-wrong-method' = @(('*contract: Lapp/morphe/extension/facebook/reels/DoubleTapLike;->holdBackLike(Ljava/lang/String;)Z ' +
             'is not called in Lfixture/ReelLikeHelper;->like(Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/Object;Ljava/lang/String;)V, ' +
             'the one method holding "FbShortsMutationUtil.mutateViewerLikeReaction" with the shape instance ' +

@@ -16,6 +16,8 @@ import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
+import app.morphe.patches.facebook.misc.extension.parameterRegister
+import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -31,6 +33,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -153,8 +156,8 @@ val blockReturnRefreshPatch = bytecodePatch(
         val logs = classDefByStrings(RESET_TO_FEED_OUTCOME, StringComparisonType.EQUALS)
             .flatMap { it.methods.filter(::isResetToFeedLog) }
         val log = logs.singleOrNull() ?: throw PatchException(
-            "Expected one static (Context, String, String) reset-to-feed log holding $RESET_TO_FEED_OUTCOME " +
-                "and $RESET_TO_FEED_DESTINATION, found ${logs.size}",
+            "Expected one static Context method writing $RESET_TO_FEED_OUTCOME and $RESET_TO_FEED_DESTINATION " +
+                "from its own String parameters, found ${logs.size}",
         )
 
         val teardowns = classDefByStrings(LEFT_APP_TEARDOWN, StringComparisonType.EQUALS)
@@ -212,7 +215,7 @@ val blockReturnRefreshPatch = bytecodePatch(
         for (method in listOf(callback, teardownRun, autoScroll, stalePost)) method.requireLocals(PATCH, 1)
         emptyFeedAnswer(warmStartCheck)
         noAutoScrollAnswer(autoScroll, noScroll)
-        tabAutoRefreshCause(tabFetch)
+        tabAutoRefresh(tabFetch)
         tabEntryHotLoad(tabEntry, friendlyLoaders, classDefOf)
 
         callback.skipBriefReturnRefresh()
@@ -242,12 +245,56 @@ internal fun isWarmStartCheck(method: Method): Boolean =
         method.parameterTypes.lastOrNull()?.toString() == STRING && method.implementation != null &&
         holdsString(method, WARM_START_CHECK) && holdsString(method, EMPTY_FEED_LOAD)
 
-/** Whether [method] is where the reset to feed writes down its outcome and destination. */
+/**
+ * Whether [method] is where the reset to feed writes down its outcome and destination: a static
+ * method taking a Context first that writes both keys straight from its own String parameters.
+ * 582's took just those two after the Context. 583's takes the runnable's exit before them and two
+ * times after. Facebook's other writers of the keys put a literal under one of them.
+ */
 internal fun isResetToFeedLog(method: Method): Boolean =
     AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
-        method.parameterTypes.map { it.toString() } == listOf(CONTEXT, STRING, STRING) &&
-        method.implementation != null &&
-        holdsString(method, RESET_TO_FEED_OUTCOME) && holdsString(method, RESET_TO_FEED_DESTINATION)
+        method.parameterTypes.firstOrNull()?.toString() == CONTEXT && resetToFeedArguments(method) != null
+
+/**
+ * The declared parameters [method] writes under the reset to feed's outcome and destination keys,
+ * by index, or null unless each key is loaded once and handed, by the call right after, to a
+ * (String, String) write together with a String parameter nothing wrote over before that call.
+ */
+internal fun resetToFeedArguments(method: Method): Pair<Int, Int>? {
+    val instructions = method.implementation?.instructions?.toList() ?: return null
+    fun writtenFrom(key: String): Int? {
+        val load = instructions.indices.singleOrNull {
+            ((instructions[it] as? ReferenceInstruction)?.reference as? StringReference)?.string == key
+        } ?: return null
+        val keyRegister = (instructions[load] as? OneRegisterInstruction)?.registerA ?: return null
+        val call = (load + 1 until instructions.size).firstOrNull { instructions[it].opcode.name.startsWith("invoke") } ?: return null
+        val target = (instructions[call] as ReferenceInstruction).reference as? MethodReference ?: return null
+        val registers = instructions[call].callRegisters()
+        if (target.parameterTypes.map { it.toString() } != listOf(STRING, STRING) || registers.size != 3 ||
+            registers[1] != keyRegister
+        ) return null
+        val value = registers[2]
+        val parameter = method.parameterTypes.indices.singleOrNull {
+            method.parameterTypes[it].toString() == STRING && method.parameterRegisterNumber(it) == value
+        } ?: return null
+        return parameter.takeIf { instructions.take(call).none { writes(it, value) } }
+    }
+    val outcome = writtenFrom(RESET_TO_FEED_OUTCOME) ?: return null
+    val destination = writtenFrom(RESET_TO_FEED_DESTINATION) ?: return null
+    return (outcome to destination).takeIf { outcome != destination }
+}
+
+private fun Instruction.callRegisters(): List<Int> = when (this) {
+    is RegisterRangeInstruction -> (startRegister until startRegister + registerCount).toList()
+    is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
+    else -> emptyList()
+}
+
+/** Whether [instruction] can write [register], a wide write counting for both halves. */
+private fun writes(instruction: Instruction, register: Int): Boolean {
+    if (!instruction.opcode.setsRegister() || instruction !is OneRegisterInstruction) return false
+    return instruction.registerA == register || (instruction.opcode.setsWideRegister() && instruction.registerA + 1 == register)
+}
 
 /**
  * The index of the move-result that takes the warm-start check's answer to "is the feed empty":
@@ -475,62 +522,69 @@ internal fun MutableMethod.holdFirst(extension: String) {
     )
 }
 
+/** NewsFeedTabDataFetch's forced refresh, by index, and a local free in front of it and after it. */
+internal class TabAutoRefresh(val refresh: Int, val register: Int)
+
 /**
- * The index of the load of the cause NewsFeedTabDataFetch's dispatch hands its forced refresh: the
- * sget-object right after it loads its source, which only that load reaches, followed by the
- * virtual (cause, String) void call that takes both. Nothing after the call reads the cause's
- * register before writing it. Throws naming what differs.
+ * The forced refresh of NewsFeedTabDataFetch's dispatch: the virtual (cause, String) void call that
+ * comes first after the dispatch loads its source and takes it, with nothing between them but an
+ * sget-object of the cause (582 loads it there, 583 at the head of the refresh's block). Only the
+ * instruction before the call reaches it, so code put in front of the call runs on every way in,
+ * where dexlib2 would leave a jump to the call landing on the call itself. A local that nothing
+ * reads from the call on is free for a hook there. Throws naming what differs.
  */
-internal fun tabAutoRefreshCause(method: Method): Int {
+internal fun tabAutoRefresh(method: Method): TabAutoRefresh {
     val what = "Block background-return feed refresh: ${method.definingClass}->${method.name}"
     val instructions = method.implementation?.instructions?.toList() ?: throw PatchException("$what has no body")
     val sources = instructions.indices.filter {
         ((instructions[it] as? ReferenceInstruction)?.reference as? StringReference)?.string == TAB_DATA_FETCH
     }
     val source = sources.singleOrNull() ?: throw PatchException("$what loads $TAB_DATA_FETCH ${sources.size} times")
-    val cause = source + 1
-    val load = instructions.getOrNull(cause)
-    if (load?.opcode != Opcode.SGET_OBJECT) throw PatchException("$what loads no cause after its source")
-    val causeRegister = (load as OneRegisterInstruction).registerA
     val sourceRegister = (instructions[source] as OneRegisterInstruction).registerA
-    val causeType = ((load as ReferenceInstruction).reference as FieldReference).type
-    val call = instructions.getOrNull(cause + 1)
+    val refresh = (source + 1 until minOf(instructions.size, source + 3)).firstOrNull {
+        instructions[it].opcode.name.startsWith("invoke")
+    } ?: throw PatchException("$what calls nothing right after loading its source")
+    val call = instructions[refresh]
     val target = (call as? ReferenceInstruction)?.reference as? MethodReference
-    if (call?.opcode != Opcode.INVOKE_VIRTUAL || target == null || target.returnType != "V" ||
-        target.parameterTypes.map { it.toString() } != listOf(causeType, STRING) ||
-        (call as FiveRegisterInstruction).registerCount != 3 ||
-        call.registerD != causeRegister || call.registerE != sourceRegister
+    if (call.opcode != Opcode.INVOKE_VIRTUAL || target == null || target.returnType != "V" ||
+        target.parameterTypes.size != 2 || target.parameterTypes[1].toString() != STRING ||
+        (call as FiveRegisterInstruction).registerCount != 3 || call.registerE != sourceRegister
     ) {
-        throw PatchException("$what doesn't hand its cause and source to a refresh right after loading them")
+        throw PatchException("$what doesn't hand its source to a refresh right after loading it")
+    }
+    if (refresh == source + 2) {
+        val between = instructions[source + 1]
+        if (between.opcode != Opcode.SGET_OBJECT || (between as OneRegisterInstruction).registerA != call.registerD) {
+            throw PatchException("$what does something besides loading its cause between its source and its refresh")
+        }
     }
     val flow = ControlFlow.of(method)
-    val arrivals = flow.instructions.indices.filter { cause in flow.normal[it] || cause in flow.exceptional[it] }
-    if (arrivals != listOf(source)) {
-        throw PatchException("$what reaches its cause's load from ${arrivals.joinToString()}, not only its source")
+    val arrivals = flow.instructions.indices.filter { refresh in flow.normal[it] || refresh in flow.exceptional[it] }
+    if (arrivals != listOf(refresh - 1)) {
+        throw PatchException("$what reaches its refresh from ${arrivals.joinToString()}, not only the instruction before it")
     }
-    if (causeRegister in RegisterLiveness.of(method).liveInto(cause + 2)) {
-        throw PatchException("$what reads v$causeRegister after its refresh")
-    }
-    return cause
+    val liveness = RegisterLiveness.of(method)
+    val busy = liveness.liveInto(refresh) + liveness.liveInto(refresh + 1)
+    val register = (0 until method.localRegisterCount()).firstOrNull { it !in busy }
+        ?: throw PatchException("$what has no local free around its refresh")
+    return TabAutoRefresh(refresh, register)
 }
 
 /**
- * Asks the extension in place of loading the forced refresh's cause and, while it holds, goes on
- * past the refresh to what follows it, the data fetch's own callback. The question borrows the
- * cause's register, which the load writes next and nothing after the refresh reads (see
- * [tabAutoRefreshCause]).
+ * Asks the extension right before the forced refresh and, while it holds, goes on past the refresh
+ * to what follows it, the data fetch's own callback. The question borrows a local nothing reads from
+ * the refresh on (see [tabAutoRefresh]).
  */
 internal fun MutableMethod.holdTabAutoRefreshBeforeIt() {
-    val cause = tabAutoRefreshCause(this)
-    val register = getInstruction<OneRegisterInstruction>(cause).registerA
+    val found = tabAutoRefresh(this)
     addInstructionsWithLabels(
-        cause,
+        found.refresh,
         """
             invoke-static { }, $HOLD_TAB_AUTO_REFRESH
-            move-result v$register
-            if-nez v$register, :refreshed
+            move-result v${found.register}
+            if-nez v${found.register}, :refreshed
         """,
-        ExternalLabel("refreshed", getInstruction(cause + 2)),
+        ExternalLabel("refreshed", getInstruction(found.refresh + 1)),
     )
 }
 
@@ -602,7 +656,21 @@ internal fun MutableMethod.holdTabEntryHotLoadBeforeIt(friendlyLoaders: Set<Stri
     )
 }
 
-/** Hands the reset to feed's outcome and destination, its two strings, to the extension's log first thing. */
+/**
+ * Hands the reset to feed's outcome and destination, the two parameters it writes under those keys,
+ * to the extension's log first thing. Side by side, as on 583, they go as a range, which reads any
+ * register.
+ */
 internal fun MutableMethod.logResetToFeedFirst() {
-    addInstructions(0, "invoke-static { p1, p2 }, $LOG_RESET_TO_FEED")
+    val what = "Block background-return feed refresh: $definingClass->$name"
+    val (outcome, destination) = resetToFeedArguments(this)
+        ?: throw PatchException("$what no longer writes the reset to feed's outcome and destination from its parameters")
+    val first = parameterRegisterNumber(outcome)
+    val second = parameterRegisterNumber(destination)
+    val registers = when {
+        second == first + 1 -> "/range { ${parameterRegister(outcome)} .. ${parameterRegister(destination)} }"
+        maxOf(first, second) < 16 -> " { ${parameterRegister(outcome)}, ${parameterRegister(destination)} }"
+        else -> throw PatchException("$what keeps its outcome and destination in v$first and v$second, apart and past v15")
+    }
+    addInstructions(0, "invoke-static$registers, $LOG_RESET_TO_FEED")
 }

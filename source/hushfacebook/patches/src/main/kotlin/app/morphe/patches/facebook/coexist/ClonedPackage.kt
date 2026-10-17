@@ -5,12 +5,23 @@
 package app.morphe.patches.facebook.coexist
 
 import app.morphe.patcher.StringComparisonType
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.resourcePatch
+import app.morphe.patches.facebook.chats.jumpTargets
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
 import app.morphe.patches.facebook.misc.extension.patchLog
+import app.morphe.util.readsAfter
+import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.w3c.dom.Attr
 import org.w3c.dom.Document
 import org.w3c.dom.Element
@@ -176,6 +187,205 @@ internal fun BytecodePatchContext.routeOwnAuthorities(packageName: String, autho
     }
 }
 
+/*
+ * Facebook's rich notification templates build their RemoteViews with the package spelled out,
+ * new RemoteViews("com.facebook.katana", layout), 14 times in 582. RemoteViews takes its layouts
+ * from that package, so in a clone a notification either named an app that isn't installed, which
+ * throws, or the Facebook it was cloned from, whose layout ids aren't the clone's, and Android
+ * refused it as a bad notification and closed the clone (#36). Each of those loads is handed to the
+ * extension, which answers the running package.
+ */
+
+/** The call Facebook's package name goes through where it's loaded only to build RemoteViews. */
+internal const val PACKAGE_CALL =
+    "$EXTENSION_PACKAGE/coexist/OwnAuthorities;->packageName(Ljava/lang/String;)Ljava/lang/String;"
+
+internal const val REMOTE_VIEWS_INIT = "Landroid/widget/RemoteViews;-><init>(Ljava/lang/String;I)V"
+
+/** Whether [instruction] builds a RemoteViews from the package name in [register] and reads it for nothing else. */
+private fun buildsRemoteViewsOf(instruction: Instruction, register: Int): Boolean {
+    if (instruction.opcode != Opcode.INVOKE_DIRECT) return false
+    if (((instruction as ReferenceInstruction).reference as? MethodReference)?.toString() != REMOTE_VIEWS_INIT) return false
+    val call = instruction as FiveRegisterInstruction
+    return call.registerD == register && call.registerC != register && call.registerE != register
+}
+
+/**
+ * Where [this] loads [packageName] as a literal only to build RemoteViews with it: the index of each
+ * const-string whose value reaches nothing but RemoteViews(String, int)'s package before its register
+ * is written again. A load something jumps in right after is left out, since the jump would pass
+ * the call that goes there, and so is a value anything else reads.
+ */
+internal fun Method.remoteViewsPackageLoads(packageName: String): List<Int> =
+    packageLoadsReadOnlyBy(packageName, ::buildsRemoteViewsOf)
+
+/*
+ * The rest of the bare package name (#36 leftovers). Where it means this app, a clone has to get
+ * its own: Firebase's notification code (FirebaseMessagingService, a kept name) sets the intent a
+ * notification's tap sends to the package, launches the package when that finds nothing, and reads
+ * the package's meta-data for the notification's icon, colour and channel, all of them
+ * context.getPackageName() in Google's source that Facebook's build spelled out; and a chat
+ * notification's intent is set to the package. In a clone those reach the stock app or nothing.
+ *
+ * Left alone, because there the name means Meta's Facebook app: getPackageInfo reads of its
+ * version or signatures (the in-app browser's FB4A version check among them), String.equals of a
+ * caller's or a target's package against it, the launch of Facebook after a check that it or
+ * its in-house build is installed, and Messenger's warm-start hint (ThreadSettingsActivity), which
+ * checks that Facebook is installed and then sends its WarmStartBroadcastReceiver a broadcast. A
+ * load that anything else reads, such as that install check or a ComponentName, stays as it is.
+ */
+
+internal const val SET_PACKAGE = "Landroid/content/Intent;->setPackage(Ljava/lang/String;)Landroid/content/Intent;"
+internal const val LAUNCH_INTENT =
+    "Landroid/content/pm/PackageManager;->getLaunchIntentForPackage(Ljava/lang/String;)Landroid/content/Intent;"
+internal const val APPLICATION_INFO =
+    "Landroid/content/pm/PackageManager;->getApplicationInfo(Ljava/lang/String;I)Landroid/content/pm/ApplicationInfo;"
+internal const val FIREBASE_MESSAGING = "Lcom/google/firebase/messaging/FirebaseMessagingService;"
+
+/**
+ * Whether [instruction] hands the package name in [register] to a call that means this app, and
+ * reads it for nothing else: an intent's setPackage anywhere, and in Firebase's notification code
+ * ([firebase]) a launch intent or an ApplicationInfo for it as well.
+ */
+private fun callsOwnPackage(instruction: Instruction, register: Int, firebase: Boolean): Boolean {
+    if (instruction.opcode != Opcode.INVOKE_VIRTUAL) return false
+    val called = ((instruction as ReferenceInstruction).reference as? MethodReference)?.toString() ?: return false
+    if (called != SET_PACKAGE && !(firebase && (called == LAUNCH_INTENT || called == APPLICATION_INFO))) return false
+    val call = instruction as FiveRegisterInstruction
+    return call.registerD == register && call.registerC != register && (call.registerCount < 3 || call.registerE != register)
+}
+
+/** Where [this] loads [packageName] only to name this app to Android ([callsOwnPackage]). */
+internal fun Method.ownPackageCallLoads(packageName: String): List<Int> {
+    val firebase = definingClass == FIREBASE_MESSAGING
+    return packageLoadsReadOnlyBy(packageName) { instruction, register -> callsOwnPackage(instruction, register, firebase) }
+}
+
+/**
+ * The index of each const-string of [packageName] in [this] whose value only [reads] reads before
+ * its register is written again. A load something jumps in right after is left out, since the jump
+ * would pass the call that goes there.
+ */
+private fun Method.packageLoadsReadOnlyBy(packageName: String, reads: (Instruction, Int) -> Boolean): List<Int> {
+    val code = implementation?.instructions?.toList() ?: return emptyList()
+    val loads = code.indices.filter { code[it].loadedString() == packageName }
+    if (loads.isEmpty()) return emptyList()
+    val targets = jumpTargets(code)
+    return loads.filter { at ->
+        val register = (code[at] as OneRegisterInstruction).registerA
+        if (at + 1 in targets || register > 255) return@filter false
+        val readers = readsAfter(at, register)
+        readers.isNotEmpty() && readers.all { reads(code[it], register) }
+    }
+}
+
+/**
+ * Hands every load of [packageName] that only builds RemoteViews to the extension, which answers
+ * the running app's package. Answers how many it handed over. The extension is left alone.
+ */
+internal fun BytecodePatchContext.routeRemoteViewsPackage(packageName: String): Int =
+    routePackageLoads(packageName) { it.remoteViewsPackageLoads(packageName) }
+
+/**
+ * Hands every load of [packageName] that only names this app to Android ([ownPackageCallLoads]) to
+ * the extension, which answers the running app's package. Answers how many it handed over.
+ */
+internal fun BytecodePatchContext.routeOwnPackageCalls(packageName: String): Int =
+    routePackageLoads(packageName) { it.ownPackageCallLoads(packageName) }
+
+/** Hands each load [loadsOf] picks out to the extension, right after it. The extension is left alone. */
+private fun BytecodePatchContext.routePackageLoads(packageName: String, loadsOf: (Method) -> List<Int>): Int {
+    val owners = classDefByStrings(packageName, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_ROOT) }
+        .filter { owner -> owner.methods.any { loadsOf(it).isNotEmpty() } }
+        .map { it.type }
+        .distinct()
+    return owners.sumOf { type ->
+        mutableClassDefBy(type).methods.sumOf { method ->
+            val loads = loadsOf(method)
+            loads.asReversed().forEach { at ->
+                val register = method.getInstruction<OneRegisterInstruction>(at).registerA
+                method.addInstructions(
+                    at + 1,
+                    """
+                        invoke-static/range { v$register .. v$register }, $PACKAGE_CALL
+                        move-result-object v$register
+                    """,
+                )
+            }
+            loads.size
+        }
+    }
+}
+
+/*
+ * Facebook's encrypted chat backup (MibEbAutoRestoreHandler) builds a helper whose constructor
+ * looks the running package up among Messenger's and Facebook's names (com.facebook.orca, its debug
+ * build, com.facebook.katana and com.facebook.wakizashi) to pick its preferences file, and throws
+ * NoSuchElementException when none matches. A clone's package matches none, so it crashed as soon as
+ * chats opened (#113). The package name each such lookup reads is handed to the extension, which
+ * answers Facebook's in a clone. Only methods that also name Messenger's debug build count, which in
+ * 582 is that constructor alone (the other method naming it is a table that reads no package).
+ */
+
+/** The call the running package goes through where Facebook looks itself up among Meta's apps. */
+internal const val AS_FACEBOOK_CALL =
+    "$EXTENSION_PACKAGE/coexist/OwnAuthorities;->asFacebook(Ljava/lang/String;)Ljava/lang/String;"
+
+internal const val GET_PACKAGE_NAME = "Landroid/content/Context;->getPackageName()Ljava/lang/String;"
+
+/** The name only Meta's own app lookups carry: Messenger's in-house build. */
+internal const val MESSENGER_DEBUG = "com.facebook.orca.debug"
+
+/**
+ * Where [this] looks the running package up among Meta's apps: for each getPackageName() whose
+ * result it moves into a register, the index right after that move, which is where the call goes.
+ * A method that doesn't name [MESSENGER_DEBUG] has none, and a spot something jumps onto is left out,
+ * since the jump would pass the call.
+ */
+internal fun Method.metaAppLookupReads(): List<Int> {
+    val code = implementation?.instructions?.toList() ?: return emptyList()
+    if (code.none { it.loadedString() == MESSENGER_DEBUG }) return emptyList()
+    val targets = jumpTargets(code)
+    return code.indices.filter { at ->
+        val call = code[at]
+        val moved = code.getOrNull(at + 1) ?: return@filter false
+        call.opcode == Opcode.INVOKE_VIRTUAL &&
+            ((call as ReferenceInstruction).reference as? MethodReference)?.toString() == GET_PACKAGE_NAME &&
+            moved.opcode == Opcode.MOVE_RESULT_OBJECT &&
+            (moved as OneRegisterInstruction).registerA <= 255 &&
+            at + 2 !in targets
+    }.map { it + 2 }
+}
+
+/**
+ * Hands the running package to the extension wherever Facebook looks itself up among Meta's apps
+ * ([metaAppLookupReads]). Answers how many it handed over. The extension is left alone.
+ */
+internal fun BytecodePatchContext.routeMetaAppLookups(): Int {
+    val owners = classDefByStrings(MESSENGER_DEBUG, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_ROOT) }
+        .filter { owner -> owner.methods.any { it.metaAppLookupReads().isNotEmpty() } }
+        .map { it.type }
+        .distinct()
+    return owners.sumOf { type ->
+        mutableClassDefBy(type).methods.sumOf { method ->
+            val reads = method.metaAppLookupReads()
+            reads.asReversed().forEach { at ->
+                val register = method.getInstruction<OneRegisterInstruction>(at - 1).registerA
+                method.addInstructions(
+                    at,
+                    """
+                        invoke-static/range { v$register .. v$register }, $AS_FACEBOOK_CALL
+                        move-result-object v$register
+                    """,
+                )
+            }
+            reads.size
+        }
+    }
+}
+
 /** The stock app's own authorities and permissions, read before anything renames the package. */
 private var stockAuthorities: Set<String> = emptySet()
 private var stockPermissions: Set<String> = emptySet()
@@ -210,5 +420,13 @@ internal val clonedPackagePatch = bytecodePatch {
 
     execute {
         routeOwnAuthorities(packageMetadata.packageName, stockAuthorities)
+        routeRemoteViewsPackage(packageMetadata.packageName)
+        routeOwnPackageCalls(packageMetadata.packageName)
+        if (routeMetaAppLookups() == 0) {
+            patchLog.warning(
+                "Found no place where Facebook looks itself up among Meta's apps, so a copy made with Clone app " +
+                    "may still close when its chats open.",
+            )
+        }
     }
 }

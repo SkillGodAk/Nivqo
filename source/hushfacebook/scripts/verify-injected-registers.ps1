@@ -18,7 +18,7 @@
     for a register past its count, the upper half of a wide value included, for branch and
     switch targets, invoke registers, the static and wide parameter layout, move-result
     placement and try ranges, and the whole APK is held to
-    scripts/injected-mutation-contracts.txt: one feed guard, in addNewEdgeToCollection, each
+    scripts/injected-mutation-contracts.txt: one feed guard, first thing in the funnel's body, each
     story-flag stub calling GraphQLStory's accessor before it returns, the showcase stub calling
     the accessor of the one class answering ShowcaseFeedUnit, one Stories tray count in each of the
     two tray adapter classes and Home's composer row, the reels hook first in the pre-EOF injector, the swap guard once in

@@ -62,6 +62,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean storyUploadHd() {
+        return false;
+    }
+
     public static boolean sponsoredReels() {
         return false;
     }
@@ -142,6 +146,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean skipSilentParts() {
+        return false;
+    }
+
     public static boolean keepProgressBar() {
         return false;
     }
@@ -171,6 +179,10 @@ public final class SettingsStatus {
     }
 
     public static boolean turnOffHaptics() {
+        return false;
+    }
+
+    public static boolean carrierBanners() {
         return false;
     }
 

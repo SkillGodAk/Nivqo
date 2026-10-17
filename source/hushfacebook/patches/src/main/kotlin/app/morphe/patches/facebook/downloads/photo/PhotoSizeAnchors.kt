@@ -131,13 +131,23 @@ private fun staticRead(instruction: Instruction?, register: Int, type: String): 
 
 private fun Instruction.method() = (this as? ReferenceInstruction)?.reference as? MethodReference
 
+/** What Save photo on a post does when the stub stays empty, for the patch log. */
+internal const val PHOTO_WITHOUT_CDN = "photos save at the largest size their model holds"
+
 /**
  * Fills the extension's [CDN_RESIZE_STUB] with Facebook's modifier call, through a helper on the
  * save's class that builds the options as the save does, with the extension's width and height.
  * A build where the call isn't found keeps the stub empty, and Save photo saves the largest copy
- * the photo's model holds, as it did before.
+ * the photo's model holds, as it did before. Download any story fills it too, for a story's photo
+ * (#38), so whichever of the two runs second finds it filled and leaves it. A warning names [patch],
+ * the patch filling it, and says what that patch's save does instead ([without]).
  */
-internal fun BytecodePatchContext.fillCdnResize() {
+internal fun BytecodePatchContext.fillCdnResize(patch: String = PHOTO_PATCH, without: String = PHOTO_WITHOUT_CDN) {
+    val filled = mutableClassDefByOrNull(PHOTO_SAVE)?.methods?.singleOrNull { it.name == CDN_RESIZE_STUB }
+        ?.implementation?.instructions?.any {
+            ((it as? ReferenceInstruction)?.reference as? MethodReference)?.name == CDN_RESIZE_HELPER
+        } == true
+    if (filled) return
     val saves = mutableListOf<Method>()
     classDefForEach { classDef ->
         if (classDef.type.startsWith(EXTENSION_CLASSES)) return@classDefForEach
@@ -145,7 +155,7 @@ internal fun BytecodePatchContext.fillCdnResize() {
     }
     val found = saves.singleOrNull()?.let(::cdnResize)
     if (found == null) {
-        patchLog.warning("$PHOTO_PATCH: Facebook's photo address modifier wasn't found in ${saves.size} saves, so photos save at the largest size their model holds")
+        patchLog.warning("$patch: Facebook's photo address modifier wasn't found in ${saves.size} saves, so $without")
         return
     }
     val stub = mutableClassDefBy(PHOTO_SAVE).methods.singleOrNull {
@@ -153,7 +163,7 @@ internal fun BytecodePatchContext.fillCdnResize() {
             it.parameterTypes.map(CharSequence::toString) == listOf(URI, "I", "I")
     }
     if (stub == null) {
-        patchLog.warning("$PHOTO_PATCH: $PHOTO_SAVE has no static Uri $CDN_RESIZE_STUB(Uri, int, int)")
+        patchLog.warning("$patch: $PHOTO_SAVE has no static Uri $CDN_RESIZE_STUB(Uri, int, int), so $without")
         return
     }
     mutableClassDefBy(found.owner).methods.add(cdnResizeHelper(found))

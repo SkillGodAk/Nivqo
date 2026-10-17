@@ -68,6 +68,7 @@ import app.morphe.extension.facebook.media.PictureInPictureForTests;
 import app.morphe.extension.facebook.media.ProgressBar;
 import app.morphe.extension.facebook.media.FrameStepForTests;
 import app.morphe.extension.facebook.media.QualityChoiceForTests;
+import app.morphe.extension.facebook.media.SkipSilence;
 import app.morphe.extension.facebook.media.ReelSpeedForTests;
 import app.morphe.extension.facebook.media.ResumePlaybackForTests;
 import app.morphe.extension.facebook.misc.AppLockForTests;
@@ -81,6 +82,7 @@ import app.morphe.extension.facebook.menu.MenuSettingsRow;
 import app.morphe.extension.facebook.misc.AnalyticsUploads;
 import app.morphe.extension.facebook.misc.AppIcons;
 import app.morphe.extension.facebook.misc.ScreenshotDetection;
+import app.morphe.extension.facebook.misc.CarrierBanners;
 import app.morphe.extension.facebook.misc.Haptics;
 import app.morphe.extension.facebook.misc.ScreenTransitionsForTests;
 import app.morphe.extension.facebook.misc.Screenshots;
@@ -103,6 +105,7 @@ import app.morphe.extension.facebook.reels.SeenStateSendForTests;
 import app.morphe.extension.facebook.search.MetaAiSearchForTests;
 import app.morphe.extension.facebook.stories.StoryAdvance;
 import app.morphe.extension.facebook.stories.StorySeenForTests;
+import app.morphe.extension.facebook.stories.StoryUpload;
 import app.morphe.extension.facebook.stories.SuggestedStoriesForTests;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.settings.PauseForTests;
@@ -259,10 +262,12 @@ public class ColdStartHooksTest {
         assertFalse("a headroom held before the context said yes", HdrBrightnessForTests.holdsTheHeadroom());
         assertFalse("the screen answered as showing no HDR before the context said yes",
                 HdrBrightnessForTests.answersTheScreenAsShowingNoHdr());
+        assertFalse("a sink's sound skipped its silent parts before the context said yes", SkipSilence.skipSilence(false));
         assertFalse("a reel's bar kept full size before the context said yes", ProgressBar.keepsReelBar());
         assertFalse("a fade timer skipped before the context said yes", ProgressBar.keepsControls());
         assertFalse("a reel's caption lifted before the context said yes", ProgressBar.liftsFooter());
         assertFalse("a short reel's faded bar skipped before the context said yes", ProgressBar.noFadedBar());
+        assertFalse("a carrier banner before the context was hidden", CarrierBanners.hides("zorp_paid_mode_banner"));
         assertTrue("a haptic before the context was held back", Haptics.performHapticFeedback(new android.view.View(app) {
             @Override
             public boolean performHapticFeedback(int feedbackConstant) {
@@ -291,6 +296,8 @@ public class ColdStartHooksTest {
         assertFalse("stories viewed before the context were kept off their viewer lists", StorySeenForTests.holdsABatch());
         assertFalse("a marked story viewed before the context went out alone", StorySeenForTests.sendsOnlyTheMarked());
         assertFalse("a story viewed before the context got the Mark as seen button", StorySeenForTests.pointsTheButton());
+        assertEquals("a Story upload asked for high quality before the context said yes",
+                "standard", StoryUpload.quality("standard"));
         assertFalse("a story that finished before the context played again", StoryAdvance.loop());
         assertFalse(PlayerSourcesForTests.recordsAPlayer());
         assertFalse("a post menu built before the context got the video item", VideoMenuItemForTests.addsAnItem());
@@ -317,6 +324,8 @@ public class ColdStartHooksTest {
                 CommentSheetOptions.skipReactionPicker());
         assertFalse("a comment drawn before the context had its reply thread open",
                 CommentSheetOptions.openReplyThreads(false));
+        assertFalse("a reply thread opened before the context paged on by itself",
+                CommentSheetOptions.loadWholeReplyThreads(false));
         assertFalse("a post's comments drawn before the context lost Related groups",
                 CommentSheetOptions.holdsBottomContent(CommentSheetOptions.RELATED_GROUPS));
         assertFalse("a comment with a shop link drawn before the context was left out",

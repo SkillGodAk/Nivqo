@@ -859,7 +859,18 @@ final class ValueRows {
             for (AppLock.After candidate : AppLock.After.values()) {
                 if (candidate.name().equals(getValue())) after = candidate;
             }
-            setSummary(lockAfterSummary(after));
+            String summary = lockAfterSummary(after);
+            if (!isEnabled()) {
+                summary += " " + L10n.f("Turn on %1$s to use this.", L10n.isolate(SwitchLabels.title(Settings.APP_LOCK)));
+            }
+            setSummary(summary);
+        }
+
+        /** It's greyed out while Lock Facebook is off, and its summary then says so. */
+        @Override
+        public void setEnabled(boolean enabled) {
+            super.setEnabled(enabled);
+            showSummary();
         }
 
         @Override

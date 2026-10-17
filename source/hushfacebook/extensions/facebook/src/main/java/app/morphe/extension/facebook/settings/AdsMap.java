@@ -66,7 +66,7 @@ final class AdsMap {
                 new Line(L10n.t("Ads in Instant Games"), PatchFamily.GAME_ADS, L10n.t("Menu"), null),
                 new Line(L10n.t("Ads downloaded in advance"), PatchFamily.AD_PREFETCH, null, null),
                 new Line(L10n.t("Ad tracking"), PatchFamily.AD_TELEMETRY, null, null),
-                new Line(L10n.t("Facebook's ads in other apps"), PatchFamily.AUDIENCE_NETWORK, null,
+                new Line(L10n.t("Facebook ads in other apps"), PatchFamily.AUDIENCE_NETWORK, null,
                         L10n.t("Those apps show their own ads or none, and their rewarded ads may fail.")),
                 new Line(L10n.t("Usage statistics uploads"), PatchFamily.ANALYTICS_UPLOADS, L10n.t("Privacy"),
                         L10n.t("Facebook's on-phone learning jobs stop too, and a change applies after Facebook restarts.")),

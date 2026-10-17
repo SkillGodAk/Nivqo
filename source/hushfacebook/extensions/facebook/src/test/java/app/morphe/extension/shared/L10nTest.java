@@ -56,7 +56,7 @@ public class L10nTest {
 
     @Test
     public void everyLanguageTheBundleCarriesHasATableWithTheKey() {
-        assertEquals(Arrays.asList("de", "es", "in", "pt-rbr", "tr", "zh-rtw"), Arrays.asList(L10nTranslations.LANGUAGES));
+        assertEquals(Arrays.asList("de", "es", "in", "pt-rbr", "tr", "vi", "zh-rtw"), Arrays.asList(L10nTranslations.LANGUAGES));
         for (String language : L10nTranslations.LANGUAGES) {
             Map<String, String> table = L10nTranslations.of(language);
             assertNotNull(language, table);
@@ -245,10 +245,10 @@ public class L10nTest {
 
     @Test
     public void aCountTakesTheFormItsLanguageGivesIt() {
-        String one = "%1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch "
-                + "again and leave out that patch.";
-        String other = "%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, "
-                + "patch again and leave out the patch in brackets after it.";
+        String one = "Set when you patched, so Pause can't turn it off:\n%1$s\nTo rule it out, patch again and "
+                + "leave out its patch.";
+        String other = "Set when you patched, so Pause can't turn these off:\n%1$s\nTo rule one out, patch again "
+                + "and leave out its patch.";
         assertEquals(String.format(one, "x"), L10n.quantity(in(Locale.US), 1, one, other, "x"));
         assertEquals(String.format(other, "x"), L10n.quantity(in(Locale.US), 2, one, other, "x"));
         // Indonesian has no singular form, so even one item takes the other row.
@@ -299,10 +299,10 @@ public class L10nTest {
 
     @Test
     public void anIsolatedValueIsWrappedInFirstStrongIsolates() {
-        String isolated = L10n.isolate("582.0.0.50.54");
+        String isolated = L10n.isolate("583.0.0.39.55");
         assertEquals((char) 0x2068, isolated.charAt(0));
         assertEquals((char) 0x2069, isolated.charAt(isolated.length() - 1));
-        assertEquals("582.0.0.50.54", isolated.substring(1, isolated.length() - 1));
+        assertEquals("583.0.0.39.55", isolated.substring(1, isolated.length() - 1));
         assertEquals("", L10n.isolate(""));
         assertEquals("", L10n.isolate(null));
     }

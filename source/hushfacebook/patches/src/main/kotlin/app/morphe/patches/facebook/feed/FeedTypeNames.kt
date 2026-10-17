@@ -63,7 +63,7 @@ private fun Instruction.readsTypeTag(): Boolean = opcode == Opcode.IGET &&
     } == true
 
 /** A method's instructions, each with its code-unit address, so switch and branch targets resolve. */
-private fun addressed(method: Method): Map<Int, Instruction> {
+internal fun addressed(method: Method): Map<Int, Instruction> {
     val byAddress = LinkedHashMap<Int, Instruction>()
     var address = 0
     for (instruction in method.implementation?.instructions ?: return byAddress) {
@@ -74,7 +74,7 @@ private fun addressed(method: Method): Map<Int, Instruction> {
 }
 
 /** Where the method's first switch sends [key], or null when it has no switch or no case for it. */
-private fun switchTarget(byAddress: Map<Int, Instruction>, key: Int): Int? {
+internal fun switchTarget(byAddress: Map<Int, Instruction>, key: Int): Int? {
     val (switchAddress, switch) = byAddress.entries.firstOrNull {
         it.value.opcode == Opcode.SPARSE_SWITCH || it.value.opcode == Opcode.PACKED_SWITCH
     } ?: return null

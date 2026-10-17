@@ -74,6 +74,8 @@ internal class MoreSheet(
     /** The static that wraps an icon constant for the row, and the constant Facebook's own download row draws. */
     val iconWrap: MethodReference,
     val downloadIcon: FieldReference,
+    /** The icon constant the builder draws its Clear mode row with: the last one it reads before the row's id. */
+    val clearModeIcon: FieldReference,
 )
 
 internal fun BytecodePatchContext.moreSheet(patch: String): MoreSheet {
@@ -135,6 +137,12 @@ internal fun BytecodePatchContext.moreSheet(patch: String): MoreSheet {
                 ?.takeIf { instruction.opcode == Opcode.SGET_OBJECT && it.type == iconEnum }
         } ?: throw PatchException("$patch: Facebook's \"$OWN_DOWNLOAD_ROW\" row draws no icon of $iconEnum")
 
+    val clearModeIcon = instructions.take(idAt).lastOrNull { instruction ->
+        instruction.opcode == Opcode.SGET_OBJECT &&
+            ((instruction as ReferenceInstruction).reference as? FieldReference)?.type == iconEnum
+    }?.let { (it as ReferenceInstruction).reference as FieldReference }
+        ?: throw PatchException("$patch: the More sheet reads no icon of $iconEnum before \"$CLEAR_MODE_ROW\"")
+
     return MoreSheet(
         builder = mutableClassDefBy(builderClass.type).findMutableMethodOf(builderMethod),
         lookup = lookup,
@@ -144,6 +152,7 @@ internal fun BytecodePatchContext.moreSheet(patch: String): MoreSheet {
         clickMethod = click.methods.single().name,
         iconWrap = iconWrap,
         downloadIcon = downloadIcon,
+        clearModeIcon = clearModeIcon,
     )
 }
 
@@ -162,22 +171,41 @@ private fun Instruction.methodReference() = (this as? ReferenceInstruction)?.ref
 
 /**
  * The moves that fill the row's arguments from v9 up: the handler (v7) as the click, the icon (v6),
- * the label (v5) as the first CharSequence, which is the title, and [MENU_ROW_ID] as the last one
- * when there are several, the place Facebook puts each row's id. The rest stay null.
+ * the label (v5) as the first CharSequence, which is the title, and [id] as the last one when there
+ * are several, the place Facebook puts each row's id. The rest stay null.
  */
-internal fun rowArguments(rowParameters: List<String>, click: String, icon: String): String {
+internal fun rowArguments(rowParameters: List<String>, click: String, icon: String, id: String = MENU_ROW_ID): String {
     val title = rowParameters.indexOf(CHAR_SEQUENCE)
-    val id = rowParameters.lastIndexOf(CHAR_SEQUENCE).takeIf { it != title }
+    val idAt = rowParameters.lastIndexOf(CHAR_SEQUENCE).takeIf { it != title }
     return rowParameters.mapIndexed { index, type ->
         val register = 9 + index
         when {
             type == click -> "move-object/from16 v$register, v7"
             type == icon -> "move-object/from16 v$register, v6"
             index == title -> "move-object/from16 v$register, v5"
-            index == id -> "const-string v$register, \"$MENU_ROW_ID\""
+            index == idAt -> "const-string v$register, \"$id\""
             else -> "const/16 v$register, 0x0"
         }
     }.joinToString("\n")
+}
+
+/**
+ * Makes the extension class [handlerType] take the row's click interface by name, with the
+ * interface's one method calling the handler's `run()`. Done once, however many patches ask.
+ */
+internal fun BytecodePatchContext.implementClick(sheet: MoreSheet, handlerType: String) {
+    val handler = mutableClassDefBy(handlerType)
+    if (sheet.click !in handler.interfaces) handler.interfaces.add(sheet.click)
+    if (handler.methods.none { it.name == sheet.clickMethod && it.parameterTypes.isEmpty() }) {
+        handler.methods.add(
+            ImmutableMethod(
+                handlerType, sheet.clickMethod, emptyList(), "V", AccessFlags.PUBLIC.value,
+                null, null, MutableMethodImplementation(1),
+            ).toMutable().apply {
+                addInstructions(0, "invoke-virtual { p0 }, $handlerType->run()V\nreturn-void")
+            },
+        )
+    }
 }
 
 /**
@@ -217,19 +245,7 @@ internal fun BytecodePatchContext.addDownloadRow(
     // of a method before writing it, which is proved here rather than trusted, before anything changes.
     builder.requireFreeAt(patch, 0, (0..5).toList())
 
-    // The handler takes the row's click interface by name, and its one method calls run().
-    val handler = mutableClassDefBy(MENU_HANDLER)
-    if (sheet.click !in handler.interfaces) handler.interfaces.add(sheet.click)
-    if (handler.methods.none { it.name == sheet.clickMethod && it.parameterTypes.isEmpty() }) {
-        handler.methods.add(
-            ImmutableMethod(
-                MENU_HANDLER, sheet.clickMethod, emptyList(), "V", AccessFlags.PUBLIC.value,
-                null, null, MutableMethodImplementation(1),
-            ).toMutable().apply {
-                addInstructions(0, "invoke-virtual { p0 }, $MENU_HANDLER->run()V\nreturn-void")
-            },
-        )
-    }
+    implementClick(sheet, MENU_HANDLER)
 
     // The helper, with fresh registers: v0 to v7 for the handler, v8 up for the row.
     val rowParameters = sheet.row.parameterTypes.map(CharSequence::toString)

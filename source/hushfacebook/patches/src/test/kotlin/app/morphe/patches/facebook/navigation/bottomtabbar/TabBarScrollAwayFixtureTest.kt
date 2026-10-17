@@ -198,6 +198,36 @@ class TabBarScrollAwayFixtureTest {
         assertEquals("a declared build has no fixture", declaredBundles().keys, checked)
     }
 
+    @Test
+    fun `each declared build tells the extension as the main screen turns scroll-away off and on`() {
+        val checked = mutableSetOf<String>()
+        for ((version, bundles) in declaredBundles()) {
+            for (bundle in bundles) {
+                val name = bundle.name
+                val pieces = pieces(bundle)
+                val context = pieces.context()
+                tabBarScrollAwayPatch.execute(context)
+                for ((trace, call) in listOf(DEACTIVATE_SCROLL_AWAY to TOP_BARS_LET_GO, REACTIVATE_SCROLL_AWAY to TOP_BARS_TAKEN_BACK)) {
+                    val holders = nonExtension(bundle, trace)
+                    assertTrue("$name: nothing is traced as \"$trace\"", holders.isNotEmpty())
+                    val switch = scrollAwaySwitch(holders, trace)
+                    val where = "$name: ${switch.definingClass}->${switch.name}"
+                    // 582: both sit in the class that adds the top bar, so the patch's context already holds them.
+                    assertEquals("$where isn't in the class traced as \"$SET_TOP_VIEWS\"", topScrollAwayViews(pieces.topHolders).definingClass,
+                        switch.definingClass)
+                    assertTrue("$where opens its trace first", switch.code().take(3).any { it.loads() == trace })
+                    val original = switch.code()
+                    val patched = context.mutableClassDefBy(switch.definingClass).methods.single { it.sameAs(switch) }.code()
+                    assertEquals("$where gains one instruction", original.size + 1, patched.size)
+                    assertEquals("$where: the extension hears it first", call, patched[0].calls())
+                    assertEquals("$where: Facebook's code stays", original.map { it.opcode }, patched.drop(1).map { it.opcode })
+                }
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", declaredBundles().keys, checked)
+    }
+
     /** Keeps [held], the registers holding one value, up to date across [instruction] when it's an object move. */
     private fun follows(instruction: Instruction, held: MutableSet<Int>) {
         if (instruction.opcode.name.startsWith("move-object")) {

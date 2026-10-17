@@ -12,6 +12,8 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.facebook.feed.methodsNaming
+import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
@@ -19,7 +21,9 @@ import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.cloneMutableAndPreserveParameters
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val CHAT_LIST = "$EXTENSION_PACKAGE/chats/ChatList;"
 internal const val NOTES_TILES_HOOK = "$CHAT_LIST->notesTiles(Ljava/util/List;)Ljava/util/List;"
@@ -72,8 +76,10 @@ val cleanUpChatListPatch = bytecodePatch(
             "$CHAT_LIST_PATCH: expected one search row that tags \"$SEARCH_BAR_TAG\" and builds a Meta AI button " +
                 "reporting \"$META_AI_ICON_CLICKED\", found ${buttons.size}",
         )
-        val pickers = classDefByStrings(PEOPLE_PICKER_ENTRY, StringComparisonType.EQUALS)
-            .mapNotNull { opener -> pickerRowOf(opener)?.let { row -> opener.type to row } }
+        // 583's 64-bit tap asks a string table for its entry, so the taps are found by naming it.
+        val resolve: (MethodReference) -> Method? = { call -> classDefByOrNull(call.definingClass)?.let { resolveStatic(it, call) } }
+        val pickers = methodsNaming(PEOPLE_PICKER_ENTRY, ::callsMetaAiLauncher).map { it.definingClass }.distinct()
+            .mapNotNull { type -> classDefByOrNull(type)?.let { opener -> pickerRowOf(opener, resolve)?.let { row -> type to row } } }
         val (pickerOpener, pickerRow) = pickers.singleOrNull() ?: throw PatchException(
             "$CHAT_LIST_PATCH: expected one Meta AI tap opening \"$PEOPLE_PICKER_ENTRY\" after reading its row's " +
                 "CallerContext, found ${pickers.size}",

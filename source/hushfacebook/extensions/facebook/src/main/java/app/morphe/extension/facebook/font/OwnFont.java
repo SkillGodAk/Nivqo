@@ -92,7 +92,10 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * ascent and descent, which fits Optimistic. Some fonts phones offer declare far less descent than
  * their letters use (#96), and there y, g and p lost their tails, or a Bengali caption its vowel
  * signs. So each text layout Facebook builds, and each text view, takes the padding while the
- * switch is on and its font is one of those ({@link #needsPad}).
+ * switch is on and its font is one of those ({@link #needsPad}). Facebook's line-height spans set
+ * a layout's first top and last bottom to the edges of the line height they fit, which undid that
+ * padding in Reels captions and other text with a set line height, and the tails stayed cut off.
+ * So in a padded layout those edges stay at least the font's own ({@link #lineTop}).
  */
 public final class OwnFont {
     /** The font variation strings each builder was given, by the builder, for as long as it lives. */
@@ -135,6 +138,8 @@ public final class OwnFont {
     /* What Hook status counts for each typeface measured for the padding, once. */
     static final String PADDED = "Font drawn past its line box, padded";
     static final String FITS = "Font inside its line box";
+    /* Counted each time a line-height span would have pulled a padded layout's edge inside the font's. */
+    static final String EDGE_KEPT = "Line height kept the font padding";
 
     /** Letters reaching below the line, and above the x-height, for {@link #overflows}. */
     private static final String DESCENDERS = "gjpqy";
@@ -159,6 +164,14 @@ public final class OwnFont {
         @Override
         protected Object[] initialValue() {
             return new Object[2];
+        }
+    };
+
+    /** Whether the layout this thread is building through {@link #build} takes the font padding. */
+    private static final ThreadLocal<boolean[]> BUILDING_PADDED = new ThreadLocal<boolean[]>() {
+        @Override
+        protected boolean[] initialValue() {
+            return new boolean[1];
         }
     };
 
@@ -436,6 +449,46 @@ public final class OwnFont {
     static boolean padsFor(Object builder) {
         Object[] last = OBTAINED.get();
         return last[0] == builder && needsPad((Paint) last[1]);
+    }
+
+    /**
+     * StaticLayout.Builder.build for Facebook's own code (#96): Android's build, with this thread
+     * remembering for its length whether the layout takes the padding {@link #setIncludePad} gave
+     * it, which is when Facebook's line-height spans lay out its lines ({@link #lineTop}).
+     */
+    public static StaticLayout build(StaticLayout.Builder builder) {
+        boolean[] padded = BUILDING_PADDED.get();
+        boolean before = padded[0];
+        padded[0] = padsFor(builder);
+        try {
+            return builder.build();
+        } finally {
+            padded[0] = before;
+        }
+    }
+
+    /**
+     * A write of [top] to the top of a line by one of Facebook's line-height spans (#96). A span
+     * fitting a line to a height of Facebook's design sets the first line's top, and the last line's
+     * bottom, to the edges of that height, which takes back the font padding a padded layout uses
+     * them for. So while a layout {@link #build} knows is padded is built, the top stays at least the
+     * font's own; anywhere else, and for every font that fits its line box, it's Facebook's value.
+     */
+    public static void lineTop(int top, Paint.FontMetricsInt line) {
+        if (line.top < top && BUILDING_PADDED.get()[0]) {
+            HookStatus.counted(FamilyNames.SYSTEM_FONT, EDGE_KEPT);
+            return;
+        }
+        line.top = top;
+    }
+
+    /** A write of [bottom] to the bottom of a line by one of Facebook's line-height spans, as {@link #lineTop}. */
+    public static void lineBottom(int bottom, Paint.FontMetricsInt line) {
+        if (line.bottom > bottom && BUILDING_PADDED.get()[0]) {
+            HookStatus.counted(FamilyNames.SYSTEM_FONT, EDGE_KEPT);
+            return;
+        }
+        line.bottom = bottom;
     }
 
     /** BoringLayout.make for Facebook's own code, its one-line text, padded the same way. */

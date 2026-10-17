@@ -75,6 +75,20 @@ public class StoryPhotoTest {
         assertNull(StoryPhoto.originalOf(new Card(crossPost(), media)));
     }
 
+    /** Save photo on more stories (#38): the node's mark isn't asked, the media's photo is. */
+    @Test
+    public void onMoreStoriesAnyVideoStoryWithAPhotoGivesIt() {
+        TreeJNI media = new TreeJNI().with("playable_url", VIDEO).with("stories_photo_uri", image(PHOTO));
+        assertEquals(PHOTO, PostDetails.string(StoryPhoto.photoOf(new Card(crossPost(), media), true), StoryPhoto.URI));
+        assertEquals(PHOTO, PostDetails.string(StoryPhoto.photoOf(new Card(story(), media), true), StoryPhoto.URI));
+        assertNull("off, the mark is still asked", StoryPhoto.photoOf(new Card(crossPost(), media), false));
+        TreeJNI thumbnail = new TreeJNI().with("playable_url", VIDEO).with("stories_video_thumbnail", image(THUMBNAIL));
+        assertNull(StoryPhoto.photoOf(new Card(crossPost(), thumbnail), true));
+        assertNull(StoryPhoto.photoOf(new Card(crossPost(), new TreeJNI().with("stories_photo_uri", image(PHOTO))), true));
+        assertNull(StoryPhoto.photoOf(new Card(crossPost(), new TreeJNI().with("playable_url", VIDEO)
+                .with("stories_photo_uri", image(" "))), true));
+    }
+
     @Test
     public void aVideoStorysThumbnailIsNotTakenForAPhoto() {
         TreeJNI media = new TreeJNI().with("playable_url", VIDEO).with("stories_video_thumbnail", image(THUMBNAIL));

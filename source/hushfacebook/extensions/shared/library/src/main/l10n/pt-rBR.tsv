@@ -10,21 +10,20 @@ Hides "Pages you may like" cards, cards promoting Facebook's own features, and s
 %1$s so far	%1$s até o momento
 %1$s a second	%1$s por segundo
 %1$s elapsed	%1$s decorridos
-%1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. Isso foi definido quando você aplicou os patches, então a pausa não pode desativá-lo. Para descartar essa possibilidade, aplique os patches novamente sem esse patch.
-%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s. Esses itens foram definidos quando você aplicou os patches, então a pausa não pode desativá-los. Para descartar um deles, aplique os patches novamente sem o patch entre parênteses depois dele.
 Add a Download button to reels, using your download quality. Off or paused, Facebook's own buttons return.	Adiciona um botão Baixar aos Reels, usando sua qualidade de download. Desativado ou pausado, os botões do próprio Facebook voltam.
 A file named %1$s in %2$s paused Hushfacebook.	Um arquivo chamado %1$s em %2$s pausou o Hushfacebook.
 About	Sobre
 Hides ad cards between people's stories.	Oculta os cartões de anúncio entre os stories das pessoas.
-Ad tracking blocked	Rastreamento de anúncios bloqueado
 Add Download to phone to feed and Watch video menus. Uses the quality below. Off or paused, Facebook's menu returns.	Adiciona “Baixar no celular” aos menus de vídeo do feed e do Watch. Usa a qualidade abaixo. Desativado ou pausado, o menu do Facebook volta a ser exibido.
 Add Save to every story menu, using your download quality. Off or paused, Facebook only saves your own stories.	Adiciona Salvar ao menu de todos os Stories, usando sua qualidade de download. Desativado ou pausado, o Facebook salva apenas os seus próprios Stories.
+# context: switch title on the Stories page, under Save any story; offers the Save photo menu item on more stories than before
+Save photo on more stories	Salvar foto em mais Stories
+# context: summary of that switch; "Save photo" is the menu item's name, keep it as translated for that item; the cover picture is the still image shown before a video plays
+Adds Save photo to any story that carries a picture beside its video, like a photo story with music that Facebook didn't mark as one. On a video story it saves the cover picture. Off by default, since it hasn't been tried on a real account yet.	Adiciona Salvar foto a qualquer Story que traga uma imagem ao lado do vídeo, como um Story de foto com música que o Facebook não marcou como tal. Em um Story de vídeo, salva a imagem de capa. Desligado por padrão, porque ainda não foi testado em uma conta real.
 Hides ads in Reels, starting with the next batch Facebook loads. Banner ads, mid-video ads and other ads added by the app stay blocked even while paused.	Oculta anúncios nos Reels, a partir do próximo lote que o Facebook carregar. Banners, anúncios no meio do vídeo e outros anúncios inseridos pelo app continuam bloqueados mesmo em pausa.
 AMOLED black theme	Tema preto AMOLED
 Appearance	Aparência
-Audience Network off	Audience Network desativado
 Back	Voltar
-Ads aren't downloaded in advance	Os anúncios não são baixados antes da hora
 Cancel	Cancelar
 Cancel saving this photo	Cancelar o salvamento desta foto
 Cancel saving this video	Cancelar o salvamento deste vídeo
@@ -90,8 +89,12 @@ Until you resume, every switch but Debug logging and Lock Facebook acts as if it
 Shows your phone's own emoji instead of Facebook's. Reactions and stickers don't change. Restart Facebook to see the change.	Mostra os emojis do próprio celular em vez dos do Facebook. Reações e figurinhas não mudam. Reinicie o Facebook para ver a mudança.
 # context: switch title under Appearance; the tab bar is Facebook's row of tabs, Home, Video, Marketplace and the rest
 Tab bar at the bottom	Barra de abas embaixo
+# context: switch title under Appearance, next to Tab bar at the bottom; puts Facebook's row of tabs at the top of the screen
+Tab bar at the top	Barra de abas no alto
 # context: description of that switch; Facebook shows the tab bar at the top of the screen on some accounts and at the bottom on others
 Moves Facebook's tab bar to the bottom, within thumb reach, on accounts that show it at the top. Restart Facebook to see the change.	Move a barra de abas do Facebook para baixo, ao alcance do polegar, nas contas que a mostram no alto. Reinicie o Facebook para ver a mudança.
+# context: summary of that switch; the search row is the top bar with the Facebook logo, search and Messenger
+Moves Facebook's tab bar to the top, under the search row, as older Facebook had it. Restart Facebook to see the change.	Move a barra de abas do Facebook para o alto, abaixo da linha de busca, como no Facebook antigo. Reinicie o Facebook para ver a mudança.
 # context: switch title under Appearance, right after Tab bar at the bottom; the bar slides off the screen while you scroll the feed down
 Hide the tab bar while scrolling	Ocultar a barra de abas ao rolar
 # context: description of that switch; it does nothing while the tab bar is at the top of the screen
@@ -104,6 +107,14 @@ The bottom tab bar stays put while you scroll, on accounts where Facebook slides
 Keep the top bar on screen	Manter a barra superior na tela
 # context: description of that switch
 The top bar with search and Messenger stays put while you scroll down, instead of sliding away.	A barra superior com a busca e o Messenger fica parada quando você rola para baixo, em vez de sumir.
+# context: switch title under Appearance, after Keep the top bar on screen; a big screen is a tablet or the inner screen of a folding phone, and the phone layout is the one Facebook shows on a normal phone
+Phone layout on big screens	Layout de celular em telas grandes
+# context: description of that switch; on a big screen Facebook keeps the tab bar at the top in a wider layout, so the tab bar switches above it do nothing there
+A tablet or an unfolded phone gets the layout Facebook uses on a phone, so the tab bar switches above work on the big screen too. Facebook's wider big screen layout goes away. Off by default, since it hasn't been tried on a big screen yet. Restart Facebook to see the change.	Um tablet ou um celular dobrável aberto recebe o layout que o Facebook usa no celular, assim as opções da barra de abas acima também funcionam na tela grande. O layout mais largo do Facebook para telas grandes some. Desligado por padrão, porque ainda não foi testado em uma tela grande. Reinicie o Facebook para ver a mudança.
+# context: switch title under Appearance, after Phone layout on big screens; it makes Facebook's top bar (search and Messenger) and its tab bar partly transparent
+See-through bars	Barras transparentes
+# context: description of that switch; the feed is the list of posts on Home, and blurred means frosted like glass
+The top bar and the tab bar turn see-through, so the feed shows through them as you scroll. On Android 12 and newer the feed behind them is blurred.	A barra superior e a barra de abas ficam transparentes, então o feed aparece por trás delas enquanto você rola. No Android 12 ou mais recente, o feed atrás delas fica desfocado.
 # context: switch title under Appearance; it keeps Facebook's dark mode on whatever Facebook's own Dark mode setting says
 Force dark mode	Forçar modo escuro
 # context: description of that switch; on some tablets Facebook's own Settings page has no Dark mode row
@@ -159,7 +170,7 @@ Hides paid ads in the feed. They're removed before they appear, so no gap is lef
 Pause Hushfacebook	Pausar o Hushfacebook
 Hides posts Facebook labels as promotions rather than ads.	Oculta publicações que o Facebook classifica como promoções, e não como anúncios.
 Hides posts Facebook adds from people and Pages you don't follow and groups you haven't joined.	Oculta publicações que o Facebook adiciona de pessoas e Páginas que você não segue e de grupos dos quais você não participa.
-Hides posts that Facebook's own detection marks as made with AI. Posts only their creator labeled stay. Untested on a real feed, so it starts off.	Oculta publicações que a detecção do próprio Facebook marca como feitas com IA. As que só o criador marcou continuam. Ainda não testado em um feed real, por isso começa desligado.
+Hides posts that Facebook's own detection marks as made with AI. Posts only their creator labeled stay. Off by default, since it hasn't been tried on a real feed yet.	Oculta publicações que a detecção do próprio Facebook marca como feitas com IA. As que só o criador marcou continuam. Desligado por padrão, porque ainda não foi testado em um feed real.
 On a patched Facebook, profiles, photos, posts and some Settings pages wouldn't open. This fixes that.	Em um Facebook com patch, perfis, fotos, publicações e algumas páginas de Configurações não abririam. Isto resolve o problema.
 Profiles, photos and posts won't open	Perfis, fotos e publicações não vão abrir
 Patch again with %1$s selected. A patched Facebook needs it to open profiles, photos, posts and some of Facebook's Settings pages.	Aplique o patch de novo com %1$s selecionado. Um Facebook com patch precisa dele para abrir perfis, fotos, publicações e algumas páginas de Configurações do Facebook.
@@ -233,17 +244,9 @@ That settings file holds a value Hushfacebook can't read. Nothing was changed.	E
 The word lists in that file are longer than the two lists have room for. Nothing was changed.	As listas de palavras desse arquivo ocupam mais espaço do que as duas listas têm. Nada foi alterado.
 That settings file is damaged or only partly downloaded. Nothing was changed.	Esse arquivo de configurações está corrompido ou foi baixado apenas parcialmente. Nada foi alterado.
 That settings file was written by a newer Hushfacebook than this one. Nothing was changed.	Esse arquivo de configurações foi criado por uma versão do Hushfacebook mais nova que esta. Nada foi alterado.
-the Audience Network block	o bloqueio do Audience Network
-the black background in dark mode	o fundo preto do modo escuro
-the block on downloading ads in the background	o bloqueio do download de anúncios em segundo plano
-the block on reports of ad screenshots and app installs	o bloqueio dos relatórios sobre capturas de tela de anúncios e apps instalados
 The diagnostic report couldn't be saved yet. Try again in a moment.	O relatório de diagnóstico ainda não pôde ser salvo. Tente de novo em instantes.
 The diagnostic report couldn't be saved. Try again.	Não foi possível salvar o relatório de diagnóstico. Tente de novo.
 The file %1$s couldn't be removed. Delete it from %2$s to turn Hushfacebook back on.	Não foi possível remover o arquivo %1$s. Exclua-o de %2$s para reativar o Hushfacebook.
-the part of the Reels ad blocking built in when you patched	a parte do bloqueio de anúncios dos Reels incluída ao aplicar o patch
-the re-signed build fix	a correção para versão reassinada
-the start-up fix for x86 devices	a correção de inicialização para dispositivos x86
-the recolored dark mode	a nova coloração do modo escuro
 Hides friend suggestions between posts and on your own profile.	Oculta sugestões de amizade entre publicações e no seu próprio perfil.
 Hides the row of stories at the top of the feed, including Create story.	Oculta a fileira de stories no topo do feed, incluindo Criar story.
 Hides rows of reels between posts, and the reels Facebook adds where your feed ends.	Oculta fileiras de reels entre as publicações e os reels que o Facebook adiciona no fim do seu feed.
@@ -267,7 +270,7 @@ No time limit	Sem limite de tempo
 With the switch above on, your place stays however long you're away. Pull to refresh and a fresh start still load new posts.	Com a opção acima ativada, você continua no ponto em que estava, não importa quanto tempo fique fora. Puxar para atualizar e iniciar o Facebook novamente continuam carregando novas publicações.
 A finished story stays on screen until you tap or swipe. Turn this off for Facebook's timing.	Um Story concluído permanece na tela até você tocar ou deslizar. Desative esta opção para usar a duração padrão do Facebook.
 View stories anonymously	Ver Stories anonimamente
-Facebook isn't told which stories you watch, so you stay off their viewer lists. Replying or reacting still shows you, and stories you've watched keep their unwatched ring.	O Facebook não fica sabendo quais Stories você assiste, então você fica fora das listas de quem viu. Responder ou reagir ainda mostra você, e Stories que você já viu continuam com o anel de não vistos.
+Facebook isn't told which stories you watch, so you stay off their viewer lists. Replying or reacting still shows you. Stories you watch to the end show as watched on this phone only, until that person posts a new one.	O Facebook não fica sabendo quais Stories você assiste, então você fica fora das listas de quem viu. Responder ou reagir ainda mostra você. Stories que você assiste até o fim aparecem como vistos só neste celular, até a pessoa postar um novo.
 Stop Story auto-advance	Desativar avanço automático dos Stories
 Copy a short report to the clipboard.	Copie um relatório curto para a área de transferência.
 Save the full report in Download/Hushfacebook.	Salve o relatório completo em Download/Hushfacebook.
@@ -281,7 +284,7 @@ The Follow button next to the reel's author. You can still follow them from thei
 Hide comment and reaction previews	Ocultar prévias de comentários e reações
 The comment Facebook previews under a reel and the bubbles of friends who reacted. Open the comments to see them all.	O comentário que o Facebook mostra como prévia abaixo de um Reel e as bolhas dos amigos que reagiram. Abra os comentários para ver todos.
 Hide Threads cards between reels	Ocultar cartões do Threads entre os reels
-Hides the "Threads you might like" card between reels. Untested on a real account, so it starts off.	Oculta o cartão “Threads que você talvez curta” entre os reels. Ainda não testado em uma conta real, por isso começa desligado.
+Hides the "Threads you might like" card between reels. Off by default, since it hasn't been tried on a real account yet.	Oculta o cartão “Threads que você talvez curta” entre os reels. Desligado por padrão, porque ainda não foi testado em uma conta real.
 Download quality	Qualidade do download
 Best	A melhor
 Smallest	A menor
@@ -309,7 +312,7 @@ Pause, backup and diagnostics	Pausa, backup e diagnóstico
 Updates	Atualizações
 Stop update prompts	Parar os avisos de atualização
 Stops update nagging through Meta App Manager and hides chat promotions for older versions. A patched Facebook can't use Meta's updates anyway.	Para os avisos de atualização do Meta App Manager e oculta as promoções do chat para versões antigas. Um Facebook com patch não consegue usar as atualizações da Meta.
-Hides reels and Watch videos that Facebook marks as made with AI. Ones only their creator labeled stay. Untested on a real account, so it starts off.	Oculta reels e vídeos do Watch que o Facebook marca como feitos com IA. Os que só o criador marcou continuam. Ainda não testado em uma conta real, por isso começa desligado.
+Hides reels and Watch videos that Facebook marks as made with AI. Ones only their creator labeled stay. Off by default, since it hasn't been tried on a real account yet.	Oculta reels e vídeos do Watch que o Facebook marca como feitos com IA. Os que só o criador marcou continuam. Desligado por padrão, porque ainda não foi testado em uma conta real.
 Don't send reel watch history	Não enviar o histórico de Reels assistidos
 Hold back analytics uploads	Segurar envios de análises
 Stops Facebook sending usage statistics in the background and running its on-phone learning tasks. Restart Facebook to see the change.	O Facebook deixa de enviar estatísticas de uso em segundo plano e de executar suas tarefas de aprendizado no celular. Reinicie o Facebook para ver a mudança.
@@ -332,9 +335,7 @@ Hide read receipts	Ocultar confirmações de leitura
 People you chat with in Facebook's own chats can't see that you've read their messages. The chat can stay unread on this phone.	Quem conversa com você nas conversas do próprio Facebook não vê que você leu as mensagens. A conversa pode continuar como não lida neste celular.
 Facebook can't tell when you take a screenshot or record your screen, so it can't react.	O Facebook não percebe quando você tira uma captura de tela ou grava a tela, então não consegue reagir.
 Stops sending Facebook your list of watched reels. It uses the list to rank your feed, so reels you've watched may come back.	Deixa de enviar ao Facebook a lista de reels que você assistiu. Ele usa essa lista para ordenar seu feed, então reels já vistos podem voltar.
-the new names for shared permissions	os novos nomes das permissões compartilhadas
 # context: what stays in while Hushfacebook is paused, shown before the patch's name in brackets; the patch raises the app's version number so Google Play never offers an update
-the version number Google Play sees	o número de versão que o Google Play vê
 Meta's apps can install beside this one	Os apps da Meta podem ser instalados junto
 Messenger, Facebook Lite, Business Suite and Workplace can install next to this Facebook. Their shared permissions no longer clash.	Messenger, Facebook Lite, Business Suite e Workplace podem ser instalados junto com este Facebook. As permissões que eles dividem não entram mais em conflito.
 Opening Facebook	Ao abrir o Facebook
@@ -346,6 +347,8 @@ Feeds	Feeds
 Video	Vídeo
 Friends	Amigos
 Marketplace	Marketplace
+# context: a tab's name, as Facebook's tab bar shows it; the list of tabs Facebook can open on
+Events	Eventos
 Notifications	Notificações
 Menu	Menu
 Facebook opens on %1$s. If your tab bar doesn't have it, Facebook opens on Home.	O Facebook abre em %1$s. Se essa aba não estiver na sua barra de abas, o Facebook abrirá na Página inicial.
@@ -384,11 +387,13 @@ Tapping the Messenger icon at the top of Facebook opens the Messenger app instea
 # context: switch title under Chats; on, Facebook leaves ringing for calls and notifying about chats to the Messenger app
 Leave calls and chats to Messenger	Deixar chamadas e conversas com o Messenger
 # context: summary of that switch; signed out means not logged in to the Messenger app, turned off means the app is disabled in Android's settings
-Facebook stops ringing for calls and notifying you about chats while Messenger is installed, so only Messenger does. Without Messenger, or with it turned off, Facebook rings and notifies as before. If you're signed out of Messenger, you'll miss calls and messages.	O Facebook para de tocar nas chamadas e de avisar sobre conversas enquanto o Messenger estiver instalado, então só o Messenger faz isso. Sem o Messenger, ou com ele desativado, o Facebook toca e avisa como antes. Se você estiver desconectado do Messenger, vai perder chamadas e mensagens.
+Facebook leaves calls and chat notifications to Messenger while Messenger is installed and enabled. Restart Facebook after changing this switch, or after installing, removing, enabling or disabling Messenger, so call routing updates. If you're signed out of Messenger, you'll miss calls and messages.	O Facebook deixa as chamadas e notificações de conversas para o Messenger enquanto ele estiver instalado e ativado. Reinicie o Facebook depois de mudar este botão ou de instalar, remover, ativar ou desativar o Messenger para atualizar o encaminhamento de chamadas. Se você estiver desconectado do Messenger, vai perder chamadas e mensagens.
 Playback	Reprodução
 Tap to play	Tocar para reproduzir
 Videos, reels, stories and music wait for your tap instead of playing by themselves. Facebook's own Autoplay setting shows Off while this is on.	Vídeos, reels, stories e músicas esperam o seu toque, em vez de tocar sozinhos. A configuração Reprodução automática do próprio Facebook mostra Desativada enquanto isto estiver ligado.
 Marketplace only	Só Marketplace
+# context: switch title under Opening Facebook, next to Marketplace only; Events is Facebook's tab and keeps its name
+Events only	Só Eventos
 Hide Upgrades	Ocultar “Upgrades”
 The Upgrades section and its offers leave Facebook's Menu. Settings, Help and support and the rest of the Menu stay.	A seção “Upgrades” e suas ofertas são removidas do Menu do Facebook. Configurações, Ajuda e suporte e o restante do Menu permanecem.
 Hide Also from Meta	Ocultar “Também da Meta”
@@ -417,6 +422,10 @@ The comment box loses its GIF and sticker buttons. Typing, photos and posting wo
 Open every reply thread	Abrir todas as respostas
 # context: summary of that switch; View replies is the link Facebook shows under a comment that has replies
 Comments show their replies right away, so there's no View replies to tap.	Os comentários mostram as respostas na hora, sem precisar tocar em Ver respostas.
+# context: switch title under Comments; it makes an open reply thread load the rest of its replies by itself as the list is scrolled
+Load whole reply threads	Carregar respostas por completo
+# context: summary of that switch; View more replies is the row Facebook shows under an open thread that has more replies to load
+An open reply thread keeps loading as you scroll, so there's no View more replies to tap.	Uma conversa aberta continua carregando as respostas enquanto você rola, sem precisar tocar para ver mais.
 Hide related groups	Ocultar grupos relacionados
 A group post's comments end without the Related groups list and its Join buttons.	Os comentários de uma publicação de grupo terminam sem a lista Grupos relacionados e seus botões Participar.
 # context: row title under Comments that opens Facebook's own settings; reaction counts are the numbers next to the reactions on a post
@@ -438,7 +447,6 @@ Hide sponsored search results	Ocultar resultados de pesquisa patrocinados
 Hides ads between your search results. The results you searched for stay.	Oculta os anúncios entre os resultados da sua pesquisa. Os resultados que você procurou continuam.
 Hide sponsored profile posts	Ocultar publicações patrocinadas em perfis
 Hides ads between posts on someone's profile or a Page. Their own posts stay.	Oculta os anúncios entre as publicações no perfil de alguém ou em uma Página. As publicações deles continuam.
-the settings row in Facebook's Menu	a linha de configurações no Menu do Facebook
 Hushfacebook settings can't open here. Long-press the Facebook logo instead.	As configurações do Hushfacebook não podem ser abertas aqui. Toque e segure o logotipo do Facebook.
 Hide suggested groups	Ocultar grupos sugeridos
 Hides the row of groups to join between posts. Posts from groups you're in stay.	Oculta a fileira de grupos para participar entre as publicações. As publicações dos grupos dos quais você participa continuam.
@@ -446,9 +454,13 @@ Hide "Stories you might like"	Ocultar “Stories que você talvez curta”
 Hide Memories in the feed	Ocultar lembranças no feed
 Hide friend requests in the feed	Ocultar solicitações de amizade no feed
 Hide friends' locations	Ocultar localização de amigos
+# context: switch title under News feed, part of Hide suggested and promoted posts; a post opened by tapping a notification
+Hide more posts under notification posts	Ocultar mais publicações abaixo de publicações de notificações
 Hides Memories between posts, like "On this day" and friendship anniversaries. Your Memories page stays.	Oculta lembranças entre as publicações, como “Neste dia” e aniversários de amizade. Sua página de Lembranças continua.
 Hides friend requests shown between posts. Your requests stay under Friends.	Oculta os pedidos de amizade exibidos entre as publicações. Seus pedidos continuam em Amigos.
 Hides the card between posts that shows where your friends are.	Oculta o cartão entre as publicações que mostra onde seus amigos estão.
+# context: summary of that switch; "More from your friends" is the heading Facebook shows over that list
+A post you open from a notification ends without the "More from your friends" list Facebook adds under it, which can carry ads.	Uma publicação que você abre a partir de uma notificação termina sem a lista "Mais dos seus amigos" que o Facebook adiciona abaixo dela, que pode conter anúncios.
 Hides the row of Stories from people you aren't connected to, between posts. Your friends' Stories and the Stories tray stay.	Oculta a fileira de stories de pessoas com quem você não tem conexão, entre as publicações. Os stories dos seus amigos e a bandeja de stories continuam.
 Block trending video notifications	Bloquear notificações de vídeos em alta
 Trending videos and the reels Facebook picked for you stop showing up in your notifications.	Vídeos em alta e os Reels que o Facebook selecionou para você deixam de aparecer nas notificações.
@@ -545,28 +557,44 @@ Also hide posts labeled as AI	Ocultar também publicações marcadas como IA
 Hide Meta AI in the feed	Ocultar a Meta AI no feed
 Hides Meta AI cards between posts and cards promoting the Vibes app. People's posts stay, whatever they say about AI.	Oculta os cartões da Meta AI entre as publicações e os que divulgam o app Vibes. As publicações das pessoas continuam, não importa o que digam sobre IA.
 Hide AI character posts	Ocultar publicações com personagens de IA
-Hides posts featuring Meta's AI characters, the chatbots people make with Meta AI Studio. Untested on a real feed, so it starts off.	Oculta publicações com personagens de IA da Meta, os chatbots que as pessoas criam com o Meta AI Studio. Ainda não testado em um feed real, por isso começa desligado.
-Also hides posts their creator labeled as made with AI, not just the ones Facebook detects itself. Untested on a real feed, so it starts off.	Oculta também as publicações que o criador marcou como feitas com IA, e não só as que o Facebook detecta. Ainda não testado em um feed real, por isso começa desligado.
+Hides posts featuring Meta's AI characters, the chatbots people make with Meta AI Studio. Off by default, since it hasn't been tried on a real feed yet.	Oculta publicações com personagens de IA da Meta, os chatbots que as pessoas criam com o Meta AI Studio. Desligado por padrão, porque ainda não foi testado em um feed real.
+Also hides posts their creator labeled as made with AI, not just the ones Facebook detects itself. Off by default, since it hasn't been tried on a real feed yet.	Oculta também as publicações que o criador marcou como feitas com IA, e não só as que o Facebook detecta. Desligado por padrão, porque ainda não foi testado em um feed real.
 Return to regular Facebook	Voltar ao Facebook normal
 Restore the normal tabs at the next restart. Your other settings stay saved.	Restaura as abas normais ao reiniciar. Suas outras configurações são mantidas.
-Marketplace only is off. Restart Facebook to restore its normal tabs.	O modo Marketplace está desativado. Reinicie o Facebook para restaurar as abas normais.
+Marketplace only and Events only are off. Restart Facebook to restore its normal tabs.	Os modos Marketplace e Eventos estão desativados. Reinicie o Facebook para restaurar as abas normais.
 Couldn't save the change. Try again.	Não foi possível salvar a alteração. Tente novamente.
 Marketplace only chooses the opening tab. Your previous choice stays saved.	O modo Marketplace define a aba inicial. Sua escolha anterior é mantida.
+# context: summary of the tab rows under Opening Facebook while Events only is on
+Events only chooses the opening tab. Your previous choice stays saved.	O modo Eventos define a aba inicial. Sua escolha anterior é mantida.
 Restart needed. Marketplace only will turn on the next time Facebook starts.	É preciso reiniciar. O modo Marketplace será ativado na próxima vez que o Facebook for iniciado.
+# context: status line under the Events only switch
+Restart needed. Events only will turn on the next time Facebook starts.	É preciso reiniciar. O modo Eventos será ativado na próxima vez que o Facebook for iniciado.
 Restart needed. The normal tabs will return the next time Facebook starts.	É preciso reiniciar. As abas normais voltarão na próxima vez que o Facebook for iniciado.
 Marketplace is hidden in Facebook's tab settings. Show it under Settings, Tab bar, Customize the bar. Your normal tabs stay available.	O Marketplace está oculto nas configurações de abas do Facebook. Exiba em Configurações, Barra de abas, Personalizar a barra. Suas abas normais continuam disponíveis.
+# context: status line under the Events only switch; Settings, Tab bar and Customize the bar are Facebook's own names
+Events is hidden in Facebook's tab settings. Pin it under Settings, Tab bar, Customize the bar. Your normal tabs stay available.	Eventos está oculto nas configurações de abas do Facebook. Fixe em Configurações, Barra de abas, Personalizar a barra. Suas abas normais continuam disponíveis.
 Marketplace unavailable. Facebook hasn't supplied a Marketplace tab for this account. Your normal tabs stay available.	Marketplace indisponível. O Facebook não forneceu uma aba do Marketplace para esta conta. Suas abas normais continuam disponíveis.
+# context: status line under the Events only switch
+Events isn't on your tab bar. Pin it under Settings, Tab bar, Customize the bar, then restart Facebook. Your normal tabs stay available.	Eventos não está na sua barra de abas. Fixe em Configurações, Barra de abas, Personalizar a barra e reinicie o Facebook. Suas abas normais continuam disponíveis.
 Couldn't check the tab bar. Your normal tabs stay available. Restart Facebook to try again.	Não foi possível verificar a barra de abas. Suas abas normais continuam disponíveis. Reinicie o Facebook para tentar novamente.
 Waiting for Facebook's tab bar. Marketplace only will apply when Facebook builds it.	Aguardando a barra de abas do Facebook. O modo Marketplace será aplicado quando o Facebook a criar.
+# context: status line under the Events only switch
+Waiting for Facebook's tab bar. Events only will apply when Facebook builds it.	Aguardando a barra de abas do Facebook. O modo Eventos será aplicado quando o Facebook a criar.
 Off. Turn on to open Marketplace and hide the feed and other social tabs after restarting Facebook.	Desativado. Ative para abrir o Marketplace e ocultar o feed e outras abas sociais após reiniciar o Facebook.
+# context: status line under the Events only switch
+Off. Turn on to open Events and hide the feed and other social tabs after restarting Facebook.	Desativado. Ative para abrir Eventos e ocultar o feed e outras abas sociais após reiniciar o Facebook.
 Quiet social notifications	Silenciar notificações sociais
 Skip feed preloading	Ignorar o pré-carregamento do feed
-Marketplace only is off.	O modo Marketplace está desativado.
+Marketplace only and Events only are off.	Os modos Marketplace e Eventos estão desativados.
 Paused with Hushfacebook. Your Marketplace choice stays saved. Tabs already hidden return after a restart while paused.	Pausado com o Hushfacebook. Sua escolha do Marketplace é mantida. As abas ocultas voltam após reiniciar enquanto o Hushfacebook estiver pausado.
+# context: status line under the Events only switch
+Paused with Hushfacebook. Your Events choice stays saved. Tabs already hidden return after a restart while paused.	Pausado com o Hushfacebook. Sua escolha de Eventos é mantida. As abas ocultas voltam após reiniciar enquanto o Hushfacebook estiver pausado.
 While Marketplace only is on, silences video suggestions, memories, birthdays and friend suggestions. Messages and trading updates still arrive.	Enquanto o modo Marketplace está ligado, silencia sugestões de vídeos, lembranças, aniversários e sugestões de amizade. Mensagens e novidades de compra e venda continuam chegando.
 While Marketplace only is on, loads less of the feed in the background. Some loading still happens at startup.	Enquanto o modo Marketplace está ligado, carrega menos do feed em segundo plano. Ainda há algum carregamento ao abrir.
 Active. Marketplace, Notifications and Profile/Menu stay. Find Hushfacebook settings in Menu, under Settings and privacy.	Ativo. Marketplace, Notificações e Perfil/Menu são mantidos. As configurações do Hushfacebook ficam no Menu, em Configurações e privacidade.
-Marketplace only and your start tab	Modo Marketplace e aba inicial
+# context: status line under the Events only switch; Menu is Facebook's tab
+Active. Events, Notifications and Profile/Menu stay. Find Hushfacebook settings in Menu, under Settings and privacy.	Ativo. Eventos, Notificações e Perfil/Menu são mantidos. As configurações do Hushfacebook ficam no Menu, em Configurações e privacidade.
+Marketplace only, Events only and your start tab	Modo Marketplace, modo Eventos e aba inicial
 Ads, suggestions and word filters	Anúncios, sugestões e filtros de palavras
 Suggestions, saving, auto-advance and viewing anonymously	Sugestões, salvamento, avanço automático e visualização anônima
 Cleaner reels and video controls	Reels mais limpos e controles de vídeo
@@ -844,7 +872,7 @@ Adds Watch history, the videos and reels you've watched, to the menu you get by 
 Adds Watch history, the videos and reels you've watched, to the menu you get by holding Facebook's icon, if there's room. Existing shortcuts stay.	Adiciona Histórico de vídeos, os vídeos e Reels que você assistiu, ao menu que aparece ao segurar o ícone do Facebook, se houver espaço. Os atalhos existentes ficam.
 # context: The optional matching mode for both post word lists.
 Match whole words	Corresponder palavras inteiras
-Matches whole words only, in both lists. For example, hat matches hat! but not what or hats.	Combina apenas palavras inteiras, nas duas listas. Por exemplo, hat combina com hat! mas não com what nem hats.
+Matches whole words only, in both lists. For example, "hat" matches "hat!" but not "what" or "hats".	Combina apenas palavras inteiras, nas duas listas. Por exemplo, "hat" combina com "hat!" mas não com "what" nem "hats".
 Off	Desativado
 On	Ativado
 Saved now %1$s. After import %2$s.	Salvo agora %1$s. Após importar %2$s.
@@ -860,7 +888,7 @@ Stops the small vibrations Facebook makes when you tap or swipe. Your keyboard a
 Turn off screen transitions	Desativar as transições de tela
 Tabs, the Menu and screens that open over Facebook appear at once instead of sliding in. Swiping between tabs still works.	As abas, o Menu e as telas que abrem sobre o Facebook aparecem na hora, sem deslizar. Deslizar entre abas continua funcionando.
 Unlock app icons	Desbloquear ícones do app
-Lets you pick the app icons Facebook keeps for Facebook Plus, on Facebook's App icon page. The Pick an app icon row opens that page. Your pick stays if you turn this off, so pick the blue one first to go back.	Permite escolher os ícones que o Facebook reserva para o Facebook Plus, na página Ícone do app do Facebook. A linha Escolher um ícone do app abre essa página. Sua escolha continua se você desativar isto, então escolha o azul antes para voltar.
+Lets you pick the app icons Facebook keeps for Facebook Plus, on Facebook's App icon page. The Pick an app icon row opens that page. Your pick also replaces the Facebook wordmark at the top of Home. Your pick stays if you turn this off, so pick the blue one first to go back.	Permite escolher os ícones que o Facebook reserva para o Facebook Plus, na página Ícone do app do Facebook. A linha Escolher um ícone do app abre essa página. Sua escolha também substitui o logotipo do Facebook na parte superior da Página inicial. Sua escolha continua se você desativar isto, então escolha o azul antes para voltar.
 # context: settings row under Appearance, right below the Unlock app icons switch; opens Facebook's own App icon page, so use Facebook's name for that page in this language
 Pick an app icon	Escolher um ícone do app
 Opens Facebook's App icon page, even on accounts where Facebook doesn't list it in Settings and privacy.	Abre a página Ícone do app do Facebook, mesmo em contas em que o Facebook não a mostra em Configurações e privacidade.
@@ -874,6 +902,14 @@ A playing reel or full-screen video keeps going in a small window when you leave
 Turn off HDR brightness	Desativar o brilho HDR
 # context: summary of that switch
 HDR videos and photos stay at your screen's usual brightness instead of turning it up to full. They keep their resolution.	Vídeos e fotos HDR ficam no brilho de sempre da sua tela em vez de aumentá-lo ao máximo. Eles mantêm a resolução.
+# context: switch title under Playback, below Turn off HDR brightness; when a video comes in both HDR and SDR, the SDR copy plays. Keep HDR and SDR as they are
+Play SDR versions of HDR videos	Reproduzir versões SDR de vídeos HDR
+# context: summary of that switch; "the same size" means the same resolution; "the switch above" is Turn off HDR brightness
+When Facebook also sends an HDR video in SDR at the same size, play that version instead. The screen doesn't brighten and the picture stays as sharp. Works with the switch above on or off.	Quando o Facebook também envia um vídeo HDR em SDR no mesmo tamanho, essa versão é reproduzida. A tela não fica mais clara e a imagem continua igualmente nítida. Funciona com a opção acima ativada ou desativada.
+# context: switch title under Playback; it makes videos play past the silent stretches of their sound
+Skip silent parts	Pular partes em silêncio
+# context: summary of that switch; how-tos are tutorial videos
+Videos, reels and stories jump past the quiet stretches in their sound, so talks and how-tos get to the point sooner.	Vídeos, Reels e Stories pulam os trechos em silêncio do áudio, então palestras e tutoriais chegam mais rápido ao ponto.
 # context: switch title under Playback; keeps a video's progress bar (the line showing how far it has played) on screen
 Keep the progress bar	Manter a barra de progresso
 # context: summary of that switch; a reel is a short vertical video
@@ -902,11 +938,15 @@ Hides the "What's on your mind?" row at the top of Home. The create button in th
 # context: switch title under Reels and Watch; Clean mode is Facebook's own three-dot menu item on a reel or video that hides the buttons down the side, so use Facebook's name for it in this language (#75)
 Always use Clean mode	Sempre usar o modo limpo
 # context: summary of that switch; "the usual way" means Facebook's own way out of Clean mode
-Opens reels and videos in Facebook's Clean mode, which hides the buttons down the side. You can still leave Clean mode as usual. Untested on a real account, so it starts off.	Abre reels e vídeos no modo limpo do Facebook, que esconde os botões da lateral. Você ainda pode sair do modo limpo como de costume. Ainda não testado em uma conta real, por isso começa desligado.
+Opens reels and videos in Facebook's Clean mode, which hides the buttons down the side. You can still leave Clean mode as usual. Off by default, since it hasn't been tried on a real account yet.	Abre reels e vídeos no modo limpo do Facebook, que esconde os botões da lateral. Você ainda pode sair do modo limpo como de costume. Desligado por padrão, porque ainda não foi testado em uma conta real.
 # context: switch title under Reels and Watch, part of Clean up Reels; each reel plays to its end one time and stops there instead of starting over
 Play reels once	Reproduzir reels uma vez
 # context: summary of that switch; "last frame" is the final picture of the video, which stays on screen
-A reel stops on its last frame instead of starting over. Tap it to watch again, or swipe to the next one. Feed videos and stories aren't changed. Untested on a real account, so it starts off.	Um reel para no último quadro em vez de recomeçar. Toque nele para assistir de novo ou deslize para o próximo. Vídeos do feed e stories não mudam. Ainda não testado em uma conta real, por isso começa desligado.
+A reel stops on its last frame instead of starting over. Tap it to watch again, or swipe to the next one. Feed videos and stories aren't changed. Off by default, since it hasn't been tried on a real account yet.	Um reel para no último quadro em vez de recomeçar. Toque nele para assistir de novo ou deslize para o próximo. Vídeos do feed e stories não mudam. Desligado por padrão, porque ainda não foi testado em uma conta real.
+# context: switch title under Reels and Watch, part of Clean up Reels; reels and videos play in the language they were recorded in instead of an audio track Facebook translated
+Keep the original audio	Manter o áudio original
+# context: summary of that switch; "dubbed" means the spoken audio was replaced by a translated voice; Meta AI is the company's AI assistant, keep the name
+Reels and videos play with the sound they were made with, not a version Facebook dubbed into your language with Meta AI. Off by default, since it hasn't been tried on a real account yet.	Reels e vídeos tocam com o som com que foram feitos, não com uma versão que o Facebook dublou para o seu idioma com a Meta AI. Desligado por padrão, porque ainda não foi testado em uma conta real.
 # context: settings section title on the App page, above the switches of Hide Meta upsells; Meta is the company
 Meta's other products	Outros produtos da Meta
 # context: switch title; Edits is Meta's video editing app, keep its name
@@ -1016,7 +1056,7 @@ Posts and reel captions stay in the language they were written in. Facebook's Se
 # context: switch title under Reels and Watch, below Keep the reel speed; it keeps a playback speed picked on a feed or Watch video for the next videos
 Keep the video speed	Manter a velocidade dos vídeos
 # context: description of that switch; the gear menu is the settings button on a video's player, where Playback speed is picked
-The speed you pick in a feed or Watch video's menu carries over to the next videos. Reels keep their own speed. Untested on a real account, so it starts off.	A velocidade que você escolhe no menu de um vídeo do feed ou do Watch vale também para os próximos vídeos. Os reels mantêm a própria velocidade. Ainda não testado em uma conta real, por isso começa desligado.
+The speed you pick in a feed or Watch video's menu carries over to the next videos. Reels keep their own speed. Off by default, since it hasn't been tried on a real account yet.	A velocidade que você escolhe no menu de um vídeo do feed ou do Watch vale também para os próximos vídeos. Os reels mantêm a própria velocidade. Desligado por padrão, porque ainda não foi testado em uma conta real.
 # context: switch title under Downloads, below Download feed and Watch videos; it offers to download a reel or video whose link the user copied
 Offer to download copied links	Oferecer download de links copiados
 # context: description of that switch; Download feed and Watch videos is the name of the switch above it
@@ -1064,7 +1104,7 @@ Hides short posts shown as big text on a colored background.	Oculta publicaçõe
 # context: switch title under News feed: hides posts that share someone else's post, the ones Facebook heads "shared a post"; use Facebook's own word for a shared post in this language
 Hide reposts	Ocultar publicações compartilhadas
 # context: summary of the Hide reposts switch; a caption is what the sharer wrote above the shared post
-Hides posts that share another post, with or without a caption. Original posts stay. Untested on a real feed, so it starts off.	Oculta publicações que compartilham outra publicação, com ou sem legenda. As publicações originais continuam. Ainda não testado em um feed real, por isso começa desligado.
+Hides posts that share another post, with or without a caption. Original posts stay. Off by default, since it hasn't been tried on a real feed yet.	Oculta publicações que compartilham outra publicação, com ou sem legenda. As publicações originais continuam. Desligado por padrão, porque ainda não foi testado em um feed real.
 # context: switch title in Privacy: asks for the phone's own screen lock before Facebook shows
 Lock Facebook	Bloquear o Facebook
 Save crashes to Downloads	Salvar falhas em Downloads
@@ -1198,6 +1238,8 @@ Posts you've scrolled past stay out of the feed when it loads again. The list st
 # context: title of the row under that switch that picks how many days a seen post stays hidden
 Keep seen posts hidden for	Manter publicações vistas ocultas por
 Turn on %1$s to use this.	Ligue %1$s para usar isto.
+# context: added to a greyed-out switch's summary; %1$s is the title of another switch that overrides it while on
+Turn off %1$s to use this.	Desligue %1$s para usar isto.
 # context: choice in that row
 1 day	1 dia
 # context: choice in that row
@@ -1235,7 +1277,7 @@ Share to a group	Compartilhar em um grupo
 Share to a Page	Compartilhar em uma Página
 Copy link	Copiar link
 Share sheet items to hide	Itens ocultos ao compartilhar
-None. The share sheet shows everything Facebook offers.	Nenhum. Ao compartilhar, aparece tudo o que o Facebook oferece.
+None picked yet.	Nada escolhido ainda.
 Hidden: %s	Ocultos: %s
 Hide from the share sheet	Ocultar ao compartilhar
 # context: last item of the opened list of default patches a build lacks, after eight names; the count of patches not named, always 2 or more
@@ -1281,7 +1323,6 @@ Ads downloaded in advance	Anúncios baixados antes da hora
 # context: a line of that list: Facebook's reports used to target ads
 Ad tracking	Rastreamento de anúncios
 # context: a line of that list: ads Facebook serves inside other apps on the phone (Audience Network)
-Facebook's ads in other apps	Anúncios do Facebook em outros apps
 # context: added to that line's summary: what blocking it does to those other apps; rewarded ads give a reward for watching
 Those apps show their own ads or none, and their rewarded ads may fail.	Esses apps mostram os próprios anúncios ou nenhum, e os anúncios com recompensa deles podem falhar.
 # context: a line of that list: the usage statistics Facebook uploads in the background
@@ -1345,6 +1386,8 @@ Restart Facebook to apply this change	Reinicie o Facebook para aplicar esta alte
 Restart Facebook to apply %1$d changes	Reinicie o Facebook para aplicar %1$d alterações
 # context: summary of that row; after the restart the settings screen opens again on the same page
 Facebook closes and reopens on this page.	O Facebook fecha e reabre nesta página.
+# context: title of the row just above Support at the end of the settings home page; a tap restarts Facebook at any time
+Restart Facebook	Reiniciar o Facebook
 # context: row near the end of the settings home page; opens a new bug report on GitHub
 Report a problem	Relatar um problema
 Opens a GitHub report with your versions and settings filled in. Add what happened.	Abre um relatório no GitHub com suas versões e configurações já preenchidas. Conte o que aconteceu.
@@ -1384,3 +1427,38 @@ Not enough free space to save this. Free some up and try again.	Não há espaço
 Your phone couldn't put this video together. Try another Download quality.	Seu celular não conseguiu montar este vídeo. Tente outra Qualidade do download.
 # context: toast and Last save row: the gallery refused a finished photo or video
 The file couldn't be copied into your phone's gallery. Try again in a moment.	Não deu para copiar o arquivo para a galeria do celular. Tente de novo em instantes.
+# context: title of a switch on the Menu settings page: whether the Hushfacebook settings shortcut shows when you hold Facebook's launcher icon
+Settings shortcut on the app icon	Atalho das configurações no ícone do app
+# context: summary of that switch when the build has the Hushfacebook settings row in Facebook's Settings and privacy
+Puts Hushfacebook settings in the menu you get by holding Facebook's icon. Off, it leaves that menu, and you can still open these settings from the Hushfacebook settings row in Settings and privacy or with a long press on the Facebook logo.	Coloca as Configurações do Hushfacebook no menu que aparece ao segurar o ícone do Facebook. Desligado, o atalho sai desse menu, e você ainda pode abrir estas configurações pela linha Configurações do Hushfacebook em Configurações e privacidade ou tocando e segurando o logotipo do Facebook.
+# context: summary of that switch when the build has no settings row in Facebook's Menu
+Puts Hushfacebook settings in the menu you get by holding Facebook's icon. Off, it leaves that menu, and you can still open these settings with a long press on the Facebook logo.	Coloca as Configurações do Hushfacebook no menu que aparece ao segurar o ícone do Facebook. Desligado, o atalho sai desse menu, e você ainda pode abrir estas configurações tocando e segurando o logotipo do Facebook.
+# context: switch title on the Appearance settings page: hides Facebook Flex's Data mode bar under the top bar; Data mode is Facebook's own name for paid mode on Flex carriers
+Hide the Data mode banner	Ocultar o banner do modo de dados
+# context: switch title on the Appearance settings page: hides Facebook Flex's purple Free mode bar; Free mode is Facebook's own name for the free text-only mode
+Hide the Free mode banner	Ocultar o banner do modo gratuito
+# context: summary of the Hide the Data mode banner switch
+On carriers with Facebook Flex, hides the Data mode bar under the top bar and its button to buy mobile data.	Em operadoras com Facebook Flex, oculta a barra do modo de dados abaixo da barra superior e o botão dela para comprar dados móveis.
+# context: summary of the Hide the Free mode banner switch; the purple bar is also where you switch back to Data mode
+On carriers with Facebook Flex, hides the purple Free mode bar. That bar is also how you go back to Data mode, so turn this off when you want to switch.	Em operadoras com Facebook Flex, oculta a barra roxa do modo gratuito. Essa barra também é o jeito de voltar ao modo de dados, então desligue isto quando quiser trocar.
+# context: switch title under Picture-in-picture on the Playback page: the small window opens only from the Picture-in-picture row this adds to a reel's three-dot More menu, not when you leave Facebook
+Only from a reel's More menu	Só pelo menu de um reel
+# context: summary of that switch; Picture-in-picture is the name of the row in the reel's menu, translated as the row is; the three dots are the reel's own menu button
+Leaving Facebook doesn't open the window. Tap Picture-in-picture in a reel's More menu (the three dots) when you want one. That row is there whenever Picture-in-picture is on.	Sair do Facebook não abre a janela. Toque em Picture-in-picture no menu de um reel (os três pontos) quando quiser uma. Essa opção aparece sempre que Picture-in-picture está ligado.
+# context: switch title under Stories; it makes videos you post to your own Story ask for high quality when they upload
+Upload Stories in HD	Enviar Stories em HD
+# context: summary of that switch; standard is the normal upload quality, high the better one
+Videos you post to your Story ask Facebook for its high upload quality instead of standard. Applies to the next Story you post.	Vídeos que você posta no seu Story pedem ao Facebook a qualidade de envio alta em vez da padrão. Vale a partir do próximo Story que você postar.
+No ads downloaded in advance	Sem anúncios baixados antes da hora
+No ad tracking	Sem rastreamento de anúncios
+No Facebook ads in other apps	Sem anúncios do Facebook em outros apps
+Facebook ads in other apps	Anúncios do Facebook em outros apps
+Part of the Reels ad blocking	Parte do bloqueio de anúncios nos Reels
+Start-up fix for x86 phones	Correção de inicialização para celulares x86
+Version number Google Play sees	Número de versão que o Google Play vê
+Hushfacebook in the Menu	Hushfacebook no Menu
+Set when you patched, so Pause can't turn it off:\n%1$s\nTo rule it out, patch again and leave out its patch.	Definido quando você aplicou os patches, então a pausa não pode desativá-lo:\n%1$s\nPara descartar essa possibilidade, aplique os patches de novo sem o patch dele.
+Set when you patched, so Pause can't turn these off:\n%1$s\nTo rule one out, patch again and leave out its patch.	Definidos quando você aplicou os patches, então a pausa não pode desativá-los:\n%1$s\nPara descartar um deles, aplique os patches de novo sem o patch dele.
+For when Marketplace only or Events only is on. Neither is on now.	Para quando Só Marketplace ou Só Eventos estiver ativado. Nenhum dos dois está ativado agora.
+Hide the Meta AI shortcut	Ocultar o atalho para a Meta AI
+The Meta AI shortcut leaves the Menu's list with Feeds, Marketplace, Reels and Groups, and the next shortcut moves up into its place.	O atalho para a Meta AI sai da lista do Menu com Feeds, Marketplace, Reels e Grupos, e o próximo atalho sobe para o lugar dele.

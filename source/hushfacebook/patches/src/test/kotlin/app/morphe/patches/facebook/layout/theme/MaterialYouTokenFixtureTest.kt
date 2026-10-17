@@ -86,6 +86,35 @@ class MaterialYouTokenFixtureTest {
         val UNCHECKED_TOKENS = setOf("PRIMARY_TEXT", "SHADOW_TEXT_AND_ICON_ON_MEDIA", "SURFACE_BACKGROUND")
 
         /**
+         * The tokens a styleable array's integer read reaches on 582, through the styles' `?attr/`
+         * aliases (StyleableTokens.kt). SECONDARY_TEXT is the likes line's text colour, read with
+         * getInteger through the attribute its text styles alias to the token: as a colour state
+         * list it crashed the feed on Android 12 and newer (issue #154). ACCENT, DIVIDER,
+         * NAV_BAR_BACKGROUND, SURFACE_BACKGROUND and ALWAYS_WHITE are aliased the same way by one
+         * style each. The rest come through `android:textColor`, `textColorPrimary` and
+         * `textColorSecondary`: three read attributes alias to those, and Facebook's text styles
+         * point them at nearly every text token, so the closure takes them all. The scan doesn't
+         * tell which theme a style is read against, and a plain colour can't crash the read, so
+         * the night styles give every one of them the nearest system tone instead of a state
+         * list. Of these the patch recolours thirteen, seven of them plain already as data reads.
+         */
+        val STYLEABLE_TOKENS = setOf("ACCENT", "ALWAYS_WHITE", "BLUE_LINK", "DECORATIVE_ICON_RED", "DISABLED_TEXT", "DIVIDER",
+            "NAV_BAR_BACKGROUND", "NEGATIVE", "NOTIFICATION_BADGE", "PLACEHOLDER_TEXT", "POSITIVE", "PRIMARY_BUTTON_TEXT",
+            "PRIMARY_BUTTON_TEXT_ON_COLOR", "PRIMARY_DEEMPHASIZED_BUTTON_TEXT", "PRIMARY_ICON_ON_MEDIA", "PRIMARY_TEXT",
+            "PRIMARY_TEXT_ON_MEDIA", "SECONDARY_BUTTON_TEXT", "SECONDARY_ICON", "SECONDARY_TEXT", "SECONDARY_TEXT_ON_MEDIA",
+            "SURFACE_BACKGROUND", "TERTIARY_TEXT", "WARNING")
+
+        /**
+         * The attribute the likes line's text styles set to `?attr/SECONDARY_TEXT`, by build: the
+         * third entry of the styleable array the UFI feedback summary component reads with
+         * getInteger (issue #154). The scan has to find it, or the crash is back. The reactions
+         * pill bar below reads the same array in its constructor, under a name Redex leaves alone
+         * on both ABIs, where the Litho component and the array's holder are renamed per build.
+         */
+        val LIKES_LINE_ATTRIBUTE = mapOf("583.0.0.39.55" to 0x7f040fd6)
+        const val PILLS_BLING_BAR = "Lcom/facebook/feedback/reactions/ui/PillsBlingBarView;-><init>(Landroid/content/Context;Landroid/util/AttributeSet;I)V"
+
+        /**
          * The calls whose attribute the scan can't follow, by build. React Native's
          * PlatformColor (`A02`, called from FabricUIManager.getColor) looks an attribute up by the name
          * the JavaScript gives it, and Mapbox's ColorUtils looks up colorAccent, colorPrimary and
@@ -109,6 +138,8 @@ class MaterialYouTokenFixtureTest {
          * 581 had it (2026-10-10): `CM1.A02`, `ksB.A00`, `9MV.A0Q`, `S2K.EzN`, `S47.DCV`, `U0q.A04`,
          * `U3I`'s constructor and `U3I.A0f`, and Mapbox's three. The 32-bit build has them under
          * other names again, a few at an instruction or two apart, so each build has its own list.
+         * 583 keeps the same 18 on both ABIs (2026-10-16), arm64's `9Sj.A0Q` to `nJl.A00` and
+         * armeabi-v7a's `9Tq.A0Q` to `nZb.A00`.
          */
         private val MAPBOX = setOf(
             "Lcom/mapbox/mapboxsdk/utils/ColorUtils;->getAccentColor(Landroid/content/Context;)I@13",
@@ -116,40 +147,40 @@ class MaterialYouTokenFixtureTest {
             "Lcom/mapbox/mapboxsdk/utils/ColorUtils;->getPrimaryDarkColor(Landroid/content/Context;)I@13",
         )
         val UNRESOLVED = mapOf(
-            "582.0.0.50.54" to mapOf(
+            "583.0.0.39.55" to mapOf(
                 "arm64-v8a" to MAPBOX + setOf(
-                    "LX/9MV;->A0Q(Ljava/lang/Integer;)V@16",
-                    "LX/CM1;->A02(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/Integer;@88",
-                    "LX/S2K;->EzN(LX/UrJ;)V@155",
-                    "LX/S2K;->EzN(LX/UrJ;)V@169",
-                    "LX/S2K;->EzN(LX/UrJ;)V@54",
-                    "LX/S2K;->EzN(LX/UrJ;)V@67",
-                    "LX/S2K;->EzN(LX/UrJ;)V@79",
-                    "LX/S2K;->EzN(LX/UrJ;)V@82",
-                    "LX/S47;->DCV(LX/6CH;I)V@169",
-                    "LX/S47;->DCV(LX/6CH;I)V@226",
-                    "LX/S47;->DCV(LX/6CH;I)V@32",
-                    "LX/U0q;->A04(LX/U0q;LX/U6D;)V@9",
-                    "LX/U3I;-><init>(Landroid/content/Context;)V@114",
-                    "LX/U3I;->A0f()V@35",
-                    "LX/ksB;->A00(Landroid/content/Context;Lcom/facebook/react/bridge/ReadableMap;)Landroid/graphics/drawable/Drawable;@20",
+                    "LX/9Sj;->A0Q(Ljava/lang/Integer;)V@16",
+                    "LX/CTX;->A02(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/Integer;@88",
+                    "LX/PBh;->F3q(LX/Qqc;)V@155",
+                    "LX/PBh;->F3q(LX/Qqc;)V@169",
+                    "LX/PBh;->F3q(LX/Qqc;)V@54",
+                    "LX/PBh;->F3q(LX/Qqc;)V@67",
+                    "LX/PBh;->F3q(LX/Qqc;)V@79",
+                    "LX/PBh;->F3q(LX/Qqc;)V@82",
+                    "LX/PEA;->DFh(LX/6Ei;I)V@169",
+                    "LX/PEA;->DFh(LX/6Ei;I)V@226",
+                    "LX/PEA;->DFh(LX/6Ei;I)V@32",
+                    "LX/PoM;->A04(LX/PoM;LX/Pur;)V@9",
+                    "LX/Pq0;-><init>(Landroid/content/Context;)V@122",
+                    "LX/Pq0;->A0f()V@35",
+                    "LX/nJl;->A00(Landroid/content/Context;Lcom/facebook/react/bridge/ReadableMap;)Landroid/graphics/drawable/Drawable;@20",
                 ),
                 "armeabi-v7a" to MAPBOX + setOf(
-                    "LX/9Pn;->A0Q(Ljava/lang/Integer;)V@16",
-                    "LX/CQK;->A02(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/Integer;@88",
-                    "LX/ctJ;->EzQ(LX/eig;)V@154",
-                    "LX/ctJ;->EzQ(LX/eig;)V@168",
-                    "LX/ctJ;->EzQ(LX/eig;)V@54",
-                    "LX/ctJ;->EzQ(LX/eig;)V@67",
-                    "LX/ctJ;->EzQ(LX/eig;)V@79",
-                    "LX/ctJ;->EzQ(LX/eig;)V@82",
-                    "LX/cwt;->DCW(LX/6Ct;I)V@171",
-                    "LX/cwt;->DCW(LX/6Ct;I)V@228",
-                    "LX/cwt;->DCW(LX/6Ct;I)V@33",
-                    "LX/dme;->A04(LX/dme;LX/dtT;)V@11",
-                    "LX/dpO;-><init>(Landroid/content/Context;)V@114",
-                    "LX/dpO;->A0f()V@36",
-                    "LX/hUD;->A00(Landroid/content/Context;Lcom/facebook/react/bridge/ReadableMap;)Landroid/graphics/drawable/Drawable;@20",
+                    "LX/9Tq;->A0Q(Ljava/lang/Integer;)V@16",
+                    "LX/CVG;->A02(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/Integer;@88",
+                    "LX/ipx;->F3d(LX/krO;)V@155",
+                    "LX/ipx;->F3d(LX/krO;)V@169",
+                    "LX/ipx;->F3d(LX/krO;)V@54",
+                    "LX/ipx;->F3d(LX/krO;)V@67",
+                    "LX/ipx;->F3d(LX/krO;)V@79",
+                    "LX/ipx;->F3d(LX/krO;)V@82",
+                    "LX/irr;->DFS(LX/6F1;I)V@171",
+                    "LX/irr;->DFS(LX/6F1;I)V@228",
+                    "LX/irr;->DFS(LX/6F1;I)V@33",
+                    "LX/jcv;->A04(LX/jcv;LX/jzT;)V@11",
+                    "LX/jsb;-><init>(Landroid/content/Context;)V@112",
+                    "LX/jsb;->A0f()V@36",
+                    "LX/nZb;->A00(Landroid/content/Context;Lcom/facebook/react/bridge/ReadableMap;)Landroid/graphics/drawable/Drawable;@20",
                 ),
             ),
         )
@@ -333,6 +364,68 @@ class MaterialYouTokenFixtureTest {
             }
         }
         assertEquals("one fixture for each declared build", declaredBuilds(), builds)
+    }
+
+    /**
+     * Issue #141: FDS_LIGHT is, for each token FDS_DARK lists, the colour the light FDS style gives
+     * it when that is a grey other than white and black, one of Facebook's blues or one of its pale
+     * tints, and no dark style gives the token that colour, so the Video tab's dark colours stay out.
+     * The table is built here from each fixture and has to match the Java one exactly, and no colour
+     * of a token is in both FDS_LIGHT and FDS_SHARED.
+     */
+    @Test
+    fun `every light colour the theme recolours is the light style's and no dark style's in each declared build`() {
+        val listed = listedTokens("FDS_LIGHT")
+        val dark = listedTokens()
+        val shared = listedTokens("FDS_SHARED")
+        for ((name, colours) in listed) {
+            assertTrue("$name is in FDS_LIGHT but not FDS_DARK", name in dark)
+            val twice = colours intersect shared[name].orEmpty()
+            assertTrue("$name lists ${hex(twice)} in FDS_LIGHT and FDS_SHARED", twice.isEmpty())
+        }
+        var builds = 0
+        for (target in AppCompatibilities.facebook().single().targets) {
+            val version = checkNotNull(target.version)
+            for (fixture in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
+                withBaseApk(fixture) { apk ->
+                    val attributes = tokenAttributes(apk)
+                    val styles = fdsStyles(apk, attributes.values.toSet())
+                    val light = styles.values.single { it.parent == 0 && it.sets > 300 }
+                    val darkStyle = styles.values.single { it.parent == light.id && it.sets > 300 }
+                    val darker = styles.values.single { it.parent == darkStyle.id }
+                    val built = sortedMapOf<String, Int>()
+                    for (name in dark.keys) {
+                        val attribute = attributes[name] ?: error("${fixture.name}: no FDS token $name")
+                        val colour = light.values[attribute] ?: continue
+                        val darkColours = setOfNotNull(darkStyle.values[attribute], darker.values[attribute])
+                        if (colour !in darkColours && lightThemed(colour)) built[name] = colour
+                    }
+                    val table = built.entries.joinToString(";") { (name, colour) ->
+                        name + "=" + if (colour ushr 24 == 0xFF) "%06X".format(colour and 0xFFFFFF) else "%08X".format(colour)
+                    }
+                    assertEquals("${fixture.name}: FDS_LIGHT should be \"$table\"", built.mapValues { setOf(it.value) }, listed.toSortedMap())
+                }
+                builds++
+            }
+        }
+        assertEquals("one fixture for each declared build", declaredBuilds(), builds)
+        assertTrue("the light table lists almost nothing", listed.size > 20)
+    }
+
+    /** MaterialYouTheme's light half's colours: a grey but white and black, a Facebook blue, or a pale tint of one. */
+    private fun lightThemed(colour: Int): Boolean {
+        val rgb = colour and 0xFFFFFF
+        if (rgb == 0xFFFFFF || rgb == 0) return false
+        val r = rgb shr 16 and 0xFF
+        val g = rgb shr 8 and 0xFF
+        val b = rgb and 0xFF
+        if (maxOf(r, g, b) - minOf(r, g, b) <= 10) return true
+        if (rgb in setOf(0xDDEDFE, 0xE7F3FF, 0xEBF5FF)) return true
+        // MaterialYouTheme.isFacebookBlue: hue 200 to 225 degrees, saturation a quarter, value 0.3.
+        val delta = b - minOf(r, g)
+        if (b < r || b < g || b < 77 || delta * 4 < b) return false
+        val turn = 60 * (r - g)
+        return turn >= -40 * delta && turn <= -15 * delta
     }
 
     /**
@@ -537,8 +630,7 @@ class MaterialYouTokenFixtureTest {
         assertEquals("$build: the patch reads other token attributes", attributes, patchTokenAttributes(initializer, tokenType))
         val tokens = attributes.entries.associate { (token, attribute) -> "attr_0x%08x".format(attribute) to token }
         val scan = scannedTokens(apk, initializer, tokenType)
-        val plain = scan.tokens
-        assertEquals("$build: the tokens read as TypedValue data", DATA_READ_TOKENS, plain)
+        assertEquals("$build: the tokens read as TypedValue data", DATA_READ_TOKENS, scan.tokens)
         assertEquals("$build: the tokens resolved where the read isn't checked", UNCHECKED_TOKENS, scan.unchecked.keys)
         assertEquals("$build: the data reads the scan can't follow",
             UNRESOLVED[version]?.get(build.substringAfter("-$version-").substringBefore(".apkm")), scan.unresolved)
@@ -547,6 +639,9 @@ class MaterialYouTokenFixtureTest {
         val light = styles.values.single { it.parent == 0 && it.sets > 300 }
         val darkStyle = styles.values.single { it.parent == light.id && it.sets > 300 }
         val decoded = decode(apk)
+        val styleable = styleableTokens(apk, version, decoded.styleFiles.values.toList(), tokens)
+        assertEquals("$build: the tokens a styleable array's integer read reaches", STYLEABLE_TOKENS, styleable)
+        val plain = scan.tokens + styleable
 
         var restyled = 0
         val darkTokens = mutableSetOf<String>()
@@ -590,6 +685,27 @@ class MaterialYouTokenFixtureTest {
             "PRIMARY_TEXT @color/hushfacebook_you_neutral_95" in plainTones)
     }
 
+    /**
+     * The tokens the patch's styleable scan reaches over every class in [apk]: the attributes some
+     * styleable array reads as an integer, followed through [styles]' `?attr/` aliases to [tokens].
+     */
+    private fun styleableTokens(apk: File, version: String, styles: List<Document>, tokens: Map<String, String>): Set<String> {
+        val container = DexFileFactory.loadDexContainer(apk, Opcodes.getDefault())
+        val scan = integerReadAttributes { visit ->
+            for (name in container.dexEntryNames) container.getEntry(name)!!.dexFile.classes.forEach(visit)
+        }
+        assertTrue("${apk.name}: no styleable array is read as an integer", scan.attributes.isNotEmpty())
+        val likesLine = LIKES_LINE_ATTRIBUTE.getValue(version)
+        assertTrue("${apk.name}: the likes line's text colour attribute isn't read as an integer", likesLine in scan.attributes)
+        val readers = scan.readers.filterValues { fields -> fields.any { likesLine in scan.arrays.getValue(it) } }
+        assertTrue("${apk.name}: the reactions pill bar doesn't read the likes line's array, found ${readers.keys}",
+            PILLS_BLING_BAR in readers)
+        assertTrue("${apk.name}: only the pill bar reads the likes line's array", readers.size > 1)
+        assertEquals("${apk.name}: the likes line's attribute alone reaches its token",
+            setOf("SECONDARY_TEXT"), styleablePlainTokens(styles, tokens, setOf(likesLine)))
+        return styleablePlainTokens(styles, tokens, scan.attributes)
+    }
+
     /** What the patch's scan for tokens read through `TypedValue.data` finds over every class in [apk]. */
     private fun scannedTokens(apk: File, initializer: Method, tokenType: String): DataReadScan {
         val container = DexFileFactory.loadDexContainer(apk, Opcodes.getDefault())
@@ -626,6 +742,7 @@ class MaterialYouTokenFixtureTest {
             ValueType.COLOR_ARGB8, ValueType.COLOR_RGB8, ValueType.COLOR_ARGB4, ValueType.COLOR_RGB4 -> "#%08x".format(item.data)
             ValueType.REFERENCE, ValueType.DYNAMIC_REFERENCE ->
                 byId[item.data]?.takeIf { it.type == "color" }?.let { "@color/${name(it)}" } ?: "@null"
+            ValueType.ATTRIBUTE, ValueType.DYNAMIC_ATTRIBUTE -> "?attr/attr_0x%08x".format(item.data)
             else -> "@null"
         }
 

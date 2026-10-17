@@ -7,9 +7,12 @@ package app.morphe.patches.facebook.misc.appicons
 import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
+import app.morphe.patches.facebook.misc.settings.CREATE_WORDMARK_VIEW
+import app.morphe.patches.facebook.misc.settings.WORDMARK_NAVIGATION_BAR
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.findMutableMethodOf
@@ -28,8 +31,8 @@ val unlockAppIconsPatch = bytecodePatch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Unlock app icons",
     description = "Lets you pick the app icons Facebook keeps for Facebook Plus on its App icon page (Menu > " +
-        "Settings and privacy > App icon), so your home screen icon can be any of them. Starts off. Turn it on in " +
-        "Hushfacebook settings > Appearance.",
+        "Settings and privacy > App icon), so your home screen icon and the logo at the top of Home match your pick. " +
+        "The normal blue icon keeps Facebook's wordmark. Starts off. Turn it on in Hushfacebook settings > Appearance.",
 ) {
     category("Theme")
     dependsOn(settingsPatch, facebookExtensionPatch)
@@ -60,9 +63,18 @@ val unlockAppIconsPatch = bytecodePatch(
         val reset = resets.singleOrNull()
             ?: throw PatchException("$PATCH: expected one component manager state call, found ${resets.map { "${it.first}->${it.second.name}" }}")
 
+        val bar = mutableClassDefByOrNull(WORDMARK_NAVIGATION_BAR)
+            ?: throw PatchException("$PATCH: this Facebook has no $WORDMARK_NAVIGATION_BAR, the home feed's top bar")
+        val builders = bar.methods.filter { holdsString(it, CREATE_WORDMARK_VIEW) }
+        val builder = builders.singleOrNull() ?: throw PatchException(
+            "$PATCH: expected one method of $WORDMARK_NAVIGATION_BAR holding \"$CREATE_WORDMARK_VIEW\", found ${builders.size}",
+        )
+        val logo = logoDressSite(builder)
+
         mutableClassDefBy(provider.type).findMutableMethodOf(check).unlockFirst()
         mutableClassDefBy(look.first).findMutableMethodOf(look.second).passPickerBenefit(look.third)
         mutableClassDefBy(reset.first).findMutableMethodOf(reset.second).passComponentState(reset.third)
+        builder.dressLogoAfter(logo)
         enableStatus("unlockAppIcons")
     }
 }

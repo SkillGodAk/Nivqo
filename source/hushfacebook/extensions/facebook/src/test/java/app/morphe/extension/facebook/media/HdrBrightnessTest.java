@@ -187,6 +187,63 @@ public class HdrBrightnessTest {
         }
     }
 
+    /**
+     * #93: a VP9 HLG reel came back from a phone's tone map labelled BT.709, bright and yellow. An
+     * HLG video goes to its decoder as one at the usual range in its own BT.2020 colours; a PQ video
+     * keeps PQ, since it has no plain form and only the tone map brings it down.
+     */
+    @Test
+    public void anHlgVideoGoesToItsDecoderAtTheUsualRangeInItsOwnColours() {
+        MediaFormat hlg = video(MediaFormat.COLOR_TRANSFER_HLG);
+        hlg.setInteger(MediaFormat.KEY_COLOR_STANDARD, MediaFormat.COLOR_STANDARD_BT2020);
+        hlg.setInteger(MediaFormat.KEY_COLOR_RANGE, MediaFormat.COLOR_RANGE_LIMITED);
+        assertTrue(HdrBrightness.askForUsualRange(hlg, surface(), 0));
+        assertEquals("the transfer", MediaFormat.COLOR_TRANSFER_SDR_VIDEO, hlg.getInteger(MediaFormat.KEY_COLOR_TRANSFER));
+        assertEquals("the colours", MediaFormat.COLOR_STANDARD_BT2020, hlg.getInteger(MediaFormat.KEY_COLOR_STANDARD));
+        assertEquals("the range", MediaFormat.COLOR_RANGE_LIMITED, hlg.getInteger(MediaFormat.KEY_COLOR_RANGE));
+
+        MediaFormat pq = video(MediaFormat.COLOR_TRANSFER_ST2084);
+        assertTrue(HdrBrightness.askForUsualRange(pq, surface(), 0));
+        assertEquals("PQ's transfer", MediaFormat.COLOR_TRANSFER_ST2084, pq.getInteger(MediaFormat.KEY_COLOR_TRANSFER));
+
+        Settings.TURN_OFF_HDR_BRIGHTNESS.save(false);
+        MediaFormat off = video(MediaFormat.COLOR_TRANSFER_HLG);
+        assertFalse(HdrBrightness.askForUsualRange(off, surface(), 0));
+        assertEquals("off, HLG stays", MediaFormat.COLOR_TRANSFER_HLG, off.getInteger(MediaFormat.KEY_COLOR_TRANSFER));
+    }
+
+    /** A decoder that refuses the request is set up again with Facebook's own format, HLG and all. */
+    @Test
+    public void aRefusedHlgVideoGetsFacebooksFormatBack() {
+        MediaFormat hlg = video(MediaFormat.COLOR_TRANSFER_HLG);
+        assertTrue(HdrBrightness.askForUsualRange(hlg, surface(), 0));
+        assertTrue(HdrBrightness.withdraw(hlg, true));
+        assertFalse("the request", hlg.containsKey(MediaFormat.KEY_COLOR_TRANSFER_REQUEST));
+        assertEquals("the transfer", MediaFormat.COLOR_TRANSFER_HLG, hlg.getInteger(MediaFormat.KEY_COLOR_TRANSFER));
+    }
+
+    /**
+     * Why an HLG signal can be shown as it is (BT.2100 and BT.2408): its reference white sits at 75%
+     * of the signal, and an 18% grey card lands at 38%, against 41% on the usual BT.709 curve. The
+     * midtones match within a few points, so handing the decoder HLG as the usual range keeps faces
+     * and greys where a plain video has them and only folds the highlights in.
+     */
+    @Test
+    public void hlgFollowsTheUsualCurveThroughTheMidtones() {
+        double a = 0.17883277;
+        double b = 1 - 4 * a;
+        double c = 0.5 - a * Math.log(4 * a);
+        // HLG's scene light for its reference white: the inverse of its curve at 75%.
+        double referenceWhite = (Math.exp((0.75 - c) / a) + b) / 12;
+        assertEquals("HLG reference white", 0.265, referenceWhite, 0.001);
+        double grey = 0.18 * referenceWhite;
+        double hlgGrey = grey <= 1.0 / 12 ? Math.sqrt(3 * grey) : a * Math.log(12 * grey - b) + c;
+        double usualGrey = 1.099 * Math.pow(0.18, 0.45) - 0.099;
+        assertEquals("HLG's 18% grey", 0.38, hlgGrey, 0.005);
+        assertEquals("the usual curve's 18% grey", 0.41, usualGrey, 0.005);
+        assertTrue("the midtones part", Math.abs(usualGrey - hlgGrey) < 0.04);
+    }
+
     @Test
     public void onlyAnHdrVideoDecodingToASurfaceIsAsked() {
         assertNotAsked("an SDR video", video(MediaFormat.COLOR_TRANSFER_SDR_VIDEO), surface(), 0);
@@ -235,9 +292,19 @@ public class HdrBrightnessTest {
             HdrBrightness.configure(codec, video(MediaFormat.COLOR_TRANSFER_HLG), surface(), null, 0);
             // Robolectric's decoder keeps what it's given, as one that tone-maps does.
             assertEquals(MediaFormat.COLOR_TRANSFER_SDR_VIDEO, codec.getInputFormat().getInteger(MediaFormat.KEY_COLOR_TRANSFER_REQUEST));
+            assertEquals("the HLG video's transfer", MediaFormat.COLOR_TRANSFER_SDR_VIDEO,
+                    codec.getInputFormat().getInteger(MediaFormat.KEY_COLOR_TRANSFER));
             assertEquals(FamilyNames.HDR_BRIGHTNESS + ": invoked 1, 1 found, 0 missing. Counted: "
-                    + HdrBrightness.DECODER_TONE_MAPS + " 1", statusLine());
+                    + HdrBrightness.HLG_AS_USUAL_RANGE + " 1, " + HdrBrightness.DECODER_TONE_MAPS + " 1", statusLine());
             codec.release();
+
+            MediaCodec pq = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_VP9);
+            HdrBrightness.configure(pq, video(MediaFormat.COLOR_TRANSFER_ST2084), surface(), null, 0);
+            assertEquals("the PQ video's transfer", MediaFormat.COLOR_TRANSFER_ST2084,
+                    pq.getInputFormat().getInteger(MediaFormat.KEY_COLOR_TRANSFER));
+            assertEquals(FamilyNames.HDR_BRIGHTNESS + ": invoked 2, 1 found, 0 missing. Counted: "
+                    + HdrBrightness.HLG_AS_USUAL_RANGE + " 1, " + HdrBrightness.DECODER_TONE_MAPS + " 2", statusLine());
+            pq.release();
 
             MediaCodec plain = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_VP9);
             HdrBrightness.configure(plain, video(MediaFormat.COLOR_TRANSFER_SDR_VIDEO), surface(), null, 0);

@@ -72,6 +72,7 @@ public class MarketplaceOnlyTest {
         StartTabRoute.settled();
         PauseForTests.resume();
         Settings.MARKETPLACE_ONLY.resetToDefault();
+        Settings.EVENTS_ONLY.resetToDefault();
         Settings.MARKETPLACE_SKIP_FEED_PREFETCH.resetToDefault();
         Settings.OPEN_ON_CHOSEN_TAB.resetToDefault();
         Settings.START_TAB.resetToDefault();
@@ -353,6 +354,147 @@ public class MarketplaceOnlyTest {
         StartTabRoute.onActivityCreate(screen, null);
         StartTabRoute.settled();
         return screen.getIntent().getLongExtra(FacebookTabs.TARGET_TAB_ID, -1);
+    }
+
+    /** The test account's tab bar when Facebook configures Events too. */
+    private final List<TabTag> configuredWithEvents = Arrays.asList(new FeedTab(), new WatchTab(),
+            new FriendRequestsTab(), new MarketplaceTab(), new EventsTab(), new NotificationsTab(), new TimelineTab());
+
+    /** Events only on and Marketplace only off, as a person who wants only events has it. */
+    private static void eventsMode() {
+        Settings.MARKETPLACE_ONLY.save(false);
+        Settings.EVENTS_ONLY.save(true);
+        MarketplaceOnly.forgetLogged();
+    }
+
+    @Test
+    public void eventsOnlyKeepsEventsNotificationsAndTheProfile() {
+        eventsMode();
+        assertEquals(Arrays.asList("EventsTab", "NotificationsTab", "TimelineTab"),
+                shown(configuredWithEvents, Collections.emptySet()));
+        assertEquals(MarketplaceOnly.State.ACTIVE, MarketplaceOnly.state());
+        assertEquals(StartTab.EVENTS, MarketplaceOnly.keptTab());
+        // A tab it doesn't know stays, as in Marketplace only.
+        List<TabTag> withUnknown = new ArrayList<>(configuredWithEvents);
+        withUnknown.add(new TabTag(5L) {
+        });
+        assertEquals(4, shown(withUnknown, Collections.emptySet()).size());
+    }
+
+    @Test
+    public void eventsOnlyNeedsAnEventsTabItCanOpen() {
+        eventsMode();
+        // The test account's tab bar has no Events tab at all.
+        List<String> stock = Arrays.asList("FeedTab", "WatchTab", "FriendRequestsTab", "MarketplaceTab",
+                "NotificationsTab", "TimelineTab");
+        assertEquals(stock, shown(configured, Collections.emptySet()));
+        assertEquals(MarketplaceOnly.State.MISSING, MarketplaceOnly.state());
+        String report = LogBufferManager.buildExportText();
+        assertEquals(report, 1, occurrences(report, "Events only: this tab bar has no Events to open"));
+
+        // Hidden in Facebook's own editor, it's as good as not there.
+        Set<String> eventsHidden = Collections.singleton(String.valueOf(FacebookTabs.EVENTS_ID));
+        assertEquals(Arrays.asList("FeedTab", "WatchTab", "FriendRequestsTab", "MarketplaceTab", "NotificationsTab",
+                "TimelineTab"), shown(configuredWithEvents, eventsHidden));
+        assertEquals(MarketplaceOnly.State.HIDDEN, MarketplaceOnly.state());
+
+        assertFalse(MarketplaceOnly.hidesTab(false, new FeedTab(), null, null));
+        assertEquals(MarketplaceOnly.State.UNREADABLE, MarketplaceOnly.state());
+    }
+
+    @Test
+    public void marketplaceOnlyWinsWhenBothAreOn() {
+        Settings.EVENTS_ONLY.save(true);
+        assertEquals(StartTab.MARKETPLACE, MarketplaceOnly.keptTab());
+        assertEquals(Arrays.asList("MarketplaceTab", "NotificationsTab", "TimelineTab"),
+                shown(configuredWithEvents, Collections.emptySet()));
+        assertEquals(MarketplaceOnly.State.ACTIVE, MarketplaceOnly.state());
+        // Marketplace missing, Events there: the winner has nothing to open, so Facebook's bar stays.
+        List<TabTag> noMarketplace = Arrays.asList(new FeedTab(), new EventsTab(), new NotificationsTab());
+        assertEquals(Arrays.asList("FeedTab", "EventsTab", "NotificationsTab"),
+                shown(noMarketplace, Collections.emptySet()));
+        assertEquals(MarketplaceOnly.State.MISSING, MarketplaceOnly.state());
+    }
+
+    @Test
+    public void eventsOnlyGreysOutUnderMarketplaceOnly() {
+        assertFalse("Marketplace only is on", Settings.EVENTS_ONLY.isAvailable());
+        Settings.MARKETPLACE_ONLY.save(false);
+        assertTrue(Settings.EVENTS_ONLY.isAvailable());
+        assertFalse(Settings.EVENTS_ONLY.defaultValue);
+    }
+
+    @Test
+    public void eventsOnlyOffPausedOrNotInTheBuildTheTabBarIsFacebooks() {
+        eventsMode();
+        List<String> stock = Arrays.asList("FeedTab", "WatchTab", "FriendRequestsTab", "MarketplaceTab", "EventsTab",
+                "NotificationsTab", "TimelineTab");
+        Settings.EVENTS_ONLY.save(false);
+        assertEquals(stock, shown(configuredWithEvents, Collections.emptySet()));
+        Settings.EVENTS_ONLY.save(true);
+        for (HushfacebookPause.Reason why : new HushfacebookPause.Reason[]{HushfacebookPause.Reason.SWITCH,
+                HushfacebookPause.Reason.CRASH_LOOP, HushfacebookPause.Reason.MARKER_FILE}) {
+            PauseForTests.pause(why);
+            assertEquals(why.name(), stock, shown(configuredWithEvents, Collections.emptySet()));
+            assertNull(why.name(), MarketplaceOnly.keptTab());
+        }
+        PauseForTests.resume();
+        MarketplaceOnlyForTests.inBuild(Boolean.FALSE);
+        assertEquals(stock, shown(configuredWithEvents, Collections.emptySet()));
+    }
+
+    @Test
+    public void switchingBetweenTheModesNeedsARestartInBothDirections() {
+        shown(configuredWithEvents, Collections.emptySet());
+        assertEquals(MarketplaceOnly.State.ACTIVE, MarketplaceOnly.state());
+        Settings.MARKETPLACE_ONLY.save(false);
+        Settings.EVENTS_ONLY.save(true);
+        assertEquals("the built bar kept Marketplace", MarketplaceOnly.State.RESTART_NEEDED, MarketplaceOnly.state());
+
+        MarketplaceOnly.forgetLogged();
+        shown(configuredWithEvents, Collections.emptySet());
+        assertEquals(MarketplaceOnly.State.ACTIVE, MarketplaceOnly.state());
+        Settings.EVENTS_ONLY.save(false);
+        assertEquals(MarketplaceOnly.State.RESTART_NEEDED, MarketplaceOnly.state());
+        Settings.MARKETPLACE_ONLY.save(true);
+        assertEquals("the built bar kept Events", MarketplaceOnly.State.RESTART_NEEDED, MarketplaceOnly.state());
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertEquals(MarketplaceOnly.State.RESTART_NEEDED, MarketplaceOnly.state());
+    }
+
+    @Test
+    public void marketplaceOnlyOverlaysStayWithMarketplaceOnly() {
+        eventsMode();
+        Settings.MARKETPLACE_SKIP_FEED_PREFETCH.save(true);
+        shown(configuredWithEvents, Collections.emptySet());
+        assertFalse(MarketplaceOnly.skipFeedPrefetch());
+        assertFalse(MarketplaceOnlyForTests.quietsNotifications());
+    }
+
+    /** While Events only is on, a start from the launcher icon opens Events, whatever tab is chosen. */
+    @Test
+    public void aStartFromTheLauncherIconOpensEventsInEventsOnly() {
+        eventsMode();
+        Settings.START_TAB.save(StartTab.FRIENDS);
+        Settings.OPEN_ON_CHOSEN_TAB.save(false);
+        assertEquals(FacebookTabs.EVENTS_ID, askedFor(StartTabRouteForTests.launcherStart()));
+
+        // Marketplace only wins.
+        Settings.MARKETPLACE_ONLY.save(true);
+        assertEquals(FacebookTabs.MARKETPLACE_ID, askedFor(StartTabRouteForTests.launcherStart()));
+
+        // Off, the chosen tab's own switch decides again, and Events is never one of the choices.
+        Settings.MARKETPLACE_ONLY.save(false);
+        Settings.EVENTS_ONLY.save(false);
+        assertEquals(-1, askedFor(StartTabRouteForTests.launcherStart()));
+        assertFalse(StartTab.choices().contains(StartTab.EVENTS));
+        assertNull(StartTab.fromFile("events"));
+
+        // Links and notifications keep their own destination.
+        Settings.EVENTS_ONLY.save(true);
+        android.content.Intent notification = StartTabRouteForTests.launcherStart()
+                .putExtra(FacebookTabs.TARGET_TAB_ID, FacebookTabs.NOTIFICATIONS_ID);
+        assertEquals(FacebookTabs.NOTIFICATIONS_ID, askedFor(notification));
     }
 
     private static int occurrences(String text, String part) {

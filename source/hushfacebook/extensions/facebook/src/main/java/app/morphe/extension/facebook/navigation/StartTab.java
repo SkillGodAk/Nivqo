@@ -6,6 +6,7 @@ package app.morphe.extension.facebook.navigation;
 
 import androidx.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +26,9 @@ public enum StartTab {
     FRIENDS(FacebookTabs.FRIENDS_ID, "friends", FacebookTabs.FRIENDS_CLASS),
     MARKETPLACE(FacebookTabs.MARKETPLACE_ID, "marketplace", FacebookTabs.MARKETPLACE_CLASS),
     NOTIFICATIONS(FacebookTabs.NOTIFICATIONS_ID, "notifications", FacebookTabs.NOTIFICATIONS_CLASS),
-    MENU(FacebookTabs.MENU_ID, "menu", FacebookTabs.MENU_CLASS);
+    MENU(FacebookTabs.MENU_ID, "menu", FacebookTabs.MENU_CLASS),
+    /** Where Events only opens Facebook. It is not a choice in the list, see {@link #choices}. */
+    EVENTS(FacebookTabs.EVENTS_ID, "events", FacebookTabs.EVENTS_CLASS);
 
     /** The id a start asks Facebook's main screen for. */
     public final long tabId;
@@ -46,10 +49,20 @@ public enum StartTab {
     @Nullable
     public static StartTab fromFile(@Nullable Object value) {
         if (!(value instanceof String)) return null;
-        for (StartTab tab : values()) {
+        for (StartTab tab : choices()) {
             if (tab.fileValue.equals(value)) return tab;
         }
         return null;
+    }
+
+    /**
+     * The tabs the "Tab to open on" list offers and a settings file may name. Events is left out:
+     * only the Events only switch opens Facebook on it.
+     */
+    public static List<StartTab> choices() {
+        List<StartTab> choices = new ArrayList<>(Arrays.asList(values()));
+        choices.remove(EVENTS);
+        return choices;
     }
 
     /** Whether a tab of the class Java names [className] is this one. */

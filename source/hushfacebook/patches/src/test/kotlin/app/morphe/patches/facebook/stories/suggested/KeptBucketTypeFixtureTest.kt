@@ -17,11 +17,11 @@ import org.junit.Test
 /** Enum names are intake evidence, not proof that either music type draws the served prompt. */
 class KeptBucketTypeFixtureTest {
     // These are the bucket-accessor enum types already pinned by SuggestedStoriesFixtureTest, by
-    // build and then by the bundle's ABI: 582's armeabi-v7a build names the enum differently.
+    // build and then by the bundle's ABI, since Redex can name the enum differently per ABI.
     private val types = mapOf(
         AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
-            "arm64-v8a" to "LX/2F1;",
-            "armeabi-v7a" to "LX/2Fb;",
+            "arm64-v8a" to "LX/2FS;",
+            "armeabi-v7a" to "LX/2FS;",
         ),
     )
 

@@ -28,6 +28,19 @@ object PatchMetadataLocalizer {
     )
 
     private val zh = mapOf(
+        // HushFacebook 0.14.0 formal additions
+        "Hide carrier data banners" to Zh(
+            "隱藏電信業者數據模式橫幅",
+            "隱藏 Facebook Flex 網路的數據模式購買按鈕或紫色免費模式橫幅，釋出更多畫面空間。兩個開關都預設關閉，可從 Hushfacebook 外觀設定個別開啟。"
+        ),
+        "Skip silent parts" to Zh(
+            "略過無聲片段",
+            "播放影片、Reels 和限時動態時略過音訊中的安靜片段，縮短講解與教學等待時間。預設關閉，可在 Hushfacebook 播放設定中啟用。"
+        ),
+        "Upload Stories in HD" to Zh(
+            "高畫質上傳限時動態",
+            "發布限時動態影片時向 Facebook 要求較高畫質；最終畫質仍由 Facebook 伺服器決定。預設關閉，可在限時動態設定中啟用。"
+        ),
         // HushMessenger 0.24.0 formal additions (2026-10-16)
         "Bold and italic text" to Zh(
             "粗體與斜體文字",

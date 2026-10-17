@@ -7,9 +7,16 @@ package app.morphe.patches.facebook.feed.metaai
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patches.facebook.comments.summaries.descriptor
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
+import app.morphe.patches.facebook.feed.methodsHolding
 import app.morphe.patches.facebook.misc.extension.SETTINGS_STATUS
+import app.morphe.patches.facebook.misc.upsells.CAPTION_DEEP_DIVE_PLUGIN
+import app.morphe.patches.facebook.misc.upsells.IMAGINE_CTA_SOCKET
+import app.morphe.patches.facebook.misc.upsells.captionDeepDiveGetter
+import app.morphe.patches.facebook.misc.upsells.ctaCheck
+import app.morphe.patches.facebook.misc.upsells.ctaTable
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.Opcode
@@ -19,6 +26,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import org.junit.Assert.assertEquals
@@ -33,8 +41,10 @@ import java.io.File
  * Then the patch on it: after each answer, the extension gets the answer and the plugin's name, and
  * its own answer lands back in the register the branch reads. In the socket's default way of
  * drawing a pill, the type read ahead of the stars compare goes to the extension, a yes returns no
- * pill, and every path from the meta_ai compare passes that hook before it returns anything. Reads
- * the fixture bundles from HUSHFACEBOOK_FIXTURE_DIR and skips without it.
+ * pill, and every path from the meta_ai compare passes that hook before it returns anything. The
+ * call-to-action selector's check asks the extension about each plugin first (Meta AI's question
+ * chips under photos are one of its table's answers), and so does the caption deep dive's getter.
+ * Reads the fixture bundles from HUSHFACEBOOK_FIXTURE_DIR and skips without it.
  */
 class HideMetaAiQuestionsFixtureTest {
     private fun Method.code(): List<Instruction> = implementation!!.instructions.toList()
@@ -72,15 +82,38 @@ class HideMetaAiQuestionsFixtureTest {
                     pill.typeRegister to pill.freeRegister)
 
                 val owner = owners.single { it.type == socket.method.definingClass }
-                val context = PatchContexts.of(listOf(owner, ExtensionDex.classDef(SETTINGS_STATUS)))
+
+                // The call-to-action selector's table names Meta AI's question chips as a case's
+                // answer, and its check and the caption deep dive's getter are found once each.
+                val tableHolders = FixtureDex.classesHolding(bundle, META_AI_QUESTION_BUTTON)
+                val table = ctaTable(tableHolders, META_AI_QUESTION_BUTTON, PATCH)
+                val tableCode = table.code()
+                val named = tableCode.indexOfFirst { holds(it, META_AI_QUESTION_BUTTON) }
+                assertEquals("$name: the selector's table answers a case with the question chips' plugin",
+                    Opcode.RETURN_OBJECT, tableCode[named + 1].opcode)
+                val socketHolders = FixtureDex.classesHolding(bundle, IMAGINE_CTA_SOCKET)
+                val ctaSockets = socketHolders.flatMap { methodsHolding(it, IMAGINE_CTA_SOCKET) }
+                val calledClasses = FixtureDex.classes(bundle, ctaSockets.flatMap { method ->
+                    method.code().mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }.map { it.definingClass }
+                }.toSet())
+                val check = ctaCheck(table, ctaSockets, PATCH) { calledClasses[it] }
+                val captionPlugin = FixtureDex.classes(bundle, setOf(CAPTION_DEEP_DIVE_PLUGIN)).values.single()
+                val captionGetter = captionDeepDiveGetter(captionPlugin, PATCH)
+
+                val pool = (listOf(owner, ExtensionDex.classDef(SETTINGS_STATUS), captionPlugin) + tableHolders + socketHolders +
+                    listOfNotNull(calledClasses[check.definingClass])).associateBy { it.type }.values
+                val context = PatchContexts.of(pool)
                 hideMetaAiQuestionsPatch.execute(context)
 
                 val patchedMethod = context.mutableClassDefBy(owner.type).methods.single {
                     it.name == socket.method.name && it.parameterTypes == socket.method.parameterTypes
                 }
                 val patched = patchedMethod.code()
+                // The nop that aligns a switch payload comes and goes as code ahead of it moves (583's
+                // arm64 build lost one here and its armeabi-v7a build gained one), so nops don't count.
+                fun List<Instruction>.counted() = count { it.opcode != Opcode.NOP }
                 assertEquals("$name: two instructions after each check and five for the default way",
-                    original.size + 2 * socket.answers.size + 5, patched.size)
+                    original.counted() + 2 * socket.answers.size + 5, patched.counted())
                 val calls = patched.withIndex().filter { (it.value as? ReferenceInstruction)?.reference?.toString() == KEEP }
                 assertEquals("$name: calls of the extension", socket.answers.size, calls.size)
                 for ((at, call) in calls) {
@@ -127,6 +160,30 @@ class HideMetaAiQuestionsFixtureTest {
                 val unpatched = walk(ControlFlow.of(socket.method), original.indexOfFirst { holds(it, META_AI_TYPE) }, -1)
                 assertTrue("$name: the walk finds no return in Facebook's own default way", unpatched.second.isNotEmpty())
 
+                // The selector's check: the plugin's name from the table with the check's own number,
+                // then the extension, a yes answers no, and Facebook's check runs on otherwise.
+                fun patchedOf(method: Method) = context.mutableClassDefBy(method.definingClass).methods.single {
+                    it.name == method.name && it.parameterTypes == method.parameterTypes && it.returnType == method.returnType
+                }.code()
+                val guarded = patchedOf(check)
+                val where = "$name: ${check.definingClass}->${check.name}"
+                assertEquals("$where gains seven instructions", check.code().size + 7, guarded.size)
+                assertEquals("$where: the plugin's name comes from the table", Opcode.INVOKE_STATIC_RANGE, guarded[0].opcode)
+                assertEquals("$where: the plugin's name comes from the table", table.descriptor(), called(guarded[0]))
+                assertEquals("$where: with the check's own number", check.implementation!!.registerCount - 1,
+                    (guarded[0] as RegisterRangeInstruction).startRegister)
+                assertEquals("$where: the extension is asked", HIDES_QUESTION_BUTTON, called(guarded[2]))
+                assertEquals("$where: a yes answers no", listOf(Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CONST_4, Opcode.RETURN),
+                    guarded.subList(3, 7).map { it.opcode })
+                assertEquals("$where: Facebook's check stays", check.code().map { it.opcode }, guarded.drop(7).map { it.opcode })
+
+                // The caption deep dive's getter asks first, answers null on a yes, and reads as before otherwise.
+                val dived = patchedOf(captionGetter)
+                assertEquals("$name: the caption deep dive getter asks first", HIDES_QUESTIONS_BELOW_CAPTION, called(dived[0]))
+                assertEquals("$name: and returns null on a yes", Opcode.RETURN_OBJECT, dived[4].opcode)
+                assertEquals("$name: the getter reads as before otherwise", captionGetter.code().map { it.opcode },
+                    dived.drop(5).map { it.opcode })
+
                 val status = context.mutableClassDefBy(SETTINGS_STATUS).methods.single { it.name == "metaAiQuestions" }
                 assertEquals("$name: SettingsStatus.metaAiQuestions() isn't switched on", 1,
                     (status.code()[0] as NarrowLiteralInstruction).narrowLiteral)
@@ -138,7 +195,7 @@ class HideMetaAiQuestionsFixtureTest {
 
     /** Where each declared build's default way keeps the pill's type, and the stars name's register. */
     private val expectedPill = mapOf(
-        "582.0.0.50.54" to (1 to 8),
+        AppCompatibilities.FACEBOOK_TARGET_VERSION to (3 to 0),
     )
 
     /**
@@ -161,6 +218,8 @@ class HideMetaAiQuestionsFixtureTest {
         }
         return reaches to returns
     }
+
+    private fun called(instruction: Instruction) = ((instruction as? ReferenceInstruction)?.reference as? MethodReference)?.descriptor()
 
     private fun holds(instruction: Instruction, string: String) =
         ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string == string

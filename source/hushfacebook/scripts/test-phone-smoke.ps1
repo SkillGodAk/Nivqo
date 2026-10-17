@@ -11,7 +11,7 @@ function Assert-That([bool]$Condition, [string]$Message) {
 }
 
 function New-Report([string[]]$Hooks, [string]$State = 'hushfacebook: running', [string[]]$Crash = @()) {
-    $lines = @('MORPHE DIAGNOSTIC REPORT', 'schema: 1', 'app: com.facebook.katana 582.0.0.50.54 (2147483647)', $State,
+    $lines = @('MORPHE DIAGNOSTIC REPORT', 'schema: 1', 'app: com.facebook.katana 583.0.0.39.55 (2147483647)', $State,
         'debug_logging: off', '', '[APP STATE]', 'locale -> en-US')
     if ($Crash.Count -gt 0) { $lines += @('', '[LATEST JAVA CRASH]') + $Crash }
     if ($Hooks.Count -gt 0) { $lines += @('', '[HOOK STATUS]') + $Hooks }
@@ -65,6 +65,26 @@ Assert-That ($read.Problems.Count -eq 1) 'A crash with no time passed.'
 
 $read = Read-SmokeReport -Text 'not a report'
 Assert-That ($read.Problems.Count -ge 1) 'Text that is not a report passed.'
+
+# device-audit.ps1 lifts Read-SmokeReport out of this script by name and reads the page and family
+# names out of the extension's source, so a rename on either side has to fail here, not on a phone.
+$errors = $null
+$audit = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'device-audit.ps1'), [ref]$null, [ref]$errors)
+Assert-That ($errors.Count -eq 0) "device-audit.ps1 doesn't parse: $($errors | Select-Object -First 1)"
+$smokeAst = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'phone-smoke.ps1'), [ref]$null, [ref]$null)
+Assert-That ($null -ne $smokeAst.Find({ param($node)
+            $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Read-SmokeReport' }, $true)) `
+    'device-audit.ps1 looks for Read-SmokeReport in phone-smoke.ps1 and it is gone.'
+$settingsSource = Join-Path $PSScriptRoot '..\extensions\facebook\src\main\java\app\morphe\extension\facebook\settings'
+Assert-That ([regex]::Matches([IO.File]::ReadAllText((Join-Path $settingsSource 'SettingsNavigation.java')), 'section\("([^"]+)"').Count -ge 10) `
+    'device-audit.ps1 reads the settings pages as section("..." in SettingsNavigation.java and found fewer than 10.'
+Assert-That ([regex]::Matches([IO.File]::ReadAllText((Join-Path $settingsSource 'FamilyNames.java')), 'public static final String \w+ = "([^"]+)"').Count -ge 50) `
+    'device-audit.ps1 reads the family names out of FamilyNames.java and found fewer than 50.'
+$expectations = Join-Path $PSScriptRoot 'device-audit-expectations.json'
+if (Test-Path -LiteralPath $expectations) {
+    $baseline = Get-Content -Raw -LiteralPath $expectations | ConvertFrom-Json
+    Assert-That (@($baseline.ranOnWalk).Count -gt 0 -and $baseline.facebook) 'device-audit-expectations.json has no families or no Facebook version.'
+}
 
 if ($failures.Count -gt 0) {
     $failures | ForEach-Object { Write-Host "[phone-smoke] FAIL $_" }

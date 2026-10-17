@@ -56,6 +56,7 @@ import app.morphe.extension.facebook.misc.AppLock;
 import app.morphe.extension.facebook.misc.ScreenTransitions;
 import app.morphe.extension.facebook.misc.TextSize;
 import app.morphe.extension.facebook.navigation.ReelsTab;
+import app.morphe.extension.facebook.navigation.TranslucentBars;
 import app.morphe.extension.facebook.notifications.PushDiagnostics;
 import app.morphe.extension.facebook.stories.StorySeenButton;
 import app.morphe.extension.facebook.theme.AccentResources;
@@ -72,7 +73,9 @@ import app.morphe.extension.facebook.theme.MaterialYouTheme;
  * here from {@code onCreate} and {@code onNewIntent}, and the next Facebook activity to resume
  * shows the screen as a full screen dialog. Nothing is added to Facebook's manifest, so no resource
  * has to be rebuilt to get here. The shortcut is kept first among Facebook's own, because a
- * launcher shows only the first few, and some launchers have no shortcut menu at all (#2).
+ * launcher shows only the first few, and some launchers have no shortcut menu at all (#2). Its
+ * switch ({@link Settings#SETTINGS_SHORTCUT}) takes it out of that menu for someone who opens the
+ * screen from Facebook's Menu instead (#146).
  */
 @SuppressWarnings("unused")
 public final class SettingsEntry {
@@ -131,6 +134,8 @@ public final class SettingsEntry {
                 AppLock.watch(context);
                 return;
             }
+            // First, so a settings file an audit pushed is saved before anything below reads it.
+            AuditMode.onApplicationCreate(context);
             NetworkUsage.start(context);
             if (context instanceof Application && !callbacksRegistered) {
                 ((Application) context).registerActivityLifecycleCallbacks(new OpenWhenResumed());
@@ -148,6 +153,8 @@ public final class SettingsEntry {
             if (SettingsStatus.materialYouTheme()) MaterialYouTheme.watchWindows(context);
             // Accent color's route five, for the colours views inflated from XML read themselves.
             if (SettingsStatus.accentColor()) AccentResources.watchActivities(context);
+            // See-through bars, a switch of the tab bar patch: each main screen as it resumes.
+            if (SettingsStatus.bottomTabBar()) TranslucentBars.watch(context);
             // Last, so nothing above waits on it. The open itself waits for the first screen to resume.
             ReopenSettingsAfterRestart.reopenIfPending(SettingsEntry::reopenOn);
         } catch (Throwable ex) {
@@ -251,11 +258,17 @@ public final class SettingsEntry {
      */
     static void publishShortcutNow(Context app) {
         try {
+            // Nothing to go by until the settings are read: the shortcut stays as the last start left it.
+            if (!Utils.settingsReady()) return;
             ShortcutManager manager = app.getSystemService(ShortcutManager.class);
             if (manager == null) return;
             String longLabel = L10n.t(app, "Hushfacebook settings");
             // Set before the attempt, so a shortcut that can't be pushed isn't tried on every screen.
             publishedLabel = longLabel;
+            if (!Settings.SETTINGS_SHORTCUT.get()) {
+                removeShortcut(manager);
+                return;
+            }
             ShortcutInfo existing = ours(manager);
             Intent open = openIntent(app);
             // One labelled in another language, behind Facebook's, or naming a launcher entry an
@@ -280,8 +293,14 @@ public final class SettingsEntry {
      */
     static void keepFirstNow(Context app) {
         try {
+            if (!Utils.settingsReady()) return;
             ShortcutManager manager = app.getSystemService(ShortcutManager.class);
             if (manager == null) return;
+            // Switched off, Facebook's calls neither bring it back nor rank it.
+            if (!Settings.SETTINGS_SHORTCUT.get()) {
+                removeShortcut(manager);
+                return;
+            }
             ShortcutInfo existing = ours(manager);
             if (existing == null) {
                 publishShortcutNow(app);
@@ -295,6 +314,22 @@ public final class SettingsEntry {
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: could not put the shortcut back in front", ex);
         }
+    }
+
+    /**
+     * The settings shortcut switch changed: off takes the shortcut out of the launcher's menu now,
+     * on puts it back in front, both on a background thread. Facebook's own shortcuts stay.
+     */
+    static void shortcutSwitchChanged(Context context) {
+        final Context app = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        Utils.runOnBackgroundThread(() -> publishShortcutNow(app));
+    }
+
+    /** Takes the Hushfacebook shortcut out of the launcher's menu, if it's there. */
+    private static void removeShortcut(ShortcutManager manager) {
+        if (ours(manager) == null) return;
+        manager.removeDynamicShortcuts(java.util.Collections.singletonList(SHORTCUT_ID));
+        Logger.printInfo(() -> "Settings entry: launcher shortcut removed, its switch is off");
     }
 
     /** The Hushfacebook shortcut among the dynamic ones, or null. */
@@ -406,7 +441,8 @@ public final class SettingsEntry {
         MenuLayoutDump.screenCreated(activity);
         try {
             SavedFileActions.receive(activity.getIntent());
-            noteIntent(activity.getIntent());
+            AuditMode.noteIntent(activity, activity.getIntent());
+            noteIntent(activity, activity.getIntent());
         } catch (Throwable ex) {
             Logger.printException(() -> "Settings entry: onActivityCreate failure", ex);
         }
@@ -416,7 +452,8 @@ public final class SettingsEntry {
     public static void onNewIntent(Activity activity, Intent intent) {
         try {
             SavedFileActions.receive(intent);
-            noteIntent(intent);
+            AuditMode.noteIntent(activity, intent);
+            noteIntent(activity, intent);
         } catch (Throwable ex) {
             Logger.printException(() -> "Settings entry: onNewIntent failure", ex);
         }
@@ -717,7 +754,7 @@ public final class SettingsEntry {
         requestedPage = null;
     }
 
-    private static void noteIntent(Intent intent) {
+    private static void noteIntent(Context context, Intent intent) {
         if (intent != null && intent.getBooleanExtra(EXTRA_OPEN_SETTINGS, false)) {
             intent.removeExtra(EXTRA_OPEN_SETTINGS);
             String asked = intent.getStringExtra(EXTRA_SHOW_SETTING);
@@ -726,7 +763,8 @@ public final class SettingsEntry {
             String key = asked != null && asked.matches("[a-z0-9_]{1,64}") ? asked : null;
             requestedAt = SystemClock.elapsedRealtime();
             requestedSetting = key;
-            requestedPage = null;
+            // Null unless an audit asked for a page (AuditMode).
+            requestedPage = AuditMode.page(context, intent);
             openPending = true;
             Logger.printInfo(() -> key == null ? "Settings requested by the launcher shortcut"
                     : "Settings requested at " + key);

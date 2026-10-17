@@ -49,6 +49,8 @@ final class SettingsNavigation extends BaseAdapter {
     /** The page whose Quick setups on the home page row brings the home row back. */
     static final String QUICK_SETUPS_PAGE = "Pause, backup and diagnostics";
     static final String REPORT = "action_report_problem";
+    /** The home page's own restart row, there whether or not a change waits. */
+    static final String RESTART_NOW = "action_restart_now";
     private final HushfacebookPreferenceFragment page;
     private final SettingsDialog host;
     private final ListView list;
@@ -63,6 +65,12 @@ final class SettingsNavigation extends BaseAdapter {
     private final Preference support;
     /** Just above Support: a new GitHub bug report with this install's versions filled in. */
     private final Preference report;
+    /**
+     * Between Report a problem and Support whenever no change waits for a restart: a tap restarts
+     * Facebook and the screen comes back on the home page, for the times Facebook needs a fresh
+     * start anyway (issue #155). While a change waits, {@link #restart} is the page's one restart row.
+     */
+    private final SettingsRows.Row restartNow;
     /** Just above Browse settings: a set of switches in one tap. */
     private final Preference quickSetups;
     /**
@@ -105,7 +113,7 @@ final class SettingsNavigation extends BaseAdapter {
         source = screen.getRootAdapter();
         Context context = screen.getContext();
         // Stable English route IDs survive a locale change; the displayed names are localized.
-        section("Opening Facebook", L10n.t("Opening Facebook"), L10n.t("Marketplace only and your start tab"), SettingsIcons.OPENING, true);
+        section("Opening Facebook", L10n.t("Opening Facebook"), L10n.t("Marketplace only, Events only and your start tab"), SettingsIcons.OPENING, true);
         section("News feed", L10n.t("News feed"), L10n.t("Ads, suggestions and word filters"), SettingsIcons.FEED, true);
         section("Stories", L10n.t("Stories"), L10n.t("Suggestions, saving, auto-advance and viewing anonymously"), SettingsIcons.STORIES, true);
         section("Reels and Watch", L10n.t("Reels and Watch"), L10n.t("Cleaner reels and video controls"), SettingsIcons.REELS, true);
@@ -141,6 +149,17 @@ final class SettingsNavigation extends BaseAdapter {
                 L10n.t("Opens a GitHub report with your versions and settings filled in. Add what happened."), SettingsIcons.BUG);
         report.setKey(REPORT);
         report.setOnPreferenceClickListener(row -> { ReportProblemForm.open(row.getContext(), screen); return true; });
+        restartNow = new SettingsRows.Row(context);
+        restartNow.setKey(RESTART_NOW);
+        restartNow.setPersistent(false);
+        restartNow.actsAtOnce = true;
+        restartNow.setTitle(L10n.t("Restart Facebook"));
+        restartNow.setSummary(L10n.t("Facebook closes and reopens on this page."));
+        restartNow.setIcon(SettingsIcons.icon(context, SettingsIcons.UPDATES, palette().heading));
+        restartNow.setOnPreferenceClickListener(row -> {
+            ReopenSettingsAfterRestart.restartInto(row.getContext(), route);
+            return true;
+        });
         quickSetups = link(context, L10n.t("Quick setups"),
                 L10n.t("Turn on a set of switches in one tap, or put every switch back the way it started. Press and hold to hide this row."),
                 SettingsIcons.TOOLS);
@@ -409,6 +428,7 @@ final class SettingsNavigation extends BaseAdapter {
             for (Section section : sections) if (section.primary) visible.add(section.link);
             visible.add(more);
             visible.add(report);
+            if (ReopenSettingsAfterRestart.changesWaiting(screen.getContext()) <= 0) visible.add(restartNow);
             visible.add(support);
         }
         addRestart();
@@ -623,7 +643,7 @@ final class SettingsNavigation extends BaseAdapter {
 
     private int dp(int value) { return Math.round(value * screen.getContext().getResources().getDisplayMetrics().density); }
 
-    private Object group(Preference item) {
+    Object group(Preference item) {
         if (item == more || item == support || item == browse || item == screen.getPreference(0)
                 || item == restart || item == quickSetups || item == report) return item;
         for (Section section : sections) if (item == section.link) return section.primary ? sections : more;

@@ -118,8 +118,23 @@ class EdgeSwapShapesTest {
             swap = "invoke-interface {v4, v5, v9}, $collection->replace(${FEED_UNIT_EDGE}Ljava/lang/String;)V",
         )))))
         assertNull("the edge's register written again", swapGuard(runnable(run(standardBody(
-            beforeSwap = "invoke-interface {v5}, Lfixture/Holder;->other()$FEED_UNIT_EDGE\nmove-result-object v0",
+            beforeSwap = "invoke-interface {v5}, Lfixture/Holder;->other()Ljava/lang/Object;\nmove-result-object v0",
         )))))
+    }
+
+    /**
+     * 583's armeabi-v7a runnable takes the edge from a getter that already answers
+     * GraphQLFeedUnitEdge, with no cast, and the guard goes right after that getter's result.
+     */
+    @Test
+    fun `an edge from a getter answering the edge type needs no cast`() {
+        val body = standardBody(cast = "").replace(
+            "Lfixture/Holder;->edge()Ljava/lang/Object;", "Lfixture/Holder;->edge()$FEED_UNIT_EDGE",
+        )
+        val guard = swapGuard(runnable(run(body)))!!
+        assertEquals(3, guard.index)
+        assertEquals(0, guard.edge)
+        assertNull("an untyped getter and no cast", swapGuard(runnable(run(standardBody(cast = "")))))
     }
 
     /** A branch that lands just after the cast would go round a guard put there. */
@@ -222,7 +237,7 @@ class EdgeSwapShapesTest {
 
     /**
      * The contract holds a patched APK to one call of the funnel guard's hideEdge(Object, Object),
-     * the funnel's own, and counts calls from the extension too. So the swap guard reaches the same
+     * the edge helper's own, and counts calls from the extension too. So the swap guard reaches the same
      * verdict without calling it, and no other method of the feed filter calls it either.
      */
     @Test

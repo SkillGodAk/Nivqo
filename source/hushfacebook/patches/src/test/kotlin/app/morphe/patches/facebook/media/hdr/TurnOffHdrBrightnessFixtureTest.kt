@@ -17,6 +17,8 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -148,6 +150,52 @@ class TurnOffHdrBrightnessFixtureTest {
                 assertEquals("$where: nothing else changed, first difference at", null, first)
             }
         }
+    }
+
+    @Test
+    fun `each declared build's DASH manifest parse hands its string to the extension first`() = bundles { bundle ->
+        val parses = FixtureDex.methodsWhere(bundle, { true }, ::isManifestParse)
+        // Probed on 582 arm64 (2026-10-14): one static (Uri, parser, String) method logging
+        // DashManifestHelper2, called by the player's setup, prefetch and offline saves.
+        assertEquals("${bundle.name}: manifest parses", 1, parses.size)
+        val parse = parses.single()
+        val owners = FixtureDex.classes(bundle, setOf(parse.definingClass))
+        val context = PatchContexts.of(owners.values)
+        assertTrue("${bundle.name}: the parse found", same(parse, context.manifestParse()))
+        context.hookManifestParse(context.manifestParse())
+
+        val code = parse.implementation!!.instructions.toList()
+        val body = context.mutableClassDefBy(parse.definingClass).methods.single { same(it, parse) }.implementation!!.instructions.toList()
+        val manifest = parse.implementation!!.registerCount - 1
+        assertEquals("${bundle.name}: the hook's call", OWN_MANIFEST, (body[0] as ReferenceInstruction).reference.toString())
+        assertEquals("${bundle.name}: the hook's form", Opcode.INVOKE_STATIC_RANGE, body[0].opcode)
+        assertEquals("${bundle.name}: the manifest string handed over", listOf(manifest), registers(body[0]))
+        assertEquals("${bundle.name}: the answer read back", Opcode.MOVE_RESULT_OBJECT, body[1].opcode)
+        assertEquals("${bundle.name}: into the manifest's register", manifest, (body[1] as OneRegisterInstruction).registerA)
+        assertEquals("${bundle.name}: nothing else changed", code.map { it.opcode }, body.drop(2).map { it.opcode })
+        // A jump to the first instruction would skip the hook in front of it.
+        var address = 0
+        for (instruction in code) {
+            val offset = (instruction as? OffsetInstruction)?.codeOffset
+            assertTrue("${bundle.name}: a jump back to the start", offset == null || address + offset != 0)
+            address += instruction.codeUnits
+        }
+    }
+
+    @Test
+    fun `a build without the manifest parse is refused`() {
+        val notIt = type(
+            "LX/parser;",
+            method(
+                "LX/parser;", listOf("Landroid/net/Uri;", "Ljava/lang/Object;", "Ljava/lang/String;"), "Ljava/lang/Object;", 4,
+                """
+                    const-string v0, "$MANIFEST_PARSE_FAILED"
+                    const/4 v0, 0x0
+                    return-object v0
+                """.trimIndent(),
+            ),
+        )
+        assertThrows(PatchException::class.java) { PatchContexts.of(listOf(notIt)).manifestParse() }
     }
 
     private fun method(type: String, parameters: List<String>, returnType: String, registers: Int, smali: String): MutableMethod =

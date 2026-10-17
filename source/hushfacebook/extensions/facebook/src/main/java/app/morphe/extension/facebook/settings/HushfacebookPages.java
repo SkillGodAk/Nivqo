@@ -113,6 +113,10 @@ final class HushfacebookPages {
             appearance.addPreference(toggle(context, Settings.BOTTOM_TAB_BAR,
                     L10n.t("Moves Facebook's tab bar to the bottom, within thumb reach, on accounts that show it at the top. "
                             + "Restart Facebook to see the change.")));
+            // Same override answered the other way; the bottom switch wins, so this one greys out under it.
+            appearance.addPreference(toggle(context, Settings.TOP_TAB_BAR,
+                    L10n.t("Moves Facebook's tab bar to the top, under the search row, as older Facebook had it. Restart "
+                            + "Facebook to see the change.")).needsOff(Settings.BOTTOM_TAB_BAR));
             // Facebook adds the bar to the views that scroll away as its main screen starts.
             appearance.addPreference(toggle(context, Settings.TAB_BAR_SCROLL_AWAY,
                     L10n.t("The bottom tab bar hides as you scroll down and returns when you scroll up, for more room. Restart "
@@ -120,10 +124,20 @@ final class HushfacebookPages {
             // Same check as the switch above, answered no; that switch wins, so this one greys out under it.
             appearance.addPreference(toggle(context, Settings.KEEP_TAB_BAR,
                     L10n.t("The bottom tab bar stays put while you scroll, on accounts where Facebook slides it away. Restart "
-                            + "Facebook to see the change.")));
+                            + "Facebook to see the change.")).needsOff(Settings.TAB_BAR_SCROLL_AWAY));
             // Asked each time Facebook moves the top bar, so it takes effect on the next scroll.
             appearance.addPreference(toggle(context, Settings.KEEP_TOP_BAR,
                     L10n.t("The top bar with search and Messenger stays put while you scroll down, instead of sliding away.")));
+            // Facebook decides on its big screen layout as its main screen starts, so a change waits for a restart.
+            appearance.addPreference(toggle(context, Settings.PHONE_LAYOUT_ON_BIG_SCREENS,
+                    L10n.t("A tablet or an unfolded phone gets the layout Facebook uses on a phone, so the tab bar switches "
+                            + "above work on the big screen too. Facebook's wider big screen layout goes away. Off by "
+                            + "default, since it hasn't been tried on a big screen yet. Restart Facebook to see the "
+                            + "change.")));
+            // Asked as each frame of the main screen draws, so a change shows right away.
+            appearance.addPreference(toggle(context, Settings.TRANSLUCENT_BARS,
+                    L10n.t("The top bar and the tab bar turn see-through, so the feed shows through them as you scroll. "
+                            + "On Android 12 and newer the feed behind them is blurred.")));
         }
         if (build.contains(PatchFamily.HIDDEN_TABS)) {
             // Facebook builds the tab bar once, so a change waits for a restart.
@@ -144,6 +158,15 @@ final class HushfacebookPages {
             appearance.addPreference(toggle(context, Settings.HIDE_APP_ICON_COUNT,
                     L10n.t("No number on Facebook's app icon. Notifications still arrive. Some launchers add their own count, "
                             + "which this can't remove.")));
+        }
+        if (build.contains(PatchFamily.CARRIER_BANNERS)) {
+            // Asked each time Facebook shows its carrier banner, which it does as screens open and the mode changes.
+            appearance.addPreference(toggle(context, Settings.HIDE_DATA_MODE_BANNER,
+                    L10n.t("On carriers with Facebook Flex, hides the Data mode bar under the top bar and its button to "
+                            + "buy mobile data.")));
+            appearance.addPreference(toggle(context, Settings.HIDE_FREE_MODE_BANNER,
+                    L10n.t("On carriers with Facebook Flex, hides the purple Free mode bar. That bar is also how you go "
+                            + "back to Data mode, so turn this off when you want to switch.")));
         }
         if (build.contains(PatchFamily.FORCE_DARK_MODE)) {
             // Facebook asks for dark mode as each screen applies its theme, so a change shows fully after a restart.
@@ -166,8 +189,8 @@ final class HushfacebookPages {
             // The App icon page asks as it opens. A picked icon is a launcher alias, so it outlives the switch.
             appearance.addPreference(toggle(context, Settings.UNLOCK_APP_ICONS,
                     L10n.t("Lets you pick the app icons Facebook keeps for Facebook Plus, on Facebook's App icon page. "
-                            + "The Pick an app icon row opens that page. Your pick stays if you turn this off, so pick the "
-                            + "blue one first to go back.")));
+                            + "The Pick an app icon row opens that page. Your pick also replaces the Facebook wordmark at "
+                            + "the top of Home. Your pick stays if you turn this off, so pick the blue one first to go back.")));
             appearance.addPreference(AppIconScreen.row(context));
         }
     }
@@ -181,40 +204,40 @@ final class HushfacebookPages {
                 || build.contains(PatchFamily.INSTALL_BESIDE_META_APPS)) {
             PreferenceCategory patched = category(screen, L10n.t("Set when you patched"));
             if (build.contains(PatchFamily.AD_PREFETCH)) {
-                patched.addPreference(mark(info(context, L10n.t("Ads aren't downloaded in advance"),
+                patched.addPreference(mark(info(context, L10n.t(PatchFamily.AD_PREFETCH.staysWhilePaused),
                         L10n.t("Facebook no longer downloads ads, or the data it uses to pick them, in the background.")), SettingsIcons.BLOCK));
             }
             if (build.contains(PatchFamily.AD_TELEMETRY)) {
-                patched.addPreference(mark(info(context, L10n.t("Ad tracking blocked"),
+                patched.addPreference(mark(info(context, L10n.t(PatchFamily.AD_TELEMETRY.staysWhilePaused),
                         L10n.t("Facebook doesn't watch for screenshots to target ads, and doesn't report which apps you install.")), SettingsIcons.TELEMETRY));
             }
             if (build.contains(PatchFamily.AUDIENCE_NETWORK)) {
-                patched.addPreference(mark(info(context, L10n.t("Audience Network off"),
+                patched.addPreference(mark(info(context, L10n.t(PatchFamily.AUDIENCE_NETWORK.staysWhilePaused),
                         L10n.t("Facebook doesn't show its ads inside other apps on this phone.")), SettingsIcons.NETWORK));
             }
             if (build.contains(PatchFamily.AMOLED_THEME)) {
-                patched.addPreference(mark(info(context, L10n.t("AMOLED black theme"),
+                patched.addPreference(mark(info(context, L10n.t(PatchFamily.AMOLED_THEME.staysWhilePaused),
                         amoledSummary(AmoledTheme.backgroundColour())), SettingsIcons.MOON));
             }
             if (build.contains(PatchFamily.MATERIAL_YOU_THEME)) {
-                patched.addPreference(mark(info(context, L10n.t("Material You theme"),
+                patched.addPreference(mark(info(context, L10n.t(PatchFamily.MATERIAL_YOU_THEME.staysWhilePaused),
                         L10n.t("Dark mode and this screen use colors from your wallpaper (blue on Android 11). Turn on dark mode in "
                                 + "Facebook to see it.")), SettingsIcons.APPEARANCE));
             }
             if (build.contains(PatchFamily.RESTORE_TRUST)) {
-                patched.addPreference(mark(info(context, L10n.t("Profiles and posts work again"),
+                patched.addPreference(mark(info(context, L10n.t(PatchFamily.RESTORE_TRUST.staysWhilePaused),
                         L10n.t("On a patched Facebook, profiles, photos, posts and some Settings pages wouldn't open. This fixes "
                                 + "that.")),
                         SettingsIcons.BUILD));
             }
             if (build.contains(PatchFamily.INSTALL_BESIDE_META_APPS)) {
-                patched.addPreference(mark(info(context, L10n.t("Meta's apps can install beside this one"),
+                patched.addPreference(mark(info(context, L10n.t(PatchFamily.INSTALL_BESIDE_META_APPS.staysWhilePaused),
                         L10n.t("Messenger, Facebook Lite, Business Suite and Workplace can install next to this Facebook. Their "
                                 + "shared permissions no longer clash.")), SettingsIcons.PHONE));
             }
-            patched.addPreference(info(context, L10n.t("Changing these"),
+            patched.addPreference(mark(info(context, L10n.t("Changing these"),
                     L10n.t("They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. "
-                            + "Patch again to change them.")));
+                            + "Patch again to change them.")), SettingsIcons.ABOUT));
         }
     }
 
@@ -300,7 +323,7 @@ final class HushfacebookPages {
         // are for someone looking into what the app does. About only describes Hushfacebook.
         hushfacebook.addPreference(mark(WhitehatScreen.row(context), SettingsIcons.NETWORK));
         // Keep the detailed patch-time exception list after the controls people come here for.
-        if (stays != null) hushfacebook.addPreference(info(context, L10n.t(STAYS_WHILE_PAUSED), stays));
+        if (stays != null) hushfacebook.addPreference(mark(info(context, L10n.t(STAYS_WHILE_PAUSED), stays), SettingsIcons.PATCHED));
     }
 
     /** About, in every build. */

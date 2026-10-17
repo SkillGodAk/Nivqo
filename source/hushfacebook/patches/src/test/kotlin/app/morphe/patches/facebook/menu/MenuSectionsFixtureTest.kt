@@ -44,10 +44,13 @@ class MenuSectionsFixtureTest {
      * Read from Facebook's English string pack. Up to 581 that's assets/strings/default.frsc.xz. 582
      * ships it as default.frsc.spo (SuperPack, which nothing outside Facebook reads), and the app
      * unpacks it on first launch into app_strings/uncompressed_default.frsc.xz, a plain FRSC table,
-     * where this id was read (stock 582 on an emulator, 2026-10-10).
+     * where this id was read (stock 582 on an emulator, 2026-10-10: 0x7f140452). 583 packs it the same
+     * way, so its id is 582's moved by the shift between the two builds' tables (5 here, found from
+     * the locale packs both ship, which stay plain FRSC), and the sections that draw the header load
+     * it. The unpacked 583 table is the check still owed.
      */
     private val headerLabel = mapOf(
-        "582.0.0.50.54" to 0x7f140452,
+        "583.0.0.39.55" to 0x7f140457,
     )
 
     private val testKeys = listOf(UPGRADES_TEST_KEY, ALSO_FROM_META_TEST_KEY)

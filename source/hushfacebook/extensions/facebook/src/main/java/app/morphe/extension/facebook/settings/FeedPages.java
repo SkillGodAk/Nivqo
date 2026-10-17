@@ -10,7 +10,6 @@ import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragm
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.commentOrderRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.feedsSubtabRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.homeFeedRow;
-import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.mark;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.reactionCeilingRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.seenKeepRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.startTabRow;
@@ -54,26 +53,28 @@ final class FeedPages {
                 opening.addPreference(toggle(context, Settings.MARKETPLACE_QUIET_NOTIFICATIONS,
                         L10n.t("While Marketplace only is on, silences video suggestions, memories, birthdays and friend "
                                 + "suggestions. Messages and trading updates still arrive.")));
+                opening.addPreference(toggle(context, Settings.MARKETPLACE_SKIP_FEED_PREFETCH,
+                        L10n.t("While Marketplace only is on, loads less of the feed in the background. Some loading still happens "
+                                + "at startup.")));
+                // After Marketplace only's own two rows, so they sit under the switch they follow.
+                opening.addPreference(toggle(context, Settings.EVENTS_ONLY, ""));
                 Row regular = new Row(context);
                 regular.actsAtOnce = true;
                 regular.setKey("action_regular_facebook");
                 regular.setTitle(L10n.t("Return to regular Facebook"));
                 regular.setSummary(L10n.t("Restore the normal tabs at the next restart. Your other settings stay saved."));
                 regular.setOnPreferenceClickListener(ignored -> {
-                    if (Settings.MARKETPLACE_ONLY.save(false)) {
+                    if (Settings.MARKETPLACE_ONLY.save(false) && Settings.EVENTS_ONLY.save(false)) {
                         page.refreshSwitches();
                         Utils.showToastLong(MarketplaceOnly.state() == MarketplaceOnly.State.RESTART_NEEDED
-                                ? L10n.t("Marketplace only is off. Restart Facebook to restore its normal tabs.")
-                                : L10n.t("Marketplace only is off."));
+                                ? L10n.t("Marketplace only and Events only are off. Restart Facebook to restore its normal tabs.")
+                                : L10n.t("Marketplace only and Events only are off."));
                     } else {
                         Utils.showToastLong(L10n.t("Couldn't save the change. Try again."));
                     }
                     return true;
                 });
                 opening.addPreference(regular);
-                opening.addPreference(toggle(context, Settings.MARKETPLACE_SKIP_FEED_PREFETCH,
-                        L10n.t("While Marketplace only is on, loads less of the feed in the background. Some loading still happens "
-                                + "at startup.")));
             }
             if (build.contains(PatchFamily.START_TAB)) {
                 opening.addPreference(toggle(context, Settings.OPEN_ON_CHOSEN_TAB,
@@ -158,6 +159,10 @@ final class FeedPages {
                         L10n.t("Hides friend requests shown between posts. Your requests stay under Friends.")));
                 feed.addPreference(toggle(context, Settings.HIDE_FRIENDS_LOCATIONS,
                         L10n.t("Hides the card between posts that shows where your friends are.")));
+                // Asked as a post loads, so a change shows from the next post you open.
+                feed.addPreference(toggle(context, Settings.HIDE_NOTIFICATION_POST_FOOTER,
+                        L10n.t("A post you open from a notification ends without the \"More from your friends\" list "
+                                + "Facebook adds under it, which can carry ads.")));
             }
             if (build.contains(PatchFamily.STORIES_TRAY)) {
                 // Facebook builds the feed's adapters once, when the feed is set up, and the tray is
@@ -220,16 +225,16 @@ final class FeedPages {
             if (build.contains(PatchFamily.AI_DETECTED_POSTS)) {
                 feed.addPreference(toggle(context, Settings.HIDE_AI_DETECTED_POSTS,
                         L10n.t("Hides posts that Facebook's own detection marks as made with AI. Posts only their creator labeled "
-                                + "stay. Untested on a real feed, so it starts off.")));
+                                + "stay. Off by default, since it hasn't been tried on a real feed yet.")));
                 feed.addPreference(toggle(context, Settings.HIDE_AI_LABELLED_POSTS,
                         L10n.t("Also hides posts their creator labeled as made with AI, not just the ones Facebook detects itself. "
-                                + "Untested on a real feed, so it starts off.")));
+                                + "Off by default, since it hasn't been tried on a real feed yet.")));
                 feed.addPreference(toggle(context, Settings.HIDE_META_AI_FEED_UNITS,
                         L10n.t("Hides Meta AI cards between posts and cards promoting the Vibes app. People's posts stay, whatever "
                                 + "they say about AI.")));
                 feed.addPreference(toggle(context, Settings.HIDE_AI_CHARACTER_POSTS,
-                        L10n.t("Hides posts featuring Meta's AI characters, the chatbots people make with Meta AI Studio. Untested "
-                                + "on a real feed, so it starts off.")));
+                        L10n.t("Hides posts featuring Meta's AI characters, the chatbots people make with Meta AI "
+                                + "Studio. Off by default, since it hasn't been tried on a real feed yet.")));
             }
             if (build.contains(PatchFamily.POST_WORDS)) {
                 feed.addPreference(toggle(context, Settings.HIDE_POSTS_WITH_WORDS,
@@ -238,7 +243,7 @@ final class FeedPages {
                 feed.addPreference(page.wordsRow(context, Settings.HIDDEN_WORDS, true));
                 feed.addPreference(page.wordsRow(context, Settings.KEPT_WORDS, false));
                 feed.addPreference(toggle(context, Settings.POST_WORDS_WHOLE_WORDS,
-                        L10n.t("Matches whole words only, in both lists. For example, hat matches hat! but not what or hats.")));
+                        L10n.t("Matches whole words only, in both lists. For example, \"hat\" matches \"hat!\" but not \"what\" or \"hats\".")));
                 feed.addPreference(toggle(context, Settings.HIDE_POSTS_FROM_SOURCES,
                         L10n.t("Hides posts by people or Pages on your list below, or linking to sites on it, including shares. "
                                 + "Your list stays on this phone unless you export it.")));
@@ -252,8 +257,8 @@ final class FeedPages {
                 feed.addPreference(toggle(context, Settings.HIDE_BACKGROUND_POSTS,
                         L10n.t("Hides short posts shown as big text on a colored background.")));
                 feed.addPreference(toggle(context, Settings.HIDE_REPOSTS,
-                        L10n.t("Hides posts that share another post, with or without a caption. Original posts stay. Untested "
-                                + "on a real feed, so it starts off.")));
+                        L10n.t("Hides posts that share another post, with or without a caption. Original posts stay. Off "
+                                + "by default, since it hasn't been tried on a real feed yet.")));
                 feed.addPreference(reactionCeilingRow(context));
             }
         }
@@ -279,7 +284,6 @@ final class FeedPages {
             Utils.showToastShort(SeenPosts.clearedMessage());
             return true;
         });
-        mark(forget, SettingsIcons.DELETE);
         // The keep time follows the switch and is greyed out until it's on. Forget seen posts
         // works either way, so a list is never out of reach.
         keep.setEnabled(Settings.HIDE_SEEN_POSTS.savedValue());
@@ -300,7 +304,7 @@ final class FeedPages {
             Set<PatchFamily> build) {
         if (build.contains(PatchFamily.SPONSORED_STORIES) || build.contains(PatchFamily.SUGGESTED_STORIES)
                 || build.contains(PatchFamily.STORY_AUTO_ADVANCE) || build.contains(PatchFamily.STORY_SEEN)
-                || build.contains(PatchFamily.STORY_DOWNLOAD)) {
+                || build.contains(PatchFamily.STORY_DOWNLOAD) || build.contains(PatchFamily.STORY_UPLOAD_HD)) {
             PreferenceCategory stories = category(screen, L10n.t("Stories"));
             if (build.contains(PatchFamily.SPONSORED_STORIES)) {
                 stories.addPreference(toggle(context, Settings.HIDE_SPONSORED_STORIES,
@@ -324,13 +328,14 @@ final class FeedPages {
                         L10n.t("A finished story stays on screen until you tap or swipe. Turn this off for Facebook's timing.")));
                 stories.addPreference(toggle(context, Settings.LOOP_STORIES,
                         L10n.t("With Stop Story auto-advance on, a finished story plays again from the start "
-                                + "instead of waiting on its last frame. Tap or swipe to move on.")));
+                                + "instead of waiting on its last frame. Tap or swipe to move on."))
+                        .needs(Settings.BLOCK_STORY_AUTO_ADVANCE));
             }
             if (build.contains(PatchFamily.STORY_SEEN)) {
                 stories.addPreference(toggle(context, Settings.VIEW_STORIES_ANONYMOUSLY,
                         L10n.t("Facebook isn't told which stories you watch, so you stay off their viewer lists. "
-                                + "Replying or reacting still shows you, and stories you've watched keep their "
-                                + "unwatched ring.")));
+                                + "Replying or reacting still shows you. Stories you watch to the end show as watched "
+                                + "on this phone only, until that person posts a new one.")));
                 stories.addPreference(toggle(context, Settings.MARK_STORIES_SEEN,
                         L10n.t("Adds an eye button to the top of each story while you view anonymously. Tap it to "
                                 + "show up on that story's viewer list. The other stories stay hidden.")));
@@ -338,6 +343,17 @@ final class FeedPages {
             if (build.contains(PatchFamily.STORY_DOWNLOAD)) {
                 stories.addPreference(toggle(context, Settings.DOWNLOAD_STORIES,
                         L10n.t("Add Save to every story menu, using your download quality. Off or paused, Facebook only saves your own stories.")));
+                // Read as each story's menu opens, so a change shows on the next menu.
+                stories.addPreference(toggle(context, Settings.SAVE_STORY_PHOTOS,
+                        L10n.t("Adds Save photo to any story that carries a picture beside its video, like a photo "
+                                + "story with music that Facebook didn't mark as one. On a video story it saves the "
+                                + "cover picture. Off by default, since it hasn't been tried on a real account yet.")));
+            }
+            if (build.contains(PatchFamily.STORY_UPLOAD_HD)) {
+                // Read as each Story's upload is set up, so a change applies to the next one you post.
+                stories.addPreference(toggle(context, Settings.UPLOAD_STORIES_IN_HD,
+                        L10n.t("Videos you post to your Story ask Facebook for its high upload quality instead of "
+                                + "standard. Applies to the next Story you post.")));
             }
         }
     }
@@ -370,6 +386,8 @@ final class FeedPages {
                     L10n.t("The comment box loses its GIF and sticker buttons. Typing, photos and posting work as before.")));
             comments.addPreference(toggle(context, Settings.OPEN_REPLY_THREADS,
                     L10n.t("Comments show their replies right away, so there's no View replies to tap.")));
+            comments.addPreference(toggle(context, Settings.LOAD_WHOLE_REPLY_THREADS,
+                    L10n.t("An open reply thread keeps loading as you scroll, so there's no View more replies to tap.")));
             comments.addPreference(toggle(context, Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS,
                     L10n.t("A group post's comments end without the Related groups list and its Join buttons.")));
             comments.addPreference(toggle(context, Settings.HIDE_SHOP_LINK_COMMENTS,
@@ -403,7 +421,8 @@ final class FeedPages {
             }
             return true;
         });
-        return mark(row, SettingsIcons.OPENING);
+        // No icon: it shares a card with switches, which have none, and an icon would push its text in.
+        return row;
     }
 
     /** Writing: when Facebook suggests someone to tag. */

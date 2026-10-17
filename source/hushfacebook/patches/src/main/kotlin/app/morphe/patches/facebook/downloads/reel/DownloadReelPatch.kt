@@ -10,6 +10,7 @@ package app.morphe.patches.facebook.downloads.reel
 import app.morphe.patcher.StringComparisonType
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.media.resume.TRACK_START
 import app.morphe.patches.facebook.media.resume.paramsGetters
 import app.morphe.patches.facebook.media.resume.reportedValues
@@ -23,8 +24,10 @@ import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.liveAcrossInjection
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
+import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
 import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.extension.requireFreeAt
+import app.morphe.patches.facebook.misc.extension.requireParameterIntact
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
@@ -198,13 +201,30 @@ val downloadReelPatch = bytecodePatch(
         }
 
         val (sidebarClass, sidebarName) = sidebars.single()
-        val component = mutableClassDefBy(sidebarClass)
-        val sidebar = component.methods.filter { it.name == sidebarName }
+        val builderClass = mutableClassDefBy(sidebarClass)
+        val sidebar = builderClass.methods.filter { it.name == sidebarName }
             .singleOrPatchException("$PATCH: the one method named $sidebarName on $sidebarClass")
         val instructions = sidebar.instructions()
 
-        val scopedType = sidebar.parameterTypes
-            .singleOrPatchException("$PATCH: the one parameter of the sidebar builder $sidebarClass->$sidebarName")
+        // ---- the render ---------------------------------------------------------------------------
+        //
+        // Up to 582 the builder is the component's own render, which takes the scoped context
+        // alone and reads the component's fields. 583 leaves the body in the component's spec,
+        // handed the scoped context, then the fields and the state, and the render only calls it.
+        // The component, whose fields the player and the story are found by, is the render's class.
+        val (renderClass, render) = if (sidebar.parameterTypes.size == 1) {
+            sidebarClass to sidebar
+        } else {
+            val renders = mutableListOf<Pair<String, Method>>()
+            classDefForEach { classDef ->
+                classDef.methods.filter { rendersThrough(it, sidebar) }.forEach { renders += classDef.type to it }
+            }
+            renders.singleOrPatchException("$PATCH: the one render handing the scoped context to $sidebarClass->$sidebarName")
+        }
+        val component = mutableClassDefBy(renderClass)
+
+        val scopedType = render.parameterTypes
+            .singleOrPatchException("$PATCH: the one parameter of the sidebar's render $renderClass->${render.name}")
             .toString()
 
         // ---- the other sidebar --------------------------------------------------------------------
@@ -212,12 +232,12 @@ val downloadReelPatch = bytecodePatch(
         // The Reels viewer draws its buttons with this sidebar or with FbShortsSideBarComponent, as
         // a server-side MobileConfig flag decides, and several other viewers draw the FbShorts one
         // too. That one gets no Download button (#18), and nothing said so. Its render, the same
-        // Litho method with the same scoped context as the builder above, now counts itself in Hook
+        // Litho method with the same scoped context as the render above, now counts itself in Hook
         // status first thing, so a report says which of the two a phone draws. The call takes no
         // register and changes nothing on the screen. A build without exactly one such render keeps
         // the button and only loses the count, so it's a warning, not a refusal.
         val others = otherRenders.filter { (type, method) ->
-            type != sidebarClass && method.name == sidebarName && method.returnType == sidebar.returnType &&
+            type != renderClass && method.name == render.name && method.returnType == render.returnType &&
                 method.parameterTypes.single().toString() == scopedType
         }
         if (others.size == 1) {
@@ -363,7 +383,7 @@ val downloadReelPatch = bytecodePatch(
             )
         }
 
-        component.methods.add(helper)
+        builderClass.methods.add(helper)
 
         // ---- the injection ----------------------------------------------------------------------
         //
@@ -408,33 +428,50 @@ val downloadReelPatch = bytecodePatch(
         }
 
         // The player of this item is read once in the prologue and parked, because the register
-        // holding the component is overwritten soon after. Follow it to where it was parked.
-        val playerRegister = instructions.withIndex().firstNotNullOfOrNull { (index, instruction) ->
-            val field = instruction.fieldReference() ?: return@firstNotNullOfOrNull null
+        // holding the component is overwritten soon after. Follow it to where it was parked. On
+        // 583 the render reads the field and the builder gets it as a parameter, which keeps its
+        // own register to the end (arm64 LX/APP;->A02 only reads its LX/5DL in v113, and copies
+        // it to v35 behind a branch, so the copy isn't set on every path). The block reads the
+        // parameter there, once that's proved below.
+        val playerParameter = if (sidebar === render) {
+            null
+        } else {
+            sidebar.parameterTypes.indices
+                .filter { sidebar.parameterTypes[it].toString() == playerField.type.toString() }
+                .singleOrPatchException("$PATCH: the one parameter of $sidebarClass->$sidebarName typed as the player ${playerField.type}")
+        }
+        val playerRegister = if (playerParameter == null) {
+            instructions.withIndex().firstNotNullOfOrNull { (index, instruction) ->
+                val field = instruction.fieldReference() ?: return@firstNotNullOfOrNull null
 
-            if (field.definingClass != sidebarClass || field.name != playerField.name) {
-                return@firstNotNullOfOrNull null
+                if (field.definingClass != sidebarClass || field.name != playerField.name) {
+                    return@firstNotNullOfOrNull null
+                }
+
+                val read = instruction as? TwoRegisterInstruction ?: return@firstNotNullOfOrNull null
+                val next = instructions.getOrNull(index + 1) as? TwoRegisterInstruction
+
+                next?.takeIf {
+                    instructions[index + 1].opcode == Opcode.MOVE_OBJECT_FROM16 &&
+                        it.registerB == read.registerA
+                }?.registerA
             }
-
-            val read = instruction as? TwoRegisterInstruction ?: return@firstNotNullOfOrNull null
-            val next = instructions.getOrNull(index + 1) as? TwoRegisterInstruction
-
-            next?.takeIf {
-                instructions[index + 1].opcode == Opcode.MOVE_OBJECT_FROM16 &&
-                    it.registerB == read.registerA
-            }?.registerA
+        } else {
+            sidebar.parameterRegisterNumber(playerParameter)
         }
 
         check(playerRegister != null) { "The player of the item is not parked in $sidebarName" }
 
         // It has to survive the whole method, because the button is built at the end of it.
-        val parkedOnce = instructions.count { instruction ->
-            (instruction as? TwoRegisterInstruction)?.registerA == playerRegister &&
-                instruction.opcode == Opcode.MOVE_OBJECT_FROM16
-        }
+        if (playerParameter == null) {
+            val parkedOnce = instructions.count { instruction ->
+                (instruction as? TwoRegisterInstruction)?.registerA == playerRegister &&
+                    instruction.opcode == Opcode.MOVE_OBJECT_FROM16
+            }
 
-        check(parkedOnce == 1) {
-            "v$playerRegister is written $parkedOnce times, so it does not hold the player throughout"
+            check(parkedOnce == 1) {
+                "v$playerRegister is written $parkedOnce times, so it does not hold the player throughout"
+            }
         }
 
         // The reel's own story is the props the sidebar was built from, and the assembly call
@@ -453,13 +490,9 @@ val downloadReelPatch = bytecodePatch(
         // Each button of the strip is registered twice: the component in one list, and a marker
         // for what kind of button it is in another. A component added without its marker draws
         // but does not answer a tap.
-        val markers = instructions.mapNotNull { it.methodReference() }
-            .filter {
-                it.parameterTypes.size == 1 &&
-                    it.parameterTypes.single().toString() == iconEnumType &&
-                    it.returnType != "V"
-            }
-            .distinctBy { "${it.definingClass}->${it.name}" }
+        val markers = iconMarkers(sidebar, iconEnumType) { call ->
+            classDefByOrNull(call.definingClass)?.let { resolveStatic(it, call) }
+        }
 
         check(markers.size == 1) {
             "Expected 1 marker for an icon, found ${markers.size}"
@@ -477,8 +510,10 @@ val downloadReelPatch = bytecodePatch(
         // on every reel. A build that fails with a message below is the same fault found early.
         // The story goes to the helper in its own argument register when that's v15 or below, as
         // in 582, whose assembly arguments start at v3 and fill every local up to v19. Otherwise it
-        // takes a fourth local, found the same way.
-        val injectAt = assemblyIndex - 3
+        // takes a fourth local, found the same way. 583 copies three lambdas out of v0 to v2 last,
+        // so there the block goes in nearer the call, after the last of them (sidebarBlockIndex).
+        val injectAt = sidebar.sidebarBlockIndex(assemblyIndex)
+        playerParameter?.let { sidebar.requireParameterIntact("$PATCH: the player", it, listOf(injectAt)) }
         val reads = listOf(
             argumentRegister(FB_USER_SESSION),
             argumentRegister(scopedType),
@@ -607,6 +642,62 @@ internal fun BytecodePatchContext.addMissingSidebarDiagnostic() {
 
 /** The locals [sidebarButtonBlock] writes besides the story's: v0 to v2. */
 internal val SIDEBAR_BLOCK_SCRATCH = listOf(0, 1, 2)
+
+/**
+ * Where [sidebarButtonBlock] goes in front of the assembly call at [assemblyIndex]: three
+ * instructions before it, as up to 582, or the first instruction after that from which nothing
+ * reads v0 to v2 again. 583 moves three lambdas from v2, v1 and v0 into the call's argument range
+ * in the three instructions before the last boolean (arm64 LX/APP;->A02), so its block goes in front
+ * of that boolean. When none qualifies it's the old place, which [requireSidebarBlockFits] refuses.
+ */
+internal fun Method.sidebarBlockIndex(assemblyIndex: Int): Int =
+    (maxOf(0, assemblyIndex - 3)..assemblyIndex).firstOrNull { index ->
+        liveAcrossInjection(index).none { it in SIDEBAR_BLOCK_SCRATCH }
+    } ?: (assemblyIndex - 3)
+
+/**
+ * The calls that turn an icon of [iconEnumType] into its marker for the sidebar's marker list: one
+ * parameter, that enum, and an answer. Read off [builder] itself, and when it names none, off the
+ * static methods it hands an icon to, which [resolve] finds. 583's armeabi-v7a builder adds each
+ * button, its marker and its name in a loop body Redex outlined into one static taking the icon and
+ * the three lists (LX/AT6;->A04, which asks LX/AT6;->A00), while its arm64 one asks LX/ARN;->A00
+ * itself.
+ */
+internal fun iconMarkers(builder: Method, iconEnumType: String, resolve: (MethodReference) -> Method?): List<MethodReference> {
+    fun markersIn(method: Method) = method.instructions().mapNotNull { it.methodReference() }.filter {
+        it.parameterTypes.size == 1 && it.parameterTypes.single().toString() == iconEnumType && it.returnType != "V"
+    }
+    val own = markersIn(builder)
+    val found = own.ifEmpty {
+        builder.instructions()
+            .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+            .mapNotNull { it.methodReference() }
+            .filter { call -> call.returnType == "V" && call.parameterTypes.any { it.toString() == iconEnumType } }
+            .distinctBy { it.toString() }
+            .mapNotNull(resolve)
+            .flatMap(::markersIn)
+    }
+    return found.distinctBy { "${it.definingClass}->${it.name}" }
+}
+
+/**
+ * Whether [method] is a render handing everything to [builder], the sidebar's builder kept in its
+ * spec: it takes one parameter, the scoped context [builder] takes first, and calls [builder]. On
+ * 583 the builder (arm64 LX/APP;->A02, armeabi-v7a LX/AR8;->A02, 37 parameters) is handed the
+ * scoped context, then the component's fields and its state, by the component's render
+ * (LX/APO;->A1C, LX/AR7;->A1C).
+ */
+internal fun rendersThrough(method: Method, builder: Method): Boolean {
+    val scoped = builder.parameterTypes.firstOrNull()?.toString() ?: return false
+    if (method.parameterTypes.size != 1 || method.parameterTypes.single().toString() != scoped) return false
+    val parameters = builder.parameterTypes.map(CharSequence::toString)
+    return method.instructions().any { instruction ->
+        instruction.methodReference()?.let {
+            it.definingClass == builder.definingClass && it.name == builder.name &&
+                it.parameterTypes.map(CharSequence::toString) == parameters
+        } == true
+    }
+}
 
 /**
  * The register the helper call names for the reel's story, which sits in [story] at instruction
@@ -829,7 +920,8 @@ private fun handlers(hd: String, sd: String, manifest: String) = (0..6).joinToSt
  * helpers, lambdas, update calls. The one wanted both names the sidebar and builds a button, the
  * call taking the session and four handlers. 582 merges a lambda naming the sidebar with one
  * building an FDSBottomSheet (four handlers, no session first) into LX/VrR;->invoke, so the
- * session is what tells the button apart.
+ * session is what tells the button apart. On 583 it's the spec's method the render calls
+ * (arm64 LX/APP;->A02, armeabi-v7a LX/AR8;->A02), not the render; see [rendersThrough].
  */
 internal fun isSidebarBuilder(method: Method): Boolean {
     val list = method.instructions()

@@ -167,12 +167,14 @@ class LogoLongPressTest {
 
     /**
      * By build, then by the bundle's ABI. 581's two builds put the call at the same index; 582's
-     * armeabi-v7a build has nine more instructions ahead of it.
+     * armeabi-v7a build had nine more instructions ahead of it, and 583's two put it at the same
+     * index again (the builder is `A0J` on arm64 and `A0I` on armeabi-v7a, the click listener one
+     * instruction before).
      */
     private val pins = mapOf(
-        "582.0.0.50.54" to mapOf(
-            "arm64-v8a" to Pin(173, listOf(11, 1)),
-            "armeabi-v7a" to Pin(182, listOf(11, 1)),
+        "583.0.0.39.55" to mapOf(
+            "arm64-v8a" to Pin(170, listOf(11, 1)),
+            "armeabi-v7a" to Pin(170, listOf(11, 1)),
         ),
     )
 

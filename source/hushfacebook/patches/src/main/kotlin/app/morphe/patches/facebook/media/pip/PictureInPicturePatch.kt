@@ -14,8 +14,12 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.facebook.downloads.reel.moreSheet
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.media.framestep.VIEW_GROUP
+import app.morphe.patches.facebook.media.framestep.grootAttaches
+import app.morphe.patches.facebook.media.framestep.playerViewFields
 import app.morphe.patches.facebook.media.taptoplay.GROOT_PLAY
 import app.morphe.patches.facebook.media.taptoplay.grootPauses
 import app.morphe.patches.facebook.media.taptoplay.grootPlays
@@ -23,6 +27,7 @@ import app.morphe.patches.facebook.media.taptoplay.innerPause
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
 import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
+import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.extension.requireParameterIntact
 import app.morphe.patches.facebook.misc.extension.requireThisIntact
@@ -38,6 +43,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -72,6 +78,9 @@ internal const val REARM_STUB = "rearm"
 /** Helpers the patch adds to ReelsPipUtil: one hands the arming's arguments over, one arms again with them. */
 internal const val ARMING_HELPER = "hushfacebookPipArming"
 internal const val REARM_HELPER = "hushfacebookPipRearm"
+
+/** The window's shape for the next reel's aspect, or null for a shape Facebook arms no window for. */
+internal const val SHAPE = "$PICTURE_IN_PICTURE->shape(D)$RATIONAL"
 
 internal const val DISARMED = "$PICTURE_IN_PICTURE->disarmed()V"
 
@@ -124,7 +133,10 @@ internal const val HOME_FLAG_ALLOWED = "$PICTURE_IN_PICTURE->homeFlagAllowed(Z)Z
  * runnable aside and turns auto-enter off while the reel on screen, the player that started last,
  * is paused, and back on when a reel plays. A reel other than the armed one gets the window armed
  * again, through a helper the patch adds to ReelsPipUtil, with Facebook's own arguments and that
- * reel's player, so the window plays the reel on screen.
+ * reel's player, so the window plays the reel on screen. Its shape is that reel's own, from the
+ * aspect its video params carry (581 `LX/5AT;`, their one double), checked the way the arming step
+ * checks the aspect it reads: Facebook arms no window for a reel wider than square, so neither does
+ * the helper, and the extension keeps that reel out of the window (#126).
  *
  * In the window, Facebook's viewer (581 `LX/g7h;`) gives its container a new view id, and its
  * fragment finds the container by that id from the top of the screen. A React Native view can
@@ -159,6 +171,10 @@ internal const val HOME_FLAG_ALLOWED = "$PICTURE_IN_PICTURE->homeFlagAllowed(Z)Z
  * Facebook's own code then arms the window for the video on screen, and the rest here treats that
  * arming like any other: a paused video is held by the pause hook.
  *
+ * A reel's More sheet gets a Picture-in-picture row while the window is armed on its screen, and
+ * its tap opens the window at once (#44). A second switch, Only from a reel's More menu, keeps
+ * auto-enter off so that row is the only way in; the extension does that part.
+ *
  * In the default selection with its switch off: it changes what leaving Facebook does.
  */
 @Suppress("unused")
@@ -191,10 +207,23 @@ val pictureInPicturePatch = bytecodePatch(
         applyArming(arming, player.play.definingClass, videoParams)
         disarms.forEach { applyDisarm(it) }
         applyPlayer(player)
+        // Without the view, every player that plays is the reel on screen, as before (#126).
+        try {
+            fillPlayerView(playerViewField(player))
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so the window may follow the reel Facebook readies next to the one on screen.")
+        }
         applyStateChange(stateChange)
         applyViewerId(opening)
         applyTopicFlag(topic)
         applyHome(home)
+        // The More sheet row (#44). The fixture tests hold it on every declared build; on another
+        // one, leaving Facebook still opens the window, so a miss here is a warning.
+        try {
+            addPictureInPictureRow(moreSheet(PATCH))
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so reels get no Picture-in-picture row in their More sheet.")
+        }
         enableStatus("pictureInPicture")
     }
 }
@@ -368,9 +397,18 @@ internal class VideoParams(val call: MethodReference, val kind: String)
 private val boxes = mapOf("I" to ("Ljava/lang/Integer;" to "intValue"), "Z" to ("Ljava/lang/Boolean;" to "booleanValue"))
 
 /**
+ * The aspect the video params of type [params] carry: the class's one instance double, the video's
+ * width to its height. Null without exactly one.
+ */
+internal fun aspectField(params: ClassDef): FieldReference? =
+    params.fields.filter { it.type == "D" && !AccessFlags.STATIC.isSet(it.accessFlags) }.singleOrNull()
+
+/**
  * The arming first hands its activity, its player and all its arguments to the extension, through
  * a helper with registers of its own. A second helper arms again with those arguments for another
- * player and that player's own video arguments, and the extension's [REARM_STUB] calls it.
+ * player, that player's own video arguments and the shape the extension's [SHAPE] gives for that
+ * video's aspect, answering whether it armed: a shape Facebook arms no window for arms nothing. The
+ * extension's [REARM_STUB] calls it and answers the same.
  */
 internal fun BytecodePatchContext.applyArming(arming: Method, player: String, video: VideoParams) {
     if (!AccessFlags.STATIC.isSet(arming.accessFlags)) refuse("${arming.definingClass}->${arming.name} isn't static")
@@ -380,8 +418,13 @@ internal fun BytecodePatchContext.applyArming(arming: Method, player: String, vi
     }
     val playerAt = shape.indexOf(player)
     val paramsAt = shape.indexOf(video.call.returnType)
+    val rationalAt = shape.indexOf(RATIONAL)
     val kind = video.kind
     val videoParams = video.call
+    val aspect = aspectField(classDefBy(video.call.returnType))
+        ?: refuse("${video.call.returnType} doesn't hold one aspect double")
+    // The replay's aspect takes the two registers after the arguments, and its reads take 4-bit registers.
+    if (shape.size + 1 > 15) refuse("${arming.definingClass}->${arming.name} takes ${shape.size} arguments, too many to replay")
     val util = mutableClassDefBy(arming.definingClass)
     val parameters = shape.joinToString("")
 
@@ -411,8 +454,10 @@ internal fun BytecodePatchContext.applyArming(arming: Method, player: String, vi
         "invoke-static/range { p0 .. p${shape.size - 1} }, ${arming.definingClass}->$ARMING_HELPER($parameters)V",
     )
 
-    // Locals v0 to v(n-1) (the arguments) and vn (an index); p0 the captured arguments, p1 the player.
+    // Locals v0 to v(n-1) (the arguments), then vn (an index) and vn, vn+1 (the aspect, once the index
+    // is done with); p0 the captured arguments, p1 the player.
     val index = "v${shape.size}"
+    val wide = shape.size
     val replay = buildString {
         shape.forEachIndexed { at, type ->
             when (at) {
@@ -420,7 +465,7 @@ internal fun BytecodePatchContext.applyArming(arming: Method, player: String, vi
                     appendLine("move-object/from16 v$at, p1")
                     appendLine("check-cast v$at, $type")
                 }
-                paramsAt -> Unit
+                paramsAt, rationalAt -> Unit
                 else -> {
                     appendLine("const/16 $index, $at")
                     appendLine("aget-object v$at, p0, $index")
@@ -437,32 +482,47 @@ internal fun BytecodePatchContext.applyArming(arming: Method, player: String, vi
         }
         appendLine("invoke-$kind/range { v$playerAt .. v$playerAt }, $videoParams")
         appendLine("move-result-object v$paramsAt")
+        appendLine("iget-wide v$wide, v$paramsAt, $aspect")
+        appendLine("invoke-static/range { v$wide .. v${wide + 1} }, $SHAPE")
+        appendLine("move-result-object v$rationalAt")
+        appendLine("if-eqz v$rationalAt, :unfit")
         appendLine("invoke-static/range { v0 .. v${shape.size - 1} }, ${arming.definingClass}->${arming.name}($parameters)V")
-        appendLine("return-void")
+        appendLine("const/4 v$wide, 0x1")
+        appendLine("return v$wide")
+        appendLine(":unfit")
+        appendLine("const/4 v$wide, 0x0")
+        appendLine("return v$wide")
     }
-    util.methods.add(helper(arming.definingClass, REARM_HELPER, listOf("[Ljava/lang/Object;", "Ljava/lang/Object;"), shape.size + 3, replay))
+    val replayShape = listOf("[Ljava/lang/Object;", "Ljava/lang/Object;")
+    util.methods.add(helper(arming.definingClass, REARM_HELPER, replayShape, shape.size + 4, replay, "Z"))
 
     val stub = mutableClassDefBy(PICTURE_IN_PICTURE).methods.singleOrNull {
-        it.name == REARM_STUB && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" &&
-            it.shape() == listOf("[Ljava/lang/Object;", "Ljava/lang/Object;")
+        it.name == REARM_STUB && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" && it.shape() == replayShape
     } ?: refuse("$PICTURE_IN_PICTURE has no static boolean $REARM_STUB(Object[], Object)")
     // d8 gives the stub no locals of its own, so the answer goes back in p0, used by then.
     stub.addInstructions(
         0,
         """
-            invoke-static { p0, p1 }, ${arming.definingClass}->$REARM_HELPER([Ljava/lang/Object;Ljava/lang/Object;)V
-            const/4 p0, 0x1
+            invoke-static { p0, p1 }, ${arming.definingClass}->$REARM_HELPER([Ljava/lang/Object;Ljava/lang/Object;)Z
+            move-result p0
             return p0
         """,
     )
 }
 
-/** A public static void helper on [owner] with [registers] registers in all, running [smali]. */
-private fun helper(owner: String, name: String, parameters: List<String>, registers: Int, smali: String) = ImmutableMethod(
+/** A public static helper on [owner] answering [returns], with [registers] registers in all, running [smali]. */
+private fun helper(
+    owner: String,
+    name: String,
+    parameters: List<String>,
+    registers: Int,
+    smali: String,
+    returns: String = "V",
+) = ImmutableMethod(
     owner,
     name,
     parameters.map { ImmutableMethodParameter(it, null, null) },
-    "V",
+    returns,
     AccessFlags.PUBLIC.value or AccessFlags.STATIC.value,
     null,
     null,
@@ -488,6 +548,48 @@ internal fun BytecodePatchContext.applyPlayer(player: Player) {
     if (trace < 0) refuse("${play.definingClass}->${play.name} no longer loads \"$GROOT_PLAY\"")
     play.requireThisIntact(PATCH, listOf(trace + 1))
     play.addInstruction(trace + 1, "invoke-static/range { p0 .. p0 }, $PLAYER_PLAYING")
+}
+
+/** The extension's stub the patch fills with a read of the player's view. */
+internal const val PLAYER_VIEW_STUB = "playerView"
+
+/**
+ * The view FbGrootPlayer's video is attached to (582 `LX/58B;->A04`), as Frame step finds it: the
+ * one public ViewGroup field of the player that its static attach holding
+ * "FbGrootPlayer.attachPlayerViewInternal" writes. Changes nothing.
+ */
+internal fun BytecodePatchContext.playerViewField(player: Player): FieldReference {
+    val owner = classDefBy(player.play.definingClass)
+    val attach = grootAttaches(owner).singleOrNull()
+        ?: refuse("expected one static attach in ${owner.type} holding the attach trace, found ${grootAttaches(owner).size}")
+    val fields = playerViewFields(owner, attach)
+    val field = fields.singleOrNull()
+        ?: refuse("expected the attach to write one $VIEW_GROUP field of ${owner.type}, found ${fields.map { it.name }}")
+    if (!AccessFlags.PUBLIC.isSet(owner.accessFlags) ||
+        owner.fields.none { it.name == field.name && AccessFlags.PUBLIC.isSet(it.accessFlags) }
+    ) {
+        refuse("${owner.type}->${field.name} isn't public, so the extension can't read it")
+    }
+    return field
+}
+
+/**
+ * Fills the extension's view stub with a read of [field]: a play from a player whose video is off
+ * screen, the reel Facebook readies next to the one on screen, then leaves the window alone (#126).
+ */
+internal fun BytecodePatchContext.fillPlayerView(field: FieldReference) {
+    val stub = mutableClassDefBy(PICTURE_IN_PICTURE).methods.singleOrNull {
+        it.name == PLAYER_VIEW_STUB && it.returnType == VIEW_GROUP && AccessFlags.STATIC.isSet(it.accessFlags) &&
+            it.parameterTypes.map(CharSequence::toString) == listOf("Ljava/lang/Object;")
+    } ?: refuse("$PICTURE_IN_PICTURE has no static $VIEW_GROUP $PLAYER_VIEW_STUB(Object)")
+    stub.addInstructions(
+        0,
+        """
+            check-cast p0, ${field.definingClass}
+            iget-object p0, p0, ${field.definingClass}->${field.name}:$VIEW_GROUP
+            return-object p0
+        """,
+    )
 }
 
 /** The types ReelsPipUtil builds from an activity and a boolean: the runnable its state change posts. */

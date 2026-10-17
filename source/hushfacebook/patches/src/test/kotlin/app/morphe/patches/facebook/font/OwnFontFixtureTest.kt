@@ -313,7 +313,8 @@ class OwnFontFixtureTest {
         val calls = makers.flatMap { method -> method.implementation!!.instructions.mapNotNull(::layoutCall) }
         assertTrue("${bundle.name}: ${calls.count { it == OBTAIN_LAYOUT }} layouts obtained", calls.count { it == OBTAIN_LAYOUT } >= 30)
         assertTrue("${bundle.name}: ${calls.count { it == SET_INCLUDE_PAD }} padding choices", calls.count { it == SET_INCLUDE_PAD } >= 15)
-        assertEquals("${bundle.name}: both one-line forms", 4, LAYOUT_CALLS.keys.count { it in calls })
+        assertTrue("${bundle.name}: ${calls.count { it == BUILD_LAYOUT }} layouts built", calls.count { it == BUILD_LAYOUT } >= 30)
+        assertEquals("${bundle.name}: every layout call, both one-line forms among them", LAYOUT_CALLS.size, LAYOUT_CALLS.keys.count { it in calls })
 
         val owners = FixtureDex.classes(bundle, makers.map { it.definingClass }.toSet())
         val context = PatchContexts.of(owners.values)
@@ -322,6 +323,54 @@ class OwnFontFixtureTest {
             for (method in context.mutableClassDefBy(type).methods) {
                 assertEquals("${bundle.name}: $type->${method.name} keeps a call of Android's", emptyList<String>(),
                     method.implementation?.instructions?.mapNotNull(::layoutCall).orEmpty())
+            }
+        }
+    }
+
+    /**
+     * Each declared build fits text to a set line height with spans whose chooseHeight sets the
+     * first line's top or the last line's bottom, the even split among them, which takes the shortfall
+     * off the ascent and the descent alike and moves both edges with them (#96). Every such write goes
+     * to the extension's stand-in on the write's own two registers, one instruction for one, and
+     * nothing else in the span changes.
+     */
+    @Test
+    fun `each declared build's line-height spans send their line edges to the extension`() = bundles { bundle ->
+        val spans = FixtureDex.methodsWhere(bundle, { true }) { method ->
+            isChooseHeight(method) && method.implementation?.instructions?.any { lineEdgeWrite(it) != null } == true
+        }
+        assertTrue("${bundle.name}: ${spans.size} line-height spans setting a line's edges", spans.size >= 3)
+        val evenSplit = spans.filter { method ->
+            val code = method.implementation!!.instructions.toList()
+            val written = code.filter { it.opcode == Opcode.IPUT }
+                .mapNotNull { ((it as ReferenceInstruction).reference as? FieldReference)?.name }
+            written.containsAll(listOf("ascent", "descent", "top", "bottom")) &&
+                code.any { (it as? ReferenceInstruction)?.reference?.toString() == "Ljava/lang/Math;->ceil(D)D" }
+        }
+        assertTrue("${bundle.name}: no even-split line-height span", evenSplit.isNotEmpty())
+
+        val owners = FixtureDex.classes(bundle, spans.map { it.definingClass }.toSet())
+        val context = PatchContexts.of(owners.values)
+        val writes = spans.sumOf { span -> span.implementation!!.instructions.count { lineEdgeWrite(it) != null } }
+        assertEquals("${bundle.name}: writes sent", writes, context.hookLineHeights())
+        for (span in spans) {
+            val where = "${bundle.name}: ${span.definingClass}"
+            val before = span.implementation!!.instructions.toList()
+            val after = context.mutableClassDefBy(span.definingClass).methods.single {
+                isChooseHeight(it) && it.parameterTypes.joinToString("") == span.parameterTypes.joinToString("")
+            }.implementation!!.instructions.toList()
+            assertEquals("$where: one instruction for one", before.size, after.size)
+            for (index in before.indices) {
+                val edge = lineEdgeWrite(before[index])
+                if (edge == null) {
+                    assertEquals("$where: instruction $index", before[index].opcode, after[index].opcode)
+                    continue
+                }
+                val write = before[index] as TwoRegisterInstruction
+                val call = after[index] as FiveRegisterInstruction
+                assertEquals("$where: stand-in at $index", LINE_EDGES.getValue(edge), (call as ReferenceInstruction).reference.toString())
+                assertEquals("$where: registers at $index", listOf(write.registerA, write.registerB),
+                    listOf(call.registerC, call.registerD).take(call.registerCount))
             }
         }
     }
@@ -368,9 +417,12 @@ class OwnFontFixtureTest {
                         builtTextView(prior) != null || prior.opcode == Opcode.MOVE_RESULT_OBJECT && makesView(body[hook - 2]))
                     assertEquals("$where: one register", 1, (body[hook] as RegisterRangeInstruction).registerCount)
                 }
-                // The assembler pads a payload that follows the hook to its alignment with a nop.
-                val was = code.map { it.opcode }.filter { it != Opcode.NOP }
-                val left = body.filterIndexed { index, _ -> index !in at }.map { it.opcode }.filter { it != Opcode.NOP }
+                // The assembler pads a payload that follows the hook to its alignment with a nop, and
+                // widens a goto the hook pushes out of reach (583's FbShortsMidcardPreviewRenderActivity
+                // onActivityCreate: its loop's goto back grows to goto/16), which is the same jump.
+                fun Opcode.normal() = if (this == Opcode.GOTO_16 || this == Opcode.GOTO_32) Opcode.GOTO else this
+                val was = code.map { it.opcode }.filter { it != Opcode.NOP }.map { it.normal() }
+                val left = body.filterIndexed { index, _ -> index !in at }.map { it.opcode }.filter { it != Opcode.NOP }.map { it.normal() }
                 val first = (0 until maxOf(was.size, left.size)).firstOrNull { was.getOrNull(it) != left.getOrNull(it) }
                 assertEquals("$where: nothing else changed, first difference at", null, first)
             }

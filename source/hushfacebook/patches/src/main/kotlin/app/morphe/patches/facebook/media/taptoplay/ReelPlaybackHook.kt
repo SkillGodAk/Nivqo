@@ -33,6 +33,8 @@ internal val PLAYBACK_STATE_NAMES = listOf("UNINITIALIZED", "PREPARED", "ATTEMPT
  * that decision, rather than forcing a control state or hiding the whole component. The existing
  * reset still updates Litho, cancels the hide timer and delivers Facebook's own visibility events.
  * Both 577 and 580 use this flow; pause, seek, errors and completion branch past the injection.
+ * On 583 the reset (`LX/8Mz;->A03`) hands its null to the controller's static update (`A00`), the
+ * controls updater folded into the controller, which stores it as the control state.
  */
 internal fun BytecodePatchContext.hookReelPlayback() {
     fun refuse(detail: String): Nothing = throw PatchException("$PATCH: Reels playback controls: $detail")
@@ -84,13 +86,42 @@ internal fun BytecodePatchContext.hookReelPlayback() {
     } ?: refuse("expected one control state field")
     val clear = methodNamed(controls, call.toString()) ?: refuse("missing native reset")
     val clearCode = clear.implementation!!.instructions.toList()
-    val writes = clearCode.filter { it.opcode == Opcode.IPUT_OBJECT &&
-        (it as ReferenceInstruction).reference.toString() == control.toString() }
     val zero = clearCode.getOrNull(1)
-    if (zero?.opcode != Opcode.CONST_4 || (zero as WideLiteralInstruction).wideLiteral != 0L ||
-        writes.isEmpty() || writes.any { (it as OneRegisterInstruction).registerA != (zero as OneRegisterInstruction).registerA } ||
-        clearCode.any { it.opcode == Opcode.SGET_OBJECT &&
-            ((it as ReferenceInstruction).reference as? FieldReference)?.type == control.type }) {
+    if (zero?.opcode != Opcode.CONST_4 || (zero as WideLiteralInstruction).wideLiteral != 0L) {
+        refuse("the native reset does not clear the control state")
+    }
+    val cleared = (zero as OneRegisterInstruction).registerA
+    // Each body that stores the control state, with the register it must store: the reset's null, or
+    // on 583, where Redex folded the controls updater into the controller, the parameter of the
+    // controller's static update that the reset hands its null as the new state.
+    val stores = listOf(clearCode to cleared) + clearCode.mapNotNull { instruction ->
+        val callee = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+        if (instruction.opcode != Opcode.INVOKE_STATIC || callee?.definingClass != controls.type) return@mapNotNull null
+        val position = callee.parameterTypes.indexOfFirst { it.toString() == control.type }
+        if (position < 0 || invokeRegisters(instruction).getOrNull(position) != cleared) return@mapNotNull null
+        val update = controls.methods.singleOrNull {
+            AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null && it.name == callee.name &&
+                it.returnType == callee.returnType &&
+                it.parameterTypes.map(CharSequence::toString) == callee.parameterTypes.map(CharSequence::toString)
+        } ?: return@mapNotNull null
+        val code = update.implementation!!.instructions.toList()
+        val state = update.implementation!!.registerCount - callee.parameterTypes.size + position
+        // The state's parameter has to hold the reset's null wherever the update stores it.
+        if (callee.parameterTypes.any { it.toString() == "J" || it.toString() == "D" } ||
+            code.any { it.opcode.setsRegister() && (it as? OneRegisterInstruction)?.registerA == state }
+        ) {
+            refuse("the native reset does not clear the control state")
+        }
+        code to state
+    }
+    val writes = stores.flatMap { (code, register) ->
+        code.filter { it.opcode == Opcode.IPUT_OBJECT && (it as ReferenceInstruction).reference.toString() == control.toString() }
+            .map { it to register }
+    }
+    if (writes.isEmpty() || writes.any { (write, register) -> (write as OneRegisterInstruction).registerA != register } ||
+        stores.any { (code, _) ->
+            code.any { it.opcode == Opcode.SGET_OBJECT && ((it as ReferenceInstruction).reference as? FieldReference)?.type == control.type }
+        }) {
         refuse("the native reset does not clear the control state")
     }
     val mutable = mutableClassDefBy(handler.definingClass).findMutableMethodOf(handler)

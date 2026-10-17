@@ -32,6 +32,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction3rc
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import org.junit.Assert.assertEquals
@@ -114,15 +115,38 @@ class MessengerIconShapesTest {
         assertFalse(isIconTap(tap(parameters = tapParameters.dropLast(3) + listOf("Z", "I", "Z"))))
     }
 
+    private val shape583 = HANDLER_SHAPES[1]
+    private val logHelperCall = ImmutableMethodReference("Lfixture/MessengerIcon;", "A00",
+        listOf(contextType, sessionType, "Ljava/lang/String;", "Ljava/lang/String;", "Z"), "Ljava/lang/String;")
+
+    /** 583's long-press log: a static helper of the handler's class answering a String, loading [literal]. */
+    private fun logHelper(literal: String = LONG_PRESS) = method("A00", logHelperCall.parameterTypes.map { it.toString() }, 14,
+        listOf(string(literal), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)), returnType = "Ljava/lang/String;")
+
+    /** 583's handler: a String after the entry point, handing its long press to [logHelperCall]. */
+    private fun handler583(owner: String = "Lfixture/MessengerIcon;", call: MethodReference = logHelperCall) =
+        method("A01", shape583, 30, listOf(invoke(Opcode.INVOKE_STATIC, call), returnVoid), owner = owner)
+
     @Test
-    fun `the button handler is the static (Context, FbUserSession, String, Z, Z)V that loads long_press`() {
-        assertTrue(isButtonHandler(handler()))
-        assertFalse(isButtonHandler(handler(literals = arrayOf())))
-        assertFalse(isButtonHandler(handler("is_messenger_installed")))
-        assertFalse(isButtonHandler(handler(static = false)))
-        assertFalse(isButtonHandler(handler(parameters = BUTTON_PARAMETERS.dropLast(1), registers = 24)))
-        assertFalse(isButtonHandler(method("A00", BUTTON_PARAMETERS, 25, listOf(string(LONG_PRESS), returnVoid),
-            returnType = "Z")))
+    fun `the button handler is the static handler-shaped void that logs long_press, itself or through its class's helper`() {
+        val owner = "Lfixture/MessengerIcon;"
+        fun handles(handler: Method, vararg others: Method) = isButtonHandler(handler, classDef(owner, handler, *others))
+        assertTrue(handles(handler()))
+        assertFalse(handles(handler(literals = arrayOf())))
+        assertFalse(handles(handler("is_messenger_installed")))
+        assertFalse(handles(handler(static = false)))
+        assertFalse(handles(handler(parameters = BUTTON_PARAMETERS.dropLast(1), registers = 24)))
+        assertFalse(handles(method("A00", BUTTON_PARAMETERS, 25, listOf(string(LONG_PRESS), returnVoid), returnType = "Z")))
+        assertEquals("the long press, up to 582", 3, buttonLongPress(handler()))
+
+        // 583: a second String after the entry point, and "long_press" in a helper the handler calls.
+        assertTrue(handles(handler583(), logHelper()))
+        assertEquals("A00", longPressLog(handler583(), classDef(owner, handler583(), logHelper()))?.name)
+        assertEquals("the long press on 583", 4, buttonLongPress(handler583()))
+        assertFalse("a helper that doesn't log it", handles(handler583(), logHelper("is_messenger_installed")))
+        assertFalse("no helper in the class", handles(handler583()))
+        val foreign = ImmutableMethodReference("Lfixture/Other;", "A00", logHelperCall.parameterTypes, "Ljava/lang/String;")
+        assertFalse("a helper in another class", handles(handler583(call = foreign), logHelper()))
     }
 
     @Test
@@ -157,6 +181,17 @@ class MessengerIconShapesTest {
         assertEquals(null, buttonHandler(classDef(owner, handler, wrapper(invoke(Opcode.INVOKE_STATIC, foreign))), wrapperCall))
         // Nor does a call to a method the class doesn't declare.
         assertEquals(null, buttonHandler(classDef(owner), handlerCall))
+
+        // 583's wrapper hands a handler of the longer shape, which logs through its helper.
+        val handler583 = handler583(owner = owner, call = ImmutableMethodReference(owner, "A00", logHelperCall.parameterTypes,
+            "Ljava/lang/String;"))
+        val handler583Call = ImmutableMethodReference(owner, "A01", shape583, "V")
+        val helper = method("A00", logHelperCall.parameterTypes.map { it.toString() }, 14,
+            listOf(string(LONG_PRESS), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)), returnType = "Ljava/lang/String;", owner = owner)
+        val wrapper583 = method("A02", BUTTON_PARAMETERS, 14,
+            listOf(ImmutableInstruction3rc(Opcode.INVOKE_STATIC_RANGE, 0, 6, handler583Call), returnVoid), static = false, owner = owner)
+        assertEquals("A01", buttonHandler(classDef(owner, helper, handler583, wrapper583),
+            ImmutableMethodReference(owner, "A02", BUTTON_PARAMETERS, "V"))?.name)
     }
 
     private fun MutableMethod.at(index: Int) = implementation!!.instructions.elementAt(index)
@@ -205,8 +240,14 @@ class MessengerIconShapesTest {
         // 25 registers, 5 parameters: p0 is v20 and p3, the long press, is v23.
         val handler = MutableMethod(handler())
         val own = handler.implementation!!.instructions.count()
-        handler.openMessengerFirst(BUTTON_LONG_PRESS)
+        handler.openMessengerFirst(buttonLongPress(handler))
         assertHookFirst(handler, own, context = 20, flag = 23)
+
+        // 583: 30 registers, 6 parameters: p0 is v24 and p4, the long press, is v28.
+        val handler583 = MutableMethod(method("A01", shape583, 30, listOf(string(LONG_PRESS), returnVoid)))
+        val own583 = handler583.implementation!!.instructions.count()
+        handler583.openMessengerFirst(buttonLongPress(handler583))
+        assertHookFirst(handler583, own583, context = 24, flag = 28)
     }
 
     /** A method with fewer than two locals to borrow is refused by name, before anything goes in. */

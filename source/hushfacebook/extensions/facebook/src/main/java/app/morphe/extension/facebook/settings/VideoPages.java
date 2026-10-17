@@ -97,7 +97,7 @@ final class VideoPages {
         if (build.contains(PatchFamily.AI_DETECTED_POSTS)) {
             reels.addPreference(toggle(context, Settings.HIDE_AI_DETECTED_REELS,
                     L10n.t("Hides reels and Watch videos that Facebook marks as made with AI. Ones only their creator labeled "
-                            + "stay. Untested on a real account, so it starts off.")));
+                            + "stay. Off by default, since it hasn't been tried on a real account yet.")));
         }
         if (build.contains(PatchFamily.REEL_DECLUTTER)) {
             reels.addPreference(toggle(context, Settings.HIDE_REEL_CHIPS,
@@ -109,15 +109,21 @@ final class VideoPages {
                     L10n.t("The comment Facebook previews under a reel and the bubbles of friends who reacted. "
                             + "Open the comments to see them all.")));
             reels.addPreference(toggle(context, Settings.HIDE_REEL_THREADS_CARDS,
-                    L10n.t("Hides the \"Threads you might like\" card between reels. Untested on a real account, so it starts "
-                            + "off.")));
+                    L10n.t("Hides the \"Threads you might like\" card between reels. Off by default, since it hasn't "
+                            + "been tried on a real account yet.")));
             reels.addPreference(toggle(context, Settings.REEL_CLEAN_MODE,
                     L10n.t("Opens reels and videos in Facebook's Clean mode, which hides the buttons down the side. You can "
-                            + "still leave Clean mode as usual. Untested on a real account, so it starts off.")));
+                            + "still leave Clean mode as usual. Off by default, since it hasn't been tried on a real "
+                            + "account yet.")));
             reels.addPreference(toggle(context, Settings.PLAY_REELS_ONCE,
                     L10n.t("A reel stops on its last frame instead of starting over. Tap it to watch again, or swipe to "
-                            + "the next one. Feed videos and stories aren't changed. Untested on a real account, so it "
-                            + "starts off.")));
+                            + "the next one. Feed videos and stories aren't changed. Off by default, since it hasn't "
+                            + "been tried on a real account yet.")));
+            // Asked as each video's audio is picked, so a change shows from the next video.
+            reels.addPreference(toggle(context, Settings.ORIGINAL_AUDIO,
+                    L10n.t("Reels and videos play with the sound they were made with, not a version Facebook dubbed "
+                            + "into your language with Meta AI. Off by default, since it hasn't been tried on a real "
+                            + "account yet.")));
         }
         if (build.contains(PatchFamily.REEL_WATCH_HISTORY)) {
             reels.addPreference(toggle(context, Settings.DONT_SEND_REEL_WATCH_HISTORY,
@@ -135,7 +141,7 @@ final class VideoPages {
                             + "or Facebook restarts. Off, every reel starts at normal speed.")));
             reels.addPreference(toggle(context, Settings.KEEP_VIDEO_SPEED,
                     L10n.t("The speed you pick in a feed or Watch video's menu carries over to the next videos. Reels keep "
-                            + "their own speed. Untested on a real account, so it starts off.")));
+                            + "their own speed. Off by default, since it hasn't been tried on a real account yet.")));
             reels.addPreference(toggle(context, Settings.SLOWER_REEL_SPEEDS,
                     L10n.t("Adds 0.1x and 0.25x to the speed menu of reels and of feed and Watch videos, for slowing down a "
                             + "fast moment.")));
@@ -160,7 +166,8 @@ final class VideoPages {
         if (build.contains(PatchFamily.TAP_TO_PLAY) || build.contains(PatchFamily.RESUME_LONG_VIDEOS)
                 || build.contains(PatchFamily.FRAME_STEP)
                 || build.contains(PatchFamily.PLAYBACK_QUALITY) || build.contains(PatchFamily.PICTURE_IN_PICTURE)
-                || build.contains(PatchFamily.HDR_BRIGHTNESS) || build.contains(PatchFamily.PROGRESS_BAR)) {
+                || build.contains(PatchFamily.HDR_BRIGHTNESS) || build.contains(PatchFamily.SKIP_SILENCE)
+                || build.contains(PatchFamily.PROGRESS_BAR)) {
             PreferenceCategory playback = category(screen, L10n.t("Playback"));
             if (build.contains(PatchFamily.TAP_TO_PLAY)) {
                 playback.addPreference(toggle(context, Settings.TAP_TO_PLAY,
@@ -191,12 +198,27 @@ final class VideoPages {
             if (build.contains(PatchFamily.PICTURE_IN_PICTURE)) {
                 playback.addPreference(toggle(context, Settings.PICTURE_IN_PICTURE,
                         L10n.t("A playing reel or full-screen video keeps going in a small window when you leave Facebook. Android 12 or later.")));
+                // Asked as each window is armed and on each tap of the row, so a change shows from the next reel.
+                playback.addPreference(toggle(context, Settings.PICTURE_IN_PICTURE_FROM_MENU,
+                        L10n.t("Leaving Facebook doesn't open the window. Tap Picture-in-picture in a reel's More menu "
+                                + "(the three dots) when you want one. That row is there whenever Picture-in-picture is on.")));
             }
             if (build.contains(PatchFamily.HDR_BRIGHTNESS)) {
                 // Asked as each screen comes to the front, so a change shows from the next one.
                 playback.addPreference(toggle(context, Settings.TURN_OFF_HDR_BRIGHTNESS,
                         L10n.t("HDR videos and photos stay at your screen's usual brightness instead of turning it up to "
                                 + "full. They keep their resolution.")));
+                // Asked as each video's manifest is read, so a change shows from the next new video.
+                playback.addPreference(toggle(context, Settings.PREFER_SDR_RENDITIONS,
+                        L10n.t("When Facebook also sends an HDR video in SDR at the same size, play that version instead. "
+                                + "The screen doesn't brighten and the picture stays as sharp. Works with the switch above "
+                                + "on or off.")));
+            }
+            if (build.contains(PatchFamily.SKIP_SILENCE)) {
+                // Asked as each player's sound starts, so a change shows from the next seek or video.
+                playback.addPreference(toggle(context, Settings.SKIP_SILENT_PARTS,
+                        L10n.t("Videos, reels and stories jump past the quiet stretches in their sound, so talks and "
+                                + "how-tos get to the point sooner.")));
             }
             if (build.contains(PatchFamily.PROGRESS_BAR)) {
                 playback.addPreference(toggle(context, Settings.KEEP_PROGRESS_BAR,

@@ -4,7 +4,9 @@
  */
 package app.morphe.patches.facebook.reels
 
+import app.morphe.patches.facebook.feed.addressed
 import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.feed.switchTarget
 import app.morphe.patches.facebook.feed.tableStringsAsked
 import app.morphe.patches.facebook.shared.redexOriginalName
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -13,6 +15,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -40,7 +43,10 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
  *   followable as the row's state was made: the state keeps whether the owner's subscribe status
  *   was CAN_SUBSCRIBE (580 LX/AyD;->A0H), and the getter is skipped when it was. So it takes the
  *   Following button off an author you already follow and never runs for one you can follow,
- *   which is why 0.1.7 left the Follow button on the S22's Reels tab.
+ *   which is why 0.1.7 left the Follow button on the S22's Reels tab. 583's arm64 build has no
+ *   such getter: the value is one of two MobileConfig flags read in cases of a merged lambda,
+ *   picked by whether the viewer is Shorts in the Watch tab, so both flag reads are hooked
+ *   ([followFlagsAt]) and the author row is the one method holding its literal.
  * - The Follow button: the same renderer builds it through the method holding
  *   "video_author_follow_button" (580 LX/AyO;->A01, 577 LX/B1T;->A01), and only when Facebook's
  *   Follow check answers yes (580 LX/8O4;->A0B, 577 LX/8qp;->A0B). The check is static, answers a
@@ -256,18 +262,33 @@ private fun isBooleanGetterCall(instruction: Instruction): Boolean {
         call.returnType == "Z" && call.parameterTypes.isEmpty() && invokeRegisters(instruction).size == 1
 }
 
-/** What the dump says about the Follow button: the getter, or why none was found. */
-internal class FollowGetter(val getter: MethodReference?, val literals: Int, val problem: String?)
+/**
+ * What the dump says about the Follow button: the getter, or on 583 the [flags] it's read from
+ * instead, or why neither was found.
+ */
+internal class FollowGetter(
+    val getter: MethodReference?,
+    val literals: Int,
+    val problem: String?,
+    val flags: List<MethodReference> = emptyList(),
+)
 
 /**
  * The getter every "…removeFollowingButton" value in [dumper] comes from. Each literal has to trace
- * to one getter, and all of them to the same one.
+ * to one getter, and all of them to the same one. On 583 no getter is called: each value comes from
+ * two flag reads in a merged lambda ([followFlagsAt]), and then all of them have to trace to the
+ * same pair. [classOf] finds the classes that trace goes through.
  */
-internal fun followButtonGetter(dumper: Method): FollowGetter {
+internal fun followButtonGetter(dumper: Method, classOf: (String) -> ClassDef? = { null }): FollowGetter {
     val body = dumper.body()
     val literals = body.indices.filter { body[it].string?.endsWith(REMOVE_FOLLOWING_BUTTON) == true }
     if (literals.isEmpty()) return FollowGetter(null, 0, "the dump names no \"$REMOVE_FOLLOWING_BUTTON\" value")
     val getters = literals.map { followGetterAt(body, it) }
+    if (getters.all { it == null }) {
+        val flags = literals.map { followFlagsAt(body, it, classOf) }
+        val pairs = flags.filterNotNull().map { pair -> pair.map { "${it.definingClass}->${it.name}" } }.distinct()
+        if (flags.none { it == null } && pairs.size == 1) return FollowGetter(null, literals.size, null, flags.first()!!)
+    }
     if (getters.any { it == null }) {
         return FollowGetter(null, literals.size,
             "${getters.count { it == null }} of ${literals.size} \"$REMOVE_FOLLOWING_BUTTON\" values trace to no boolean getter")
@@ -278,6 +299,94 @@ internal fun followButtonGetter(dumper: Method): FollowGetter {
             "the \"$REMOVE_FOLLOWING_BUTTON\" values come from ${distinct.size} getters: ${distinct.joinToString()}")
     }
     return FollowGetter(distinct.single(), literals.size, null)
+}
+
+private val INT_CONSTANTS = setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST)
+
+/** Where [register] was last written before [before], or null. 583's dump runs straight through, so this reads back over all of it. */
+private fun lastWrite(body: List<Instruction>, before: Int, register: Int): Int? =
+    (before - 1 downTo 0).firstOrNull { writes(body[it], register) }
+
+/** The int constant [register] holds at [before], through plain moves, or null. */
+private fun constantAt(body: List<Instruction>, before: Int, register: Int, depth: Int = 0): Int? {
+    if (depth > 3) return null
+    val at = lastWrite(body, before, register) ?: return null
+    return when (body[at].opcode) {
+        in INT_CONSTANTS -> (body[at] as NarrowLiteralInstruction).narrowLiteral
+        in MOVES -> constantAt(body, at, (body[at] as TwoRegisterInstruction).registerB, depth + 1)
+        else -> null
+    }
+}
+
+/**
+ * The two flag reads behind the "…removeFollowingButton" value at [literal] on 583 (LX/8cq;, read
+ * 2026-10-16). The dump writes the answer of a static `(config, Function0, I)String` helper (A02),
+ * which makes a second lambda of the first one's class from its int and has the config pick one of
+ * the two (`A0f`, by whether the viewer is Shorts in the Watch tab). The first lambda is the answer
+ * of the static call that also wrote the previous value (A05), keyed by its last int. Each key is a
+ * case of the merged lambda ([lambdaCase]) that reads one MobileConfig flag and boxes it.
+ */
+internal fun followFlagsAt(body: List<Instruction>, literal: Int, classOf: (String) -> ClassDef?): List<MethodReference>? {
+    val name = (body[literal] as? OneRegisterInstruction)?.registerA ?: return null
+    val write = (literal + 1 until minOf(body.size, literal + WINDOW)).firstOrNull {
+        isInvoke(body[it]) && name in invokeRegisters(body[it])
+    } ?: return null
+    if (body[write].methodReference?.returnType != "V") return null
+    val picker = invokeRegisters(body[write]).filterNot { it == name }.firstNotNullOfOrNull { register ->
+        val at = lastWrite(body, write, register)?.takeIf { body[it].opcode == Opcode.MOVE_RESULT_OBJECT }
+        at?.let { body.getOrNull(it - 1) }?.takeIf { it.opcode == Opcode.INVOKE_STATIC }?.let { at - 1 }
+    } ?: return null
+    val pick = body[picker].methodReference ?: return null
+    if (pick.returnType != "Ljava/lang/String;" || pick.parameterTypes.size != 3 ||
+        pick.parameterTypes.drop(1).map { it.toString() } != listOf(FUNCTION0, "I")) return null
+    val (_, first, secondKeyRegister) = invokeRegisters(body[picker])
+    val made = lastWrite(body, picker, first)?.takeIf { body[it].opcode == Opcode.MOVE_RESULT_OBJECT } ?: return null
+    val maker = body.getOrNull(made - 1)?.takeIf { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+        ?: return null
+    val lambdaType = maker.methodReference?.takeIf { it.parameterTypes.lastOrNull()?.toString() == "I" }?.returnType ?: return null
+    val firstKey = constantAt(body, made - 1, invokeRegisters(maker).last()) ?: return null
+    val secondKey = constantAt(body, picker, secondKeyRegister) ?: return null
+
+    // The helper makes its lambda of the same class, so both keys name cases of one lambda.
+    val helper = classOf(pick.definingClass)?.methods?.singleOrNull { it.name == pick.name && it.parameterTypes.size == 3 &&
+        it.returnType == pick.returnType && AccessFlags.STATIC.isSet(it.accessFlags) } ?: return null
+    if (helper.body().none { it.opcode == Opcode.NEW_INSTANCE && (it as ReferenceInstruction).reference.toString() == lambdaType }) return null
+    val lambda = classOf(lambdaType) ?: return null
+    val flags = listOf(firstKey, secondKey).map { lambdaCase(lambda, it) ?: return null }
+    return flags.takeIf { it.distinctBy { flag -> flag.name }.size == 2 && it.all { flag -> isFlagRead(lambda, flag) } }
+}
+
+private const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
+
+/**
+ * The static method a Redex-merged Kotlin lambda of class [lambda] runs for [key]: `invoke()`
+ * switches on the key the lambda was made with, and its case either calls that method or hands the
+ * key on to a second static switch of the class whose case calls it (583's `A1J(L, I)`).
+ */
+internal fun lambdaCase(lambda: ClassDef, key: Int): MethodReference? {
+    var method: Method = lambda.methods.singleOrNull {
+        it.name == "invoke" && it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/Object;" && it.implementation != null
+    } ?: return null
+    repeat(2) {
+        val byAddress = addressed(method)
+        val target = switchTarget(byAddress, key) ?: return null
+        val call = byAddress[target]?.takeIf { it.opcode == Opcode.INVOKE_STATIC }?.methodReference ?: return null
+        val parameters = call.parameterTypes.map { it.toString() }
+        if (call.definingClass != lambda.type) return null
+        if (parameters == listOf(lambda.type)) return call
+        if (parameters != listOf(lambda.type, "I")) return null
+        method = lambda.methods.singleOrNull { it.sameAs(call) && it.implementation != null } ?: return null
+    }
+    return null
+}
+
+/** Whether [flag], a case of [lambda], answers one boxed boolean read from a MobileConfig flag. */
+private fun isFlagRead(lambda: ClassDef, flag: MethodReference): Boolean {
+    val method = lambda.methods.singleOrNull { it.sameAs(flag) && AccessFlags.STATIC.isSet(it.accessFlags) } ?: return false
+    val calls = method.body().mapNotNull { it.methodReference }
+    return method.returnType == "Ljava/lang/Object;" &&
+        calls.any { it.definingClass == "Ljava/lang/Boolean;" && it.name == "valueOf" } &&
+        calls.any { it.definingClass.startsWith("Lcom/facebook/mobileconfig/") && it.returnType == "Z" }
 }
 
 /**

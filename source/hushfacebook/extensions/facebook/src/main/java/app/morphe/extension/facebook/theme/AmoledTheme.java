@@ -527,6 +527,11 @@ public final class AmoledTheme {
         return LIGHTEST_STEP;
     }
 
+    /** The background colour in use: {@link #backgroundColour} as the patch filled it in. */
+    static int background() {
+        return background;
+    }
+
     /** Package-visible for tests: puts a background colour of {@link #backgroundColour}'s kind in use. */
     static void useBackground(int colour) {
         useBackground(colour, LIGHTEST_STEP);

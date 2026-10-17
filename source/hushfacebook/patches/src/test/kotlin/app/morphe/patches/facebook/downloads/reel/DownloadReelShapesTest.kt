@@ -224,6 +224,93 @@ class DownloadReelShapesTest {
         assertEquals(3, builderEnd().storyScratchRegister(injectAt, reads = listOf(2, 20, 21), story = 2))
     }
 
+    /**
+     * 577 to 582 leave v0 to v2 free three instructions before the call. 583 moves three lambdas
+     * out of them into the call's range there, so the block goes in after the last such read.
+     */
+    @Test
+    fun `the block goes in where v0 to v2 are free, three instructions before the call at most`() {
+        assertEquals(injectAt, builderEnd().sidebarBlockIndex(assemblyAt))
+        val lambdasLast = builderEnd(window = "move-object/from16 v22, v1\nmove-object/from16 v23, v0\nnop")
+        assertEquals(assemblyAt - 1, lambdasLast.sidebarBlockIndex(assemblyAt))
+        // The block fits there, and the old place is refused for the very reason it moved.
+        lambdasLast.requireSidebarBlockFits(assemblyAt - 1, assemblyAt, SIDEBAR_BLOCK_SCRATCH + 3, reads = listOf(20, 21))
+        val refused = assertThrows(PatchException::class.java) {
+            lambdasLast.requireSidebarBlockFits(injectAt, assemblyAt, SIDEBAR_BLOCK_SCRATCH + 3, reads = listOf(20, 21))
+        }
+        assertTrue(refused.message, refused.message.orEmpty().contains("still reads v0, v1 after instruction 5"))
+        // Read right up to the call, nothing qualifies, and the old place is handed back to be refused.
+        val readToTheEnd = builderEnd(window = "nop\nnop\nmove-object/from16 v23, v0", after = "invoke-static { v1 }, Lfixture/Log;->note(I)V")
+        assertEquals(injectAt, readToTheEnd.sidebarBlockIndex(assemblyAt))
+    }
+
+    /** A one-method stand-in for a class's method, with [code] as its body. */
+    private fun method(type: String, name: String, parameters: List<String>, returns: String, code: String, static: Boolean = false) =
+        MutableMethod(
+            ImmutableMethod(
+                type, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns,
+                AccessFlags.PUBLIC.value or (if (static) AccessFlags.STATIC.value else 0), null, null,
+                ImmutableMethodImplementation(8, emptyList(), null, null),
+            ),
+        ).apply { addInstructionsWithLabels(0, code) }
+
+    /**
+     * 583's sidebar builder is the spec's method, handed the scoped context first and then the
+     * component's fields, and the component's render only calls it. The render is told by its one
+     * parameter, the builder's first, and the call.
+     */
+    @Test
+    fun `a render handing the scoped context to the spec's builder is the sidebar's render`() {
+        val builder = method(
+            "Lfixture/Spec;", "build", listOf("Lfixture/Scope;", session, "Lfixture/Player;"), "Lfixture/Component;",
+            "const/4 v0, 0x0\nreturn-object v0",
+        )
+        val call = "invoke-virtual/range { v0 .. v3 }, Lfixture/Spec;->build(Lfixture/Scope;${session}Lfixture/Player;)Lfixture/Component;"
+        val render = method("Lfixture/Sidebar;", "render", listOf("Lfixture/Scope;"), "Lfixture/Component;",
+            "const/4 v0, 0x0\nconst/4 v2, 0x0\nconst/4 v3, 0x0\n$call\nmove-result-object v0\nreturn-object v0")
+        assertTrue(rendersThrough(render, builder))
+
+        val otherScope = method("Lfixture/Sidebar;", "render", listOf("Lfixture/Other;"), "Lfixture/Component;",
+            "const/4 v0, 0x0\nconst/4 v2, 0x0\nconst/4 v3, 0x0\n$call\nmove-result-object v0\nreturn-object v0")
+        assertTrue("another scoped type", !rendersThrough(otherScope, builder))
+        val twoParameters = method("Lfixture/Sidebar;", "render", listOf("Lfixture/Scope;", "I"), "Lfixture/Component;",
+            "const/4 v0, 0x0\nconst/4 v2, 0x0\nconst/4 v3, 0x0\n$call\nmove-result-object v0\nreturn-object v0")
+        assertTrue("a second parameter", !rendersThrough(twoParameters, builder))
+        val noCall = method("Lfixture/Sidebar;", "render", listOf("Lfixture/Scope;"), "Lfixture/Component;",
+            "const/4 v0, 0x0\nreturn-object v0")
+        assertTrue("no call to the builder", !rendersThrough(noCall, builder))
+    }
+
+    /**
+     * 583's arm64 builder asks for each button's marker itself. Its armeabi-v7a one hands the icon,
+     * the button and the three lists to a static Redex outlined from the loop body, which asks for
+     * the marker there, so that helper is read when the builder names no marker.
+     */
+    @Test
+    fun `the marker is read off the builder, or off the outlined loop body it hands the icon to`() {
+        val icon = "Lfixture/Icon;"
+        val lists = "Ljava/util/AbstractCollection;"
+        val marker = "Lfixture/Markers;->of(${icon})Lfixture/Marker;"
+        val loopBody = method(
+            "Lfixture/Loop;", "add", listOf(icon, "Ljava/lang/Object;", lists, lists, lists), "V",
+            "invoke-static { p0 }, $marker\nmove-result-object v0\ninvoke-virtual { p3, v0 }, $lists->add(Ljava/lang/Object;)Z\nreturn-void",
+            static = true,
+        )
+        val resolve = { call: MethodReference -> loopBody.takeIf { call.definingClass == "Lfixture/Loop;" && call.name == "add" } }
+        val outlined = method("Lfixture/Spec;", "build", listOf("Lfixture/Scope;"), "V",
+            "const/4 v0, 0x0\ninvoke-static { v0, v0, v0, v0, v0 }, Lfixture/Loop;->add(${icon}Ljava/lang/Object;$lists$lists$lists)V\nreturn-void")
+        assertEquals(listOf(marker), iconMarkers(outlined, icon, resolve).map { it.toString() })
+
+        // Asked in the builder, that's the one, and a helper taking the icon isn't read.
+        val inline = method("Lfixture/Spec;", "build", listOf("Lfixture/Scope;"), "V",
+            "const/4 v0, 0x0\ninvoke-static { v0 }, Lfixture/Own;->of(${icon})Lfixture/Marker;\n" +
+                "invoke-static { v0, v0, v0, v0, v0 }, Lfixture/Loop;->add(${icon}Ljava/lang/Object;$lists$lists$lists)V\nreturn-void")
+        assertEquals(listOf("Lfixture/Own;->of(${icon})Lfixture/Marker;"), iconMarkers(inline, icon, resolve).map { it.toString() })
+
+        // A helper that can't be read names nothing.
+        assertEquals(emptyList<String>(), iconMarkers(outlined, icon) { null }.map { it.toString() })
+    }
+
     private fun field(name: String, type: String) = ImmutableField("Lfixture/Sidebar;", name, type, AccessFlags.PUBLIC.value, null, null, null)
 
     @Test

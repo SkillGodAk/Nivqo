@@ -737,12 +737,17 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
 
     @Override
     protected boolean noteRestartPending(Setting<?> setting, Object valueBefore) {
-        if (setting != Settings.MARKETPLACE_ONLY) return super.noteRestartPending(setting, valueBefore);
-        // This mode can leave the bar unchanged when Marketplace is unavailable. Its observed
-        // result, rather than the previous saved switch, decides whether restarting is useful.
+        if (setting != Settings.MARKETPLACE_ONLY && setting != Settings.EVENTS_ONLY) {
+            return super.noteRestartPending(setting, valueBefore);
+        }
+        // This mode can leave the bar unchanged when Marketplace or Events is unavailable. Its
+        // observed result, rather than the previous saved switch, decides whether restarting is
+        // useful. The two switches share one bar, so they share one answer.
         boolean pending = MarketplaceOnly.state() == MarketplaceOnly.State.RESTART_NEEDED;
-        if (pending) restartPending.add(setting.key);
-        else restartPending.remove(setting.key);
+        for (Setting<?> mode : new Setting<?>[]{Settings.MARKETPLACE_ONLY, Settings.EVENTS_ONLY}) {
+            if (pending && mode == setting) restartPending.add(mode.key);
+            else restartPending.remove(mode.key);
+        }
         onRestartPendingChanged();
         return pending;
     }
@@ -845,33 +850,44 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     private void showMarketplaceSettings() {
         if (getPreferenceScreen() == null) return;
         Preference mode = findPreference(Settings.MARKETPLACE_ONLY.key);
-        boolean selected = mode != null && Settings.MARKETPLACE_ONLY.savedValue();
+        Preference events = findPreference(Settings.EVENTS_ONLY.key);
+        boolean marketplaceSelected = mode != null && Settings.MARKETPLACE_ONLY.savedValue();
+        boolean eventsSelected = events != null && Settings.EVENTS_ONLY.savedValue() && !marketplaceSelected;
+        boolean selected = marketplaceSelected || eventsSelected;
         if (mode != null) {
             mode.setSummary(marketplaceSummary());
-            Preference regular = findPreference("action_regular_facebook");
-            if (regular != null) regular.setEnabled(selected);
             Preference quiet = findPreference(Settings.MARKETPLACE_QUIET_NOTIFICATIONS.key);
-            if (quiet != null) quiet.setEnabled(selected);
+            if (quiet != null) quiet.setEnabled(marketplaceSelected);
             Preference prefetch = findPreference(Settings.MARKETPLACE_SKIP_FEED_PREFETCH.key);
-            if (prefetch != null) prefetch.setEnabled(selected);
+            if (prefetch != null) prefetch.setEnabled(marketplaceSelected);
         }
+        if (events != null) events.setSummary(eventsSummary());
+        Preference regular = findPreference("action_regular_facebook");
+        if (regular != null) {
+            regular.setEnabled(selected);
+            // Greyed out, it says what it's for rather than promising tabs that are already back.
+            regular.setSummary(selected
+                    ? L10n.t("Restore the normal tabs at the next restart. Your other settings stay saved.")
+                    : L10n.t("For when Marketplace only or Events only is on. Neither is on now."));
+        }
+        String chooses = marketplaceSelected
+                ? L10n.t("Marketplace only chooses the opening tab. Your previous choice stays saved.")
+                : L10n.t("Events only chooses the opening tab. Your previous choice stays saved.");
         Preference chosen = findPreference(Settings.OPEN_ON_CHOSEN_TAB.key);
         if (chosen != null) {
             chosen.setEnabled(!selected);
-            chosen.setSummary(selected ? L10n.t("Marketplace only chooses the opening tab. Your previous choice stays saved.")
+            chosen.setSummary(selected ? chooses
                     : L10n.t("Choose where Facebook opens from its icon. Notifications and links still open their destination."));
         }
         Preference tab = findPreference(Settings.START_TAB.key);
         if (tab != null) {
             tab.setEnabled(!selected);
-            tab.setSummary(selected ? L10n.t("Marketplace only chooses the opening tab. Your previous choice stays saved.")
-                    : startTabSummary(Settings.START_TAB.savedValue()));
+            tab.setSummary(selected ? chooses : startTabSummary(Settings.START_TAB.savedValue()));
         }
         Preference subtab = findPreference(Settings.FEEDS_SUBTAB.key);
         if (subtab != null) {
             subtab.setEnabled(!selected);
-            subtab.setSummary(selected ? L10n.t("Marketplace only chooses the opening tab. Your previous choice stays saved.")
-                    : feedsSubtabSummary(Settings.FEEDS_SUBTAB.savedValue()));
+            subtab.setSummary(selected ? chooses : feedsSubtabSummary(Settings.FEEDS_SUBTAB.savedValue()));
         }
     }
 
@@ -886,6 +902,10 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     }
 
     static String marketplaceSummary() {
+        // The state is the single-tab mode's, so it's Marketplace's only while Marketplace is the kept tab.
+        if (!MarketplaceOnly.stateIsFor(StartTab.MARKETPLACE)) {
+            return L10n.t("Off. Turn on to open Marketplace and hide the feed and other social tabs after restarting Facebook.");
+        }
         switch (MarketplaceOnly.state()) {
             case ACTIVE:
                 return L10n.t("Active. Marketplace, Notifications and Profile/Menu stay. Find Hushfacebook settings in Menu, under Settings and privacy.");
@@ -905,6 +925,36 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 return L10n.t("Waiting for Facebook's tab bar. Marketplace only will apply when Facebook builds it.");
             default:
                 return L10n.t("Off. Turn on to open Marketplace and hide the feed and other social tabs after restarting Facebook.");
+        }
+    }
+
+    /** Events only's row, the same states as {@link #marketplaceSummary} for the Events tab. */
+    static String eventsSummary() {
+        String off = L10n.t("Off. Turn on to open Events and hide the feed and other social tabs after restarting Facebook.");
+        // Marketplace only wins while both are on, and the row is greyed out until it's off.
+        if (Settings.MARKETPLACE_ONLY.savedValue()) {
+            return off + " " + L10n.f("Turn off %1$s to use this.", L10n.isolate(SwitchLabels.title(Settings.MARKETPLACE_ONLY)));
+        }
+        if (!MarketplaceOnly.stateIsFor(StartTab.EVENTS)) return off;
+        switch (MarketplaceOnly.state()) {
+            case ACTIVE:
+                return L10n.t("Active. Events, Notifications and Profile/Menu stay. Find Hushfacebook settings in Menu, under Settings and privacy.");
+            case RESTART_NEEDED:
+                return Settings.EVENTS_ONLY.savedValue()
+                        ? L10n.t("Restart needed. Events only will turn on the next time Facebook starts.")
+                        : L10n.t("Restart needed. The normal tabs will return the next time Facebook starts.");
+            case PAUSED:
+                return L10n.t("Paused with Hushfacebook. Your Events choice stays saved. Tabs already hidden return after a restart while paused.");
+            case HIDDEN:
+                return L10n.t("Events is hidden in Facebook's tab settings. Pin it under Settings, Tab bar, Customize the bar. Your normal tabs stay available.");
+            case MISSING:
+                return L10n.t("Events isn't on your tab bar. Pin it under Settings, Tab bar, Customize the bar, then restart Facebook. Your normal tabs stay available.");
+            case UNREADABLE:
+                return L10n.t("Couldn't check the tab bar. Your normal tabs stay available. Restart Facebook to try again.");
+            case WAITING:
+                return L10n.t("Waiting for Facebook's tab bar. Events only will apply when Facebook builds it.");
+            default:
+                return off;
         }
     }
 
@@ -1067,7 +1117,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         row.setDialogTitle(L10n.t("Tab to open on"));
         // Android's own Cancel follows the activity's language, as the quality row's did.
         row.setNegativeButtonText(L10n.t("Cancel"));
-        StartTab[] tabs = StartTab.values();
+        StartTab[] tabs = StartTab.choices().toArray(new StartTab[0]);
         CharSequence[] entries = new CharSequence[tabs.length];
         CharSequence[] values = new CharSequence[tabs.length];
         for (int i = 0; i < tabs.length; i++) {
@@ -1095,6 +1145,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 return L10n.t("Notifications");
             case MENU:
                 return L10n.t("Menu");
+            case EVENTS:
+                return L10n.t("Events");
             default:
                 return L10n.t("Marketplace");
         }

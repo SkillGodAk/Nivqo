@@ -28,14 +28,18 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  *
  * <p>The comment box draws its buttons through a socket that asks a check of each button, by
  * number, whether it shows. The patch asks {@link #holdsButton} first in that check with the
- * button's name, and a yes answers no for that button. What comes after a post's comments is drawn
+ * button's name, and a yes answers no for that button. The comment bar under a video in the
+ * full-screen viewer builds its sticker and GIF buttons itself, and the patch asks
+ * {@link #holdsViewerButtons} once they're built; a yes drops both. What comes after a post's comments is drawn
  * through another socket of the same kind, and the patch asks {@link #holdsBottomContent} first in
  * its check. A long press on Like opens the reaction
  * picker through one method, and the patch asks {@link #skipReactionPicker} first there; a yes
  * returns before anything opens. A comment keeps whether its reply thread is open in its state,
  * which starts closed until a tap on View replies opens it. The patch hands
  * {@link #openReplyThreads} that flag as the state is first set up and writes back the answer.
- * Each comment is drawn by a section that the patch asks {@link #hidesComment} first, with the
+ * Once an open thread's replies are fetched, it builds a list over them that either pages on by
+ * itself or draws View more replies; the patch asks {@link #loadWholeReplyThreads} which, just
+ * before Facebook sets it. Each comment is drawn by a section that the patch asks {@link #hidesComment} first, with the
  * comment it draws; a yes draws nothing for it.
  *
  * <p>Off, paused, before the settings are ready, or when anything here fails, the answers are
@@ -66,6 +70,9 @@ public final class CommentSheetOptions {
     /** Counted each time a comment starts with its reply thread open. */
     static final String THREAD_OPENED = "Reply thread opened";
 
+    /** Counted each time an open reply thread's list is set to load the rest of its replies as it's scrolled. */
+    static final String THREAD_LOADS_IN_FULL = "Reply thread loads in full";
+
     /** Counted each time a comment is left out for a link to a shop. */
     static final String SHOP_LINK_HIDDEN = "Comment with a shop link left out";
 
@@ -78,6 +85,9 @@ public final class CommentSheetOptions {
     /** The member the report names once the comment box's socket has asked about the GIF or sticker button. */
     static final String BUTTONS = "comment box buttons";
 
+    /** The member the report names once the video viewer's comment bar has built its GIF and sticker buttons. */
+    static final String VIEWER_BUTTONS = "video viewer comment buttons";
+
     /** The member the report names once the socket under a post's comments has asked about Related groups. */
     static final String BOTTOM = "related groups under comments";
 
@@ -86,6 +96,9 @@ public final class CommentSheetOptions {
 
     /** The member the report names once a comment's state has been set up. */
     static final String REPLY_THREADS = "reply threads";
+
+    /** The member the report names once an open reply thread has built the list of its replies. */
+    static final String REPLY_LISTS = "reply lists";
 
     /**
      * Facebook's own settings, a route its links table carries on 577, 580 and 581. Reaction
@@ -113,6 +126,25 @@ public final class CommentSheetOptions {
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "comment box button check", failure);
+            return false;
+        }
+    }
+
+    /**
+     * The hook, in the comment bar under a video in the full-screen viewer, once it has built its
+     * sticker and GIF buttons. That bar is its own component, not the comment box's socket, so
+     * {@link #holdsButton} never hears of it. True drops both buttons while the switch is on;
+     * false keeps the bar as Facebook built it.
+     */
+    public static boolean holdsViewerButtons() {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, VIEWER_BUTTONS);
+            if (!Utils.settingsReady() || !Settings.HIDE_COMMENT_GIF_STICKER_BUTTONS.get()) return false;
+            HookStatus.counted(FAMILY, BUTTON_HIDDEN);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "video viewer comment bar", failure);
             return false;
         }
     }
@@ -168,6 +200,28 @@ public final class CommentSheetOptions {
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "reply thread", failure);
             return open;
+        }
+    }
+
+    /**
+     * The hook, as an open reply thread builds the list of its fetched replies, handed whether that
+     * list pages on by itself, which Facebook leaves false for replies: it draws View more replies
+     * under them, and each tap loads one more page. True, while Load whole reply threads is on,
+     * makes the list load its next page each time its end comes into view, the way Facebook's own
+     * comment lists do, so the rest of the thread follows as it's scrolled with no more taps. It
+     * goes a page at a time and only as far as the reader scrolls, so a huge thread can't hold the
+     * sheet up. Otherwise Facebook's own value comes back.
+     */
+    public static boolean loadWholeReplyThreads(boolean pagesOnScroll) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, REPLY_LISTS);
+            if (pagesOnScroll || !Utils.settingsReady() || !Settings.LOAD_WHOLE_REPLY_THREADS.get()) return pagesOnScroll;
+            HookStatus.counted(FAMILY, THREAD_LOADS_IN_FULL);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "reply list", failure);
+            return pagesOnScroll;
         }
     }
 

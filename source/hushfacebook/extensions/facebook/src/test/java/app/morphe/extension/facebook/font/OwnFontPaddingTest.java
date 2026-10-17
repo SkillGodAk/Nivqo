@@ -6,14 +6,18 @@ package app.morphe.extension.facebook.font;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.text.SpannableString;
+import android.text.Spanned;
 import android.text.StaticLayout;
 import android.text.TextPaint;
+import android.text.style.LineHeightSpan;
 import android.widget.TextView;
 
 import org.junit.After;
@@ -25,6 +29,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import app.morphe.extension.facebook.settings.Settings;
@@ -149,6 +154,84 @@ public class OwnFontPaddingTest {
         Settings.USE_SYSTEM_FONT.save(true);
         OwnFont.textView(view);
         assertTrue(view.getIncludeFontPadding());
+    }
+
+    /**
+     * A line-height span of Facebook's, as the patch leaves it: it moves each line's top and bottom
+     * [inward] px inside the font's own through the stand-ins, and keeps the font's edges and what
+     * each line ended with.
+     */
+    private static final class LineHeight implements LineHeightSpan {
+        final int inward;
+        final List<int[]> lines = new ArrayList<>();
+
+        LineHeight(int inward) {
+            this.inward = inward;
+        }
+
+        @Override
+        public void chooseHeight(CharSequence text, int start, int end, int spanstartv, int lineHeight, Paint.FontMetricsInt line) {
+            int top = line.top;
+            int bottom = line.bottom;
+            OwnFont.lineTop(top + inward, line);
+            OwnFont.lineBottom(bottom - inward, line);
+            lines.add(new int[] {top, bottom, line.top, line.bottom});
+        }
+    }
+
+    /** Lays "gjpqy" out in [face] the way Facebook's text does, through the stand-ins, with [span] over it. */
+    private static List<int[]> laidOut(Typeface face, LineHeight span) {
+        SpannableString text = new SpannableString("gjpqy");
+        text.setSpan(span, 0, text.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+        StaticLayout.Builder builder = OwnFont.obtain(text, 0, text.length(), paint(face), 1000);
+        assertNotNull(OwnFont.build(OwnFont.setIncludePad(builder, false)));
+        assertFalse("the span chose no line's height", span.lines.isEmpty());
+        return span.lines;
+    }
+
+    /** Whether every line ended with the font's own edges (true) or the span's (false). */
+    private static void assertEdges(String what, boolean fontsOwn, int inward, List<int[]> lines) {
+        for (int[] line : lines) {
+            int top = fontsOwn ? line[0] : line[0] + inward;
+            int bottom = fontsOwn ? line[1] : line[1] - inward;
+            assertEquals(what + ": top", top, line[2]);
+            assertEquals(what + ": bottom", bottom, line[3]);
+        }
+    }
+
+    /**
+     * Facebook's line-height spans set a layout's first top and last bottom to the edges of the line
+     * height they fit, which took back the padding of a font drawing past its line box (#96). In a
+     * layout built for such a font with the switch on, the edges stay at least the font's own; a
+     * font that fits, the switch off, and anything outside such a layout keep Facebook's edges.
+     */
+    @Test
+    public void aLineHeightSpanLeavesAPaddedLayoutsEdgesAtTheFontsOwn() {
+        Settings.USE_SYSTEM_FONT.save(true);
+        OwnFont.OVERFLOWS.put(Typeface.DEFAULT, true);
+        assertTrue("nothing kept yet", HookStatus.report().isEmpty());
+        List<int[]> padded = laidOut(Typeface.DEFAULT, new LineHeight(7));
+        assertEdges("padded", true, 7, padded);
+        List<String> report = HookStatus.report();
+        assertEquals(report.toString(), 1, report.size());
+        assertTrue(report.get(0), report.get(0).contains(OwnFont.EDGE_KEPT + " " + (2 * padded.size())));
+        assertEdges("an edge already past the font's stays Facebook's", false, -3, laidOut(Typeface.DEFAULT, new LineHeight(-3)));
+        assertEquals("only an edge pulled inside is counted", report, HookStatus.report());
+
+        Paint.FontMetricsInt line = new Paint.FontMetricsInt();
+        line.top = -110;
+        line.bottom = 30;
+        OwnFont.lineTop(-80, line);
+        OwnFont.lineBottom(5, line);
+        assertEquals("outside a layout, once the padded one is built", -80, line.top);
+        assertEquals("outside a layout, once the padded one is built", 5, line.bottom);
+
+        assertEdges("a font that isn't the phone's", false, 7, laidOut(Typeface.SERIF, new LineHeight(7)));
+        OwnFont.OVERFLOWS.put(Typeface.DEFAULT, false);
+        assertEdges("a font that fits", false, 7, laidOut(Typeface.DEFAULT, new LineHeight(7)));
+        OwnFont.OVERFLOWS.put(Typeface.DEFAULT, true);
+        Settings.USE_SYSTEM_FONT.save(false);
+        assertEdges("switch off", false, 7, laidOut(Typeface.DEFAULT, new LineHeight(7)));
     }
 
     /** Each typeface is measured once, and the report counts what the measure found. */

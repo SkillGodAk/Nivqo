@@ -122,7 +122,7 @@ internal class ReelHoldAnchors(
     val speedUpFlag: String,
     val releaseFlag: String,
     val plans: List<FlagPlan>,
-    val edgeCheck: Method,
+    val edgeCheck: EdgeCheck,
     val dispatch: Method,
     val speedUpPaths: List<Method>,
     val holdSpeed: Method,
@@ -176,15 +176,24 @@ internal fun BytecodePatchContext.findReelHoldAnchors(): ReelHoldAnchors {
     }
     val builderPlans = builders.mapNotNull { plan(it, SPEED_UP, setOf(speedUpFlag, releaseFlag)) }
 
+    // Up to 582 a handler calls the edge check, a method of its own. 583 inlined it into a lambda a
+    // handler makes, so where no handler calls one, the check is looked for in what they make.
     val edgeChecks = handlers.flatMap { handler -> handler.methods.flatMap { edgeChecksCalled(it, config) } }
         .distinctBy { it.toString() }
-    val edgeCall = edgeChecks.singleOrNull()
-        ?: refuseGuard("expected the long-press handlers to call one edge check, found ${edgeChecks.size}")
-    val edgeCheck = classDefByOrNull(edgeCall.definingClass)?.methods?.singleOrNull { isMethod(it, edgeCall) }
-        ?: refuseGuard("the edge check $edgeCall has no body in this build")
-    if (edgeCheck.implementation!!.instructions.none { it.opcode == Opcode.RETURN }) refuseGuard("the edge check never returns")
+    val edgeCheck = if (edgeChecks.isNotEmpty()) {
+        val edgeCall = edgeChecks.singleOrNull()
+            ?: refuseGuard("expected the long-press handlers to call one edge check, found ${edgeChecks.size}")
+        val method = classDefByOrNull(edgeCall.definingClass)?.methods?.singleOrNull { isMethod(it, edgeCall) }
+            ?: refuseGuard("the edge check $edgeCall has no body in this build")
+        ownEdgeCheck(method) ?: refuseGuard("the edge check never returns")
+    } else {
+        val made = handlers.flatMap { handler -> handler.methods.flatMap(::typesMade) }.toSet()
+        val inlined = made.mapNotNull(::classDefByOrNull).flatMap { lambda -> lambda.methods.mapNotNull { inlinedEdgeCheck(it, config) } }
+        inlined.singleOrNull()
+            ?: refuseGuard("expected the long-press handlers to call one edge check or make one lambda holding it, found ${inlined.size}")
+    }
 
-    // FbGrootPlayer's speed setter, and the one double both speed-ups read from the config and set it to.
+    // FbGrootPlayer's speed setter, and the one double the speed-ups read from the config and set it to.
     val plays = classDefByStrings(GROOT_PLAY, StringComparisonType.EQUALS)
         .filterNot { it.type.startsWith(EXTENSION_CLASSES) }.flatMap(::grootPlays)
     val player = classDefBy(plays.singleOrNull()?.definingClass ?: refuseGuard("expected one player play holding \"$GROOT_PLAY\", found ${plays.size}"))
@@ -225,26 +234,37 @@ internal fun BytecodePatchContext.findReelHoldAnchors(): ReelHoldAnchors {
  * After each flag call's move-result, the extension's answer in its place, in the same register,
  * which the range form names whatever its number; the branch that follows reads it as Facebook's.
  * Here for the long-press handlers' and the overlay's flags, and before each of the edge check's
- * returns, the same, and before each of the hold speed's, for its register pair. First in the edge
- * check, its press and view, the two parameters it starts with, through the range form. The release
- * listeners' flags and the rest are [applyReelLiftGuard]'s.
+ * answers going out (its returns, or 583's Boolean.valueOf of it), the same, and before each of the
+ * hold speed's returns, for its register pair. Where the edge check has its press and view in hand
+ * (first thing in a check of its own), both. The release listeners' flags and the rest are
+ * [applyReelLiftGuard]'s.
  */
 internal fun BytecodePatchContext.applyReelHoldAnchors(anchors: ReelHoldAnchors) {
     for (plan in anchors.plans.filter { it.hook != RELEASE }) hookAnswers(plan)
-    val edge = mutableClassDefBy(anchors.edgeCheck.definingClass).findMutableMethodOf(anchors.edgeCheck)
-    edge.implementation!!.instructions.withIndex().filter { it.value.opcode == Opcode.RETURN }.map { it.index }
-        .asReversed().forEach { index ->
-            val register = edge.getInstruction<OneRegisterInstruction>(index).registerA
-            edge.addInstructionsAtControlFlowLabel(
-                index,
-                """
-                    invoke-static/range { v$register .. v$register }, $ANYWHERE
-                    move-result v$register
-                """,
-            )
-        }
-    // The press and the view are the edge check's first two parameters, in neighbouring registers.
-    edge.addInstruction(0, "invoke-static/range { ${edge.parameterRegister(0)} .. ${edge.parameterRegister(1)} }, $EDGE_TOUCH")
+    val check = anchors.edgeCheck
+    val edge = mutableClassDefBy(check.method.definingClass).findMutableMethodOf(check.method)
+    // The answers all lie past the press and view, so they go in first and the entry keeps its index.
+    check.answers.keys.sortedDescending().forEach { index ->
+        val register = check.answers.getValue(index)
+        edge.addInstructionsAtControlFlowLabel(
+            index,
+            """
+                invoke-static/range { v$register .. v$register }, $ANYWHERE
+                move-result v$register
+            """,
+        )
+    }
+    // A check of its own takes the press and the view as its first two parameters, in neighbouring
+    // registers the range form names whatever their numbers; 583's inlined one reads them into two
+    // low locals, which the plain form names.
+    edge.addInstruction(
+        check.entry,
+        if (check.view == check.press + 1) {
+            "invoke-static/range { v${check.press} .. v${check.view} }, $EDGE_TOUCH"
+        } else {
+            "invoke-static { v${check.press}, v${check.view} }, $EDGE_TOUCH"
+        },
+    )
     val speed = mutableClassDefBy(anchors.holdSpeed.definingClass).findMutableMethodOf(anchors.holdSpeed)
     speed.implementation!!.instructions.withIndex().filter { it.value.opcode == Opcode.RETURN_WIDE }.map { it.index }
         .asReversed().forEach { index ->

@@ -75,6 +75,8 @@ public class StartTabRouteTest {
         PauseForTests.resume();
         HiddenTabs.inBuildForTests = null;
         HiddenTabs.clearForTests();
+        Settings.EVENTS_ONLY.resetToDefault();
+        MarketplaceOnlyForTests.inBuild(null);
         Settings.HIDE_FEEDS_TAB.resetToDefault();
         Settings.HIDE_FRIENDS_TAB.resetToDefault();
         Settings.FEEDS_SUBTAB.resetToDefault();
@@ -97,6 +99,21 @@ public class StartTabRouteTest {
         FbMainTabActivity screen = StartTabRouteForTests.screen(intent);
         StartTabRoute.onActivityCreate(screen, saved);
         return screen;
+    }
+
+    @Test
+    public void eventsOnlyAsksForTheEventsTabWhateverTabIsChosen() {
+        MarketplaceOnlyForTests.inBuild(Boolean.TRUE);
+        Settings.OPEN_ON_CHOSEN_TAB.save(false);
+        Settings.START_TAB.save(StartTab.FRIENDS);
+        Settings.EVENTS_ONLY.save(true);
+        FbMainTabActivity screen = created(StartTabRouteForTests.launcherStart(), null);
+        assertEquals(FacebookTabs.EVENTS_ID, screen.getIntent().getLongExtra(FacebookTabs.TARGET_TAB_ID, -1));
+        assertEquals("events", screen.getIntent().getStringExtra(StartTabRoute.ROUTED));
+
+        // A link keeps its own destination.
+        Intent link = StartTabRouteForTests.launcherStart().setData(android.net.Uri.parse("https://www.facebook.com/events/1/"));
+        assertEquals(-1, created(link, null).getIntent().getLongExtra(FacebookTabs.TARGET_TAB_ID, -1));
     }
 
     @Test
@@ -806,7 +823,7 @@ public class StartTabRouteTest {
 
     @Test
     public void aSettingsFileHoldsTheTabByAValueThatNeverChanges() {
-        for (StartTab tab : StartTab.values()) {
+        for (StartTab tab : StartTab.choices()) {
             assertSame(tab, StartTab.fromFile(tab.fileValue));
         }
         assertEquals(Arrays.asList("home", "feeds", "video", "friends", "marketplace", "notifications", "menu"),
@@ -822,7 +839,7 @@ public class StartTabRouteTest {
 
     private static List<String> fileValues() {
         List<String> values = new java.util.ArrayList<>();
-        for (StartTab tab : StartTab.values()) values.add(tab.fileValue);
+        for (StartTab tab : StartTab.choices()) values.add(tab.fileValue);
         return values;
     }
 }

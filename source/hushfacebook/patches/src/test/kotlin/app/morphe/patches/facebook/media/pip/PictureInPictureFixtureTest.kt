@@ -42,7 +42,8 @@ import java.io.File
  * returning true and anything else jumping to Facebook's own first instruction. Reads the fixture
  * bundles from HUSHFACEBOOK_FIXTURE_DIR and skips without it. Also the hold's hooks: ReelsPipUtil's arming and
  * disarms, and FbGrootPlayer's pause and play; the helpers that hand the arming over and arm again,
- * and the stub calling the second; the runnable whose change is set aside; and the viewer's new view
+ * the second in the shape the next reel's own aspect gives and not at all for a shape the window
+ * doesn't take, and the stub answering what the second did; the runnable whose change is set aside; and the viewer's new view
  * id going through the extension. And the Watch viewer's flag: the one fragment holding the engagement-state
  * text, its onResume, and the MobileConfig read in front of its call of the check, answered through the
  * extension in the read's own register. And the Video tab's arming: the one method loading its
@@ -115,6 +116,9 @@ class PictureInPictureFixtureTest {
                 assertTrue("$name: ${arm.name} isn't static", AccessFlags.STATIC.isSet(arm.accessFlags))
                 val videoParams = videoParamsCall(arming, arm, play.definingClass)
                 assertNotNull("$name: ${arming.name} asks the player for none of ${arm.name}'s arguments", videoParams)
+                val paramsClass = FixtureDex.classes(bundle, setOf(videoParams!!.call.returnType)).values.single()
+                val aspect = aspectField(paramsClass)
+                assertNotNull("$name: ${paramsClass.type} holds no one aspect double", aspect)
                 val runnables = stateRunnables(util)
                 assertEquals("$name: ${util.type}'s (Activity, boolean) runnables", 1, runnables.size)
                 val runnable = FixtureDex.classes(bundle, runnables).values.single()
@@ -176,7 +180,7 @@ class PictureInPictureFixtureTest {
                 val originalPlay = play.code()
                 val originalRun = run.code()
                 val originalOpening = opening.code()
-                val context = PatchContexts.of((listOf(util, holder, owner, runnable, topic, homeClass) + viewers + listOf(
+                val context = PatchContexts.of((listOf(util, holder, owner, runnable, topic, homeClass, paramsClass) + viewers + listOf(
                     ExtensionDex.classDef(PICTURE_IN_PICTURE), ExtensionDex.classDef(SETTINGS_STATUS))).distinctBy { it.type })
                 pictureInPicturePatch.execute(context)
 
@@ -222,14 +226,43 @@ class PictureInPictureFixtureTest {
                 assertTrue("$name: $ARMING_HELPER isn't static", AccessFlags.STATIC.isSet(capture.accessFlags))
                 assertTrue("$name: $ARMING_HELPER doesn't hand them to the extension", capture.code().any { it.call.toString() == ARMED })
                 val replay = helpers.single { it.name == REARM_HELPER }
-                val replayCalls = replay.code().mapNotNull { it.call?.toString() }
-                assertTrue("$name: $REARM_HELPER asks no player for its video", videoParams!!.call.toString() in replayCalls)
-                assertEquals("$name: $REARM_HELPER's last call arms again", "${util.type}->${arm.name}($parameters)V", replayCalls.last())
+                assertEquals("$name: $REARM_HELPER answers whether it armed", "Z", replay.returnType)
+                val replayCode = replay.code()
+                val replayCalls = replayCode.mapNotNull { it.call?.toString() }
+                assertEquals("$name: $REARM_HELPER's last calls: the video, its shape, the arming",
+                    listOf(videoParams.call.toString(), SHAPE, "${util.type}->${arm.name}($parameters)V"), replayCalls.takeLast(3))
+                // #126: the shape comes from the next reel's own aspect, and a shape the window doesn't take arms nothing.
+                val aspectRead = replayCode.indexOfFirst { it.opcode == Opcode.IGET_WIDE }
+                assertEquals("$name: the aspect read", aspect.toString(), (replayCode[aspectRead] as ReferenceInstruction).reference.toString())
+                val shapeAt = replayCode.indexOfFirst { it.call?.toString() == SHAPE }
+                val rationalAt = arm.shape().indexOf(RATIONAL)
+                assertEquals("$name: the shape lands in the arming's shape argument", rationalAt,
+                    (replayCode[shapeAt + 1] as OneRegisterInstruction).registerA)
+                assertEquals("$name: a null shape skips the arming", Opcode.IF_EQZ, replayCode[shapeAt + 2].opcode)
+                val armingAt = replayCode.indexOfLast { it.call?.toString() == "${util.type}->${arm.name}($parameters)V" }
+                val skipTo = replayCode.target(shapeAt + 2)
+                assertTrue("$name: the skip lands past the arming", skipTo > armingAt)
+                assertEquals("$name: the skip answers false", 0, (replayCode[skipTo] as NarrowLiteralInstruction).narrowLiteral)
+                assertEquals("$name: the arming answers true", 1, (replayCode[armingAt + 1] as NarrowLiteralInstruction).narrowLiteral)
+                assertTrue("$name: the captured shape is never read back",
+                    replayCode.none { it.opcode == Opcode.CHECK_CAST && (it as ReferenceInstruction).reference.toString() == RATIONAL })
                 val stub = context.mutableClassDefBy(PICTURE_IN_PICTURE).methods.single { it.name == REARM_STUB }.code()
-                assertEquals("$name: the stub's first call", "${util.type}->$REARM_HELPER([Ljava/lang/Object;Ljava/lang/Object;)V",
+                assertEquals("$name: the stub's first call", "${util.type}->$REARM_HELPER([Ljava/lang/Object;Ljava/lang/Object;)Z",
                     stub[0].call.toString())
-                assertEquals("$name: the stub answers true", 1, (stub[1] as NarrowLiteralInstruction).narrowLiteral)
+                assertEquals("$name: the stub takes the helper's answer", Opcode.MOVE_RESULT, stub[1].opcode)
                 assertEquals("$name: the stub returns it", Opcode.RETURN, stub[2].opcode)
+                assertEquals("$name: the stub returns what it took", (stub[1] as OneRegisterInstruction).registerA,
+                    (stub[2] as OneRegisterInstruction).registerA)
+                // #126: the view stub reads the one public ViewGroup the player's attach writes.
+                val viewField = context.playerViewField(Player(play, pause!!))
+                assertEquals("$name: the view field's owner", play.definingClass, viewField.definingClass)
+                val viewStub = context.mutableClassDefBy(PICTURE_IN_PICTURE).methods.single { it.name == PLAYER_VIEW_STUB }.code()
+                assertEquals("$name: the view stub's shape", listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT),
+                    viewStub.take(3).map { it.opcode })
+                assertEquals("$name: the view stub casts to the player", play.definingClass,
+                    (viewStub[0] as ReferenceInstruction).reference.toString())
+                assertEquals("$name: the view stub reads the attached view", viewField.toString(),
+                    (viewStub[1] as ReferenceInstruction).reference.toString())
                 for (disarm in disarms) {
                     assertEquals("$name: ${disarm.name}'s first call", DISARMED, patchedOf(disarm).code()[0].call.toString())
                 }

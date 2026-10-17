@@ -27,6 +27,11 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * same row could come back through a later plugin whose check doesn't look at the type. With the
  * switch on, that way draws no pill typed meta_ai either.
  *
+ * <p>The same questions also come as a row of chips under a post's photo, from Meta AI's deep dive
+ * plugin in the post call-to-action selector, and under a post's caption, from the deep dive plugin
+ * of the socket that collects what goes there. Neither goes through the pill socket. With the switch
+ * on, the selector hears the chips don't apply and the caption's deep dive reads as missing.
+ *
  * <p>Off, paused, before the settings are ready, or when anything here fails, the answer is
  * Facebook's own.
  */
@@ -37,6 +42,25 @@ public final class MetaAiQuestions {
 
     /** The type the socket's default way of drawing a pill gives Meta AI's icon to. */
     public static final String META_AI_TYPE = "meta_ai";
+
+    /**
+     * The class name of Meta AI's deep dive in the post call-to-action selector, the row of question
+     * chips it can put under a post's photo, as the selector's table names it.
+     */
+    public static final String QUESTION_BUTTON =
+            "com.facebook.feed.plugins.calltoaction.impl.genaideepdive.GenAiDeepDiveCtaPlugin";
+
+    /** Counted each time the call-to-action selector is told Meta AI's question chips don't apply. */
+    static final String BUTTON_HIDDEN = "Meta AI question chips under a post kept out";
+
+    /** Counted each time the deep dive under a caption is answered as missing. */
+    static final String CAPTION_HIDDEN = "Meta AI questions under a caption kept out";
+
+    /** The member the report names once the call-to-action selector has asked about Meta AI's chips. */
+    static final String BUTTON_CHECK = "question chip check";
+
+    /** The member the report names once the caption deep dive's getter has been asked. */
+    static final String CAPTION_CHECK = "caption deep dive";
 
     /** Counted under the patch's name each time Meta AI's question row is answered away. */
     static final String HIDDEN = "Meta AI question row kept out";
@@ -55,6 +79,10 @@ public final class MetaAiQuestions {
     private static volatile boolean logged;
 
     private static volatile boolean loggedDefault;
+
+    private static volatile boolean loggedButton;
+
+    private static volatile boolean loggedCaption;
 
     private MetaAiQuestions() {
     }
@@ -104,6 +132,53 @@ public final class MetaAiQuestions {
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, DEFAULT_PILL, failure);
+            return false;
+        }
+    }
+
+    /**
+     * The hook first thing in the post call-to-action selector's check of whether a plugin applies,
+     * handed the name the selector's table gives that plugin. True makes the check answer no: Meta
+     * AI's question chips while the switch is on, so the selector goes on to the post's next button,
+     * if it has one. Every other plugin, or none, is left to Facebook.
+     */
+    public static boolean hidesQuestionButton(@Nullable String plugin) {
+        try {
+            HookStatus.invoked(FAMILY);
+            if (!QUESTION_BUTTON.equals(plugin)) return false;
+            HookStatus.bound(FAMILY, BUTTON_CHECK);
+            if (!Utils.settingsReady() || !Settings.HIDE_META_AI_QUESTIONS.get()) return false;
+            HookStatus.counted(FAMILY, BUTTON_HIDDEN);
+            if (!loggedButton) {
+                loggedButton = true;
+                Logger.printDebug(() -> "Meta AI questions: a row of Meta AI question chips under a post was kept out");
+            }
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, BUTTON_CHECK, failure);
+            return false;
+        }
+    }
+
+    /**
+     * The hook first thing in the getter Facebook reads Meta AI's deep dive under a post's caption
+     * through. The socket that collects what goes under a caption asks it whether to draw the
+     * questions and the plugin asks it again to build them, and both stop at a null. True answers
+     * null while the switch is on; false leaves the getter to Facebook.
+     */
+    public static boolean hidesQuestionsBelowCaption() {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, CAPTION_CHECK);
+            if (!Utils.settingsReady() || !Settings.HIDE_META_AI_QUESTIONS.get()) return false;
+            HookStatus.counted(FAMILY, CAPTION_HIDDEN);
+            if (!loggedCaption) {
+                loggedCaption = true;
+                Logger.printDebug(() -> "Meta AI questions: Meta AI's questions under a caption were kept out");
+            }
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, CAPTION_CHECK, failure);
             return false;
         }
     }

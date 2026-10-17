@@ -7,6 +7,8 @@ package app.morphe.extension.facebook.misc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -15,6 +17,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
 
 import org.junit.After;
 import org.junit.Before;
@@ -116,6 +126,17 @@ public class AppIconsTest {
         return new ComponentName(RuntimeEnvironment.getApplication().getPackageName(), className);
     }
 
+    private static ComponentName enableIcon(String suffix, Drawable drawable) {
+        Context context = RuntimeEnvironment.getApplication();
+        ComponentName alias = component(AppIcons.LAUNCHER + "." + suffix);
+        ShadowPackageManager packages = shadowOf(context.getPackageManager());
+        packages.addActivityIfNotPresent(alias);
+        packages.addActivityIcon(alias, drawable);
+        context.getPackageManager().setComponentEnabledSetting(
+                alias, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+        return alias;
+    }
+
     /** The update reset keeps the launcher entry and every alias of it, and nothing else. */
     @Test
     public void theUpdateResetKeepsTheLauncherEntryAndItsAliases() {
@@ -186,5 +207,90 @@ public class AppIconsTest {
         manager.setComponentEnabledSetting(icon, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
         manager.setComponentEnabledSetting(entry, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
         assertEquals("a picked icon", icon, AppIcons.launcher(context));
+    }
+
+    @Test
+    public void anAlternateIconReplacesTheHeaderWordmarkAtItsExistingHeight() {
+        Context context = RuntimeEnvironment.getApplication();
+        Drawable stock = new ColorDrawable(Color.BLUE) {
+            @Override
+            public int getIntrinsicWidth() {
+                return 160;
+            }
+
+            @Override
+            public int getIntrinsicHeight() {
+                return 40;
+            }
+        };
+        Drawable picked = new BitmapDrawable(context.getResources(),
+                Bitmap.createBitmap(48, 48, Bitmap.Config.ARGB_8888));
+        enableIcon("vaporwave_ic", picked);
+        ImageView logo = new ImageView(context);
+        logo.setImageDrawable(stock);
+        logo.setScaleType(ImageView.ScaleType.MATRIX);
+        logo.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        int unspecified = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+        logo.measure(unspecified, unspecified);
+        int stockHeight = logo.getMeasuredHeight();
+
+        AppIcons.dressLogo(logo);
+        logo.measure(unspecified, unspecified);
+
+        assertNotSame("the stock wordmark was replaced", stock, logo.getDrawable());
+        assertEquals("the icon fits inside the wordmark's height", ImageView.ScaleType.CENTER_INSIDE, logo.getScaleType());
+        assertEquals("the header keeps Facebook's measured height", stockHeight, logo.getMeasuredHeight());
+        assertEquals("the replacement reports the stock height", stock.getIntrinsicHeight(),
+                logo.getDrawable().getIntrinsicHeight());
+        assertEquals("the replacement is square", stock.getIntrinsicHeight(), logo.getDrawable().getIntrinsicWidth());
+        logo.setColorFilter(Color.MAGENTA);
+        assertNull("Facebook's wordmark tint does not recolor the app icon", picked.getColorFilter());
+        assertTrue(counterLine(), counterLine().contains("Last reason: header logo"));
+    }
+
+    @Test
+    public void theNormalBlueIconAndNoPickKeepTheWordmark() {
+        Context context = RuntimeEnvironment.getApplication();
+        ImageView logo = new ImageView(context);
+        Drawable stock = new ColorDrawable(Color.BLUE);
+        logo.setImageDrawable(stock);
+        logo.setScaleType(ImageView.ScaleType.MATRIX);
+
+        AppIcons.dressLogo(logo);
+        assertSame("the launcher entry means Facebook's normal icon", stock, logo.getDrawable());
+
+        enableIcon("blue_fb", new ColorDrawable(Color.CYAN));
+        AppIcons.dressLogo(logo);
+        assertSame("the picker's normal blue icon keeps the wordmark", stock, logo.getDrawable());
+        assertEquals(ImageView.ScaleType.MATRIX, logo.getScaleType());
+    }
+
+    @Test
+    public void offPausedWrongViewOrMissingIconKeepsFacebooksHeader() {
+        Context context = RuntimeEnvironment.getApplication();
+        ImageView logo = new ImageView(context);
+        Drawable stock = new ColorDrawable(Color.BLUE);
+        logo.setImageDrawable(stock);
+        enableIcon("vaporwave_ic", new ColorDrawable(Color.MAGENTA));
+
+        Settings.UNLOCK_APP_ICONS.save(false);
+        AppIcons.dressLogo(logo);
+        assertSame("off", stock, logo.getDrawable());
+
+        Settings.UNLOCK_APP_ICONS.save(true);
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        AppIcons.dressLogo(logo);
+        assertSame("paused", stock, logo.getDrawable());
+        PauseForTests.resume();
+
+        AppIcons.dressLogo(new View(context));
+        assertSame("a non-image view is left alone", stock, logo.getDrawable());
+
+        ComponentName missing = component(AppIcons.LAUNCHER + ".worldcup_ic");
+        context.getPackageManager().setComponentEnabledSetting(
+                missing, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+        AppIcons.dressLogo(logo);
+        assertSame("an icon Android cannot load leaves the wordmark", stock, logo.getDrawable());
     }
 }

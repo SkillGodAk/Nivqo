@@ -4,11 +4,12 @@
  */
 package com.facebook.events.targetedtab;
 
+import app.morphe.extension.facebook.navigation.FacebookTabs;
 import com.facebook.navigation.tabbar.state.model.TabTag;
 
 /** Stands in for the Events tab, under the class name Facebook keeps. */
 public final class EventsTab extends TabTag {
     public EventsTab() {
-        super(2344061033L);
+        super(FacebookTabs.EVENTS_ID);
     }
 }

@@ -162,7 +162,7 @@ public class Utils {
     }
 
     /**
-     * The host's version code, such as 475417104 for Facebook 582.0.0.50.54, or -1 when the package
+     * The host's version code, such as 475614366 for Facebook 583.0.0.39.55, or -1 when the package
      * manager can't say. Facebook ships several builds under one version name, and the code is what
      * tells them apart in a report.
      */

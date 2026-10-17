@@ -54,6 +54,17 @@ internal const val PAGER_INIT = "TabBarViewPager.init"
 /** The trace name Facebook gives the method that adds the top bar to the scroll-away views. */
 internal const val SET_TOP_VIEWS = "ScrollAwayNavigationController.setTopScrollAwayViews"
 
+/**
+ * The trace names of the main screen's two switches of scroll-away: it turns the bars off as it
+ * leaves the surface they belong on (the Reels tab, a full-screen page), hiding them itself, and
+ * back on as it returns. The extension hears both, so a kept top bar goes with Facebook's own hide
+ * instead of sitting over a reel, and comes back with the feed.
+ */
+internal const val DEACTIVATE_SCROLL_AWAY = "ScrollAwayNavigationController.deactivateScrollaway"
+internal const val REACTIVATE_SCROLL_AWAY = "ScrollAwayNavigationController.reactivateScrollaway"
+internal const val TOP_BARS_LET_GO = "$TAB_BAR_SCROLL_AWAY->topBarsLetGo()V"
+internal const val TOP_BARS_TAKEN_BACK = "$TAB_BAR_SCROLL_AWAY->topBarsTakenBack()V"
+
 private const val STRING = "Ljava/lang/String;"
 private const val SET_PADDING = "Landroid/view/View;->setPadding(IIII)V"
 private const val SET_TRANSLATION_Y = "Landroid/view/View;->setTranslationY(F)V"
@@ -119,6 +130,13 @@ internal val tabBarScrollAwayPatch = bytecodePatch {
         val entry = mutableClassDefBy(name.definingClass)
         for (move in entryMoves(entry)) {
             entry.findMutableMethodOf(move.method).holdsTopBar(name, move.distance, move.hidden)
+        }
+        for ((trace, call) in listOf(DEACTIVATE_SCROLL_AWAY to TOP_BARS_LET_GO, REACTIVATE_SCROLL_AWAY to TOP_BARS_TAKEN_BACK)) {
+            val switch = scrollAwaySwitch(
+                classDefByStrings(trace, StringComparisonType.EQUALS).filterNot { it.type.startsWith(EXTENSION_CLASSES) },
+                trace,
+            )
+            mutableClassDefBy(switch.definingClass).findMutableMethodOf(switch).tellsExtensionFirst(call)
         }
     }
 }
@@ -236,6 +254,26 @@ internal fun topScrollAwayViews(holders: List<ClassDef>): Method {
         holder.methods.filter { method -> method.implementation?.instructions?.any { loadsString(it, SET_TOP_VIEWS) } == true }
     }
     return methods.singleOrNull() ?: refuse("expected one method traced as \"$SET_TOP_VIEWS\", found ${methods.size}")
+}
+
+/**
+ * The method of [holders] traced as [trace], one of the main screen's two switches of scroll-away
+ * ([DEACTIVATE_SCROLL_AWAY], [REACTIVATE_SCROLL_AWAY]). Refuses unless exactly one loads the name.
+ */
+internal fun scrollAwaySwitch(holders: List<ClassDef>, trace: String): Method {
+    val methods = holders.flatMap { holder ->
+        holder.methods.filter { method -> method.implementation?.instructions?.any { loadsString(it, trace) } == true }
+    }
+    return methods.singleOrNull() ?: refuse("expected one method traced as \"$trace\", found ${methods.size}")
+}
+
+/**
+ * Puts [call], an extension call that takes nothing and answers nothing, at the start of this
+ * method, before Facebook's trace opens. A jump back to the start lands on Facebook's first
+ * instruction and leaves the call behind, which is fine: it has nothing to undo.
+ */
+internal fun MutableMethod.tellsExtensionFirst(call: String) {
+    addInstructions(0, "invoke-static { }, $call")
 }
 
 /**

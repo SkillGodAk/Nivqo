@@ -36,13 +36,13 @@ class ReelsAdPoolTest {
     private val hold = "Lapp/morphe/extension/facebook/ads/ReelsAdFilter;->holdPoolAd()Z"
 
     /**
-     * The pool class and its two vends in each declared build, then by the bundle's ABI. 581's two
-     * builds shared their names; 582's armeabi-v7a build has its own.
+     * The pool class and its two vends in each declared build, then by the bundle's ABI. On 583 the
+     * two builds share the vends' names but not the pool's.
      */
     private val expected = mapOf(
         AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
-            "arm64-v8a" to ("LX/6Gg;" to listOf("A0L", "A0N")),
-            "armeabi-v7a" to ("LX/6Hd;" to listOf("A0L", "A0N")),
+            "arm64-v8a" to ("LX/6JM;" to listOf("A0S", "A0U")),
+            "armeabi-v7a" to ("LX/6Js;" to listOf("A0S", "A0U")),
         ),
     )
 

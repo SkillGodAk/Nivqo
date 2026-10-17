@@ -7,6 +7,7 @@
  */
 package app.morphe.patches.facebook.downloads.story
 
+import app.morphe.patches.facebook.downloads.photo.fillCdnResize
 import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.shared.reportedFieldNames
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -55,6 +56,12 @@ private const val OFFERS_SAVE = "Lapp/morphe/extension/facebook/download/MediaDo
 /** The extension call that records the source of each player that the app builds. */
 private const val REMEMBER_SOURCE = "Lapp/morphe/extension/facebook/download/PlayerSources;->" +
     "remember(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V"
+
+/** The patch's name, for its warnings. The README table check reads the literal in the patch below. */
+internal const val STORY_PATCH = "Download any story"
+
+/** What a story's Save photo does when Facebook's photo address modifier isn't found, for the patch log. */
+internal const val STORY_WITHOUT_CDN = "a story's Save photo saves the photo at the size the story holds"
 
 /** The helper that this patch adds to the player params. Each constructor then gets one call. */
 private const val REMEMBER_HELPER = "hushfacebookRememberSource"
@@ -212,6 +219,11 @@ val downloadStoryPatch = bytecodePatch(
         )
 
         addSavePhotoItem(builder, action, storyCardField)
+
+        // #38: Save photo on a story asks Meta's CDN for the photo at its full size, as Save photo
+        // on a post does. Download any photo fills the same stub when it's in; whichever runs
+        // second leaves it. Its warnings name this patch, since it's this one asking.
+        fillCdnResize(STORY_PATCH, STORY_WITHOUT_CDN)
 
         rememberPlayerSources()
 

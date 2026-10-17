@@ -8,6 +8,7 @@ import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.media.taptoplay.FB_USER_SESSION
 import app.morphe.patches.facebook.media.taptoplay.MOTION_EVENT
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
+import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -18,6 +19,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
@@ -44,7 +46,10 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
  *   config, boolean) and answering a boolean (581 LX/881;->A08), an instance method of ten
  *   registers on all three. One long-press handler calls it itself, the other through a lazy value.
  *   It measures the press's getX() against the view's width, so the right-edge switch measures the
- *   same two.
+ *   same two. 583 has no such method: Redex inlined it into a merged Kotlin lambda the handler makes
+ *   (LX/CnX;, case 4 of its invoke()), which reads the press and the view off the handler's gesture
+ *   (LX/D6k;) and answers Boolean.valueOf of the same measure, and the handler reads it as a lazy
+ *   value.
  * - The release listeners: lambdas keeping $isInLongPress2xPlaybackSpeed and
  *   $immersiveFeedPlayerConfig (580 LX/88y; and LX/UoP;, 577 LX/9bh; and LX/V0G;), a reel's touch
  *   listener. Each asks a second flag with no arguments (580 AgX, 577 Aiv) and, straight after its
@@ -55,8 +60,10 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
  *   reaches a listener holding the old values. Its own check of the hold flag is behind a third
  *   config answer (580 AhA, 577 AjY) that every implementation on both builds answers no, so on
  *   these builds every listener asks both flags on every touch.
- * - The hold speed: the speed-ups in FbShortsVideoControlComponent (580 LX/83J;->A0H) and
- *   UddPlayerControlComponent (580 LX/T9a;->A05) set FbGrootPlayer's speed to a double they read
+ * - 583 dropped UddPlayerControlComponent (582 LX/XIg;) and its long-press handler and release
+ *   listener (582 LX/Z4h; and LX/Z4d;), so there's one of each, FbShortsVideoControlComponent's.
+ * - The hold speed: the speed-ups in FbShortsVideoControlComponent (580 LX/83J;->A0H) and, up to
+ *   582, UddPlayerControlComponent (580 LX/T9a;->A05) set FbGrootPlayer's speed to a double they read
  *   from the object the config's no-argument CIr() answers (580 LX/4Xa;->A0R), made a float. The
  *   same read gives the speed the helper that remembers the pre-hold speed compares with, and a
  *   2x label. Outside the Video tab it answers a fixed 2.0; where an account's Reels live in the
@@ -92,7 +99,7 @@ internal const val CONFIG_FIELD = "\$immersiveFeedPlayerConfig"
 internal const val DISPATCH_DIRECTLY_FIELD = "\$shouldDispatchLongPressEventDirectly"
 internal const val IN_LONG_PRESS_FIELD = "\$isInLongPress2xPlaybackSpeed"
 internal val CONTROL_COMPONENTS = listOf("FbShortsVideoControlComponent", "FbShortsViewerOverlayComponent")
-internal val SPEED_UP_COMPONENTS = listOf("FbShortsVideoControlComponent", "UddPlayerControlComponent")
+internal val SPEED_UP_COMPONENTS = listOf("FbShortsVideoControlComponent")
 
 private const val VIEW = "Landroid/view/View;"
 
@@ -160,6 +167,93 @@ internal fun isMethod(method: Method, reference: MethodReference): Boolean =
     method.definingClass == reference.definingClass && method.name == reference.name &&
         method.returnType == reference.returnType && method.parameters() == reference.parameterTypes.map(CharSequence::toString) &&
         method.implementation != null
+
+/**
+ * The edge check's code: the method it's in ([method]), the index where its press and the reel's
+ * view are first in hand ([entry]), their registers ([press], [view]), and the index of each
+ * instruction its boolean answer goes out by, with the answer's register ([answers]).
+ */
+internal class EdgeCheck(val method: Method, val entry: Int, val press: Int, val view: Int, val answers: Map<Int, Int>)
+
+/**
+ * The edge check as a method of its own, up to 582: its first two parameters are the press and the
+ * view, and each `return` hands out its answer. Null when it never returns.
+ */
+internal fun ownEdgeCheck(method: Method): EdgeCheck? {
+    val implementation = method.implementation ?: return null
+    val returns = method.code.withIndex().filter { it.value.opcode == Opcode.RETURN }
+        .associate { it.index to (it.value as OneRegisterInstruction).registerA }
+    if (returns.isEmpty()) return null
+    val press = implementation.registerCount - method.parameters().sumOf { if (it == "J" || it == "D") 2 else 1 }
+    return EdgeCheck(method, 0, press, press + 1, returns)
+}
+
+/** The types [method] makes instances of. */
+internal fun typesMade(method: Method): Set<String> = method.code.filter { it.opcode == Opcode.NEW_INSTANCE }
+    .map { ((it as ReferenceInstruction).reference as TypeReference).type }.toSet()
+
+/** Whether [instruction] writes [register], or a wide pair holding it. */
+private fun writes(instruction: Instruction, register: Int): Boolean {
+    val destination = (instruction as? OneRegisterInstruction)?.registerA ?: return false
+    if (!instruction.opcode.setsRegister()) return false
+    return destination == register || (instruction.opcode.setsWideRegister() && destination + 1 == register)
+}
+
+/**
+ * The edge check where 583 inlined it into [method], a lambda's: the one read of a MotionEvent field
+ * and the one read of a View field, one after the other and reached only that way, and from there on
+ * a getX() of that press, a getWidth() of that view and a no-argument int asked of [config], with
+ * neither register written again. Each way out returns the Boolean.valueOf it boxes the answer with
+ * right away, and the answer goes out at each of those valueOf calls, all past the reads. Null
+ * unless all that holds, and the two registers fit a call to the extension (neighbours, or both v15
+ * or below).
+ */
+internal fun inlinedEdgeCheck(method: Method, config: String): EdgeCheck? {
+    val code = method.code
+    fun reads(index: Int, type: String) = code[index].opcode == Opcode.IGET_OBJECT &&
+        ((code[index] as ReferenceInstruction).reference as FieldReference).type == type
+    val pressAt = code.indices.filter { reads(it, MOTION_EVENT) }.singleOrNull() ?: return null
+    val viewAt = code.indices.filter { reads(it, VIEW) }.singleOrNull() ?: return null
+    if (maxOf(pressAt, viewAt) - minOf(pressAt, viewAt) != 1) return null
+    val entry = maxOf(pressAt, viewAt) + 1
+    val press = (code[pressAt] as TwoRegisterInstruction).registerA
+    val view = (code[viewAt] as TwoRegisterInstruction).registerA
+    if (press == view || entry >= code.size || view != press + 1 && (press > 15 || view > 15)) return null
+    val flow = ControlFlow.of(method)
+    if (code.indices.any { (it != entry - 1 && entry in flow.normal[it]) || (it != entry - 2 && entry - 1 in flow.normal[it]) }) return null
+    val reached = sortedSetOf(entry)
+    val queue = ArrayDeque(listOf(entry))
+    while (queue.isNotEmpty()) flow.normal[queue.removeFirst()].forEach { if (reached.add(it)) queue += it }
+    fun calls(index: Int, reference: String, on: Int? = null): Boolean {
+        val call = (code[index] as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+        val key = "${call.definingClass}->${call.name}(${call.parameterTypes.joinToString("")})${call.returnType}"
+        return code[index].opcode.name.startsWith("invoke") && key == reference &&
+            (on == null || (code[index] as? FiveRegisterInstruction)?.registerC == on)
+    }
+    val asksEdge = reached.any { index ->
+        val call = (code[index] as? ReferenceInstruction)?.reference as? MethodReference
+        code[index].opcode.name.startsWith("invoke-interface") && call?.definingClass == config && call.returnType == "I" &&
+            call.parameterTypes.isEmpty()
+    }
+    if (!asksEdge || reached.none { calls(it, "$MOTION_EVENT->getX()F", press) } ||
+        reached.none { calls(it, "$VIEW->getWidth()I", view) } ||
+        reached.any { writes(code[it], press) || writes(code[it], view) }
+    ) {
+        return null
+    }
+    val boxes = reached.filter { calls(it, "Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;") }
+    val returns = reached.filter { code[it].opcode.name.startsWith("return") }
+    fun boxedReturn(box: Int): Boolean {
+        val taken = code.getOrNull(box + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT } as? OneRegisterInstruction ?: return false
+        val out = code.getOrNull(box + 2)?.takeIf { it.opcode == Opcode.RETURN_OBJECT } as? OneRegisterInstruction ?: return false
+        return out.registerA == taken.registerA && code.indices.none { it != box && box + 1 in flow.normal[it] } &&
+            code.indices.none { it != box + 1 && box + 2 in flow.normal[it] }
+    }
+    if (boxes.isEmpty() || boxes.any { it < entry } || !boxes.all(::boxedReturn) || returns.toSet() != boxes.map { it + 2 }.toSet()) {
+        return null
+    }
+    return EdgeCheck(method, entry, press, view, boxes.associateWith { (code[it] as FiveRegisterInstruction).registerC })
+}
 
 /** The indices in [method] of the instructions loading the long-press handlers' "speed_up" log name. */
 internal fun speedUpLoads(method: Method): List<Int> = method.code.withIndex().filter { (_, instruction) ->
