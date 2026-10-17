@@ -16,9 +16,11 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -42,7 +44,11 @@ import java.io.File
  * same way with its own extension method (#101). The comment section is found by its name, its reply flag
  * through the expandReplySection update, and the flag goes through the extension, as a range
  * call, just before the initial state returns. The section's draw method asks about its comment
- * first, read off its props, and returns no children on a yes (#118). Reads the fixture bundles from
+ * first, read off its props, and returns no children on a yes (#118). An open reply thread's section
+ * is found by its name, and the one paging flag of the comment list it builds goes through the
+ * extension just before it's written (#140). The video viewer's comment bar is found by the names
+ * of its sticker and GIF buttons, and once both are built the extension is asked and a yes clears
+ * them. Reads the fixture bundles from
  * HUSHFACEBOOK_FIXTURE_DIR and skips without it.
  */
 class CommentSheetOptionsFixtureTest {
@@ -257,6 +263,96 @@ class CommentSheetOptionsFixtureTest {
         val flow = ControlFlow.of(method)
         assertEquals("$where: no props go on to Facebook's first instruction", setOf(3, 9), flow.normal[2].toSet())
         assertEquals("$where: a no goes on to Facebook's first instruction", setOf(7, 9), flow.normal[6].toSet())
+    }
+
+    private fun replyLists(bundle: File) {
+        val found = replyList(holders(bundle, EXPANDED_REPLIES), holders(bundle, COMMENT_LIST))
+        val build = found.build
+        val flag = found.flag
+        val where = "${bundle.name}: ${build.descriptor()}"
+        assertEquals("$where: the flag is a boolean", "Z", flag.type)
+        assertNotEquals("$where: the flag sits on the list, not the thread's section", build.definingClass, flag.definingClass)
+
+        val thread = FixtureDex.classes(bundle, setOf(build.definingClass)).values.single()
+        val context = PatchContexts.of(listOf(thread))
+        val method = context.mutableClassDefBy(thread.type).methods.single { it.descriptor() == build.descriptor() }
+        val original = method.implementation!!.instructions.toList()
+        val write = found.write
+        val put = original[write] as TwoRegisterInstruction
+        assertEquals("$where: the flag is written", Opcode.IPUT_BOOLEAN, original[write].opcode)
+        val literal = (write - 1 downTo 0).map { original[it] }.firstOrNull {
+            it is OneRegisterInstruction && it.registerA == put.registerA && it.opcode.setsRegister()
+        }
+        assertTrue("$where: Facebook writes the flag false, from a literal 0",
+            literal?.opcode in setOf(Opcode.CONST_4, Opcode.CONST_16) &&
+                (literal as NarrowLiteralInstruction).narrowLiteral == 0)
+
+        method.loadWholeReplyThreads(found)
+        val patched = method.implementation!!.instructions.toList()
+        val field = "${flag.definingClass}->${flag.name}:${flag.type}"
+        assertEquals("$where gains two instructions", original.size + 2, patched.size)
+        assertEquals("$where: Facebook's code before the write stays", original.take(write).map { it.opcode },
+            patched.take(write).map { it.opcode })
+        assertEquals("$where: the extension is asked with a range call", Opcode.INVOKE_STATIC_RANGE, patched[write].opcode)
+        assertEquals("$where: the extension is asked", LOAD_WHOLE_REPLY_THREADS, patched[write].reference())
+        val range = patched[write] as RegisterRangeInstruction
+        assertEquals("$where: with the value Facebook gives the flag", listOf(put.registerA, 1),
+            listOf(range.startRegister, range.registerCount))
+        assertEquals("$where: its answer replaces the value", Opcode.MOVE_RESULT, patched[write + 1].opcode)
+        assertEquals("$where: its answer replaces the value", put.registerA, (patched[write + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$where: then Facebook writes the flag", field, patched[write + 2].reference())
+        assertEquals("$where: from the same registers", listOf(put.registerA, put.registerB),
+            (patched[write + 2] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+        assertEquals("$where: Facebook's code after the write stays", original.drop(write).map { it.opcode },
+            patched.drop(write + 2).map { it.opcode })
+        assertEquals("$where: the code before the hook runs into it", listOf(write), ControlFlow.of(method).normal[write - 1])
+    }
+
+    private fun viewer(bundle: File) {
+        val name = bundle.name
+        val found = viewerButtons(holders(bundle, VIEWER_GIF))
+        val render = found.render
+        val where = "$name: ${render.descriptor()}"
+        assertTrue("$where: the hook's register is a button's", found.free != found.sticker && found.free != found.gif)
+        assertTrue("$where: the hook's register isn't local", found.free < render.localRegisterCount())
+
+        val bar = FixtureDex.classes(bundle, setOf(render.definingClass)).values.single()
+        val context = PatchContexts.of(listOf(bar))
+        val method = context.mutableClassDefBy(bar.type).methods.single { it.descriptor() == render.descriptor() }
+        val original = method.implementation!!.instructions.toList()
+        val at = found.at
+        assertEquals("$where: the hook follows a kept button", Opcode.MOVE_RESULT_OBJECT, original[at - 1].opcode)
+
+        method.holdViewerButtons(found)
+        val patched = method.implementation!!.instructions.toList()
+        assertEquals("$where gains five instructions", original.size + 5, patched.size)
+        assertEquals("$where: Facebook's code up to the buttons stays", original.take(at).map { it.opcode },
+            patched.take(at).map { it.opcode })
+        assertEquals("$where: the extension is asked", HOLDS_VIEWER_BUTTONS, patched[at].reference())
+        assertEquals("$where: its answer", found.free, (patched[at + 1] as OneRegisterInstruction).registerA)
+        val check = patched[at + 2]
+        assertEquals("$where: a no keeps the buttons", Opcode.IF_EQZ, check.opcode)
+        assertEquals("$where: the check reads the answer", found.free, (check as OneRegisterInstruction).registerA)
+        assertEquals("$where: and skips to Facebook's next instruction", at + 5,
+            (check as BuilderOffsetInstruction).target.location.index)
+        val cleared = listOf(patched[at + 3], patched[at + 4])
+        assertTrue("$where: a yes clears with literal zeros", cleared.all {
+            it.opcode in setOf(Opcode.CONST_4, Opcode.CONST_16) && (it as NarrowLiteralInstruction).narrowLiteral == 0
+        })
+        assertEquals("$where: both buttons", setOf(found.sticker, found.gif),
+            cleared.map { (it as OneRegisterInstruction).registerA }.toSet())
+        assertEquals("$where: Facebook's code after the buttons stays", original.drop(at).map { it.opcode },
+            patched.drop(at + 5).map { it.opcode })
+    }
+
+    @Test
+    fun `each declared build keeps the GIF and sticker buttons out of the video viewer's comment bar`() = bundles { bundle ->
+        viewer(bundle)
+    }
+
+    @Test
+    fun `each declared build asks before an open reply thread's list decides whether it pages on by itself`() = bundles { bundle ->
+        replyLists(bundle)
     }
 
     @Test

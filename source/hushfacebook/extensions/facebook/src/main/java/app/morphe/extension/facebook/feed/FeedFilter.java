@@ -535,6 +535,9 @@ public final class FeedFilter {
             if (reason == null) return false;
 
             FeedFilterCounters.removed(FEED_ROUTE, 1, reason);
+            // A page this empties can leave Home's scroll fetcher at the end of its list with no
+            // reason to ask again, so TailFetch asks for it from now on.
+            TailFetch.hidEdge();
             final String hidden = reason;
             Logger.printDebug(() -> "Feed filter: hid a " + hidden + " post");
             return true;

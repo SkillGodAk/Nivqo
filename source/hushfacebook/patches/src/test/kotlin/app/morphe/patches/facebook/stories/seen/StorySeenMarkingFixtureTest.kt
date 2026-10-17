@@ -1,0 +1,164 @@
+/*
+ * Copyright 2026 Hushfacebook contributors
+ * https://github.com/SysAdminDoc/Hushfacebook
+ */
+package app.morphe.patches.facebook.stories.seen
+
+import app.morphe.ExtensionDex
+import app.morphe.Fixtures
+import app.morphe.PatchContexts
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.facebook.feed.FixtureDex
+import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.feed.isStringTableCall
+import app.morphe.patches.facebook.feed.namesString
+import app.morphe.patches.facebook.feed.resolveStatic
+import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
+import app.morphe.patches.shared.compat.AppCompatibilities
+import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
+
+/**
+ * What marking a watched bucket on the phone hooks and calls (#61), on every declared build: the
+ * seen helper's per-card method hands its bucket, card, helper and peek flag to the extension as a
+ * range; there's one way of publishing the bucket's flag; StoryBucket's members are there;
+ * RegularStoryBucket's one straight constructor takes the bucket hook in front of its return; and
+ * every publishing call is public in a public class, so the extension in another package can make
+ * it. Reads the fixture bundles from HUSHFACEBOOK_FIXTURE_DIR and skips without it.
+ */
+class StorySeenMarkingFixtureTest {
+    private fun bundles(check: (File) -> Unit) {
+        val versions = AppCompatibilities.facebook().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
+                check(bundle)
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    private val com.android.tools.smali.dexlib2.iface.instruction.Instruction.call: MethodReference?
+        get() = (this as? ReferenceInstruction)?.reference as? MethodReference
+
+    @Test
+    fun `each declared build's seen helper hands each queued card to the extension`() = bundles { bundle ->
+        val name = bundle.name
+        val mutation = FixtureDex.classesHolding(bundle, SEEN_ROOT_FIELD).single(::isSeenMutation).type
+        val sender = FixtureDex.classesHolding(bundle, STORY_IDS).mapNotNull { seenSender(it, mutation) }.single()
+        val callers = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.methodSection.none { it == sender }) return@forEach
+            dex.classes.filter { callsSender(it, sender) }.mapTo(callers) { ImmutableClassDef.of(it) }
+        }
+        val tableOwners = callers.flatMap { it.methods }.flatMap { method ->
+            method.implementation?.instructions?.toList().orEmpty().filter(::isStringTableCall).mapNotNull { it.call?.definingClass }
+        }.toSet()
+        val tables = FixtureDex.classes(bundle, tableOwners)
+        val helper = seenHelper(callers, sender) { call -> tables[call.definingClass]?.let { resolveStatic(it, call) } }
+        val card = cardSeen(helper)
+        val first = card.parameterRegisterNumber(1)
+        assertEquals("$name: the bucket, card, helper and peek flag aren't side by side", first + 3, card.parameterRegisterNumber(4))
+
+        val code = card.implementation!!.instructions.toList()
+        val patched = MutableMethod(card).apply {
+            reportCard()
+            hearViewedCards()
+        }
+        val after = patched.implementation!!.instructions.toList()
+        assertEquals("$name: instructions added to the per-card method", code.size + 2, after.size)
+        val viewed = after[0]
+        assertEquals("$name: the viewed hook's form", Opcode.INVOKE_STATIC_RANGE, viewed.opcode)
+        assertEquals("$name: the viewed hook", VIEWED, viewed.call!!.smali())
+        assertEquals("$name: the viewed hook's first register", first, (viewed as RegisterRangeInstruction).startRegister)
+        assertEquals("$name: the viewed hook's registers", 4, viewed.registerCount)
+        assertEquals("$name: the card hook stays", ON_CARD, after[1].call!!.smali())
+        for (index in code.indices) {
+            assertEquals("$name: per-card instruction $index changed", code[index].opcode, after[index + 2].opcode)
+        }
+    }
+
+    @Test
+    fun `each declared build has one bucket publisher and the bucket members the marking calls`() = bundles { bundle ->
+        val name = bundle.name
+        // 583's 32-bit publisher asks a string table for the flag's name, so the table's callers count too.
+        val holders = (FixtureDex.classesHolding(bundle, BUCKET_SEEN_FIELD) + FixtureDex.classesHolding(bundle, BUCKET_TYPE))
+            .distinctBy { it.type }
+        val tables = holders.associateBy { it.type }
+        val resolve: (MethodReference) -> Method? = { call -> tables[call.definingClass]?.let { resolveStatic(it, call) } }
+        val asking = FixtureDex.methodsWhere(bundle, { dex -> dex.methodSection.any { it.definingClass in tables } }) {
+            !holdsString(it, BUCKET_SEEN_FIELD) && namesString(it, BUCKET_SEEN_FIELD, resolve)
+        }
+        val sources = (holders + FixtureDex.classes(bundle, asking.map { it.definingClass }.toSet()).values).distinctBy { it.type }
+        val publishers = sources.flatMap { it.methods }.mapNotNull { seenPublisher(it, resolve) }.toSet()
+        assertEquals("$name: ways of publishing $BUCKET_SEEN_FIELD", 1, publishers.size)
+        val publisher = publishers.single()
+        val publishing = listOf(publisher.consistency, publisher.factory, publisher.setId, publisher.setFlag, publisher.build)
+
+        val classes = FixtureDex.classes(bundle, setOf(STORY_BUCKET, REGULAR_BUCKET, STORY_CARD) + publishing.map { it.definingClass })
+        val buckets = storyBuckets(classes.getValue(STORY_BUCKET), classes.getValue(REGULAR_BUCKET))
+        assertNotNull("$name: StoryBucket and RegularStoryBucket aren't shaped as the marking expects", buckets)
+        assertTrue("$name: StoryCard has no getId()", classes.getValue(STORY_CARD).methods.any {
+            it.name == "getId" && it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/String;"
+        })
+        for (call in publishing) {
+            val owner = classes.getValue(call.definingClass)
+            val declared = owner.methods.single {
+                it.name == call.name && it.returnType == call.returnType &&
+                    it.parameterTypes.map(Any::toString) == call.parameterTypes.map(Any::toString)
+            }
+            assertTrue("$name: ${owner.type} isn't public", AccessFlags.PUBLIC.isSet(owner.accessFlags))
+            assertTrue("$name: ${call.smali()} isn't public", AccessFlags.PUBLIC.isSet(declared.accessFlags))
+        }
+
+        // The same, found the way the patch finds it, from the classes involved.
+        val context = PatchContexts.of((sources + classes.values).distinctBy { it.type })
+        val marking = context.seenMarking()
+        assertEquals("$name: the patch's publisher", publisher, marking.publisher)
+        assertEquals("$name: the patch's cards", buckets!!.cards.name, marking.buckets.cards.name)
+        assertEquals("$name: the patch's answer", buckets.hasUnwatched.name, marking.buckets.hasUnwatched.name)
+        assertEquals("$name: the patch's session", buckets.session.name, marking.buckets.session.name)
+
+        val constructor = classes.getValue(REGULAR_BUCKET).methods.single { it.name == "<init>" }
+        val code = constructor.implementation!!.instructions.toList()
+        assertEquals("$name: RegularStoryBucket's constructor returns", 1, code.count { it.opcode == Opcode.RETURN_VOID })
+        assertTrue("$name: RegularStoryBucket's constructor branches", code.none { it is OffsetInstruction })
+        val made = MutableMethod(constructor).apply { hearBucketMade() }
+        val after = made.implementation!!.instructions.toList()
+        assertEquals("$name: instructions added to the constructor", code.size + 1, after.size)
+        val hook = after[after.size - 2]
+        assertEquals("$name: the bucket hook", BUCKET_MADE, hook.call!!.smali())
+        val self = constructor.implementation!!.registerCount - constructor.parameterTypes.size - 1
+        assertEquals("$name: the bucket hook reads this", self, (hook as RegisterRangeInstruction).startRegister)
+        assertEquals("$name: the constructor still ends", Opcode.RETURN_VOID, after.last().opcode)
+    }
+
+    @Test
+    fun `the extension has the marking hooks and the stubs the patch fills`() {
+        val seen = ExtensionDex.classDef(STORY_SEEN).methods
+        fun has(name: String, answer: String, vararg parameters: String) = seen.any {
+            it.name == name && it.returnType == answer && AccessFlags.STATIC.isSet(it.accessFlags) &&
+                it.parameterTypes.map(Any::toString) == parameters.toList()
+        }
+        val obj = "Ljava/lang/Object;"
+        val string = "Ljava/lang/String;"
+        assertTrue("StorySeen has no viewed hook", has("viewed", "V", obj, obj, obj, "Z"))
+        assertTrue("StorySeen has no bucketMade hook", has("bucketMade", "V", obj))
+        for (stub in listOf("bucketIdOf", "cardsOf", "storyIdOf", "sessionOf")) assertTrue("StorySeen has no $stub", has(stub, obj, obj))
+        assertTrue("StorySeen has no hasUnwatchedOf", has("hasUnwatchedOf", "Z", obj))
+        assertTrue("StorySeen has no publishSeen", has("publishSeen", "V", obj, string, string, string, "Z"))
+    }
+}

@@ -11,6 +11,8 @@ import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.feed.methodsHolding
 import app.morphe.patches.facebook.feed.treeFieldKey
 import app.morphe.patches.facebook.shared.FEED_UNIT_EDGE
+import app.morphe.patches.facebook.shared.admittedAsFeedFunnel
+import app.morphe.patches.facebook.shared.outlinedFunnelBody
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -39,8 +41,8 @@ import org.junit.Test
 /**
  * The two reels anchors beyond the category, found in every Facebook build the bundle declares the
  * way the patch finds them: the showcase unit's one story type accessor, with the evidence it's held
- * to, and the one pre-EOF injector, which with `addNewEdgeToCollection` is all the feed's tail adder
- * is called from. The fixture half reads the bundles from HUSHFACEBOOK_FIXTURE_DIR and skips without
+ * to, and the one pre-EOF injector, which with `addNewEdgeToCollection` (or, on 583, the body it
+ * hands everything to) is all the feed's tail adder is called from. The fixture half reads the bundles from HUSHFACEBOOK_FIXTURE_DIR and skips without
  * it; the rest reads the sources and builds its own methods.
  */
 class FeedReelsShowcaseTest {
@@ -157,15 +159,25 @@ class FeedReelsShowcaseTest {
                 assertTrue("${bundle.name}: the injector has no local for the hook", locals >= 1)
 
                 val callers = found.filter { callsMethod(it, adder) }
-                assertNull("${bundle.name}", tailCallerProblem(callers, injector))
-                assertEquals("${bundle.name}: ${callers.map { it.name }}", setOf(ADD_NEW_EDGE_TO_COLLECTION, injector.name),
-                    callers.map { it.name }.toSet())
+                // 583's funnel hands its edge to a method of its own class, which the feed guard goes
+                // on, and that one calls the adder.
+                val funnel = FixtureDex.methodsWhere(bundle,
+                    { dex -> dex.stringSection.any { it == ADD_NEW_EDGE_TO_COLLECTION } },
+                ) { admittedAsFeedFunnel(it) }.single()
+                val guarded = outlinedFunnelBody(funnel)?.let {
+                    "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}"
+                } ?: signatureOf(funnel)
+                val isBody = { method: Method -> signatureOf(method) == guarded }
+                assertNull("${bundle.name}", tailCallerProblem(callers, injector, isBody))
+                assertEquals("${bundle.name}: ${callers.map { it.name }}", listOf(injector.name),
+                    callers.filterNot { it.name == ADD_NEW_EDGE_TO_COLLECTION || isBody(it) }.map { it.name })
 
                 // The negative: a third method adding at the tail is refused, and so is a set
                 // without the injector.
                 val third = caller("Lfixture/Elsewhere;", "addAtTail", adder)
-                assertTrue(bundle.name, tailCallerProblem(callers + third, injector)!!.contains("has 3 callers"))
-                assertNotNull(bundle.name, tailCallerProblem(callers.filter { it.name == ADD_NEW_EDGE_TO_COLLECTION } + third, injector))
+                assertTrue(bundle.name, tailCallerProblem(callers + third, injector, isBody)!!.contains("has 3 callers"))
+                assertNotNull(bundle.name, tailCallerProblem(
+                    callers.filter { it.name == ADD_NEW_EDGE_TO_COLLECTION || isBody(it) } + third, injector, isBody))
                 checked[version] = "${injector.definingClass} calls ${adder.definingClass}->${adder.name}"
             }
         }
@@ -201,6 +213,15 @@ class FeedReelsShowcaseTest {
             .contains("Lfixture/Other;->add"))
         assertTrue(callsMethod(funnel, adder))
         assertFalse(callsMethod(funnel, injector))
+
+        // The body the feed guard went on stands in for the funnel, and only that one.
+        val body = caller("Lfixture/Manager;", "A06", adder)
+        val guarded = { method: Method -> signatureOf(method) == signatureOf(body) }
+        assertNull(tailCallerProblem(listOf(body, injector), injector, guarded))
+        assertNotNull("another method of the class", tailCallerProblem(
+            listOf(caller("Lfixture/Manager;", "A07", adder), injector), injector, guarded))
+        assertTrue("the body and the funnel both", tailCallerProblem(listOf(body, funnel, injector), injector, guarded)!!
+            .contains("has 3 callers"))
 
         // A unit class with two story type accessors is ambiguous, and one with a getTypeName()
         // that answers another literal isn't the showcase class. The key read any other way, or

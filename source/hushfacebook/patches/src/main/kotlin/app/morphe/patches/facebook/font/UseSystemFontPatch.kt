@@ -31,6 +31,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PATCH = "Use the system font"
@@ -59,7 +60,8 @@ internal const val OWN_INFLATED = "$OWN_FONT->inflated($VIEW)V"
  * header or a notification get theirs, and each of Android's text views Facebook builds, which
  * take their typeface from a layout or never set one. Facebook's text layouts and text views also
  * ask the extension whether to take the font padding, which a phone font drawing past its own line
- * box needs to keep the tails of y, g and p (#96).
+ * box needs to keep the tails of y, g and p (#96), and Facebook's line-height spans leave that
+ * padding in place.
  */
 @Suppress("unused")
 val useSystemFontPatch = bytecodePatch(
@@ -80,6 +82,7 @@ val useSystemFontPatch = bytecodePatch(
         hookDefaultTypefaces()
         hookTextViews()
         hookTextLayouts()
+        hookLineHeights()
         enableStatus("systemFont")
     }
 }
@@ -180,7 +183,7 @@ internal fun BytecodePatchContext.hookTextLayouts(): List<String> {
         }
     }
     val sent = owners.flatMap { type -> mutableClassDefByOrNull(type)?.methods?.flatMap { it.sendTextLayouts() }.orEmpty() }
-    for (call in listOf(OBTAIN_LAYOUT, SET_INCLUDE_PAD)) {
+    for (call in listOf(OBTAIN_LAYOUT, SET_INCLUDE_PAD, BUILD_LAYOUT)) {
         if (call !in sent) throw PatchException("$PATCH: found no call of $call outside the extension")
     }
     return sent
@@ -194,6 +197,44 @@ internal fun MutableMethod.sendTextLayouts(): List<String> {
         replaceInstruction(index, "${staticArguments(instruction, call)}, ${LAYOUT_CALLS.getValue(call)}")
     }
     return sites.map { it.third }
+}
+
+/**
+ * Facebook's line-height spans (#96). A span fitting each line to a height of Facebook's design
+ * sets the first line's top and the last line's bottom to that height's edges, and a padded layout
+ * takes its padding from exactly those, so the padding [hookTextLayouts] turns on for a font drawing
+ * past its line box was taken back again wherever text has a set line height, Reels captions among
+ * it. Each write of a line's top or bottom in a span's chooseHeight ([LINE_EDGES]) becomes a call of
+ * the extension's stand-in on the same two registers, which writes Facebook's value, or in a layout
+ * the extension padded, the font's own edge where that's further out. One instruction takes the
+ * place of one, so jumps and try blocks stay where they were. Answers how many writes it sent.
+ */
+internal fun BytecodePatchContext.hookLineHeights(): Int {
+    val owners = mutableSetOf<String>()
+    classDefForEach { classDef ->
+        if (classDef.type.startsWith(EXTENSION_CLASSES)) return@classDefForEach
+        if (classDef.methods.any { method ->
+                isChooseHeight(method) && method.implementation?.instructions?.any { lineEdgeWrite(it) != null } == true
+            }
+        ) {
+            owners += classDef.type
+        }
+    }
+    val sent = owners.sumOf { type ->
+        mutableClassDefByOrNull(type)?.methods?.filter(::isChooseHeight)?.sumOf { it.sendLineEdges() } ?: 0
+    }
+    if (sent == 0) throw PatchException("$PATCH: found no line-height span setting a line's top or bottom")
+    return sent
+}
+
+/** Sends each write of [LINE_EDGES] in this method to the extension's stand-in. Answers how many. */
+internal fun MutableMethod.sendLineEdges(): Int {
+    val sites = (implementation ?: return 0).instructions.withIndex()
+        .mapNotNull { (index, instruction) -> lineEdgeWrite(instruction)?.let { Triple(index, instruction as TwoRegisterInstruction, it) } }
+    sites.forEach { (index, write, edge) ->
+        replaceInstruction(index, "invoke-static { v${write.registerA}, v${write.registerB} }, ${LINE_EDGES.getValue(edge)}")
+    }
+    return sites.size
 }
 
 /**

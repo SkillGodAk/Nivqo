@@ -7,8 +7,11 @@ package app.morphe.extension.facebook.media;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
+import android.os.Looper;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
@@ -23,6 +26,9 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowSystemClock;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
@@ -54,6 +60,10 @@ public class ProgressBarTest {
         PauseForTests.resume();
         Settings.KEEP_PROGRESS_BAR.resetToDefault();
         Settings.TAP_TO_PLAY.resetToDefault();
+        ProgressBar.footerLiftForTests = null;
+        ProgressBar.updateAgainForTests = null;
+        ProgressBar.forgetWatchesForTests();
+        ProgressBar.forgetFootersForTests();
         HookStatus.clear();
     }
 
@@ -455,6 +465,404 @@ public class ProgressBarTest {
         LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
         label.setVisibility(View.VISIBLE);
         assertFalse("the label was refreshed with the bar not kept", ProgressBar.refreshesTime(label, null));
+    }
+
+    /** A reel's scrubber views: the bar and its time label in one parent, both on screen. */
+    private static LinearLayout scrubberViews(LinearLayout label, SeekBar bar) {
+        LinearLayout reel = new LinearLayout(RuntimeEnvironment.getApplication());
+        reel.addView(label);
+        reel.addView(bar);
+        return reel;
+    }
+
+    @Test
+    public void aHandOverFacebookLeavesOnTheLastReelHidesTheBarAndItsTimeUntilAReelTakesIt() {
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        SeekBar bar = new SeekBar(RuntimeEnvironment.getApplication());
+        scrubberViews(label, bar);
+        bar.setProgress(62);
+        // #120: Up next plays reel b, and Facebook returns before it gives the scrubber b's player.
+        ProgressBar.handsOver(label, bar, "a", "b");
+        ProgressBar.leftOnLastReel();
+        assertEquals("the last reel's bar stayed on screen", View.INVISIBLE, bar.getVisibility());
+        assertEquals("the last reel's time stayed on screen", View.INVISIBLE, label.getVisibility());
+        // The last reel's update, a player event or a touch path asks for a look that shows the bar.
+        assertFalse("the last reel's time was written", ProgressBar.refreshesTime(label, bar));
+        assertEquals("the time label came back over the last reel", View.INVISIBLE, label.getVisibility());
+        for (int look : new int[] {0, 1, 3}) {
+            assertNull("look " + look + " could show the last reel's bar", ProgressBar.lookFor(label, look));
+        }
+        assertEquals(View.INVISIBLE, bar.getVisibility());
+
+        // Facebook hands the scrubber a reel at last: its light mount runs.
+        ProgressBar.mounts(label, null);
+        assertEquals("the bar didn't come back once a reel took it", View.VISIBLE, bar.getVisibility());
+        Integer passive = 0;
+        assertSame("a look was held back once a reel took the bar", passive, ProgressBar.lookFor(label, passive));
+        assertTrue("the time didn't come back with the reel's update", ProgressBar.refreshesTime(label, bar));
+        assertEquals(View.VISIBLE, label.getVisibility());
+        String line = statusLine();
+        assertTrue(line, line.contains(ProgressBar.LAST_REEL_HIDDEN + " 1"));
+        assertTrue(line, line.contains(ProgressBar.LAST_REEL_LOOK + " 3"));
+        assertTrue(line, line.contains(ProgressBar.LAST_REEL_BACK + " 1"));
+    }
+
+    @Test
+    public void aHandOverFacebookFinishesLeavesTheBarAlone() {
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        SeekBar bar = new SeekBar(RuntimeEnvironment.getApplication());
+        scrubberViews(label, bar);
+        // A swipe: Facebook gives the scrubber the next reel's player, which runs the light mount.
+        ProgressBar.handsOver(label, bar, "a", "b");
+        ProgressBar.mounts(label, null);
+        ProgressBar.leftOnLastReel();
+        assertEquals(View.VISIBLE, bar.getVisibility());
+        assertEquals(View.VISIBLE, label.getVisibility());
+        Integer active = 1;
+        assertSame(active, ProgressBar.lookFor(label, active));
+        // The reel the bar already holds: Facebook skips the hand-over, and so does the extension.
+        ProgressBar.handsOver(label, bar, "b", "b");
+        ProgressBar.leftOnLastReel();
+        assertEquals(View.VISIBLE, bar.getVisibility());
+        String line = statusLine();
+        assertFalse("a finished hand-over hid the bar: " + line, line != null && line.contains(ProgressBar.LAST_REEL_HIDDEN));
+    }
+
+    private static void idle(long ms) {
+        shadowOf(Looper.getMainLooper()).idleFor(ms, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void aReelNothingDrewSinceItsMountHasItsUpdateRunAgainUntilItDraws() {
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        SeekBar bar = new SeekBar(RuntimeEnvironment.getApplication());
+        scrubberViews(label, bar);
+        Object scrubber = new Object();
+        List<Object> runs = new ArrayList<>();
+        ProgressBar.updateAgainForTests = runs::add;
+        // #120: a double swipe hands the scrubber reel c, and its update stops before it draws c.
+        ProgressBar.handsOver(label, bar, "b", "c");
+        ProgressBar.mounts(label, scrubber);
+        idle(ProgressBar.UPDATE_CHECK_MS - 1);
+        assertTrue("the update ran again before the first check", runs.isEmpty());
+        idle(1);
+        assertEquals("the stopped update didn't run again", Collections.singletonList(scrubber), runs);
+        idle(ProgressBar.UPDATE_CHECK_MS);
+        assertEquals("the update ran once per check until c drew", 2, runs.size());
+        // The update finds c's position at last and moves the bar.
+        ProgressBar.refreshesTime(label, bar);
+        idle(10 * ProgressBar.UPDATE_CHECK_MS);
+        assertEquals("the update ran again after c drew", 2, runs.size());
+        String line = statusLine();
+        assertTrue(line, line.contains(ProgressBar.UPDATE_AGAIN + " 2"));
+    }
+
+    @Test
+    public void aRunThatDrawsEndsTheWatchAndAReelThatNeverDrawsIsLeftAfterTheLastCheck() {
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        SeekBar bar = new SeekBar(RuntimeEnvironment.getApplication());
+        scrubberViews(label, bar);
+        Object scrubber = new Object();
+        List<Object> runs = new ArrayList<>();
+        // The first run finds the reel's position, so Facebook's update moves the bar there and then.
+        ProgressBar.updateAgainForTests = ran -> {
+            runs.add(ran);
+            ProgressBar.refreshesTime(label, bar);
+        };
+        ProgressBar.mounts(label, scrubber);
+        idle(10 * ProgressBar.UPDATE_CHECK_MS);
+        assertEquals("the update ran again after it drew", 1, runs.size());
+
+        // A reel whose player never starts: the update runs at each check, then the watch gives up.
+        runs.clear();
+        ProgressBar.updateAgainForTests = runs::add;
+        ProgressBar.mounts(label, scrubber);
+        idle((ProgressBar.UPDATE_CHECKS + 10) * ProgressBar.UPDATE_CHECK_MS);
+        assertEquals("the watch didn't stop after its last check", ProgressBar.UPDATE_CHECKS, runs.size());
+    }
+
+    @Test
+    public void aReelThatDrawsOnItsOwnOrAMountWhileOffRunsNothingAgain() {
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        SeekBar bar = new SeekBar(RuntimeEnvironment.getApplication());
+        scrubberViews(label, bar);
+        Object scrubber = new Object();
+        List<Object> runs = new ArrayList<>();
+        ProgressBar.updateAgainForTests = runs::add;
+        // Off, Facebook's bar is left to Facebook.
+        ProgressBar.mounts(label, scrubber);
+        idle(4 * ProgressBar.UPDATE_CHECK_MS);
+        assertTrue("off, the update ran again", runs.isEmpty());
+
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        // A swipe that goes as it should: the update draws the reel before the first check.
+        ProgressBar.mounts(label, scrubber);
+        ProgressBar.refreshesTime(label, bar);
+        idle(4 * ProgressBar.UPDATE_CHECK_MS);
+        assertTrue("a reel that drew had its update run again", runs.isEmpty());
+        // A mount with no scrubber, then the next mount replaces the watch rather than adding one.
+        ProgressBar.mounts(label, null);
+        idle(4 * ProgressBar.UPDATE_CHECK_MS);
+        assertTrue("a mount without its scrubber ran an update", runs.isEmpty());
+        ProgressBar.mounts(label, scrubber);
+        idle(ProgressBar.UPDATE_CHECK_MS / 2);
+        ProgressBar.mounts(label, scrubber);
+        idle(ProgressBar.UPDATE_CHECK_MS);
+        assertEquals("the first mount's watch ran on past the second mount", 1, runs.size());
+        // The switch goes off while the reel waits.
+        Settings.KEEP_PROGRESS_BAR.save(false);
+        idle(4 * ProgressBar.UPDATE_CHECK_MS);
+        assertEquals("the update ran again with the switch off", 1, runs.size());
+        String line = statusLine();
+        assertTrue(line, line.contains(ProgressBar.UPDATE_AGAIN + " 1"));
+    }
+
+    @Test
+    public void turnedOnWithReelsOpenTheThinBarTakesTheKeptLookOnce() {
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        // Off: Facebook's passive look ran, and the bar is its thin line.
+        assertFalse("off, a thin bar was given the kept look", ProgressBar.looksAgain(label));
+        assertFalse("off, Facebook's look was kept", ProgressBar.keepsReelBar());
+
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        assertTrue("on, the thin bar stayed until a touch", ProgressBar.looksAgain(label));
+        // The patch runs the passive look, whose hook runs the active one and then this.
+        ProgressBar.hideTimeLabel(label);
+        assertFalse("the kept look was asked for again on the next update", ProgressBar.looksAgain(label));
+        assertFalse("the kept look was asked for again", ProgressBar.looksAgain(label));
+        String line = statusLine();
+        assertTrue(line, line.contains(ProgressBar.KEPT_LOOK_AGAIN + " 1"));
+        assertFalse(line, line.contains(ProgressBar.FACEBOOK_LOOK_AGAIN));
+    }
+
+    /**
+     * #73: the reel on screen as the switch goes on kept its playing footer, with the caption where
+     * the kept bar and its time now go. The update that gives the bar the kept look lifts every
+     * footer Facebook still holds, once, and the patch's lift changes only a playing one.
+     */
+    @Test
+    public void turnedOnWithReelsOpenThePlayingReelsFooterIsLiftedOnce() {
+        Object playing = new Object();
+        Object paused = new Object();
+        List<Object> asked = new ArrayList<>();
+        ProgressBar.footerLiftForTests = footer -> {
+            asked.add(footer);
+            return footer == playing;
+        };
+        ProgressBar.footerMade(playing);
+        ProgressBar.footerMade(paused);
+        ProgressBar.footerMade(null);
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+
+        assertFalse(ProgressBar.looksAgain(label));
+        assertTrue("off, a footer was lifted: " + asked, asked.isEmpty());
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        assertFalse(ProgressBar.looksAgain(label));
+        assertTrue("paused, a footer was lifted: " + asked, asked.isEmpty());
+        PauseForTests.resume();
+
+        assertTrue("on, the thin bar stayed until a touch", ProgressBar.looksAgain(label));
+        assertEquals("every footer Facebook holds is asked, once each", 2, asked.size());
+        assertTrue(asked.contains(playing) && asked.contains(paused));
+        String line = statusLine();
+        assertTrue(line, line.contains(ProgressBar.FOOTER_LIFTED_AGAIN + " 1"));
+
+        // The patch runs the passive look, whose hook runs the active one; later updates lift nothing.
+        ProgressBar.hideTimeLabel(label);
+        assertFalse(ProgressBar.looksAgain(label));
+        assertEquals("a footer was asked again", 2, asked.size());
+
+        // Off again: Facebook's look comes back and its next player event sets the footer.
+        Settings.KEEP_PROGRESS_BAR.save(false);
+        assertTrue(ProgressBar.looksAgain(label));
+        assertEquals("off, a footer was lifted", 2, asked.size());
+    }
+
+    /**
+     * #73 on the S22 and the emulator: the switch went on in the settings opened over Reels, and as
+     * the reel played on or looped after Back, Facebook's own look ran first, so the bar had the kept
+     * look before its next progress update and that update lifted nothing. The footer stayed HIDDEN
+     * and a play event changed nothing. Facebook's look giving a bar the kept look lifts the footers too.
+     */
+    @Test
+    public void turnedOnUnderTheSettingsTheFooterLiftsWhenFacebooksLookGetsThereFirst() {
+        Object playing = new Object();
+        List<Object> asked = new ArrayList<>();
+        ProgressBar.footerLiftForTests = footer -> {
+            asked.add(footer);
+            return footer == playing;
+        };
+        ProgressBar.footerMade(playing);
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        // Off: Facebook's passive look ran, so no bar has the kept look.
+        assertFalse(ProgressBar.keepsReelBar());
+
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        // The reel plays on: Facebook asks for its passive look, whose hook runs the active one and this.
+        assertTrue(ProgressBar.keepsReelBar());
+        ProgressBar.hideTimeLabel(label);
+        assertEquals("the playing footer wasn't lifted", Collections.singletonList(playing), asked);
+        // The next progress update finds the look kept and lifts nothing more, nor does the next look.
+        assertFalse(ProgressBar.looksAgain(label));
+        ProgressBar.hideTimeLabel(label);
+        assertEquals("a footer was asked again", 1, asked.size());
+        String line = statusLine();
+        assertTrue(line, line.contains(ProgressBar.FOOTER_LIFTED_AGAIN + " 1"));
+    }
+
+    @Test
+    public void aFooterLiftThatFailsIsReportedAndTheOthersStillLift() {
+        Object first = new Object();
+        Object second = new Object();
+        ProgressBar.footerLiftForTests = footer -> {
+            if (footer == first) throw new IllegalStateException("the lift failed");
+            return true;
+        };
+        ProgressBar.footerMade(first);
+        ProgressBar.footerMade(second);
+        assertEquals(1, ProgressBar.liftFooters());
+        assertTrue(HookStatus.missing(FamilyNames.PROGRESS_BAR).toString(),
+                HookStatus.missing(FamilyNames.PROGRESS_BAR).get(0).contains("reel caption lift"));
+
+        // Unpatched, the stub lifts nothing.
+        ProgressBar.footerLiftForTests = null;
+        assertFalse(ProgressBar.liftFooter(new Object()));
+        assertEquals(0, ProgressBar.liftFooters());
+    }
+
+    @Test
+    public void aBarThatGotTheKeptLookFromFacebooksOwnLookIsLeftAlone() {
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        // A cold start: Facebook's passive look runs and its hook gives the bar the kept look.
+        assertTrue(ProgressBar.keepsReelBar());
+        ProgressBar.hideTimeLabel(label);
+        assertFalse("a bar that has the kept look was given it again", ProgressBar.looksAgain(label));
+        String line = statusLine();
+        assertFalse(line, line.contains(ProgressBar.KEPT_LOOK_AGAIN));
+    }
+
+    @Test
+    public void turnedOffWithReelsOpenTheKeptBarGoesBackToFacebookOnce() {
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        ProgressBar.hideTimeLabel(label);
+        Settings.KEEP_PROGRESS_BAR.save(false);
+        // Off with the full size bar and its stopped time still up: Facebook's passive look runs, as the
+        // hook in it now answers no.
+        assertTrue("off, the kept bar stayed with its time stopped", ProgressBar.looksAgain(label));
+        assertFalse("Facebook's look ran with the switch off", ProgressBar.keepsReelBar());
+        assertFalse("Facebook's look was asked for again", ProgressBar.looksAgain(label));
+        String line = statusLine();
+        assertTrue(line, line.contains(ProgressBar.FACEBOOK_LOOK_AGAIN + " 1"));
+
+        // On again: the bar Facebook's look shrank takes the kept look again.
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        assertTrue("on again, the thin bar stayed", ProgressBar.looksAgain(label));
+    }
+
+    @Test
+    public void facebooksOwnLookWhileOffMeansTheKeptLookIsGone() {
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        ProgressBar.hideTimeLabel(label);
+        // Off, then a touch: Facebook's own passive look runs and shrinks the bar, before any update asks.
+        Settings.KEEP_PROGRESS_BAR.save(false);
+        assertFalse(ProgressBar.keepsReelBar());
+        assertFalse("a bar Facebook's look already shrank was given it again", ProgressBar.looksAgain(label));
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        assertTrue("on again, the bar Facebook shrank stayed thin", ProgressBar.looksAgain(label));
+    }
+
+    @Test
+    public void pausedBeforeTheSettingsOrWhileTheBarHoldsTheLastReelTheLookStays() {
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        assertFalse("no label, a look was run", ProgressBar.looksAgain(null));
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse("a paused Hushfacebook gave the bar the kept look", ProgressBar.looksAgain(label));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() ->
+                assertFalse("the bar got the kept look before the settings were ready", ProgressBar.looksAgain(label)));
+
+        // #120: the scrubber still holds the last reel, so its bar and time stay hidden whatever the look.
+        SeekBar bar = new SeekBar(RuntimeEnvironment.getApplication());
+        scrubberViews(label, bar);
+        ProgressBar.handsOver(label, bar, "a", "b");
+        ProgressBar.leftOnLastReel();
+        assertFalse("a bar hidden for the last reel was given a look", ProgressBar.looksAgain(label));
+        ProgressBar.mounts(label, null);
+        assertTrue("once a reel took the bar, it still had Facebook's look", ProgressBar.looksAgain(label));
+    }
+
+    @Test
+    public void theReelTheBarHoldsComingBackOnScreenShowsTheBarAgain() {
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        SeekBar bar = new SeekBar(RuntimeEnvironment.getApplication());
+        scrubberViews(label, bar);
+        ProgressBar.handsOver(label, bar, "a", "b");
+        ProgressBar.leftOnLastReel();
+        // A reel with no id is no better: the scrubber still holds a.
+        ProgressBar.handsOver(label, bar, "a", null);
+        ProgressBar.leftOnLastReel();
+        assertEquals(View.INVISIBLE, bar.getVisibility());
+        // Swiping back to a: Facebook skips the hand-over, as the scrubber holds a.
+        ProgressBar.handsOver(label, bar, "a", "a");
+        ProgressBar.leftOnLastReel();
+        assertEquals("the bar of the reel on screen stayed hidden", View.VISIBLE, bar.getVisibility());
+        Integer passive = 0;
+        assertSame(passive, ProgressBar.lookFor(label, passive));
+    }
+
+    @Test
+    public void aLookThatHidesTheBarGoesThroughAndFacebookKeepsTheBarAfterwards() {
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        SeekBar bar = new SeekBar(RuntimeEnvironment.getApplication());
+        scrubberViews(label, bar);
+        ProgressBar.handsOver(label, bar, "a", "b");
+        ProgressBar.leftOnLastReel();
+        Integer invisible = ProgressBar.INVISIBLE;
+        Integer faded = ProgressBar.FADED;
+        assertSame(invisible, ProgressBar.lookFor(label, invisible));
+        assertSame(faded, ProgressBar.lookFor(label, faded));
+        // Facebook's own looks own the bar now, so the mount leaves it to them.
+        ProgressBar.mounts(label, null);
+        assertEquals("the bar Facebook hid came back", View.INVISIBLE, bar.getVisibility());
+    }
+
+    @Test
+    public void offOrWithoutViewsAHandOverChangesNothing() {
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        SeekBar bar = new SeekBar(RuntimeEnvironment.getApplication());
+        scrubberViews(label, bar);
+        ProgressBar.handsOver(label, bar, "a", "b");
+        ProgressBar.leftOnLastReel();
+        assertEquals("off, the bar was hidden", View.VISIBLE, bar.getVisibility());
+        Integer active = 1;
+        assertSame(active, ProgressBar.lookFor(label, active));
+        assertNull(ProgressBar.lookFor(label, null));
+        assertSame(active, ProgressBar.lookFor(null, active));
+
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        ProgressBar.handsOver(null, bar, "a", "b");
+        ProgressBar.leftOnLastReel();
+        ProgressBar.mounts(null, null);
+        assertEquals("a scrubber without its label lost its bar", View.VISIBLE, bar.getVisibility());
+
+        // Hidden, then the switch goes off: the next look puts the bar back and goes through.
+        ProgressBar.handsOver(label, bar, "a", "b");
+        ProgressBar.leftOnLastReel();
+        assertEquals(View.INVISIBLE, bar.getVisibility());
+        Settings.KEEP_PROGRESS_BAR.save(false);
+        assertSame(active, ProgressBar.lookFor(label, active));
+        assertEquals("the bar stayed hidden with the switch off", View.VISIBLE, bar.getVisibility());
     }
 
     @Test

@@ -47,6 +47,7 @@ import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.handleTargets
 import app.morphe.patches.facebook.misc.extension.javaName
+import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.patches.facebook.misc.settings.settingsPatch
@@ -78,6 +79,21 @@ internal val SUGGESTED_FEED_UNITS = listOf(
     "Lcom/facebook/graphql/model/GraphQLGreetingCardPromotionFeedUnit;",
     // In-feed prompts and experiment slots.
     "Lcom/facebook/graphql/model/GraphQLStoryGallerySurveyFeedUnit;",
+    "Lcom/facebook/graphql/model/GraphQLBusinessPageReviewFeedUnit;",
+    "Lcom/facebook/graphql/model/GraphQLHoldoutAdFeedUnit;",
+)
+
+/**
+ * The units of [SUGGESTED_FEED_UNITS] Facebook took out between 577 and 582. They stay on the
+ * list for a build that brings one back, and the patch log says in one plain line that the
+ * declared build goes without them, where a unit missing beyond these is a warning (issue #162).
+ * PartialTargetsFixtureTest holds this to the declared build's fixtures.
+ */
+internal val DROPPED_SUGGESTED_FEED_UNITS = setOf(
+    "Lcom/facebook/graphql/model/GraphQLPagesYouMayFollowFeedUnit;",
+    "Lcom/facebook/graphql/model/GraphQLPagesYouMayAdvertiseFeedUnit;",
+    "Lcom/facebook/graphql/model/GraphQLEndOfFeedUpsellCustomNTFeedUnit;",
+    "Lcom/facebook/graphql/model/GraphQLGreetingCardPromotionFeedUnit;",
     "Lcom/facebook/graphql/model/GraphQLBusinessPageReviewFeedUnit;",
     "Lcom/facebook/graphql/model/GraphQLHoldoutAdFeedUnit;",
 )
@@ -158,6 +174,12 @@ val hideSuggestedPostsPatch = bytecodePatch(
 
         // The carousel on your own profile is a section of its own, not a feed unit.
         hideProfileSuggestions()
+        // The list of more posts under a post opened from a notification is asked for with the post, not a feed unit (#163).
+        try {
+            hookNotificationFooter()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so posts opened from a notification keep their list of more posts.")
+        }
         enableStatus("suggestedPosts")
     }
 }
@@ -165,12 +187,12 @@ val hideSuggestedPostsPatch = bytecodePatch(
 /**
  * Checks the build for the suggested feed units the extension hides. Each unit class stands alone:
  * the extension tells them apart by name at run time, so one a build drops is one it can't show.
- * The patch goes on with the ones it finds, and the patch log names each missing one (580 dropped
- * six that 577 still carries). None of them stops the patch: that is a renamed model package, not
- * a smaller feed.
+ * The patch goes on with the ones it finds. The six of [DROPPED_SUGGESTED_FEED_UNITS] get one
+ * plain line between them, and the patch log names any other missing one with a warning. None of
+ * them stops the patch: that is a renamed model package, not a smaller feed.
  */
 internal fun BytecodePatchContext.requireSuggestedUnits() {
-    handleTargets(PATCH, "suggested feed unit classes", SUGGESTED_FEED_UNITS) { type ->
+    handleTargets(PATCH, "suggested feed unit classes", SUGGESTED_FEED_UNITS, DROPPED_SUGGESTED_FEED_UNITS) { type ->
         if (classDefByOrNull(type) != null) null else "${javaName(type)} isn't in this Facebook build"
     }
 }

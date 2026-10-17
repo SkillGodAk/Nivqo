@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
@@ -70,6 +71,13 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * a rebuild for a configuration change. So a viewer opened after another one closed never shows,
  * or sends with a quick tap, the card the closed one left behind.
  *
+ * <p>Facebook counts a card only once its progress bar plays, so a card still loading would show
+ * the eye late (#150). The patch also calls {@link #onCard} where the seen helper puts off counting
+ * a card until it plays, so the eye comes with the card's own header. While the story is held,
+ * Facebook hides its header (progress bar, name and menu); {@link #onState} hears the story
+ * viewer's state, whose long press flag is what Facebook's own state dump calls
+ * LONG_PRESS_ACTIVE, and the eye hides and comes back with the header.
+ *
  * <p>The button shows only while views are anonymous and its own switch is on, and only over
  * StoryViewerActivity while it's in front. Either switch off, Hushfacebook paused or the settings
  * not read yet, it's hidden and forgets its card, and the send hook holds batches back or lets them
@@ -91,11 +99,14 @@ public final class StorySeenButton {
     static final int CARD_TOP_DP = 16;
     static final int END_DP = 92;
 
-    /** How long the card stays put before the eye shows on it again, after a swipe, a turn or a drag. */
-    static final long SETTLE_MS = 150;
-
-    /** The same for a card still turned, moved or scaled, like one held mid-drag, which a turn in passes through. */
+    /**
+     * How long a card that's still turned, moved or scaled, like one held mid-drag, has to stay that
+     * way before the eye shows on it. A card back in its place gets the eye in the same frame.
+     */
     static final long STILL_TRANSFORMED_MS = 1000;
+
+    /** What Hook status counts each time the story is held and the eye hides with Facebook's header. */
+    static final String HELD = "eye hidden while held";
 
     /** The card on screen: the account it's viewed on, its id and the story viewer it was named for. */
     static final class Shown {
@@ -129,6 +140,12 @@ public final class StorySeenButton {
 
     /** What a tap uses to send a held card at once, with its account and id. Tests record the calls instead. */
     static volatile BiPredicate<String, String> sendNow = StorySeen::sendHeld;
+
+    /** Where {@link #onState} reads whether a story viewer state is a long press: the patch's filled stub. */
+    static volatile Predicate<Object> longPresses = StorySeenButton::longPressed;
+
+    /** Whether the story is held, while Facebook hides its header and the eye hides with it. */
+    private static volatile boolean held;
 
     /** How many cards' accounts {@link #known} remembers. */
     static final int KNOWN_CARDS = 64;
@@ -164,8 +181,9 @@ public final class StorySeenButton {
 
     /**
      * Injected first thing in the seen helper's per-card method, with the account's session, the
-     * card's bucket and the card. Points the button at that card while the switches are on, and
-     * hides it otherwise. Never throws.
+     * card's bucket and the card, and where the helper puts off counting a card until its progress
+     * bar plays, with the helper's session. Points the button at that card while the switches are
+     * on, and hides it otherwise. Never throws.
      */
     public static void onCard(@Nullable Object session, @Nullable Object bucket, @Nullable Object card) {
         try {
@@ -183,6 +201,20 @@ public final class StorySeenButton {
                 }
             }
             rebind(now);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_SEEN, HOOK, failure);
+        }
+    }
+
+    /**
+     * Injected first thing in the listener the seen helper makes to count [card] once its progress
+     * bar plays, with the card's bucket and the helper. The card passed Facebook's checks and will
+     * be counted, so the eye goes on it now, with the helper's session, instead of when the story
+     * starts playing (#150). Never throws.
+     */
+    public static void onCardLater(@Nullable Object bucket, @Nullable Object card, @Nullable Object helper) {
+        try {
+            onCard(helper == null ? null : helperSession(helper), bucket, card);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_SEEN, HOOK, failure);
         }
@@ -213,6 +245,36 @@ public final class StorySeenButton {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_SEEN, HOOK, failure);
         }
+    }
+
+    /**
+     * Injected first thing where Facebook's story viewer takes a new state for its card, with the
+     * state. Facebook sets the state's long press flag when the story is held and hides its header
+     * then, so the eye hides too, and comes back when the flag clears. Never throws.
+     */
+    public static void onState(@Nullable Object state) {
+        try {
+            boolean now = state != null && longPresses.test(state);
+            if (now == held) return;
+            held = now;
+            if (now) HookStatus.counted(FamilyNames.STORY_SEEN, HELD);
+            Utils.runOnMainThreadNowOrLater(StorySeenButton::follow);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_SEEN, HOOK, failure);
+        }
+    }
+
+    /** Whether the story is held, as Facebook's story viewer last said. */
+    static boolean held() {
+        return held;
+    }
+
+    /** Puts the eye where its card is now, or hides it while the story is held. Main thread. */
+    private static void follow() {
+        ImageView eye = button.get();
+        if (eye == null) return;
+        Follower follower = followers.get(eye);
+        if (follower != null) follower.place();
     }
 
     /** The card active in [viewer], or null when the active card belongs to another viewer or there's none. */
@@ -354,6 +416,7 @@ public final class StorySeenButton {
         shown = null;
         active = null;
         newest = null;
+        held = false;
         synchronized (known) {
             known.clear();
         }
@@ -380,7 +443,7 @@ public final class StorySeenButton {
             show(eye, StorySeen.MARKS.state(now.account, now.card));
             Follower follower = followers.get(eye);
             if (follower != null) follower.place();
-            else eye.setVisibility(View.VISIBLE);
+            else eye.setVisibility(held ? View.INVISIBLE : View.VISIBLE);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_SEEN, HOOK, failure);
         }
@@ -437,6 +500,7 @@ public final class StorySeenButton {
     static void resetForTests() {
         cardIds = StorySeenButton::cardId;
         sendNow = StorySeen::sendHeld;
+        longPresses = StorySeenButton::longPressed;
         forget();
         viewers.clear();
         rebuilding = null;
@@ -479,10 +543,12 @@ public final class StorySeenButton {
 
     /**
      * Keeps a bound eye on the story card's header (issue #117). Before each frame it finds the card
-     * ({@link #findCard}). While the card moves, turning away for the next person's stories, sliding
-     * down as the viewer is dragged closed or growing out of the tray as it opens, the eye hides.
-     * Once the card has stayed put for {@link #SETTLE_MS} the eye shows at its top end. With no card
-     * found the eye keeps its place on the window. An eye that isn't bound to a card is left alone.
+     * ({@link #findCard}). While the card is turned, moved or scaled, turning away for the next
+     * person's stories, sliding down as the viewer is dragged closed or growing out of the tray as
+     * it opens, the eye hides. In the frame the card is back in its place the eye shows at its top
+     * end, with the card's own header (#150), and follows the card from frame to frame. While the
+     * story is held it hides, as Facebook's header does. With no card found the eye keeps its place
+     * on the window. An eye that isn't bound to a card is left alone.
      */
     static final class Follower implements ViewTreeObserver.OnPreDrawListener, Runnable {
         private final ImageView eye;
@@ -517,6 +583,11 @@ public final class StorySeenButton {
         void place() {
             try {
                 if (!(eye.getTag() instanceof Shown) || eye.getParent() == null) return;
+                if (held) {
+                    // Facebook hides its header while the story is held.
+                    visible(View.INVISIBLE);
+                    return;
+                }
                 View now = findCard(root);
                 if (now == null) {
                     card = null;
@@ -540,14 +611,16 @@ public final class StorySeenButton {
                     movedAt = clock;
                 }
                 // A card turning in on its left edge keeps its corner where it is, so a turned,
-                // moved or scaled card has to stay that way a while before it counts as put.
-                long needed = transformed(now, root) ? STILL_TRANSFORMED_MS : SETTLE_MS;
-                long still = clock - movedAt;
-                if (still < needed) {
-                    visible(View.INVISIBLE);
-                    eye.removeCallbacks(this);
-                    eye.postDelayed(this, needed - still);
-                    return;
+                // moved or scaled card has to stay that way a while before it counts as put. One in
+                // its place takes the eye now, which moves with it from frame to frame.
+                if (transformed(now, root)) {
+                    long still = clock - movedAt;
+                    if (still < STILL_TRANSFORMED_MS) {
+                        visible(View.INVISIBLE);
+                        eye.removeCallbacks(this);
+                        eye.postDelayed(this, STILL_TRANSFORMED_MS - still);
+                        return;
+                    }
                 }
                 float density = eye.getResources().getDisplayMetrics().density;
                 int[] origin = new int[2];
@@ -714,6 +787,20 @@ public final class StorySeenButton {
     /** Filled in by the patch: the id Facebook's seen helper queues for [card], a StoryCard. */
     @Nullable
     public static String cardId(Object card) {
+        return null;
+    }
+
+    /**
+     * Filled in by the patch: the long press flag of [state], the story viewer's state for its
+     * card, which Facebook's own state dump names LONG_PRESS_ACTIVE.
+     */
+    public static boolean longPressed(Object state) {
+        return false;
+    }
+
+    /** Filled in by the patch: the FbUserSession of [helper], the story viewer's seen helper. */
+    @Nullable
+    public static Object helperSession(Object helper) {
         return null;
     }
 }

@@ -351,8 +351,9 @@ public class SettingsBackupTest {
         carried.addAll(keys(SettingsBackup.VALUES));
         assertEquals(carried, names(switches));
         for (BooleanSetting setting : SettingsBackup.ALLOWLIST) {
-            // Saved, not what a paused Facebook is answered: paused, every switch answers false.
-            assertFalse(setting.get());
+            // Saved, not what a paused Facebook is answered: paused, every switch answers false, but
+            // for the ones a pause leaves as they are (Lock Facebook, the settings shortcut).
+            assertEquals(setting.key, setting.isKeptWhenPaused() && setting.savedValue(), setting.get());
             assertEquals(setting.key, setting.savedValue(), switches.get(setting.key));
         }
         assertEquals("My_Clips", switches.get(SettingsBackup.FOLDER.key));
@@ -1466,7 +1467,7 @@ public class SettingsBackupTest {
      */
     @Test
     public void theStartTabRoundTripsAndComesBackOnlyAsOneThisBuildOffers() throws Exception {
-        for (StartTab tab : StartTab.values()) {
+        for (StartTab tab : StartTab.choices()) {
             Settings.START_TAB.save(tab);
             String file = SettingsBackup.create();
             assertEquals(tab.fileValue, new JSONObject(file).getJSONObject("settings").get(SettingsBackup.START.key));

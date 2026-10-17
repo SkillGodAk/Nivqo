@@ -13,9 +13,18 @@ import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
+import app.morphe.patches.facebook.misc.extension.requireParameterIntact
 import app.morphe.util.singleOrPatchException
+import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 /** Kept GraphQL model class — Redex never renames it. */
@@ -59,6 +68,61 @@ internal object AddNewEdgeToCollectionFingerprint : Fingerprint(
  */
 internal fun BytecodePatchContext.addNewEdgeToCollection(): MutableMethod =
     AddNewEdgeToCollectionFingerprint.matchAllOrNull().orEmpty().oneFeedFunnel { it.originalMethod }.method
+
+/**
+ * The method that does the funnel's work, where the feed guard goes. Through 582 that's
+ * [addNewEdgeToCollection] itself. 583 made it a wrapper that hands the edge to a static method of
+ * its own class, and the feed's batch add (`addNewEdgesToCollectionPreferPending`) calls that method
+ * directly, so a guard on the wrapper would see none of the batch's edges.
+ */
+internal fun BytecodePatchContext.feedFunnelBody(): MutableMethod {
+    val funnel = addNewEdgeToCollection()
+    val body = outlinedFunnelBody(funnel) ?: return funnel
+    return mutableClassDefBy(body.definingClass).methods.singleOrNull {
+        it.name == body.name && it.returnType == body.returnType &&
+            it.parameterTypes.map(CharSequence::toString) == body.parameterTypes.map(CharSequence::toString)
+    } ?: throw PatchException("Feed filter: $FEED_FUNNEL hands its edge to $body, which isn't in its class")
+}
+
+/**
+ * The static method of [funnel]'s own class that [funnel] only wraps, or null when [funnel] does the
+ * work itself: [funnel] has no branch, makes one static call of its class that takes an edge and
+ * answers a boolean, passes it its own edge, and returns that answer straight away.
+ */
+internal fun outlinedFunnelBody(funnel: Method): MethodReference? {
+    val code = funnel.implementation?.instructions?.toList() ?: return null
+    if (code.any { it is OffsetInstruction || it.opcode == Opcode.THROW }) return null
+    val delegates = code.withIndex().mapNotNull { (index, instruction) ->
+        val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+        val static = instruction.opcode == Opcode.INVOKE_STATIC || instruction.opcode == Opcode.INVOKE_STATIC_RANGE
+        if (static && call != null && call.definingClass == funnel.definingClass && call.returnType == "Z" &&
+            call.parameterTypes.any { it.toString() == FEED_UNIT_EDGE }
+        ) index to call else null
+    }
+    val (at, call) = delegates.singleOrNull() ?: return null
+    val result = code.getOrNull(at + 1)
+    val returned = code.getOrNull(at + 2)
+    if (result?.opcode != Opcode.MOVE_RESULT || returned?.opcode != Opcode.RETURN || at + 2 != code.lastIndex ||
+        (result as OneRegisterInstruction).registerA != (returned as OneRegisterInstruction).registerA
+    ) return null
+    val edge = call.parameterTypes.indexOfFirst { it.toString() == FEED_UNIT_EDGE }
+    val passed = argumentRegisters(code[at]).getOrNull(call.parameterTypes.take(edge).sumOf { it.width() })
+    val own = funnel.parameterTypes.indexOfFirst { it.toString() == FEED_UNIT_EDGE }
+    if (own < 0 || passed != funnel.parameterRegisterNumber(own)) return null
+    // Nothing before the call may write the edge's register, or the body gets something else.
+    funnel.requireParameterIntact("Feed filter", own, listOf(at))
+    return call
+}
+
+/** The registers an invoke passes, in order. */
+private fun argumentRegisters(invoke: Instruction): List<Int> = when (invoke) {
+    is RegisterRangeInstruction -> (invoke.startRegister until invoke.startRegister + invoke.registerCount).toList()
+    is FiveRegisterInstruction -> listOf(invoke.registerC, invoke.registerD, invoke.registerE, invoke.registerF,
+        invoke.registerG).take(invoke.registerCount)
+    else -> emptyList()
+}
+
+private fun CharSequence.width() = if (toString() == "J" || toString() == "D") 2 else 1
 
 /** The only entry of this list, or a refusal naming the method [method] reads out of each entry. */
 internal fun <T> List<T>.oneFeedFunnel(method: (T) -> Method): T =

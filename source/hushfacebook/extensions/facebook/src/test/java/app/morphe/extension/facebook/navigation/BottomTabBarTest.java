@@ -7,6 +7,7 @@ package app.morphe.extension.facebook.navigation;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import com.facebook.common.util.TriState;
 
@@ -27,7 +28,10 @@ import app.morphe.extension.shared.settings.PauseForTests;
 
 /**
  * Tab bar at the bottom: with the switch on, every read of Facebook's own override answers YES,
- * whatever the account had, and is counted. Off or paused, each read keeps Facebook's answer.
+ * whatever the account had, and is counted. With Tab bar at the top on instead it answers NO
+ * (#166); the bottom switch wins and greys the top one out. Off or paused, each read keeps
+ * Facebook's answer.
+ * Phone layout on big screens answers Facebook's big screen gate no the same way (#149).
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)
@@ -43,6 +47,8 @@ public class BottomTabBarTest {
     public void restore() {
         PauseForTests.resume();
         Settings.BOTTOM_TAB_BAR.resetToDefault();
+        Settings.TOP_TAB_BAR.resetToDefault();
+        Settings.PHONE_LAYOUT_ON_BIG_SCREENS.resetToDefault();
         HookStatus.clear();
     }
 
@@ -82,8 +88,65 @@ public class BottomTabBarTest {
     }
 
     @Test
+    public void topEveryAnswerIsNo() {
+        Settings.TOP_TAB_BAR.save(true);
+        for (TriState facebooks : TriState.values()) {
+            assertEquals("the override read " + facebooks, TriState.NO.ordinal(), BottomTabBar.override(facebooks.ordinal()));
+        }
+        assertEquals(FamilyNames.BOTTOM_TAB_BAR + ": invoked 3, 1 found, 0 missing. Counted: "
+                + BottomTabBar.PUT_AT_TOP + " 3", statusLine());
+    }
+
+    @Test
+    public void theBottomSwitchWinsAndGreysTheTopOneOut() {
+        assertFalse("the top switch doesn't start off", Settings.TOP_TAB_BAR.get());
+        Settings.TOP_TAB_BAR.save(true);
+        assertTrue("the top switch is greyed out with the bottom one off", Settings.TOP_TAB_BAR.isAvailable());
+        Settings.BOTTOM_TAB_BAR.save(true);
+        assertFalse("the top switch isn't greyed out under the bottom one", Settings.TOP_TAB_BAR.isAvailable());
+        assertEquals(TriState.YES.ordinal(), BottomTabBar.override(TriState.NO.ordinal()));
+    }
+
+    @Test
+    public void topPausedKeepsFacebooksAnswer() {
+        Settings.TOP_TAB_BAR.save(true);
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertEquals("a paused Hushfacebook moved the tab bar",
+                TriState.YES.ordinal(), BottomTabBar.override(TriState.YES.ordinal()));
+        PauseForTests.resume();
+        assertEquals(TriState.NO.ordinal(), BottomTabBar.override(TriState.YES.ordinal()));
+    }
+
+    @Test
     public void theSwitchIsOneThatAsksForARestart() {
+        assertEquals(true, Settings.TOP_TAB_BAR.rebootApp);
         assertEquals(true, Settings.BOTTOM_TAB_BAR.rebootApp);
         assertNull("nothing asks before the switch changes", Settings.BOTTOM_TAB_BAR.userDialogMessage);
+        assertEquals(true, Settings.PHONE_LAYOUT_ON_BIG_SCREENS.rebootApp);
+        assertNull("nothing asks before the switch changes", Settings.PHONE_LAYOUT_ON_BIG_SCREENS.userDialogMessage);
+    }
+
+    @Test
+    public void phoneLayoutOnBigScreensAnswersFacebooksGateNo() {
+        Settings.PHONE_LAYOUT_ON_BIG_SCREENS.save(true);
+        assertTrue("the big screen gate kept Facebook's answer", BottomTabBar.phoneLayout());
+        assertTrue(BottomTabBar.phoneLayout());
+        assertEquals(FamilyNames.BOTTOM_TAB_BAR + ": invoked 2, 1 found, 0 missing. Counted: "
+                + BottomTabBar.PHONE_LAYOUT + " 2", statusLine());
+    }
+
+    @Test
+    public void phoneLayoutOffOrPausedLeavesFacebooksGate() {
+        assertFalse("the switch doesn't start off", Settings.PHONE_LAYOUT_ON_BIG_SCREENS.get());
+        assertFalse("off, the big screen gate was answered", BottomTabBar.phoneLayout());
+        Settings.PHONE_LAYOUT_ON_BIG_SCREENS.save(true);
+        for (HushfacebookPause.Reason reason : new HushfacebookPause.Reason[] {
+                HushfacebookPause.Reason.SWITCH, HushfacebookPause.Reason.CRASH_LOOP}) {
+            PauseForTests.pause(reason);
+            assertFalse("a Hushfacebook paused by " + reason + " answered the big screen gate", BottomTabBar.phoneLayout());
+            PauseForTests.resume();
+        }
+        String line = statusLine();
+        assertFalse("a gate that kept Facebook's answer was counted: " + line, line != null && line.contains("Counted"));
     }
 }

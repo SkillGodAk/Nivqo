@@ -27,7 +27,7 @@ import java.io.File
 
 /**
  * Always use Clean mode on every Facebook build the bundle declares: the one Clean mode event, the
- * store whose flag it sets beside the event, and one read of that flag in each of the four viewer
+ * store whose flag it sets beside the event, and one read of that flag in each of the three viewer
  * parts, kept by a move-result as a boolean or, through Facebook's boxing helper, a Boolean. Then
  * the patch on those classes: the extension right after each move-result on the same register,
  * and nothing else in the method moved. Reads the fixture bundles from HUSHFACEBOOK_FIXTURE_DIR and

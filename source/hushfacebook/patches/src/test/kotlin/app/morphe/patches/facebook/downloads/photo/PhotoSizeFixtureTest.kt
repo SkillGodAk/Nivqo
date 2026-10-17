@@ -89,6 +89,8 @@ class PhotoSizeFixtureTest {
 
                 val context = PatchContexts.of(listOf(owner, ExtensionDex.classDef(PHOTO_SAVE)))
                 context.fillCdnResize()
+                // Download any story fills it too (#38): the second of the two leaves it as it is.
+                context.fillCdnResize()
 
                 val helper = context.mutableClassDefBy(owner.type).methods.single { it.name == CDN_RESIZE_HELPER }
                 assertTrue("$name: the helper is public and static",
@@ -116,6 +118,9 @@ class PhotoSizeFixtureTest {
                     ((stub[0] as ReferenceInstruction).reference as MethodReference).toString())
                 assertEquals("$name: and hands back its answer", listOf(Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT),
                     stub.subList(1, 3).map { it.opcode })
+                assertEquals("$name: the stub calls the helper once", 1, stub.count {
+                    ((it as? ReferenceInstruction)?.reference as? MethodReference)?.name == CDN_RESIZE_HELPER
+                })
                 checked += version
             }
         }

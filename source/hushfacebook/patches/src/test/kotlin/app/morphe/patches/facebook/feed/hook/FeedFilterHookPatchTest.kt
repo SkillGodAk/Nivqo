@@ -5,18 +5,21 @@
 package app.morphe.patches.facebook.feed.hook
 
 import app.morphe.PatchContexts
+import app.morphe.RepoFiles
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.facebook.shared.AddNewEdgeToCollectionFingerprint
 import app.morphe.patches.facebook.shared.FEED_STORY_CATEGORY
 import app.morphe.patches.facebook.shared.FEED_UNIT_EDGE
+import app.morphe.patches.facebook.shared.outlinedFunnelBody
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -24,8 +27,12 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
+import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -72,16 +79,16 @@ class FeedFilterHookPatchTest {
         ),
     )
 
-    /** The collection's addNewEdgeToCollection taking [parameters]: two locals, this and the parameters. */
+    /** The collection's addNewEdgeToCollection taking [parameters]: one local, as 583 has, this and the parameters. */
     private fun funnel(vararg parameters: String): Method = method(
-        collection, "addNewEdgeToCollection", "Z", parameters.toList(), 3 + parameters.size,
+        collection, "addNewEdgeToCollection", "Z", parameters.toList(), 2 + parameters.size,
         ImmutableInstruction11n(Opcode.CONST_4, 0, 1), ImmutableInstruction11x(Opcode.RETURN, 0),
     )
 
     private fun Method.shape() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
 
     private fun Method.guarded() = implementation?.instructions?.any {
-        (it as? ReferenceInstruction)?.reference?.toString() == hideEdge
+        (it as? ReferenceInstruction)?.reference?.toString() == HIDES_EDGE
     } == true
 
     private fun Method.calls(callee: String) = implementation?.instructions?.count {
@@ -132,7 +139,105 @@ class FeedFilterHookPatchTest {
         val methods = context.mutableClassDefBy(collection).methods
         assertEquals(listOf(funnel.shape()), methods.filter { it.guarded() }.map { it.shape() })
         val first = methods.single { it.shape() == funnel.shape() }.implementation!!.instructions.first()
-        assertEquals("the guard's first instruction copies the edge down", Opcode.MOVE_OBJECT_FROM16, first.opcode)
+        assertEquals("the guard's first instruction calls the helper", HIDES_EDGE,
+            (first as ReferenceInstruction).reference.toString())
+        assertEquals("the guard reaches the edge by a range call", Opcode.INVOKE_STATIC_RANGE, first.opcode)
+    }
+
+    /**
+     * The helper the patch adds to the edge class reads both getters, hands them to the extension
+     * once and returns its answer, and it's the only method that asks.
+     */
+    @Test
+    fun `the edge helper reads both getters and asks the extension once`() {
+        val funnel = funnel(builder, FEED_UNIT_EDGE, "Lfixture/Options;")
+        val context = PatchContexts.of(listOf(edge(), classDef(collection, listOf(funnel)), swapRunnable()))
+
+        feedFilterHookPatch.execute(context)
+
+        val helper = context.mutableClassDefBy(FEED_UNIT_EDGE).methods.single { it.name == HIDES_EDGE_HELPER }
+        assertTrue(AccessFlags.STATIC.isSet(helper.accessFlags))
+        assertEquals(HIDES_EDGE, "${helper.definingClass}->${helper.name}(${helper.parameterTypes.joinToString("")})${helper.returnType}")
+        assertEquals(1, helper.calls(hideEdge))
+        assertEquals(1, helper.calls("$FEED_UNIT_EDGE->category()$FEED_STORY_CATEGORY"))
+        assertEquals(1, helper.calls("$FEED_UNIT_EDGE->unit()Lfixture/FeedUnit;"))
+        assertEquals("the funnel calls the helper, not the extension", 0,
+            context.mutableClassDefBy(collection).methods.single().calls(hideEdge))
+    }
+
+    /**
+     * The receipt holds a patched build to one helper call, first thing, in the one method logging
+     * both of the funnel body's literals, and to one extension call, in the helper, by rules in
+     * scripts/injected-mutation-contracts.txt.
+     */
+    @Test
+    fun `the contract file holds the funnel guard and its helper`() {
+        val rules = File(RepoFiles.root, "scripts/injected-mutation-contracts.txt").readLines()
+            .map { it.trim() }
+            .filter { !it.startsWith("#") && (it.contains(HIDES_EDGE) || it.contains(hideEdge)) }
+        assertEquals(
+            listOf(
+                "start-call $HIDES_EDGE holding eof_edge_added_to_ui FeedEdgeAddedToUi",
+                "once-call $HIDES_EDGE holding eof_edge_added_to_ui FeedEdgeAddedToUi",
+                "single-call $hideEdge in $HIDES_EDGE_HELPER",
+            ),
+            rules,
+        )
+    }
+
+    /**
+     * 583's funnel only hands its edge to a static method of its class, which the feed's batch add
+     * calls too, so the guard goes on that method. A funnel doing anything more keeps the guard.
+     */
+    @Test
+    fun `a funnel that only wraps its body hands the guard to the body`() {
+        val bodyShape = listOf("Lfixture/Options;", collection, FEED_UNIT_EDGE, builder, "Ljava/lang/Long;")
+        val body = ImmutableMethod(
+            collection, "A06", bodyShape.map { ImmutableMethodParameter(it, null, null) }, "Z",
+            AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value, null, null,
+            ImmutableMethodImplementation(7, listOf(
+                ImmutableInstruction11n(Opcode.CONST_4, 0, 1), ImmutableInstruction11x(Opcode.RETURN, 0)), null, null),
+        )
+        val bodyCall = ImmutableMethodReference(collection, "A06", bodyShape, "Z")
+        // this v1, the builder v2, the edge v3, the options v4: the body takes options, this, edge, builder, null.
+        val wrapper = method(collection, "addNewEdgeToCollection", "Z", listOf(builder, FEED_UNIT_EDGE, "Lfixture/Options;"), 5,
+            ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+            ImmutableInstruction35c(Opcode.INVOKE_STATIC, 5, 4, 1, 3, 2, 0, bodyCall),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+            ImmutableInstruction11x(Opcode.RETURN, 0))
+        val context = PatchContexts.of(listOf(edge(), classDef(collection, listOf(wrapper, body)), swapRunnable()))
+
+        feedFilterHookPatch.execute(context)
+
+        val methods = context.mutableClassDefBy(collection).methods
+        assertEquals(listOf("A06"), methods.filter { it.guarded() }.map { it.name })
+        val first = methods.single { it.name == "A06" }.implementation!!.instructions.first() as RegisterRangeInstruction
+        assertEquals("the guard reads the body's edge, p2", 7 - 5 + 2, first.startRegister)
+
+        // The edge handed on from another register, or a wrapper that branches, isn't only a wrapper.
+        val swapped = method(collection, "addNewEdgeToCollection", "Z", listOf(builder, FEED_UNIT_EDGE, "Lfixture/Options;"), 5,
+            ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+            ImmutableInstruction35c(Opcode.INVOKE_STATIC, 5, 4, 1, 2, 2, 0, bodyCall),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+            ImmutableInstruction11x(Opcode.RETURN, 0))
+        assertNull(outlinedFunnelBody(swapped))
+        assertEquals("A06", outlinedFunnelBody(wrapper)?.name)
+    }
+
+    /** A funnel with no local at all can't hold the helper's answer, so the patch stops naming it. */
+    @Test
+    fun `a funnel without a local stops the patch`() {
+        val bare = method(
+            collection, "addNewEdgeToCollection", "Z", listOf(builder, FEED_UNIT_EDGE, "Lfixture/Options;"), 4,
+            ImmutableInstruction11n(Opcode.CONST_4, 1, 1), ImmutableInstruction11x(Opcode.RETURN, 1),
+        )
+        val context = PatchContexts.of(listOf(edge(), classDef(collection, listOf(bare)), swapRunnable()))
+
+        val refused = assertThrows(PatchException::class.java) { feedFilterHookPatch.execute(context) }
+
+        assertTrue(refused.message.orEmpty(), refused.message.orEmpty().contains("has 0 local register(s), needs 1"))
+        assertEquals("helpers added", 0,
+            context.mutableClassDefBy(FEED_UNIT_EDGE).methods.count { it.name == HIDES_EDGE_HELPER })
     }
 
     /**
@@ -150,8 +255,8 @@ class FeedFilterHookPatchTest {
         assertEquals(1, run.calls(HIDE_SWAPPED_EDGE))
         assertEquals(1, run.calls("$FEED_UNIT_EDGE->category()$FEED_STORY_CATEGORY"))
         assertEquals(1, run.calls("$FEED_UNIT_EDGE->unit()Lfixture/FeedUnit;"))
-        assertEquals("the swap runnable has no funnel guard", 0, run.calls(hideEdge))
-        assertEquals(1, context.mutableClassDefBy(collection).methods.single().calls(hideEdge))
+        assertEquals("the swap runnable has no funnel guard", 0, run.calls(hideEdge) + run.calls(HIDES_EDGE))
+        assertEquals(1, context.mutableClassDefBy(collection).methods.single().calls(HIDES_EDGE))
     }
 
     /**
@@ -168,7 +273,9 @@ class FeedFilterHookPatchTest {
 
             val message = refused.message.orEmpty()
             assertTrue(message, message.contains("\"$EDGE_SWAP_DROPPED\"") && message.contains("found ${swaps.size}"))
-            assertEquals("methods given the guard", 0, context.mutableClassDefBy(collection).methods.single().calls(hideEdge))
+            assertEquals("methods given the guard", 0, context.mutableClassDefBy(collection).methods.single().calls(HIDES_EDGE))
+            assertEquals("helpers added", 0,
+                context.mutableClassDefBy(FEED_UNIT_EDGE).methods.count { it.name == HIDES_EDGE_HELPER })
         }
     }
 

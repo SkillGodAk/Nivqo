@@ -112,6 +112,43 @@ public class MetaAiQuestionsTest {
         assertEquals(FamilyNames.META_AI_QUESTIONS + ": invoked 3, 1 found, 0 missing", statusLine());
     }
 
+    /**
+     * The post call-to-action selector: with the switch on, Meta AI's question chips are told they
+     * don't apply and counted, while its other Meta AI buttons and every other button are left to
+     * Facebook (they belong to Hide Meta upsells' switch). The caption deep dive reads as missing.
+     */
+    @Test
+    public void questionChipsUnderPhotosAndCaptionsGo() {
+        assertTrue("Meta AI's question chips stayed", MetaAiQuestions.hidesQuestionButton(MetaAiQuestions.QUESTION_BUTTON));
+        assertFalse("the chat starter went with the questions", MetaAiQuestions.hidesQuestionButton(
+                "com.facebook.feed.plugins.calltoaction.impl.genaideedpdiveugcchaticebreakercta.GenAiDeepDiveUgcChatIcebreakerCtaPlugin"));
+        assertFalse("Imagine me went with the questions", MetaAiQuestions.hidesQuestionButton(
+                "com.facebook.feed.plugins.calltoaction.impl.imagineme.ImagineMePlugin"));
+        assertFalse(MetaAiQuestions.hidesQuestionButton(null));
+        assertFalse("the selector's names are whole class names", MetaAiQuestions.hidesQuestionButton("GenAiDeepDiveCtaPlugin"));
+        assertTrue("the questions under a caption stayed", MetaAiQuestions.hidesQuestionsBelowCaption());
+        assertEquals(FamilyNames.META_AI_QUESTIONS + ": invoked 6, 2 found, 0 missing. Counted: "
+                + MetaAiQuestions.BUTTON_HIDDEN + " 1, " + MetaAiQuestions.CAPTION_HIDDEN + " 1", statusLine());
+    }
+
+    @Test
+    public void offOrPausedTheQuestionChipsStay() {
+        Settings.HIDE_META_AI_QUESTIONS.save(false);
+        assertFalse(MetaAiQuestions.hidesQuestionButton(MetaAiQuestions.QUESTION_BUTTON));
+        assertFalse(MetaAiQuestions.hidesQuestionsBelowCaption());
+        Settings.HIDE_META_AI_QUESTIONS.save(true);
+        for (HushfacebookPause.Reason reason : new HushfacebookPause.Reason[] {
+                HushfacebookPause.Reason.SWITCH, HushfacebookPause.Reason.CRASH_LOOP}) {
+            PauseForTests.pause(reason);
+            assertFalse("a Hushfacebook paused by " + reason + " hid the question chips",
+                    MetaAiQuestions.hidesQuestionButton(MetaAiQuestions.QUESTION_BUTTON));
+            assertFalse("a Hushfacebook paused by " + reason + " hid the questions under a caption",
+                    MetaAiQuestions.hidesQuestionsBelowCaption());
+            PauseForTests.resume();
+        }
+        assertEquals(FamilyNames.META_AI_QUESTIONS + ": invoked 6, 2 found, 0 missing", statusLine());
+    }
+
     /** A name the hook can't read as Meta AI's, or no name at all, keeps the socket's answer. */
     @Test
     public void anythingButMetaAisNameKeepsTheAnswer() {

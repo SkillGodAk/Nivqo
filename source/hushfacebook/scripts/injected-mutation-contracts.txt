@@ -12,8 +12,13 @@
 # and its shape, and exactly one of Facebook's methods may answer that; name as much as the patch
 # itself finds the method by.
 # Two feed guards stacked on addNewEdgeToCollection is the shape that broke builds before, and a
-# guard anywhere else filters nothing.
-single-call Lapp/morphe/extension/facebook/feed/FeedFilter;->hideEdge(Ljava/lang/Object;Ljava/lang/Object;)Z in addNewEdgeToCollection
+# guard anywhere else filters nothing. The guard goes first thing, once, in the method doing the
+# funnel's work: addNewEdgeToCollection through 582, and on 583 the static method it hands its edge
+# to, which the batch add calls directly. That method alone logs both of these. The guard calls the
+# helper the patch adds to the edge class, and only that helper asks the extension.
+start-call Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;->hushfacebookHidesEdge(Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;)Z holding eof_edge_added_to_ui FeedEdgeAddedToUi
+once-call Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;->hushfacebookHidesEdge(Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;)Z holding eof_edge_added_to_ui FeedEdgeAddedToUi
+single-call Lapp/morphe/extension/facebook/feed/FeedFilter;->hideEdge(Ljava/lang/Object;Ljava/lang/Object;)Z in hushfacebookHidesEdge
 # An edge swapped in over another one never reaches that funnel. The runnable that makes the swap,
 # FeedUnitCollectionManager's onEdgeSwapped, asks the extension about the incoming edge once, after
 # reading it and before the swap, so the guard can't come first. Its run() holds the swap log line's
@@ -71,11 +76,12 @@ start-call Lapp/morphe/extension/facebook/emoji/SystemEmoji;->typeface()Landroid
 start-call Lapp/morphe/extension/facebook/emoji/SystemEmoji;->skipRemoteEmoji()Z in static (Ljava/lang/String;*)Ljava/lang/String; holding https://www.facebook.com/images/mobileemoji
 # Open Messenger from the top bar asks the extension first thing in the tap of the top bar's
 # Messenger icon, the one method holding both of its entry points, and in the Messenger button
-# handler the tap goes on to behind a MobileConfig flag, the one static method of the handler's
-# shape holding "long_press" (161 other methods hold it on 580, none with that shape). Left out or
-# put later, the icon opens Facebook's Chats whatever the switch says.
+# handler the tap goes on to behind a MobileConfig flag. On 583 the handler takes a second String
+# after the entry point and hands its "long_press" log to a helper, and it's the one method holding
+# "peek_state_requested", on both ABIs. Left out or put later, the icon opens Facebook's Chats
+# whatever the switch says.
 start-call Lapp/morphe/extension/facebook/chats/MessengerIcon;->open(Landroid/content/Context;Z)Z in static (Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;*)V holding entry_point_navbar_global_icon_ entry_point_navbar_global_icon_reels_tab
-start-call Lapp/morphe/extension/facebook/chats/MessengerIcon;->open(Landroid/content/Context;Z)Z in static (Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;ZZ)V holding long_press
+start-call Lapp/morphe/extension/facebook/chats/MessengerIcon;->open(Landroid/content/Context;Z)Z in static (Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;Ljava/lang/String;Ljava/lang/String;ZZ)V holding peek_state_requested
 # Hide typing indicator hands Mailbox's typing setter flag to the extension first thing, in the one
 # method holding the setter's name (its answer is a Redex class, so no shape). Left out or put later,
 # a chat that opens inside Facebook shows the other side you're typing whatever the switch says.

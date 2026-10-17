@@ -67,6 +67,8 @@ public final class FacebookTabs {
     /** A second tab class for Gaming, drawn with a game controller. */
     public static final String GAMING_CONTROLLER_CLASS = "com.facebook.games.tab.GamesTabWithSNESControllerIcon";
     public static final String EVENTS_CLASS = "com.facebook.events.targetedtab.EventsTab";
+    /** The Events tab's id, the constant in its constructor, which Events only opens Facebook on. */
+    public static final long EVENTS_ID = 2344061033L;
 
     /** Tabs Facebook gives some accounts, which only Hide tabs takes off the bar. Gemstone is Dating. */
     public static final String DATING_CLASS = "com.facebook.gemstone.tab.GemstoneTab";

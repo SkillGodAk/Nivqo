@@ -108,6 +108,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_hide_friends_locations", FALSE);
 
     /**
+     * The "More from your friends" list under a post opened from a notification, ads among it (#163).
+     * It's a server-built footer asked for with the post, never a feed unit, so the query is told not
+     * to ask for it ({@link app.morphe.extension.facebook.feed.NotificationFooter}).
+     */
+    public static final BooleanSetting HIDE_NOTIFICATION_POST_FOOTER =
+            new BooleanSetting("hushfacebook_hide_notification_post_footer", FALSE);
+
+    /**
      * The row of stories at the top of the feed. The feed's adapter list builds it as an adapter of
      * its own, and the patch has both tray adapters count no rows while this is on.
      */
@@ -299,12 +307,13 @@ public class Settings extends BaseSettings {
      * through Facebook's own restart, instead of holding its last frame. Off until you turn it on.
      */
     public static final BooleanSetting LOOP_STORIES =
-            new BooleanSetting("hushfacebook_loop_stories", FALSE);
+            new BooleanSetting("hushfacebook_loop_stories", FALSE, Setting.parent(BLOCK_STORY_AUTO_ADVANCE));
 
     /**
      * The batches of viewed story cards the story viewer sends as DirectSeenMutation, which put you
-     * on each story's viewer list. Held back, replies and reactions still show you, and stories you
-     * viewed keep their unwatched ring.
+     * on each story's viewer list. Held back, replies and reactions still show you, and a bucket
+     * watched to its newest story is marked watched on the phone only (StorySeen, #61). Saved off,
+     * the buckets kept for that are forgotten.
      */
     public static final BooleanSetting VIEW_STORIES_ANONYMOUSLY =
             new BooleanSetting("hushfacebook_view_stories_anonymously", FALSE);
@@ -315,6 +324,14 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting MARK_STORIES_SEEN =
             new BooleanSetting("hushfacebook_mark_stories_seen", FALSE);
+
+    /**
+     * A video posted only to your Story asks the upload server for high quality instead of the
+     * standard quality it gets otherwise ({@link
+     * app.morphe.extension.facebook.stories.StoryUpload}, #123). Starts off.
+     */
+    public static final BooleanSetting UPLOAD_STORIES_IN_HD =
+            new BooleanSetting("hushfacebook_upload_stories_in_hd", FALSE);
 
     /** The two page filters that take server-inlined ads out of Reels and Watch. */
     public static final BooleanSetting HIDE_SPONSORED_REELS =
@@ -416,6 +433,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_play_reels_once", FALSE);
 
     /**
+     * Reels and videos keep the sound they were made with instead of a version Facebook dubbed into
+     * your language with Meta AI ({@link app.morphe.extension.facebook.reels.OriginalAudio}). The
+     * player is told no language was asked for, so it keeps the video's main audio track. Off until
+     * it's turned on, since nobody has seen it on a phone yet.
+     */
+    public static final BooleanSetting ORIGINAL_AUDIO =
+            new BooleanSetting("hushfacebook_original_audio", FALSE);
+
+    /**
      * The batches of watched reels the Reels viewer sends as FbShortsSeenStateMutation: only their
      * ids, the record Facebook ranks the Reels feed with, which nobody else sees. Held back, reels
      * already watched may come back in the feed.
@@ -462,6 +488,20 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting TURN_OFF_HAPTICS =
             new BooleanSetting("hushfacebook_turn_off_haptics", FALSE);
+
+    /**
+     * The Data mode banner Facebook Flex carriers show under the top bar, with its offer to buy
+     * mobile data ({@link app.morphe.extension.facebook.misc.CarrierBanners}, #70). Starts off.
+     */
+    public static final BooleanSetting HIDE_DATA_MODE_BANNER =
+            new BooleanSetting("hushfacebook_hide_data_mode_banner", FALSE);
+
+    /**
+     * The purple Free mode banner of Facebook Flex carriers, which is also the way back to Data
+     * mode ({@link app.morphe.extension.facebook.misc.CarrierBanners}, #70). Starts off.
+     */
+    public static final BooleanSetting HIDE_FREE_MODE_BANNER =
+            new BooleanSetting("hushfacebook_hide_free_mode_banner", FALSE);
 
     /**
      * Facebook's screens and tabs show without the slide or fade between them
@@ -597,6 +637,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_open_reply_threads", FALSE);
 
     /**
+     * An open reply thread loads the rest of its replies as it's scrolled, with no View more
+     * replies to tap ({@link app.morphe.extension.facebook.comments.CommentSheetOptions}, #140).
+     * Works with or without {@link #OPEN_REPLY_THREADS}. Off by default. A change shows on the
+     * next thread opened.
+     */
+    public static final BooleanSetting LOAD_WHOLE_REPLY_THREADS =
+            new BooleanSetting("hushfacebook_load_whole_reply_threads", FALSE);
+
+    /**
      * A group post's comments end without the Related groups list and its Join buttons
      * ({@link app.morphe.extension.facebook.comments.CommentSheetOptions}, #101). Off by default. A
      * change shows on the next comments opened.
@@ -685,12 +734,38 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_picture_in_picture", FALSE);
 
     /**
+     * With Picture-in-picture on, leaving Facebook opens no window and only the Picture-in-picture
+     * row in a reel's More menu does (#44,
+     * {@link app.morphe.extension.facebook.media.PictureInPictureRow}). Starts off, so leaving
+     * still opens it. Off, paused or with Picture-in-picture off, it changes nothing.
+     */
+    public static final BooleanSetting PICTURE_IN_PICTURE_FROM_MENU =
+            new BooleanSetting("hushfacebook_picture_in_picture_from_menu", FALSE);
+
+    /**
      * HDR videos and photos stay in the screen's usual range instead of turning it up to full
      * brightness ({@link app.morphe.extension.facebook.media.HdrBrightness}). Starts off. Off
      * or paused, Facebook asks for its HDR window again.
      */
     public static final BooleanSetting TURN_OFF_HDR_BRIGHTNESS =
             new BooleanSetting("hushfacebook_turn_off_hdr_brightness", FALSE);
+
+    /**
+     * An HDR video Facebook also serves in SDR at the same height or taller plays the SDR version
+     * ({@link app.morphe.extension.facebook.media.SdrRenditions}, #66). Works with {@link
+     * #TURN_OFF_HDR_BRIGHTNESS} on or off. Starts off. Off or paused, the next video's manifest
+     * reaches the player whole.
+     */
+    public static final BooleanSetting PREFER_SDR_RENDITIONS =
+            new BooleanSetting("hushfacebook_prefer_sdr_renditions", FALSE);
+
+    /**
+     * Videos, reels and stories play past the silent stretches in their sound ({@link
+     * app.morphe.extension.facebook.media.SkipSilence}). Starts off. Off or paused, each player
+     * gets Facebook's own flag again from its next seek or video.
+     */
+    public static final BooleanSetting SKIP_SILENT_PARTS =
+            new BooleanSetting("hushfacebook_skip_silent_parts", FALSE);
 
     /**
      * A reel's progress bar stays full size, thumb and all, and a full-screen video's controls stay
@@ -808,11 +883,12 @@ public class Settings extends BaseSettings {
     /**
      * While Messenger is installed and enabled, Facebook doesn't ring for calls or post
      * notifications for new messages, reactions, message requests and missed calls, so only
-     * Messenger does. Starts off. Without Messenger, or with it disabled, Facebook rings and
-     * notifies as it always did. Read on every call and notification, so it needs no restart.
+     * Messenger does. Starts off. Without Messenger, or with it disabled when Facebook starts,
+     * Facebook rings and notifies as it always did. A restart rebuilds Facebook's MQTT connection
+     * without its VOIP capability.
      */
     public static final BooleanSetting LEAVE_CALLS_AND_CHATS_TO_MESSENGER =
-            new BooleanSetting("hushfacebook_leave_calls_and_chats_to_messenger", FALSE);
+            new BooleanSetting("hushfacebook_leave_calls_and_chats_to_messenger", FALSE, true);
 
     /**
      * The Upgrades section of Facebook's Menu, the group Facebook types UPSELL, with its offers.
@@ -834,6 +910,14 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting HIDE_MENU_MUSE =
             new BooleanSetting("hushfacebook_hide_menu_muse", TRUE);
+
+    /**
+     * The Meta AI shortcut in Facebook's Menu, beside Feeds, Marketplace, Reels and Groups, taken
+     * out of the bookmarks list it's drawn from ({@link app.morphe.extension.facebook.menu.MenuShortcuts}).
+     * Off until it's turned on, like the other ways into Meta AI that some people use.
+     */
+    public static final BooleanSetting HIDE_MENU_META_AI =
+            new BooleanSetting("hushfacebook_hide_menu_meta_ai", FALSE);
 
     /**
      * Edits outside the Menu: the button and badge in the Reels composer's header, and the Edits
@@ -1007,6 +1091,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_watch_history_shortcut", FALSE);
 
     /**
+     * The Hushfacebook settings shortcut in the menu a long press on Facebook's launcher icon opens
+     * ({@link SettingsEntry}). On by default, as it always was. Off, the shortcut goes at once and
+     * isn't published again; the Menu row and the logo's long press still open the screen (#146).
+     * Kept while paused, since it's a way back to the switch that resumes Hushfacebook.
+     */
+    public static final BooleanSetting SETTINGS_SHORTCUT =
+            new BooleanSetting("hushfacebook_settings_shortcut", TRUE);
+
+    /**
      * A cold start, and a return after {@link #APP_LOCK_AFTER}, ask for the phone's screen lock
      * before Facebook shows ({@link app.morphe.extension.facebook.misc.AppLock}). The settings
      * entry's own switch, so every build has it ({@link PatchFamily#ENTRY_SWITCHES}). Off by default.
@@ -1036,6 +1129,13 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting DOWNLOAD_STORIES =
             new BooleanSetting("hushfacebook_download_stories", TRUE);
+
+    /**
+     * Save photo goes on every story whose media carries a picture beside its video, not only on
+     * the ones Facebook marks as made from a photo (#38). See StoryPhoto.
+     */
+    public static final BooleanSetting SAVE_STORY_PHOTOS =
+            new BooleanSetting("hushfacebook_save_story_photos", FALSE);
 
     /** The Download button the reel patch adds to every reel's sidebar. */
     public static final BooleanSetting DOWNLOAD_REELS =
@@ -1101,6 +1201,15 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting MARKETPLACE_ONLY =
             new BooleanSetting("hushfacebook_marketplace_only", FALSE, true);
+
+    /**
+     * Like {@link #MARKETPLACE_ONLY}, with Events in Marketplace's place (#164): the tab bar keeps
+     * Events, Notifications and the profile or Menu tab, and a start from the launcher icon opens
+     * Events. Marketplace only wins when both are on, and this greys out under it. Facebook builds
+     * the bar once, so a change shows when it restarts.
+     */
+    public static final BooleanSetting EVENTS_ONLY =
+            new BooleanSetting("hushfacebook_events_only", FALSE, true, Setting.parentNot(MARKETPLACE_ONLY));
 
     /** Silences only recognized social promotions while Marketplace only is selected. */
     public static final BooleanSetting MARKETPLACE_QUIET_NOTIFICATIONS =
@@ -1212,6 +1321,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushfacebook_bottom_tab_bar", FALSE, true);
 
     /**
+     * The tab bar goes to the top of the screen, under the search row, as older Facebook had it
+     * (#166, {@link app.morphe.extension.facebook.navigation.BottomTabBar}). Facebook places the bar
+     * as its main screen starts, so a change waits for a restart. Greyed out while
+     * {@link #BOTTOM_TAB_BAR} is on, which wins.
+     */
+    public static final BooleanSetting TOP_TAB_BAR =
+            new BooleanSetting("hushfacebook_top_tab_bar", FALSE, true, Setting.parentNot(BOTTOM_TAB_BAR));
+
+    /**
      * The tab bar at the bottom slides away while the feed scrolls down and comes back scrolling
      * up, through Facebook's own scroll-away
      * ({@link app.morphe.extension.facebook.navigation.TabBarScrollAway}). Facebook adds the bar to
@@ -1235,6 +1353,23 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting KEEP_TOP_BAR =
             new BooleanSetting("hushfacebook_keep_top_bar", FALSE);
+
+    /**
+     * A tablet or an unfolded phone gets Facebook's phone layout, so the tab bar switches work on
+     * the big screen too (#149, {@link app.morphe.extension.facebook.navigation.BottomTabBar#phoneLayout}).
+     * Facebook decides on its big screen layout as its main screen starts, so a change waits for a
+     * restart.
+     */
+    public static final BooleanSetting PHONE_LAYOUT_ON_BIG_SCREENS =
+            new BooleanSetting("hushfacebook_phone_layout_big_screens", FALSE, true);
+
+    /**
+     * The top bar and the tab bar let the feed show through, with a blur of it behind them on
+     * Android 12 and newer (#124, {@link app.morphe.extension.facebook.navigation.TranslucentBars}).
+     * Asked as each frame of the main screen draws, so a change shows right away.
+     */
+    public static final BooleanSetting TRANSLUCENT_BARS =
+            new BooleanSetting("hushfacebook_translucent_bars", FALSE);
 
     /**
      * Facebook's dark mode controller answers dark whatever its own setting says
@@ -1475,7 +1610,7 @@ public class Settings extends BaseSettings {
      * is on. It isn't a switch.
      */
     public static final EnumSetting<AppLock.After> APP_LOCK_AFTER =
-            new EnumSetting<>("hushfacebook_app_lock_after", AppLock.After.ONE_MINUTE);
+            new EnumSetting<>("hushfacebook_app_lock_after", AppLock.After.ONE_MINUTE, Setting.parent(APP_LOCK));
 
     static {
         // The lock guards the phone's owner rather than changing Facebook, so no pause opens it: not
@@ -1483,6 +1618,9 @@ public class Settings extends BaseSettings {
         // a few quick crashes can turn on. Its own switch, behind the lock, is the only way off.
         // Here, after both fields, since a static block runs in the order it's written.
         Setting.keepWhenPaused(APP_LOCK, APP_LOCK_AFTER);
+        // The launcher shortcut is a way back to the settings screen, where a pause is lifted, so a
+        // pause neither brings it back nor takes it away (#146).
+        Setting.keepWhenPaused(SETTINGS_SHORTCUT);
     }
 
     /**

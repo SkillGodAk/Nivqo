@@ -45,20 +45,20 @@ class SuggestedStoriesFixtureTest {
 
     /**
      * The bucket interface's type accessor and the enum it answers, per build and then by the
-     * bundle's ABI. 581's two builds shared their names; 582's armeabi-v7a build has its own.
+     * bundle's ABI. On 583 the two builds share the enum but not the accessor's name.
      */
     private val expectedType = mapOf(
         AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
-            "arm64-v8a" to ("CCr" to "LX/2F1;"),
-            "armeabi-v7a" to ("CCr" to "LX/2Fb;"),
+            "arm64-v8a" to ("CF9" to "LX/2FS;"),
+            "armeabi-v7a" to ("CEr" to "LX/2FS;"),
         ),
     )
 
     /** The query builders that set skip_srtt_item_list, per build and then by ABI (issue #21). */
     private val expectedSkips = mapOf(
         AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
-            "arm64-v8a" to setOf("LX/1tR;->A03", "LX/1tR;->A07"),
-            "armeabi-v7a" to setOf("LX/1tz;->A03", "LX/1tz;->A07"),
+            "arm64-v8a" to setOf("LX/1tt;->A03", "LX/1tt;->A07"),
+            "armeabi-v7a" to setOf("LX/1tt;->A03", "LX/1tt;->A07"),
         ),
     )
 

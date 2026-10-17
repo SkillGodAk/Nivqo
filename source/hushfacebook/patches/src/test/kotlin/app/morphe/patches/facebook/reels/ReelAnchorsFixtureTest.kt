@@ -88,6 +88,12 @@ class ReelAnchorsFixtureTest {
         return found
     }
 
+    /** Looks up a class of [bundle] by type, each one read once, for the dump's 583 trace. */
+    private fun classesOf(bundle: File): (String) -> ClassDef? {
+        val cache = mutableMapOf<String, ClassDef?>()
+        return { type -> cache.getOrPut(type) { FixtureDex.classes(bundle, setOf(type))[type] } }
+    }
+
     /** Every method calling [getter], and the getter's own class. Only dex files referencing it are walked. */
     private fun readers(bundle: File, getter: MethodReference): Pair<List<Method>, ClassDef?> {
         val readers = mutableListOf<Method>()
@@ -131,14 +137,27 @@ class ReelAnchorsFixtureTest {
                 // The Follow getter, traced from each dumped "removeFollowingButton" value.
                 assertEquals("$name: ${found.dumpers}", 1, found.dumpers.size)
                 val dumper = found.dumpers.single()
-                val follow = followButtonGetter(dumper)
+                val follow = followButtonGetter(dumper, classesOf(bundle))
                 assertNull("$name: ${follow.problem}", follow.problem)
-                val getter = follow.getter!!
-                val (readers, owner) = readers(bundle, getter)
-                assertNull("$name: readers", followReaderProblem(readers, dumper))
-                val method = requireNotNull(owner) { "$name has no ${getter.definingClass}" }.methods.single { it.name == getter.name && it.returnType == "Z" && it.parameterTypes.isEmpty() }
-                assertTrue("$name: ${getter.name} is static", !AccessFlags.STATIC.isSet(method.accessFlags))
-                assertTrue("$name: ${getter.name} has no local for the hook", locals(method) >= 1)
+                val getter = follow.getter
+                if (getter == null) {
+                    // 583: two flag reads in a merged lambda, each a static case with a local for its hook.
+                    assertEquals("$name: ${follow.flags}", 2, follow.flags.size)
+                    val lambda = FixtureDex.classes(bundle, setOf(follow.flags.first().definingClass)).values.single()
+                    for (flag in follow.flags) {
+                        val method = lambda.methods.single {
+                            it.name == flag.name && it.parameterTypes.map(Any::toString) == flag.parameterTypes.map(Any::toString)
+                        }
+                        assertTrue("$name: ${flag.name} isn't static", AccessFlags.STATIC.isSet(method.accessFlags))
+                        assertTrue("$name: ${flag.name} has no local for the hook", locals(method) >= 1)
+                    }
+                } else {
+                    val (readers, owner) = readers(bundle, getter)
+                    assertNull("$name: readers", followReaderProblem(readers, dumper))
+                    val method = requireNotNull(owner) { "$name has no ${getter.definingClass}" }.methods.single { it.name == getter.name && it.returnType == "Z" && it.parameterTypes.isEmpty() }
+                    assertTrue("$name: ${getter.name} is static", !AccessFlags.STATIC.isSet(method.accessFlags))
+                    assertTrue("$name: ${getter.name} has no local for the hook", locals(method) >= 1)
+                }
 
                 // Both footer runnables, among the footer helpers' other kept-name classes.
                 assertEquals("$name: ${found.hotComments}", 1, found.hotComments.size)
@@ -147,7 +166,8 @@ class ReelAnchorsFixtureTest {
                 for (run in found.hotComments + found.bubbles) {
                     assertTrue("$name: $run has no local for the hook", locals(run) >= 1)
                 }
-                checked[version] = "${follow.literals} Follow literal(s), getter ${getter.definingClass}->${getter.name}"
+                checked[version] = "${follow.literals} Follow literal(s), " +
+                    (getter?.let { "getter ${it.definingClass}->${it.name}" } ?: "flags ${follow.flags.joinToString { it.name }}")
             }
         }
         assertEquals("a declared build went unchecked: $checked", versions.toSet(), checked.keys)
@@ -170,9 +190,16 @@ class ReelAnchorsFixtureTest {
                 val dumpers = FixtureDex.classesHolding(bundle, WATCH_FEED_DUMP).flatMap { methodsHolding(it, WATCH_FEED_DUMP) }
                 assertEquals("$name: $dumpers", 1, dumpers.size)
                 val dumper = dumpers.single()
-                val getter = requireNotNull(followButtonGetter(dumper).getter) { "$name: the dump names no Following getter" }
-                val (readers, _) = readers(bundle, getter)
-                val author = requireNotNull(authorRow(readers, dumper)) { "$name: no author row among $readers" }
+                val follow = followButtonGetter(dumper, classesOf(bundle))
+                val getter = follow.getter
+                val author = if (getter == null) {
+                    // 583 reads the Following button's config through flags, so the row is found by its own literal.
+                    assertTrue("$name: the dump names no Following getter or flags", follow.flags.isNotEmpty())
+                    FixtureDex.classesHolding(bundle, AUTHOR_COMPONENT).flatMap { methodsHolding(it, AUTHOR_COMPONENT) }.single()
+                } else {
+                    val (readers, _) = readers(bundle, getter)
+                    requireNotNull(authorRow(readers, dumper)) { "$name: no author row among $readers" }
+                }
 
                 val owners = FixtureDex.classes(bundle, staticCalls(author).map { it.definingClass }.toSet())
                 val asked = followCheck(author) { call -> owners[call.definingClass]?.let { resolveStatic(it, call) } }

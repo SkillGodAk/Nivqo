@@ -5,12 +5,14 @@
 package app.morphe.patches.facebook.menu
 
 import app.morphe.Fixtures
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.namesString
 import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -28,14 +30,14 @@ import org.junit.Test
 
 /**
  * The anchors of Hushfacebook in the Menu on every declared Facebook build: the native group
- * section makes row items and stores one finished row list it reads back; one tap handler takes that row
+ * section builds one row list, from a builder that makes row items; one tap handler takes that row
  * item and picks by its id; two loggers take it too; the item has one full constructor storing
  * each argument, the id last, and Facebook's own rows pass their address first.
  */
 class SettingsRowFixtureTest {
     /** How many row loggers each declared build's tap class has, by ABI. 582's 32-bit build dropped both. */
     private val loggerCount = mapOf(
-        "582.0.0.50.54" to mapOf("arm64-v8a" to 2, "armeabi-v7a" to 0),
+        "583.0.0.39.55" to mapOf("arm64-v8a" to 2, "armeabi-v7a" to 0),
     )
 
     private fun Method.instructionList() = implementation?.instructions?.toList().orEmpty()
@@ -84,22 +86,41 @@ class SettingsRowFixtureTest {
                 // 582 asks a string table for the trace, so a tap's dex can hold no copy of it.
                 val tables = FixtureDex.classesHolding(bundle, ROW_TAP_TRACE).associateBy { it.type }
                 val table: (MethodReference) -> Method? = { call -> tables[call.definingClass]?.let { resolveStatic(it, call) } }
-                val taps = FixtureDex.methodsWhere(bundle, { dex ->
+                val tracing = { dex: DexBackedDexFile ->
                     ROW_TAP_TRACE in dex.stringSection || dex.methodSection.any { it.definingClass in tables }
-                }) { isRowTap(it, table) }
+                }
+                val taps = FixtureDex.methodsWhere(bundle, tracing) { isRowTap(it, table) }
                 assertEquals("${bundle.name}: native Menu group sections", 1, natives.size)
-                assertEquals("${bundle.name}: Menu row tap handlers", 1, taps.size)
-                val native = natives.single()
-                val stores = settingsListStores(native)
-                assertEquals("${bundle.name}: finished row lists the native section stores", 1, stores.size)
-                val tap = taps.single()
-                val item = rowItemType(tap)
+                val builds = rowListBuilds(natives.single())
+                assertEquals("${bundle.name}: row lists the native section builds", 1, builds.size)
+                val build = builds.single()
+                val abi = bundle.name.substringAfter("-$version-").substringBefore(".apkm")
 
-                val classes = FixtureDex.classes(bundle, setOf(item, tap.definingClass))
+                // 583's 32-bit build inlined the tap handler into a lambda, so that's where the row is caught.
+                val inlined = if (taps.isNotEmpty()) emptyList() else {
+                    val rowItems = mutableMapOf<String, Boolean>()
+                    val isRowItem = { type: String ->
+                        rowItems.getOrPut(type) {
+                            FixtureDex.classes(bundle, setOf(type))[type]?.let { fullConstructor(it) != null && idField(it) != null } == true
+                        }
+                    }
+                    FixtureDex.methodsWhere(bundle, tracing) { isLambdaInvoke(it) && namesString(it, ROW_TAP_TRACE, table) }
+                        .mapNotNull { inlinedRowTap(it, table, isRowItem) }
+                }
+                assertEquals("${bundle.name}: Menu row taps, handlers or inlined", 1, taps.size + inlined.size)
+                val tap = taps.singleOrNull()
+                val item = tap?.let(::rowItemType) ?: inlined.single().itemType
+
+                val classes = FixtureDex.classes(bundle, setOfNotNull(item, build.definingClass, tap?.definingClass))
                 val itemClass = classes.getValue(item)
-                assertTrue("${bundle.name}: the native section makes no $item", native.instructionList().any {
+                val builder = classes.getValue(build.definingClass).methods.single {
+                    it.name == build.name && it.parameterTypes.map(Any::toString) == build.parameterTypes.map(Any::toString)
+                }
+                assertTrue("${bundle.name}: the row list builder makes no $item", builder.instructionList().any {
                     it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as TypeReference).type == item
                 })
+                assertTrue("${bundle.name}: the row list builder hands back nothing",
+                    builder.instructionList().any { it.opcode == Opcode.RETURN_OBJECT })
 
                 // The item: one full constructor storing every argument, the id last.
                 val constructor = fullConstructor(itemClass)
@@ -127,6 +148,25 @@ class SettingsRowFixtureTest {
                 assertTrue("${bundle.name}: no row built with a web address first: $addresses",
                     addresses.any { it.startsWith("https://www.facebook.com/") })
 
+                if (tap == null) {
+                    // The inlined tap takes the patch's six instructions where it found the row, ahead of Facebook's.
+                    assertEquals("${bundle.name}: row loggers", loggerCount[version]?.get(abi), 0)
+                    val found = inlined.single()
+                    val code = found.method.instructionList()
+                    val patched = MutableMethod(found.method).apply { skipInlinedRow(found) }.instructionList()
+                    assertEquals("${bundle.name}: instructions the inlined tap gains", code.size + 6, patched.size)
+                    val onTap = patched[found.hook + 3]
+                    assertEquals("${bundle.name}: the inlined tap's hook", ON_TAP,
+                        ((onTap as ReferenceInstruction).reference as MethodReference).let {
+                            "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}"
+                        })
+                    for (index in found.hook until code.size) {
+                        assertEquals("${bundle.name}: inlined tap instruction $index moved", code[index].opcode, patched[index + 6].opcode)
+                    }
+                    checked += version
+                    continue
+                }
+
                 // The tap handler picks by the row's id, and the loggers of its class take the row.
                 assertTrue("${bundle.name}: the tap handler never reads the row's id", tap.instructionList().any {
                     it.opcode == Opcode.IGET_WIDE && ((it as ReferenceInstruction).reference as FieldReference).name == id.name
@@ -134,7 +174,6 @@ class SettingsRowFixtureTest {
                 val owner = classes.getValue(tap.definingClass)
                 val ownerTap = owner.methods.single { it.name == tap.name && it.parameterTypes.size == tap.parameterTypes.size }
                 val loggers = rowLoggers(owner, ownerTap, item)
-                val abi = bundle.name.substringAfter("-$version-").substringBefore(".apkm")
                 assertEquals("${bundle.name}: row loggers", loggerCount[version]?.get(abi), loggers.size)
                 for (method in loggers + ownerTap) {
                     assertTrue("${bundle.name}: ${method.name} has ${method.localRegisterCount()} locals",

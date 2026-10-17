@@ -25,4 +25,16 @@ public final class HdrBrightnessForTests {
     public static boolean answersTheScreenAsShowingNoHdr() {
         return HdrBrightness.holdsScreen();
     }
+
+    /** A manifest with a 1080p video in SDR and in HLG, in a set each. */
+    public static final String SDR_AND_HDR_MANIFEST = "<MPD><Period>"
+            + "<AdaptationSet contentType=\"video\"><Representation id=\"s\" codecs=\"avc1.64002a\" height=\"1080\"/></AdaptationSet>"
+            + "<AdaptationSet contentType=\"video\"><SupplementalProperty schemeIdUri=\"urn:mpeg:mpegB:cicp:TransferCharacteristics\" "
+            + "value=\"18\"/><Representation id=\"h\" codecs=\"vp09.02.40.10\" height=\"1080\"/></AdaptationSet>"
+            + "</Period></MPD>";
+
+    /** Whether a manifest with an SDR and an HDR version of the same height reaches the player without the HDR one. */
+    public static boolean dropsTheHdrRendition() {
+        return !SdrRenditions.manifest(SDR_AND_HDR_MANIFEST).equals(SDR_AND_HDR_MANIFEST);
+    }
 }

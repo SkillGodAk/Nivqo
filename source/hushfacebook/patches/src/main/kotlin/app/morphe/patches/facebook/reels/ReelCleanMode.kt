@@ -39,24 +39,24 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
  *   accounts Facebook gives sticky Clean mode (581 LX/87t). Its one setter sets the flag and posts
  *   the event, and only when the sticky config getter answers yes, so for everyone else the flag
  *   stays false.
- * - Four parts of the Reels viewer read the flag as they're made, each in its Litho
+ * - Three parts of the Reels viewer read the flag as they're made, each in its Litho
  *   createInitialState (577's overlay in a static helper it calls), each naming its spec in a log
  *   literal: FbShortsViewerOverlayComponentSpec (the buttons down the side; it skips the read for an
- *   ad reel), FbShortsViewerFooterComponentSpec, FbShortsVideoControlComponent and
- *   UddPlayerControlComponent. Three read it with AtomicBoolean.get(); the video controls of 580 and
- *   581 go through a static helper that boxes it (581 LX/18Q;->A0X). Each method reads it once.
- *   The flag's other readers (a toggle that leaves Clean mode, a lambda) are left alone.
+ *   ad reel), FbShortsViewerFooterComponentSpec and FbShortsVideoControlComponent. Up to 582 a
+ *   fourth, UddPlayerControlComponent (582 LX/XIg;), read it too; 583 has no such component left,
+ *   only its spec's CallerContext names. They read it with AtomicBoolean.get(); the video controls
+ *   of 580 and 581 go through a static helper that boxes it (581 LX/18Q;->A0X). Each method reads it
+ *   once. The flag's other readers (a toggle that leaves Clean mode, a lambda) are left alone.
  */
 
 /** The toString format of Facebook's Clean mode event, the one literal that names it. */
 internal const val CLEAR_MODE_EVENT = "%s: %s, enableClearMode: %s"
 
-/** The spec names of the four viewer parts that start from the remembered Clean mode flag. */
+/** The spec names of the three viewer parts that start from the remembered Clean mode flag. */
 internal val CLEAN_MODE_PARTS = listOf(
     "FbShortsViewerOverlayComponentSpec",
     "FbShortsViewerFooterComponentSpec",
     "FbShortsVideoControlComponent",
-    "UddPlayerControlComponent",
 )
 
 internal const val ATOMIC_BOOLEAN = "Ljava/util/concurrent/atomic/AtomicBoolean;"

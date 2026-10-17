@@ -174,6 +174,8 @@ final class SettingsRows {
     static final class Toggle extends SwitchPreference {
         /** The switch this one works under, if any, and the summary it shows while that switch is on. */
         @Nullable private BooleanSetting needs;
+        /** False when it works only while [needs] is off instead. */
+        private boolean needsOn = true;
         @Nullable private CharSequence plain;
 
         Toggle(Context context) {
@@ -191,6 +193,12 @@ final class SettingsRows {
             return this;
         }
 
+        /** The same for a switch that [other] overrides: greyed out while it's on, and named to turn off. */
+        Toggle needsOff(BooleanSetting other) {
+            needsOn = false;
+            return needs(other);
+        }
+
         @Override
         public void setEnabled(boolean enabled) {
             super.setEnabled(enabled);
@@ -199,7 +207,8 @@ final class SettingsRows {
 
         private void showSummary() {
             if (needs == null) return;
-            String note = L10n.f("Turn on %1$s to use this.", L10n.isolate(SwitchLabels.title(needs)));
+            String note = L10n.f(needsOn ? "Turn on %1$s to use this." : "Turn off %1$s to use this.",
+                    L10n.isolate(SwitchLabels.title(needs)));
             setSummary(isEnabled() ? plain : plain + " " + note);
         }
 

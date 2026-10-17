@@ -35,13 +35,14 @@ import org.junit.Test
 
 /**
  * Download any reel run whole on each declared build's own sidebar and the classes it reaches: the
- * block goes in three instructions before the assembly call, borrowing v0 to v2, and a fourth local
- * for the story when its argument register is above v15, each proved free there by the liveness of
- * the whole builder, and each register it reads unchanged up to the call. The build's one FbShortsSideBarComponent render, which the button
- * can't go in, gets a counter as its first instruction and nothing else (#18). And the More sheet's
- * builder asks for a Download row first thing, through a helper on its class, with the handler made
- * to take the row's click interface (#18). The kept player start gets one range call for the
- * missing-sidebar diagnostic, whose one-register predicate reads this build's getter and flag.
+ * block goes in at most three instructions before the assembly call, borrowing v0 to v2, and a
+ * fourth local for the story when its argument register is above v15, each proved free there by the
+ * liveness of the whole builder, and each register it reads unchanged up to the call. The build's
+ * one FbShortsSideBarComponent render, which the button can't go in, gets a counter as its first
+ * instruction and nothing else (#18). And the More sheet's builder asks for a Download row first
+ * thing, through a helper on its class, with the handler made to take the row's click interface
+ * (#18). The kept player start gets one range call for the missing-sidebar diagnostic, whose
+ * one-register predicate reads this build's getter and flag.
  */
 class DownloadReelFixtureTest {
     private val sidebarName = "UDDSideBarComponent"
@@ -49,17 +50,24 @@ class DownloadReelFixtureTest {
     private val session = "Lcom/facebook/auth/usersession/FbUserSession;"
     private val otherSidebarName = "FbShortsSideBarComponent"
 
-    /** A render of the same Litho method as [builder]: its name, its one scoped parameter and its return type. */
-    private fun rendersLike(method: Method, builder: Method) = method.name == builder.name &&
-        method.parameterTypes.map(CharSequence::toString) == builder.parameterTypes.map(CharSequence::toString) &&
-        method.returnType == builder.returnType && holdsString(method, otherSidebarName)
+    /** A render of the same Litho method as [render]: its name, its one scoped parameter and its return type. */
+    private fun rendersLike(method: Method, render: Method) = method.name == render.name &&
+        method.parameterTypes.map(CharSequence::toString) == render.parameterTypes.map(CharSequence::toString) &&
+        method.returnType == render.returnType && holdsString(method, otherSidebarName)
+
+    /** Where the block goes on one bundle: [before] instructions before the assembly call, and the story in [story]. */
+    private data class Pin(val before: Int, val story: Int)
 
     /**
-     * The story's register in the helper call, v3 and up, on each declared build. 582 hands the
-     * assembly its arguments from v3 to v19, the story second, so the call names v4 as it is.
+     * Each declared bundle's pick, by the end of its file name. 583 keeps the builder in the
+     * sidebar's spec and copies three lambdas out of v0 to v2 just before the call's last boolean,
+     * so the block goes in one instruction before the call. The story, the call's second argument
+     * (v43 on arm64, v35 on armeabi-v7a), is copied to the lowest local from v3 that nothing reads
+     * after: v4 on arm64, which reads v3 once the sidebar is assembled, and v3 on armeabi-v7a.
      */
-    private val storyLocal = mapOf(
-        AppCompatibilities.FACEBOOK_TARGET_VERSION to 4,
+    private val pins = mapOf(
+        "${AppCompatibilities.FACEBOOK_TARGET_VERSION}-arm64-v8a.apkm" to Pin(before = 1, story = 4),
+        "${AppCompatibilities.FACEBOOK_TARGET_VERSION}-armeabi-v7a.apkm" to Pin(before = 1, story = 3),
     )
 
     private fun callsButtonFactory(method: Method) = method.implementation?.instructions?.any { instruction ->
@@ -87,14 +95,21 @@ class DownloadReelFixtureTest {
     @Test
     fun `the reel button and the More sheet row go in with proved registers on each declared build`() {
         val versions = AppCompatibilities.facebook().single().targets.mapNotNull { it.version }.toSet()
-        assertEquals("the declared builds", storyLocal.keys, versions)
+        assertEquals("the declared builds", pins.keys.map { it.substringBefore('-') }.toSet(), versions)
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
-                val (component, builder) = FixtureDex.classesHolding(bundle, sidebarName).flatMap { classDef ->
-                    classDef.methods.filter { holdsString(it, sidebarName) && it.parameterTypes.size == 1 && callsButtonFactory(it) }
-                        .map { classDef to it }
+                val pin = pins.entries.singleOrNull { bundle.name.endsWith(it.key) }?.value
+                    ?: throw AssertionError("${bundle.name} has no pin")
+                val holders = FixtureDex.classesHolding(bundle, sidebarName)
+                val (builderClass, builder) = holders.flatMap { classDef ->
+                    classDef.methods.filter { holdsString(it, sidebarName) && callsButtonFactory(it) }.map { classDef to it }
                 }.single()
+                // The component's render: the builder itself up to 582, the one handing it the
+                // scoped context on 583. The component declares itself by name, so it's a holder too.
+                val (component, render) = if (builder.parameterTypes.size == 1) builderClass to builder else {
+                    holders.flatMap { classDef -> classDef.methods.filter { rendersThrough(it, builder) }.map { classDef to it } }.single()
+                }
 
                 val types = namedBy(builder) + component.fields.map { it.type } + builder.parameterTypes.map { it.toString() } +
                     setOf(function1, "Lcom/facebook/video/engine/api/VideoDataSource;")
@@ -103,12 +118,13 @@ class DownloadReelFixtureTest {
                 FixtureDex.classesHolding(bundle, "fds_control_download_video").forEach { classes.putIfAbsent(it.type, it) }
                 // The other sidebar, whose render the patch counts in Hook status (#18).
                 val others = FixtureDex.classesHolding(bundle, otherSidebarName).filter { classDef ->
-                    classDef.type != component.type && classDef.methods.any { rendersLike(it, builder) }
+                    classDef.type != component.type && classDef.methods.any { rendersLike(it, render) }
                 }
                 assertEquals("${bundle.name}: the other sidebar components", 1, others.size)
                 val other = others.single()
                 classes.putIfAbsent(other.type, other)
                 classes[component.type] = component
+                classes[builderClass.type] = builderClass
                 // The More sheet's builder, everything it calls with, and the row's own types (#18).
                 val sheetHolder = FixtureDex.classesHolding(bundle, CLEAR_MODE_ROW).single()
                 val sheetBuilder = sheetHolder.methods.single { holdsString(it, CLEAR_MODE_ROW) }
@@ -162,7 +178,7 @@ class DownloadReelFixtureTest {
                     handler.methods.any { it.name == sheet.clickMethod && it.parameterTypes.isEmpty() && it.returnType == "V" },
                 )
 
-                val patched = context.mutableClassDefBy(component.type).methods.single {
+                val patched = context.mutableClassDefBy(builderClass.type).methods.single {
                     it.name == builder.name && it.parameterTypes.map(CharSequence::toString) == builder.parameterTypes.map(CharSequence::toString)
                 }
                 val body = patched.implementation!!.instructions.toList()
@@ -171,22 +187,24 @@ class DownloadReelFixtureTest {
                     ((instruction as? ReferenceInstruction)?.reference as? MethodReference)?.parameterTypes
                         ?.count { it.toString() == "Ljava/util/ArrayList;" } == 2
                 }
-                val injectAt = assemblyAt - 3
+                val injectAt = assemblyAt - pin.before
                 assertEquals(
                     "${bundle.name}: the block's first call",
                     "Lapp/morphe/extension/facebook/download/ReelDownload;->showsButton()Z",
                     (body[injectAt] as ReferenceInstruction).reference.toString(),
                 )
+                assertEquals("${bundle.name}: the builder's own code up to the block", original.take(injectAt).map { it.opcode },
+                    body.take(injectAt).map { it.opcode })
                 val helper = body.single { instruction ->
                     ((instruction as? ReferenceInstruction)?.reference as? MethodReference)?.name == "hushfacebookDownloadButton"
                 } as FiveRegisterInstruction
                 assertEquals(
                     "${bundle.name}: the helper call's registers",
-                    listOf(0, 1, 2, storyLocal.getValue(version)),
+                    listOf(0, 1, 2, pin.story),
                     listOf(helper.registerC, helper.registerD, helper.registerE, helper.registerF),
                 )
-                val otherRender = context.mutableClassDefBy(other.type).methods.single { rendersLike(it, builder) }
-                val otherOriginal = other.methods.single { rendersLike(it, builder) }
+                val otherRender = context.mutableClassDefBy(other.type).methods.single { rendersLike(it, render) }
+                val otherOriginal = other.methods.single { rendersLike(it, render) }
                 assertEquals(
                     "${bundle.name}: the other sidebar counts itself first thing",
                     "Lapp/morphe/extension/facebook/download/ReelDownload;->otherSidebarBuilt()V",

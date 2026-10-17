@@ -14,8 +14,10 @@ import app.morphe.patches.facebook.ads.prefetch.AD_PREFETCH_SCHEDULERS
 import app.morphe.patches.facebook.ads.prefetch.blockAdPrefetchPatch
 import app.morphe.patches.facebook.ads.telemetry.AD_TELEMETRY
 import app.morphe.patches.facebook.ads.telemetry.blockAdTelemetryPatch
+import app.morphe.patches.facebook.feed.suggested.DROPPED_SUGGESTED_FEED_UNITS
 import app.morphe.patches.facebook.feed.suggested.SUGGESTED_FEED_UNITS
 import app.morphe.patches.facebook.feed.suggested.requireSuggestedUnits
+import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -197,11 +199,15 @@ class PartialTargetPatchesTest {
         val kept = SUGGESTED_FEED_UNITS.filterIndexed { index, _ -> index % 5 == 0 }
         val context = PatchContexts.of(kept.map(::unit))
 
-        val warnings = PatchLogCapture.warnings { context.requireSuggestedUnits() }
+        var infos = emptyList<String>()
+        val warnings = PatchLogCapture.warnings { infos = PatchLogCapture.infos { context.requireSuggestedUnits() } }
 
         val total = SUGGESTED_FEED_UNITS.size
+        val missing = SUGGESTED_FEED_UNITS - kept.toSet()
+        val dropped = missing.filter { it in DROPPED_SUGGESTED_FEED_UNITS }
+        assertTrue("the sample lacks some of each kind", dropped.isNotEmpty() && dropped.size < missing.size)
         assertEquals(
-            (SUGGESTED_FEED_UNITS - kept.toSet()).map {
+            (missing - dropped.toSet()).map {
                 missingLine(
                     "Hide suggested and promoted posts", "${javaName(it)} isn't in this Facebook build", kept.size, total,
                     "suggested feed unit classes",
@@ -210,10 +216,31 @@ class PartialTargetPatchesTest {
             warnings,
         )
         assertEquals(
+            listOf(
+                "Hide suggested and promoted posts: ${dropped.size} of the $total suggested feed unit classes left Facebook " +
+                    "before ${AppCompatibilities.FACEBOOK_TARGET_VERSION}, which is expected. The patch goes on with the ${kept.size} it found.",
+            ),
+            infos,
+        )
+
+        // The declared build's own case: the six dropped units missing and nothing else is one plain line, no warning.
+        val declared = PatchContexts.of((SUGGESTED_FEED_UNITS - DROPPED_SUGGESTED_FEED_UNITS).map(::unit))
+        val declaredWarnings = PatchLogCapture.warnings { infos = PatchLogCapture.infos { declared.requireSuggestedUnits() } }
+        assertEquals(emptyList<String>(), declaredWarnings)
+        assertEquals(
+            listOf(
+                "Hide suggested and promoted posts: 6 of the $total suggested feed unit classes left Facebook before " +
+                    "${AppCompatibilities.FACEBOOK_TARGET_VERSION}, which is expected. The patch goes on with the ${total - 6} it found.",
+            ),
+            infos,
+        )
+
+        assertEquals(
             "the positive control logs nothing",
             emptyList<String>(),
-            PatchLogCapture.warnings { PatchContexts.of(SUGGESTED_FEED_UNITS.map(::unit)).requireSuggestedUnits() },
+            PatchLogCapture.warnings { infos = PatchLogCapture.infos { PatchContexts.of(SUGGESTED_FEED_UNITS.map(::unit)).requireSuggestedUnits() } },
         )
+        assertEquals(emptyList<String>(), infos)
         val refused = assertThrows(PatchException::class.java) { PatchContexts.of(emptyList()).requireSuggestedUnits() }
         assertTrue(refused.message, refused.message.orEmpty().contains("none of the $total suggested feed unit classes"))
     }

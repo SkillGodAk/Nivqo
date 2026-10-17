@@ -5,6 +5,7 @@
 package app.morphe.patches.facebook.chats
 
 import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.feed.tableStringAt
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -125,10 +126,13 @@ internal fun opensMetaAiFromSearchRow(owner: ClassDef): Boolean = owner.methods.
  */
 internal class MetaAiButtonSite(val method: Method, val result: Int, val register: Int, val type: String)
 
+/** What the search row's button build takes: nothing, or on 583's 32-bit build the row's CallerContext. */
+private val BUILD_PARAMETERS = listOf(emptyList<String>(), listOf(CALLER_CONTEXT))
+
 /**
  * The Meta AI button site of [method] when it's the search row's builder: it tags its search box
  * [SEARCH_BAR_TAG] and creates one tap action of the [openers] types. The first build after that,
- * a call taking nothing and answering the builder's own return type, puts the button in a
+ * a call taking nothing (or a CallerContext) and answering the builder's own return type, puts the button in a
  * register that is checked for null and then added to the row's children. Null for any other
  * method.
  */
@@ -141,8 +145,8 @@ internal fun metaAiButtonSite(method: Method, openers: Set<String>): MetaAiButto
     if (created.size != 1) return null
     val build = (created.single() + 1 until code.size).firstOrNull { at ->
         val call = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
-        code[at].opcode == Opcode.INVOKE_VIRTUAL && call != null && call.parameterTypes.isEmpty() &&
-            call.returnType == method.returnType
+        code[at].opcode == Opcode.INVOKE_VIRTUAL && call != null && call.returnType == method.returnType &&
+            call.parameterTypes.map { it.toString() } in BUILD_PARAMETERS
     } ?: return null
     val result = code.getOrNull(build + 1)
     if (result?.opcode != Opcode.MOVE_RESULT_OBJECT) return null
@@ -162,19 +166,25 @@ internal const val PEOPLE_PICKER_ENTRY = "messaging_inbox_in_blue:people_picker"
 /** Kept name. Each Litho component keeps its own as a static field. */
 internal const val CALLER_CONTEXT = "Lcom/facebook/common/callercontext/CallerContext;"
 
+/** Whether [method] calls Meta AI's launcher, as the search screen's Meta AI tap does. */
+internal fun callsMetaAiLauncher(method: Method): Boolean = method.implementation?.instructions?.any {
+    ((it as? ReferenceInstruction)?.reference as? MethodReference)?.definingClass == META_AI_LAUNCHER
+} == true
+
 /**
  * The class of the Chats search screen's row, named by the Meta AI tap in [owner]: a method that
- * calls the launcher and loads [PEOPLE_PICKER_ENTRY], with the row's own static CallerContext read
- * in the same straight run of code just before the entry. Null when [owner] holds no such tap.
+ * calls the launcher and loads [PEOPLE_PICKER_ENTRY], or on 583's 64-bit build asks a string table
+ * [resolve] finds for it ([tableStringAt]), with the row's own static CallerContext read in the same
+ * straight run of code just before the entry. Null when [owner] holds no such tap.
  */
-internal fun pickerRowOf(owner: ClassDef): String? {
+internal fun pickerRowOf(owner: ClassDef, resolve: (MethodReference) -> Method? = { null }): String? {
     val rows = owner.methods.flatMap { method ->
-        val code = method.implementation?.instructions?.toList() ?: return@flatMap emptyList()
-        if (code.none { ((it as? ReferenceInstruction)?.reference as? MethodReference)?.definingClass == META_AI_LAUNCHER }) {
-            return@flatMap emptyList()
-        }
-        code.indices.filter { ((code[it] as? ReferenceInstruction)?.reference as? StringReference)?.string == PEOPLE_PICKER_ENTRY }
-            .map { load -> callerContextBefore(code, load) }
+        if (!callsMetaAiLauncher(method)) return@flatMap emptyList()
+        val code = method.implementation!!.instructions.toList()
+        code.indices.filter {
+            ((code[it] as? ReferenceInstruction)?.reference as? StringReference)?.string == PEOPLE_PICKER_ENTRY ||
+                tableStringAt(code, it, resolve) == PEOPLE_PICKER_ENTRY
+        }.map { load -> callerContextBefore(code, load) }
     }
     return rows.singleOrNull()
 }

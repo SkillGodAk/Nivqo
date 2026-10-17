@@ -106,6 +106,9 @@ internal const val OBTAIN_LAYOUT = "$LAYOUT_BUILDER->obtain(${CHAR_SEQUENCE}II${
 /** Where it chooses the font padding for one, mostly none. */
 internal const val SET_INCLUDE_PAD = "$LAYOUT_BUILDER->setIncludePad(Z)$LAYOUT_BUILDER"
 
+/** Where it builds one, which is when the line-height spans in its text choose each line's height. */
+internal const val BUILD_LAYOUT = "$LAYOUT_BUILDER->build()Landroid/text/StaticLayout;"
+
 /**
  * Android's text layout calls whose font padding the extension decides (#96), each with its
  * stand-in, a static method of the extension taking the very same arguments, a builder's call
@@ -113,10 +116,13 @@ internal const val SET_INCLUDE_PAD = "$LAYOUT_BUILDER->setIncludePad(Z)$LAYOUT_B
  * (581 `LX/2ni;`), and Compose's layouts make every multi-line layout with [OBTAIN_LAYOUT], and
  * TextLayoutBuilder makes one-line text with BoringLayout.make. The thirty-odd uses of
  * StaticLayout's old constructor take the padding inside a register range, and stay Facebook's.
+ * [BUILD_LAYOUT] goes through the extension so its line-height spans know a padded layout
+ * ([LINE_EDGES]).
  */
 internal val LAYOUT_CALLS = mapOf(
     OBTAIN_LAYOUT to "$OWN_FONT->obtain(${CHAR_SEQUENCE}II${TEXT_PAINT}I)$LAYOUT_BUILDER",
     SET_INCLUDE_PAD to "$OWN_FONT->setIncludePad(${LAYOUT_BUILDER}Z)$LAYOUT_BUILDER",
+    BUILD_LAYOUT to "$OWN_FONT->build($LAYOUT_BUILDER)Landroid/text/StaticLayout;",
     "$BORING_LAYOUT->make$BORING_MAKE)$BORING_LAYOUT" to "$OWN_FONT->make$BORING_MAKE)$BORING_LAYOUT",
     "$BORING_LAYOUT->make${BORING_MAKE}Landroid/text/TextUtils\$TruncateAt;I)$BORING_LAYOUT" to
         "$OWN_FONT->make${BORING_MAKE}Landroid/text/TextUtils\$TruncateAt;I)$BORING_LAYOUT",
@@ -128,6 +134,40 @@ internal fun layoutCall(instruction: Instruction): String? = when (instruction.o
         (instruction as ReferenceInstruction).reference.toString().takeIf { it in LAYOUT_CALLS }
     else -> null
 }
+
+private const val FONT_METRICS_INT = "Landroid/graphics/Paint\$FontMetricsInt;"
+
+/**
+ * The parameters of LineHeightSpan.chooseHeight, the framework method a line-height span fits each
+ * line to its height in, without and with the paint the WithDensity form adds.
+ */
+private val CHOOSE_HEIGHT = setOf(
+    "${CHAR_SEQUENCE}IIII$FONT_METRICS_INT",
+    "${CHAR_SEQUENCE}IIII$FONT_METRICS_INT$TEXT_PAINT",
+)
+
+/** Whether [method] is a line-height span's chooseHeight, by the framework's name and parameters. */
+internal fun isChooseHeight(method: Method): Boolean =
+    method.name == "chooseHeight" && method.returnType == "V" &&
+        method.parameterTypes.joinToString("") in CHOOSE_HEIGHT
+
+/**
+ * A line's top and bottom, which a padded layout's first and last line take their font padding
+ * from, each with the extension's stand-in for a span's write of it (#96). The stand-in takes the
+ * value and the metrics in the write's own two registers.
+ */
+internal val LINE_EDGES = mapOf(
+    "$FONT_METRICS_INT->top:I" to "$OWN_FONT->lineTop(I$FONT_METRICS_INT)V",
+    "$FONT_METRICS_INT->bottom:I" to "$OWN_FONT->lineBottom(I$FONT_METRICS_INT)V",
+)
+
+/** The one of [LINE_EDGES] [instruction] writes, or null. */
+internal fun lineEdgeWrite(instruction: Instruction): String? =
+    if (instruction.opcode != Opcode.IPUT) {
+        null
+    } else {
+        ((instruction as ReferenceInstruction).reference as? FieldReference)?.toString()?.takeIf { it in LINE_EDGES }
+    }
 
 /**
  * Whether every use of the typeface the field read at [index] loads is a comparison with another

@@ -86,17 +86,8 @@ public class StorySeenButtonTest {
         activity.getWindow().getDecorView().getViewTreeObserver().dispatchOnPreDraw();
     }
 
-    /**
-     * Issue #117: Facebook letterboxes the 9:16 story card on a taller screen, so the eye goes on the
-     * card's header, not a place measured from the window's top. It hides while the card moves, as
-     * when the viewer turns to the next person's stories or is dragged closed, and comes back once
-     * the card has stayed put.
-     */
-    @Test
-    public void theEyeSitsOnTheCardsHeaderAndHidesWhileTheCardMoves() {
-        Settings.MARK_STORIES_SEEN.save(true);
-        ActivityController<StoryViewerActivity> controller = Robolectric.buildActivity(StoryViewerActivity.class).setup();
-        StoryViewerActivity viewer = controller.get();
+    /** A story viewer with a letterboxed 9:16 card, the eye bound to it on [ACCOUNT]. */
+    private static View letterboxedCard(StoryViewerActivity viewer) {
         FrameLayout content = viewer.findViewById(android.R.id.content);
         View card = new View(viewer);
         FrameLayout.LayoutParams letterboxed = new FrameLayout.LayoutParams(270, 480);
@@ -105,14 +96,34 @@ public class StorySeenButtonTest {
         StorySeenButton.activityResumed(viewer);
         StorySeenButton.onCard(StorySeenForTests.ACCOUNT, null, "c1");
         ShadowLooper.idleMainLooper();
+        return card;
+    }
+
+    /**
+     * Issue #117: Facebook letterboxes the 9:16 story card on a taller screen, so the eye goes on the
+     * card's header, not a place measured from the window's top. It hides while the card moves, as
+     * when the viewer turns to the next person's stories or is dragged closed. Issue #150: it comes
+     * back in the frame the card is in place, with the card's own header, not a moment later.
+     */
+    @Test
+    public void theEyeSitsOnTheCardsHeaderAndHidesWhileTheCardMoves() {
+        Settings.MARK_STORIES_SEEN.save(true);
+        ActivityController<StoryViewerActivity> controller = Robolectric.buildActivity(StoryViewerActivity.class).setup();
+        StoryViewerActivity viewer = controller.get();
+        View card = letterboxedCard(viewer);
         assertSame(card, StorySeenButton.findCard(viewer.getWindow().getDecorView()));
 
         ImageView eye = eyeIn(viewer);
         assertNotNull(eye);
+        // Growing out of the tray as the viewer opens: scaled, so the eye waits.
+        card.setScaleX(0.5f);
+        card.setScaleY(0.5f);
         frame(viewer);
         assertEquals("the eye showed while the card was still coming in", View.INVISIBLE, eye.getVisibility());
-        ShadowLooper.idleMainLooper(StorySeenButton.SETTLE_MS, TimeUnit.MILLISECONDS);
-        assertEquals(View.VISIBLE, eye.getVisibility());
+        card.setScaleX(1f);
+        card.setScaleY(1f);
+        frame(viewer);
+        assertEquals("the eye came later than the card's own header", View.VISIBLE, eye.getVisibility());
         float density = viewer.getResources().getDisplayMetrics().density;
         int[] cardAt = new int[2];
         card.getLocationInWindow(cardAt);
@@ -133,18 +144,65 @@ public class StorySeenButtonTest {
         card.setTranslationY(300);
         frame(viewer);
         assertEquals("the eye stayed over the feed while the viewer was dragged closed", View.INVISIBLE, eye.getVisibility());
-        ShadowLooper.idleMainLooper(StorySeenButton.SETTLE_MS, TimeUnit.MILLISECONDS);
+        ShadowLooper.idleMainLooper(StorySeenButton.STILL_TRANSFORMED_MS / 2, TimeUnit.MILLISECONDS);
         assertEquals("a card moved from its place counted as put after a moment", View.INVISIBLE, eye.getVisibility());
 
-        // Back in place, it shows on the header again.
+        // Back in place, it shows on the header again in the same frame.
         card.setTranslationY(0);
         frame(viewer);
-        ShadowLooper.idleMainLooper(StorySeenButton.SETTLE_MS, TimeUnit.MILLISECONDS);
         assertEquals(View.VISIBLE, eye.getVisibility());
         assertEquals(cardAt[1] + Math.round(StorySeenButton.CARD_TOP_DP * density), eyeAt(eye)[1]);
 
         StorySeenButton.activityPaused(viewer);
         assertEquals(View.GONE, eye.getVisibility());
+        controller.pause().stop().destroy();
+    }
+
+    /**
+     * Issue #150: while the story is held, Facebook hides its header (progress bar, name and menu)
+     * and the eye hides with it; on release both come back. The story viewer's state says so through
+     * its long press flag, and states that don't change it leave the eye alone.
+     */
+    @Test
+    public void theEyeHidesWhileTheStoryIsHeldAndComesBackOnRelease() {
+        Settings.MARK_STORIES_SEEN.save(true);
+        StorySeenButton.longPresses = state -> (Boolean) state;
+        ActivityController<StoryViewerActivity> controller = Robolectric.buildActivity(StoryViewerActivity.class).setup();
+        StoryViewerActivity viewer = controller.get();
+        View card = letterboxedCard(viewer);
+        ImageView eye = eyeIn(viewer);
+        assertNotNull(eye);
+        frame(viewer);
+        assertEquals(View.VISIBLE, eye.getVisibility());
+
+        StorySeenButton.onState(Boolean.TRUE);
+        assertTrue(StorySeenButton.held());
+        assertEquals("the eye stayed while Facebook hid its header", View.INVISIBLE, eye.getVisibility());
+        frame(viewer);
+        assertEquals("the next frame brought the eye back while still held", View.INVISIBLE, eye.getVisibility());
+        StorySeenButton.onCard(StorySeenForTests.ACCOUNT, null, "c1");
+        StorySeenButton.refresh();
+        assertEquals("a refresh brought the eye back while still held", View.INVISIBLE, eye.getVisibility());
+        assertEquals("the eye forgot its card while held", "c1", ((StorySeenButton.Shown) eye.getTag()).card);
+
+        StorySeenButton.onState(Boolean.FALSE);
+        assertFalse(StorySeenButton.held());
+        assertEquals("the eye didn't come back with the header", View.VISIBLE, eye.getVisibility());
+        int[] cardAt = new int[2];
+        card.getLocationInWindow(cardAt);
+        float density = viewer.getResources().getDisplayMetrics().density;
+        assertEquals(cardAt[1] + Math.round(StorySeenButton.CARD_TOP_DP * density), eyeAt(eye)[1]);
+
+        // A state with no flag of its own (none read) counts as released.
+        StorySeenButton.onState(Boolean.TRUE);
+        StorySeenButton.onState(null);
+        assertEquals(View.VISIBLE, eye.getVisibility());
+
+        // Held when the viewer closes: the next viewer starts released.
+        StorySeenButton.onState(Boolean.TRUE);
+        viewer.finish();
+        StorySeenButton.activityPaused(viewer);
+        assertFalse("a closed viewer left the eye held", StorySeenButton.held());
         controller.pause().stop().destroy();
     }
 

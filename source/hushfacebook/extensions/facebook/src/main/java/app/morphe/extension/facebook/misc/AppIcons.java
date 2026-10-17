@@ -9,6 +9,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.ColorFilter;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.DrawableWrapper;
+import android.view.View;
+import android.widget.ImageView;
 
 import androidx.annotation.Nullable;
 
@@ -46,6 +51,15 @@ public final class AppIcons {
 
     /** The launcher entry. Every app icon is an activity-alias of it named {@code LAUNCHER + ".<icon>"}. */
     public static final String LAUNCHER = "com.facebook.katana.LoginActivity";
+
+    /** The blue picker choice is Facebook's normal icon, so it keeps the stock wordmark. */
+    static final String DEFAULT_ICON = LAUNCHER + ".blue_fb";
+
+    /** Every icon alias in Facebook 582's manifest, in picker order with the normal blue icon last. */
+    private static final String[] ICON_ALIASES = {
+            "worldcup_ic", "fab_ic", "vaporwave_ic", "fierce_ic", "loved_ic",
+            "dreamy_ic", "quiet_cool", "katana", "blue_fb"
+    };
 
     /** The diagnostic counter route: each check Facebook made, and the ones answered yes. */
     static final String ROUTE = "App icons";
@@ -124,6 +138,87 @@ public final class AppIcons {
             Logger.printException(() -> "App icons: could not find the launcher entry that's on", failure);
         }
         return new ComponentName(packageName, LAUNCHER);
+    }
+
+    /**
+     * Replaces the home header's stock wordmark with the enabled alternate launcher icon. Facebook
+     * has already loaded its wordmark when this runs, so the default icon, the switch off, Pause,
+     * and every failure leave that wordmark alone. Never throws.
+     */
+    public static void dressLogo(@Nullable View logo) {
+        if (!unlock("header logo")) return;
+        try {
+            if (!(logo instanceof ImageView)) return;
+            Context context = logo.getContext();
+            ComponentName picked = pickedIcon(context);
+            if (picked == null || DEFAULT_ICON.equals(picked.getClassName())) return;
+            Drawable icon = context.getPackageManager().getActivityIcon(picked);
+            ImageView image = (ImageView) logo;
+            Drawable wordmark = image.getDrawable();
+            image.clearColorFilter();
+            image.setImageTintList(null);
+            image.setImageDrawable(new UntintedDrawable(icon, headerIconSize(image, wordmark, icon)));
+            image.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            Logger.printDebug(() -> "App icons: put " + picked.getClassName() + " in the header");
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.APP_ICONS, "header logo", failure);
+            Logger.printException(() -> "App icons: could not put the picked icon in the header", failure);
+        }
+    }
+
+    /** The explicitly enabled alias, or null while Facebook's normal launcher entry is on. */
+    @Nullable
+    private static ComponentName pickedIcon(Context context) {
+        PackageManager manager = context.getPackageManager();
+        String packageName = context.getPackageName();
+        for (String suffix : ICON_ALIASES) {
+            ComponentName alias = new ComponentName(packageName, LAUNCHER + "." + suffix);
+            if (manager.getComponentEnabledSetting(alias) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                return alias;
+            }
+        }
+        return null;
+    }
+
+    /** Keeps a square icon inside the height Facebook reserved for its stock wordmark. */
+    private static int headerIconSize(ImageView image, @Nullable Drawable wordmark, Drawable icon) {
+        int size = wordmark == null ? -1 : wordmark.getIntrinsicHeight();
+        if (size <= 0) size = image.getMeasuredHeight() - image.getPaddingTop() - image.getPaddingBottom();
+        if (size <= 0) size = image.getHeight() - image.getPaddingTop() - image.getPaddingBottom();
+        if (size <= 0 && image.getLayoutParams() != null && image.getLayoutParams().height > 0) {
+            size = image.getLayoutParams().height - image.getPaddingTop() - image.getPaddingBottom();
+        }
+        if (size <= 0) size = icon.getIntrinsicHeight();
+        return size;
+    }
+
+    /**
+     * The wordmark view applies Facebook's theme color as an ImageView color filter. Launcher icons
+     * are full color, so this wrapper passes drawing and sizing through while refusing that filter.
+     */
+    private static final class UntintedDrawable extends DrawableWrapper {
+        private final int size;
+
+        UntintedDrawable(Drawable icon, int size) {
+            super(icon.mutate());
+            this.size = size;
+            getDrawable().clearColorFilter();
+        }
+
+        @Override
+        public int getIntrinsicWidth() {
+            return size > 0 ? size : super.getIntrinsicWidth();
+        }
+
+        @Override
+        public int getIntrinsicHeight() {
+            return size > 0 ? size : super.getIntrinsicHeight();
+        }
+
+        @Override
+        public void setColorFilter(@Nullable ColorFilter colorFilter) {
+            getDrawable().clearColorFilter();
+        }
     }
 
     /** True while the switch unlocks the icons, counted under [hook]. Never throws. */

@@ -15,6 +15,13 @@
       "changes": "Written for Hushfacebook from Facebook 582: one check for each way a build reads a MobileConfig flag (straight from the config, through a static helper, or through a helper that casts its argument to the config first), shared by the patches that hook a flag read."
     },
     {
+      "paths": ["patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme/StyleableTokens.kt"],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook from Facebook 582 for issue #154. It follows styleable arrays from obtainStyledAttributes through their TypedArray index reads, so Material You keeps a plain colour for tokens read with getInteger or getInt."
+    },
+    {
       "paths": [
         "extensions/shared/**",
         "patches/src/main/kotlin/app/morphe/util/**",
@@ -207,18 +214,23 @@
     },
     {
       "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/CommentTimeColour.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/MaterialYouTheme.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/ReactColours.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/ReactionRing.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/TonePalette.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme/CommentTimeColours.kt",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme/LinkBoxFallbacks.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme/MaterialYouThemePatch.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme/MaterialYouStyles.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme/ReactColourHooks.kt",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme/ReactionRings.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme/TabBarColours.kt"
       ],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook: the Material You theme. Dark-mode colours move to the wallpaper palette (Android 12 and newer) or to a fixed tonal palette of Facebook's blue (Android 11) at the same lightness, through the four colour routes the AMOLED patch uses and after it, and through night copies of Facebook's dark FDS styles for the views it inflates from its own layouts. React Native screens such as Marketplace home, whose colours come from their JavaScript, go through React's own background, border and image tint setters and its text colour span, which both themes hook. The colour tokens and dark surfaces it recolours were read off Facebook's own light and dark themes in the 577 and 580 builds, not taken from another patch source. For issue #65, the colour the tab bar asks for its selected tab, which draws the line over that tab and tints its icon, takes the wallpaper accent at tone 80 in dark mode; it's found through TabBarContainerLayout's colour setter and its Paint, and has exactly two readers on each build."
+      "changes": "Written for Hushfacebook: the Material You theme. Dark-mode colours move to the wallpaper palette (Android 12 and newer) or to a fixed tonal palette of Facebook's blue (Android 11) at the same lightness, through the four colour routes the AMOLED patch uses and after it, and through night copies of Facebook's dark FDS styles for the views it inflates from its own layouts. React Native screens such as Marketplace home, whose colours come from their JavaScript, go through React's own background, border and image tint setters and its text colour span, which both themes hook. The colour tokens and dark surfaces it recolours were read off Facebook's own light and dark themes in the 577 and 580 builds, not taken from another patch source. For issue #65, the colour the tab bar asks for its selected tab, which draws the line over that tab and tints its icon, takes the wallpaper accent at tone 80 in dark mode; it's found through TabBarContainerLayout's colour setter and its Paint, and has exactly two readers on each build. For issue #138, the time on Facebook's older comment row, which TimestampPlugin (a class Redex keeps) colours from one theme attribute read, goes through a check both themes share: in dark mode a colour too close to the page to read becomes Facebook's dark secondary text, themed like the rest. For issue #37, a link box whose MobileConfig colour comes back empty takes its dark colour from a prop, from a second config's grey enum or from FDS's light or dark chooser. The first two, found by the register the config's parse answers into, and the chooser's dark answer go through the same dark-branch rule as the colours Facebook writes after its own dark check. For issue #141, once Facebook says its light mode is on, the grays, blues and pale tints its light FDS style gives those same tokens, read from both 582 inputs, take the palette at the same lightness too, as do the shared and server blues and the selected tab. For issue #147, the ring between a post's overlapping reaction icons goes through a check both themes share: FDSInlineReactions, found by its own component name, resolves the ring from its style's clipColor (a field name Redex keeps) through FDSColors, and in dark mode an opaque answer becomes a clear one, which makes Facebook's own facepile cut the ring out so the page shows through."
     },
     {
       "paths": [
@@ -404,6 +416,7 @@
     },
     {
       "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/stories/SeenBuckets.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/stories/StoryMarks.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/stories/StorySeen.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/stories/StorySeenButton.java",
@@ -413,7 +426,7 @@
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook: the switch on the report of viewed stories that Facebook's story viewer sends as DirectSeenMutation, which puts the viewer on a story's viewer list. The patch finds the mutation's query class in Facebook 577 and 580 by its name and root field, the one method that creates it and fills story_ids_list, and the one other method of that class that calls it, and asks the extension first thing in that sender, which returns without sending while the switch is on. Its Mark as seen button (issue #88) follows the design of HushGram's button of the same name by the same maintainer, written again here for Facebook: the hook hands the sender's arguments to the extension and sends the set of marked card ids it answers, a second hook in the story viewer's seen helper names the card on screen, and the eye is drawn over StoryViewerActivity's window, since Facebook's story header is a Litho component. Loukious/FacebookAppAdsRemover and gnadgnaoh/NexAlloy-XES offer the same feature; neither is licensed for reuse, so nothing was taken from them."
+      "changes": "Written for Hushfacebook: the switch on the report of viewed stories that Facebook's story viewer sends as DirectSeenMutation, which puts the viewer on a story's viewer list. The patch finds the mutation's query class in Facebook 577 and 580 by its name and root field, the one method that creates it and fills story_ids_list, and the one other method of that class that calls it, and asks the extension first thing in that sender, which returns without sending while the switch is on. Its Mark as seen button (issue #88) follows the design of HushGram's button of the same name by the same maintainer, written again here for Facebook: the hook hands the sender's arguments to the extension and sends the set of marked card ids it answers, a second hook in the story viewer's seen helper names the card on screen, and the eye is drawn over StoryViewerActivity's window, since Facebook's story header is a Litho component. Loukious/FacebookAppAdsRemover and gnadgnaoh/NexAlloy-XES offer the same feature; neither is licensed for reuse, so nothing was taken from them. For issue #61 a bucket watched to its newest story is marked watched on the phone: the patch reads the five calls Facebook 582 makes to publish is_bucket_seen_by_viewer on a DirectMessageThreadBucket with GraphQLConsistency.publishWithFullConsistency off its own success callback, fills extension stubs with them and with StoryBucket's card list, session field and seen answer, and hooks the seen helper's per-card method and RegularStoryBucket's constructor; the extension keeps up to 500 watched buckets for 48 hours in a preferences file of its own."
     },
     {
       "paths": [
@@ -502,7 +515,7 @@
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook: the tab Facebook opens on. The patch checks that Facebook 577 and 580 still pick the main screen's start tab from an intent's target_tab_id, by the one method that answers a tab id from that extra, and puts the extension first in the onCreate the main screen inherits. For a start from the launcher icon with nothing to restore, the extension hands the screen a copy of its intent asking for the chosen tab's id, the id each kept TabTag subclass hands TabTag, and leaves links, notifications, shortcuts and restored screens alone. Marketplace only is written here too: it asks the extension right after Facebook's hidden-tab set answers for each configured tab, in the one static method that builds the tab bar's shown tabs from NavigationConfig's list, so Home, Video, Friends, Feeds, Groups, Gaming and Events go the way a tab hidden in Facebook's own editor does. Hide the Reels tab is written here too: it shares that one call, a tab bar filter both patches depend on, and drops only WatchTab, the one TabTag class 577 and 580 keep for the tab accounts call Reels or Video, leaving a tab Facebook's own set already hides to Facebook. A start sent to the hidden tab asks for Home instead. Tab bar at the bottom is written here too: in 577 and 580 a static field set from fb4a_bottom_tabs_override_enabled holds the key of Facebook's own override of where the tab bar goes, and each method that reads it from FbSharedPreferences as a TriState and takes its ordinal gets a call right after the ordinal, which answers YES's ordinal while the switch is on. A load of the key that goes into anything else, Facebook's tab menu writing it, is left alone. No read, a read that answers no TriState or takes no ordinal right away, or a jump to the instruction after the ordinal stops patching with a message."
+      "changes": "Written for Hushfacebook: the tab Facebook opens on. The patch checks that Facebook 577 and 580 still pick the main screen's start tab from an intent's target_tab_id, by the one method that answers a tab id from that extra, and puts the extension first in the onCreate the main screen inherits. For a start from the launcher icon with nothing to restore, the extension hands the screen a copy of its intent asking for the chosen tab's id, the id each kept TabTag subclass hands TabTag, and leaves links, notifications, shortcuts and restored screens alone. Marketplace only is written here too: it asks the extension right after Facebook's hidden-tab set answers for each configured tab, in the one static method that builds the tab bar's shown tabs from NavigationConfig's list, so Home, Video, Friends, Feeds, Groups, Gaming and Events go the way a tab hidden in Facebook's own editor does. Hide the Reels tab is written here too: it shares that one call, a tab bar filter both patches depend on, and drops only WatchTab, the one TabTag class 577 and 580 keep for the tab accounts call Reels or Video, leaving a tab Facebook's own set already hides to Facebook. A start sent to the hidden tab asks for Home instead. Tab bar at the bottom is written here too: in 577 and 580 a static field set from fb4a_bottom_tabs_override_enabled holds the key of Facebook's own override of where the tab bar goes, and each method that reads it from FbSharedPreferences as a TriState and takes its ordinal gets a call right after the ordinal, which answers YES's ordinal while the switch is on. A load of the key that goes into anything else, Facebook's tab menu writing it, is left alone. No read, a read that answers no TriState or takes no ordinal right away, or a jump to the instruction after the ordinal stops patching with a message. See-through bars is written here too, with no hook of its own: Facebook's main screen, found by its manifest name as it resumes, has its top bar and tab bar found by the classes Redex keeps (NavigationBar and TabBarContainerLayout), and as each frame draws the alpha of each background that spans a bar is scaled and later given back. On Android 12 and newer the view under each bar records the part the bar covers into a RenderNode and draws it blurred in its overlay."
     },
     {
       "paths": [
@@ -576,6 +589,15 @@
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
       "changes": "Written for Hushfacebook: the People you may know carousel on your own profile. In Facebook 577 and 580 it is one Litho section that hands the name ProfilePeopleYouMayKnowSection to the section base class, and the profile's root section adds it only when the profile is the viewer's. The patch finds the one children builder loading that name, holds it to the section's constructor, to the base class's getLogTag() and setChildren of the builder's Children type, and to that type's public empty constructor and getChildren(), and asks the extension first there. The extension reads the name back through getLogTag() and has the builder hand back an empty Children while the People you may know switch is on."
+    },
+    {
+      "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/suggested/NotificationFooter.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: the list of more posts under a post opened from a notification. A post opened from Notifications is fetched with a query whose builder sets show_notification_permalink_footer to a MobileConfig answer, once per query variant, and with it true the server adds a footer of more posts that never passes the feed's edge filter. The patch hands each answer to the extension right where the builder reads it, and the extension answers false while the switch is on."
     },
     {
       "paths": [
@@ -753,6 +775,26 @@
     },
     {
       "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/media/SkipSilence.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/media/silence/SkipSilentPartsPatch.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: Skip silent parts, for issue #144, from Facebook 582. Each of the two ExoPlayer copies Facebook ships has a DefaultAudioSink that hands its processor chain, a field of its own, the skip-silence flag and then calls the kept-name AudioSink.Listener method onSkipSilenceEnabledChanged. The patch finds each method calling that name after handing one boolean to such a chain, asks the extension for the flag into a register nothing reads there, and hands the chain that answer, leaving the sink's stored flag alone. The listener's own dispatch, which hands nothing on, is left out. The extension answers yes while its switch is on."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/stories/StoryUpload.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/stories/upload/UploadStoriesInHdPatch.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: Upload Stories in HD, for issue #123, from Facebook 582. The publisher's kept Kotlin internal name getUploadOperationForCreate builds a new post's UploadOperation, and for a post bound only for a Story it puts each video's upload quality into a Bundle under video_upload_quality. Facebook's video uploader passes only high on to the upload server as its encoding hint. The patch finds that one putString, asks the extension for the value into the value's own register right before it, and leaves the rest of the method alone. The extension answers high while its switch is on and keeps Facebook's raw."
+    },
+    {
+      "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/reels/DoubleTapLike.java",
         "patches/src/main/kotlin/app/morphe/patches/facebook/reels/doubletap/DoubleTapAnchors.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/reels/doubletap/TurnOffDoubleTapLikePatch.kt"
@@ -841,7 +883,7 @@
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook: Unlock app icons, the idea of HushMessenger's patch of the same name, written here from Facebook 582 for issue #109. The subscription benefit provider, found by the strings SUBSBenefitDataProvider and subs_active_benefits it keeps, has one (String)Z instance method that checks a benefit name against its Set; the hook goes first in it and answers true for CUSTOM_APP_ICON while the switch is on. The App icon page's (Set)V callback that loads CUSTOM_APP_ICON and calls Set.contains with it on each synced set passes that answer through the extension, which answers true while the switch is on."
+      "changes": "Written for Hushfacebook: Unlock app icons, based on the idea of HushMessenger's patch with the same name and traced here on Facebook 582 for issues #109 and #160. The subscription benefit provider is found by the strings SUBSBenefitDataProvider and subs_active_benefits. Its one (String)Z instance method checks a benefit name against its Set. The hook goes first and answers true for CUSTOM_APP_ICON while the switch is on. The App icon page's (Set)V callback also loads CUSTOM_APP_ICON and calls Set.contains. Its answer passes through the extension. The Home header hook follows Facebook's stock wordmark load and replaces that drawable with the explicitly enabled non-default launcher alias."
     },
     {
       "paths": [
@@ -880,6 +922,16 @@
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
       "changes": "Written for Hushfacebook: Turn off haptics, an idea from De-Vanced's Facebook clean-up patch, written here from Facebook 577, 580 and 581. Every View.performHapticFeedback(int) and (int, int) call outside the extension, and every Vibrator.vibrate call that takes a VibrationEffect, becomes a static call of the extension on the same registers, which skips it while the switch is on. The timed and patterned Vibrator calls are left as they are."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/misc/CarrierBanners.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/misc/carrierbanners/HideCarrierBannersPatch.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook from Facebook 582: Facebook Flex's banner method, found by its manual switcher log steps, hands the banner's key to the extension where every banner it shows meets, and a key whose switch is on is hidden with Facebook's own hide call. The Data mode keys and the Free mode keys each have their own switch."
     },
     {
       "paths": [
@@ -963,22 +1015,25 @@
     {
       "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/media/PictureInPicture.java",
-        "patches/src/main/kotlin/app/morphe/patches/facebook/media/pip/PictureInPicturePatch.kt"
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/media/PictureInPictureRow.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/media/pip/PictureInPicturePatch.kt",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/media/pip/PictureInPictureRow.kt"
       ],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook: picture-in-picture for reels through the picture-in-picture Facebook ships for its Reels viewer behind server flags, an idea from De-Vanced's Facebook picture-in-picture patch, written here from Facebook 577, 580 and 581. The patch finds ReelsPipUtil by the surface name only it loads and its one activity check by the system feature it asks for, and the Reels viewer's arming step by two player origins it names, with the surface gate it asks first. The extension answers yes first in both on Android 12 or later where the phone has the feature. It also hears ReelsPipUtil arm and disarm and FbGrootPlayer play and pause, arms the window again for the reel a swipe starts through a helper the patch adds to ReelsPipUtil, holds auto-enter off while the reel on screen is paused, and gives Facebook's window viewer a view id nothing on screen holds. No code came from De-Vanced."
+      "changes": "Written for Hushfacebook: picture-in-picture for reels through the picture-in-picture Facebook ships for its Reels viewer behind server flags, an idea from De-Vanced's Facebook picture-in-picture patch, written here from Facebook 577, 580 and 581. The patch finds ReelsPipUtil by the surface name only it loads and its one activity check by the system feature it asks for, and the Reels viewer's arming step by two player origins it names, with the surface gate it asks first. The extension answers yes first in both on Android 12 or later where the phone has the feature. It also hears ReelsPipUtil arm and disarm and FbGrootPlayer play and pause, arms the window again for the reel a swipe starts through a helper the patch adds to ReelsPipUtil, holds auto-enter off while the reel on screen is paused, and gives Facebook's window viewer a view id nothing on screen holds. A reel's More sheet gets a Picture-in-picture row, built with Facebook's own row class like the Download row there, whose tap opens the window at once, and a second switch keeps auto-enter off so that row is the only way in. No code came from De-Vanced."
     },
     {
       "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/media/HdrBrightness.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/media/SdrRenditions.java",
         "patches/src/main/kotlin/app/morphe/patches/facebook/media/hdr/TurnOffHdrBrightnessPatch.kt"
       ],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook from Facebook 577, 580 and 581, for issue #66: every call of Window.setColorMode and Window.setDesiredHdrHeadroom outside the extension goes through the extension, which asks for the default colour mode and no headroom in place of Facebook's HDR window while the switch is on, and each SurfaceView Facebook builds asks Android 15 for no headroom. No Facebook patch source in the ledger has an HDR switch."
+      "changes": "Written for Hushfacebook from Facebook 577, 580 and 581, for issue #66: every call of Window.setColorMode and Window.setDesiredHdrHeadroom outside the extension goes through the extension, which asks for the default colour mode and no headroom in place of Facebook's HDR window while the switch is on, and each SurfaceView Facebook builds asks Android 15 for no headroom. From 582, Play SDR versions of HDR videos: the DASH manifest string Facebook's parse logging DashManifestHelper2 reads goes through SdrRenditions first, which drops an HDR rendition (PQ or HLG transfer, or Dolby Vision) when an SDR one at least as tall is in the same manifest. No Facebook patch source in the ledger has an HDR switch."
     },
     {
       "paths": [

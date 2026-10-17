@@ -19,6 +19,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction35c
@@ -31,12 +32,14 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21s
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction3rc
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -63,6 +66,13 @@ internal object HandoffShapes {
     const val RING = "Lfixture/Ring;"
     const val NOTIFIER = "Lfixture/Notifier;"
     const val STRING = "Ljava/lang/String;"
+
+    val connectionParameters = listOf(
+        STRING, STRING, STRING, "I", STRING, STRING, STRING, STRING, STRING, "I", "J", "J", STRING,
+    )
+    val connectionConstructor = ImmutableMethodReference(
+        MQTT_CONNECTION_CONFIG, "<init>", connectionParameters, "V",
+    )
 
     val voip = ImmutableFieldReference(NOTIFICATION_TYPE, "voip", NOTIFICATION_TYPE)
     val marketplace = ImmutableFieldReference(NOTIFICATION_TYPE, "marketplace", NOTIFICATION_TYPE)
@@ -160,6 +170,20 @@ internal object HandoffShapes {
             ), static)
     }
 
+    /** The kept MQTT delegate's provider, with capabilities as the constructor's first long. */
+    fun mqttConfig(constructions: Int = 1, parameters: List<String> = listOf("Z"),
+                   returnType: String = MQTT_CONNECTION_CONFIG, static: Boolean = false): Method {
+        val body = mutableListOf<Instruction>(
+            ImmutableInstruction21c(Opcode.NEW_INSTANCE, 0, ImmutableTypeReference(MQTT_CONNECTION_CONFIG)),
+            ImmutableInstruction21s(Opcode.CONST_WIDE_16, 11, 0x217),
+        )
+        repeat(constructions) {
+            body += ImmutableInstruction3rc(Opcode.INVOKE_DIRECT_RANGE, 0, 16, connectionConstructor)
+        }
+        body += ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)
+        return method(MQTT_XPLAT_SERVICE_DELEGATE, "connection", parameters, returnType, 18, body, static)
+    }
+
     /** Every class of the made-up Facebook, [leaveOut] left out and [extra] added. */
     fun classes(leaveOut: Set<String> = emptySet(), extra: List<ClassDef> = emptyList()): List<ClassDef> =
         listOf(
@@ -168,6 +192,7 @@ internal object HandoffShapes {
             classDef(OTHER_HANDLER, claim(OTHER_HANDLER, constant = marketplace), handle(OTHER_HANDLER)),
             classDef(PARSER, ringType(), payload(), parse()),
             classDef(MESSAGES_NOTIFICATION_MANAGER, dispatch(), dispatch("plain", call = null)),
+            classDef(MQTT_XPLAT_SERVICE_DELEGATE, mqttConfig()),
         ).filter { it.type !in leaveOut } + extra
 }
 
@@ -243,6 +268,20 @@ class MessengerHandoffShapesTest {
         assertFalse(isChatDispatch(shapes.dispatch(call = Opcode.INVOKE_VIRTUAL)))
         assertFalse(isChatDispatch(shapes.dispatch(static = false)))
         assertFalse(isChatDispatch(shapes.dispatch(parameters = shapes.dispatchParameters.reversed())))
+    }
+
+    @Test
+    fun `the MQTT target is the kept provider's one ConnectionConfig construction and its first long`() {
+        val target = mqttCapabilitiesTarget(shapes.classDef(MQTT_XPLAT_SERVICE_DELEGATE, shapes.mqttConfig()))!!
+        assertEquals("connection", target.method.name)
+        assertEquals(2, target.constructionIndex)
+        assertEquals(11, target.capabilitiesRegister)
+        assertNull(mqttCapabilitiesTarget(shapes.classDef(MQTT_XPLAT_SERVICE_DELEGATE,
+            shapes.mqttConfig(parameters = emptyList()))))
+        assertNull(mqttCapabilitiesTarget(shapes.classDef(MQTT_XPLAT_SERVICE_DELEGATE,
+            shapes.mqttConfig(returnType = "Ljava/lang/Object;"))))
+        assertNull(mqttCapabilitiesTarget(shapes.classDef(MQTT_XPLAT_SERVICE_DELEGATE,
+            shapes.mqttConfig(constructions = 2))))
     }
 
     private fun MutableMethod.at(index: Int) = implementation!!.instructions.elementAt(index)
@@ -344,9 +383,19 @@ class MessengerHandoffShapesTest {
             ExtensionDex.classDef(SETTINGS_STATUS))
 
     @Test
-    fun `the patch asks first in the VOIP handler, the ring parse and the chat dispatcher and nowhere else`() {
+    fun `the patch clears the call registration and asks first in each local call and chat path`() {
         val context = build()
         openMessengerFromTopBarPatch.execute(context)
+        val mqtt = context.mutableClassDefBy(MQTT_XPLAT_SERVICE_DELEGATE).methods.single()
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, mqtt.at(2).opcode)
+        assertEquals("clientCapabilities", mqtt.call(2).name)
+        assertEquals(listOf("J"), mqtt.call(2).parameterTypes.map(Any::toString))
+        assertEquals("J", mqtt.call(2).returnType)
+        assertEquals(11, (mqtt.at(2) as RegisterRangeInstruction).startRegister)
+        assertEquals(2, (mqtt.at(2) as RegisterRangeInstruction).registerCount)
+        assertEquals(Opcode.MOVE_RESULT_WIDE, mqtt.at(3).opcode)
+        assertEquals(11, (mqtt.at(3) as OneRegisterInstruction).registerA)
+        assertEquals(Opcode.INVOKE_DIRECT_RANGE, mqtt.at(4).opcode)
         assertEquals("dropCallPush", context.mutableClassDefBy(HandoffShapes.HANDLER).methods.single { it.name == "handle" }.call(0).name)
         assertEquals("dropRing", context.mutableClassDefBy(HandoffShapes.PARSER).methods.single { it.name == "parse" }.call(0).name)
         val manager = context.mutableClassDefBy(MESSAGES_NOTIFICATION_MANAGER).methods
@@ -382,6 +431,9 @@ class MessengerHandoffShapesTest {
             "no MessagesNotificationManager" to build(leaveOut = setOf(MESSAGES_NOTIFICATION_MANAGER)),
             "no dispatcher" to build(leaveOut = setOf(MESSAGES_NOTIFICATION_MANAGER),
                 extra = listOf(shapes.classDef(MESSAGES_NOTIFICATION_MANAGER, shapes.dispatch("plain", call = null)))),
+            "no MQTT delegate" to build(leaveOut = setOf(MQTT_XPLAT_SERVICE_DELEGATE)),
+            "two MQTT connection constructions" to build(leaveOut = setOf(MQTT_XPLAT_SERVICE_DELEGATE), extra = listOf(
+                shapes.classDef(MQTT_XPLAT_SERVICE_DELEGATE, shapes.mqttConfig(constructions = 2)))),
         )
         for ((why, context) in broken) {
             val refusal = assertThrows(why, PatchException::class.java) { openMessengerFromTopBarPatch.execute(context) }

@@ -35,15 +35,16 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
  * Facebook's server. One static config check, `(FbUserSession)Z` on a renamed class, decides
  * whether it runs: the scheduling app job cancels all its workers when the check says no, and the
  * pipeline's run, the media insights and the photo upload each stop on a no. The pipeline's run
- * keeps its coroutine name and loads the kept reason `adv_pro_app_job_disabled` next to its one call
- * to the check, which is how the check is found. The hook goes first in the check and answers no.
+ * keeps its coroutine name (583 moved it into `advancedpro/pipeline/core`) and loads the kept reason
+ * `adv_pro_app_job_disabled` next to its one call to the check, which is how the check is found.
+ * The hook goes first in the check and answers no.
  *
  * MediaCountUploadAppJob (a kept name) schedules the worker that reports how many photos, videos and
  * motion photos the phone holds. Its first config read is a kill switch whose yes branch cancels
  * that worker's unique work, so the hook passes the read's answer through the extension and a held
  * job takes that branch.
  */
-internal const val RUN_PIPELINE = "Lcom/facebook/camerarollprocessor/advancedpro/PipelineManager\$runPipeline\$2;"
+internal const val RUN_PIPELINE = "Lcom/facebook/camerarollprocessor/advancedpro/pipeline/core/PipelineManager\$runPipeline\$2;"
 internal const val MEDIA_COUNT_JOB = "Lcom/facebook/camerarollprocessor/appjob/MediaCountUploadAppJob;"
 internal const val SCHEDULING_JOB = "Lcom/facebook/camerarollprocessor/advancedpro/appjob/AdvancedProAppJob;"
 

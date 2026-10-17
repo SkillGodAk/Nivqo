@@ -16,8 +16,8 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 internal const val PATCH = "Marketplace only"
 
 /**
- * Leaves Marketplace, Notifications and the profile or Menu tab in Facebook's tab bar, and opens
- * Facebook on Marketplace. The tab bar filter (TabBarAnchors.kt) asks the extension about each tab
+ * Leaves Marketplace (or Events, with the Events only switch), Notifications and the profile or Menu tab in
+ * Facebook's tab bar, and opens Facebook on it. The tab bar filter (TabBarAnchors.kt) asks the extension about each tab
  * as Facebook builds the bar, and the extension's MarketplaceOnly says which tabs go and when it
  * leaves the bar alone.
  *
@@ -31,7 +31,8 @@ val marketplaceOnlyPatch = bytecodePatch(
     name = "Marketplace only",
     description = "Turns Facebook into a Marketplace app for buying and selling without the feed. The tab bar " +
         "keeps only Marketplace, Notifications and your profile or Menu, and Facebook opens on Marketplace. " +
-        "Starts off. Turn it on in Hushfacebook settings > Opening Facebook, then restart Facebook.",
+        "The Events only switch does the same for Events once you pin Events in Facebook's Customize the bar. " +
+        "Both start off. Turn one on in Hushfacebook settings > Opening Facebook, then restart Facebook.",
     default = true,
 ) {
     category("Navigation")

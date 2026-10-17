@@ -56,6 +56,50 @@ public class OwnAuthoritiesTest {
     }
 
     /**
+     * A notification template's RemoteViews names the running app, so a clone's notifications
+     * draw from its own layouts (#36). Facebook keeps its own name, and only the bare package moves.
+     */
+    @Test
+    public void aNotificationsViewsNameTheRunningApp() {
+        OwnAuthorities.runningPackage = "com.facebook.katana";
+        assertEquals("com.facebook.katana", OwnAuthorities.packageName("com.facebook.katana"));
+
+        OwnAuthorities.runningPackage = "com.facebook.katana.morphe";
+        assertEquals("com.facebook.katana.morphe", OwnAuthorities.packageName("com.facebook.katana"));
+        assertEquals("com.facebook.orca", OwnAuthorities.packageName("com.facebook.orca"));
+        assertEquals("com.facebook.katana.provider", OwnAuthorities.packageName("com.facebook.katana.provider"));
+        assertNull(OwnAuthorities.packageName(null));
+
+        OwnAuthorities.runningPackage = "org.example.fb";
+        assertEquals("org.example.fb", OwnAuthorities.packageName("com.facebook.katana"));
+    }
+
+    /**
+     * Where Facebook looks itself up among Meta's apps, a clone reads as the Facebook it stands in
+     * for, so the encrypted chat backup finds it and chats open (#113). Facebook itself, other apps'
+     * names and a clone's other packages come back as they were.
+     */
+    @Test
+    public void aCloneLooksItselfUpAsFacebook() {
+        OwnAuthorities.runningPackage = "com.facebook.katana";
+        assertEquals("com.facebook.katana", OwnAuthorities.asFacebook("com.facebook.katana"));
+
+        OwnAuthorities.runningPackage = "com.facebook.katana.morphe";
+        assertEquals("com.facebook.katana", OwnAuthorities.asFacebook("com.facebook.katana.morphe"));
+        assertEquals("com.facebook.katana", OwnAuthorities.asFacebook("com.facebook.katana"));
+        assertEquals("com.facebook.orca", OwnAuthorities.asFacebook("com.facebook.orca"));
+        assertEquals("org.example.other", OwnAuthorities.asFacebook("org.example.other"));
+        assertNull(OwnAuthorities.asFacebook(null));
+    }
+
+    /** Before the running package is known, and with no process name to read it from, Facebook's name stays. */
+    @Test
+    public void withNoRunningPackageFacebooksNameStays() {
+        OwnAuthorities.runningPackage = null;
+        assertEquals("com.facebook.katana", OwnAuthorities.packageName("com.facebook.katana"));
+    }
+
+    /**
      * Facebook names every process after its package, a colon and a name of its own, so the part
      * before the colon is the package, even while content providers start and there's no context.
      */

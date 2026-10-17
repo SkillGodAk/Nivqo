@@ -60,6 +60,17 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * ignores it, and the video plays as before. dav1d's AV1 decoder isn't Android's, so it isn't
  * asked. A decoder that fails to set up with the request is set up again exactly as Facebook asked.
  *
+ * <p>An HLG video doesn't need the decoder's tone map at all. HLG was made so an ordinary screen
+ * can show its signal as it is: its curve follows the usual one through the midtones (18% grey
+ * sits at 38% of the signal against 41% for a plain video) and only folds the highlights in. A
+ * phone's tone map is the decoder maker's own, and #93's report showed what one did to a VP9 HLG
+ * reel on Android 14: it came back labelled BT.709 and looked bright and yellow next to plain
+ * reels. So for an HLG video the decoder is also told the transfer is the usual one, with its
+ * BT.2020 colours left as they are. A VP9 stream names no transfer of its own, so the decoder takes
+ * that one, hands its pictures over in BT.2020 at the usual range, and Android maps the colours to
+ * the screen the way it does for any wide colour video. A stream that names HLG itself (HEVC, AV1)
+ * keeps HLG on the decoder, and the request above still asks for the tone map.
+ *
  * <p>A switch change shows from the next screen Facebook brings to the front. Nothing here may
  * throw into Facebook's screen: off, paused, before the settings are ready or when anything here
  * fails, Facebook's request goes through unchanged.
@@ -86,6 +97,9 @@ public final class HdrBrightness {
     /** Counted for each HDR video decoder that failed to set up with the request, and was set up without it. */
     static final String DECODER_REFUSED = "HDR video decoder refused the request";
 
+    /** Counted for each HLG video handed to its decoder as one at the usual range, in its own colours. */
+    static final String HLG_AS_USUAL_RANGE = "HLG video handed over at the usual range";
+
     /** No headroom over the screen's usual white, so nothing on screen goes brighter than it. */
     static final float NO_HEADROOM = 1f;
 
@@ -108,6 +122,7 @@ public final class HdrBrightness {
      */
     public static void configure(MediaCodec codec, @Nullable MediaFormat format, @Nullable Surface surface,
                                  @Nullable MediaCrypto crypto, int flags) {
+        boolean hlg = hlg(format);
         if (!askForUsualRange(format, surface, flags)) {
             codec.configure(format, surface, crypto, flags);
             return;
@@ -117,7 +132,7 @@ public final class HdrBrightness {
         } catch (IllegalArgumentException | MediaCodec.CodecException refused) {
             // The request must never cost a video: set it up again exactly as Facebook asked. If
             // that can't be done, Facebook hears what went wrong the first time.
-            if (!withdraw(format)) throw refused;
+            if (!withdraw(format, hlg)) throw refused;
             try {
                 codec.reset();
             } catch (RuntimeException stuck) {
@@ -127,13 +142,15 @@ public final class HdrBrightness {
             count(DECODER_REFUSED);
             return;
         }
+        if (hlg) count(HLG_AS_USUAL_RANGE);
         count(toneMaps(codec) ? DECODER_TONE_MAPS : DECODER_CANNOT);
     }
 
     /**
      * Whether [format] was just asked to come out in the usual range: an HDR video ({@link
      * #hdrVideo}) going to [surface] on a decoder, on Android 12 or newer, with the switch on and
-     * no request of Facebook's own. Adds the request to [format] when it answers yes.
+     * no request of Facebook's own. Adds the request to [format] when it answers yes, and for an
+     * HLG video names the usual transfer in place of HLG, its BT.2020 colours left alone.
      */
     static boolean askForUsualRange(@Nullable MediaFormat format, @Nullable Surface surface, int flags) {
         if (Build.VERSION.SDK_INT < 31 || format == null || surface == null
@@ -141,10 +158,21 @@ public final class HdrBrightness {
         try {
             if (!hdrVideo(format) || format.containsKey(MediaFormat.KEY_COLOR_TRANSFER_REQUEST) || !on()) return false;
             format.setInteger(MediaFormat.KEY_COLOR_TRANSFER_REQUEST, MediaFormat.COLOR_TRANSFER_SDR_VIDEO);
+            if (hlg(format)) format.setInteger(MediaFormat.KEY_COLOR_TRANSFER, MediaFormat.COLOR_TRANSFER_SDR_VIDEO);
             HookStatus.bound(FAMILY, "decoder");
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "decoder", failure);
+            return false;
+        }
+    }
+
+    /** Whether [format] names the HLG transfer. False for anything unreadable. */
+    static boolean hlg(@Nullable MediaFormat format) {
+        try {
+            return format != null && format.containsKey(MediaFormat.KEY_COLOR_TRANSFER)
+                    && format.getInteger(MediaFormat.KEY_COLOR_TRANSFER) == MediaFormat.COLOR_TRANSFER_HLG;
+        } catch (RuntimeException unreadable) {
             return false;
         }
     }
@@ -192,11 +220,12 @@ public final class HdrBrightness {
                 && input.getInteger(MediaFormat.KEY_COLOR_TRANSFER_REQUEST) == MediaFormat.COLOR_TRANSFER_SDR_VIDEO;
     }
 
-    /** Takes the request back out of [format]. False when it can't. */
-    private static boolean withdraw(@Nullable MediaFormat format) {
+    /** Takes the request back out of [format], and HLG back in when [hlg] was replaced. False when it can't. */
+    static boolean withdraw(@Nullable MediaFormat format, boolean hlg) {
         try {
             if (format == null || Build.VERSION.SDK_INT < 31) return false;
             format.removeKey(MediaFormat.KEY_COLOR_TRANSFER_REQUEST);
+            if (hlg) format.setInteger(MediaFormat.KEY_COLOR_TRANSFER, MediaFormat.COLOR_TRANSFER_HLG);
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "decoder retry", failure);

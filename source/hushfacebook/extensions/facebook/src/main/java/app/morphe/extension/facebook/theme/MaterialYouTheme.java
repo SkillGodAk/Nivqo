@@ -50,22 +50,29 @@ import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.preference.LogBufferManager;
 
 /**
- * Helper for the "Material You theme" patch: Facebook's dark mode in the colours of the phone's
- * wallpaper palette on Android 12 and newer, and of {@link TonePalette#FALLBACK} on Android 11.
+ * Helper for the "Material You theme" patch: Facebook in the colours of the phone's wallpaper
+ * palette on Android 12 and newer, and of {@link TonePalette#FALLBACK} on Android 11. Dark mode
+ * takes it everywhere below; light mode takes it through FDS's tokens, Facebook's blues and the
+ * selected tab.
  *
  * <p>Every colour it changes keeps its lightness ({@link TonePalette#sameLightness}). A grey becomes
  * the palette's neutral at the same L*, and one of Facebook's blues becomes the palette's accent at
  * the same L*, so text, icons and dividers keep the contrast Facebook gave them. Anything else,
  * and anything this class doesn't recognise, is left as Facebook sent it.
  *
- * <p>Light mode is left alone. A colour token is only recoloured when it arrives with the exact
- * colour Facebook's dark theme gives that token ({@link #FDS_DARK}), and a literal, a server colour
- * or a colour resource only when it is one of the dark surfaces no light screen uses
+ * <p>In dark mode a colour token is only recoloured when it arrives with the exact colour
+ * Facebook's dark theme gives that token ({@link #FDS_DARK}), and a literal, a server colour or a
+ * colour resource only when it is one of the dark surfaces no light screen uses
  * ({@link #SURFACES}). The Video tab is the exception that takes the rest: it stays dark in light
  * mode, built from the same dark style, so every route also asks Facebook's own answer for dark
  * mode ({@link DarkMode}). Facebook's buttons, badges and story rings are the same blue in both
  * themes, so for those ({@link #FDS_SHARED}) that answer is all there is, and they wait for it. The
  * system bars ask Facebook's dark check for the window ({@link #statusBar}, {@link #navigationBar}).
+ *
+ * <p>Light mode (issue #141) waits for Facebook to say it's on. Then a token arriving with the
+ * colour Facebook's light theme gives it ({@link #FDS_LIGHT}) or one of the shared blues takes the
+ * palette, as do {@link #SERVER_BLUES} and the selected tab ({@link #tabBarSelected}). Light
+ * resources, the Mig scheme and colours written in code keep Facebook's, and white stays white.
  *
  * <p>With the AMOLED black theme in the same build, AMOLED goes first. Its black backgrounds and
  * near-black cards reach this class in colours no dark-theme token has, so they stay as AMOLED made
@@ -117,8 +124,9 @@ public final class MaterialYouTheme {
      * FDS colour tokens Facebook gives the same blue in its light and dark themes, read from the
      * same styles: the blue buttons (Add friend, Confirm, Add to story), story rings, the verified
      * and notification badges, progress rings and the cursor (issue #37). The colour can't say which
-     * theme is on, so these take the palette only once Facebook has said its dark mode is on
-     * ({@link DarkMode#saidOn}). The logo, maps, charts and app icons keep Facebook's blue.
+     * theme is on, so these take the palette only once Facebook has said which one is, dark
+     * ({@link DarkMode#saidOn}) or light (issue #141). The logo, maps, charts and app icons keep
+     * Facebook's blue.
      * MaterialYouTokenFixtureTest holds this list to both fixtures too.
      */
     static final String FDS_SHARED = "ACCENT=0866FF;BLUE_BADGE=0866FF;CURSOR=0866FF;DECORATIVE_ICON_BLUE=0064D1;"
@@ -135,11 +143,44 @@ public final class MaterialYouTheme {
     static final String SURFACES = "101011 18191A 1C1C1D 242526 252728 3E4042";
 
     /**
+     * Light mode's half of route one (issue #141): the colours Facebook's light FDS style gives the
+     * tokens {@link #FDS_DARK} lists, read from Facebook 582.0.0.50.54. Only a neutral grey other than
+     * white and black, one of Facebook's blues or one of its pale blue tints, and only a colour no dark
+     * style gives that token, so the Video tab, which stays dark in light mode, keeps the dark half's
+     * rules. These take the palette once Facebook has said its light mode is on, a grey its neutral
+     * and a blue its accent, both at the same lightness. White cards and pages stay white.
+     * MaterialYouTokenFixtureTest builds this list from both fixtures and holds it to them.
+     */
+    static final String FDS_LIGHT = "ACCENT_DEEMPHASIZED=EBF5FF;ACTIVE_DOT=080809;ATTACHMENT_FOOTER_BACKGROUND=F8F9FB;"
+            + "BLUE_LINK=0064D1;BOTTOM_SHEET_BACKGROUND_DEEMPHASIZED=F2F4F7;BOTTOM_SHEET_HANDLE=84878B;"
+            + "CARD_BACKGROUND_FLAT=F8F9FB;CLIENT_BOTTOM_SHEET_PRESSED=E8EAEE;COMMENT_BACKGROUND=F0F2F5;"
+            + "COMMENT_THREADING_LINES=E2E5E9;DISABLED_BUTTON_BACKGROUND=E2E5E9;DISABLED_TEXT=B0B3B8;"
+            + "DIVIDER=D0D3D7;DOT_BADGE_BLUE=0866FF;FBLITE_ACCENT_ON_BACKGROUND=0866FF;"
+            + "FBLITE_STRONG_SECONDARY=3B3C3E;FBLITE_TEXT_INPUT_INACTIVE_INNER_BORDER=8F9297;"
+            + "FBLITE_WASH=B0B3B8;FEED_GAP_VERTICAL=A1A4A9;HOSTED_VIEW_SELECTED_STATE=EBF5FF;"
+            + "INACTIVE_DOT=B0B3B8;META_ICON=65686C;META_TEXT=65686C;NAV_BAR_ICON=080809;"
+            + "NAV_BAR_TEXT=080809;NEW_NOTIFICATION_BACKGROUND=E7F3FF;PLACEHOLDER_ICON=65686C;"
+            + "PLACEHOLDER_TEXT=65686C;PRIMARY_DEEMPHASIZED_BUTTON_BACKGROUND=DDEDFE;"
+            + "PRIMARY_DEEMPHASIZED_BUTTON_ICON=0064D1;PRIMARY_DEEMPHASIZED_BUTTON_TEXT=0064D1;"
+            + "PRIMARY_ICON=080809;PRIMARY_TEXT=080809;PROGRESS_RING_DISABLED_FOREGROUND=B0B3B8;"
+            + "REACTION_LIKE=0866FF;SECONDARY_BUTTON_BACKGROUND=E2E5E9;"
+            + "SECONDARY_BUTTON_BACKGROUND_OPAQUE=E2E5E9;SECONDARY_BUTTON_ICON=080809;"
+            + "SECONDARY_BUTTON_TEXT=080809;SECONDARY_ICON=65686C;SECONDARY_TEXT=65686C;"
+            + "SWITCH_CHECKED_BACKGROUND_COLOR_ANDROID=3E93F8;"
+            + "SWITCH_CHECKED_HANDLE_FILL_COLOR_ANDROID=00488C;SWITCH_DISABLED_HANDLE_FILL_COLOR=B0B3B8;"
+            + "SWITCH_UNCHECKED_BACKGROUND_COLOR=8F9297;TAB_BAR_ACTIVE_ICON=0866FF;"
+            + "TAB_BAR_INACTIVE_ICON=080809;TEXT_HIGHLIGHT=330866FF;TEXT_INPUT_ACTIVE_INNER_BORDER=0866FF;"
+            + "TEXT_INPUT_ACTIVE_OUTER_BORDER=EBF5FF;TEXT_INPUT_ACTIVE_TEXT=0064D1;"
+            + "TEXT_INPUT_BAR_BACKGROUND=F0F2F5;TEXT_INPUT_INACTIVE_INNER_BORDER=D0D3D7;"
+            + "TOGGLE_ACTIVE_BACKGROUND=EBF5FF;TOOLTIP_TEXT=E2E5E9;UFI_TRAY_ICON_BUTTON_BACKGROUND=E2E5E9;"
+            + "VOICE_SWITCHER_BACKGROUND=E2E5E9;WASH=C9CCD1;WEB_WASH=F2F4F7";
+
+    /**
      * Facebook's own blues as its server templates and colour resources carry them, with no token
      * (routes two and four): the profile's Add to story button and Marketplace's chips come as
      * "#0866FF" text, and some icons read a #3E93F8 resource (issue #37). Each is a colour both
-     * themes use, so like {@link #FDS_SHARED} they take the palette only once Facebook has said its
-     * dark mode is on. They match at any alpha, and only these exact colours, so a colour someone
+     * themes use, so like {@link #FDS_SHARED} they take the palette only once Facebook has said
+     * which mode is on. They match at any alpha, and only these exact colours, so a colour someone
      * picked for a post, a page or a chart keeps its own. MaterialYouTokenFixtureTest holds each to
      * a colour Facebook's FDS styles give some token.
      */
@@ -147,6 +188,7 @@ public final class MaterialYouTheme {
 
     private static final Map<String, int[]> FDS = Collections.unmodifiableMap(parseTokens(FDS_DARK));
     private static final Map<String, int[]> SHARED = Collections.unmodifiableMap(parseTokens(FDS_SHARED));
+    private static final Map<String, int[]> LIGHT = Collections.unmodifiableMap(parseTokens(FDS_LIGHT));
     private static final int[] SURFACE_VALUES = parseSurfaces(SURFACES);
 
     /** Every grey {@link #FDS_DARK} lists, for any token, sorted. */
@@ -185,7 +227,8 @@ public final class MaterialYouTheme {
      * Route one, for FDS: a colour a resolver returns for {@code token}.
      *
      * @return the palette's colour if {@code color} is the one Facebook's dark theme gives this
-     * token, or AMOLED's stronger tint of it, otherwise {@code color}
+     * token, or AMOLED's stronger tint of it, or once Facebook has said light, the one its light
+     * theme gives it ({@link #FDS_LIGHT}), otherwise {@code color}
      */
     public static int fds(int color, Object token) {
         HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
@@ -193,14 +236,33 @@ public final class MaterialYouTheme {
         return fds(color, ((Enum<?>) token).name());
     }
 
+    /**
+     * {@link #fds(int, Object)} for a token known by name, as the comment time's colour is
+     * ({@link CommentTimeColour}). Its own name, so a String token handed to the public route still
+     * finds no enum and fails open.
+     */
+    static int fdsNamed(int color, String name) {
+        return fds(color, name);
+    }
+
     private static int fds(int color, String name) {
-        if (!DarkMode.on()) return color;
+        if (!DarkMode.on()) return lightFds(color, name);
         if (listed(FDS.get(name), color) || madeByAmoled(FDS.get(name), color, name)
                 || (listed(SHARED.get(name), color) && DarkMode.saidOn())) {
             return AmoledTheme.foreground(recolour(palette(), color), name);
         }
         if (isSurface(color)) noteUnlisted(name, color);
         return color;
+    }
+
+    /**
+     * Route one once Facebook has said its light mode is on (issue #141): a colour {@link #FDS_LIGHT}
+     * lists for the token, or one of the blues {@link #FDS_SHARED} lists, takes the palette at the
+     * same lightness. Anything else stays, the Video tab's dark colours included.
+     */
+    private static int lightFds(int color, String name) {
+        if (!listed(LIGHT.get(name), color) && !listed(SHARED.get(name), color)) return color;
+        return palette().sameLightness(isNeutral(color) ? TonePalette.NEUTRAL : TonePalette.ACCENT, color);
     }
 
     /** The token each colour resource FDS's token lookup gave out is for, by resource id. */
@@ -351,6 +413,12 @@ public final class MaterialYouTheme {
      * it has already said dark, so a grey {@link #FDS_DARK} lists takes the palette's neutral at the
      * same lightness unless Facebook has said light, and any other colour goes the way
      * {@link #withoutToken} sends it.
+     *
+     * <p>The patch sends two more kinds of dark-only colour here. A link box's colour when
+     * MobileConfig sends none: a colour a parent hands FDS's link attachment, or a second config's
+     * GRAY_10 (#1C1C1D) or GRAY_25 (#3B3C3E). And the colour FDS's light or dark chooser answers once
+     * its dark check said yes, which the attachment footer's box goes through with a colour from the
+     * attachment's model.
      */
     public static int darkBranch(int color) {
         HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
@@ -759,11 +827,11 @@ public final class MaterialYouTheme {
     /**
      * A colour that came with no token: the palette's neutral at the same lightness for one of the
      * {@link #SURFACES} in dark mode, and its accent for one of the {@link #SERVER_BLUES} once
-     * Facebook has said dark mode is on.
+     * Facebook has said which mode is on, light mode included (issue #141).
      */
     private static int withoutToken(int color) {
         if (isSurface(color) && DarkMode.on()) return palette().sameLightness(TonePalette.NEUTRAL, color);
-        if (isServerBlue(color) && DarkMode.saidOn()) return palette().sameLightness(TonePalette.ACCENT, color);
+        if (isServerBlue(color) && DarkMode.hasAnswered()) return palette().sameLightness(TonePalette.ACCENT, color);
         return color;
     }
 
@@ -820,6 +888,12 @@ public final class MaterialYouTheme {
     static final int SELECTED_TAB_TONE = 80;
 
     /**
+     * The tone of the palette's accent the selected tab takes in the light theme (issue #141):
+     * Material 3's primary for a light surface.
+     */
+    static final int LIGHT_SELECTED_TAB_TONE = 40;
+
+    /**
      * How light a selected tab's colour has to be to say the tab bar is dark. Facebook's dark theme
      * gives the selected tab near white (TAB_BAR_ACTIVE_ICON and PRIMARY_ICON, L* 96), and its light
      * theme near black or its blue (L* 3 and 48), so a light mode answer never passes, even before
@@ -834,20 +908,26 @@ public final class MaterialYouTheme {
      * hands that colour here too. The patch hands each answer here. In Facebook's
      * dark mode a light answer becomes the palette's accent at {@link #SELECTED_TAB_TONE}, so the
      * selected tab stands out in the wallpaper's colour as HushMessenger's does, while the other tabs,
-     * the bar and the badges keep the colours route one gives them. A selected tab Facebook already
-     * draws in its blue takes the accent through route one. Light mode, and anything this doesn't
-     * know, is left as Facebook sent it.
+     * the bar and the badges keep the colours route one gives them. Once Facebook has said its light
+     * mode is on, a dark answer, its near black or its blue, becomes the accent at
+     * {@link #LIGHT_SELECTED_TAB_TONE} (issue #141), and a light one, as on the Video tab that stays
+     * dark, is left. Before Facebook's first answer a dark answer stays too, and so does anything
+     * clear.
      *
-     * @return the palette's accent for the selected tab in the dark theme, otherwise {@code color}
+     * @return the palette's accent for the selected tab, otherwise {@code color}
      */
     public static int tabBarSelected(int color) {
         HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
         return tabBarSelected(palette(), color, DarkMode.on());
     }
 
+    /** {@link #tabBarSelected(int)} with {@code dark} as {@link DarkMode#on}: false once Facebook said light. */
     static int tabBarSelected(TonePalette palette, int color, boolean dark) {
-        if (!dark || (color >>> 24) == 0 || TonePalette.lstar(color) < MIN_DARK_BAR_SELECTED_LIGHTNESS) return color;
-        return (color & 0xFF000000) | (palette.tone(TonePalette.ACCENT, SELECTED_TAB_TONE) & 0x00FFFFFF);
+        if ((color >>> 24) == 0) return color;
+        boolean lightAnswer = TonePalette.lstar(color) >= MIN_DARK_BAR_SELECTED_LIGHTNESS;
+        if (dark != lightAnswer) return color;
+        int tone = dark ? SELECTED_TAB_TONE : LIGHT_SELECTED_TAB_TONE;
+        return (color & 0xFF000000) | (palette.tone(TonePalette.ACCENT, tone) & 0x00FFFFFF);
     }
 
     /** A grey becomes the palette's neutral, a Facebook blue its accent, both at the same lightness. */

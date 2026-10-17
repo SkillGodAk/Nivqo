@@ -501,7 +501,9 @@ try {
     # The phone smoke check's report reading, which its suite exercises on hand-written reports.
     $phoneSmokePaths = @(
         'scripts/phone-smoke.ps1',
-        'scripts/test-phone-smoke.ps1'
+        'scripts/test-phone-smoke.ps1',
+        'scripts/device-audit.ps1',
+        'scripts/device-audit-expectations.json'
     )
     $touchesPhoneSmoke = @($paths | Where-Object {
         $_ -in $phoneSmokePaths

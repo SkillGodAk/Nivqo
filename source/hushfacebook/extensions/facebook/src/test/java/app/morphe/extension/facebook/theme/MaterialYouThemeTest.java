@@ -50,8 +50,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 /**
- * The Material You theme's rules: what it recolours, that a colour keeps its lightness, and that
- * everything else, light mode included, is left as Facebook sent it.
+ * The Material You theme's rules: what it recolours in each mode, that a colour keeps its lightness,
+ * and that everything else is left as Facebook sent it.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)
@@ -117,23 +117,49 @@ public class MaterialYouThemeTest {
     }
 
     /**
-     * Light mode: every token keeps the colour Facebook's light theme gives it. Before Facebook first
-     * answers, when {@link DarkMode#on} still says dark, a light colour keeps its value too: a
-     * dark-only token's light colour is never its dark one, and a blue both themes share waits for
-     * the answer.
+     * Light mode (issue #141). Before Facebook first answers, when {@link DarkMode#on} still says
+     * dark, every light colour keeps its value: a dark-only token's light colour is never its dark
+     * one, and a blue both themes share waits for the answer. Once Facebook says light, each grey,
+     * blue and pale tint its light theme gives these tokens takes the palette at the same lightness,
+     * a grey its neutral and a blue its accent, while white, Facebook's logo, maps and charts stay.
      */
     @Test
-    public void lightModeKeepsFacebooksColours() {
+    public void lightModeTakesThePaletteOnceFacebookSaysLight() {
         DarkMode.forget();
         for (Token token : Token.values()) {
             int light = LIGHT[token.ordinal()];
             assertEquals(token + " changed before Facebook answered", light, MaterialYouTheme.fds(light, token));
         }
         DarkMode.answer(false);
+        List<Token> kept = new ArrayList<>(Arrays.asList(BRAND));
+        kept.add(Token.SURFACE_BACKGROUND);
+        kept.add(Token.CARD_BACKGROUND);
         for (Token token : Token.values()) {
             int light = LIGHT[token.ordinal()];
-            assertEquals(token + " changed in light mode", light, MaterialYouTheme.fds(light, token));
+            int drawn = MaterialYouTheme.fds(light, token);
+            if (kept.contains(token)) {
+                assertEquals(token + " changed in light mode", light, drawn);
+                continue;
+            }
+            int family = MaterialYouTheme.isNeutral(light) ? TonePalette.NEUTRAL : TonePalette.ACCENT;
+            assertEquals(token + " takes the palette in light mode", palette.sameLightness(family, light), drawn);
+            assertSameLightness(token.name(), light, drawn);
         }
+    }
+
+    /**
+     * Issue #141: in light mode the Video tab stays dark, and a token arriving there with its dark
+     * colour keeps Facebook's, as a colour no table lists for the token does.
+     */
+    @Test
+    public void inLightModeADarkColourStaysForTheVideoTab() {
+        DarkMode.answer(false);
+        for (Token token : new Token[]{Token.WASH, Token.SURFACE_BACKGROUND, Token.CARD_BACKGROUND,
+                Token.PRIMARY_TEXT, Token.SECONDARY_TEXT, Token.DIVIDER, Token.BLUE_LINK}) {
+            assertEquals(token + "'s dark colour", DARK[token.ordinal()], MaterialYouTheme.fds(DARK[token.ordinal()], token));
+        }
+        assertEquals("another token's light grey", 0xFF65686C, MaterialYouTheme.fds(0xFF65686C, Token.WASH));
+        assertEquals("no enum to name the token", 0xFFC9CCD1, MaterialYouTheme.fds(0xFFC9CCD1, "WASH"));
     }
 
     /** The mutation controls: what isn't a token's own dark colour is left alone. */
@@ -160,10 +186,10 @@ public class MaterialYouThemeTest {
     /**
      * Issue #37: Add friend, Confirm, Add to story, story rings and the verified badge are one blue
      * in both of Facebook's themes. Once Facebook says its dark mode is on they take the palette's
-     * accent at the same lightness, and in light mode they keep Facebook's blue.
+     * accent at the same lightness, and once it says light they do too (issue #141).
      */
     @Test
-    public void theBluesBothThemesShareTakeThePaletteOnceFacebookSaysDark() {
+    public void theBluesBothThemesShareTakeThePaletteOnceFacebookSaysWhichModeIsOn() {
         DarkMode.answer(true);
         for (Token token : SHARED) {
             int blue = DARK[token.ordinal()];
@@ -174,7 +200,8 @@ public class MaterialYouThemeTest {
         }
         DarkMode.answer(false);
         for (Token token : SHARED) {
-            assertEquals(token + " in light mode", LIGHT[token.ordinal()], MaterialYouTheme.fds(LIGHT[token.ordinal()], token));
+            int blue = LIGHT[token.ordinal()];
+            assertEquals(token + " in light mode", palette.sameLightness(TonePalette.ACCENT, blue), MaterialYouTheme.fds(blue, token));
         }
     }
 
@@ -468,14 +495,35 @@ public class MaterialYouThemeTest {
     }
 
     /**
+     * Issue #37's link box when MobileConfig sends no colour: the second config's GRAY_25 and GRAY_10
+     * and the grey a parent or the attachment's model hands it go through the same stand-in, as does
+     * what FDS's chooser answers on its dark side. Each takes the palette in dark mode; the model's
+     * clear white default and light mode stay.
+     */
+    @Test
+    public void aLinkBoxsFallbackGreyTakesThePalette() {
+        DarkMode.answer(true);
+        assertEquals("GRAY_25", palette.sameLightness(TonePalette.NEUTRAL, 0xFF3B3C3E), MaterialYouTheme.darkBranch(0xFF3B3C3E));
+        assertEquals("GRAY_10", palette.sameLightness(TonePalette.NEUTRAL, 0xFF1C1C1D), MaterialYouTheme.darkBranch(0xFF1C1C1D));
+        assertEquals("the card's grey", palette.sameLightness(TonePalette.NEUTRAL, 0xFF333334), MaterialYouTheme.darkBranch(0xFF333334));
+        assertNotEquals("the palette moves GRAY_25", 0xFF3B3C3E, MaterialYouTheme.darkBranch(0xFF3B3C3E));
+        assertEquals("the model's clear white default", 0x19FFFFFF, MaterialYouTheme.darkBranch(0x19FFFFFF));
+
+        DarkMode.answer(false);
+        for (int grey : new int[]{0xFF3B3C3E, 0xFF1C1C1D, 0xFF333334}) {
+            assertEquals("light mode", grey, MaterialYouTheme.darkBranch(grey));
+        }
+    }
+
+    /**
      * Issue #37: the profile's Add to story button and Marketplace's chips come from Facebook's
      * server as "#0866FF", and some icons read a #3E93F8 colour resource. Once Facebook says dark
      * mode is on, those exact blues take the palette's accent at the same lightness and keep their
-     * alpha, with AMOLED in the build too. A blue someone picked keeps its own, and light mode and
-     * the time before Facebook answers keep Facebook's.
+     * alpha, with AMOLED in the build too, and so do they once it says light (issue #141). A blue
+     * someone picked keeps its own, and the time before Facebook answers keeps Facebook's.
      */
     @Test
-    public void facebooksBluesFromTheServerOrAResourceTakeThePaletteOnceFacebookSaysDark() {
+    public void facebooksBluesFromTheServerOrAResourceTakeThePaletteOnceFacebookSaysWhichModeIsOn() {
         DarkMode.answer(true);
         int accent = palette.sameLightness(TonePalette.ACCENT, 0xFF0866FF);
         assertEquals("Add to story", accent, MaterialYouTheme.parseColor("#0866FF"));
@@ -497,8 +545,9 @@ public class MaterialYouThemeTest {
         assertEquals("a step off Facebook's blue", 0xFF0866FE, MaterialYouTheme.parseColor("#0866FE"));
 
         DarkMode.answer(false);
-        assertEquals("light mode", 0xFF0866FF, MaterialYouTheme.parseColor("#0866FF"));
-        assertEquals("light mode, a resource", 0xFF3E93F8, MaterialYouTheme.getColor(context, resource, false));
+        assertEquals("light mode", accent, MaterialYouTheme.parseColor("#0866FF"));
+        assertEquals("light mode, a resource", icon, MaterialYouTheme.getColor(context, resource, false));
+        assertEquals("light mode, a blue someone picked", 0xFF1877F2, MaterialYouTheme.parseColor("#1877F2"));
         DarkMode.forget();
         assertEquals("before Facebook answers", 0xFF0866FF, MaterialYouTheme.parseColor("#0866FF"));
         assertEquals("before Facebook answers, a resource", 0xFF3E93F8, MaterialYouTheme.getColor(context, resource, false));
@@ -523,8 +572,9 @@ public class MaterialYouThemeTest {
      * Marketplace home, a React Native screen, in Facebook's dark mode (ReactColours): the selected
      * chip's #331D85FC, the location pin's #75B6FF and the location name's #5AA7FF take the palette's
      * accent at the same lightness, the chip staying as see-through, and the #252728 strip behind the
-     * chips takes its neutral. A colour no list has, AMOLED's black, light mode and the blues before
-     * Facebook answers keep Facebook's.
+     * chips takes its neutral. A colour no list has, AMOLED's black and the blues before Facebook
+     * answers keep Facebook's. In light mode (issue #141) the server blues take the accent too, at
+     * any alpha, while the dark strip stays.
      */
     @Test
     public void marketplacesReactColoursTakeThePaletteInDarkMode() {
@@ -543,9 +593,12 @@ public class MaterialYouThemeTest {
         assertEquals("white text", 0xFFFFFFFF, MaterialYouTheme.react(0xFFFFFFFF));
 
         DarkMode.answer(false);
-        for (int colour : new int[]{0x261D85FC, 0xFF0064D1, 0xFF75B6FF, 0xFF5AA7FF, 0xFF252728}) {
-            assertEquals("light mode " + Integer.toHexString(colour), colour, MaterialYouTheme.react(colour));
+        for (int blue : new int[]{0x261D85FC, 0xFF0064D1, 0xFF75B6FF, 0xFF5AA7FF}) {
+            assertEquals("light mode " + Integer.toHexString(blue), palette.sameLightness(TonePalette.ACCENT, blue),
+                    MaterialYouTheme.react(blue));
         }
+        assertEquals("light mode, the dark strip", 0xFF252728, MaterialYouTheme.react(0xFF252728));
+        assertEquals("light mode, a blue someone picked", 0xFF1877F2, MaterialYouTheme.react(0xFF1877F2));
         DarkMode.forget();
         for (int blue : new int[]{0x331D85FC, 0xFF75B6FF, 0xFF5AA7FF}) {
             assertEquals("before Facebook answers " + Integer.toHexString(blue), blue, MaterialYouTheme.react(blue));

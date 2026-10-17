@@ -1032,3 +1032,74 @@ Your phone couldn't write the file. Check your free space and try again.	手機�
 Not enough free space to save this. Free some up and try again.	儲存空間不足。請清出空間後再試。
 Your phone couldn't put this video together. Try another Download quality.	手機無法合成這段影片，請改用其他下載畫質。
 The file couldn't be copied into your phone's gallery. Try again in a moment.	無法將檔案存入手機相簿，請稍後再試。
+A post you open from a notification ends without the "More from your friends" list Facebook adds under it, which can carry ads.	從通知開啟的貼文不再顯示 Facebook 附加的「更多好友貼文」清單，減少可能的廣告。
+A reel stops on its last frame instead of starting over. Tap it to watch again, or swipe to the next one. Feed videos and stories aren't changed. Off by default, since it hasn't been tried on a real account yet.	Reels 播完後停在最後一格而不循環。點一下重播或滑到下一部；動態影片及限時動態不受影響。尚未在實際帳號測試，預設關閉。
+A tablet or an unfolded phone gets the layout Facebook uses on a phone, so the tab bar switches above work on the big screen too. Facebook's wider big screen layout goes away. Off by default, since it hasn't been tried on a big screen yet. Restart Facebook to see the change.	平板與展開的摺疊手機改用手機版排版，讓分頁列設定也能作用於大螢幕，但會停用原本的大螢幕版面。尚未實機測試，預設關閉；重新啟動後生效。
+Active. Events, Notifications and Profile/Menu stay. Find Hushfacebook settings in Menu, under Settings and privacy.	已啟用；保留活動、通知與個人檔案／選單。可從選單的「設定和隱私」開啟 Hushfacebook。
+Adds Save photo to any story that carries a picture beside its video, like a photo story with music that Facebook didn't mark as one. On a video story it saves the cover picture. Off by default, since it hasn't been tried on a real account yet.	對同時包含影片與圖片的限時動態加入「儲存照片」，例如 Facebook 未識別的配樂照片動態；影片動態則儲存封面。尚未在實際帳號測試，預設關閉。
+Also hides posts their creator labeled as made with AI, not just the ones Facebook detects itself. Off by default, since it hasn't been tried on a real feed yet.	除了 Facebook 自行偵測的 AI 貼文，也會隱藏作者自行標示由 AI 製作的貼文。尚未在實際動態消息測試，預設關閉。
+An open reply thread keeps loading as you scroll, so there's no View more replies to tap.	展開的留言回覆會隨捲動持續載入，不必反覆點選「查看更多回覆」。
+Events	活動
+Events is hidden in Facebook's tab settings. Pin it under Settings, Tab bar, Customize the bar. Your normal tabs stay available.	Facebook 分頁設定已隱藏「活動」；請到「設定 → 分頁列 → 自訂分頁列」將活動固定，其他分頁仍可使用。
+Events isn't on your tab bar. Pin it under Settings, Tab bar, Customize the bar, then restart Facebook. Your normal tabs stay available.	分頁列沒有「活動」；請到「設定 → 分頁列 → 自訂分頁列」將其固定，再重新啟動 Facebook。其他分頁仍可使用。
+Events only	只顯示活動
+Events only chooses the opening tab. Your previous choice stays saved.	「只顯示活動」僅決定啟動分頁，原本的選擇仍會儲存。
+Facebook ads in other apps	其他應用程式中的 Facebook 廣告
+Facebook isn't told which stories you watch, so you stay off their viewer lists. Replying or reacting still shows you. Stories you watch to the end show as watched on this phone only, until that person posts a new one.	不向 Facebook 回報你看過哪些限時動態，因此不會出現在觀看者名單；回覆或表情回應仍會讓對方知道。完整看過的動態只在本機標記已觀看，直到對方發布新動態。
+Facebook leaves calls and chat notifications to Messenger while Messenger is installed and enabled. Restart Facebook after changing this switch, or after installing, removing, enabling or disabling Messenger, so call routing updates. If you're signed out of Messenger, you'll miss calls and messages.	當 Messenger 已安裝且啟用時，Facebook 將來電及聊天通知交給 Messenger。變更此開關或 Messenger 的安裝／啟用狀態後，請重新啟動 Facebook 以更新來電路由。若已登出 Messenger，可能會漏接來電與訊息。
+For when Marketplace only or Events only is on. Neither is on now.	適用於「只顯示 Marketplace」或「只顯示活動」啟用時；目前兩者都未開啟。
+Hide more posts under notification posts	隱藏通知貼文下方的推薦貼文
+Hide the Data mode banner	隱藏數據模式橫幅
+Hide the Free mode banner	隱藏免費模式橫幅
+Hide the Meta AI shortcut	隱藏 Meta AI 捷徑
+Hides posts featuring Meta's AI characters, the chatbots people make with Meta AI Studio. Off by default, since it hasn't been tried on a real feed yet.	隱藏含有 Meta AI Studio 所建立 AI 角色／聊天機器人的貼文。尚未在實際動態消息測試，預設關閉。
+Hides posts that Facebook's own detection marks as made with AI. Posts only their creator labeled stay. Off by default, since it hasn't been tried on a real feed yet.	隱藏 Facebook 自動判定為 AI 製作的貼文；僅由作者自行標示 AI 的貼文仍保留。尚未在實際動態消息測試，預設關閉。
+Hides posts that share another post, with or without a caption. Original posts stay. Off by default, since it hasn't been tried on a real feed yet.	隱藏轉發其他貼文的內容，不論是否附上說明；原創貼文保留。尚未在實際動態消息測試，預設關閉。
+Hides reels and Watch videos that Facebook marks as made with AI. Ones only their creator labeled stay. Off by default, since it hasn't been tried on a real account yet.	隱藏 Facebook 自動判定為 AI 製作的 Reels 與 Watch 影片；僅作者自行標示的內容仍保留。尚未在實際帳號測試，預設關閉。
+Hides the "Threads you might like" card between reels. Off by default, since it hasn't been tried on a real account yet.	隱藏 Reels 之間的「你可能喜歡的 Threads」推薦卡片。尚未在實際帳號測試，預設關閉。
+Hushfacebook in the Menu	在選單中顯示 Hushfacebook
+Keep the original audio	保留原始音訊
+Leaving Facebook doesn't open the window. Tap Picture-in-picture in a reel's More menu (the three dots) when you want one. That row is there whenever Picture-in-picture is on.	離開 Facebook 時不會自動開啟子母畫面；需要時可從 Reels 的更多選單（三點）點選「子母畫面」。啟用子母畫面時才顯示此選項。
+Lets you pick the app icons Facebook keeps for Facebook Plus, on Facebook's App icon page. The Pick an app icon row opens that page. Your pick also replaces the Facebook wordmark at the top of Home. Your pick stays if you turn this off, so pick the blue one first to go back.	可在 Facebook 的「應用程式圖示」頁面選擇 Facebook Plus 預留的圖示；「選擇應用程式圖示」會開啟該頁，選擇也會套用到首頁頂部標誌。關閉此選項不會還原圖示，請先選回藍色原版。
+Load whole reply threads	持續載入完整留言回覆
+Marketplace only and Events only are off.	「只顯示 Marketplace」與「只顯示活動」均已關閉。
+Marketplace only and Events only are off. Restart Facebook to restore its normal tabs.	已關閉「只顯示 Marketplace」與「只顯示活動」，重新啟動 Facebook 後恢復一般分頁。
+Marketplace only, Events only and your start tab	Marketplace／活動模式與啟動分頁
+Matches whole words only, in both lists. For example, "hat" matches "hat!" but not "what" or "hats".	兩份清單都只比對完整單字。例如「hat」會符合「hat!」，但不符合「what」或「hats」。
+Moves Facebook's tab bar to the top, under the search row, as older Facebook had it. Restart Facebook to see the change.	將 Facebook 分頁列移到頂部搜尋列下方，恢復舊版位置；重新啟動後生效。
+No Facebook ads in other apps	其他應用程式不顯示 Facebook 廣告
+No ad tracking	不追蹤廣告
+No ads downloaded in advance	不預先下載廣告
+None picked yet.	尚未選取任何項目。
+Off. Turn on to open Events and hide the feed and other social tabs after restarting Facebook.	目前關閉；開啟並重新啟動 Facebook 後，將從活動分頁開始並隱藏動態消息及其他社交分頁。
+On carriers with Facebook Flex, hides the Data mode bar under the top bar and its button to buy mobile data.	在提供 Facebook Flex 的電信業者網路下，隱藏頂部的數據模式橫幅及購買流量按鈕。
+On carriers with Facebook Flex, hides the purple Free mode bar. That bar is also how you go back to Data mode, so turn this off when you want to switch.	在 Facebook Flex 網路下隱藏紫色免費模式橫幅。該橫幅也可切回數據模式；需要切換時請關閉此功能。
+Only from a reel's More menu	僅從 Reels 更多選單開啟
+Opens reels and videos in Facebook's Clean mode, which hides the buttons down the side. You can still leave Clean mode as usual. Off by default, since it hasn't been tried on a real account yet.	在 Facebook 的簡潔模式開啟 Reels 與影片，隱藏側邊按鈕；仍可照常離開簡潔模式。尚未在實際帳號測試，預設關閉。
+Part of the Reels ad blocking	Reels 廣告封鎖的一部分
+Paused with Hushfacebook. Your Events choice stays saved. Tabs already hidden return after a restart while paused.	Hushfacebook 已暫停；活動模式設定會保留。暫停期間重新啟動可恢復先前隱藏的分頁。
+Phone layout on big screens	大螢幕使用手機版面
+Play SDR versions of HDR videos	HDR 影片改播 SDR 版本
+Puts Hushfacebook settings in the menu you get by holding Facebook's icon. Off, it leaves that menu, and you can still open these settings from the Hushfacebook settings row in Settings and privacy or with a long press on the Facebook logo.	在長按 Facebook 應用程式圖示時的選單加入 Hushfacebook 設定。關閉後可從「設定和隱私」中的 Hushfacebook 或長按 Facebook 標誌開啟。
+Puts Hushfacebook settings in the menu you get by holding Facebook's icon. Off, it leaves that menu, and you can still open these settings with a long press on the Facebook logo.	在長按 Facebook 應用程式圖示時的選單加入 Hushfacebook 設定。關閉後仍可長按 Facebook 標誌開啟。
+Reels and videos play with the sound they were made with, not a version Facebook dubbed into your language with Meta AI. Off by default, since it hasn't been tried on a real account yet.	Reels 和影片使用原始音訊，不播放 Meta AI 配成你所用語言的配音版本。尚未在實際帳號測試，預設關閉。
+Restart Facebook	重新啟動 Facebook
+Restart needed. Events only will turn on the next time Facebook starts.	需要重新啟動；下次開啟 Facebook 時會啟用活動模式。
+Save photo on more stories	在更多限時動態儲存照片
+See-through bars	半透明導覽列
+Set when you patched, so Pause can't turn it off:\n%1$s\nTo rule it out, patch again and leave out its patch.	修補時已決定，暫停無法關閉：\n%1$s\n若要排除，請重新修補並取消該補丁。
+Set when you patched, so Pause can't turn these off:\n%1$s\nTo rule one out, patch again and leave out its patch.	修補時已決定，暫停無法關閉以下項目：\n%1$s\n若要排除其中一項，請重新修補並取消該補丁。
+Settings shortcut on the app icon	應用程式圖示設定捷徑
+Skip silent parts	略過無聲片段
+Start-up fix for x86 phones	x86 手機啟動修正
+Tab bar at the top	頂部分頁列
+The Meta AI shortcut leaves the Menu's list with Feeds, Marketplace, Reels and Groups, and the next shortcut moves up into its place.	移除選單中與動態消息、Marketplace、Reels、社團並列的 Meta AI 捷徑，後續項目會自動遞補位置。
+The speed you pick in a feed or Watch video's menu carries over to the next videos. Reels keep their own speed. Off by default, since it hasn't been tried on a real account yet.	動態消息或 Watch 影片設定的播放速度會套用到後續影片，Reels 仍維持自身速度。尚未在實際帳號測試，預設關閉。
+The top bar and the tab bar turn see-through, so the feed shows through them as you scroll. On Android 12 and newer the feed behind them is blurred.	頂部列與分頁列改為半透明，捲動時能看見後方動態消息；Android 12 以上會模糊背景。
+Turn off %1$s to use this.	請先關閉「%1$s」才能使用。
+Upload Stories in HD	高畫質上傳限時動態
+Version number Google Play sees	Google Play 看到的版本號
+Videos you post to your Story ask Facebook for its high upload quality instead of standard. Applies to the next Story you post.	發布至限時動態的影片會要求 Facebook 使用高畫質上傳，而非標準畫質；從下一則動態起生效。
+Videos, reels and stories jump past the quiet stretches in their sound, so talks and how-tos get to the point sooner.	影片、Reels 與限時動態會略過音訊中安靜的片段，讓講解和教學更快進入重點。
+Waiting for Facebook's tab bar. Events only will apply when Facebook builds it.	等待 Facebook 建立分頁列；完成後會套用「只顯示活動」模式。
+When Facebook also sends an HDR video in SDR at the same size, play that version instead. The screen doesn't brighten and the picture stays as sharp. Works with the switch above on or off.	若 Facebook 同時提供相同尺寸的 SDR 版本，就播放 SDR 而非 HDR；避免螢幕自動增亮並保留清晰度，不受上方開關狀態影響。

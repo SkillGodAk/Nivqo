@@ -14,6 +14,10 @@ import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.requireLocals
+import app.morphe.patches.facebook.misc.settings.LOGO_CLICK_CALL
+import app.morphe.patches.facebook.misc.settings.LOGO_TOUCH_STAND_IN
+import app.morphe.patches.facebook.misc.settings.WORDMARK_NAVIGATION_BAR
+import app.morphe.util.writersReaching
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -22,6 +26,8 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
@@ -70,8 +76,36 @@ private const val APP_ICONS = "$EXTENSION_PACKAGE/misc/AppIcons;"
 internal const val UNLOCKED = "$APP_ICONS->unlocked(Ljava/lang/String;)Z"
 internal const val ENTITLED = "$APP_ICONS->entitled(Z)Z"
 internal const val COMPONENT_STATE = "$APP_ICONS->componentState(${COMPONENT_ARGS})V"
+internal const val DRESS_LOGO = "$APP_ICONS->dressLogo(Landroid/view/View;)V"
+private val LOGO_BUILDER_PARAMETERS = listOf("Landroid/content/Context;", WORDMARK_NAVIGATION_BAR)
 
 private fun MethodReference.signature() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
+
+private fun Instruction.registers(): List<Int> = when (this) {
+    is RegisterRangeInstruction -> (startRegister until startRegister + registerCount).toList()
+    is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
+    else -> emptyList()
+}
+
+private val OBJECT_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+
+/** Follows unambiguous object moves back to the register that entered the method. */
+private fun Method.objectOriginAt(index: Int, register: Int): Int? {
+    val instructions = implementation?.instructions?.toList() ?: return null
+    var before = index
+    var current = register
+    val seen = mutableSetOf<Pair<Int, Int>>()
+    while (seen.add(before to current)) {
+        val writers = writersReaching(before, current)
+        if (writers == listOf(-1)) return current
+        val writer = writers.singleOrNull()?.takeIf { it >= 0 } ?: return null
+        val move = instructions[writer] as? TwoRegisterInstruction ?: return null
+        if (move.opcode !in OBJECT_MOVES || move.registerA != current) return null
+        before = writer
+        current = move.registerB
+    }
+    return null
+}
 
 private fun callsSetContains(instruction: Instruction): Boolean =
     instruction.opcode == Opcode.INVOKE_INTERFACE &&
@@ -161,5 +195,67 @@ internal fun MutableMethod.passPickerBenefit(index: Int) {
             invoke-static/range { v$answer .. v$answer }, $ENTITLED
             move-result v$answer
         """,
+    )
+}
+
+/** The stock wordmark load after Facebook gives the logo its touch listener, and the logo register. */
+internal data class LogoDressSite(val stockLoad: Int, val logo: Int)
+
+/**
+ * Finds the logo after the settings dependency has sent its touch listener through SettingsEntry.
+ * Facebook loads the stock wordmark a few instructions later. Dressing after that load keeps the
+ * stock path intact and prevents it from immediately overwriting the picked icon.
+ */
+internal fun logoDressSite(builder: Method): LogoDressSite {
+    val where = "${builder.definingClass}->${builder.name}"
+    val implementation = builder.implementation
+        ?: throw PatchException("$PATCH: $where, the method building the Facebook logo, has no body")
+    if (!AccessFlags.STATIC.isSet(builder.accessFlags) ||
+        builder.parameterTypes.map(Any::toString) != LOGO_BUILDER_PARAMETERS
+    ) {
+        throw PatchException("$PATCH: $where no longer has the expected static logo-builder parameters")
+    }
+    val builderArguments = (
+        implementation.registerCount - LOGO_BUILDER_PARAMETERS.size until implementation.registerCount
+    ).toList()
+    val code = implementation.instructions.toList()
+    val touches = code.indices.filter { index ->
+        val call = (code[index] as? ReferenceInstruction)?.reference as? MethodReference
+        call?.signature() == LOGO_TOUCH_STAND_IN
+    }
+    val touch = touches.singleOrNull()
+        ?: throw PatchException("$PATCH: expected one settings touch stand-in in $where, found ${touches.size}")
+    val touchRegisters = code[touch].registers()
+    if (touchRegisters.size != 2) {
+        throw PatchException("$PATCH: the settings touch stand-in in $where has ${touchRegisters.size} registers")
+    }
+    val click = code.getOrNull(touch - 1)
+    val clickCall = (click as? ReferenceInstruction)?.reference as? MethodReference
+    val clickRegisters = click?.registers().orEmpty()
+    if (clickCall?.signature() != LOGO_CLICK_CALL || clickRegisters.firstOrNull() != touchRegisters.first()) {
+        throw PatchException("$PATCH: the settings touch stand-in in $where no longer follows the logo's tap")
+    }
+
+    val stockLoads = ((touch + 1)..minOf(touch + 12, code.lastIndex)).filter { index ->
+        val instruction = code[index]
+        if (instruction.opcode != Opcode.INVOKE_STATIC && instruction.opcode != Opcode.INVOKE_STATIC_RANGE) return@filter false
+        val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return@filter false
+        val registers = instruction.registers()
+        call.definingClass == WORDMARK_NAVIGATION_BAR && call.returnType == "V" &&
+            call.parameterTypes.map(Any::toString) == LOGO_BUILDER_PARAMETERS &&
+            registers.size == builderArguments.size &&
+            registers.map { builder.objectOriginAt(index, it) } == builderArguments
+    }
+    val stockLoad = stockLoads.singleOrNull() ?: throw PatchException(
+        "$PATCH: expected one stock wordmark load after the logo's touch listener in $where, found ${stockLoads.size}",
+    )
+    return LogoDressSite(stockLoad, touchRegisters.first())
+}
+
+/** Adds the picked app icon after Facebook has loaded the stock wordmark. */
+internal fun MutableMethod.dressLogoAfter(site: LogoDressSite) {
+    addInstructions(
+        site.stockLoad + 1,
+        "invoke-static/range { v${site.logo} .. v${site.logo} }, $DRESS_LOGO",
     )
 }

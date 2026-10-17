@@ -167,10 +167,13 @@ private fun Instruction.isFdsButtonInit(): Boolean {
 }
 
 /**
- * The footer's Send to group button: the first FDSButton it builds, copied into the register its
- * guards meet in by the move right after the constructor. The hook goes at the instruction after
- * that move, at its control flow label, so the paths that skip the button run it too, with the
- * register still null. Null when the first FDSButton isn't kept that way.
+ * The footer's Send to group button: the first FDSButton it builds. Up to 582 it's copied into the
+ * register its guards meet in by the move right after the constructor, and the hook goes at the
+ * instruction after that move. 583 builds it straight into that register: the `new-instance`
+ * register, which the constructor call reaches through a copy, is the one a later null test reads
+ * (nothing writes it in between), so the hook goes right after the constructor and takes that
+ * register. Either way it sits at its control flow label, so the paths that skip the button run it
+ * too, with the register still null. Null when the first FDSButton isn't kept either way.
  */
 internal fun sendToGroupButton(footer: Method): GroupButton? {
     val code = footer.code()
@@ -181,9 +184,16 @@ internal fun sendToGroupButton(footer: Method): GroupButton? {
     } ?: return null
     val made = (code[created] as OneRegisterInstruction).registerA
     val move = code[built + 1]
-    if (move.opcode !in setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)) return null
-    if ((move as TwoRegisterInstruction).registerB != made) return null
-    return GroupButton(built + 2, (move as OneRegisterInstruction).registerA)
+    if (move.opcode in setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)) {
+        if ((move as TwoRegisterInstruction).registerB != made) return null
+        return GroupButton(built + 2, (move as OneRegisterInstruction).registerA)
+    }
+    val next = (built + 1 until code.size).firstOrNull {
+        writesRegister(code[it], made) ||
+            ((code[it].opcode == Opcode.IF_EQZ || code[it].opcode == Opcode.IF_NEZ) && (code[it] as OneRegisterInstruction).registerA == made)
+    } ?: return null
+    if (code[next].opcode != Opcode.IF_EQZ && code[next].opcode != Opcode.IF_NEZ) return null
+    return GroupButton(built + 1, made)
 }
 
 /**

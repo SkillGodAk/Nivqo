@@ -478,6 +478,30 @@ val amoledThemePatch = bytecodePatch(
         // as ints on props, past every route.
         hookReactColours()
 
+        // The older comment row's time, whose slot drew blank on a black sheet (#138). Material You
+        // calls the same hook and finds it in place.
+        try {
+            hookCommentTimeColour()
+        } catch (moved: PatchException) {
+            patchLog.warning("${moved.message}. The theme goes on without the comment time's colour check.")
+        }
+
+        // The ring between a post's overlapping reaction icons, painted white on a black page
+        // (#147). Material You calls the same hook and finds it in place.
+        try {
+            hookReactionRing()
+        } catch (moved: PatchException) {
+            patchLog.warning("${moved.message}. The theme goes on without the reaction ring's cut.")
+        }
+
+        // The other facepile, the reactions token pile, which paints its discs in a colour resolved
+        // on its own context (#147). Material You calls the same hook and finds it in place.
+        try {
+            hookReactionPile()
+        } catch (moved: PatchException) {
+            patchLog.warning("${moved.message}. The theme goes on without the reactions token pile's page colour.")
+        }
+
         enableStatus("amoledTheme")
     }
 }

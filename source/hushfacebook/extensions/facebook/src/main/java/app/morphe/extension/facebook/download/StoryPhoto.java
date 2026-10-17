@@ -28,7 +28,11 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * video. A video Story's media can hold a {@code stories_photo_uri} too, as its cover (seen on
  * Instagram cross-posts), so the photo alone doesn't make a Story one made from a photo. Facebook's
  * own card kind asks one more thing first: that the story card's node holds the tree
- * {@link #MADE_FROM_PHOTO}, and only then calls it PHOTO_REVERT_P2V.
+ * {@link #MADE_FROM_PHOTO}, and only then calls it PHOTO_REVERT_P2V. A MobileConfig flag has a say
+ * too (582 2NB.A0H), and without both Facebook calls the Story a video and its menu's Save gets
+ * the video label (the #38 reporter's Turkish menu read "Reels videosunu kaydet"), so
+ * Save photo on more stories (#38) offers the item on any Story whose media holds a video and a
+ * photo, accepting that on a video Story the photo is its cover.
  *
  * <p>The story card's kept {@code getMedia} takes the video thumbnail whenever the media has a
  * video, so a save reading it never sees the photo. The media model itself is a field of the card,
@@ -50,6 +54,9 @@ public final class StoryPhoto {
      */
     static final int MADE_FROM_PHOTO = 0xaa18ee7f;
 
+    /** Counted each time Save photo takes the CDN's bigger copy of a story's photo over its own. */
+    static final String FULL_SIZE = "story photo saved at the CDN's full size";
+
     /**
      * The Save photo items the menu built, kept no longer than the menu keeps them and told apart
      * by identity, so an item class whose equals compares fields can't pass Save for Save photo.
@@ -66,14 +73,31 @@ public final class StoryPhoto {
      * throws.
      */
     static String originalOf(Object card) {
+        return PostDetails.string(photoOf(card, false), URI);
+    }
+
+    /**
+     * The image of the photo [card]'s media holds beside its video, as {@link #originalOf} finds
+     * it, or with [anyStory] (Save photo on more stories, #38) on any card whose media holds both,
+     * whatever its node says: a photo Story with music that Facebook plays as a video and doesn't
+     * mark as made from a photo, or a video Story's cover. Null when there's no such image or its
+     * address is blank. Never throws.
+     */
+    static Object photoOf(Object card, boolean anyStory) {
         List<Object> trees = PostDetails.treesIn(card);
-        if (!madeFromPhoto(trees)) return null;
+        if (!anyStory && !madeFromPhoto(trees)) return null;
         for (Object tree : trees) {
             if (!PostDetails.isLiveTree(tree) || PostDetails.string(tree, VideoMenuItem.PLAYABLE_URL) == null) continue;
-            String uri = PostDetails.string(PostDetails.tree(tree, STORIES_PHOTO_URI), URI);
-            if (uri != null && !uri.trim().isEmpty()) return uri;
+            Object image = PostDetails.tree(tree, STORIES_PHOTO_URI);
+            String uri = PostDetails.string(image, URI);
+            if (uri != null && !uri.trim().isEmpty()) return image;
         }
         return null;
+    }
+
+    /** Whether Save photo on more stories is on. Asked only once the settings are ready. */
+    private static boolean anyStory() {
+        return Settings.SAVE_STORY_PHOTOS.get();
     }
 
     /** Whether any tree of [card] holds a video and a photo, made from it or not. For the log only. */
@@ -102,10 +126,12 @@ public final class StoryPhoto {
         try {
             if (!Utils.settingsReady() || !Settings.DOWNLOAD_STORIES.get()) return null;
             media(card);
-            if (originalOf(card) == null) {
+            boolean anyStory = anyStory();
+            if (photoOf(card, anyStory) == null) {
                 Logger.diagnosticDebug(DiagnosticCategory.DOWNLOADS, StoryPhoto.class.getSimpleName(),
                     () -> "a story's menu keeps one Save: made from a photo "
-                        + madeFromPhoto(PostDetails.treesIn(card)) + ", photo " + hasPhoto(card));
+                        + madeFromPhoto(PostDetails.treesIn(card)) + ", photo " + hasPhoto(card)
+                        + ", Save photo on more stories " + (anyStory ? "on" : "off"));
                 return null;
             }
             HookStatus.bound(FamilyNames.STORY_DOWNLOAD, "story menu photo item");
@@ -141,8 +167,9 @@ public final class StoryPhoto {
     }
 
     /**
-     * A tap on Save photo: saves the photo [card]'s Story was made from, at the size Facebook
-     * serves it, or says it couldn't. Always answers true, since the item is Hushfacebook's and
+     * A tap on Save photo: saves the photo [card]'s Story was made from, at the biggest size Meta's
+     * CDN serves it when Facebook's photo address modifier is filled ({@link PhotoSave#fullSize}),
+     * else at the size the story shows it, or says it couldn't. Always answers true, since the item is Hushfacebook's and
      * Facebook's own save would only save the video. A tap after the switch went off does nothing.
      */
     static boolean save(Context context, Object card) {
@@ -156,7 +183,12 @@ public final class StoryPhoto {
             Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, StoryPhoto.class.getSimpleName(),
                 () -> "Save photo tapped on a story's menu");
             if (MediaDownload.busy(application)) return true;
-            if (!MediaDownload.savePhoto(application, originalOf(card), PostDetails.ofCard(null, card))) {
+            Object image = photoOf(card, anyStory());
+            String own = PostDetails.string(image, URI);
+            // The biggest copy Meta's CDN serves of the photo, as Save photo on a post takes (#38).
+            String address = PhotoSave.fullSize(image);
+            if (address != null && !address.equals(own)) HookStatus.counted(FamilyNames.STORY_DOWNLOAD, FULL_SIZE);
+            if (!MediaDownload.savePhoto(application, address, PostDetails.ofCard(null, card))) {
                 Feedback.show(application, L10n.t(application, "Couldn't save this story's photo. Try again in a moment."), true);
             }
         } catch (Throwable t) {

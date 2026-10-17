@@ -42,8 +42,10 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
  * switch method, 581 LX/3Ra;->A00) makes the line's Paint and fills it straight from an FDSColors
  * token (A2c on 581 and 580, A3X on 577), a colour the provider never hears about. The setter then
  * finds that Paint, and sets it again, only when the theme changes, so on the phone the line kept
- * the token's near white (#65). The line's Paint is the one field of the layout's own that onDraw
- * hands to Canvas.drawPath. The same three-instruction shape sits in all three builds: an int call
+ * the token's near white (#65). The line's Paint is the one field of the layout's own that its
+ * drawing hands to Canvas.drawPath: onDraw does it up to 582, and 583 (inflater `LX/3OT;->A00`,
+ * setter `FOe`) moved it into a private method of the layout, `A01(Canvas, boolean)`, that onDraw
+ * calls. The same three-instruction shape sits in all three builds: an int call
  * and its move-result, an iget-object of that field, and Paint.setColor. The provider's setter has
  * that shape too, with the colour already handed over, so it's left out.
  */
@@ -116,17 +118,30 @@ private fun Method.sameSignature(other: Method) = name == other.name && returnTy
 private fun Instruction.field() = ((this as? ReferenceInstruction)?.reference as? FieldReference)
 
 /**
- * The field [layout] draws its line with: the one Paint field of the layout's own that its onDraw
- * hands to `Canvas.drawPath`. Refuses unless there is exactly one.
+ * The methods [layout] draws in: its onDraw and the layout's own methods onDraw calls. Up to 582
+ * onDraw draws the line itself; 583 moved the drawing into a private method (`A01(Canvas, boolean)`)
+ * that onDraw hands the canvas to.
+ */
+private fun drawingMethods(layout: ClassDef): List<Method> {
+    val onDraw = layout.methods.filter { it.name == "onDraw" }
+    val called = onDraw.flatMap { method -> method.implementation?.instructions?.mapNotNull { it.called() }.orEmpty() }
+        .filter { it.definingClass == layout.type }
+    return onDraw + layout.methods.filter { candidate -> candidate.name != "onDraw" && called.any { candidate.sameAs(it) } }
+}
+
+/**
+ * The field [layout] draws its line with: the one Paint field of the layout's own that its onDraw,
+ * or a method of the layout onDraw calls, hands to `Canvas.drawPath`. Refuses unless there is
+ * exactly one.
  */
 internal fun lineColourPaint(layout: ClassDef): FieldReference {
-    val found = layout.methods.filter { it.name == "onDraw" }.flatMap { onDraw ->
-        val code = onDraw.implementation?.instructions?.toList() ?: return@flatMap emptyList()
+    val found = drawingMethods(layout).flatMap { drawer ->
+        val code = drawer.implementation?.instructions?.toList() ?: return@flatMap emptyList()
         if (code.none { it.called()?.toString() == DRAW_PATH }) return@flatMap emptyList()
         code.mapNotNull { it.field() }.filter { it.definingClass == layout.type && it.type == PAINT }
     }.distinctBy { it.toString() }
     return found.singleOrNull() ?: throw PatchException(
-        "$PATCH: expected one Paint field $TAB_BAR_CONTAINER.onDraw draws its line with, found ${found.size}",
+        "$PATCH: expected one Paint field $TAB_BAR_CONTAINER draws its line with (in onDraw or a method it calls), found ${found.size}",
     )
 }
 

@@ -64,6 +64,17 @@ class KeepProgressBarFixtureTest {
 
     private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference?.toString()
 
+    /**
+     * The scrubber's light mount on [bundle]'s build, found as the patch finds it, and the class it's
+     * in: [base] up to 582, the Reels scrubber registry on 583, whose hand-over runs it inline.
+     */
+    private fun lightMount(bundle: File, base: ClassDef, barInfo: String): Pair<AnotherVideo, ClassDef> {
+        val holders = FixtureDex.classesHolding(bundle, NEW_REELS_UNIT_SHOWN).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
+        val another = anotherVideo(base, barInfo, reelHandOver(holders, base.type))
+        val owner = if (another.mount.definingClass == base.type) base else holders.single { it.type == another.mount.definingClass }
+        return another to owner
+    }
+
     @Test
     fun `each declared build keeps the reel's bar full size through its own full-size method`() = bundles { bundle ->
         val name = bundle.name
@@ -207,21 +218,21 @@ class KeepProgressBarFixtureTest {
         })
         val base = FixtureDex.classes(bundle, setOf(scrubber.superclass!!)).values.single()
         val info = barInfo(base, minimumLengthCheck(scrubber))
-        val another = anotherVideo(base, info.builder.returnType)
+        val (another, owner) = lightMount(bundle, base, info.builder.returnType)
         val mountCode = another.mount.code()
-        // A match skips straight to the bar info's rebuild, which both videos get.
+        // A match skips the reset of the bar's state, and both videos get the bar info's rebuild: 582 runs
+        // it where a match lands, 583 between the compare and its test.
         val skip = ControlFlow.of(another.mount).normal[another.at - 1].single { it != another.at }
-        assertTrue("$name: the same video skips to the bar info's rebuild", mountCode.drop(skip).take(4).any {
-            it.reference()?.startsWith("${base.type}->${info.builder.name}(") == true
-        })
+        val rebuilds = mountCode.indices.filter { mountCode[it].reference()?.startsWith("${base.type}->${info.builder.name}(") == true }
+        assertTrue("$name: the same video no longer gets the bar info's rebuild", rebuilds.any { it in skip until skip + 4 || it in another.start until another.at })
 
-        val context = PatchContexts.of(listOf(base))
-        val mount = context.mutableClassDefBy(base.type).methods.single { it.sameAs(another.mount) }
+        val context = PatchContexts.of(listOf(owner))
+        val mount = context.mutableClassDefBy(owner.type).methods.single { it.sameAs(another.mount) }
         val original = mount.code()
         val at = another.at
-        mount.clearsLastReel(looks, graph, chapters, at)
+        mount.clearsLastReel(looks, graph, chapters, another)
         val patched = mount.code()
-        val where = "$name: ${base.type}->${another.mount.name}"
+        val where = "$name: ${owner.type}->${another.mount.name}"
         val local = mount.localRegisterCount()
         assertEquals("$where gains fifteen instructions", original.size + 15, patched.size)
         assertEquals("$where: nothing before the branch moves", original.take(at).map { it.opcode }, patched.take(at).map { it.opcode })
@@ -231,7 +242,7 @@ class KeepProgressBarFixtureTest {
         val flow = ControlFlow.of(mount)
         assertEquals("$where: a no goes straight on to Facebook", setOf(at + 3, at + 15), flow.normal[at + 2].toSet())
         for (move in listOf(at + 3, at + 8)) {
-            assertEquals("$where: the instance moves into the local ($move)", listOf(register, local),
+            assertEquals("$where: the scrubber moves into the local ($move)", listOf(register, another.scrubber),
                 (patched[move] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
         }
         assertEquals("$where: only a scrubber of ${looks.type}", Opcode.INSTANCE_OF, patched[at + 4].opcode)
@@ -266,18 +277,18 @@ class KeepProgressBarFixtureTest {
         val graph = graphHide(looks) { type -> FixtureDex.classes(bundle, setOf(type))[type] }
         val chapters = chapterReset(scrubber, looks)
         val base = FixtureDex.classes(bundle, setOf(scrubber.superclass!!)).values.single()
-        val another = anotherVideo(base, barInfo(base, minimumLengthCheck(scrubber)).builder.returnType)
+        val (another, owner) = lightMount(bundle, base, barInfo(base, minimumLengthCheck(scrubber)).builder.returnType)
         assertTrue("$name: the views holder isn't ${base.type}'s, so the base can't read it", looks.viewsField.startsWith("${base.type}->"))
 
-        val context = PatchContexts.of(listOf(base))
-        val mount = context.mutableClassDefBy(base.type).methods.single { it.sameAs(another.mount) }
+        val context = PatchContexts.of(listOf(owner))
+        val mount = context.mutableClassDefBy(owner.type).methods.single { it.sameAs(another.mount) }
         val original = mount.code()
         val at = another.at
         // In the patch's order: the start over goes in first, so the clear lands in front of it.
-        mount.startsNextReelOver(looks, at)
-        mount.clearsLastReel(looks, graph, chapters, at)
+        mount.startsNextReelOver(looks, another)
+        mount.clearsLastReel(looks, graph, chapters, another)
         val patched = mount.code()
-        val where = "$name: ${base.type}->${another.mount.name}"
+        val where = "$name: ${owner.type}->${another.mount.name}"
         val local = mount.localRegisterCount()
         val start = at + 15
         assertEquals("$where gains six instructions after the clear's fifteen", original.size + 21, patched.size)
@@ -289,7 +300,7 @@ class KeepProgressBarFixtureTest {
         assertEquals("$where: a cleared reel goes on to start over", setOf(start), flow.normal[at + 14].toSet())
 
         val holder = (patched[start] as TwoRegisterInstruction).let {
-            assertEquals("$where: the instance moves into a local", local, it.registerB)
+            assertEquals("$where: the scrubber moves into a local", another.scrubber, it.registerB)
             it.registerA
         }
         assertTrue("$where: the start over writes v$holder, which isn't a local", holder < local)
@@ -415,13 +426,15 @@ class KeepProgressBarFixtureTest {
         }
         val (runnable, run) = controlsHideRunnable(controllers, ::classOf)
         val where = "$name: ${runnable.type}->run"
-        // The hide the runnable asks for has to reach the updater, which hands the player the hide.
+        // The hide the runnable asks for has to reach the updater, which hands the player the hide: through its
+        // interface, or on 583 the static method of the controller the updater is folded into.
         val asked = run.code().mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
             .filter { call -> controllers.any { it.type == call.definingClass } }
         assertEquals("$where asks its controller for more than the hide", 1, asked.size)
         val hide = controllers.single { it.type == asked.single().definingClass }.methods.single { it.name == asked.single().name }
         assertTrue("$where: ${hide.name} doesn't hand the updater the hide",
-            hide.code().any { it.opcode == Opcode.INVOKE_INTERFACE && it.reference()!!.startsWith("$updater->") })
+            hide.code().any { it.opcode == (if (updater.folded) Opcode.INVOKE_STATIC else Opcode.INVOKE_INTERFACE) &&
+                it.reference() == updater.update })
         assertTrue("$where has no local register for the hook", run.implementation!!.registerCount - 1 >= 1)
 
         val context = PatchContexts.of(listOf(runnable))

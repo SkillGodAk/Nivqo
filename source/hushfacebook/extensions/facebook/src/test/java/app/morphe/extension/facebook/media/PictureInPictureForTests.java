@@ -73,6 +73,25 @@ public final class PictureInPictureForTests {
         }
     }
 
+    /**
+     * Whether a reel's More sheet on a screen just armed, on Android 12 with the phone's feature,
+     * gets the Picture-in-picture row. Forgets the arming after.
+     */
+    public static boolean offersTheMenuRow() {
+        shadowOf(RuntimeEnvironment.getApplication().getPackageManager())
+                .setSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE, true);
+        int was = PictureInPicture.apiLevel;
+        PictureInPicture.apiLevel = Build.VERSION_CODES.S;
+        try {
+            Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+            PictureInPicture.armed(activity, new Object(), null);
+            return PictureInPictureRow.forSheet(activity) != null;
+        } finally {
+            PictureInPicture.forget();
+            PictureInPicture.apiLevel = was;
+        }
+    }
+
     static boolean allows(int apiLevel, boolean feature) {
         shadowOf(RuntimeEnvironment.getApplication().getPackageManager())
                 .setSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE, feature);

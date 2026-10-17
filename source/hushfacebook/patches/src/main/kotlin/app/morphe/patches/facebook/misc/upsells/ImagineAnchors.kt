@@ -101,7 +101,7 @@ internal const val HIDES_CAPTION_DEEP_DIVE = "$META_UPSELLS->hidesDeepDiveBelowC
 internal const val IMAGINE_CAPABILITY = "$META_UPSELLS->imagineCapability(Z)Z"
 internal const val STORY_TOOLS = "$META_UPSELLS->storyTools(Ljava/util/List;)Ljava/util/List;"
 
-private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
+private fun refuse(detail: String, patch: String = PATCH): Nothing = throw PatchException("$patch: $detail")
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 
@@ -117,23 +117,31 @@ private fun Instruction.registers(): List<Int> = when (this) {
 
 private fun calls(method: Method): List<MethodReference> = method.code().mapNotNull { it.called() }
 
-/** The CTA selector's name table: the one static (I)String among [holders] that names [IMAGINE_ME_PLUGIN]. */
-internal fun ctaTable(holders: List<ClassDef>): Method {
-    val tables = holders.flatMap { methodsHolding(it, IMAGINE_ME_PLUGIN) }.filter(::isNameTable).distinctBy { it.descriptor() }
-    return tables.singleOrNull() ?: refuse("expected one name table naming $IMAGINE_ME_PLUGIN, found ${tables.size}")
+/**
+ * The CTA selector's name table: the one static (I)String among [holders] that names [plugin],
+ * [IMAGINE_ME_PLUGIN] unless another of the table's plugins is given. A refusal names [patch].
+ */
+internal fun ctaTable(holders: List<ClassDef>, plugin: String = IMAGINE_ME_PLUGIN, patch: String = PATCH): Method {
+    val tables = holders.flatMap { methodsHolding(it, plugin) }.filter(::isNameTable).distinctBy { it.descriptor() }
+    return tables.singleOrNull() ?: refuse("expected one name table naming $plugin, found ${tables.size}", patch)
 }
 
 /**
  * The CTA selector's check of whether a plugin applies: among the static (..., int)Z methods that
  * [sockets] (the methods naming [IMAGINE_CTA_SOCKET]) call along with [table], the one whose switch
- * goes over the table's plugin numbers. [classDefOf] finds a class by type. Refuses unless there's
- * exactly one.
+ * goes over the table's plugin numbers. [classDefOf] finds a class by type. Refuses, naming
+ * [patch], unless there's exactly one.
  */
-internal fun ctaCheck(table: Method, sockets: List<Method>, classDefOf: (String) -> ClassDef?): Method {
+internal fun ctaCheck(
+    table: Method,
+    sockets: List<Method>,
+    patch: String = PATCH,
+    classDefOf: (String) -> ClassDef?,
+): Method {
     val tableCall = table.descriptor()
     val callers = sockets.filter { socket -> calls(socket).any { it.descriptor() == tableCall } }
-    if (callers.isEmpty()) refuse("no method naming $IMAGINE_CTA_SOCKET calls $tableCall")
-    val numbers = switchKeys(table).singleOrNull() ?: refuse("$tableCall has more than one switch")
+    if (callers.isEmpty()) refuse("no method naming $IMAGINE_CTA_SOCKET calls $tableCall", patch)
+    val numbers = switchKeys(table).singleOrNull() ?: refuse("$tableCall has more than one switch", patch)
     val candidates = callers.flatMap(::calls).filter {
         it.returnType == "Z" && it.parameterTypes.lastOrNull()?.toString() == "I"
     }.distinctBy { it.descriptor() }
@@ -142,28 +150,34 @@ internal fun ctaCheck(table: Method, sockets: List<Method>, classDefOf: (String)
     }.filter { AccessFlags.STATIC.isSet(it.accessFlags) && numbers in switchKeys(it) }
     return checks.singleOrNull() ?: refuse(
         "expected one check of $tableCall's plugins, found ${checks.size}: ${checks.joinToString { it.descriptor() }}",
+        patch,
     )
 }
 
 /**
  * The getter the caption deep dive's check and row read the deep dive through: [plugin]'s one
- * static method taking a GraphQLStory and answering an object. Refuses unless there's exactly one.
+ * static method taking a GraphQLStory and answering an object. Refuses, naming [patch], unless
+ * there's exactly one.
  */
-internal fun captionDeepDiveGetter(plugin: ClassDef): Method {
+internal fun captionDeepDiveGetter(plugin: ClassDef, patch: String = PATCH): Method {
     val getters = plugin.methods.filter {
         AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null && it.returnType.startsWith("L") &&
             it.parameterTypes.map(CharSequence::toString) == listOf(GRAPHQL_STORY)
     }
-    return getters.singleOrNull() ?: refuse("expected one static (GraphQLStory) getter in ${plugin.type}, found ${getters.size}")
+    return getters.singleOrNull()
+        ?: refuse("expected one static (GraphQLStory) getter in ${plugin.type}, found ${getters.size}", patch)
 }
 
-/** First thing in the getter: ask the extension, and answer null on a yes. Otherwise the getter runs as before. */
-internal fun MutableMethod.dropCaptionDeepDive() {
-    requireLocals(PATCH, 1)
+/**
+ * First thing in the getter: ask the extension ([hook], a static ()Z), and answer null on a yes.
+ * Otherwise the getter runs as before.
+ */
+internal fun MutableMethod.dropCaptionDeepDive(hook: String = HIDES_CAPTION_DEEP_DIVE, patch: String = PATCH) {
+    requireLocals(patch, 1)
     addInstructionsWithLabels(
         0,
         """
-            invoke-static { }, $HIDES_CAPTION_DEEP_DIVE
+            invoke-static { }, $hook
             move-result v0
             if-eqz v0, :read
             const/4 v0, 0x0

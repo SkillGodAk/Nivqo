@@ -9,6 +9,7 @@ import app.morphe.patches.facebook.ads.audiencenetwork.AUDIENCE_NETWORK_COMPONEN
 import app.morphe.patches.facebook.ads.prefetch.AD_PREFETCH_SCHEDULERS
 import app.morphe.patches.facebook.ads.telemetry.AD_TELEMETRY
 import app.morphe.patches.facebook.feed.FixtureDex
+import app.morphe.patches.facebook.feed.suggested.DROPPED_SUGGESTED_FEED_UNITS
 import app.morphe.patches.facebook.feed.suggested.SUGGESTED_FEED_UNITS
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.apksig.apk.ApkUtils
@@ -22,23 +23,15 @@ import org.junit.Test
 
 /**
  * What each declared Facebook build lacks of the four target lists, which is exactly what the patch
- * log names when it's patched: 582 lacks six suggested feed units older builds carried, and has
- * every ad prefetch scheduler, ad telemetry class and Audience Network component.
- * A new fixture that changes any of it fails here, naming the target, before a release says
- * something about it that isn't so.
+ * log says when it's patched: 582 lacks the six suggested feed units of
+ * [DROPPED_SUGGESTED_FEED_UNITS], which the patch log counts in one plain line, and has every ad
+ * prefetch scheduler, ad telemetry class and Audience Network component. A new fixture that
+ * changes any of it fails here, naming the target, before a release says something about it that
+ * isn't so, and a unit the patch calls dropped that a fixture still carries fails the same way.
  */
 class PartialTargetsFixtureTest {
-    private val droppedSince577 = setOf(
-        "Lcom/facebook/graphql/model/GraphQLPagesYouMayFollowFeedUnit;",
-        "Lcom/facebook/graphql/model/GraphQLPagesYouMayAdvertiseFeedUnit;",
-        "Lcom/facebook/graphql/model/GraphQLEndOfFeedUpsellCustomNTFeedUnit;",
-        "Lcom/facebook/graphql/model/GraphQLGreetingCardPromotionFeedUnit;",
-        "Lcom/facebook/graphql/model/GraphQLBusinessPageReviewFeedUnit;",
-        "Lcom/facebook/graphql/model/GraphQLHoldoutAdFeedUnit;",
-    )
-
     private val expectedMissing = mapOf(
-        AppCompatibilities.FACEBOOK_TARGET_VERSION to droppedSince577,
+        AppCompatibilities.FACEBOOK_TARGET_VERSION to DROPPED_SUGGESTED_FEED_UNITS,
     )
 
     @Test

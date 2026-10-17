@@ -74,7 +74,9 @@ internal const val PRE_EOF_ADAPTER = "PreEofIfuSectionAdapter"
  * Kept literal. The trace name of the feed collection's tail adder (`LX/1nb;->A0I` in 580,
  * `LX/1k1;->A0J` in 577), which takes a GraphQLFeedUnitEdge and answers whether it went in. On both
  * builds exactly two methods call it: `addNewEdgeToCollection`, behind the one feed guard, and the
- * pre-EOF injector. A third caller would be a way into the feed that neither hook sees.
+ * pre-EOF injector. On 583 the funnel's body moved into a static method of its class, which the
+ * feed guard goes on, and that method is the caller. A third caller would be a way into the feed
+ * that neither hook sees.
  */
 internal const val ADD_ELEMENT_AT_TAIL = "FeedUnitCollection.addElementAtTail"
 
@@ -136,14 +138,23 @@ internal fun tailAdders(classDef: ClassDef): List<Method> = classDef.methods.fil
         holdsString(it, ADD_ELEMENT_AT_TAIL)
 }
 
+/** A method's class, name and prototype, as a call to it names them. */
+internal fun signatureOf(method: Method): String =
+    "${method.definingClass}->${method.name}(${method.parameterTypes.joinToString("")})${method.returnType}"
+
 /**
  * Why the callers of the tail adder aren't exactly the feed funnel and [injector], or null when
- * they are. The feed guard covers `addNewEdgeToCollection` and the pre-EOF hook covers the
- * injector; any other caller adds rows neither sees, and the switch would promise more than it does.
+ * they are. The feed guard covers `addNewEdgeToCollection`, or on 583 the body [isFunnelBody] says
+ * it went on instead (feedFunnelBody), and the pre-EOF hook covers the injector; any other caller
+ * adds rows neither sees, and the switch would promise more than it does.
  */
-internal fun tailCallerProblem(callers: List<Method>, injector: Method): String? {
+internal fun tailCallerProblem(
+    callers: List<Method>,
+    injector: Method,
+    isFunnelBody: (Method) -> Boolean = { false },
+): String? {
     val names = callers.map { "${it.definingClass}->${it.name}" }
-    val funnel = callers.count { it.name == ADD_NEW_EDGE_TO_COLLECTION }
+    val funnel = callers.count { it.name == ADD_NEW_EDGE_TO_COLLECTION || isFunnelBody(it) }
     val injectors = callers.count { it.definingClass == injector.definingClass && it.name == injector.name }
     return if (callers.size == 2 && funnel == 1 && injectors == 1) {
         null

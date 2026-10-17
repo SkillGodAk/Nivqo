@@ -4,19 +4,25 @@
  */
 package app.morphe.patches.facebook.media.hdr
 
+import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
+import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.findMutableMethodOf
+import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -64,7 +70,14 @@ internal const val OWN_CODEC_CONFIGURE = "$HDR_BRIGHTNESS->configure($MEDIA_CODE
  * a VP9 HLG reel on 582 went to the panel as HDR with none of those calls made), so each of
  * Facebook's calls of MediaCodec.configure goes to the extension too, which asks an HDR video
  * decoder drawing to a surface for the usual range (Android 12's color-transfer-request) before
- * setting it up, and counts whether the phone's decoder said yes.
+ * setting it up, and counts whether the phone's decoder said yes. An HLG video is also handed over
+ * naming the usual transfer, its BT.2020 colours kept: HLG shows as it is on an ordinary screen,
+ * and a VP9 stream, which names no transfer itself, then skips the decoder maker's tone map that
+ * left #93's reels bright and yellow.
+ *
+ * A second switch, Play SDR versions of HDR videos (#66), goes one step earlier: each DASH manifest
+ * string Facebook parses goes to the extension's SdrRenditions first, which takes out an HDR
+ * rendition when the manifest also has an SDR one at least as tall, so the player never picks it.
  *
  * In the default selection with its switch off: HDR is how Facebook means those videos to look,
  * and some people want it.
@@ -82,13 +95,60 @@ val turnOffHdrBrightnessPatch = bytecodePatch(
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {
-        // Both are found before either is changed, so a build missing one is left as it was.
+        // All are found before any is changed, so a build missing one is left as it was.
         val windows = windowCallers()
         val surfaces = surfaceViewBuilders()
+        val manifest = manifestParse()
         hookWindowCalls(windows)
         hookSurfaceViews(surfaces)
+        hookManifestParse(manifest)
         enableStatus("turnOffHdrBrightness")
     }
+}
+
+/** The tag Facebook's DASH manifest helper logs under, a kept string. */
+internal const val MANIFEST_LOG_TAG = "DashManifestHelper2"
+internal const val MANIFEST_PARSE_FAILED = "Failed to parse manifest: %s"
+private const val URI = "Landroid/net/Uri;"
+private const val STRING = "Ljava/lang/String;"
+internal const val OWN_MANIFEST = "$EXTENSION_PACKAGE/media/SdrRenditions;->manifest($STRING)$STRING"
+
+/**
+ * Whether [method] is Facebook's parse of a DASH manifest string: static, (Uri, parser, String)
+ * answering the parsed manifest, logging under [MANIFEST_LOG_TAG] and naming a manifest it
+ * couldn't parse. Every string manifest the player, prefetch and offline saves read goes
+ * through it (582, 2026-10-14).
+ */
+internal fun isManifestParse(method: Method): Boolean {
+    val parameters = method.parameterTypes.map(CharSequence::toString)
+    return AccessFlags.STATIC.isSet(method.accessFlags) && parameters.size == 3 && parameters[0] == URI &&
+        parameters[1].startsWith("L") && parameters[2] == STRING && method.returnType.startsWith("L") &&
+        holdsString(method, MANIFEST_LOG_TAG) && holdsString(method, MANIFEST_PARSE_FAILED)
+}
+
+/** The one manifest parse ([isManifestParse]). Throws, naming how many it found, when it isn't one. */
+internal fun BytecodePatchContext.manifestParse(): Method {
+    val found = classDefByStrings(MANIFEST_PARSE_FAILED, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_CLASSES) }
+        .flatMap { holder -> holder.methods.filter(::isManifestParse) }
+        .distinctBy { "${it.definingClass}->${it.name}" }
+    return found.singleOrNull()
+        ?: throw PatchException("$PATCH: expected one DASH manifest parse logging \"$MANIFEST_LOG_TAG\", found ${found.size}")
+}
+
+/**
+ * Hands the manifest string to the extension before [parse] reads it, and parses what comes back
+ * (Play SDR versions of HDR videos). By range, so any register fits, at index 0, where nothing
+ * in the method jumps.
+ */
+internal fun BytecodePatchContext.hookManifestParse(parse: Method) {
+    mutableClassDefBy(parse.definingClass).findMutableMethodOf(parse).addInstructions(
+        0,
+        """
+            invoke-static/range { p2 .. p2 }, $OWN_MANIFEST
+            move-result-object p2
+        """,
+    )
 }
 
 /**

@@ -36,17 +36,17 @@ import java.io.File
 class HideFeedsHeaderFixtureTest {
     /** Each declared build's container type, the controller's type, and the controller's register, by ABI. */
     private val expected = mapOf(
-        "582.0.0.50.54" to mapOf(
-            "arm64-v8a" to Triple("LX/22S;", "LX/eOR;", 5),
-            "armeabi-v7a" to Triple("LX/231;", "LX/ng5;", 5),
+        AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
+            "arm64-v8a" to Triple("LX/22t;", "LX/ju0;", 5),
+            "armeabi-v7a" to Triple("LX/22t;", "LX/XUm;", 5),
         ),
     )
 
     /** Each declared build's container controller and the runnable it posts with whether the filters show, by ABI. */
     private val room = mapOf(
-        "582.0.0.50.54" to mapOf(
-            "arm64-v8a" to ("LX/fBx;" to "LX/fU7;"),
-            "armeabi-v7a" to ("LX/c1X;" to "LX/cGY;"),
+        AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
+            "arm64-v8a" to ("LX/bnx;" to "LX/bzn;"),
+            "armeabi-v7a" to ("LX/Y1y;" to "LX/YJP;"),
         ),
     )
 

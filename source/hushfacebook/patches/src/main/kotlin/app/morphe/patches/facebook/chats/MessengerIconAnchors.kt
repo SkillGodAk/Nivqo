@@ -40,6 +40,9 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
  * and its shape, and the handler as the one static method of the handler's shape the tap calls.
  * 582 (tap LX/28V;->A01) puts a cooldown wrapper of the same shape in front of it, an instance
  * method on the handler class's singleton, so the tap's call is followed through that wrapper.
+ * 583's wrapper (LX/bEQ;->A02) hands a handler that takes one more String, a null from the
+ * wrapper, after the entry point (LX/bEQ;->A01), and the "long_press" log moved out of the handler
+ * into a static helper of its class that the handler hands its long press (LX/bEQ;->A00).
  */
 internal const val ICON_PATCH = "Open Messenger from the top bar"
 
@@ -55,13 +58,16 @@ internal const val LONG_PRESS = "long_press"
 /** The tap's long-press parameter: 0 from the click listener, 1 from the long-click listener. */
 internal const val TAP_LONG_PRESS = 8
 
-/** The handler's long-press parameter, which the tap fills from its own. */
-internal const val BUTTON_LONG_PRESS = 3
-
 private const val ANDROID_CONTEXT = "Landroid/content/Context;"
 private const val FB_USER_SESSION = "Lcom/facebook/auth/usersession/FbUserSession;"
 
 internal val BUTTON_PARAMETERS = listOf(ANDROID_CONTEXT, FB_USER_SESSION, "Ljava/lang/String;", "Z", "Z")
+
+/** The handler's shapes: [BUTTON_PARAMETERS] up to 582, and 583's with a second String after the entry point. */
+internal val HANDLER_SHAPES = listOf(BUTTON_PARAMETERS, listOf(ANDROID_CONTEXT, FB_USER_SESSION, "Ljava/lang/String;", "Ljava/lang/String;", "Z", "Z"))
+
+/** A handler's (or a call of one's) long-press parameter, the first of its two closing flags, which the tap fills from its own. */
+internal fun buttonLongPress(handler: MethodReference): Int = handler.parameterTypes.size - 2
 
 private fun Method.parameters(): List<String> = parameterTypes.map { it.toString() }
 
@@ -80,18 +86,39 @@ internal fun isIconTap(method: Method): Boolean {
         holdsString(method, NAVBAR_ENTRY) && holdsString(method, REELS_TAB_ENTRY)
 }
 
-/** The Messenger button handler: static (Context, FbUserSession, String, Z, Z)V, loading "long_press". */
-internal fun isButtonHandler(method: Method): Boolean =
-    method.isStaticVoidWithBody() && method.parameters() == BUTTON_PARAMETERS && holdsString(method, LONG_PRESS)
+/** Whether [method] has a Messenger button handler's shape: static void over one of [HANDLER_SHAPES]. */
+internal fun isButtonHandlerShaped(method: Method): Boolean =
+    method.isStaticVoidWithBody() && method.parameters() in HANDLER_SHAPES
+
+/**
+ * Where [handler], a method of [owner], loads "long_press": the handler itself up to 582, and on
+ * 583 the one static helper of [owner] it calls with a flag that loads it. The helper isn't
+ * handler-shaped itself, so a method that only calls the handler doesn't log through it. Null when
+ * neither does.
+ */
+internal fun longPressLog(handler: Method, owner: ClassDef): Method? {
+    if (holdsString(handler, LONG_PRESS)) return handler
+    return handler.implementation?.instructions?.toList().orEmpty().filter { it.opcode in STATIC_CALLS }
+        .mapNotNull { (it as ReferenceInstruction).reference as? MethodReference }
+        .filter { it.definingClass == owner.type && it.parameterTypes.any { type -> type.toString() == "Z" } }
+        .distinctBy { it.toString() }
+        .mapNotNull { resolveStatic(owner, it) }
+        .filter { !isButtonHandlerShaped(it) && holdsString(it, LONG_PRESS) }
+        .singleOrNull()
+}
+
+/** The Messenger button handler: shaped like one ([isButtonHandlerShaped]) and logging a long press ([longPressLog]). */
+internal fun isButtonHandler(method: Method, owner: ClassDef): Boolean =
+    isButtonHandlerShaped(method) && longPressLog(method, owner) != null
 
 private val STATIC_CALLS = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
 
-/** The calls in [method] of a method with the button handler's shape, among [opcodes]. */
-private fun handlerShapedCalls(method: Method, opcodes: Set<Opcode>): List<MethodReference> =
+/** The calls in [method] of a method with one of [shapes], answering nothing, among [opcodes]. */
+private fun handlerShapedCalls(method: Method, opcodes: Set<Opcode>, shapes: List<List<String>>): List<MethodReference> =
     method.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction ->
         if (instruction.opcode !in opcodes) return@mapNotNull null
         val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return@mapNotNull null
-        call.takeIf { it.returnType == "V" && it.parameterTypes.map { type -> type.toString() } == BUTTON_PARAMETERS }
+        call.takeIf { it.returnType == "V" && it.parameterTypes.map { type -> type.toString() } in shapes }
     }
 
 /**
@@ -99,22 +126,24 @@ private fun handlerShapedCalls(method: Method, opcodes: Set<Opcode>): List<Metho
  * virtual call on the handler's singleton (see [buttonHandler]).
  */
 internal fun buttonHandlerCalls(tap: Method): List<MethodReference> =
-    handlerShapedCalls(tap, STATIC_CALLS + setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE))
+    handlerShapedCalls(tap, STATIC_CALLS + setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE), HANDLER_SHAPES)
 
 /**
  * The button handler the tap's [call] reaches in [owner], the call's class: the method it names
  * when that's the handler, or else, when it names an instance method of the handler's shape with
- * exactly one static call of that shape into [owner], the method that call names. 582's tap calls
- * such a wrapper on a singleton (LX/eh9;->A01), which waits out a MobileConfig cooldown and then
- * calls the static handler (LX/eh9;->A00) with its own arguments.
+ * exactly one static call of a handler's shape into [owner], the method that call names. 582's tap
+ * calls such a wrapper on a singleton (LX/eh9;->A01), which waits out a MobileConfig cooldown and
+ * then calls the static handler (LX/eh9;->A00) with its own arguments. 583's wrapper adds a null
+ * String to them.
  */
 internal fun buttonHandler(owner: ClassDef, call: MethodReference): Method? {
     val named = owner.methods.firstOrNull {
         it.name == call.name && it.returnType == call.returnType &&
             it.parameters() == call.parameterTypes.map { type -> type.toString() }
     } ?: return null
-    if (isButtonHandler(named)) return named
+    if (isButtonHandler(named, owner)) return named
     if (AccessFlags.STATIC.isSet(named.accessFlags)) return null
-    val inner = handlerShapedCalls(named, STATIC_CALLS).filter { it.definingClass == owner.type }.distinctBy { it.toString() }
-    return inner.singleOrNull()?.let { resolveStatic(owner, it) }?.takeIf(::isButtonHandler)
+    val inner = handlerShapedCalls(named, STATIC_CALLS, HANDLER_SHAPES).filter { it.definingClass == owner.type }
+        .distinctBy { it.toString() }
+    return inner.singleOrNull()?.let { resolveStatic(owner, it) }?.takeIf { isButtonHandler(it, owner) }
 }

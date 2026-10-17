@@ -20,9 +20,14 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31i
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -104,15 +109,176 @@ class ClonedPackageLiteralsTest {
             context.mutableClassDefBy(extension).methods.single().instructions().size)
     }
 
-    /** The call the patch writes is a public static method of the payload, moving names under Facebook's package. */
+    /** The calls the patch writes are public static methods of the payload, moving names under Facebook's package. */
     @Test
     fun theExtensionDeclaresTheCall() {
-        val type = AUTHORITY_CALL.substringBefore("->")
-        val call = AUTHORITY_CALL.substringAfter("->")
-        val declared = ExtensionDex.classDef(type).methods.filter {
-            AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
-        }.map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("the extension declares no public static $call: $declared", call in declared)
-        assertEquals(AppCompatibilities.FACEBOOK_PACKAGE, ExtensionDex.stringConstant(type, "FACEBOOK"))
+        for (written in listOf(AUTHORITY_CALL, PACKAGE_CALL, AS_FACEBOOK_CALL)) {
+            val type = written.substringBefore("->")
+            val call = written.substringAfter("->")
+            val declared = ExtensionDex.classDef(type).methods.filter {
+                AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
+            }.map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+            assertTrue("the extension declares no public static $call: $declared", call in declared)
+            assertEquals(AppCompatibilities.FACEBOOK_PACKAGE, ExtensionDex.stringConstant(type, "FACEBOOK"))
+        }
+    }
+
+    private fun remoteViews(register: Int): Instruction =
+        ImmutableInstruction21c(Opcode.NEW_INSTANCE, register, ImmutableTypeReference("Landroid/widget/RemoteViews;"))
+
+    private fun build(views: Int, packageName: Int, layout: Int): Instruction = ImmutableInstruction35c(
+        Opcode.INVOKE_DIRECT, 3, views, packageName, layout, 0, 0,
+        ImmutableMethodReference("Landroid/widget/RemoteViews;", "<init>", listOf("Ljava/lang/String;", "I"), "V"),
+    )
+
+    /**
+     * A notification template's RemoteViews built from Facebook's package name spelled out takes the
+     * running app's instead (#36), a name two views share included. A load anything else reads, such
+     * as a comparison with another package, and the extension's own classes are left alone.
+     */
+    @Test
+    fun aNotificationsViewsBuiltFromFacebooksNameGoThroughTheExtension() {
+        val template = "Lcom/example/NotificationTemplate;"
+        val extension = PACKAGE_CALL.substringBefore("->")
+        val equals = ImmutableMethodReference("Ljava/lang/String;", "equals", listOf("Ljava/lang/Object;"), "Z")
+        val context = PatchContexts.of(
+            listOf(
+                classDef(template, method(template, 20,
+                    load(1, facebook),
+                    ImmutableInstruction31i(Opcode.CONST, 0, 0x7f0e0042),
+                    remoteViews(2),
+                    build(2, 1, 0),
+                    load(3, facebook),
+                    ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 3, 4, 0, 0, 0, equals),
+                    load(5, facebook),
+                    remoteViews(6),
+                    build(6, 5, 0),
+                    remoteViews(7),
+                    build(7, 5, 0),
+                    load(8, "com.facebook.orca"),
+                    remoteViews(9),
+                    build(9, 8, 0),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID))),
+                classDef(extension, method(extension, 3,
+                    load(1, facebook), remoteViews(2), build(2, 1, 0), ImmutableInstruction10x(Opcode.RETURN_VOID))),
+            ),
+        )
+
+        assertEquals(2, context.routeRemoteViewsPackage(facebook))
+
+        val routed = context.mutableClassDefBy(template).methods.single().instructions()
+        assertEquals(19, routed.size)
+        for ((index, register) in listOf(0 to 1, 8 to 5)) {
+            assertEquals(facebook, routed[index].literal())
+            val call = routed[index + 1]
+            assertEquals(PACKAGE_CALL, (call as ReferenceInstruction).reference.toString())
+            assertEquals(register to 1, (call as RegisterRangeInstruction).startRegister to call.registerCount)
+            assertEquals(Opcode.MOVE_RESULT_OBJECT, routed[index + 2].opcode)
+            assertEquals(register, (routed[index + 2] as OneRegisterInstruction).registerA)
+        }
+        assertEquals("the compared load was routed", Opcode.INVOKE_VIRTUAL, routed[7].opcode)
+        assertEquals("the extension's literal was routed", 4,
+            context.mutableClassDefBy(extension).methods.single().instructions().size)
+    }
+
+    private fun call(definingClass: String, name: String, parameters: List<String>, returns: String, vararg registers: Int) =
+        ImmutableInstruction35c(
+            Opcode.INVOKE_VIRTUAL, registers.size, registers[0], registers[1], registers.getOrElse(2) { 0 }, 0, 0,
+            ImmutableMethodReference(definingClass, name, parameters, returns),
+        )
+
+    private fun setPackage(intent: Int, packageName: Int) =
+        call("Landroid/content/Intent;", "setPackage", listOf("Ljava/lang/String;"), "Landroid/content/Intent;", intent, packageName)
+
+    private fun launchIntent(manager: Int, packageName: Int) = call("Landroid/content/pm/PackageManager;",
+        "getLaunchIntentForPackage", listOf("Ljava/lang/String;"), "Landroid/content/Intent;", manager, packageName)
+
+    private fun applicationInfo(manager: Int, packageName: Int, flags: Int) = call("Landroid/content/pm/PackageManager;",
+        "getApplicationInfo", listOf("Ljava/lang/String;", "I"), "Landroid/content/pm/ApplicationInfo;", manager, packageName, flags)
+
+    private fun packageInfo(manager: Int, packageName: Int, flags: Int) = call("Landroid/content/pm/PackageManager;",
+        "getPackageInfo", listOf("Ljava/lang/String;", "I"), "Landroid/content/pm/PackageInfo;", manager, packageName, flags)
+
+    /**
+     * #36 leftovers: where Facebook names itself to Android, a clone names itself. An intent's
+     * setPackage anywhere, and in Firebase's notification code the launch intent and the meta-data
+     * read too, take the running package. Elsewhere a launch of Facebook, a read of its version and
+     * a comparison with its name mean Meta's app and keep the literal.
+     */
+    @Test
+    fun facebooksNameWhereItMeansThisAppGoesThroughTheExtension() {
+        val firebase = FIREBASE_MESSAGING
+        val chats = "Lcom/example/ChatNotification;"
+        val equals = ImmutableMethodReference("Ljava/lang/String;", "equals", listOf("Ljava/lang/Object;"), "Z")
+        val context = PatchContexts.of(
+            listOf(
+                classDef(firebase, method(firebase, 10,
+                    load(0, facebook), setPackage(1, 0),
+                    load(0, facebook), launchIntent(2, 0),
+                    load(0, facebook), applicationInfo(2, 0, 3),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID))),
+                classDef(chats, method(chats, 10,
+                    load(0, facebook), setPackage(1, 0),
+                    load(0, facebook), launchIntent(2, 0),
+                    load(0, facebook), applicationInfo(2, 0, 3),
+                    load(0, facebook), packageInfo(2, 0, 3),
+                    load(0, facebook), ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 4, 0, 0, 0, 0, equals),
+                    load(0, facebook), setPackage(0, 1),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID))),
+            ),
+        )
+
+        assertEquals(4, context.routeOwnPackageCalls(facebook))
+
+        val inFirebase = context.mutableClassDefBy(firebase).methods.single().instructions()
+        assertEquals(13, inFirebase.size)
+        for (index in listOf(0, 4, 8)) {
+            assertEquals(facebook, inFirebase[index].literal())
+            assertEquals(PACKAGE_CALL, (inFirebase[index + 1] as ReferenceInstruction).reference.toString())
+            assertEquals(Opcode.MOVE_RESULT_OBJECT, inFirebase[index + 2].opcode)
+        }
+        val inChats = context.mutableClassDefBy(chats).methods.single().instructions()
+        assertEquals("only the setPackage load was routed", 15, inChats.size)
+        assertEquals(PACKAGE_CALL, (inChats[1] as ReferenceInstruction).reference.toString())
+        assertEquals(facebook, inChats[4].literal())
+        assertEquals("a launch of Facebook outside Firebase", Opcode.INVOKE_VIRTUAL, inChats[5].opcode)
+        assertEquals("an intent whose own register holds the name", Opcode.INVOKE_VIRTUAL, inChats[13].opcode)
+    }
+
+    /**
+     * #113: where Facebook looks the running package up among Meta's apps (a method that also names
+     * Messenger's debug build), the package it reads goes through the extension right after it's
+     * moved into its register. A method that doesn't name the debug build is left alone.
+     */
+    @Test
+    fun theRunningPackageInAMetaAppLookupGoesThroughTheExtension() {
+        val lookup = "Lcom/example/BackupPreferences;"
+        val elsewhere = "Lcom/example/Elsewhere;"
+        val getPackageName = ImmutableMethodReference("Landroid/content/Context;", "getPackageName", emptyList(), "Ljava/lang/String;")
+        fun read(context: Int) = ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, context, 0, 0, 0, 0, getPackageName)
+        fun moved(register: Int) = ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, register)
+        val context = PatchContexts.of(
+            listOf(
+                classDef(lookup, method(lookup, 10,
+                    read(1), moved(7),
+                    load(0, "com.facebook.orca"),
+                    load(0, MESSENGER_DEBUG),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID))),
+                classDef(elsewhere, method(elsewhere, 10,
+                    read(1), moved(7), load(0, "com.facebook.orca"), ImmutableInstruction10x(Opcode.RETURN_VOID))),
+            ),
+        )
+
+        assertEquals(1, context.routeMetaAppLookups())
+
+        val routed = context.mutableClassDefBy(lookup).methods.single().instructions()
+        assertEquals(7, routed.size)
+        val call = routed[2]
+        assertEquals(AS_FACEBOOK_CALL, (call as ReferenceInstruction).reference.toString())
+        assertEquals(7 to 1, (call as RegisterRangeInstruction).startRegister to call.registerCount)
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, routed[3].opcode)
+        assertEquals(7, (routed[3] as OneRegisterInstruction).registerA)
+        assertEquals("a method without Messenger's debug name", 4,
+            context.mutableClassDefBy(elsewhere).methods.single().instructions().size)
     }
 }

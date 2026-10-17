@@ -3,6 +3,9 @@ package app.morphe.patches.facebook.chats
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
@@ -12,7 +15,8 @@ import org.junit.Test
 
 /**
  * The search screen row's Meta AI gate. The hook goes right before the button's test, so the gate
- * is refused when a jump lands on that test: the path through the jump would skip the hook.
+ * is refused when a jump lands on that test: the path through the jump would skip the hook. And the
+ * Meta AI tap that names the row, by the entry's literal or a string table's.
  */
 class PickerButtonGateTest {
     private val tap = "Lfixture/Tap;"
@@ -68,5 +72,60 @@ class PickerButtonGateTest {
             tap,
         )
         assertNull(gate)
+    }
+
+    private val strings = "Lfixture/Strings;"
+
+    /** A Meta AI tap reading the row's CallerContext, then the entry by [entry]'s lines, then calling the launcher. */
+    private fun opener(vararg entry: String) = MutableMethod(
+        ImmutableMethod(
+            "Lfixture/Opener;", "invoke", listOf(ImmutableMethodParameter("Ljava/lang/Object;", null, null)),
+            "Ljava/lang/Object;", AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null,
+            ImmutableMethodImplementation(4, emptyList(), null, null),
+        ),
+    ).apply {
+        val lines = listOf("sget-object v0, Lfixture/Row;->A00:$CALLER_CONTEXT") + entry + listOf(
+            "invoke-virtual {v2, v0, v1, v1}, $META_AI_LAUNCHER->A09(Landroid/content/Context;" +
+                "Lcom/facebook/auth/usersession/FbUserSession;Lcom/facebook/messaginginblue/aibot/model/MetaAIThreadViewParam;)V",
+            "return-object v0",
+        )
+        addInstructionsWithLabels(0, lines.joinToString("\n"))
+    }
+
+    /** A string table answering [literal] for 0x134, as 583's arm64 `DTM.A00` does for the entry. */
+    private fun table(literal: String) = MutableMethod(
+        ImmutableMethod(
+            strings, "A00", listOf(ImmutableMethodParameter("I", null, null)), "Ljava/lang/String;",
+            AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, ImmutableMethodImplementation(2, emptyList(), null, null),
+        ),
+    ).apply {
+        addInstructionsWithLabels(0, """
+            packed-switch p0, :cases
+            const-string v0, "unused"
+            return-object v0
+            :entry
+            const-string v0, "$literal"
+            return-object v0
+            :cases
+            .packed-switch 0x134
+                :entry
+            .end packed-switch
+        """.trimIndent())
+    }
+
+    private fun owner(method: Method) =
+        ImmutableClassDef("Lfixture/Opener;", AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(method))
+
+    private fun resolving(table: Method): (MethodReference) -> Method? =
+        { call -> table.takeIf { call.definingClass == it.definingClass && call.name == it.name } }
+
+    @Test
+    fun `the search screen's Meta AI tap names its row by the entry's literal or a string table's`() {
+        assertEquals("Lfixture/Row;", pickerRowOf(owner(opener("const-string v1, \"$PEOPLE_PICKER_ENTRY\""))))
+        // 583's 64-bit build asks a string table for the entry.
+        val asking = owner(opener("const/16 v1, 0x134", "invoke-static {v1}, $strings->A00(I)Ljava/lang/String;", "move-result-object v1"))
+        assertNull(pickerRowOf(asking))
+        assertEquals("Lfixture/Row;", pickerRowOf(asking, resolving(table(PEOPLE_PICKER_ENTRY))))
+        assertNull(pickerRowOf(asking, resolving(table("messaging_inbox_in_blue:thread_list"))))
     }
 }

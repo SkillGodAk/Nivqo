@@ -22,8 +22,11 @@ import app.morphe.patches.facebook.misc.extension.parameterRegister
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val OPEN = "$EXTENSION_PACKAGE/chats/MessengerIcon;->open(Landroid/content/Context;Z)Z"
 private const val TOUCH = "$EXTENSION_PACKAGE/chats/MessengerIcon;->touch($MOTION_EVENT)V"
@@ -31,6 +34,7 @@ private const val HANDOFF = "$EXTENSION_PACKAGE/chats/MessengerHandoff;"
 internal const val DROP_CALL_PUSH = "$HANDOFF->dropCallPush()Z"
 internal const val DROP_RING = "$HANDOFF->dropRing()Z"
 internal const val DROP_CHAT = "$HANDOFF->dropChat(Ljava/lang/Object;)Z"
+internal const val CLIENT_CAPABILITIES = "$HANDOFF->clientCapabilities(J)J"
 
 /**
  * Has a tap on the Messenger icon in Facebook's top bar open the Messenger app, while the switch
@@ -45,12 +49,13 @@ internal const val DROP_CHAT = "$HANDOFF->dropChat(Ljava/lang/Object;)Z"
  * In the default selection, with the switch off, so nothing changes until it's turned on.
  *
  * The same patch carries the Chats page's second switch, Leave calls and chats to Messenger
- * (issues #39 and #100): Facebook and Messenger both ring for a call and both notify for a message,
+ * (issues #39, #100 and #157): Facebook and Messenger both ring for a call and both notify for a message,
  * and with the switch on and Messenger installed only Messenger does. The patch asks the extension
- * first in Facebook's VOIP push handlers, in the parser every incoming ring goes through and in the
- * dispatcher that hands chat notifications to Facebook's notifiers (MessengerHandoffAnchors.kt).
- * Without Messenger, or with it disabled, the extension answers no and Facebook rings as before.
- * Every anchor is found before anything changes, so a build missing one stops the patch whole.
+ * first where Facebook supplies its MQTT client capabilities, in Facebook's VOIP push handlers, in
+ * the parser every incoming ring goes through and in the dispatcher that hands chat notifications
+ * to Facebook's notifiers (MessengerHandoffAnchors.kt). Without Messenger, or with it disabled when
+ * Facebook starts, the extension leaves the VOIP capability and Facebook rings as before. Every
+ * anchor is found before anything changes, so a build missing one stops the patch whole.
  */
 @Suppress("unused")
 val openMessengerFromTopBarPatch = bytecodePatch(
@@ -74,7 +79,7 @@ val openMessengerFromTopBarPatch = bytecodePatch(
         val calls = buttonHandlerCalls(tap).distinctBy { it.toString() }
         val call = calls.singleOrNull() ?: throw PatchException(
             "$ICON_PATCH: expected the tap to call one Messenger button handler " +
-                "(Context, FbUserSession, String, Z, Z)V, found ${calls.size}",
+                "(Context, FbUserSession, String, [String,] Z, Z)V, found ${calls.size}",
         )
         val handler = classDefByOrNull(call.definingClass)?.let { buttonHandler(it, call) }
             ?: throw PatchException(
@@ -87,8 +92,10 @@ val openMessengerFromTopBarPatch = bytecodePatch(
         )
         val handoff = handoffTargets()
         mutableClassDefBy(tap.definingClass).methods.single { it.isSameAs(tap) }.openMessengerFirst(TAP_LONG_PRESS)
-        mutableClassDefBy(handler.definingClass).methods.single { it.isSameAs(handler) }.openMessengerFirst(BUTTON_LONG_PRESS)
+        mutableClassDefBy(handler.definingClass).methods.single { it.isSameAs(handler) }.openMessengerFirst(buttonLongPress(handler))
         mutableClassDefBy(FRAGMENT_ACTIVITY).methods.single { it.isSameAs(dispatch) }.handTouchesToIcon()
+        mutableClassDefBy(handoff.mqtt.method.definingClass).methods.single { it.isSameAs(handoff.mqtt.method) }
+            .leaveCallRegistrationToMessenger(handoff.mqtt.constructionIndex, handoff.mqtt.capabilitiesRegister)
         for (push in handoff.callPushes) {
             mutableClassDefBy(push.definingClass).methods.single { it.isSameAs(push) }.dropCallPushFirst()
         }
@@ -99,7 +106,12 @@ val openMessengerFromTopBarPatch = bytecodePatch(
 }
 
 /** The methods Leave calls and chats to Messenger goes first in, all found before anything changes. */
-internal class HandoffTargets(val callPushes: List<Method>, val ringParse: Method, val chatDispatch: Method)
+internal class HandoffTargets(
+    val mqtt: MqttCapabilitiesTarget,
+    val callPushes: List<Method>,
+    val ringParse: Method,
+    val chatDispatch: Method,
+)
 
 /**
  * Finds the VOIP push handlers' handle methods, the ring parser's parse and the chat dispatcher
@@ -107,6 +119,12 @@ internal class HandoffTargets(val callPushes: List<Method>, val ringParse: Metho
  * the classes finds both the handlers and the parser.
  */
 internal fun BytecodePatchContext.handoffTargets(): HandoffTargets {
+    val mqttDelegate = classDefByOrNull(MQTT_XPLAT_SERVICE_DELEGATE)
+        ?: throw PatchException("$ICON_PATCH: $MQTT_XPLAT_SERVICE_DELEGATE isn't in this build")
+    val mqtt = mqttCapabilitiesTarget(mqttDelegate) ?: throw PatchException(
+        "$ICON_PATCH: expected one (Z)$MQTT_CONNECTION_CONFIG provider in $MQTT_XPLAT_SERVICE_DELEGATE " +
+            "constructing $MQTT_CONNECTION_CONFIG with client capabilities as its first long",
+    )
     val notificationType = classDefByOrNull(NOTIFICATION_TYPE)
         ?: throw PatchException("$ICON_PATCH: $NOTIFICATION_TYPE isn't in this build")
     val voip = voipConstant(notificationType)
@@ -143,7 +161,28 @@ internal fun BytecodePatchContext.handoffTargets(): HandoffTargets {
         "$ICON_PATCH: expected one static dispatcher of $MESSAGES_NOTIFICATION_MANAGER handing a notification to " +
             "the notifiers, found ${dispatches.size}",
     )
-    return HandoffTargets(callPushes, ringParse, chatDispatch)
+    return HandoffTargets(mqtt, callPushes, ringParse, chatDispatch)
+}
+
+/**
+ * Immediately before Facebook constructs its MQTT connection, let the extension remove VOIP from
+ * the client capabilities in the constructor's own wide argument register. No local is borrowed.
+ */
+internal fun MutableMethod.leaveCallRegistrationToMessenger(constructionIndex: Int, capabilitiesRegister: Int) {
+    val construction = getInstruction(constructionIndex)
+    val call = (construction as? ReferenceInstruction)?.reference as? MethodReference
+    if (construction.opcode != Opcode.INVOKE_DIRECT_RANGE ||
+        call?.definingClass != MQTT_CONNECTION_CONFIG || call.name != "<init>"
+    ) {
+        throw PatchException("$ICON_PATCH: the MQTT connection construction moved before injection")
+    }
+    addInstructionsWithLabels(
+        constructionIndex,
+        """
+            invoke-static/range { v$capabilitiesRegister .. v${capabilitiesRegister + 1} }, $CLIENT_CAPABILITIES
+            move-result-wide v$capabilitiesRegister
+        """,
+    )
 }
 
 /**

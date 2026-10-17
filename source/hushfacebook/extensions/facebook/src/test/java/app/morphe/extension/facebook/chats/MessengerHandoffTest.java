@@ -37,10 +37,11 @@ import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.PauseForTests;
 
 /**
- * The hooks first in Facebook's VOIP push handlers, its ring parser and its chat dispatcher: while
- * Leave calls and chats to Messenger is on and Messenger is installed and enabled, Facebook drops
- * the call push, parses the ring to nothing and doesn't post Messenger's own kinds of chat
- * notification. Every other time, Facebook rings and notifies as it always did.
+ * The hooks in Facebook's MQTT call registration, VOIP push handlers, ring parser and chat
+ * dispatcher. While Leave calls and chats to Messenger is on and Messenger is installed and
+ * enabled, Facebook leaves VOIP registration to Messenger, drops any call work already routed to
+ * it and doesn't post Messenger's own kinds of chat notification. Every other time, Facebook keeps
+ * its stock capabilities, rings and notifies as it always did.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)
@@ -116,13 +117,37 @@ public class MessengerHandoffTest {
                 + MessengerHandoff.CHAT_DROPPED + " 2", statusLine());
     }
 
-    /** Without Messenger nothing else rings, so Facebook does, and the report says why. */
+    /**
+     * At the next MQTT connection, the switch removes only VOIP from Facebook's advertised client
+     * capabilities. That lets Meta route the incoming call to Messenger instead of sending the one
+     * usable ring to Facebook and having the later push hook discard it.
+     */
+    @Test
+    public void onWithMessengerStopsFacebookRegisteringForCalls() {
+        long stockCapabilities = Long.MIN_VALUE | 0x217L;
+        long withoutVoip = stockCapabilities & ~0x2L;
+        assertTrue("the switch doesn't ask for the restart its MQTT registration needs",
+                Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER.rebootApp);
+        MessengerCardForTests.install(true);
+        assertEquals("an off switch changed Facebook's capabilities", stockCapabilities,
+                MessengerHandoff.clientCapabilities(stockCapabilities));
+
+        Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER.save(true);
+        assertEquals("the VOIP capability stayed registered", withoutVoip,
+                MessengerHandoff.clientCapabilities(stockCapabilities));
+        assertEquals("a capability set without VOIP changed", withoutVoip,
+                MessengerHandoff.clientCapabilities(withoutVoip));
+    }
+
+    /** Without Messenger, Facebook keeps its call registration and the report says why. */
     @Test
     public void withoutMessengerFacebookRingsAndNotifies() {
         Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER.save(true);
         assertNoneDropped("no Messenger", callAndMessage());
-        assertEquals(PREFIX + "invoked 3, 0 found, 0 missing. Counted: "
-                + MessengerHandoff.NO_MESSENGER + " 3", statusLine());
+        assertEquals("Facebook stopped registering for calls without Messenger", 0x217L,
+                MessengerHandoff.clientCapabilities(0x217L));
+        assertEquals(PREFIX + "invoked 4, 0 found, 0 missing. Counted: "
+                + MessengerHandoff.NO_MESSENGER + " 4", statusLine());
     }
 
     /** A Messenger turned off in Android's settings gets no pushes, so it counts as none. */
@@ -131,11 +156,12 @@ public class MessengerHandoffTest {
         Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER.save(true);
         MessengerCardForTests.install(false);
         assertNoneDropped("Messenger disabled", callAndMessage());
+        assertEquals(0x217L, MessengerHandoff.clientCapabilities(0x217L));
     }
 
     /**
-     * Messenger is looked up on every call, never kept: uninstalled or disabled a minute ago, the
-     * next call rings in Facebook, and it goes back to Messenger as soon as Messenger is back.
+     * Messenger is looked up on every local fallback, never kept: uninstalled or disabled a minute
+     * ago, Facebook stops dropping routed call work. A restart refreshes the server registration.
      */
     @Test
     public void messengerGoingAwayGivesTheNextCallBackToFacebook() {
@@ -150,10 +176,9 @@ public class MessengerHandoffTest {
         assertTrue(MessengerHandoff.dropRing());
     }
 
-    /** The switch is read on every call, so turning it off gives the next call back with no restart. */
+    /** The local fallback reads the switch live; the setting UI still requests an MQTT restart. */
     @Test
     public void turningTheSwitchOffAppliesToTheNextCall() {
-        assertFalse("the switch asks for a restart", Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER.rebootApp);
         MessengerCardForTests.install(true);
         Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER.save(true);
         assertTrue(MessengerHandoff.dropCallPush());
@@ -211,10 +236,13 @@ public class MessengerHandoffTest {
         MessengerCardForTests.install(true);
         PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
         assertNoneDropped("paused", callAndMessage());
+        assertEquals(0x217L, MessengerHandoff.clientCapabilities(0x217L));
         PauseForTests.pause(HushfacebookPause.Reason.CRASH_LOOP);
         assertNoneDropped("safe mode", callAndMessage());
+        assertEquals(0x217L, MessengerHandoff.clientCapabilities(0x217L));
         PauseForTests.resume();
         assertAllDropped("resumed", callAndMessage());
+        assertEquals(0x215L, MessengerHandoff.clientCapabilities(0x217L));
     }
 
     /**
@@ -226,11 +254,16 @@ public class MessengerHandoffTest {
         Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER.save(true);
         MessengerCardForTests.install(true);
         boolean[][] dropped = new boolean[2][];
+        long[] capabilities = new long[2];
         SettingsContextRule.withoutContext(() -> dropped[0] = callAndMessage());
         SettingsContextRule.beforeThePauseIsDecided(() -> dropped[1] = callAndMessage());
+        SettingsContextRule.withoutContext(() -> capabilities[0] = MessengerHandoff.clientCapabilities(0x217L));
+        SettingsContextRule.beforeThePauseIsDecided(() -> capabilities[1] = MessengerHandoff.clientCapabilities(0x217L));
         assertNoneDropped("no context", dropped[0]);
         assertNoneDropped("pause undecided", dropped[1]);
-        assertEquals(PREFIX + "invoked 6, 0 found, 0 missing", statusLine());
+        assertEquals(0x217L, capabilities[0]);
+        assertEquals(0x217L, capabilities[1]);
+        assertEquals(PREFIX + "invoked 8, 0 found, 0 missing", statusLine());
         assertAllDropped("ready", callAndMessage());
     }
 
@@ -252,14 +285,18 @@ public class MessengerHandoffTest {
             }
         });
         failing.set(true);
+        assertEquals("a failed package lookup changed Facebook's registration", 0x217L,
+                MessengerHandoff.clientCapabilities(0x217L));
         assertNoneDropped("the package manager failed", callAndMessage());
         List<String> missing = HookStatus.missing(FamilyNames.MESSENGER_ICON);
-        assertEquals(missing.toString(), 3, missing.size());
-        for (String hook : new String[]{"Messenger call pushes", "Messenger rings", "Messenger chat notifications"}) {
+        assertEquals(missing.toString(), 4, missing.size());
+        for (String hook : new String[]{"Messenger call registration", "Messenger call pushes", "Messenger rings",
+                "Messenger chat notifications"}) {
             assertTrue(missing + " doesn't name " + hook, missing.stream().anyMatch(line ->
                     line.contains("'" + hook + "' hook (it threw " + IllegalStateException.class.getName() + ")")));
         }
         failing.set(false);
+        assertEquals(0x215L, MessengerHandoff.clientCapabilities(0x217L));
         assertAllDropped("the package manager is back", callAndMessage());
     }
 }

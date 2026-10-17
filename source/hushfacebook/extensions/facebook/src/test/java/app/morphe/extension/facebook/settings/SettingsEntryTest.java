@@ -52,6 +52,68 @@ public class SettingsEntryTest {
         RuntimeEnvironment.getApplication().unregisterActivityLifecycleCallbacks(watcher);
         HushfacebookPreferenceFragment.failNextInitialization = null;
         PatchFamily.inBuildForTests = null;
+        Settings.SETTINGS_SHORTCUT.resetToDefault();
+    }
+
+    /** PausedHooksTest's probe: a start publishes the settings shortcut. */
+    static boolean aStartPublishes() {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        android.content.pm.ShortcutManager manager = context.getSystemService(android.content.pm.ShortcutManager.class);
+        manager.removeDynamicShortcuts(java.util.Collections.singletonList(SettingsEntry.SHORTCUT_ID));
+        SettingsEntry.publishShortcutNow(context);
+        return shortcut(manager, SettingsEntry.SHORTCUT_ID) != null;
+    }
+
+    /**
+     * Someone who opens the screen from Facebook's Menu didn't want it in the icon's long-press
+     * menu too (#146). Off takes it out at once and leaves Facebook's own; Facebook's next calls
+     * and the next start don't bring it back; on puts it back in front.
+     */
+    @Test public void theSettingsShortcutSwitchTakesTheShortcutOutAndPutsItBack() throws Exception {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        android.content.pm.ShortcutManager manager = context.getSystemService(android.content.pm.ShortcutManager.class);
+        assertTrue("on by default", Settings.SETTINGS_SHORTCUT.savedValue());
+        SettingsEntry.publishShortcutNow(context);
+        manager.pushDynamicShortcut(facebookShortcut(context, "friends"));
+        assertNotNull(shortcut(manager, SettingsEntry.SHORTCUT_ID));
+
+        Settings.SETTINGS_SHORTCUT.save(false);
+        SettingsEntry.shortcutSwitchChanged(context);
+        app.morphe.extension.shared.Utils.awaitBackgroundTasksForTests();
+        assertNull("the shortcut stayed in the launcher's menu", shortcut(manager, SettingsEntry.SHORTCUT_ID));
+        assertNotNull("Facebook's own shortcut went too", shortcut(manager, "friends"));
+
+        SettingsEntry.pushDynamicShortcut(manager, facebookShortcut(context, "notifications"));
+        SettingsEntry.setDynamicShortcuts(manager, java.util.Collections.singletonList(facebookShortcut(context, "reels")));
+        app.morphe.extension.shared.Utils.awaitBackgroundTasksForTests();
+        SettingsEntry.publishShortcutNow(context);
+        SettingsEntry.keepFirstNow(context);
+        assertNull("Facebook's calls or a start brought it back", shortcut(manager, SettingsEntry.SHORTCUT_ID));
+        assertNotNull(shortcut(manager, "reels"));
+
+        Settings.SETTINGS_SHORTCUT.save(true);
+        SettingsEntry.shortcutSwitchChanged(context);
+        app.morphe.extension.shared.Utils.awaitBackgroundTasksForTests();
+        android.content.pm.ShortcutInfo ours = shortcut(manager, SettingsEntry.SHORTCUT_ID);
+        assertNotNull("on didn't put it back", ours);
+        org.junit.Assert.assertEquals(0, ours.getRank());
+        assertNotNull(shortcut(manager, "reels"));
+    }
+
+    /** The switch is kept while paused: a pause neither brings the shortcut back nor takes it away. */
+    @Test public void aPauseLeavesTheSettingsShortcutAsItsSwitchSays() {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        android.content.pm.ShortcutManager manager = context.getSystemService(android.content.pm.ShortcutManager.class);
+        try {
+            app.morphe.extension.shared.settings.PauseForTests.pause(
+                    app.morphe.extension.shared.settings.HushfacebookPause.Reason.SWITCH);
+            assertTrue("a paused start dropped the way back to settings", aStartPublishes());
+            Settings.SETTINGS_SHORTCUT.save(false);
+            SettingsEntry.publishShortcutNow(context);
+            assertNull("a pause brought the shortcut back", shortcut(manager, SettingsEntry.SHORTCUT_ID));
+        } finally {
+            app.morphe.extension.shared.settings.PauseForTests.resume();
+        }
     }
 
     /**

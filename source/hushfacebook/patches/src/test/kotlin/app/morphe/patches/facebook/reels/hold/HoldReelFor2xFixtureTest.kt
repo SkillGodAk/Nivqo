@@ -35,19 +35,20 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Hold a reel for 2x's anchors on every Facebook build the bundle declares: two long-press
- * handlers holding "speed_up", which ask the immersive player config one flag and load the log name
- * once each, after they take the flag's answer; two release
+ * Hold a reel for 2x's anchors on every Facebook build the bundle declares: a long-press handler
+ * for each speed-up component (FbShortsVideoControlComponent's only on 583, which dropped
+ * UddPlayerControlComponent's) holding "speed_up", which asks the immersive player config one flag
+ * and loads the log name once, after it takes the flag's answer; as many release
  * listeners, which ask a second flag straight before that one; the overlay's one check of the
  * speed-up flag before it gives a reel its release listener; the one edge check of the build, which
- * a handler calls; and nothing else in the build asking either flag but three places the patch
- * leaves alone, none of which makes a handler or a listener; and the two speed-ups, one in each of
- * FbShortsVideoControlComponent and UddPlayerControlComponent, setting FbGrootPlayer's speed from
- * one read of the config; and both release listeners reading the player's speed with one public
- * getter. Then the patch itself, run on those
+ * a handler calls (583: inlined into a lambda the handler makes); and nothing else in the build
+ * asking either flag but three places the patch
+ * leaves alone, none of which makes a handler or a listener; and a speed-up in each speed-up
+ * component, setting FbGrootPlayer's speed from one read of the config; and every release listener
+ * reading the player's speed with one public getter. Then the patch itself, run on those
  * classes: every flag call's answer through the extension in the same register before its branch,
- * every return of the edge check and of the hold speed through the extension, the edge check's
- * press and view handed over first, through the range form, the hold's start
+ * every answer of the edge check and return of the hold speed through the extension, the edge
+ * check's press and view handed over once it has them, the hold's start
  * straight after each "speed_up" load, the touch dispatch handing the event over first, the speed
  * setter handing the player and the speed over first and going on with the speed it gets back, and
  * the extension's speed stub calling the getter. Reads the fixture bundles from
@@ -80,8 +81,10 @@ class HoldReelFor2xFixtureTest {
         for ((version, bundles) in declaredBundles()) {
             for (bundle in bundles) {
                 val name = bundle.name
+                // One handler, one release listener and one speed-up for each speed-up component: 583 dropped
+                // UddPlayerControlComponent (582 LX/XIg;) and its handler and listener (LX/Z4h; and LX/Z4d;).
                 val handlers = FixtureDex.classesHolding(bundle, SPEED_UP_LOG).filter(::isLongPressHandler)
-                assertEquals("$name: long-press handlers", 2, handlers.size)
+                assertEquals("$name: long-press handlers", SPEED_UP_COMPONENTS.size, handlers.size)
                 val config = handlers.mapNotNull(::configType).toSet().single()
                 val speedUp = handlers.flatMap { h -> h.methods.flatMap { flagCalls(it, config).values } }.toSet().single()
 
@@ -89,7 +92,7 @@ class HoldReelFor2xFixtureTest {
                 FixtureDex.forEach(bundle) { dex ->
                     dex.classes.filter { isReleaseListener(it) && configType(it) == config }.forEach { listenerTypes += it.type }
                 }
-                assertEquals("$name: release listeners", 2, listenerTypes.size)
+                assertEquals("$name: release listeners", SPEED_UP_COMPONENTS.size, listenerTypes.size)
                 val listeners = FixtureDex.classes(bundle, listenerTypes).values.toList()
                 val release = listeners.flatMap { l -> l.methods.flatMap { flagsBefore(it, config, speedUp) } }.toSet().single()
                 assertTrue("$name: the release flag is the speed-up flag", release != speedUp)
@@ -120,14 +123,30 @@ class HoldReelFor2xFixtureTest {
                 assertTrue("$name: the release flag is asked outside the release listeners",
                     others.none { m -> m.code().any { it.call?.toString() == "$config->$release()Z" } })
 
+                // Up to 582 a handler calls the edge check, the one method of its shape. 583 has none: it
+                // inlined the check into one case of a merged lambda the handler makes (LX/CnX;->invoke).
                 val edgeCalls = handlers.flatMap { h -> h.methods.flatMap { edgeChecksCalled(it, config) } }.distinctBy { it.toString() }
-                assertEquals("$name: edge checks the handlers call", 1, edgeCalls.size)
                 val shaped = FixtureDex.methodsWhere(bundle, dexFilter = { dex -> dex.typeSection.any { it == config } }) {
                     isEdgeCheckShape(it.parameterTypes.map(CharSequence::toString), it.returnType, config)
                 }
-                assertEquals("$name: methods of the edge check's shape", 1, shaped.size)
-                val edgeClass = FixtureDex.classes(bundle, setOf(edgeCalls.single().definingClass)).values.single()
-                val edge = edgeClass.methods.single { isMethod(it, edgeCalls.single()) }
+                val edgeCheck: EdgeCheck
+                val edgeClass: ClassDef
+                if (version == "583.0.0.39.55") {
+                    assertEquals("$name: edge checks the handlers call", 0, edgeCalls.size)
+                    assertEquals("$name: methods of the edge check's shape", 0, shaped.size)
+                    val made = FixtureDex.classes(bundle, handlers.flatMap { h -> h.methods.flatMap(::typesMade) }.toSet()).values
+                    val inlined = made.flatMap { c -> c.methods.mapNotNull { inlinedEdgeCheck(it, config) } }
+                    assertEquals("$name: lambdas the handlers make holding the edge check", 1, inlined.size)
+                    edgeCheck = inlined.single()
+                    edgeClass = made.single { it.type == edgeCheck.method.definingClass }
+                    assertTrue("$name: the press and view aren't neighbours", edgeCheck.view != edgeCheck.press + 1)
+                } else {
+                    assertEquals("$name: edge checks the handlers call", 1, edgeCalls.size)
+                    assertEquals("$name: methods of the edge check's shape", 1, shaped.size)
+                    edgeClass = FixtureDex.classes(bundle, setOf(edgeCalls.single().definingClass)).values.single()
+                    edgeCheck = ownEdgeCheck(edgeClass.methods.single { isMethod(it, edgeCalls.single()) })!!
+                }
+                val edge = edgeCheck.method
 
                 // The speed-ups set FbGrootPlayer's speed from one double read of the config's answer.
                 val playerHolders = FixtureDex.classesHolding(bundle, GROOT_PLAY).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
@@ -140,8 +159,9 @@ class HoldReelFor2xFixtureTest {
                 val reads = speedUpClasses.flatMap { c ->
                     c.methods.flatMap { m -> holdSpeedReads(m, "${player.type}->${setter.name}(F)V", configAnswers).map { m to it } }
                 }
-                assertEquals("$name: speed-ups setting the speed from a read of the config: ${reads.map { key(it.first) }}", 2, reads.size)
-                assertEquals("$name: the speed-ups' components", 2, reads.map { it.first.definingClass }.toSet().size)
+                assertEquals("$name: speed-ups setting the speed from a read of the config: ${reads.map { key(it.first) }}",
+                    SPEED_UP_COMPONENTS.size, reads.size)
+                assertEquals("$name: the speed-ups' components", SPEED_UP_COMPONENTS.size, reads.map { it.first.definingClass }.toSet().size)
                 val speedRead = reads.map { it.second.toString() }.toSet().single()
                 val speedClass = FixtureDex.classes(bundle, setOf(reads.first().second.definingClass)).values.single()
                 val holdSpeed = speedClass.methods.single { isMethod(it, reads.first().second) }
@@ -234,23 +254,34 @@ class HoldReelFor2xFixtureTest {
 
                 val edgeBefore = edge.code()
                 val edgeAfter = patched(edge)
-                val returns = edgeAfter.withIndex().filter { it.value.opcode == Opcode.RETURN }
-                assertEquals("$name: the edge check's returns", edgeBefore.count { it.opcode == Opcode.RETURN }, returns.size)
-                for ((index, instruction) in returns) {
-                    val register = (instruction as OneRegisterInstruction).registerA
-                    assertEquals("$name: before the edge check's return at $index", ANYWHERE, edgeAfter[index - 2].call.toString())
-                    assertEquals("$name: the register the edge check hands over", listOf(register), edgeAfter[index - 2].registers())
-                    assertEquals("$name: the edge check takes the answer back", register,
-                        (edgeAfter[index - 1] as OneRegisterInstruction).registerA)
+                // Before each way the edge check's answer goes out (its returns, or 583's Boolean.valueOf of
+                // it), all past the press call, the answer through the extension in its own register.
+                assertEquals("$name: the edge check's answers", edgeCheck.answers.size, edgeAfter.count { it.call?.toString() == ANYWHERE })
+                edgeCheck.answers.keys.sorted().forEachIndexed { hooked, index ->
+                    val register = edgeCheck.answers.getValue(index)
+                    val at = index + 1 + 2 * hooked
+                    assertEquals("$name: before the edge check's answer at $index", ANYWHERE, edgeAfter[at].call.toString())
+                    assertEquals("$name: the register the edge check hands over", listOf(register), edgeAfter[at].registers())
+                    assertEquals("$name: the edge check takes the answer back", register, (edgeAfter[at + 1] as OneRegisterInstruction).registerA)
+                    assertEquals("$name: the edge check's answer goes out as before", edgeBefore[index].opcode, edgeAfter[at + 2].opcode)
                 }
-                // First in the edge check, the press and the reel's view it measures, its first two
-                // parameters, named by the range form whatever their numbers.
-                assertEquals("$name: the edge check's first call", EDGE_TOUCH, edgeAfter[0].call.toString())
-                assertEquals("$name: the edge check's press call", Opcode.INVOKE_STATIC_RANGE, edgeAfter[0].opcode)
-                assertEquals("$name: the press and view the edge check hands over",
-                    listOf(edge.parameterRegisterNumber(0), edge.parameterRegisterNumber(1)), edgeAfter[0].registers())
+                // Where the edge check has the press and the reel's view it measures in hand: first in a check
+                // of its own, its first two parameters, named by the range form whatever their numbers.
+                val entry = edgeCheck.entry
+                assertTrue("$name: an answer goes out before the press call", edgeCheck.answers.keys.all { it > entry })
+                assertEquals("$name: the edge check's press call", EDGE_TOUCH, edgeAfter[entry].call.toString())
+                assertEquals("$name: the edge check's press call's form",
+                    if (edgeCheck.view == edgeCheck.press + 1) Opcode.INVOKE_STATIC_RANGE else Opcode.INVOKE_STATIC, edgeAfter[entry].opcode)
+                assertEquals("$name: the press and view the edge check hands over", listOf(edgeCheck.press, edgeCheck.view),
+                    edgeAfter[entry].registers())
+                if (entry == 0) {
+                    assertEquals("$name: the edge check's parameters", listOf(edge.parameterRegisterNumber(0), edge.parameterRegisterNumber(1)),
+                        listOf(edgeCheck.press, edgeCheck.view))
+                }
                 assertEquals("$name: the edge check's press calls", 1, edgeAfter.count { it.call?.toString() == EDGE_TOUCH })
-                assertEquals("$name: the edge check lost its own first instruction", edgeBefore[0].opcode, edgeAfter[1].opcode)
+                assertEquals("$name: the edge check lost what came after the press call", edgeBefore[entry].opcode, edgeAfter[entry + 1].opcode)
+                assertEquals("$name: the edge check's code before the press call moved", edgeBefore.take(entry).map { it.opcode },
+                    edgeAfter.take(entry).map { it.opcode })
 
                 val speedBefore = holdSpeed.code()
                 val speedAfter = patched(holdSpeed)

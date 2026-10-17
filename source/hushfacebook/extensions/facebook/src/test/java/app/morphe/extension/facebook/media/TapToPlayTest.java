@@ -891,6 +891,125 @@ public class TapToPlayTest {
         }
     }
 
+    /** A reel start on [player] at [now]: BY_AUTOPLAY on a reel's player, as 582's reel screens send. */
+    private static boolean reelAt(Object player, long now) {
+        return TapToPlay.decide(player, Trigger.BY_AUTOPLAY.name(), true, now, "");
+    }
+
+    /** A fresh screen, brought to the front. */
+    private static Activity frontScreen() {
+        Activity screen = Robolectric.buildActivity(Activity.class).setup().get();
+        TapToPlay.activityResumed(screen);
+        return screen;
+    }
+
+    /**
+     * #106: a tile in Home's Reels row opens its reel in a screen of its own. The tap on the tile is
+     * the tap for that reel, so it plays at once, through Facebook's own restarts, whether the
+     * screen starts it with BY_AUTOPLAY or as a reel coming into view. One reel takes it.
+     */
+    @Test
+    public void aTileTapPlaysTheReelItsScreenOpens() {
+        long now = 100_000;
+        tapAt(now - 400);
+        Activity viewer = Robolectric.buildActivity(Activity.class).setup().get();
+        TapToPlay.screenCreated(viewer, now - 100);
+        TapToPlay.activityResumed(viewer);
+        Object reel = new Object();
+        assertTrue("the reel the tile opened", reelAt(reel, now + 1_500));
+        assertTrue("it plays through Facebook's own restarts", TapToPlay.armed(reel));
+        assertFalse("another reel on the same screen with no tap of its own", reelAt(new Object(), now + 1_600));
+
+        TapToPlayForTests.forget();
+        tapAt(now + 20_000);
+        TapToPlay.screenCreated(viewer, now + 20_300);
+        TapToPlay.activityResumed(viewer);
+        assertTrue("a reel coming into view on a tapped screen",
+                decide(new Object(), Trigger.BY_SHORT_FORM_VIDEO_FULLY_VISIBLE, now + 20_400));
+    }
+
+    /**
+     * The tap on the Reels tab opens no screen, so the reel it lands on still waits, and so do the
+     * tiles in the feed and anything that isn't a reel. A screen made long after a tap, one that's
+     * no longer in front, a reel past ten seconds and a swipe in between all leave the reel waiting.
+     */
+    @Test
+    public void theReelsTabTheFeedsTilesAndLateReelsStillWait() {
+        long now = 100_000;
+        Activity home = frontScreen();
+        tapAt(now - 30);
+        assertFalse("the reel the Reels tab lands on", reelAt(new Object(), now));
+        assertFalse("a tile in the feed", reelAt(new Object(), now + 50));
+
+        Activity viewer = Robolectric.buildActivity(Activity.class).setup().get();
+        TapToPlay.screenCreated(viewer, now + 100);
+        TapToPlay.activityResumed(viewer);
+        assertFalse("a Reels row tile coming into view on the tapped screen",
+                decide(new Object(), Trigger.BY_FB_SHORTS_IN_FEED_UNIT_VISIBLE, now + 2_900));
+        assertFalse("a feed video on the tapped screen isn't a reel",
+                TapToPlay.decide(new Object(), Trigger.BY_AUTOPLAY.name(), false, now + 3_000, ""));
+        TapToPlay.activityResumed(home);
+        assertFalse("back on Home, a tile in the feed", reelAt(new Object(), now + 3_100));
+        TapToPlay.activityResumed(viewer);
+        assertTrue("the tapped screen's reel still has it", reelAt(new Object(), now + 3_200));
+
+        tapAt(now + 20_000);
+        TapToPlay.screenCreated(viewer, now + 20_000 + TapToPlay.SCREEN_AFTER_TAP_MS + 1);
+        assertFalse("a screen made over two seconds after the tap", reelAt(new Object(), now + 22_100));
+
+        tapAt(now + 30_000);
+        TapToPlay.screenCreated(viewer, now + 30_100);
+        assertFalse("a reel past ten seconds", reelAt(new Object(), now + 30_100 + TapToPlay.TAPPED_SCREEN_WINDOW_MS + 1));
+        assertFalse("and it's gone after that", reelAt(new Object(), now + 30_200));
+
+        tapAt(now + 40_000);
+        TapToPlay.screenCreated(viewer, now + 40_100);
+        TapToPlay.nonTapGesture();
+        assertFalse("a reel after a swipe", reelAt(new Object(), now + 40_500));
+    }
+
+    /** Only a fresh screen while the switch is on counts, through the activity watcher. */
+    @Test
+    public void onlyAFreshScreenWhileTheSwitchIsOnCountsAsTapped() {
+        TapToPlayForTests.tapEnded(200);
+        Activity brought = Robolectric.buildActivity(Activity.class).setup().get();
+        TapToPlay.activityCreated(brought, new Bundle());
+        TapToPlay.activityResumed(brought);
+        assertFalse("a screen brought back", autoplayedReel(new Object()));
+
+        Settings.TAP_TO_PLAY.save(false);
+        Activity whileOff = Robolectric.buildActivity(Activity.class).setup().get();
+        TapToPlay.activityCreated(whileOff, null);
+        Settings.TAP_TO_PLAY.save(true);
+        TapToPlay.activityResumed(whileOff);
+        assertFalse("a screen made while the switch was off", autoplayedReel(new Object()));
+
+        TapToPlayForTests.tapEnded(200);
+        Activity fresh = Robolectric.buildActivity(Activity.class).setup().get();
+        TapToPlay.activityCreated(fresh, null);
+        TapToPlay.activityResumed(fresh);
+        assertTrue("a fresh screen a tap opened", autoplayedReel(new Object()));
+    }
+
+    /** With Only the first reel waits on, the reel a tile opened counts as the played one. */
+    @Test
+    public void aTilesReelStartsARun() {
+        Settings.TAP_TO_PLAY_REELS_AFTER_FIRST.save(true);
+        try {
+            long now = 100_000;
+            tapAt(now - 300);
+            Activity viewer = Robolectric.buildActivity(Activity.class).setup().get();
+            TapToPlay.screenCreated(viewer, now - 100);
+            TapToPlay.activityResumed(viewer);
+            assertTrue("the reel the tile opened", reelAt(new Object(), now + 800));
+            TapToPlay.nonTapGesture();
+            TapClock.forget();
+            assertTrue("the reel swiped to next", reelAt(new Object(), now + 3_000));
+        } finally {
+            Settings.TAP_TO_PLAY_REELS_AFTER_FIRST.resetToDefault();
+        }
+    }
+
     /** The control: with Only the first reel waits off, every reel's BY_AUTOPLAY start waits. */
     @Test
     public void withTheSwitchOffEveryAutoplayedReelWaits() {

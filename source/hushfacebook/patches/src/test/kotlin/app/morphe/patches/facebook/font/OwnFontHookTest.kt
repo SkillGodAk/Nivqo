@@ -694,6 +694,8 @@ class OwnFontHookTest {
             move-result-object v5
             invoke-virtual { v5, v1 }, $SET_INCLUDE_PAD
             move-result-object v5
+            invoke-virtual { v5 }, $BUILD_LAYOUT
+            move-result-object v6
             invoke-static/range { v0 .. v7 }, $boring
             move-result-object v8
             const/4 v8, 0x0
@@ -705,13 +707,14 @@ class OwnFontHookTest {
         val context = PatchContexts.of(
             listOf(robotoClass(type, method), robotoClass(extension, staticMethod(extension, registers = 9, params = emptyList(), body = body))),
         )
-        assertEquals(listOf(OBTAIN_LAYOUT, SET_INCLUDE_PAD, boring), context.hookTextLayouts())
+        val sent = listOf(OBTAIN_LAYOUT, SET_INCLUDE_PAD, BUILD_LAYOUT, boring)
+        assertEquals(sent, context.hookTextLayouts())
 
         val calls = context.mutableClassDefBy(type).methods.single().implementation!!.instructions
             .filter { it.opcode.name.startsWith("invoke") }
-        assertEquals(listOf(OBTAIN_LAYOUT, SET_INCLUDE_PAD, boring).map(LAYOUT_CALLS::getValue), calls.map(::reference))
-        assertEquals(listOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE), calls.map { it.opcode })
-        assertEquals(listOf((0..4).toList(), listOf(5, 1), (0..7).toList()), calls.map { call ->
+        assertEquals(sent.map(LAYOUT_CALLS::getValue), calls.map(::reference))
+        assertEquals(listOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE), calls.map { it.opcode })
+        assertEquals(listOf((0..4).toList(), listOf(5, 1), listOf(5), (0..7).toList()), calls.map { call ->
             when (call) {
                 is RegisterRangeInstruction -> (call.startRegister until call.startRegister + call.registerCount).toList()
                 else -> (call as FiveRegisterInstruction).let {
@@ -721,8 +724,109 @@ class OwnFontHookTest {
         })
         assertEquals("nothing else moved", method.implementation!!.instructions.size,
             context.mutableClassDefBy(type).methods.single().implementation!!.instructions.size)
-        assertEquals("the extension keeps Android's calls", listOf(OBTAIN_LAYOUT, SET_INCLUDE_PAD, boring),
+        assertEquals("the extension keeps Android's calls", sent,
             context.mutableClassDefBy(extension).methods.single().implementation!!.instructions.mapNotNull(::layoutCall))
+    }
+
+    /**
+     * A line-height span's chooseHeight, the even split Facebook's set line heights use: the
+     * shortfall comes off the ascent and the descent alike, and the first line's top and the last
+     * line's bottom go to the new edges. v6 is this, v7 the text, v8 the start, v9 the end, v12 the
+     * metrics.
+     */
+    private fun lineHeightSpan(type: String) = MutableMethod(
+        ImmutableMethod(
+            type, "chooseHeight",
+            listOf("Ljava/lang/CharSequence;", "I", "I", "I", "I", "Landroid/graphics/Paint\$FontMetricsInt;").map {
+                ImmutableMethodParameter(it, null, null)
+            },
+            "V", AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null,
+            ImmutableMethodImplementation(13, emptyList(), null, null),
+        ),
+    ).apply {
+        addInstructionsWithLabels(
+            0,
+            """
+                iget v1, v6, $type->height:I
+                iget v2, v12, Landroid/graphics/Paint${'$'}FontMetricsInt;->ascent:I
+                iget v3, v12, Landroid/graphics/Paint${'$'}FontMetricsInt;->descent:I
+                sub-int v0, v3, v2
+                sub-int/2addr v1, v0
+                div-int/lit8 v1, v1, 0x2
+                sub-int/2addr v2, v1
+                add-int/2addr v3, v1
+                iput v2, v12, Landroid/graphics/Paint${'$'}FontMetricsInt;->ascent:I
+                iput v3, v12, Landroid/graphics/Paint${'$'}FontMetricsInt;->descent:I
+                if-nez v8, :middle
+                iput v2, v12, Landroid/graphics/Paint${'$'}FontMetricsInt;->top:I
+                :middle
+                invoke-interface { v7 }, Ljava/lang/CharSequence;->length()I
+                move-result v0
+                if-ne v9, v0, :done
+                iput v3, v12, Landroid/graphics/Paint${'$'}FontMetricsInt;->bottom:I
+                :done
+                return-void
+            """.trimIndent(),
+        )
+    }
+
+    /**
+     * Through the patcher: a line-height span's writes of the first line's top and the last line's
+     * bottom become the extension's stand-ins on the write's own two registers, one instruction for
+     * one, so the jump to the top's write lands on its stand-in and the one past it on what followed
+     * (#96). Its writes of the ascent and descent stay, as does the extension's own span.
+     */
+    @Test
+    fun `a line-height span's top and bottom writes go to the extension`() {
+        val type = "Lfixture/LineHeight;"
+        val extension = "Lapp/morphe/extension/facebook/font/Stub;"
+        val before = lineHeightSpan(type).implementation!!.instructions.toList()
+        val context = PatchContexts.of(listOf(robotoClass(type, lineHeightSpan(type)), robotoClass(extension, lineHeightSpan(extension))))
+        assertEquals(2, context.hookLineHeights())
+
+        val after = context.mutableClassDefBy(type).methods.single().implementation!!.instructions.toList()
+        assertEquals("one instruction for one", before.size, after.size)
+        val writes = before.indices.filter { lineEdgeWrite(before[it]) != null }
+        assertEquals(listOf(11, 15), writes)
+        for (index in before.indices) {
+            if (index in writes) continue
+            assertEquals("instruction $index", before[index].opcode, after[index].opcode)
+        }
+        assertEquals(LINE_EDGES.values.toList(), writes.map { reference(after[it]) })
+        assertEquals(listOf(listOf(2, 12), listOf(3, 12)), writes.map { index ->
+            (after[index] as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD).take(it.registerCount) }
+        })
+        assertEquals(listOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC), writes.map { after[it].opcode })
+        assertEquals("the ascent and descent writes stay", 2, after.count { it.opcode == Opcode.IPUT })
+
+        val addresses = after.runningFold(0) { at, instruction -> at + instruction.codeUnits }
+        fun target(index: Int) = addresses.indexOf(addresses[index] + (after[index] as OffsetInstruction).codeOffset)
+        assertEquals("the jump past the top lands on length()", 12, target(10))
+        assertEquals("the jump past the bottom lands on the return", 16, target(14))
+
+        assertEquals("the extension's span keeps its writes", 2,
+            context.mutableClassDefBy(extension).methods.single().implementation!!.instructions.count { lineEdgeWrite(it) != null })
+    }
+
+    /** A build whose spans never set a line's edges has moved its line heights somewhere the patch doesn't know. */
+    @Test
+    fun `a build without a line-height span stops the patch`() {
+        val type = "Lfixture/TextLayout;"
+        val method = staticMethod(type, registers = 1, params = emptyList(), body = """
+            const/4 v0, 0x0
+            return-object v0
+        """)
+        assertThrows(PatchException::class.java) { PatchContexts.of(listOf(robotoClass(type, method))).hookLineHeights() }
+    }
+
+    /** Both line edge stand-ins are public static methods of the extension's OwnFont, at those very signatures. */
+    @Test
+    fun `the extension has each line edge stand-in the patch calls`() {
+        val own = ExtensionDex.classDef(OWN_FONT).methods
+            .filter { AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) }
+            .map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+            .toSet()
+        for (call in LINE_EDGES.values) assertTrue(call, call in own)
     }
 
     /** A build that never sets the padding on a layout builder has moved its text somewhere the patch doesn't know. */

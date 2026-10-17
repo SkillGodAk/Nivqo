@@ -228,16 +228,16 @@ public class SettingsL10nTest {
     }
 
     /**
-     * The row listing what Pause can't reach is built from pieces: the items, the language's own
-     * "and", and a sentence around them. In each language it has to start with a capital, carry
-     * every item, and switch to the plural sentence past one item.
+     * The row listing what Pause can't reach is built from pieces: a line saying why, a line per
+     * item and a line on ruling one out. In each language it has to carry every item translated,
+     * and switch to the plural lines past one item.
      */
     @Test
-    public void theStaysRowReadsAsOneSentenceInEveryLanguage() {
-        String one = "%1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch "
-                + "again and leave out that patch.";
-        String other = "%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, "
-                + "patch again and leave out the patch in brackets after it.";
+    public void theStaysRowListsEveryItemInEveryLanguage() {
+        String one = "Set when you patched, so Pause can't turn it off:\n%1$s\nTo rule it out, patch again and leave "
+                + "out its patch.";
+        String other = "Set when you patched, so Pause can't turn these off:\n%1$s\nTo rule one out, patch again and "
+                + "leave out its patch.";
         String[][] languages = {{"en", null}, {"de", "de"}, {"es", "es"}, {"in-rID", "in"}, {"pt-rBR", "pt-rbr"},
                 {"tr", "tr"}, {"zh-rTW", "zh-rtw"}};
         for (String[] language : languages) {
@@ -247,26 +247,23 @@ public class SettingsL10nTest {
             String single = PatchFamily.staysWhilePausedSummary(EnumSet.of(PatchFamily.AD_PREFETCH));
             String item = row(table, PatchFamily.AD_PREFETCH.staysWhilePaused);
             assertNotNull(single);
-            int first = single.codePointAt(0);
-            boolean uncased = Character.toUpperCase(first) == Character.toLowerCase(first);
-            assertTrue(language[0] + " doesn't start with a capital or uncased letter: " + single,
-                    Character.isUpperCase(first) || uncased);
-            assertTrue(language[0] + " lost its item: " + single,
-                    single.toLowerCase(Locale.ROOT).contains(item.toLowerCase(Locale.ROOT).substring(1)));
+            assertTrue(language[0] + " lost its item: " + single, single.contains("\n• " + item + " ("));
             // One item takes the language's own form for one: Indonesian has none and takes the other.
             String singleFrame = "one".equals(android.icu.text.PluralRules.forLocale(L10n.locale()).select(1))
                     ? row(table, one) : row(table, other);
-            String singleTail = singleFrame.substring(singleFrame.indexOf("%1$s") + 4);
-            String pluralTail = row(table, other).substring(row(table, other).indexOf("%1$s") + 4);
-            assertTrue(language[0] + ": " + single, single.endsWith(singleTail));
+            String pluralFrame = row(table, other);
+            int at = singleFrame.indexOf("%1$s");
+            assertTrue(language[0] + ": " + single, single.startsWith(singleFrame.substring(0, at)));
+            assertTrue(language[0] + ": " + single, single.endsWith(singleFrame.substring(at + 4)));
 
             String all = PatchFamily.staysWhilePausedSummary(EnumSet.allOf(PatchFamily.class));
-            assertTrue(language[0] + ": " + all, all.endsWith(pluralTail));
+            at = pluralFrame.indexOf("%1$s");
+            assertTrue(language[0] + ": " + all, all.startsWith(pluralFrame.substring(0, at)));
+            assertTrue(language[0] + ": " + all, all.endsWith(pluralFrame.substring(at + 4)));
             for (PatchFamily family : PatchFamily.values()) {
                 if (family.staysWhilePaused == null) continue;
-                String part = row(table, family.staysWhilePaused).toLowerCase(Locale.ROOT);
                 assertTrue(language[0] + " lost " + family + ": " + all,
-                        all.toLowerCase(Locale.ROOT).contains(part.substring(1)));
+                        all.contains("\n• " + row(table, family.staysWhilePaused)));
             }
         }
     }
@@ -292,7 +289,8 @@ public class SettingsL10nTest {
         for (String language : new String[]{"en", "de", "es", "in-rID", "pt-rBR", "tr", "zh-rTW"}) {
             RuntimeEnvironment.setQualifiers("+" + language);
             for (PatchFamily family : PatchFamily.values()) {
-                if (family.staysWhilePaused == null) continue;
+                // An item that is its patch's name has no brackets to repeat it in.
+                if (family.staysWhilePaused == null || family.staysWhilePaused.equals(family.patchName)) continue;
                 String shown = PatchFamily.staysWhilePausedSummary(EnumSet.of(family));
                 if (repeatsItsName(shown, family.patchName)) repeats.add(language + ": " + shown);
             }
@@ -311,8 +309,10 @@ public class SettingsL10nTest {
         String lower = shown.toLowerCase(Locale.ROOT);
         int count = 0;
         for (int at = lower.indexOf(name); at >= 0; at = lower.indexOf(name, at + 1)) count++;
+        // The item's own line: the words around the list aren't the item's.
+        int start = Math.max(0, shown.lastIndexOf("• ", bracket));
         Set<String> itemWords = new java.util.HashSet<>(Arrays.asList(
-                shown.substring(0, bracket).toLowerCase(Locale.ROOT).split("[^\\p{L}\\p{N}-]+")));
+                shown.substring(start, bracket).toLowerCase(Locale.ROOT).split("[^\\p{L}\\p{N}-]+")));
         return count > 1 || itemWords.containsAll(Arrays.asList(name.split(" ")));
     }
 
@@ -548,8 +548,8 @@ public class SettingsL10nTest {
      * try can end.
      */
     private static void addReleaseCheckText(Set<String> shown) {
-        shown.add(ReleaseCheck.statusLine("0.2.0", "583.0.0.40.70", "0.1.8", "582.0.0.50.54"));
-        shown.add(ReleaseCheck.statusLine("0.1.8", "582.0.0.50.54", "0.1.8", "581.0.0.45.58"));
+        shown.add(ReleaseCheck.statusLine("0.2.0", "584.0.0.40.70", "0.1.8", "583.0.0.39.55"));
+        shown.add(ReleaseCheck.statusLine("0.1.8", "583.0.0.39.55", "0.1.8", "582.0.0.50.54"));
         shown.add(ReleaseCheck.checkingSummary());
         shown.add(ReleaseCheck.idleSummary());
         for (ReleaseCheck.Result result : ReleaseCheck.Result.values()) {

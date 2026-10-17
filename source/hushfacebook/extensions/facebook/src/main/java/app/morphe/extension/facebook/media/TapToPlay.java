@@ -54,6 +54,12 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  *       ago, the trigger is BY_USER, and nothing else has let a start through or moved on since
  *       ({@link #activityCreated}). Facebook's video player opens a shared video from a browser
  *       with BY_USER and no tap, and it has no play button of its own to tap.</li>
+ *   <li>The start is a reel's (BY_SHORT_FORM_VIDEO_FULLY_VISIBLE, or BY_AUTOPLAY on a reel's
+ *       player), it's the first one on a Facebook screen a tap opened no more than
+ *       {@link #TAPPED_SCREEN_WINDOW_MS} ago, that screen is in front, and nothing has been swiped
+ *       since ({@link #activityCreated}). A tile in Home's Reels row, or a reel in the feed, opens
+ *       its reel in a screen of its own, so the tap on it is the tap for that reel (#106). The
+ *       Reels tab opens no screen, so its first reel still waits, and so do the tiles in the feed.</li>
  *   <li>The Facebook screen last brought to the front shows in a picture-in-picture window
  *       ({@link #inPictureInPicture}). Android keeps every tap on that window for its own buttons,
  *       and Facebook pauses the player on its way in and starts it again in the window, so a start
@@ -88,6 +94,15 @@ public final class TapToPlay {
      * counts as the one that link asked for. A cold start and a slow network both fit.
      */
     static final long LINK_WINDOW_MS = 15_000;
+
+    /** How long after a tap ends a Facebook screen made fresh still counts as the one that tap opened. */
+    static final long SCREEN_AFTER_TAP_MS = 2000;
+
+    /**
+     * How long after a tap opens a screen the first reel start on it still counts as the one the
+     * tap asked for. A cold reel viewer and a slow network both fit.
+     */
+    static final long TAPPED_SCREEN_WINDOW_MS = 10_000;
 
     /**
      * How long after the picture-in-picture window opens back out into Facebook the reel it played
@@ -146,6 +161,10 @@ public final class TapToPlay {
     private static final AtomicLong LINK_OPENED_AT = new AtomicLong(NO_LINK);
     /** The Facebook screen last brought to the front. */
     private static volatile WeakReference<Activity> front = new WeakReference<>(null);
+    /** The Facebook screen a tap last opened, weakly, until its first reel start takes it. */
+    private static volatile WeakReference<Activity> tappedScreen = new WeakReference<>(null);
+    /** When a tap opened {@link #tappedScreen}, on the uptime clock. */
+    private static volatile long tappedScreenAt;
     /** The player whose last held start was a reel's own, weakly. A tap that plays it starts a run. */
     private static volatile WeakReference<Object> heldReel = new WeakReference<>(null);
     /** Whether a run of reels is going: a tap played a waiting reel, and nothing was held since. */
@@ -268,6 +287,7 @@ public final class TapToPlay {
     public static void activityCreated(Activity activity, @Nullable Bundle state) {
         try {
             if (state != null || !on()) return;
+            screenCreated(activity, SystemClock.uptimeMillis());
             Intent intent = activity.getIntent();
             if (intent == null || !Intent.ACTION_VIEW.equals(intent.getAction()) || intent.getData() == null) return;
             Uri referrer = activity.getReferrer();
@@ -280,6 +300,38 @@ public final class TapToPlay {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.TAP_TO_PLAY, "link opened", failure);
         }
+    }
+
+    /**
+     * Records [activity], made fresh at [now], as the screen a tap opened when a tap ended no more
+     * than {@link #SCREEN_AFTER_TAP_MS} before. A tile in Home's Reels row and a reel in the feed
+     * open their reel in a screen of its own, so the first reel start there can be that tap's.
+     */
+    static void screenCreated(Activity activity, long now) {
+        long sinceTap = TapClock.msSinceTap(now);
+        if (activity == null || sinceTap < 0 || sinceTap > SCREEN_AFTER_TAP_MS) return;
+        tappedScreen = new WeakReference<>(activity);
+        tappedScreenAt = now;
+        String screen = activity.getClass().getSimpleName();
+        Logger.diagnosticDebug(DiagnosticCategory.OTHER, SOURCE, () -> "Tap to play: a tap opened " + screen
+                + ", so its first reel in the next " + TAPPED_SCREEN_WINDOW_MS / 1000 + " s plays");
+    }
+
+    /**
+     * Whether the screen a tap opened is in front at [now] and its first reel start is still
+     * waiting. Taking it leaves none, and so does a screen past its window.
+     */
+    private static boolean takeTappedScreen(long now) {
+        Activity screen = tappedScreen.get();
+        if (screen == null || screen != front.get()) return false;
+        long at = tappedScreenAt;
+        dropTappedScreen();
+        return now >= at && now - at <= TAPPED_SCREEN_WINDOW_MS;
+    }
+
+    /** Forgets the screen a tap opened: its reel started, or the person moved on. */
+    private static void dropTappedScreen() {
+        tappedScreen = new WeakReference<>(null);
     }
 
     /** Records a link from another app opening a screen at [now]. */
@@ -304,11 +356,12 @@ public final class TapToPlay {
 
     /**
      * A swipe keeps the current video armed, but the next bind must wait for its own start, and a
-     * link still waiting is dropped: the person moved on from what it opened.
+     * link or a tapped screen still waiting is dropped: the person moved on from what it opened.
      */
     static void nonTapGesture() {
         ARMED.expireBindGrace();
         dropLink();
+        dropTappedScreen();
     }
 
     /**
@@ -430,23 +483,31 @@ public final class TapToPlay {
         boolean recentTap = sinceTap >= 0 && sinceTap <= TAP_WINDOW_MS;
         boolean tapped = recentTap && !visibilityDriven(trigger) && !autoplayedReel;
         // A tap or a control is the person at work, so a link waiting is no longer what started
-        // this. An armed player's own restart leaves it for the player the link opened.
+        // this. An armed player's own restart leaves it for the player the link opened. A tapped
+        // screen stays: the tap that opened it can start a player behind it on its way out.
         if (tapped || control) dropLink();
         boolean inWindow = inPictureInPicture();
         boolean window = !armed && !control && !tapped && inWindow;
         boolean back = !armed && !control && !tapped && !inWindow && backFromWindow(player, now);
         boolean linked = !armed && !control && !tapped && !window && !back && BY_USER.equals(trigger) && takeLink(now);
+        boolean reelStart = REEL_IN_VIEW.equals(trigger) || autoplayedReel;
+        // A tile in Home's Reels row opens its reel in a screen of its own: that tap was for this reel (#106).
+        boolean opened = !armed && !control && !tapped && !window && !back && !linked && reelStart
+                && takeTappedScreen(now);
         // A swipe forgets the last tap, so a reel that starts right after one came from that tap, on
         // the Reels tab say, not from swiping through Reels, and it waits.
-        boolean run = !armed && !control && !tapped && !window && !back && !linked && reelRun && !recentTap
-                && (REEL_IN_VIEW.equals(trigger) || autoplayedReel) && Settings.TAP_TO_PLAY_REELS_AFTER_FIRST.get();
-        boolean allowed = armed || control || linked || tapped || window || back || run;
+        boolean run = !armed && !control && !tapped && !window && !back && !linked && !opened && reelRun && !recentTap
+                && reelStart && Settings.TAP_TO_PLAY_REELS_AFTER_FIRST.get();
+        boolean allowed = armed || control || linked || tapped || window || back || opened || run;
         if (allowed && (!armed || control)) ARMED.arm(player, now);
         if (allowed && inWindow && player != null) windowPlayer = new WeakReference<>(player);
         noteReelRun(player, autoplayedReel || trigger != null && trigger.startsWith(REEL_TRIGGERS), allowed,
                 tapped || control);
+        // The tile's tap played this reel, as a tap on a waiting reel does, so the reels after it can follow.
+        if (opened) reelRun = true;
         logDecision(allowed, trigger, sinceTap, armed, linked ? path + " (a link asked for it)"
                 : window ? path + " (in picture-in-picture)" : back ? path + " (back from picture-in-picture)"
+                : opened ? path + " (a reel a tap opened)"
                 : run ? path + " (a reel after one you played)"
                 : autoplayedReel ? path + " (a reel)" : path);
         return allowed;
@@ -582,6 +643,8 @@ public final class TapToPlay {
         reelRun = false;
         forgetWindow();
         LINK_OPENED_AT.set(NO_LINK);
+        dropTappedScreen();
+        tappedScreenAt = 0;
         synchronized (LOG_LOCK) {
             decisions = 0;
             allowedSinceSummary = 0;

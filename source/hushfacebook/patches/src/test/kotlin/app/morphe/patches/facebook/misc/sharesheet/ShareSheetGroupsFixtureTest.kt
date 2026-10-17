@@ -95,12 +95,17 @@ class ShareSheetGroupsFixtureTest {
                 fun Instruction.buildsButton() = called()?.startsWith("$FDS_BUTTON-><init>(") == true
                 assertEquals("$name: the footer builds two FDSButtons, Send to group then send", 2,
                     footerCode.count { it.buildsButton() })
-                if (version == "582.0.0.50.54") {
-                    // Positive control: 582 loads its "Send to group" label, string 0x7f144406 in the
-                    // English pack it unpacks to app_strings, a few instructions before the first FDSButton.
+                if (version == "583.0.0.39.55") {
+                    // Positive control: 583 loads its "Send to group" label, string 0x7f144794, beside
+                    // the one that takes the number of picks, 0x7f144795, a few instructions before the
+                    // first FDSButton. 582's was 0x7f144406. The shift between the builds' tables is 910
+                    // by the locale packs both ship; 583's English pack is SuperPack only, so the
+                    // unpacked table is the check still owed.
                     val built = footerCode.indexOfFirst { it.buildsButton() }
+                    assertTrue("$name: the footer never loads the Send to group label",
+                        footerCode.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == 0x7f144794 })
                     assertTrue("$name: the first FDSButton isn't the one labelled Send to group",
-                        footerCode.subList(0, built).takeLast(40).any { (it as? NarrowLiteralInstruction)?.narrowLiteral == 0x7f144406 })
+                        footerCode.subList(0, built).takeLast(40).any { (it as? NarrowLiteralInstruction)?.narrowLiteral == 0x7f144795 })
                 }
 
                 val bodies = renders(bundle, SHARE_BODY_ANCHOR)

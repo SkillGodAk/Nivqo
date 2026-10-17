@@ -198,11 +198,43 @@ public final class PhotoSave {
     }
 
     /**
+     * The address a save of the one image [image] takes, for a story's photo (#38), which has a
+     * single image rather than a photo's set: the CDN's copy at the most the CDN serves it, when
+     * the modifier gives one that asks for more pixels than [image] holds (its stated size, else the
+     * size its address asks for), and its own address otherwise. Null when it has no address.
+     */
+    @Nullable
+    static String fullSize(@Nullable Object image) {
+        String own = PostDetails.string(image, URI);
+        if (own == null || own.isEmpty()) return null;
+        if (!PhotoFormat.readsAvif()) return own;
+        // A failure here is the story save's, so it's reported under Download any story.
+        String resized = resized(own, FamilyNames.STORY_DOWNLOAD, "the story's own copy goes");
+        if (resized == null) return own;
+        long held = area(image);
+        if (held == 0) held = askedArea(own);
+        if (askedArea(resized) <= held) return own;
+        Logger.diagnosticDebug(DiagnosticCategory.DOWNLOADS, SOURCE,
+            () -> "a story's photo: the CDN's copy at " + askedSize(resized) + " goes, over its own " + askedSize(own));
+        return resized;
+    }
+
+    /**
      * [address] as the modifier rewrites it to ask for the most the CDN serves it at, or null when
-     * it names no such most, the modifier changes nothing, or it fails. Never throws.
+     * it names no such most, the modifier changes nothing, or it fails. Never throws. A failure is
+     * Save photo on a post's, under Download any photo.
      */
     @Nullable
     static String resized(@Nullable String address) {
+        return resized(address, FamilyNames.PHOTO_DOWNLOAD, "the largest copy goes");
+    }
+
+    /**
+     * {@link #resized(String)} for the save of [family], the patch a failure is reported under,
+     * whose save then takes what [instead] says.
+     */
+    @Nullable
+    static String resized(@Nullable String address, String family, String instead) {
         if (address == null || address.isEmpty()) return null;
         try {
             Uri uri = Uri.parse(address);
@@ -213,9 +245,9 @@ public final class PhotoSave {
             Uri answer = forced != null ? forced.resize(uri, most[0], most[1]) : cdnResized(uri, most[0], most[1]);
             return answer == null || answer.equals(uri) ? null : answer.toString();
         } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.PHOTO_DOWNLOAD, "photo address modifier", t);
+            HookStatus.threw(family, "photo address modifier", t);
             Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE,
-                () -> "Facebook's photo address modifier failed, so the largest copy goes", t);
+                () -> "Facebook's photo address modifier failed, so " + instead, t);
             return null;
         }
     }

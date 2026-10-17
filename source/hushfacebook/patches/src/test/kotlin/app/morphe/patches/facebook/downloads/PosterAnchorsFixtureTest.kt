@@ -6,6 +6,7 @@ package app.morphe.patches.facebook.downloads
 
 import app.morphe.Fixtures
 import app.morphe.patches.facebook.downloads.reel.isSidebarBuilder
+import app.morphe.patches.facebook.downloads.reel.rendersThrough
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -107,7 +108,9 @@ class PosterAnchorsFixtureTest {
      * reads: each hash goes to BaseModelWithTree.getCachedString, directly or through a static
      * helper, and that falls through to the TreeJNI.getString PostDetails calls. So `{owner}` and
      * `{owner_id}` come off the same tree. (On 580 the model is a shared generic one whose tree
-     * copies read both fields through such helpers.)
+     * copies read both fields through such helpers. On 583 GraphQLActor keeps no getter for
+     * either, and the methods taking one read them, through helpers that take any tree and load
+     * the hash themselves.)
      */
     @Test
     fun `every declared build's actor model reads the poster's name and id as strings off its tree`() {
@@ -127,21 +130,44 @@ class PosterAnchorsFixtureTest {
                 assertTrue("$name: $CACHED_STRING doesn't fall through to $TREE_JNI->getString",
                     calls(cached).any { it.definingClass == TREE_JNI && it.name == "getString" })
 
-                val handedTo = POSTER_FIELDS.mapValues { (_, hash) -> callsAfter(model, hash) }
-                val helpers = FixtureDex.classes(bundle, handedTo.values.flatten().map { it.definingClass }.toSet())
+                val own = POSTER_FIELDS.mapValues { (_, hash) -> callsAfter(model.methods, hash) }
+                // 583 keeps neither getter on the model: Redex moved them out to static readers that
+                // take it (arm64 LX/NxO;->A00 reads the name off a GraphQLActor parameter, and its id
+                // through LX/19E;->A0i(BaseModelWithTree), which loads the hash itself). So when the
+                // model's own methods read a field nowhere, the methods taking the model are read too,
+                // with the one-tree string helpers they call.
+                val readers = if (own.values.all { it.isNotEmpty() }) emptyList() else {
+                    FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == actor } }) { method ->
+                        method.parameterTypes.any { it.toString() == actor }
+                    }
+                }
+                val treeReaders = readers.flatMap(::calls).filter {
+                    it.returnType == STRING && it.parameterTypes.map(CharSequence::toString).let { types -> types == listOf(actor) || types == listOf(BASE_MODEL) }
+                }.distinctBy { it.toString() }
+                val handedTo = POSTER_FIELDS.mapValues { (field, hash) -> own.getValue(field) + callsAfter(readers, hash) }
+                val helpers = FixtureDex.classes(bundle, (handedTo.values.flatten() + treeReaders).map { it.definingClass }.toSet())
+                fun resolve(reference: MethodReference) = helpers[reference.definingClass]?.methods?.singleOrNull {
+                    it.name == reference.name && it.parameterTypes.map(CharSequence::toString) == reference.parameterTypes.map(CharSequence::toString)
+                }
                 fun readsString(reference: MethodReference): Boolean {
                     if (reference.name == CACHED_STRING && reference.returnType == STRING) return true
-                    val helper = helpers[reference.definingClass]?.methods?.singleOrNull {
-                        it.name == reference.name && it.parameterTypes.map(CharSequence::toString) == reference.parameterTypes.map(CharSequence::toString)
-                    } ?: return false
+                    val helper = resolve(reference) ?: return false
                     return AccessFlags.STATIC.isSet(helper.accessFlags) &&
                         calls(helper).any { it.definingClass == BASE_MODEL && it.name == CACHED_STRING }
                 }
+                /** A static one-tree helper loading [hash] and handing it to getCachedString. */
+                fun readsHash(reference: MethodReference, hash: Int): Boolean {
+                    val helper = resolve(reference) ?: return false
+                    return AccessFlags.STATIC.isSet(helper.accessFlags) &&
+                        callsAfter(listOf(helper), hash).any { it.name == CACHED_STRING && it.returnType == STRING }
+                }
                 val reads = handedTo.mapValues { (field, references) ->
-                    references.filter(::readsString).map { "${it.definingClass}->${it.name}" }.distinct().also {
-                        assertTrue("$name: $actor reads no $field (${POSTER_FIELDS[field]}) through $CACHED_STRING: " +
-                            references.map { "${it.definingClass}->${it.name}" }.distinct(), it.isNotEmpty())
-                    }
+                    val hash = POSTER_FIELDS.getValue(field)
+                    (references.filter(::readsString) + treeReaders.filter { readsHash(it, hash) })
+                        .map { "${it.definingClass}->${it.name}" }.distinct().also {
+                            assertTrue("$name: $actor reads no $field ($hash) through $CACHED_STRING: " +
+                                references.map { "${it.definingClass}->${it.name}" }.distinct(), it.isNotEmpty())
+                        }
                 }
                 checked[version] = "$actor ${reads.entries.joinToString { "${it.key} by ${it.value.take(2)}" }}"
             }
@@ -157,7 +183,9 @@ class PosterAnchorsFixtureTest {
      * component's own tree field is the reel's feedback, which knows neither.) Which registers the
      * button's block borrows there, the story's among them, DownloadReelFixtureTest pins by running
      * the patch on each build, whose own liveness pick is what reaches a device. This test doesn't
-     * count them again over a window of its own.
+     * count them again over a window of its own. The component is the class of the builder's
+     * render: the builder itself up to 582, and on 583 the render handing the builder, kept in the
+     * sidebar's spec, the scoped context and the component's fields.
      */
     @Test
     fun `every declared build hands the reel sidebar's assembly the reel's story`() {
@@ -165,13 +193,20 @@ class PosterAnchorsFixtureTest {
         for (version in versions()) {
             for (bundle in bundles(version)) {
                 val name = bundle.name
-                val builders = FixtureDex.classesHolding(bundle, SIDEBAR).flatMap { classDef ->
+                val holders = FixtureDex.classesHolding(bundle, SIDEBAR)
+                val builders = holders.flatMap { classDef ->
                     classDef.methods.filter(::isSidebarBuilder)
                         .map { classDef to it }
                 }
                 assertEquals("$name: sidebar builders ${builders.map { "${it.first.type}->${it.second.name}" }}", 1, builders.size)
-                val (component, builder) = builders.single()
-                assertEquals("$name: the sidebar builder's parameters", 1, builder.parameterTypes.size)
+                val (builderClass, builder) = builders.single()
+                val renders = if (builder.parameterTypes.size == 1) listOf(builderClass to builder) else {
+                    holders.flatMap { classDef -> classDef.methods.filter { rendersThrough(it, builder) }.map { classDef to it } }
+                }
+                assertEquals("$name: renders of ${builderClass.type}->${builder.name}: ${renders.map { "${it.first.type}->${it.second.name}" }}",
+                    1, renders.size)
+                val (component, render) = renders.single()
+                assertEquals("$name: the sidebar render's parameters", 1, render.parameterTypes.size)
 
                 val instructions = builder.implementation!!.instructions.toList()
                 val assemblyIndex = instructions.indexOfFirst { instruction ->
@@ -237,8 +272,8 @@ class PosterAnchorsFixtureTest {
             model to tag
         }
 
-    /** The method each load of [value] in [classDef] is handed to next. */
-    private fun callsAfter(classDef: ClassDef, value: Int): List<MethodReference> = classDef.methods.flatMap { method ->
+    /** The method each load of [value] in [methods] is handed to next. */
+    private fun callsAfter(methods: Iterable<Method>, value: Int): List<MethodReference> = methods.flatMap { method ->
         val instructions = method.implementation?.instructions?.toList().orEmpty()
         instructions.indices.filter { (instructions[it] as? NarrowLiteralInstruction)?.narrowLiteral == value }.mapNotNull { index ->
             instructions.drop(index + 1).firstNotNullOfOrNull { (it as? ReferenceInstruction)?.reference as? MethodReference }

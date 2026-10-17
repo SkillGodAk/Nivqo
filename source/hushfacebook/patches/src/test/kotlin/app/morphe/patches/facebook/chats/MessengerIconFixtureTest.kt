@@ -13,6 +13,7 @@ import app.morphe.patches.facebook.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.facebook.media.taptoplay.touchDispatches
 import app.morphe.patches.facebook.misc.extension.SETTINGS_STATUS
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
+import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -34,10 +35,11 @@ import org.junit.Test
  * The anchors of Open Messenger from the top bar on every declared Facebook build: one tap of the
  * top bar's Messenger icon, with the click listener handing it 0 and the long-click listener 1 in
  * the parameter the hook reads as the long press; one Messenger button handler it calls, which
- * gets that same flag in its own long-press parameter and logs "long_press" only when it's set;
- * and two locals to borrow in each. Nothing else holds both entry points, and no other static
- * method of the handler's shape loads "long_press", which is what the mutation contracts pick the
- * two by. Reads the fixture bundles from HUSHFACEBOOK_FIXTURE_DIR and skips without it.
+ * gets that same flag in its own long-press parameter and logs "long_press" only when it's set
+ * (from 583 through a helper of its class it hands the flag to); and two locals to borrow in
+ * each. Nothing else holds both entry points, and no other static method of a handler's shape
+ * logs "long_press", which is what the mutation contracts pick the two by. Reads the fixture
+ * bundles from HUSHFACEBOOK_FIXTURE_DIR and skips without it.
  */
 class MessengerIconFixtureTest {
     private val openCall = "Lapp/morphe/extension/facebook/chats/MessengerIcon;->open(Landroid/content/Context;Z)Z"
@@ -72,6 +74,23 @@ class MessengerIconFixtureTest {
             it.opcode.setsRegister() && (it as? OneRegisterInstruction)?.registerA == register
         }
 
+    /**
+     * Where [register], as read at [at] in [code], came from: back through plain moves to the move
+     * whose source nothing before it wrote. Redex reuses parameter registers as locals (582's tap
+     * moves v23 into v15 first), so a move's source is followed to wherever it was last written.
+     */
+    private fun handedFrom(code: List<Instruction>, at: Int, register: Int): Instruction? {
+        var before = at
+        var handed = lastWrite(code, before, register)
+        while (handed is TwoRegisterInstruction && handed.opcode.name.startsWith("move")) {
+            val move: Instruction = handed
+            val source = handed.registerB
+            before = code.subList(0, before).indexOfLast { it === move }
+            handed = lastWrite(code, before, source) ?: break
+        }
+        return handed
+    }
+
     /** The callers of [target] anywhere in [bundle]. */
     private fun callers(bundle: java.io.File, target: Method): List<Method> =
         FixtureDex.methodsWhere(bundle, dexFilter = { dex ->
@@ -88,8 +107,9 @@ class MessengerIconFixtureTest {
     /**
      * The patch itself, run on each build's own tap, handler and screen classes and the classes
      * Leave calls and chats to Messenger hooks. The tap and the handler ask the extension first,
-     * every touch on a Facebook screen goes to the extension before Facebook sees it, and the call
-     * pushes, the ring parse and the chat dispatcher ask before Facebook rings or notifies. Where the icon's long-click listener is off (MobileConfig builds it
+     * every touch on a Facebook screen goes to the extension before Facebook sees it, the MQTT
+     * connection gives the extension its call capability, and the call pushes, the ring parse and
+     * the chat dispatcher ask before Facebook rings or notifies. Where the icon's long-click listener is off (MobileConfig builds it
      * behind a flag, the same flag that gives the top bar's touch listener its long-press detector),
      * a press held on the icon reaches the tap as a plain click when the finger lifts, with 0 for
      * the long press, and only the touch tells the extension it was held.
@@ -132,6 +152,14 @@ class MessengerIconFixtureTest {
                 // dispatcher, once the notification is in its local, before the notifiers see it.
                 fun firstCall(method: Method, wanted: String) =
                     method.implementation!!.instructions.indexOfFirst { it.call?.toString() == wanted }
+                val mqttTarget = mqttCapabilitiesTarget(
+                    handoffClasses.single { it.type == MQTT_XPLAT_SERVICE_DELEGATE },
+                )!!
+                val mqtt = context.mutableClassDefBy(MQTT_XPLAT_SERVICE_DELEGATE).methods.single {
+                    it.name == mqttTarget.method.name && it.returnType == mqttTarget.method.returnType
+                }
+                assertEquals("$name: MQTT capabilities aren't changed at their construction",
+                    mqttTarget.constructionIndex, firstCall(mqtt, CLIENT_CAPABILITIES))
                 val voip = voipConstant(handoffClasses.single { it.type == NOTIFICATION_TYPE })!!
                 val handles = handoffClasses.filter { claimsVoip(it, voip) }.map { handler ->
                     context.mutableClassDefBy(handler.type).methods.single(::isPushHandle)
@@ -200,50 +228,54 @@ class MessengerIconFixtureTest {
                 assertTrue("$name: the long-click listener is built without a flag ahead of it ($guard)",
                     guard.opcode == Opcode.IF_EQZ && (guard as OneRegisterInstruction).registerA >= locals(builders.single()))
 
-                // The tap calls one button handler (582 through a wrapper on the handler's singleton),
-                // and hands it its own long-press parameter.
+                // The tap calls one button handler (582 and 583 through a wrapper on the handler's
+                // singleton), and hands it its own long-press parameter.
                 val handlerCalls = buttonHandlerCalls(tap).distinctBy(::key)
                 assertEquals("$name: button handlers the tap calls", 1, handlerCalls.size)
                 val owner = FixtureDex.classes(bundle, setOf(handlerCalls.single().definingClass)).values.single()
                 val handler = buttonHandler(owner, handlerCalls.single())
                     ?: throw AssertionError("$name: ${key(handlerCalls.single())} doesn't reach a button handler in its class")
-                assertTrue("$name: ${key(handler)} isn't the button handler", isButtonHandler(handler))
+                assertTrue("$name: ${key(handler)} isn't the button handler", isButtonHandler(handler, owner))
                 assertTrue("$name: the button handler has fewer than two locals", locals(handler) >= 2)
                 val tapCode = tap.implementation!!.instructions.toList()
                 val at = tapCode.indexOfFirst { it.call?.let(::key) == key(handlerCalls.single()) }
                 val receiver = if (tapCode[at].opcode.name.startsWith("invoke-static")) 0 else 1
-                // Back through plain moves to where the flag came in. Redex reuses parameter registers
-                // as locals (582's tap moves v23 into v15 first), so a move's source is followed to
-                // wherever it was last written, and the walk stops at a register nothing wrote.
-                var before = at
-                var handed = lastWrite(tapCode, before, argument(tapCode[at], BUTTON_LONG_PRESS + receiver))
-                while (handed is TwoRegisterInstruction && handed.opcode.name.startsWith("move")) {
-                    val move: Instruction = handed
-                    val source = handed.registerB
-                    before = tapCode.subList(0, before).indexOfLast { it === move }
-                    handed = lastWrite(tapCode, before, source) ?: break
-                }
+                val handed = handedFrom(tapCode, at, argument(tapCode[at], buttonLongPress(handlerCalls.single()) + receiver))
                 val tapFlag = locals(tap) + TAP_LONG_PRESS
                 assertTrue("$name: the tap hands the handler $handed, not its long press v$tapFlag",
                     handed is TwoRegisterInstruction && handed.opcode.name.startsWith("move") && handed.registerB == tapFlag)
 
-                // The handler logs "long_press" only behind a branch on its own long-press parameter.
-                val handlerCode = handler.implementation!!.instructions.toList()
-                val logged = handlerCode.indexOfFirst {
+                // "long_press" is logged only behind a branch on the long press: in the handler up
+                // to 582, and from 583 in a helper the handler hands its long press to.
+                val log = longPressLog(handler, owner)
+                    ?: throw AssertionError("$name: ${key(handler)} logs no long press")
+                val logFlag = if (log === handler) buttonLongPress(handler) else {
+                    val flags = log.parameterTypes.indices.filter { log.parameterTypes[it].toString() == "Z" }
+                    assertEquals("$name: ${key(log)}'s flags", 1, flags.size)
+                    val handlerCode = handler.implementation!!.instructions.toList()
+                    val logCall = handlerCode.indexOfFirst { it.call?.let(::key) == key(log) }
+                    val handlerFlag = handler.parameterRegisterNumber(buttonLongPress(handler))
+                    val passed = handedFrom(handlerCode, logCall, argument(handlerCode[logCall], flags.single()))
+                    assertTrue("$name: the handler hands ${key(log)} $passed, not its long press v$handlerFlag",
+                        passed is TwoRegisterInstruction && passed.opcode.name.startsWith("move") && passed.registerB == handlerFlag)
+                    flags.single()
+                }
+                val logCode = log.implementation!!.instructions.toList()
+                val logged = logCode.indexOfFirst {
                     ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == LONG_PRESS
                 }
-                val handlerFlag = locals(handler) + BUTTON_LONG_PRESS
-                assertTrue("$name: the handler logs a long press without asking v$handlerFlag",
-                    handlerCode.subList(0, logged).any {
-                        it.opcode == Opcode.IF_EQZ && (it as OneRegisterInstruction).registerA == handlerFlag
+                val flagRegister = log.parameterRegisterNumber(logFlag)
+                assertTrue("$name: ${key(log)} logs a long press without asking v$flagRegister",
+                    logCode.subList(0, logged).any {
+                        it.opcode == Opcode.IF_EQZ && (it as OneRegisterInstruction).registerA == flagRegister
                     })
 
-                // What the contracts pick the handler by: no other static method of its shape
-                // loads "long_press".
-                val shaped = FixtureDex.methodsWhere(bundle, dexFilter = { dex -> dex.stringSection.any { it == LONG_PRESS } }) {
-                    isButtonHandler(it)
+                // What the contracts pick the handler by: no other static method of a handler's
+                // shape logs "long_press" through its class.
+                val shaped = FixtureDex.classesHolding(bundle, LONG_PRESS).flatMap { classDef ->
+                    classDef.methods.filter { isButtonHandler(it, classDef) }
                 }
-                assertEquals("$name: static (Context, FbUserSession, String, Z, Z)V methods loading \"$LONG_PRESS\"",
+                assertEquals("$name: static Messenger button handlers logging \"$LONG_PRESS\"",
                     listOf(key(handler)), shaped.map(::key))
                 checked += version
             }

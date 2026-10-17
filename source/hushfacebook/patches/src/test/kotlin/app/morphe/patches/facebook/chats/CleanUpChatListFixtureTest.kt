@@ -9,6 +9,9 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patches.facebook.feed.FixtureDex
+import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.feed.namesString
+import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.SETTINGS_STATUS
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -23,6 +26,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -127,8 +131,16 @@ class CleanUpChatListFixtureTest {
 
                 // The search screen's Meta AI button: one tap opens Meta AI from the people picker right
                 // after reading its row's CallerContext, and one method of that row sets the flag to 1 once.
-                val pickerOpeners = FixtureDex.classesHolding(bundle, PEOPLE_PICKER_ENTRY)
-                val pickers = pickerOpeners.mapNotNull { opener -> pickerRowOf(opener)?.let { opener to it } }
+                // 583's 64-bit tap asks a string table for the entry, so the table's callers count too.
+                val entryHolders = FixtureDex.classesHolding(bundle, PEOPLE_PICKER_ENTRY)
+                val tables = entryHolders.associateBy { it.type }
+                val resolve: (MethodReference) -> Method? = { call -> tables[call.definingClass]?.let { resolveStatic(it, call) } }
+                val asking = FixtureDex.methodsWhere(bundle, { dex -> dex.methodSection.any { it.definingClass in tables } }) {
+                    callsMetaAiLauncher(it) && !holdsString(it, PEOPLE_PICKER_ENTRY) && namesString(it, PEOPLE_PICKER_ENTRY, resolve)
+                }
+                val pickerOpeners = (entryHolders + FixtureDex.classes(bundle, asking.map { it.definingClass }.toSet()).values)
+                    .distinctBy { it.type }
+                val pickers = pickerOpeners.mapNotNull { opener -> pickerRowOf(opener, resolve)?.let { opener to it } }
                 assertEquals("$name: Meta AI taps opening from the people picker", 1, pickers.size)
                 val (pickerOpener, pickerRowType) = pickers.single()
                 val pickerRow = FixtureDex.classes(bundle, setOf(pickerRowType))[pickerRowType]

@@ -47,7 +47,8 @@ import kotlin.math.roundToInt
  * runtime hooks give it (the hue is the nearest system tone's, where route one blends the two tones
  * either side). On Android 12 and newer that palette colour is a colour state list, which some of
  * Facebook's code can't read: it resolves the attribute and takes `TypedValue.data` as the colour, and
- * gets the file's name. Those tokens' items take the nearest system tone itself instead, as the night
+ * gets the file's name, or reads it off a styleable array with getInteger and crashes
+ * (StyleableTokens.kt). Those tokens' items take the nearest system tone itself instead, as the night
  * colours do, or stay when none is near. Night resources are only read while Facebook's dark mode is
  * on, so light mode, and the Video tab in light mode with it, keeps the default styles as they are. A
  * colour the tables don't list for its token (the logo's blue, a map's), black, white and any colour
@@ -125,6 +126,13 @@ internal var tokenAttributeNames: Map<String, String> = emptyMap()
  */
 internal var plainTokens: Set<String> = emptySet()
 
+/**
+ * The theme attributes some styleable array reads as an integer, which [integerReadAttributes]
+ * finds. The resource half follows the styles' `?attr/` aliases from them to the tokens whose night
+ * style items keep a plain colour too ([styleablePlainTokens]).
+ */
+internal var integerReadAttributeIds: Set<Int> = emptySet()
+
 /** The token enum FDSColors resolves, and its constants. */
 private fun BytecodePatchContext.fdsTokens(): Pair<ClassDef, TokenConstants> {
     val source = classDefBy(FDS_COLORS).methods.singleOrNull { method ->
@@ -150,13 +158,17 @@ internal val fdsTokenNamesPatch = bytecodePatch {
     }
 }
 
-/** Reads [tokenAttributeNames] and [plainTokens] out of the token enum FDSColors resolves. */
+/**
+ * Reads [tokenAttributeNames] and [plainTokens] out of the token enum FDSColors resolves, and
+ * [integerReadAttributeIds] out of the styleable arrays.
+ */
 internal val fdsTokenAttributesPatch = bytecodePatch {
     dependsOn(fdsTokenNamesPatch)
 
     execute {
         val (tokenClass, constants) = fdsTokens()
         plainTokens = dataReadTokens({ visit -> classDefForEach { visit(it) } }, constants, tokenAttributeField(tokenClass)).tokens
+        integerReadAttributeIds = integerReadAttributes { visit -> classDefForEach { visit(it) } }.attributes
     }
 }
 
@@ -484,7 +496,7 @@ private fun origins(
 private val MOVES = setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16, Opcode.MOVE_OBJECT,
     Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
 
-private fun Element.childElements(): List<Element> =
+internal fun Element.childElements(): List<Element> =
     (0 until childNodes.length).mapNotNull { childNodes.item(it) as? Element }
 
 /** A style element's parent by name, or null when it names none. */

@@ -15,6 +15,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -70,6 +71,89 @@ class ReturnRefreshShapesTest {
     )
 
     private fun MutableMethod.body(): List<Instruction> = implementation!!.instructions.toList()
+
+    /** A tab data fetch dispatch with [locals] locals, the owner, the data and the boolean after them. */
+    private fun dispatch(body: String, locals: Int = 3) = method(
+        body, listOf("Lfixture/Fetch;", "Lfixture/Data;", "Z"), "V", static = true, registers = locals + 3,
+    )
+
+    private val refreshCall = "invoke-virtual { p1, v2, v0 }, Lfixture/Data;->A0N(Lfixture/Cause;Ljava/lang/String;)V"
+
+    @Test
+    fun `the tab data fetch asks right before its refresh, which 583 reaches only by a jump to the cause`() {
+        // 583: the refresh's block starts with the cause, which only the jump reaches, and logs the
+        // refresh before it loads the source.
+        val hoisted = dispatch(
+            """
+                if-nez p2, :refresh
+                return-void
+                :refresh
+                sget-object v2, Lfixture/Cause;->A02:Lfixture/Cause;
+                const-string v0, "AUTO_REFRESH"
+                const-string v0, "$TAB_DATA_FETCH"
+                $refreshCall
+                return-void
+            """,
+        )
+        val found = tabAutoRefresh(hoisted)
+        assertEquals("the refresh and the free local", 5 to 1, found.refresh to found.register)
+        hoisted.holdTabAutoRefreshBeforeIt()
+        val body = hoisted.body()
+        assertEquals("Lapp/morphe/extension/facebook/feed/ReturnRefresh;->holdTabAutoRefresh()Z",
+            (body[5] as ReferenceInstruction).reference.toString())
+        assertEquals(listOf(Opcode.MOVE_RESULT, Opcode.IF_NEZ, Opcode.INVOKE_VIRTUAL),
+            body.subList(6, 9).map { it.opcode })
+        assertEquals(listOf(1, 1), listOf(body[6], body[7]).map { (it as OneRegisterInstruction).registerA })
+        val flow = ControlFlow.of(hoisted)
+        assertTrue("a yes goes past the refresh", 9 in flow.normal[7])
+        assertTrue("the jump still lands on the cause", 2 in flow.normal[0])
+
+        // 582: the cause right after the source.
+        assertEquals(3 to 1, tabAutoRefresh(dispatch(
+            """
+                const/4 v1, 0x0
+                const-string v0, "$TAB_DATA_FETCH"
+                sget-object v2, Lfixture/Cause;->A02:Lfixture/Cause;
+                $refreshCall
+                return-void
+            """,
+        )).let { it.refresh to it.register })
+
+        val refused = mapOf(
+            "a jump straight to the refresh" to dispatch(
+                """
+                    if-nez p2, :refresh
+                    const-string v0, "$TAB_DATA_FETCH"
+                    sget-object v2, Lfixture/Cause;->A02:Lfixture/Cause;
+                    :refresh
+                    $refreshCall
+                    return-void
+                """,
+            ),
+            "something else between the source and the refresh" to dispatch(
+                """
+                    const-string v0, "$TAB_DATA_FETCH"
+                    const/4 v1, 0x0
+                    $refreshCall
+                    return-void
+                """,
+            ),
+            "no local free" to dispatch(
+                """
+                    sget-object v1, Lfixture/Cause;->A02:Lfixture/Cause;
+                    const-string v0, "$TAB_DATA_FETCH"
+                    invoke-virtual { p0, v1, v0 }, Lfixture/Data;->A0N(Lfixture/Cause;Ljava/lang/String;)V
+                    return-void
+                """,
+                locals = 2,
+            ),
+        )
+        for ((shape, fetch) in refused) {
+            val count = fetch.body().size
+            assertThrows(shape, PatchException::class.java) { fetch.holdTabAutoRefreshBeforeIt() }
+            assertEquals("$shape changed", count, fetch.body().size)
+        }
+    }
 
     @Test
     fun `the warm-start check is the instance int method over a reason holding both names`() {
@@ -154,24 +238,70 @@ class ReturnRefreshShapesTest {
         }
     }
 
-    @Test
-    fun `the reset to feed's log is the static (Context, String, String) method holding both keys`() {
-        val keys = "const-string v0, \"$RESET_TO_FEED_OUTCOME\"\nconst-string v0, \"$RESET_TO_FEED_DESTINATION\"\nreturn-void"
-        val parameters = listOf(context, string, string)
-        assertTrue(isResetToFeedLog(method(keys, parameters, "V", static = true, registers = 4)))
-        assertFalse(isResetToFeedLog(method(keys, parameters, "V", static = false, registers = 5)))
-        assertFalse(isResetToFeedLog(method(keys, listOf(context, "Ljava/lang/Integer;", string), "V", static = true, registers = 4)))
-        assertFalse(isResetToFeedLog(method("const-string v0, \"$RESET_TO_FEED_OUTCOME\"\nreturn-void", parameters, "V",
-            static = true, registers = 4)))
+    /** A log writing [outcome] and [destination] under the two keys, each the way Facebook's write takes them. */
+    private fun keys(outcome: String, destination: String, before: String = "") = """
+        const/4 v0, 0x0
+        $before
+        const-string v1, "$RESET_TO_FEED_OUTCOME"
+        invoke-virtual { v0, v1, $outcome }, Lfixture/Log;->A0A(Ljava/lang/String;Ljava/lang/String;)V
+        const-string v1, "$RESET_TO_FEED_DESTINATION"
+        invoke-virtual { v0, v1, $destination }, Lfixture/Log;->A0A(Ljava/lang/String;Ljava/lang/String;)V
+        return-void
+    """
 
-        // It hands the outcome and destination, p1 and p2, to the extension first thing.
-        val log = method(keys, parameters, "V", static = true, registers = 4)
-        log.logResetToFeedFirst()
-        val first = log.body()[0] as FiveRegisterInstruction
-        assertEquals("Lapp/morphe/extension/facebook/feed/ReturnRefresh;->resetToFeed(Ljava/lang/String;Ljava/lang/String;)V",
-            (first as ReferenceInstruction).reference.toString())
-        assertEquals(listOf(2, 3), listOf(first.registerC, first.registerD).take(first.registerCount))
-        assertEquals(4, log.body().size)
+    private val resetToFeed = "Lapp/morphe/extension/facebook/feed/ReturnRefresh;->resetToFeed(Ljava/lang/String;Ljava/lang/String;)V"
+
+    @Test
+    fun `the reset to feed's log is the static Context method writing both keys from its own strings`() {
+        val parameters582 = listOf(context, string, string)
+        // 583: the runnable's exit, then the outcome and destination, then two times.
+        val parameters583 = listOf(context, string, string, string, "J", "J")
+        fun log(body: String, parameters: List<String> = parameters582, static: Boolean = true) = method(
+            body, parameters, "V", static = static, registers = 2 + parameters.sumOf { if (it == "J") 2 else 1 } + (if (static) 0 else 1),
+        )
+        assertEquals(1 to 2, resetToFeedArguments(log(keys("p1", "p2"))))
+        assertTrue(isResetToFeedLog(log(keys("p1", "p2"))))
+        assertEquals(2 to 3, resetToFeedArguments(log(keys("p2", "p3"), parameters583)))
+        assertTrue(isResetToFeedLog(log(keys("p2", "p3"), parameters583)))
+
+        assertFalse("an instance method", isResetToFeedLog(log(keys("p2", "p3"), static = false)))
+        assertFalse("no Context first", isResetToFeedLog(log(keys("p1", "p2"), listOf(string, string, string))))
+        // 583's other writers put "reset" or "none" under one of the keys.
+        assertFalse("a literal outcome", isResetToFeedLog(log(keys("v0", "p2", before = "const-string v0, \"reset\""))))
+        assertFalse("a literal destination", isResetToFeedLog(log(keys("p1", "v0", before = "const-string v0, \"none\""))))
+        assertFalse("a parameter written over first", isResetToFeedLog(log(keys("p1", "p2", before = "const-string p1, \"reset\""))))
+        assertFalse("one parameter under both keys", isResetToFeedLog(log(keys("p1", "p1"))))
+        assertFalse("only the outcome", isResetToFeedLog(log("""
+            const/4 v0, 0x0
+            const-string v1, "$RESET_TO_FEED_OUTCOME"
+            invoke-virtual { v0, v1, p1 }, Lfixture/Log;->A0A(Ljava/lang/String;Ljava/lang/String;)V
+            return-void
+        """)))
+
+        // Side by side, the outcome and destination go to the extension first thing as a range.
+        for ((parameters, body, start) in listOf(Triple(parameters582, keys("p1", "p2"), 3), Triple(parameters583, keys("p2", "p3"), 4))) {
+            val hooked = log(body, parameters)
+            val count = hooked.body().size
+            hooked.logResetToFeedFirst()
+            val first = hooked.body()[0]
+            assertEquals(Opcode.INVOKE_STATIC_RANGE, first.opcode)
+            assertEquals(resetToFeed, (first as ReferenceInstruction).reference.toString())
+            assertEquals("$parameters", start to 2, (first as RegisterRangeInstruction).let { it.startRegister to it.registerCount })
+            assertEquals(count + 1, hooked.body().size)
+        }
+
+        // Apart, they go one by one, in the order the extension takes them.
+        val apart = log(keys("p4", "p1"), listOf(context, string, "J", string))
+        apart.logResetToFeedFirst()
+        val first = apart.body()[0] as FiveRegisterInstruction
+        assertEquals(resetToFeed, (first as ReferenceInstruction).reference.toString())
+        assertEquals(listOf(6, 3), listOf(first.registerC, first.registerD).take(first.registerCount))
+
+        // A method that stopped writing them is refused, and left alone.
+        val stopped = log(keys("v0", "p2", before = "const-string v0, \"reset\""))
+        val count = stopped.body().size
+        assertThrows(PatchException::class.java) { stopped.logResetToFeedFirst() }
+        assertEquals(count, stopped.body().size)
     }
 
     @Test

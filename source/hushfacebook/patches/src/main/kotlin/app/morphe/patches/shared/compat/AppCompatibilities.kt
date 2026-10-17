@@ -42,24 +42,25 @@ internal object AppCompatibilities {
      * stable release. A newer stable build replaces it in the same release, and the one before
      * goes.
      */
-    const val FACEBOOK_TARGET_VERSION = "582.0.0.50.54"
+    const val FACEBOOK_TARGET_VERSION = "583.0.0.39.55"
 
     /**
      * The version code of the arm64-v8a build of [FACEBOOK_TARGET_VERSION] (APKMirror's
-     * 320-640dpi, Android 11+ variant). Each APKMirror variant of a Facebook release is its own
-     * build with different DEX, not a split of one bundle, so the code of the tested variant is
-     * pinned. 582 has five arm64 Android 11+ builds, with codes from 475417031 to 475417129.
+     * 480-640dpi, Android 11+ variant, the widest arm64 Android 11+ one 583 has). Each APKMirror
+     * variant of a Facebook release is its own build with different DEX, not a split of one
+     * bundle, so the code of the tested variant is pinned. 583 has four arm64 Android 11+ builds,
+     * with codes from 475614274 to 475614366.
      */
-    const val FACEBOOK_TARGET_VERSION_CODE = 475417104
+    const val FACEBOOK_TARGET_VERSION_CODE = 475614366
 
     /**
      * The version code of the armeabi-v7a build of [FACEBOOK_TARGET_VERSION] (APKMirror's 320dpi,
      * Android 11+ variant). From 581 on, the 32-bit Android 11+ builds ship their code as plain
-     * root DEX (21 files in 582) rather than a compressed Superpack store, so every patch applies
+     * root DEX (22 files in 583) rather than a compressed Superpack store, so every patch applies
      * to them. Its DEX differs from the arm64 build's, so it is a fixture of its own. The Android 8
      * armeabi-v7a builds still pack their code and stay out.
      */
-    const val FACEBOOK_TARGET_ARMV7_VERSION_CODE = 475417036
+    const val FACEBOOK_TARGET_ARMV7_VERSION_CODE = 475614365
 
     /** Facebook's own floor on every declared build, Android 11. */
     const val FACEBOOK_TARGET_MIN_SDK = 30

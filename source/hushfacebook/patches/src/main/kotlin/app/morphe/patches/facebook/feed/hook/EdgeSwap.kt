@@ -92,8 +92,9 @@ private fun Instruction.isSwap(): Boolean {
 /**
  * Where the swap guard goes in [owner], or null when it isn't the swap runnable: a Runnable whose
  * instance run() loads [EDGE_SWAP_DROPPED], [SIZE_BEFORE] and [SIZE_AFTER], casts a value to
- * GraphQLFeedUnitEdge, and makes one swap call, whose edge is that cast's value and no other. Only
- * the cast leads to the instruction after it, so no branch can go round the guard put there.
+ * GraphQLFeedUnitEdge or takes one from a call answering that type, and makes one swap call, whose
+ * edge is that value and no other. Only the cast leads to the instruction after it, so no branch
+ * can go round the guard put there.
  */
 internal fun swapGuard(owner: ClassDef): SwapGuard? {
     if (owner.interfaces.none { it.toString() == RUNNABLE }) return null
@@ -104,13 +105,22 @@ internal fun swapGuard(owner: ClassDef): SwapGuard? {
     if (listOf(EDGE_SWAP_DROPPED, SIZE_BEFORE, SIZE_AFTER).any { !holdsString(run, it) }) return null
     val code = run.implementation?.instructions?.toList() ?: return null
 
-    val cast = code.indexOfFirst {
-        it.opcode == Opcode.CHECK_CAST && (it as ReferenceInstruction).reference.toString() == FEED_UNIT_EDGE
-    }
-    if (cast < 0 || cast + 1 >= code.size) return null
-    val edge = (code[cast] as OneRegisterInstruction).registerA
     val swap = code.indices.singleOrNull { code[it].isSwap() } ?: return null
-    if (code[swap].callRegisters().getOrNull(1) != edge || swap !in run.literalReads(cast)) return null
+    val swapped = code[swap].callRegisters().getOrNull(1) ?: return null
+    // Where the incoming edge gets its type: a cast to GraphQLFeedUnitEdge, or on 583's armeabi-v7a
+    // build the result of a getter already answering one. Exactly one of them reaches the swap.
+    val cast = code.indices.filter { index ->
+        val instruction = code[index]
+        val typed = when (instruction.opcode) {
+            Opcode.CHECK_CAST -> (instruction as ReferenceInstruction).reference.toString() == FEED_UNIT_EDGE
+            Opcode.MOVE_RESULT_OBJECT ->
+                ((code.getOrNull(index - 1) as? ReferenceInstruction)?.reference as? MethodReference)?.returnType == FEED_UNIT_EDGE
+            else -> false
+        }
+        typed && (instruction as OneRegisterInstruction).registerA == swapped && swap in run.literalReads(index)
+    }.singleOrNull() ?: return null
+    if (cast + 1 >= code.size) return null
+    val edge = swapped
     // No other write to the edge's register reaches the swap: the edge swapped in is the one cast.
     val otherEdges = code.indices.filter { index ->
         val instruction = code[index]

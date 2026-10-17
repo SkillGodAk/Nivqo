@@ -54,8 +54,9 @@ import java.util.Set;
  * by instruction.
  *
  * <p>The host stands in for Facebook's feed collection: {@code addNewEdgeToCollection} is where
- * the one feed guard goes, and the bundle's {@code FeedFilter.hideEdge} is the guard, under the
- * same names the contract file holds the real APK to. The bundle's two story-flag stubs are there
+ * the one feed guard goes, calling the helper the patch adds to GraphQLFeedUnitEdge, which calls
+ * the bundle's {@code FeedFilter.hideEdge}, under the same names the contract file holds the real
+ * APK to. The bundle's two story-flag stubs are there
  * under their real names too, filled the way the patches fill them: a call to GraphQLStory's
  * accessor before anything returns. And three classes stand in for the feed's two Stories tray
  * adapters and Home's composer row, each given a getItemCount() of its own in the patched builds, which calls
@@ -77,7 +78,7 @@ import java.util.Set;
  * the feed collection manager's swap runnable, whose run() holds the two sizes of its log line and
  * swaps an edge into the feed, with the feed guard's call to {@code FeedFilter.hideSwappedEdge}
  * before the swap. And the top bar's Messenger icon: its tap, holding both of its entry points,
- * and the Messenger button handler, holding "long_press", each with Open Messenger from the top
+ * and the Messenger button handler, holding "peek_state_requested", each with Open Messenger from the top
  * bar's call to {@code MessengerIcon.open} first. And the reel like helper's like, holding its
  * trace, and the feed attachment's onDoubleTap, holding "translationY", each with Turn off double
  * tap to like's call to {@code DoubleTapLike} first. And the Reels menu's speed toast, holding its
@@ -93,7 +94,7 @@ import java.util.Set;
  * refresh controller's onPause, two other methods naming both surfaces and one
  * holding the emoji provider's log tag alone, as Facebook's do, an instance method holding the
  * emoji pictures' base address, a method of the tap's shape holding one entry point and one of
- * another shape holding "long_press", a static method holding the like's trace and one holding
+ * another shape holding "peek_state_requested", a static method holding the like's trace and one holding
  * "translationY", an instance method holding the toast's selector name, and three top bar, three
  * batcher and three swap runnable
  * methods, which Facebook doesn't have, so neither the logo rule, the watch-history rule nor the
@@ -249,6 +250,9 @@ public class BadDexFixture {
             method(FEED_COLLECTION, "replace", "V", FEED_UNIT_EDGE, "Ljava/lang/String;");
     private static final ImmutableMethodReference HIDE_SWAPPED_EDGE =
             method(FILTER, "hideSwappedEdge", "Z", OBJECT, OBJECT);
+    /** The helper the feed patch adds to the edge class, which the funnel guard calls and which asks the extension. */
+    private static final ImmutableMethodReference HIDES_EDGE =
+            method(FEED_UNIT_EDGE, "hushfacebookHidesEdge", "Z", FEED_UNIT_EDGE);
     /** The two sizes the swap log line reports, which the swap rule picks the runnable by. */
     private static final List<String> SWAP_SIZES = Arrays.asList("sizeBefore", "sizeAfter");
 
@@ -360,7 +364,20 @@ public class BadDexFixture {
         return define(HOST, "addNewEdgeToCollection", "V", false, implementation, OBJECT, OBJECT);
     }
 
-    private static final ImmutableMethodImplementation CLEAN_FEED_EDGE = body(3, op(Opcode.RETURN_VOID));
+    /**
+     * A feed method's body: [instructions] with the two literals Facebook's funnel body logs loaded
+     * into v0 just before the last one, where the kept path ends. The feed guard's rules pick the
+     * method by them, and an early branch's target stays where it was.
+     */
+    private static ImmutableMethodImplementation funnelBody(int registers, Instruction... instructions) {
+        List<Instruction> list = new ArrayList<>(Arrays.asList(instructions));
+        list.addAll(list.size() - 1, Arrays.asList(
+                new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference("eof_edge_added_to_ui")),
+                new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference("FeedEdgeAddedToUi"))));
+        return new ImmutableMethodImplementation(registers, list, null, null);
+    }
+
+    private static final ImmutableMethodImplementation CLEAN_FEED_EDGE = funnelBody(3, op(Opcode.RETURN_VOID));
 
     /** Static, an object then a long: v0 the object, v1 and v2 the long. */
     private static Method staticHost(ImmutableMethodImplementation implementation) {
@@ -512,12 +529,25 @@ public class BadDexFixture {
     // The patched shapes.
 
     /** The guard as the bundle writes it: v0 free, v1 this, v2 and v3 the arguments. */
-    private static final ImmutableMethodImplementation GUARDED_FEED_EDGE = body(4,
-            invoke(HIDE_EDGE, 2, 3),   // 0
+    private static final ImmutableMethodImplementation GUARDED_FEED_EDGE = funnelBody(4,
+            invoke(HIDES_EDGE, 3),     // 0
             op(Opcode.MOVE_RESULT, 0), // 3
-            ifEqz(0, 3),               // 4 -> 7
+            ifEqz(0, 3),               // 4 -> 7, the literals funnelBody puts there
             op(Opcode.RETURN_VOID),    // 6
-            op(Opcode.RETURN_VOID));   // 7
+            op(Opcode.RETURN_VOID));   // 11
+
+    /** The edge helper as the feed patch writes it, cut down: the edge handed to the extension, its answer returned. */
+    private static final ImmutableMethodImplementation ASKED_EDGE_HELPER = body(1,
+            invoke(HIDE_EDGE, 0, 0),
+            op(Opcode.MOVE_RESULT, 0),
+            op(Opcode.RETURN, 0));
+
+    /** GraphQLFeedUnitEdge, holding only the helper the feed patch adds to it, as [implementation]. */
+    private static ClassDef feedUnitEdge(ImmutableMethodImplementation implementation) {
+        return new ImmutableClassDef(FEED_UNIT_EDGE, AccessFlags.PUBLIC.getValue() | AccessFlags.FINAL.getValue(), OBJECT,
+                null, null, null, null, Collections.singletonList(
+                        define(FEED_UNIT_EDGE, "hushfacebookHidesEdge", "Z", true, implementation, FEED_UNIT_EDGE)));
+    }
 
     /** The object twice, then the long as a pair: every register the kind the callee takes. */
     private static final ImmutableMethodImplementation GOOD_STATIC_HOST = body(3,
@@ -805,13 +835,14 @@ public class BadDexFixture {
     }
 
     /**
-     * The top bar's Messenger icon, static methods taking the context, the session, the surface
-     * and the long press, then more flags: v0 and v1 free, v2 the context and v5 the long press
-     * in each. The tap holds both entry points, with [tapPrefix] first, and the button handler,
-     * (Context, FbUserSession, String, Z, Z)V, holds "long_press", with [buttonPrefix] first.
-     * Beside them sit a method of the tap's shape holding the first entry point alone, with
-     * [entryPrefix] first, and one holding "long_press" that takes one flag fewer than the handler,
-     * with [logPrefix] first, as the other 161 methods holding it on 580 have other shapes.
+     * The top bar's Messenger icon, static methods taking the context, the session and strings,
+     * then the long press and maybe more flags: v0 and v1 free and v2 the context in each, v5 the
+     * long press in the tap's shape and v6 in the handler's. The tap holds both entry points, with
+     * [tapPrefix] first, and the button handler, 583's (Context, FbUserSession, String, String, Z,
+     * Z)V, holds "peek_state_requested", with [buttonPrefix] first. Beside them sit a method of the
+     * tap's shape holding the first entry point alone, with [entryPrefix] first, and one holding
+     * "peek_state_requested" that takes one flag fewer than the handler, with [logPrefix] first, so
+     * the rule's shape has to pick the handler.
      */
     private static ClassDef messengerBar(List<Instruction> tapPrefix, List<Instruction> entryPrefix,
             List<Instruction> buttonPrefix, List<Instruction> logPrefix) {
@@ -823,10 +854,10 @@ public class BadDexFixture {
                                 CONTEXT, FB_USER_SESSION, surface, "Z"),
                         define(MESSENGER_BAR, "tapEntry", "V", true, messengerBody(entryPrefix, 6,
                                 "entry_point_navbar_global_icon_"), CONTEXT, FB_USER_SESSION, surface, "Z"),
-                        define(MESSENGER_BAR, "button", "V", true, messengerBody(buttonPrefix, 7, "long_press"),
-                                CONTEXT, FB_USER_SESSION, surface, "Z", "Z"),
-                        define(MESSENGER_BAR, "buttonLog", "V", true, messengerBody(logPrefix, 6, "long_press"),
-                                CONTEXT, FB_USER_SESSION, surface, "Z")));
+                        define(MESSENGER_BAR, "button", "V", true, messengerBody(buttonPrefix, 8, "peek_state_requested"),
+                                CONTEXT, FB_USER_SESSION, surface, surface, "Z", "Z"),
+                        define(MESSENGER_BAR, "buttonLog", "V", true, messengerBody(logPrefix, 7, "peek_state_requested"),
+                                CONTEXT, FB_USER_SESSION, surface, surface, "Z")));
     }
 
     /** [prefix], then each of [strings] in v0 and a return, in [registers] with v0 and v1 free. */
@@ -845,21 +876,34 @@ public class BadDexFixture {
      * own code lands at 11.
      */
     private static List<Instruction> messengerHook() {
+        return messengerHook(5);
+    }
+
+    /** [messengerHook] in the handler's shape, whose long press is v6. */
+    private static List<Instruction> buttonHook() {
+        return messengerHook(6);
+    }
+
+    private static List<Instruction> messengerHook(int longPress) {
         return Arrays.asList(
-                new ImmutableInstruction22x(Opcode.MOVE_OBJECT_FROM16, 0, 2), // 0
-                new ImmutableInstruction22x(Opcode.MOVE_FROM16, 1, 5),        // 2
-                invoke(MESSENGER_ICON_OPEN, 0, 1),                            // 4
-                op(Opcode.MOVE_RESULT, 0),                                    // 7
-                ifEqz(0, 3),                                                  // 8 -> 11
-                op(Opcode.RETURN_VOID));                                      // 10
+                new ImmutableInstruction22x(Opcode.MOVE_OBJECT_FROM16, 0, 2),   // 0
+                new ImmutableInstruction22x(Opcode.MOVE_FROM16, 1, longPress),  // 2
+                invoke(MESSENGER_ICON_OPEN, 0, 1),                              // 4
+                op(Opcode.MOVE_RESULT, 0),                                      // 7
+                ifEqz(0, 3),                                                    // 8 -> 11
+                op(Opcode.RETURN_VOID));                                        // 10
     }
 
     /** The hook after a branch on the long press, not first. */
     private static List<Instruction> lateMessengerHook() {
+        return lateMessengerHook(5);
+    }
+
+    private static List<Instruction> lateMessengerHook(int longPress) {
         List<Instruction> late = new ArrayList<>();
-        late.add(ifEqz(5, 3));                                            // 0 -> 3
+        late.add(ifEqz(longPress, 3));                                    // 0 -> 3
         late.add(op(Opcode.NOP));                                         // 2
-        late.addAll(messengerHook());                                     // 3
+        late.addAll(messengerHook(longPress));                            // 3
         return late;
     }
 
@@ -1679,7 +1723,7 @@ public class BadDexFixture {
     private static List<ClassDef> bundle(ClassDef host, ClassDef genAiLabel, ClassDef recommendationLabel,
             List<ClassDef> trays, ClassDef showcaseType, ClassDef preEof) {
         List<ClassDef> classes = new ArrayList<>(trays);
-        classes.addAll(Arrays.asList(host, filter(), genAiLabel,
+        classes.addAll(Arrays.asList(host, feedUnitEdge(ASKED_EDGE_HELPER), filter(), genAiLabel,
                 recommendationLabel, showcaseUnit(), showcaseType, preEof, returnController(returnHook()), returnRefresh(),
                 shortcuts(Collections.<String>emptySet()), settingsEntry(), followCheck(followHook()), reelDeclutter(),
                 topBar(false, true, 1), finderStub(FILLED_FINDER_STUB),
@@ -1687,7 +1731,7 @@ public class BadDexFixture {
                 emojiProvider(emojiHook(), Collections.<Instruction>emptyList()), systemEmoji(),
                 emojiPictures(emojiPicturesHook(), Collections.<Instruction>emptyList()),
                 batcher(heldBack(), false, false), reelWatchHistory(), edgeSwap(swapGuard(), false, false),
-                messengerBar(messengerHook(), Collections.<Instruction>emptyList(), messengerHook(),
+                messengerBar(messengerHook(), Collections.<Instruction>emptyList(), buttonHook(),
                         Collections.<Instruction>emptyList()), messengerIcon(),
                 reelLikeHelper(likeHook(), Collections.<Instruction>emptyList()),
                 attachmentTap(tapHook(), Collections.<Instruction>emptyList()), doubleTapLike(),
@@ -1865,20 +1909,20 @@ public class BadDexFixture {
                 switchHost(7), tryHost(CLEAN_TRY), false)));
 
         // branch: the guard's if-eqz jumps back into the middle of its own invoke.
-        dexes.put("bad-branch", withFeedEdge(body(4,
-                invoke(HIDE_EDGE, 2, 3), op(Opcode.MOVE_RESULT, 0), ifEqz(0, -3),
+        dexes.put("bad-branch", withFeedEdge(funnelBody(4,
+                invoke(HIDES_EDGE, 3), op(Opcode.MOVE_RESULT, 0), ifEqz(0, -3),
                 op(Opcode.RETURN_VOID), op(Opcode.RETURN_VOID))));
         // branch: the guard's if-eqz jumps to itself.
-        dexes.put("bad-branch-self", withFeedEdge(body(4,
-                invoke(HIDE_EDGE, 2, 3), op(Opcode.MOVE_RESULT, 0), ifEqz(0, 0),
+        dexes.put("bad-branch-self", withFeedEdge(funnelBody(4,
+                invoke(HIDES_EDGE, 3), op(Opcode.MOVE_RESULT, 0), ifEqz(0, 0),
                 op(Opcode.RETURN_VOID), op(Opcode.RETURN_VOID))));
         // branch: the guard's if-eqz jumps back onto its own move-result.
-        dexes.put("bad-branch-to-result", withFeedEdge(body(4,
-                invoke(HIDE_EDGE, 2, 3), op(Opcode.MOVE_RESULT, 0), ifEqz(0, -1),
+        dexes.put("bad-branch-to-result", withFeedEdge(funnelBody(4,
+                invoke(HIDES_EDGE, 3), op(Opcode.MOVE_RESULT, 0), ifEqz(0, -1),
                 op(Opcode.RETURN_VOID), op(Opcode.RETURN_VOID))));
         // branch: the guard with its last return-void nopped, so the kept path runs off the end.
-        dexes.put("bad-walk-off-end", withFeedEdge(body(4,
-                invoke(HIDE_EDGE, 2, 3), op(Opcode.MOVE_RESULT, 0), ifEqz(0, 3),
+        dexes.put("bad-walk-off-end", withFeedEdge(funnelBody(4,
+                invoke(HIDES_EDGE, 3), op(Opcode.MOVE_RESULT, 0), ifEqz(0, 3),
                 op(Opcode.RETURN_VOID), op(Opcode.NOP))));
         // branch: the try path jumps onto the handler's move-exception.
         dexes.put("bad-goto-to-handler", withTryHost(tryHost(CLEAN_TRY, new ImmutableInstruction10t(Opcode.GOTO, 1))));
@@ -2103,8 +2147,8 @@ public class BadDexFixture {
                 new ImmutableInstruction12x(Opcode.MOVE_WIDE, 2, 0),                               // 6
                 op(Opcode.RETURN_VOID))));                                                         // 7
         // result: a nop injected between the guard's invoke and its move-result.
-        dexes.put("bad-move-result", withFeedEdge(body(4,
-                invoke(HIDE_EDGE, 2, 3), op(Opcode.NOP), op(Opcode.MOVE_RESULT, 0), ifEqz(0, 3),
+        dexes.put("bad-move-result", withFeedEdge(funnelBody(4,
+                invoke(HIDES_EDGE, 3), op(Opcode.NOP), op(Opcode.MOVE_RESULT, 0), ifEqz(0, 3),
                 op(Opcode.RETURN_VOID), op(Opcode.RETURN_VOID))));
         // result: Hide tab badges' invoke-static { p2 } in an 18-register writer, as Morphe's inline
         // compiler left it: the call dropped and its move-result first in the method.
@@ -2122,17 +2166,22 @@ public class BadDexFixture {
         // try: the handler's move-exception is the method's first instruction, which the entry reaches.
         dexes.put("bad-move-exception-entry", withTryHost(moveExceptionAtEntry()));
         // contract: two guards stacked on the feed method.
-        dexes.put("bad-double-guard", withFeedEdge(body(4,
-                invoke(HIDE_EDGE, 2, 3), op(Opcode.MOVE_RESULT, 0), ifEqz(0, 3), op(Opcode.RETURN_VOID),
-                invoke(HIDE_EDGE, 2, 3), op(Opcode.MOVE_RESULT, 0), ifEqz(0, 3), op(Opcode.RETURN_VOID),
+        dexes.put("bad-double-guard", withFeedEdge(funnelBody(4,
+                invoke(HIDES_EDGE, 3), op(Opcode.MOVE_RESULT, 0), ifEqz(0, 3), op(Opcode.RETURN_VOID),
+                invoke(HIDES_EDGE, 3), op(Opcode.MOVE_RESULT, 0), ifEqz(0, 3), op(Opcode.RETURN_VOID),
                 op(Opcode.RETURN_VOID))));
         // contract: the guard on another method, and the feed method left alone.
         dexes.put("bad-guard-elsewhere", patched(feedEdge(CLEAN_FEED_EDGE), staticHost(body(3,
-                invoke(HIDE_EDGE, 0, 0), op(Opcode.MOVE_RESULT, 0), invoke(WIDE, 1, 2), op(Opcode.RETURN_VOID))),
+                invoke(HIDES_EDGE, 0), op(Opcode.MOVE_RESULT, 0), invoke(WIDE, 1, 2), op(Opcode.RETURN_VOID))),
                 switchHost(7), tryHost(CLEAN_TRY)));
         // contract: no guard at all.
         dexes.put("bad-no-guard", patched(feedEdge(CLEAN_FEED_EDGE), staticHost(GOOD_STATIC_HOST),
                 switchHost(7), tryHost(CLEAN_TRY)));
+        // contract: the guard calls the edge helper, and the helper never asks the extension.
+        List<ClassDef> unaskedHelper = new ArrayList<>(good());
+        unaskedHelper.removeIf(cd -> cd.getType().equals(FEED_UNIT_EDGE));
+        unaskedHelper.add(feedUnitEdge(body(1, new ImmutableInstruction11n(Opcode.CONST_4, 0, 0), op(Opcode.RETURN, 0))));
+        dexes.put("bad-edge-helper-unasked", unaskedHelper);
         ClassDef goodHost = host(feedEdge(GUARDED_FEED_EDGE), staticHost(GOOD_STATIC_HOST), switchHost(7),
                 tryHost(CLEAN_TRY), true);
         ClassDef filledRecommendation = stub(RECOMMENDATION_LABEL, "recommendationContext", FILLED_STUB);
@@ -2237,13 +2286,13 @@ public class BadDexFixture {
         // contract: the Messenger icon's tap and its button handler, each left without Open
         // Messenger from the top bar's call or with the call after a branch on the long press.
         List<Instruction> noHook = Collections.<Instruction>emptyList();
-        dexes.put("bad-messenger-tap-hook-missing", replaced(good(), messengerBar(noHook, noHook, messengerHook(), noHook)));
+        dexes.put("bad-messenger-tap-hook-missing", replaced(good(), messengerBar(noHook, noHook, buttonHook(), noHook)));
         dexes.put("bad-messenger-tap-hook-late", replaced(good(),
-                messengerBar(lateMessengerHook(), noHook, messengerHook(), noHook)));
+                messengerBar(lateMessengerHook(), noHook, buttonHook(), noHook)));
         dexes.put("bad-messenger-button-hook-missing", replaced(good(),
                 messengerBar(messengerHook(), noHook, noHook, noHook)));
         dexes.put("bad-messenger-button-hook-late", replaced(good(),
-                messengerBar(messengerHook(), noHook, lateMessengerHook(), noHook)));
+                messengerBar(messengerHook(), noHook, lateMessengerHook(6), noHook)));
 
         // contract: the reel like helper's like and the feed attachment's onDoubleTap, each left
         // without Turn off double tap to like's call or with the call after a branch.
@@ -2368,7 +2417,7 @@ public class BadDexFixture {
         // a method holding the provider's log tag without its end-to-end flag; the emoji picture
         // hook in an instance method holding the pictures' base address, which isn't the maker; and
         // the two Messenger icon hooks, in a method of the tap's shape holding one entry point and
-        // in one of another shape holding "long_press"; and the two double tap hooks, each in a
+        // in one of another shape holding "peek_state_requested"; and the two double tap hooks, each in a
         // static method holding what its rule picks by, which isn't the instance method it names.
         List<Instruction> none = Collections.<Instruction>emptyList();
         dexes.put("bad-return-refresh-hook-wrong-method", replaced(good(), returnController(none, returnHook(), false)));
@@ -2376,9 +2425,9 @@ public class BadDexFixture {
         dexes.put("bad-emoji-hook-wrong-method", replaced(good(), emojiProvider(none, emojiHook())));
         dexes.put("bad-emoji-pictures-hook-wrong-method", replaced(good(), emojiPictures(none, emojiPicturesHook())));
         dexes.put("bad-messenger-tap-hook-wrong-method", replaced(good(),
-                messengerBar(none, messengerHook(), messengerHook(), none)));
+                messengerBar(none, messengerHook(), buttonHook(), none)));
         dexes.put("bad-messenger-button-hook-wrong-method", replaced(good(),
-                messengerBar(messengerHook(), none, none, messengerHook())));
+                messengerBar(messengerHook(), none, none, buttonHook())));
         dexes.put("bad-double-tap-like-hook-wrong-method", replaced(good(), reelLikeHelper(none, likeHook())));
         dexes.put("bad-double-tap-tap-hook-wrong-method", replaced(good(), attachmentTap(none, tapHook())));
         dexes.put("bad-reel-speed-hook-wrong-method", replaced(good(), speedToast(none, toastHook(4))));
@@ -2406,8 +2455,8 @@ public class BadDexFixture {
                         body(2, new ImmutableInstruction21s(Opcode.CONST_WIDE_16, 1, 0), op(Opcode.RETURN_VOID))))));
         dexes.put("bad-register-own-wide", ownWide);
         // register: the feed guard's answer moved into v4 of its four registers and tested there.
-        dexes.put("bad-register-changed", withFeedEdge(body(4,
-                invoke(HIDE_EDGE, 2, 3), op(Opcode.MOVE_RESULT, 4), ifEqz(4, 3),
+        dexes.put("bad-register-changed", withFeedEdge(funnelBody(4,
+                invoke(HIDES_EDGE, 3), op(Opcode.MOVE_RESULT, 4), ifEqz(4, 3),
                 op(Opcode.RETURN_VOID), op(Opcode.RETURN_VOID))));
 
         for (Map.Entry<String, List<ClassDef>> e : dexes.entrySet()) {

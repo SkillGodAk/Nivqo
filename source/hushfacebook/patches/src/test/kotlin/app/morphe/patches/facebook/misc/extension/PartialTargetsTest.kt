@@ -59,6 +59,57 @@ class PartialTargetsTest {
         assertEquals("a refused patch logs no partial warnings", emptyList<String>(), warnings)
     }
 
+    /** Targets the declared build is known to lack share one plain line. Any other missing one keeps its warning. */
+    @Test
+    fun `targets known to have left Facebook get one plain line and no warning`() {
+        var infos = emptyList<String>()
+        var handled = -1
+        val warnings = PatchLogCapture.warnings {
+            infos = PatchLogCapture.infos {
+                handled = handleTargets("Fixture patch", "widgets", targets, expectedMissing = setOf("first", "third")) { target ->
+                    if (target == "second") null else "$target isn't in this build"
+                }
+            }
+        }
+        assertEquals(1, handled)
+        assertEquals(emptyList<String>(), warnings)
+        assertEquals(
+            listOf(
+                "Fixture patch: 2 of the 3 widgets left Facebook before " +
+                    "${app.morphe.patches.shared.compat.AppCompatibilities.FACEBOOK_TARGET_VERSION}, which is expected. " +
+                    "The patch goes on with the 1 it found.",
+            ),
+            infos,
+        )
+
+        // One expected absence and one not: the plain line counts only the expected one.
+        val mixed = PatchLogCapture.warnings {
+            infos = PatchLogCapture.infos {
+                handleTargets("Fixture patch", "widgets", targets, expectedMissing = setOf("third")) { target ->
+                    if (target == "second") null else "$target isn't in this build"
+                }
+            }
+        }
+        assertEquals(listOf("Fixture patch: first isn't in this build. The patch goes on with the 1 of 3 widgets it found."), mixed)
+        assertEquals(1, infos.size)
+        assertTrue(infos.single(), infos.single().startsWith("Fixture patch: 1 of the 3 widgets left Facebook before "))
+
+        // An expected absence that turns up is handled like any other, and says nothing.
+        val back = PatchLogCapture.warnings {
+            infos = PatchLogCapture.infos {
+                handled = handleTargets("Fixture patch", "widgets", targets, expectedMissing = setOf("first")) { null }
+            }
+        }
+        assertEquals(3, handled)
+        assertEquals(emptyList<String>(), back)
+        assertEquals(emptyList<String>(), infos)
+
+        // A build with none of them still stops the patch, expected or not.
+        assertThrows(PatchException::class.java) {
+            handleTargets("Fixture patch", "widgets", targets, expectedMissing = targets.toSet()) { "$it isn't in this build" }
+        }
+    }
+
     /** The patches do their work in [handleTargets]' callback, so each target is asked about once, in order. */
     @Test
     fun `each target is handled once, in the list's order`() {

@@ -21,6 +21,7 @@ import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.facebook.shared.FEED_STORY_CATEGORY
+import app.morphe.patches.facebook.shared.feedFunnelBody
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -149,7 +150,8 @@ private fun BytecodePatchContext.showcaseStoryTypeAccessor(): Method {
 /**
  * The pre-EOF injector, held to the evidence its hook rests on: exactly one method has its kept
  * name, it holds the adapter's name and calls the feed's tail adder, and the only other caller of
- * the tail adder is `addNewEdgeToCollection`, which the feed guard covers.
+ * the tail adder is `addNewEdgeToCollection`, which the feed guard covers, or on 583 the body it
+ * hands its edge to, which the guard goes on instead.
  */
 private fun BytecodePatchContext.preEofInjector(): Method {
     val adders = classDefByStrings(ADD_ELEMENT_AT_TAIL, StringComparisonType.EQUALS).flatMap(::tailAdders)
@@ -176,7 +178,9 @@ private fun BytecodePatchContext.preEofInjector(): Method {
     if (!callsMethod(injector, adder)) {
         throw PatchException("${injector.definingClass}->${injector.name} no longer adds its row with the feed's tail adder")
     }
-    tailCallerProblem(callers, injector)?.let { throw PatchException(it) }
+    // The feed guard's own method: the funnel, or on 583 the body it hands its edge to.
+    val guarded = signatureOf(feedFunnelBody())
+    tailCallerProblem(callers, injector) { signatureOf(it) == guarded }?.let { throw PatchException(it) }
     return injector
 }
 

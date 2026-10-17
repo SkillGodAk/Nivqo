@@ -13,10 +13,20 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.facebook.comments.summaries.descriptor
+import app.morphe.patches.facebook.comments.summaries.holdSummaries
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.feed.methodsHolding
 import app.morphe.patches.facebook.misc.extension.enableStatus
+import app.morphe.patches.facebook.misc.extension.localRegisterCount
 import app.morphe.patches.facebook.misc.settings.settingsPatch
+import app.morphe.patches.facebook.misc.upsells.CAPTION_DEEP_DIVE_PLUGIN
+import app.morphe.patches.facebook.misc.upsells.IMAGINE_CTA_SOCKET
+import app.morphe.patches.facebook.misc.upsells.captionDeepDiveGetter
+import app.morphe.patches.facebook.misc.upsells.ctaCheck
+import app.morphe.patches.facebook.misc.upsells.ctaTable
+import app.morphe.patches.facebook.misc.upsells.dropCaptionDeepDive
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import app.morphe.util.RegisterLiveness
@@ -47,6 +57,15 @@ internal const val META_AI_PILL = PILL_PLUGINS + "genai.GenAiDeepDivePillPlugin"
 internal const val META_AI_QUESTIONS = "Lapp/morphe/extension/facebook/feed/MetaAiQuestions;"
 internal const val KEEP = "$META_AI_QUESTIONS->keep(ILjava/lang/Object;)Z"
 internal const val DROPS_DEFAULT_PILL = "$META_AI_QUESTIONS->dropsDefaultPill(Ljava/lang/String;)Z"
+internal const val HIDES_QUESTION_BUTTON = "$META_AI_QUESTIONS->hidesQuestionButton(Ljava/lang/String;)Z"
+internal const val HIDES_QUESTIONS_BELOW_CAPTION = "$META_AI_QUESTIONS->hidesQuestionsBelowCaption()Z"
+
+/**
+ * Meta AI's deep dive in the post call-to-action selector: a row of question chips under a post's
+ * photo, between the photo and the Like row. The 582 test account got these under photo posts on
+ * 2026-10-14 with the pill socket's hook in place, since they never go through that socket.
+ */
+internal const val META_AI_QUESTION_BUTTON = "com.facebook.feed.plugins.calltoaction.impl.genaideepdive.GenAiDeepDiveCtaPlugin"
 
 /** The type the socket's default way of drawing a pill gives Meta AI's icon to. */
 internal const val META_AI_TYPE = "meta_ai"
@@ -81,6 +100,17 @@ private const val STRING_EQUALS = "Ljava/lang/String;->equals(Ljava/lang/Object;
  * every icon path has joined, the default way reads the type again and compares it with `stars`
  * first. Right after that read, the type goes through the extension, and a pill typed `meta_ai`
  * gets no pill while the switch is on. Other types are drawn as before.
+ *
+ * The same questions come two more ways that never touch the pill socket. The post call-to-action
+ * selector (FeedStoryCtaSelectorSocket) draws Meta AI's deep dive as a row of question chips under
+ * a post's photo through GenAiDeepDiveCtaPlugin, and the socket that collects what goes under a
+ * caption draws it there through GenAiDeepDiveBelowCaptionPlugin. Hide Meta upsells already hooks
+ * both for its "other Meta AI buttons" switch, which starts off: the selector's check (the first
+ * thing in it hands the extension the plugin's name from the selector's table and answers no on a
+ * yes) and the caption plugin's one static (GraphQLStory) getter (null on a yes). This patch puts
+ * its own hook of the same shape first in each, so the questions go with this switch alone, with
+ * or without Hide Meta upsells in the build. Two guards in front of one method each answer no on
+ * their own yes and otherwise run on into the other, so their order doesn't matter.
  */
 @Suppress("unused")
 val hideMetaAiQuestionsPatch = bytecodePatch(
@@ -99,6 +129,7 @@ val hideMetaAiQuestionsPatch = bytecodePatch(
         if (socket.answers.any { it >= pill.index }) {
             refuse("a check of the plugins in ${socket.method.definingClass} comes after its default way of drawing a pill")
         }
+        val questionButtons = findQuestionButtons()
         val method = mutableClassDefBy(socket.method.definingClass).findMutableMethodOf(socket.method)
         // The default way's hook first, then the checks from the last back, so the indices of
         // the earlier ones stay where they are.
@@ -113,11 +144,42 @@ val hideMetaAiQuestionsPatch = bytecodePatch(
                 """,
             )
         }
+        mutableClassDefBy(questionButtons.check.definingClass).methods
+            .single { it.descriptor() == questionButtons.check.descriptor() }
+            .holdSummaries(questionButtons.table, HIDES_QUESTION_BUTTON, PATCH)
+        mutableClassDefBy(questionButtons.captionGetter.definingClass).methods
+            .single { it.descriptor() == questionButtons.captionGetter.descriptor() }
+            .dropCaptionDeepDive(HIDES_QUESTIONS_BELOW_CAPTION, PATCH)
         enableStatus("metaAiQuestions")
     }
 }
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
+
+/**
+ * The two other ways Meta AI's questions reach a post: the call-to-action selector's name [table]
+ * and its plugin [check], and the caption deep dive plugin's static (GraphQLStory) [captionGetter].
+ */
+internal class QuestionButtons(val table: Method, val check: Method, val captionGetter: Method)
+
+/**
+ * Finds [QuestionButtons]: the selector's table by [META_AI_QUESTION_BUTTON], its check through the
+ * methods naming the selector's socket, and the caption plugin's getter. Refuses unless each is
+ * found once and both have a local register for their hook. Changes nothing.
+ */
+internal fun BytecodePatchContext.findQuestionButtons(): QuestionButtons {
+    fun holders(string: String) = classDefByStrings(string, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_CLASSES) }.distinctBy { it.type }
+    val table = ctaTable(holders(META_AI_QUESTION_BUTTON), META_AI_QUESTION_BUTTON, PATCH)
+    val sockets = holders(IMAGINE_CTA_SOCKET).flatMap { methodsHolding(it, IMAGINE_CTA_SOCKET) }
+    val check = ctaCheck(table, sockets, PATCH) { classDefByOrNull(it) }
+    val captionPlugin = classDefByOrNull(CAPTION_DEEP_DIVE_PLUGIN) ?: refuse("this Facebook build has no $CAPTION_DEEP_DIVE_PLUGIN")
+    val captionGetter = captionDeepDiveGetter(captionPlugin, PATCH)
+    for (method in listOf(check, captionGetter)) {
+        if (method.localRegisterCount() < 1) refuse("${method.definingClass}->${method.name} has no local register")
+    }
+    return QuestionButtons(table, check, captionGetter)
+}
 
 /**
  * The pill socket: its method, the register it loads each plugin's class name into, and the index

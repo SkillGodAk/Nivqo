@@ -41,6 +41,7 @@ public final class FamilyNames {
     public static final String SUGGESTED_STORIES = "Hide suggested stories";
     public static final String STORY_AUTO_ADVANCE = "Stop Story auto-advance";
     public static final String STORY_SEEN = "View stories anonymously";
+    public static final String STORY_UPLOAD_HD = "Upload Stories in HD";
     public static final String SPONSORED_REELS = "Hide sponsored reels";
     public static final String SPONSORED_SEARCH = "Hide sponsored search results";
     public static final String SPONSORED_PROFILE_POSTS = "Hide sponsored profile posts";
@@ -62,10 +63,12 @@ public final class FamilyNames {
     public static final String PLAYBACK_QUALITY = "Default playback quality";
     public static final String PICTURE_IN_PICTURE = "Picture-in-picture";
     public static final String HDR_BRIGHTNESS = "Turn off HDR brightness";
+    public static final String SKIP_SILENCE = "Skip silent parts";
     public static final String PROGRESS_BAR = "Keep the progress bar";
     public static final String SYSTEM_FONT = "Use the system font";
     public static final String SYSTEM_EMOJI = "Use the phone's emoji";
     public static final String HAPTICS = "Turn off haptics";
+    public static final String CARRIER_BANNERS = "Hide carrier data banners";
     public static final String SCREEN_TRANSITIONS = "Turn off screen transitions";
     public static final String APP_ICONS = "Unlock app icons";
     public static final String EXTERNAL_BROWSER = "Open links in external browser";

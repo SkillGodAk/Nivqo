@@ -17,8 +17,8 @@ import org.robolectric.annotation.Config;
 /**
  * Material You's selected tab (#65): in Facebook's dark mode the colour Facebook's tab bar asks for
  * the selected tab, near white there, becomes the palette's accent at tone 80, which reads on the
- * bar in every palette and on AMOLED's black. Light mode's colours, and a selected tab Facebook
- * already draws in its blue, pass as they came.
+ * bar in every palette and on AMOLED's black, and in light mode (#141) its near black or blue the
+ * accent at tone 40. A selected tab Facebook already draws in its blue in dark mode passes as it came.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)
@@ -63,16 +63,25 @@ public class MaterialYouTabBarTest {
                 MaterialYouTheme.tabBarSelected(palette, (DARK_SELECTED & 0x00FFFFFF) | 0x80000000, true));
     }
 
+    /**
+     * Issue #141: once Facebook says light, the selected tab's near black or blue becomes the
+     * palette's accent at tone 40, which reads on a light bar. Before Facebook's first answer
+     * DarkMode still says dark, and a light theme's colour stays.
+     */
     @Test
-    public void lightModeKeepsFacebooksColoursEvenBeforeFacebookAnswers() {
+    public void inTheLightThemeTheSelectedTabTakesTheAccentOnceFacebookSaysLight() {
         TonePalette palette = TonePalette.fallback();
+        int accent = palette.tone(TonePalette.ACCENT, MaterialYouTheme.LIGHT_SELECTED_TAB_TONE);
         for (int light : LIGHT_SELECTED) {
-            assertEquals(Integer.toHexString(light), light, MaterialYouTheme.tabBarSelected(palette, light, false));
-            // Before Facebook's first answer DarkMode still says dark, and a light theme's colour stays.
+            assertEquals(Integer.toHexString(light), accent, MaterialYouTheme.tabBarSelected(palette, light, false));
             assertEquals(Integer.toHexString(light), light, MaterialYouTheme.tabBarSelected(palette, light, true));
+            assertTrue("reads on white", contrast(accent, 0xFFFFFFFF) >= 4.5);
         }
+        // Route one's light answer for Facebook's blue, already the palette's accent, takes tone 40 too.
+        assertEquals(accent, MaterialYouTheme.tabBarSelected(palette, palette.sameLightness(TonePalette.ACCENT, 0xFF0866FF), false));
         DarkMode.answer(false);
-        assertEquals("light mode recoloured the dark theme's near white", DARK_SELECTED,
+        assertEquals(accent, MaterialYouTheme.tabBarSelected(0xFF080809));
+        assertEquals("light mode recoloured the Video tab's near white", DARK_SELECTED,
                 MaterialYouTheme.tabBarSelected(DARK_SELECTED));
     }
 

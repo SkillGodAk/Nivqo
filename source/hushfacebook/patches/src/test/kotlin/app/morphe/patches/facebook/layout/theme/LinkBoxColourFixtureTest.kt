@@ -77,8 +77,10 @@ class LinkBoxColourFixtureTest {
                     .sumOf { method -> method.body().count { it.call()?.toString() == PARSE_COLOR } }
 
                 val darkCheck = fdsDarkCheckOf(bundle)
+                val pool = owners + darkCheckWrappers(bundle, readers, darkCheck)
                 for (reader in readers) {
-                    assertTrue("$name: ${reader.descriptor()} asks $darkCheck", reader.body().any { it.call()?.toString() == darkCheck })
+                    assertTrue("$name: ${reader.descriptor()} asks $darkCheck, directly or through a short wrapper",
+                        with(PatchContexts.of(pool)) { asksDarkCheck(reader, darkCheck) })
                 }
                 val refused = runCatching {
                     with(PatchContexts.of(owners)) { hookLinkBoxColour("Lfixture/NoCheck;->dark(Landroid/content/Context;)Z") }
@@ -88,7 +90,7 @@ class LinkBoxColourFixtureTest {
 
                 for (amoled in listOf(false, true)) {
                     val themes = "$name, AMOLED $amoled"
-                    val context = PatchContexts.of(owners)
+                    val context = PatchContexts.of(pool)
                     with(context) {
                         if (amoled) rerouteColourCalls(AMOLED_COLOUR_CALLS)
                         rerouteColourCalls(YOU_COLOUR_CALLS)
