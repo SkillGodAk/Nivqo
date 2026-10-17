@@ -1,3 +1,8 @@
+# 0.14.0-nivqo.1 (2026-10-17)
+
+* **Facebook:** 繁體中文：同步上游正式 HushFacebook 0.14.0（91 個 Patch）。支援 Facebook 583.0.0.39.55，新增略過影片無聲片段、限時動態高畫質上傳、頂部分頁列、Reels 原音播放、隱藏數據模式橫幅；改善子母畫面、Reels 進度條、Messenger 來電通知與 Material You 深色模式。新增 71 條繁中設定文字（共 1105 條），保留 Nivqo 的繁中／English／跟隨系統語言選擇、頂部 Messenger 按鈕雙向路由，Manager 繁中補丁說明 91／91。
+* **Facebook:** English: Syncs formal upstream HushFacebook 0.14.0 (91 patches), targeting Facebook 583.0.0.39.55. New skip-silent-parts, HD Story uploads, top tab bar, original Reels audio, carrier banner controls, and picture-in-picture, progress bar, Messenger call routing and Material You fixes. Adds 71 Traditional Chinese UI strings (1105 total), preserves Nivqo language selector and Messenger icon behavior and translates 91/91 Manager patch descriptions.
+
 # 0.13.0-nivqo.1 (2026-10-16)
 
 * **Facebook:** 繁體中文：同步正式 HushFacebook 0.13.0，維持 88 個 Patch。新增隱藏轉發貼文、聊天 Meta AI 按鈕、靜默儲存及帶音樂限時動態的相片儲存；改善 Reels 進度條、子母畫面、留言排序與下載錯誤提示。新增 19 筆繁中介面文字（共 1,034 筆），保留 Nivqo 語言選擇與頂部 Messenger 按鈕雙向路由，Manager 中文補丁說明 88／88。
