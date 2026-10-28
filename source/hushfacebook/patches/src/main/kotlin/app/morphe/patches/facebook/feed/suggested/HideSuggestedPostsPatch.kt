@@ -11,7 +11,11 @@
  * suggested groups type names, and the flag Facebook's own Discover unit reads to tell a row of
  * Stories you might like from other rows of Stories, which four more switches read. The People you
  * may know switch also reaches the carousel on your own profile, through a hook in that section's
- * children builder.
+ * children builder. It also fills the two accessors the switch for posts from groups you're not in
+ * reads: a story's group and that group's join state. On the search screen, before anything is
+ * typed, it hands each row to the extension, which draws the For you section or People you may know
+ * as an empty row while its search switch is on, and names every row for Debug logging. Under a
+ * post's buttons, it lets the extension leave out the Related posts list.
  */
 package app.morphe.patches.facebook.feed.suggested
 
@@ -51,6 +55,7 @@ import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.patches.facebook.misc.settings.settingsPatch
+import app.morphe.patches.facebook.search.hookPreSearchSections
 import app.morphe.util.findMutableMethodOf
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
@@ -179,6 +184,36 @@ val hideSuggestedPostsPatch = bytecodePatch(
             hookNotificationFooter()
         } catch (exception: PatchException) {
             patchLog.warning("${exception.message}, so posts opened from a notification keep their list of more posts.")
+        }
+        // The Find friends card where friends' posts run out is part of the end of the feed, not a feed unit (#187).
+        try {
+            hookFindFriendsCard()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so the end of the feed keeps its Find friends card.")
+        }
+        // A friend's post in a group you're not in is an ordinary story; its group's join state tells it apart (#195).
+        try {
+            fillGroupJoinStubs()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so Hide posts from groups you're not in keeps every post.")
+        }
+        // Home asks for that join state only where MobileConfig says so.
+        try {
+            askForJoinState()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so Home asks for groups' join states only when Facebook does.")
+        }
+        // The search screen's For you and People you may know rows, and Debug logging's names for every row there (#80).
+        try {
+            hookPreSearchSections()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so For you and People you may know stay on the search screen.")
+        }
+        // The Related posts list under a post is a plugin of the socket under its buttons, not a feed unit (#231).
+        try {
+            hookRelatedPosts()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so Related posts stay under posts.")
         }
         enableStatus("suggestedPosts")
     }

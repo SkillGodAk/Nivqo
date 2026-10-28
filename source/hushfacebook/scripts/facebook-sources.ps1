@@ -76,6 +76,18 @@ function Get-SourceKinds {
     return @('morphe-patches', 'revanced-patches', 'xposed-module', 'apk-distribution', 'source-archive', 'readme-only')
 }
 
+function ConvertTo-SourceFixtureBuild {
+    # A fixture build is a Facebook version name, or "name (versionCode)" when one version ships
+    # as several builds (arm64-v8a and armeabi-v7a carry different codes). Two builds of one
+    # version are two fixtures, because the receipt proves each by its own run.
+    param([AllowNull()]$Build)
+    $text = ([string]$Build).Trim()
+    if ($text -match '^(?<name>[^\s(]+)\s*\((?<code>\d+)\)$') {
+        return [pscustomobject]@{ Name = $Matches['name']; Code = $Matches['code'] }
+    }
+    return [pscustomobject]@{ Name = $text; Code = '' }
+}
+
 function Get-SourceIndexIds {
     # The indexes the audit knows how to read. A new one needs its reader in the audit first.
     return @('morphe-directory', 'awesome-morphe', 'morphe-patch-tracker', 'jman-bundles', 'morphe-archive')
@@ -454,6 +466,17 @@ function Test-SourceLedger {
         if ([string]::IsNullOrWhiteSpace([string](Get-SourceProperty $item 'reason'))) {
             $problems.Add("outOfScope $repository gives no reason.")
         }
+        # The packages an index lists it under, checked and found to hold no Facebook-family patch.
+        # Asked of the property itself: an empty list comes back from a function as nothing at all.
+        if ($null -ne $item.PSObject.Properties['listedFor']) {
+            $listedFor = @(Get-SourceProperty $item 'listedFor' | Where-Object { $null -ne $_ } | ForEach-Object { "$_" })
+            if ($listedFor.Count -eq 0) { $problems.Add("outOfScope $repository has an empty listedFor.") }
+            foreach ($package in $listedFor) {
+                if ($packages -notcontains $package) {
+                    $problems.Add("outOfScope $repository listedFor names '$package', which is not a Facebook-family package.")
+                }
+            }
+        }
         Add-DateProblem (Get-SourceProperty $item 'lastChecked') "outOfScope $repository lastChecked"
     }
 
@@ -474,9 +497,12 @@ function Test-SourceLedger {
         $problems.Add("provenance.json is missing, so the ledger can't be held to what Hushfacebook ships.")
     }
     $declaredBuilds = @()
+    $declaredCodes = 0
     if ($adoptedEntries.Count -gt 0) {
         try {
-            $declaredBuilds = @((Get-PatchTarget -PatchList ([System.IO.File]::ReadAllText($catalogPath) | ConvertFrom-Json)).PackageVersions)
+            $declared = Get-PatchTarget -PatchList ([System.IO.File]::ReadAllText($catalogPath) | ConvertFrom-Json)
+            $declaredBuilds = @($declared.PackageVersions)
+            $declaredCodes = @($declared.PackageVersionCodes.Values | ForEach-Object { $_ } | Where-Object { $_ }).Count
         } catch {
             $problems.Add("The declared Facebook builds could not be read from patches-list.json: $($_.Exception.Message)")
         }
@@ -510,10 +536,14 @@ function Test-SourceLedger {
         if (-not (Test-SourceHttpsUrl $receipt @('github.com')) -or "$receipt" -notmatch '/releases/download/v[^/]+/release-receipt-[^/]+\.json$') {
             $problems.Add("$label names no release receipt as fixture evidence (a github.com release-receipt-<version>.json).")
         }
-        $unproved = @($declaredBuilds | Where-Object { $builds -notcontains $_ })
-        if ($builds.Count -lt 2 -or $unproved.Count -gt 0) {
+        $provedNames = @($builds | ForEach-Object { (ConvertTo-SourceFixtureBuild $_).Name } | Sort-Object -Unique)
+        $unproved = @($declaredBuilds | Where-Object { $provedNames -notcontains $_ })
+        # Two fixtures, unless the catalog pins exactly one build: 584 shipped for arm64-v8a alone,
+        # since no armeabi-v7a build of it was out, and one declared build can only be proved once.
+        $needed = if ($declaredCodes -eq 1) { 1 } else { 2 }
+        if ($builds.Count -lt $needed -or $unproved.Count -gt 0) {
             $missing = if ($unproved.Count -gt 0) { $unproved -join ', ' } else { 'a second fixture' }
-            $problems.Add("$label lacks two-fixture evidence: it names $(@($builds).Count) build(s) and is missing $missing.")
+            $problems.Add("$label lacks fixture evidence: it names $(@($builds).Count) build(s) and is missing $missing.")
         }
     }
     foreach ($rule in $rules) {

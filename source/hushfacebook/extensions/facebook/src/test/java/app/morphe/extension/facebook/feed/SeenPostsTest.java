@@ -37,8 +37,10 @@ import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.WorkerPoolForTests;
 import app.morphe.extension.shared.diagnostics.FeedFilterCounters;
 import app.morphe.extension.shared.diagnostics.HookStatus;
+import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.PauseForTests;
+import app.morphe.extension.shared.settings.preference.LogBufferManager;
 
 /**
  * Hide seen posts: a post Facebook counts as seen is remembered by its cache id, and the feed guard
@@ -325,6 +327,47 @@ public class SeenPostsTest {
         assertEquals("the keep time hasn't run out yet", SeenPosts.REASON, SeenPosts.hideReason(story));
         now.set(seenAt + DAY);
         assertNull("a day on, the post is past its day", SeenPosts.hideReason(story));
+    }
+
+    /**
+     * With debug logging on, the feed guard's line and the seen hook's line name a post by the same
+     * short id, with the switch off too, and a post with no cache id gets none. Without debug
+     * logging neither line is written.
+     */
+    @Test
+    public void theGuardAndTheSeenHookNameAPostByOneShortId() {
+        Settings.HIDE_SEEN_POSTS.save(false);
+        Story story = new Story("paired");
+        String shortId = SeenPosts.idOf(story).substring(0, 6);
+        try {
+            BaseSettings.DEBUG.save(true);
+            LogBufferManager.clearLogBuffer();
+            FeedFilter.hideEdge(Category.ORGANIC, story);
+            SeenPosts.seen(story);
+            FeedFilter.hideEdge(Category.ORGANIC, new GraphQLStory());
+            String log = LogBufferManager.buildExportText();
+            List<String> edges = new ArrayList<>();
+            List<String> seen = new ArrayList<>();
+            for (String line : log.split("\n")) {
+                if (line.contains("Feed edge: ")) edges.add(line.trim());
+                if (line.contains("Feed row seen: ")) seen.add(line.trim());
+            }
+            assertEquals(log, 2, edges.size());
+            assertTrue(edges.get(0), edges.get(0).endsWith(" id=" + shortId));
+            assertFalse(edges.get(1), edges.get(1).contains(" id="));
+            assertEquals(log, 1, seen.size());
+            assertTrue(seen.get(0), seen.get(0).endsWith(" id=" + shortId));
+
+            BaseSettings.DEBUG.save(false);
+            LogBufferManager.clearLogBuffer();
+            FeedFilter.hideEdge(Category.ORGANIC, story);
+            SeenPosts.seen(story);
+            String quiet = LogBufferManager.buildExportText();
+            assertFalse(quiet, quiet.contains("Feed row seen"));
+            assertFalse(quiet, quiet.contains("Feed edge"));
+        } finally {
+            BaseSettings.DEBUG.resetToDefault();
+        }
     }
 
     /** A second post class whose getCacheId() is its own method, so the reader differs from Story's. */

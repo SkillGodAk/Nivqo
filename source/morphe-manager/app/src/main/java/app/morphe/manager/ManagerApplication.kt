@@ -56,6 +56,7 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.androidx.workmanager.koin.workManagerFactory
 import org.koin.core.context.startKoin
 import org.lsposed.hiddenapibypass.HiddenApiBypass
+import java.io.File
 
 class ManagerApplication : Application() {
     companion object {
@@ -107,6 +108,9 @@ class ManagerApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // The patcher process only hosts the run, none of the app is of use to it
+        if (currentProcessName() != packageName) return
+
         startKoin {
             androidContext(this@ManagerApplication)
             androidLogger()
@@ -122,6 +126,9 @@ class ManagerApplication : Application() {
                 databaseModule
             )
         }
+
+        // Set before anything can ask for an avatar, so the first one read already comes from disk
+        AvatarCache.useDiskCache(fs.avatarCacheDir)
 
         // App icon loader (Coil)
         // Non-adaptive icons are drawn as they are rather than shrunk onto a white plate: icon
@@ -227,6 +234,10 @@ class ManagerApplication : Application() {
             HiddenApiBypass.addHiddenApiExemptions("L")
         }
     }
+
+    private fun currentProcessName(): String =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) getProcessName()
+        else File("/proc/self/cmdline").readText().substringBefore('\u0000')
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
@@ -354,7 +365,7 @@ class ManagerApplication : Application() {
 
     /**
      * Work that only pays off once a screen exists. A process started by an FCM push or a boot
-     * broadcast has nobody to show an update check to, and its failures toast over another app.
+     * broadcast has nobody to show an update check or its failures to.
      */
     private fun onFirstScreenCreated() {
         scope.launch(Dispatchers.Default) {
@@ -362,13 +373,13 @@ class ManagerApplication : Application() {
         }
 
         // Preload bundle avatar images into AvatarCache while the user hasn't opened the sheet yet.
-        // Suspends until sources are ready, then fetches all URLs in parallel on IO threads
+        // Suspends until sources are ready, then loads them all in parallel, a fallback only for
+        // a source whose own picture does not load
         scope.launch(Dispatchers.IO) {
             patchBundleRepository.sources.first { it.isNotEmpty() }.forEach { bundle ->
                 launch {
                     val avatarUrls = bundle.avatarUrls
-                    avatarUrls.primary?.let { loadRemoteAvatar(it) }
-                    avatarUrls.fallback?.let { loadRemoteAvatar(it) }
+                    loadAvatar(avatarUrls.primary, avatarUrls.fallback)
                 }
             }
         }
@@ -376,8 +387,10 @@ class ManagerApplication : Application() {
 
     private fun onFreshProcessStart() {
         fs.uiTempDir.purgeDirectoryAsync(scope)
-        // Logs all app-private directories and their contents with file sizes on fresh start
+        // Logs all app-private directories and their contents with file sizes on fresh start,
+        // once copies no record claims are gone, so the log shows what the storage screen counts
         scope.launch(Dispatchers.IO) {
+            installedAppRepository.pruneUnclaimedPatchedApks()
             fs.logStorageContents()
         }
     }

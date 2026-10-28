@@ -22,12 +22,21 @@ spec = importlib.util.spec_from_file_location(
 )
 release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(release)
+captures = sys.modules["readme_captures"]
 
 SSH_KEYGEN = shutil.which("ssh-keygen")
 GIT = shutil.which("git")
 REPO = Path(__file__).parents[2]
 # Fixtures replace the git lookup; keep the real one for the test that builds a repository.
 TAGGED_PUBLIC_FEED = release.tagged_public_feed
+GROUPS = (
+    "### Reported issues\n\n- [#7](https://github.com/SysAdminDoc/HushMessenger/issues/7) "
+    'Videos send instead of "Unable to send".\n\n### New\n\n- **Pin more chats** raises the limit.'
+)
+CHANGELOG = (
+    "# Changelog\n\n## 1.2.3 (2026-09-27)\n\nThis release brings two things.\n\n"
+    f"{GROUPS}\n\n## 1.2.2 (2026-09-20)\n\n### New\n\n- Older.\n"
+)
 
 
 def setUpModule():
@@ -62,6 +71,25 @@ class FakeGradle:
 
     def kill(self):
         self.killed = True
+
+
+def capture_fixture(root):
+    """A one-control settings source with its README captures exported, as the release check expects."""
+    source = root / captures.SETTINGS
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text(
+        '    static final String[][] CONTROLS = {\n'
+        '        {"people", "Hide People You May Know", "Hides suggested people.", "inbox"},\n'
+        "    };\n",
+        encoding="utf-8",
+    )
+    renders = root / "renders"
+    renders.mkdir()
+    (root / "assets").mkdir(exist_ok=True)
+    for render in captures.CAPTURES.values():
+        (renders / render).write_bytes(render.encode("utf-8"))
+    captures.export(root, renders)
+    shutil.rmtree(renders)
 
 
 def new_key(path):
@@ -108,6 +136,7 @@ class ReleaseChecks(unittest.TestCase):
         self.index = {
             "version": "1.2.3",
             "created_at": "2026-09-27T23:35:48",
+            "description": f"Thirty-two patches for Messenger.\n\n{GROUPS}",
             "download_url": "https://github.com/SysAdminDoc/HushMessenger/releases/download/v1.2.3/patches-1.2.3.mpp",
         }
         self.write(
@@ -130,11 +159,12 @@ class ReleaseChecks(unittest.TestCase):
             "README.md",
             f"https://img.shields.io/badge/version-1.2.3-blue\n{self.digest}  patches-1.2.3.mpp\n",
         )
-        self.write("CHANGELOG.md", "# Changelog\n\n## 1.2.3 (2026-09-27)\n")
+        self.write("CHANGELOG.md", CHANGELOG)
         self.write(
             "extensions/messenger/build.gradle.kts",
             "versionName = project.version.toString()\n",
         )
+        capture_fixture(self.root)
         # Feed bytes committed at each fixture release tag, keyed by version.
         self.tags = {}
         tagged = patch.object(release, "tagged_public_feed", self.tagged_feed)
@@ -184,6 +214,12 @@ class ReleaseChecks(unittest.TestCase):
         self.write("SHA256SUMS.txt", f"{'0' * 64}  {self.bundle.name}\n")
         with self.assertRaisesRegex(ValueError, "checksum file"):
             release.verify(self.root, checksums=self.root / "SHA256SUMS.txt")
+
+    def test_release_refuses_readme_captures_of_an_older_settings_catalog(self):
+        source = self.root / captures.SETTINGS
+        source.write_text(source.read_text(encoding="utf-8").replace("People You May Know", "Suggested people"), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "older catalog"):
+            release.verify(self.root)
 
     def test_development_freezes_current_catalog_and_preserves_held_feed(self):
         held = self.hold()
@@ -356,6 +392,43 @@ class ReleaseChecks(unittest.TestCase):
         del self.tags["1.2.2"]
         with self.assertRaisesRegex(ValueError, "v1.2.2 is missing"):
             check(held)
+
+    def test_a_bundle_and_source_both_without_a_timestamp_fail(self):
+        evidence = self.root / "patches/build/reports/catalog-evidence.json"
+
+        def rebuild(stamp):
+            """Rebuilds the bundle, its evidence and the source with [stamp] on both sides, or none on either."""
+            line = f"Timestamp: {stamp}\r\n" if stamp else ""
+            with zipfile.ZipFile(self.bundle, "w") as archive:
+                archive.writestr("META-INF/MANIFEST.MF", f"Manifest-Version: 1.0\r\nVersion: 1.2.3\r\n{line}\r\n")
+                archive.writestr("classes.dex", b"fixture")
+                archive.writestr("extensions/messenger.mpe", b"fixture")
+            digest = hashlib.sha256(self.bundle.read_bytes()).hexdigest()
+            evidence.write_text(
+                json.dumps({"bundle": self.bundle.name, "sha256": digest, "dexValidated": True, "catalog": self.catalog}),
+                encoding="utf-8",
+            )
+            self.write("gradle.properties", "version=1.2.3\n" + (f"bundleTimestampMillis={stamp}\n" if stamp else ""))
+            return digest
+
+        def released(stamp):
+            digest = rebuild(stamp)
+            self.write("README.md", f"https://img.shields.io/badge/version-1.2.3-blue\n{digest}  patches-1.2.3.mpp\n")
+            return release.verify(self.root)
+
+        # Each check passes the rebuilt tree while the timestamps match, so dropping them is the only change below.
+        self.assertIn("Release metadata passed", released("1790552148000"))
+        # The release check also compares the index's created_at, so it refused this before too. It now says why.
+        with self.assertRaisesRegex(ValueError, "Source has no bundle timestamp"):
+            released(None)
+
+        held = self.hold()
+        rebuild("1790552148000")
+        self.assertIn("held public v1.2.2", release.verify_development(self.root, self.bundle, evidence, held))
+        rebuild(None)
+        # Missing on both sides is no match. The development check used to compare nothing with nothing and pass.
+        with self.assertRaisesRegex(ValueError, "Source has no bundle timestamp"):
+            release.verify_development(self.root, self.bundle, evidence, held)
 
     @unittest.skipIf(GIT is None, "git isn't installed")
     def test_tagged_feed_is_read_from_the_release_tag_with_git(self):
@@ -772,6 +845,108 @@ class ReleaseChecks(unittest.TestCase):
             ):
                 release.verify(self.root)
             self.write(path, original)
+
+    def test_description_must_be_a_summary_then_the_releases_changelog_groups(self):
+        # Morphe Manager shows the description for the release an app was patched with, so a
+        # summary alone hid that release's changes (Hushfacebook #143, same here).
+        cases = [
+            ("Thirty-two patches for Messenger.", "a summary"),
+            (GROUPS, "a summary"),
+            (f"Summary.\n\n### Older\n\n- x.\n\n{GROUPS}", "a summary"),
+            (f"Summary.\n\n{GROUPS.replace('raises', 'lifts')}", "a summary"),
+            (None, "a summary"),
+        ]
+        for description, message in cases:
+            self.write(
+                "patches-bundle.json", json.dumps({**self.index, "description": description})
+            )
+            with (
+                self.subTest(description=description),
+                self.assertRaisesRegex(ValueError, message),
+            ):
+                release.verify(self.root)
+        self.write("patches-bundle.json", json.dumps(self.index))
+        # git can check CHANGELOG.md out with CRLF; the description keeps LF.
+        (self.root / "CHANGELOG.md").write_bytes(CHANGELOG.replace("\n", "\r\n").encode())
+        release.verify(self.root)
+        self.write("CHANGELOG.md", CHANGELOG.replace("### New\n\n- **Pin", "### New\n\n- **Pin all"))
+        with self.assertRaisesRegex(ValueError, "run -Stage prepare again"):
+            release.verify(self.root)
+
+    def test_describe_keeps_the_summary_and_writes_the_releases_groups(self):
+        index = {**self.index, "description": "Thirty-two patches for Messenger."}
+        self.write("patches-bundle.json", json.dumps(index, indent=2) + "\n")
+        (self.root / "CHANGELOG.md").write_bytes(CHANGELOG.replace("\n", "\r\n").encode())
+        release.describe(self.root)
+        written = (self.root / "patches-bundle.json").read_bytes()
+        self.assertNotIn(b"\r", written)
+        self.assertTrue(written.endswith(b"}\n"))
+        written = json.loads(written)
+        self.assertEqual(list(index), list(written), "key order stays")
+        self.assertEqual(f"Thirty-two patches for Messenger.\n\n{GROUPS}", written["description"])
+        self.assertNotIn("Older", written["description"], "only the release's own section")
+        self.assertIn("Release metadata passed", release.verify(self.root))
+
+        # A rerun after a CHANGELOG edit swaps the groups and keeps the hand-written summary.
+        self.write("CHANGELOG.md", CHANGELOG.replace("raises the limit", "raises the limit to 20"))
+        release.describe(self.root)
+        description = json.loads(self.text("patches-bundle.json"))["description"]
+        self.assertEqual(
+            f"Thirty-two patches for Messenger.\n\n{GROUPS.replace('the limit', 'the limit to 20')}",
+            description,
+        )
+
+        self.write("CHANGELOG.md", "## 1.2.3 (2026-09-27)\n\nOnly prose.\n")
+        before = self.text("patches-bundle.json")
+        with self.assertRaisesRegex(ValueError, "no ### groups"):
+            release.describe(self.root)
+        self.assertEqual(before, self.text("patches-bundle.json"), "a refusal writes nothing")
+        self.write("CHANGELOG.md", CHANGELOG)
+        self.write("patches-bundle.json", json.dumps({**self.index, "description": ""}))
+        with self.assertRaisesRegex(ValueError, "no summary"):
+            release.describe(self.root)
+        self.write("patches-bundle.json", json.dumps({**self.index, "version": "1.2.2"}))
+        with self.assertRaisesRegex(ValueError, "index version"):
+            release.describe(self.root)
+
+    def test_describe_runs_alone_from_the_command_line(self):
+        self.write(
+            "patches-bundle.json",
+            json.dumps({**self.index, "description": "Summary."}),
+        )
+        with redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(0, release.main(["--root", str(self.root), "--describe"]))
+        self.assertIn("carries the 1.2.3 CHANGELOG groups", out.getvalue())
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            release.main(["--root", str(self.root), "--describe", "--release-tag", "v1.2.3"])
+
+    def text(self, path):
+        return (self.root / path).read_text(encoding="utf-8")
+
+    def test_release_refuses_an_install_step_still_naming_the_old_messenger_version(self):
+        self.catalog["patches"][0]["compatiblePackages"] = [
+            {"packageName": "com.facebook.orca", "targets": [{"version": "584.1.0.61.98"}]}
+        ]
+        self.write("patches-list.json", json.dumps(self.catalog))
+        self.write(
+            "patches/build/reports/catalog-evidence.json",
+            json.dumps(
+                {
+                    "bundle": self.bundle.name,
+                    "sha256": self.digest,
+                    "dexValidated": True,
+                    "catalog": self.catalog,
+                }
+            ),
+        )
+        badge = f"https://img.shields.io/badge/version-1.2.3-blue\n{self.digest}  patches-1.2.3.mpp\n"
+        with self.assertRaisesRegex(ValueError, "no Get the APK step"):
+            release.verify(self.root)
+        self.write("README.md", badge + "1. **Get the APK.** The current release patches Messenger 584.0.0.49.98.\n")
+        with self.assertRaisesRegex(ValueError, "different Messenger version"):
+            release.verify(self.root)
+        self.write("README.md", badge + "1. **Get the APK.** HushMessenger patches Messenger 584.1.0.61.98.\n")
+        self.assertIn("Release metadata passed", release.verify(self.root))
 
     def test_readme_may_link_another_projects_release(self):
         self.write(

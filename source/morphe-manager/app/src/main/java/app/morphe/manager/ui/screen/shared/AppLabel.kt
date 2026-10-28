@@ -11,8 +11,8 @@
 package app.morphe.manager.ui.screen.shared
 
 import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.util.AppDataResolver
 import app.morphe.manager.util.AppDataSource
+import app.morphe.manager.util.cleanPackageLabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
@@ -104,16 +105,7 @@ private fun SimpleAppLabel(
     // Attempt a cheap synchronous resolution first so we never show a shimmer
     // when the label is already available in memory
     val initialLabel = remember(packageInfo.packageName) {
-        runCatching {
-            packageInfo.applicationInfo?.loadLabel(context.packageManager)
-                ?.toString()
-                ?.let { raw ->
-                    val cleaned = cleanWeirdLabel(raw, packageInfo.packageName)
-                    cleaned.takeIf { it.isNotBlank() && cleaned != packageInfo.packageName }
-                }
-                ?: packageInfo.applicationInfo?.nonLocalizedLabel?.toString()
-                    ?.takeIf { it.isNotBlank() }
-        }.getOrNull()
+        runCatching { packageInfo.readableLabel(context.packageManager) }.getOrNull()
     }
 
     var label: String? by rememberSaveable(packageInfo.packageName) {
@@ -124,15 +116,7 @@ private fun SimpleAppLabel(
     if (label == null) {
         LaunchedEffect(packageInfo.packageName) {
             label = withContext(Dispatchers.IO) {
-                packageInfo.applicationInfo?.loadLabel(context.packageManager)
-                    ?.toString()
-                    ?.let { raw ->
-                        val cleaned = cleanWeirdLabel(raw, packageInfo.packageName)
-                        cleaned.takeIf { it.isNotBlank() && cleaned != packageInfo.packageName }
-                    }
-                    ?: packageInfo.applicationInfo?.nonLocalizedLabel?.toString()
-                        ?.takeIf { it.isNotBlank() }
-                    ?: defaultText
+                runCatching { packageInfo.readableLabel(context.packageManager) }.getOrNull() ?: defaultText
             }
         }
     }
@@ -144,7 +128,7 @@ private fun SimpleAppLabel(
                 // A pill stands in for the text until the real label arrives
                 if (label == null) {
                     Modifier
-                        .background(MaterialTheme.colorScheme.inverseOnSurface, RoundedCornerShape(100))
+                        .background(MaterialTheme.colorScheme.inverseOnSurface, Defaults.PillShape)
                         .drawWithContent {}
                 } else {
                     Modifier
@@ -208,19 +192,11 @@ private fun ResolvedAppLabel(
 }
 
 /**
- * Clean weird labels that contain package name or other artifacts.
+ * The label worth showing for this package, cleaned as [app.morphe.manager.util.PM] cleans one, or its
+ * non-localized label when the launcher one is no more than the package name.
  */
-private fun cleanWeirdLabel(raw: String, packageName: String?): String {
-    val trimmed = raw.trim()
-    val pkg = packageName.orEmpty()
-    if (pkg.isNotEmpty() && (trimmed.startsWith(pkg) || trimmed.contains(pkg))) {
-        val candidate = trimmed.substringAfterLast('.')
-        val withoutSuffix = candidate.removeSuffix("Application")
-        return withoutSuffix.ifBlank { candidate }.ifBlank { trimmed }
-    }
-    if (trimmed.endsWith("Application")) {
-        val withoutSuffix = trimmed.removeSuffix("Application")
-        return withoutSuffix.substringAfterLast('.').ifBlank { withoutSuffix }
-    }
-    return trimmed
-}
+internal fun PackageInfo.readableLabel(packageManager: PackageManager): String? =
+    applicationInfo?.loadLabel(packageManager)?.toString()
+        ?.let { cleanPackageLabel(it, packageName) }
+        ?.takeIf { it.isNotBlank() && it != packageName }
+        ?: applicationInfo?.nonLocalizedLabel?.toString()?.takeIf { it.isNotBlank() }

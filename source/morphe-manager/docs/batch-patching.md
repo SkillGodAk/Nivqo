@@ -10,7 +10,7 @@ whole set as one queue.
 ## Starting a batch
 
 **From the home screen** - long-press a card to enter multi-select, tap the other apps you
-want, then tap the wand button in the bar at the bottom.
+want, then tap **Patch selected** in the panel at the bottom.
 
 **From the launcher** - long-press the Morphe icon and pick **Re-patch outdated apps**. Morphe
 works out which patched apps are behind their patch source and queues those. If everything is
@@ -75,8 +75,8 @@ that depends on the mode you are in:
   others for this app, and you can switch again until the queue starts.
 
 > [!TIP]
-> Turn on **Keep original APKs** in **Settings → System**. It is what lets a batch run without
-> asking for a single file.
+> Leave **Keep original APKs** on in **Settings → Storage management**. It is what lets a batch
+> run without asking for a single file.
 
 ## While the queue runs
 
@@ -121,22 +121,23 @@ card that produced a file, before and after installing.
 The refresh button next to the title re-plans the apps that failed or were canceled.
 
 > [!NOTE]
-> Patched APKs are kept only while **Keep patched APKs** is on in **Settings → System**. With
-> it off they live long enough for you to install them from this screen and are dropped when
-> the next batch starts.
+> Patched APKs are kept only while **Keep patched APKs** is on in **Settings → Storage
+> management**. With it off they live long enough for you to install them from this screen and
+> are dropped when the next batch starts.
 
 ## When patches move on
 
 A patch source that releases something newer than what your apps were built with leaves those
-apps behind. The cards say so one at a time with their **Update** badge; above them, Morphe
-says it once: **3 apps can be re-patched**, and tapping that queues every one of them in a
-preflight list.
+apps behind. The cards say so one at a time with the update mark on their icon; above them,
+Morphe says it once: **3 apps can be re-patched**, and tapping that queues every one of them in
+a preflight list. **Re-patch notice** in **Settings → Appearance → Home screen** turns the
+banner off.
 
 This appears once the new patches are actually on the device, which is when Morphe can tell
 which apps are behind. Opening the app after a **New patches available** notification is
 exactly that moment: the notification pulls the sources in, and the count appears with them.
 
-The run itself begins when you tap **Start patching**. Android does not let a background app
+The run itself begins when you tap **Start**. Android does not let a background app
 run work this heavy or install anything on its own, so re-patching stays a deliberate tap
 rather than something that half-happens overnight.
 
@@ -152,10 +153,9 @@ adb shell am start -n app.morphe.manager/app.morphe.manager.MainActivity \
 
 `packages` takes a string array or a comma-separated string of package names.
 
-This is off by default. Turn on **Allow external triggers** in **Settings → Advanced →
-Updates**, and
+This is off by default. Turn on **Allow external triggers** in **Settings → Patcher**, and
 every request asks for your confirmation first. A request never starts patching by itself: it
-opens the preflight list, and the run begins when you tap **Start patching**.
+opens the preflight list, and the run begins when you tap **Start**.
 
 ### Trusting an app
 
@@ -179,7 +179,7 @@ again next time.
 | An app sits at **No APK** | Morphe has no saved original for it. Attach a file, or patch it once normally so the original gets saved |
 | An app sits at **Version** | The APK version is not supported by the patches. Attach a supported version, or **Patch anyway** if you know what you are doing |
 | **Batch patching is already running** | A queue is in progress. Opening it from the home screen shows the running one instead of starting a second |
-| No re-patch count on the home screen | The new patches are not on the device yet. Let the sources finish updating, or pull them by hand from the source sheet |
+| No re-patch count on the home screen | The new patches are not on the device yet. Let the sources finish updating, or pull them by hand with the update button on the source card in **Sources** |
 | **Install failed** on a renamed app | Installing a renamed package is a new install, not an update. On Xiaomi and similar devices, turn on "Install via USB" in developer options |
 
 ## Next steps

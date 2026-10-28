@@ -4,6 +4,11 @@
         <item quantity="one">%s টি প্যাচ</item>
         <item quantity="other">%s টি প্যাচ</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s লাইব্রেরি</item>
+        <item quantity="other">%s লাইব্রেরি</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s টি প্যাচ অপশন</item>
         <item quantity="other">%s টি প্যাচ অপশন</item>
@@ -26,6 +31,10 @@
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">%sটি অ্যাপের জন্য প্যাচ সোর্স</item>
         <item quantity="other">%sটি অ্যাপের জন্য প্যাচ সোর্স</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s সোর্স এই অ্যাপের জন্য গোপন করা হয়েছে। এটি ফিরিয়ে আনতে Apps ট্যাবে অ্যাপটি নির্বাচন করুন এবং Patch sources ওপেন করুন</item>
+        <item quantity="other">%s সোর্সগুলো এই অ্যাপের জন্য গোপন করা হয়েছে। এগুলো ফিরিয়ে আনতে Apps ট্যাবে অ্যাপটি নির্বাচন করুন এবং Patch sources ওপেন করুন</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%sটি সোর্স লুকানো। দেখানোর জন্য আলতো চাপুন</item>
@@ -55,6 +64,10 @@
         <item quantity="one">%s অ্যাপ ইনস্টল করা হয়েছে</item>
         <item quantity="other">%s অ্যাপ ইনস্টল করা হয়েছে</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">%sটি অ্যাপ মাউন্ট করা হয়েছে</item>
+        <item quantity="other">%sটি অ্যাপ মাউন্ট করা হয়েছে</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">%s অ্যাপ পুনরায় ইনস্টল করা হয়েছে</item>
         <item quantity="other">%s অ্যাপ পুনরায় ইনস্টল করা হয়েছে</item>
@@ -70,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">%s অ্যাপ প্যাচ করার জন্য প্রস্তুত</item>
         <item quantity="other">%s অ্যাপ প্যাচ করার জন্য প্রস্তুত</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">প্যাচিংয়ের জন্য \"%s\" অ্যাপ অপেক্ষমাণ আছে</item>
+        <item quantity="other">প্যাচিংয়ের জন্য \"%s\" অ্যাপগুলি অপেক্ষমাণ আছে</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s লুকানো বিজ্ঞপ্তি, এতে ট্যাপ করে এটি দেখুন</item>
+        <item quantity="other">%s লুকানো বিজ্ঞপ্তি, এতে ট্যাপ করে সেগুলো দেখুন</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s অ্যাপ পুনরায় প্যাচ করা যাবে</item>
@@ -87,9 +108,17 @@
         <item quantity="one">%s টি সোর্স ইনস্টল রয়েছে</item>
         <item quantity="other">%s টি সোর্স ইনস্টল রয়েছে</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s ফিল্টার করা হয়েছে</item>
-        <item quantity="other">%1$s · %2$s ফিল্টার করা হয়েছে</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s অ্যাপ্লিকেশন লুকানো</item>
+        <item quantity="other">%s অ্যাপ্লিকেশন লুকানো</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s অ্যাপ্লিকেশন দেখানো</item>
+        <item quantity="other">%s অ্যাপ্লিকেশন দেখানো</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">%s অ্যাপটি অনাদ্যাকৃত করা হবে?</item>
+        <item quantity="other">%s অ্যাপগুলি অনাদ্যাকৃত করা হবে?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s লুকানো অ্যাপ্লিকেশন</item>
@@ -126,6 +155,11 @@
     <plurals name="changelog_change_count">
         <item quantity="one">%sটি পরিবর্তন</item>
         <item quantity="other">%sটি পরিবর্তন</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d নতুন</item>
+        <item quantity="other">%1$s · %2$d নতুন</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%sটি নতুন রিলিজ</item>

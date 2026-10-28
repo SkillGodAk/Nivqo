@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.toColorInt
+import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 
@@ -43,9 +44,10 @@ fun Color.isDarkBackground(): Boolean = requiresLightContent()
 fun Color.isExtremeAccent(): Boolean = luminance() !in 0.04f..0.92f
 
 /**
- * Composites this color at [alpha] over [background] and returns the opaque result.
+ * Composites this color at [alpha] over [background] and returns the opaque result, where Compose's
+ * compositeOver keeps the background's alpha.
  */
-fun Color.compositeOver(background: Color, alpha: Float = this.alpha): Color = Color(
+fun Color.compositeOpaqueOver(background: Color, alpha: Float = this.alpha): Color = Color(
     red   = background.red   * (1f - alpha) + red   * alpha,
     green = background.green * (1f - alpha) + green * alpha,
     blue  = background.blue  * (1f - alpha) + blue  * alpha,
@@ -76,7 +78,7 @@ fun Color.contrastAgainst(background: Color): Float {
  * its on-color stays dark. Contrast alone passes that, so polarity is weighed alongside [minRatio].
  */
 fun Color.readableOn(fill: Color, surface: Color, minRatio: Float = 3f): Color {
-    val background = fill.compositeOver(surface)
+    val background = fill.compositeOpaqueOver(surface)
     val wantsLightContent = background.requiresLightContent()
 
     val agreesWithFill = wantsLightContent != requiresLightContent()
@@ -113,9 +115,9 @@ fun Color.darken(factor: Float): Color {
 fun Color.toHexString(includeAlpha: Boolean = false): String {
     val argb = toArgb()
     return if (includeAlpha) {
-        String.format("#%08X", argb)
+        String.format(Locale.ROOT, "#%08X", argb)
     } else {
-        String.format("#%06X", argb and 0xFFFFFF)
+        String.format(Locale.ROOT, "#%06X", argb and 0xFFFFFF)
     }
 }
 
@@ -143,20 +145,4 @@ fun String?.toColorOrNull(): Color? {
         val hexValue = if (value.startsWith("#")) value else "#$value"
         Color(hexValue.toColorInt())
     }.getOrNull()
-}
-
-/**
- * Parse color string to RGB float values (0-1 range)
- */
-fun parseColorToRgb(color: String): Triple<Float, Float, Float> {
-    return color.toColorOrNull()?.let {
-        Triple(it.red, it.green, it.blue)
-    } ?: Triple(0f, 0f, 0f)
-}
-
-/**
- * Convert RGB float values to hex string
- */
-fun rgbToHex(r: Float, g: Float, b: Float): String {
-    return Color(r, g, b).toHexString(includeAlpha = false)
 }

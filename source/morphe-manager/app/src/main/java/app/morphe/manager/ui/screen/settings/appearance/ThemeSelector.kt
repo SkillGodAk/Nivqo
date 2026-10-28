@@ -6,19 +6,21 @@
 package app.morphe.manager.ui.screen.settings.appearance
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
+import app.morphe.manager.ui.screen.shared.Defaults
+import app.morphe.manager.ui.screen.shared.ModernIconOptionCard
+import app.morphe.manager.ui.screen.shared.OptionGroup
 import app.morphe.manager.ui.screen.shared.SectionCard
 import app.morphe.manager.ui.theme.Theme
 import app.morphe.manager.ui.theme.ThemeStyle
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 
 /**
  * Theme mode and color style, each a single row of compact tiles in one card, since both are a
@@ -35,17 +37,17 @@ fun ThemeSelector(
     val themeOptions = listOf(
         ThemeOption(
             Theme.SYSTEM,
-            Icons.Outlined.PhoneAndroid,
+            MaterialSymbols.Rounded.Phone_android,
             stringResource(R.string.settings_appearance_system)
         ),
         ThemeOption(
             Theme.LIGHT,
-            Icons.Outlined.LightMode,
+            MaterialSymbols.Rounded.Light_mode,
             stringResource(R.string.settings_appearance_light)
         ),
         ThemeOption(
             Theme.DARK,
-            Icons.Outlined.DarkMode,
+            MaterialSymbols.Rounded.Dark_mode,
             stringResource(R.string.settings_appearance_dark)
         )
     )
@@ -53,7 +55,7 @@ fun ThemeSelector(
         add(
             ThemeOption(
                 ThemeStyle.MORPHE,
-                Icons.Outlined.Palette,
+                MaterialSymbols.Rounded.Palette,
                 stringResource(R.string.settings_appearance_style_morphe)
             )
         )
@@ -61,7 +63,7 @@ fun ThemeSelector(
             add(
                 ThemeOption(
                     ThemeStyle.MATERIAL_YOU,
-                    Icons.Outlined.AutoAwesome,
+                    MaterialSymbols.Rounded.Auto_awesome,
                     stringResource(R.string.settings_appearance_dynamic)
                 )
             )
@@ -69,7 +71,7 @@ fun ThemeSelector(
         add(
             ThemeOption(
                 ThemeStyle.MONOCHROME,
-                Icons.Outlined.Contrast,
+                MaterialSymbols.Rounded.Contrast,
                 stringResource(R.string.settings_appearance_monochrome)
             )
         )
@@ -77,8 +79,8 @@ fun ThemeSelector(
 
     SectionCard {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(Defaults.SpaceLarge),
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium)
         ) {
             ThemeOptionRow(
                 title = stringResource(R.string.settings_appearance_theme_mode),
@@ -105,20 +107,22 @@ private fun <T> ThemeOptionRow(
     selected: T,
     onSelected: (T) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurface
         )
-        OptionGrid(items = options, columns = options.size) { option, itemModifier ->
+        OptionGroup(items = options) { option, shape, interactionSource, itemModifier ->
             ModernIconOptionCard(
                 selected = option.value == selected,
                 onClick = { onSelected(option.value) },
                 icon = option.icon,
                 label = option.label,
                 modifier = itemModifier,
-                compact = true
+                compact = true,
+                shape = shape,
+                interactionSource = interactionSource
             )
         }
     }

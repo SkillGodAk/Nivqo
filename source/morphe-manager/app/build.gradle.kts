@@ -1,5 +1,7 @@
 import com.mikepenz.aboutlibraries.plugin.DuplicateMode
 import com.mikepenz.aboutlibraries.plugin.DuplicateRule
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import kotlin.random.Random
 
@@ -12,6 +14,11 @@ plugins {
     alias(libs.plugins.about.libraries)
     alias(libs.plugins.about.libraries.android)
     signing
+}
+
+/** The patcher host for the embedded JVM, see [embeddedJvmAssets]. */
+val patcherHost: Configuration = configurations.create("patcherHost") {
+    isCanBeConsumed = false
 }
 
 dependencies {
@@ -30,9 +37,12 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.preview)
     debugImplementation(libs.compose.ui.tooling)
-    implementation(libs.compose.material.icons.extended)
     implementation(libs.compose.material3)
     implementation(libs.navigation.compose)
+
+    // Haze (blur of what scrolls under floating dialog chrome)
+    implementation(libs.haze)
+    implementation(libs.haze.blur)
 
     // Coil (async image loading, network image)
     implementation(libs.coil.compose)
@@ -50,9 +60,11 @@ dependencies {
     ksp(libs.room.compiler)
 
     // Morphe
-    implementation(libs.arsclib)
+    implementation(project(":patcher-core"))
     implementation(libs.morphe.patcher)
-    implementation(libs.morphe.library)
+    patcherHost(project(":patcher-core", "hostJar"))
+    // Unpacks the embedded JVM, which ships compressed with xz
+    implementation(libs.xz)
 
     implementation(libs.androidx.documentfile)
 
@@ -86,14 +98,13 @@ dependencies {
     implementation(libs.ktor.serialization)
     implementation(libs.play.services.base)
 
-    // Fading Edges
-    implementation(libs.fading.edges)
-
     // Reorderable lists
     implementation(libs.reorderable)
 
-    // Compose Icons
-    implementation(libs.compose.icons.fontawesome)
+    // Icons
+    implementation(libs.icons.material.symbols.rounded)
+    implementation(libs.icons.material.symbols.rounded.filled)
+    implementation(libs.icons.font.awesome.brands)
 
     // Semantic versioning parser
     implementation(libs.semver.parser)
@@ -138,6 +149,77 @@ val translationTags = translations.joinToString(prefix = "{", postfix = "}") { (
     "\"$tag\""
 }
 
+/**
+ * The JVM the app embeds for patching, an Android build of OpenJDK per ABI it ships one for. A 32 bit
+ * x86 device patches inside the app instead.
+ *
+ * 17, whose ports have run on Android devices the longest, the 32-bit ARM one above all, and which
+ * the patcher and the patches are built for.
+ */
+val embeddedJvmFeature = 17
+val embeddedJvmRelease = "https://github.com/AngelAuraMC/angelauramc-openjdk-build/releases/download/download_jre$embeddedJvmFeature"
+val embeddedJvms = mapOf(
+    "arm64-v8a" to Triple("jre17-android-arm64.tar.xz", "e162c860fe05ee4a4e4af7606437419879f6c748386a7b09fa77d10db6a64091", "linux-aarch64"),
+    "armeabi-v7a" to Triple("jre17-android-arm.tar.xz", "4a9134f1ebf6340dd855805d351712462cddab6f3c2684da7e7da10ccf06648d", "linux-arm"),
+    "x86_64" to Triple("jre17-android-x86_64.tar.xz", "893e27d2aed8b40407f29fe939e2a0f193e5d55f72892a303db634b0808a2b61", "linux-amd64")
+)
+
+/**
+ * The modules patching can reach: what the patcher and its libraries use, plus what ART offers patches
+ * beyond that, so a patch that runs inside the app also runs in the JVM.
+ */
+val embeddedJvmModules = listOf(
+    "java.base", "java.logging", "java.xml", "java.sql", "jdk.unsupported", "jdk.charsets", "jdk.crypto.ec",
+    // The time spent collecting garbage, which the host watches for a heap too small for the run
+    "java.management"
+)
+
+/**
+ * What of the build the linked modules need, its native libraries above all. A build ships the
+ * server VM, but for the 32-bit ARM one, which ships the client VM.
+ */
+val embeddedJvmFiles = listOf(
+    "lib/*/libjvm.so",
+    "lib/libjava.so", "lib/libjimage.so", "lib/libzip.so", "lib/libnet.so", "lib/libnio.so",
+    "lib/libverify.so", "lib/libmanagement.so",
+    "lib/jvm.cfg", "lib/tzdb.dat", "lib/security", "conf"
+)
+
+val embeddedJvmTasks = embeddedJvms.map { (abi, build) ->
+    val (file, sha256, platform) = build
+    tasks.register<PrepareEmbeddedJvmTask>("prepareEmbeddedJvm${abi.replace("-", "").replace("_", "").replaceFirstChar(Char::uppercase)}") {
+        group = "build"
+        description = "Links the embedded JVM for $abi."
+        url.set("$embeddedJvmRelease/$file")
+        this.sha256.set(sha256)
+        targetPlatform.set(platform)
+        modules.set(embeddedJvmModules)
+        runtimeFiles.set(embeddedJvmFiles)
+        jdk.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(embeddedJvmFeature)) })
+        downloadCache.set(File(gradle.gradleUserHomeDir, "caches/morphe-embedded-jvm"))
+        outputArchive.set(layout.buildDirectory.file("intermediates/embeddedJvm/$abi.zip.xz"))
+        outputImage.set(layout.buildDirectory.file("intermediates/embeddedJvm/$abi.modules"))
+    }
+}
+
+/** The ABIs of [embeddedJvms] as a Java array literal for BuildConfig. */
+val embeddedJvmAbis = embeddedJvms.keys.joinToString(prefix = "{", postfix = "}") { abi -> "\"$abi\"" }
+
+/** Changes with whatever goes into the runtime, which the app then unpacks again. */
+val embeddedJvmId = (embeddedJvms.values.map { build -> build.second } + embeddedJvmModules + embeddedJvmFiles)
+    .hashCode().toUInt().toString(16)
+
+/** Assets the embedded JVM runs from, read by JvmInstallation. */
+val embeddedJvmAssets = tasks.register<EmbeddedJvmAssetsTask>("embeddedJvmAssets") {
+    group = "build"
+    description = "Lays out the embedded JVM runtimes and the patcher host as assets."
+    runtimes.from(embeddedJvmTasks.map { task -> task.flatMap { it.outputArchive } })
+    images.from(embeddedJvmTasks.map { task -> task.flatMap { it.outputImage } })
+    baseAbi.set(embeddedJvms.keys.first())
+    hostJar.from(patcherHost)
+    outputDirectory.set(layout.buildDirectory.dir("generated/embeddedJvm"))
+}
+
 android {
     namespace = "app.morphe.manager"
     compileSdk = 37
@@ -164,6 +246,17 @@ android {
 
         buildConfigField("String[]", "TRANSLATIONS", translationTags)
         buildConfigField("boolean", "ALLOW_MANAGER_SELF_UPDATE", "true")
+
+        buildConfigField("String[]", "EMBEDDED_JVM_ABIS", embeddedJvmAbis)
+        buildConfigField("String", "EMBEDDED_JVM_ID", "\"$embeddedJvmId\"")
+
+        // The embedded JVM links against the shared C++ runtime, which the app ships alongside the launcher
+        @Suppress("UnstableApiUsage")
+        externalNativeBuild {
+            cmake {
+                arguments += "-DANDROID_STL=c++_shared"
+            }
+        }
 
         vectorDrawables.useSupportLibrary = true
     }
@@ -253,6 +346,9 @@ android {
     }
 
     androidResources {
+        // The embedded JVM comes packed already, so deflating it again only slows down unpacking it
+        noCompress += "xz"
+
         // Libraries ship strings in far more languages than Morphe has, which only bloat resources.arsc
         @Suppress("UnstableApiUsage")
         localeFilters += translatedLocales
@@ -277,7 +373,10 @@ android {
     }
 
     lint {
+        lintConfig = file("lint.xml")
         disable += setOf("MissingTranslation")
+        // Morphe ships as an APK, never as a bundle split by language
+        disable += setOf("AppBundleLocaleChanges")
         // Crowdin drops a removed string from the translations only on its next sync
         warning += setOf("ExtraTranslation")
         baseline = file("lint-baseline.xml")
@@ -316,6 +415,14 @@ tasks {
     whenTaskAdded {
         if (name.startsWith("lintVital")) {
             enabled = false
+        }
+    }
+
+    // CI logs are all anyone reads of a failed run, so a failure prints its whole message there
+    withType<Test>().configureEach {
+        testLogging {
+            events(TestLogEvent.FAILED)
+            exceptionFormat = TestExceptionFormat.FULL
         }
     }
 }
@@ -375,5 +482,6 @@ androidComponents {
         variant.sources.res?.addGeneratedSourceDirectory(generateLauncherIcons, GenerateLauncherIconsTask::resDirectory)
         variant.sources.kotlin?.addGeneratedSourceDirectory(generateLauncherIcons, GenerateLauncherIconsTask::kotlinDirectory)
         variant.sources.manifests.addGeneratedManifestFile(generateLauncherIcons, GenerateLauncherIconsTask::manifestFile)
+        variant.sources.assets?.addGeneratedSourceDirectory(embeddedJvmAssets, EmbeddedJvmAssetsTask::outputDirectory)
     }
 }

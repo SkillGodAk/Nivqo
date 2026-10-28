@@ -6,16 +6,21 @@ package app.morphe.patches.facebook.layout.theme
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction35c
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.w3c.dom.Element
+import javax.xml.parsers.DocumentBuilderFactory
 
 /**
  * The reads of a colour resource, sent to the extension so light mode can have back what route two
@@ -33,6 +38,29 @@ class ColourCallRerouteTest {
     ).apply { addInstructionsWithLabels(0, smali) }
 
     private fun MutableMethod.body(): List<Instruction> = implementation!!.instructions.toList()
+
+    @Test
+    fun `unrelated owners and member names do not format a full method descriptor`() {
+        var formatted = 0
+        fun counted(owner: String, name: String): MethodReference {
+            val actual = ImmutableMethodReference(owner, name, listOf("I"), "I")
+            return object : MethodReference by actual {
+                override fun toString(): String { formatted++; return actual.toString() }
+            }
+        }
+        val method = method(3, "return-void")
+        listOf(
+            counted("Lfixture/Unrelated;", "getColor"),
+            counted("Landroid/content/Context;", "unrelated"),
+            counted("Landroid/content/Context;", "getColor"),
+        ).forEachIndexed { at, reference ->
+            method.implementation!!.addInstruction(at, BuilderInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 1, 2, 0, 0, 0, reference))
+        }
+        val counts = AMOLED_COLOUR_CALLS.keys.associateWith { 0 }.toMutableMap()
+        method.rerouteColourCalls(AMOLED_COLOUR_CALLS, counts)
+        assertEquals("only the candidate needs its overload descriptor", 1, formatted)
+        assertEquals(1, counts.getValue(CONTEXT_GET_COLOR))
+    }
 
     /** Each call's opcode, target and registers. */
     private fun MutableMethod.calls(): List<Triple<Opcode, String, List<Int>>> = body().mapNotNull { instruction ->
@@ -217,5 +245,18 @@ class ColourCallRerouteTest {
         assertEquals("a name of Facebook's own", null, decodedColourId("fds_surface_background"))
         assertEquals("another type's", null, decodedColourId("dimen_0x7f070012"))
         assertEquals("a partial id", null, decodedColourId("color_0x7f06"))
+    }
+
+    /** Black cards' page colour (#191): one colour resource of the patch's own, holding the colour it's given. */
+    @Test
+    fun `the page's colour is added as a resource of its own`() {
+        val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument()
+            .also { it.appendChild(it.createElement("resources")) }
+        addPageColour(document, "#ff000000")
+        val colours = document.documentElement.getElementsByTagName("color")
+        assertEquals(1, colours.length)
+        val colour = colours.item(0) as Element
+        assertEquals(PAGE_COLOUR, colour.getAttribute("name"))
+        assertEquals("#ff000000", colour.textContent)
     }
 }

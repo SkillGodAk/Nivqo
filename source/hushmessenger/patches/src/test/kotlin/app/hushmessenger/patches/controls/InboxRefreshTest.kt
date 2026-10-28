@@ -73,6 +73,21 @@ class InboxRefreshTest {
         }
     }
 
+    @Test fun theForwardedCallbackOf584ResolvesTheSameRoute() {
+        assertEquals(INBOX_ROUTE, resolve(inboxForwardedClasses()))
+    }
+
+    @Test fun aForwardedCallbackThatIsNotExactlyTheForwardFailsClosed() {
+        val changed = mapOf(
+            "forward target missing" to inboxForwardedClasses(forwardTarget = "A07"),
+            "no null guard" to inboxForwardedClasses(guard = "const/4 v2, 0x0"),
+            "supplier not passed" to inboxForwardedClasses(callsite = "invoke-static {p1, p1}, $INBOX_SUPPLIER->A06($INBOX_SUPPLIER" + "Ljava/util/List;)V"),
+        )
+        for ((change, classes) in changed) {
+            assertFailsWith<PatchException>(change) { resolve(classes, inboxItemsMethod()) }
+        }
+    }
+
     @Test fun theItemsReadMustStartWithItsTraceOutsideAnyBranch() {
         for ((change, items) in mapOf(
             "trace changed" to inboxItemsMethod(trace = "ThreadListItemSupplierImplementation.getItems"),

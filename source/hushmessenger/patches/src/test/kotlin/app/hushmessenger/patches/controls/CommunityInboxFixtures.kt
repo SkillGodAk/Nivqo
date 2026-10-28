@@ -59,16 +59,30 @@ internal fun communityInboxFixture(anyBody: String? = null, channelCheck: Boolea
     val loaderCtorId = "$loader-><init>(Landroid/content/Context;Lcom/facebook/auth/usersession/FbUserSession;LX/MainBase;LX/Config;LX/Publisher;Ljava/util/List;)V"
     val loaderCtor = fixtureMethod(loaderCtorId, "invoke-direct {v0}, $COORDINATOR-><init>()V\nreturn-void", 7)
     val mainCtor = fixtureMethod("$main-><init>()V", "new-instance v0, $callbackType\ninvoke-direct {v0, p0}, $callbackType-><init>($main)V\niput-object v0, p0, $mainPrefix\ninvoke-direct/range {v0 .. v6}, $loaderCtorId\nreturn-void", 7)
+    // 584 reads the loader through a lazy field and a checked static getter on Main.
+    val checkedLoaderId = "$main->A04($main)${path[1].substringAfter(':')}"
+    val checkedLoader = fixtureMethod(checkedLoaderId, """
+        iget-object v0, p0, ${path[1]}
+        if-eqz v0, :missing
+        return-object v0
+        :missing
+        invoke-static {}, LX/Checks;->missing()Ljava/lang/IllegalArgumentException;
+        move-result-object v0
+        throw v0
+    """.trimIndent(), 2, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)
     val update = fixtureMethod(updateId, sparse(197, mapOf(
         12 to "const-string v0, \"InboxFragment_updateSectionTree\"",
         57 to "iget-object v3, v7, $model->rows:$IMMUTABLE_LIST", 58 to "move-object/from16 v26, v3",
         74 to "instance-of v3, v5, $row",
-        108 to "iget-object v4, v13, ${path[1]}", 110 to "invoke-virtual {v4}, $scopeGetterId", 111 to "move-result-object v23",
+        106 to "iget-object v4, v13, ${path[1]}", 107 to "if-nez v4, :loaded",
+        108 to "invoke-static {v13}, $checkedLoaderId", 109 to "move-result-object v4",
+        110 to ":loaded\ninvoke-virtual {v4}, $scopeGetterId", 111 to "move-result-object v23",
         134 to "iget-object v3, v13, $mainPrefix", 152 to "move-object/from16 v21, v3",
         143 to "new-instance v0, $closure", 155 to "invoke-direct/range {v14 .. v29}, $ctorId", 196 to "return-void")),
         30,
         AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)
-    val switch = fixtureMethod(switchId, sparse(45, mapOf(
+    val switch = fixtureMethod(switchId, sparse(42, mapOf(
+        0 to "invoke-static {p0}, $checkedLoaderId", 1 to "move-result-object v1",
         2 to "sget-object v0, $requests", 3 to "if-ne p1, v0, :inbox",
         4 to "sget-object v4, $FOLDER->pending:$FOLDER", 7 to "sget-object v4, $FOLDER->pending:$FOLDER",
         9 to "const-string v1, \"InboxLoaderCoordinator.setFolderAndFilter\"",
@@ -189,7 +203,7 @@ internal fun communityInboxFixture(anyBody: String? = null, channelCheck: Boolea
         sget-object v0, $CONFIG->cached:$FOLDER
         return-object v0
     """.trimIndent(), 3)
-    return listOf(fixtureClass(main, listOf(mainCtor, update, switch), "InboxFragment", superclass = "LX/MainBase;", extraFields = listOf(nativeField(path[1]))),
+    return listOf(fixtureClass(main, listOf(mainCtor, update, switch, checkedLoader), "InboxFragment", superclass = "LX/MainBase;", extraFields = listOf(nativeField(path[1]))),
         fixtureClass(callbackType, listOf(callbackCtor), extraFields = listOf(nativeField(path[0]))),
         fixtureClass(closure, listOf(ctor, invoke)), fixtureClass(model), fixtureClass(loader, listOf(loaderCtor, getter), extraFields = listOf(nativeField(path[2]))),
         fixtureClass(COORDINATOR, listOf(coordinatorCtor), "InboxLoaderCoordinator", extraFields = listOf(nativeField(path[3]))),

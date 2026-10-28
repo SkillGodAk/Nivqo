@@ -27,6 +27,7 @@ public class QuickSetupsTest {
         CrashGuard.resetForTests();
         Settings.initialize(RuntimeEnvironment.getApplication());
         Settings.preferences.edit().clear().commit();
+        OpenSections.all();
         forgetHeldAnswers();
     }
 
@@ -71,9 +72,9 @@ public class QuickSetupsTest {
 
     @Test public void onlyControlsItMaySetAndThatAreSavedAsSomethingElseChange() {
         SharedPreferences prefs = Settings.preferences;
-        prefs.edit().putBoolean("ads", true).commit();
+        prefs.edit().putBoolean("growth", true).commit();
         Map<String, Boolean> changes = QuickSetups.changes(QuickSetups.values("quiet"), prefs, key -> !"people".equals(key));
-        assertFalse(changes.containsKey("ads"));
+        assertFalse(changes.containsKey("growth"));
         assertFalse(changes.containsKey("people"));
         assertEquals(QuickSetups.QUIET.size() - 2, changes.size());
         assertFalse(changes.containsValue(false));
@@ -86,15 +87,15 @@ public class QuickSetupsTest {
             root.findViewWithTag("tab_app").performClick();
             assertTrue(root.findViewWithTag("quick_setups").isShown());
             root.findViewWithTag("quick_privacy").performClick();
-            assertEquals("Changed 3 settings", ShadowToast.getTextOfLatestToast());
+            assertEquals("Changed 3 controls", ShadowToast.getTextOfLatestToast());
             for (String key : QuickSetups.PRIVACY) {
                 assertTrue(key, Settings.preferences.getBoolean(key, false));
                 assertTrue(key, ((Switch) root.findViewWithTag(key)).isChecked());
             }
             root.findViewWithTag("quick_privacy").performClick();
-            assertEquals("Nothing to change. Those settings were already set.", ShadowToast.getTextOfLatestToast());
+            assertEquals("Nothing to change. Those controls were already set.", ShadowToast.getTextOfLatestToast());
             root.findViewWithTag("quick_defaults").performClick();
-            assertEquals("Changed 5 settings", ShadowToast.getTextOfLatestToast());
+            assertEquals("Changed 5 controls", ShadowToast.getTextOfLatestToast());
             for (String key : controls()) assertFalse(key, Settings.preferences.getBoolean(key, false));
             // Pause isn't a control, so it stays as it was.
             assertTrue(Settings.preferences.getBoolean("paused", false));
@@ -111,9 +112,72 @@ public class QuickSetupsTest {
             assertEquals(View.GONE, root.findViewWithTag("restart_row").getVisibility());
             root.findViewWithTag("tab_app").performClick();
             root.findViewWithTag("quick_defaults").performClick();
-            assertEquals("Changed 1 setting", ShadowToast.getTextOfLatestToast());
+            assertEquals("Changed 1 control", ShadowToast.getTextOfLatestToast());
             assertTrue(root.findViewWithTag("restart_row").isShown());
             assertEquals("1 change waits for a restart", ((TextView) root.findViewWithTag("restart_waiting")).getText().toString());
+        }
+    }
+
+    /**
+     * Undo puts back exactly what was saved before, so a switch that was never set goes back to never set, and leaves alone
+     * one flipped again since.
+     */
+    @Test public void undoPutsBackWhatAQuickSetupChangedButNotASwitchFlippedSince() {
+        Settings.preferences.edit().putBoolean("analytics_uploads", true).commit();
+        List<String> changed = new java.util.ArrayList<>(QuickSetups.PRIVACY);
+        changed.remove("analytics_uploads");
+        String flipped = changed.get(0);
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View root = screen.get().getWindow().getDecorView();
+            SettingsText text = new SettingsText(screen.get());
+            android.widget.Button undo = root.findViewWithTag("undo");
+            assertEquals(View.GONE, undo.getVisibility());
+            root.findViewWithTag("tab_app").performClick();
+            root.findViewWithTag("quick_privacy").performClick();
+            assertEquals(text.count("quick_changed", changed.size()), ShadowToast.getTextOfLatestToast());
+            assertTrue(undo.isShown());
+            assertEquals("Undo Privacy", undo.getText().toString());
+            Settings.preferences.edit().putBoolean(flipped, false).commit();
+            undo.performClick();
+            assertEquals(text.count("quick_undone", changed.size() - 1), ShadowToast.getTextOfLatestToast());
+            assertEquals(View.GONE, undo.getVisibility());
+            assertTrue(Settings.preferences.getBoolean("analytics_uploads", false));
+            assertTrue(Settings.preferences.contains(flipped));
+            for (String key : changed) {
+                if (!key.equals(flipped)) assertFalse(key, Settings.preferences.contains(key));
+                assertFalse(key, ((Switch) root.findViewWithTag(key)).isChecked());
+            }
+        }
+    }
+
+    @Test public void backToDefaultsIsFinalOnceUndoRunsOutOrSettingsClose() {
+        Settings.preferences.edit().putBoolean("growth", true).commit();
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View root = screen.get().getWindow().getDecorView();
+            View undo = root.findViewWithTag("undo");
+            root.findViewWithTag("tab_app").performClick();
+            // The bar's title draws a frame every 10 ms, and Robolectric moves its clock on by a frame delay at each
+            // one, so the Undo window would seem to run out early. Hidden, the title only looks in every half second
+            // through a plain handler, which leaves the clock to the test.
+            root.findViewWithTag("wordmark").setVisibility(View.INVISIBLE);
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(50));
+            root.findViewWithTag("quick_defaults").performClick();
+            assertEquals("Undo Back to defaults", ((TextView) undo).getText().toString());
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(SettingsActivity.UNDO_MILLIS - 1));
+            assertTrue(undo.isShown());
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(1));
+            assertEquals(View.GONE, undo.getVisibility());
+            // A hidden button still takes performClick, so these show the saved values are gone, not just the button.
+            undo.performClick();
+            assertFalse(Settings.preferences.getBoolean("growth", true));
+            Settings.preferences.edit().putBoolean("growth", true).commit();
+            root.findViewWithTag("quick_defaults").performClick();
+            assertTrue(undo.isShown());
+            screen.pause().stop();
+            screen.start().resume();
+            assertEquals(View.GONE, undo.getVisibility());
+            undo.performClick();
+            assertFalse(Settings.preferences.getBoolean("growth", true));
         }
     }
 
@@ -127,16 +191,16 @@ public class QuickSetupsTest {
     }
 
     @Test public void aChoiceWithNoneOfItsSwitchesInTheBundleSaysSoInsteadOfAlreadySet() throws Exception {
-        installedFeatures("ads", "bubbles");
+        installedFeatures("growth", "bubbles");
         try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
             View root = screen.get().getWindow().getDecorView();
             root.findViewWithTag("tab_app").performClick();
             root.findViewWithTag("quick_privacy").performClick();
-            assertEquals("Those switches aren't in this bundle, so nothing changed.", ShadowToast.getTextOfLatestToast());
+            assertEquals("Those controls aren't installed. Nothing changed.", ShadowToast.getTextOfLatestToast());
             root.findViewWithTag("quick_quiet").performClick();
-            assertEquals("Changed 1 setting", ShadowToast.getTextOfLatestToast());
+            assertEquals("Changed 1 control", ShadowToast.getTextOfLatestToast());
             root.findViewWithTag("quick_quiet").performClick();
-            assertEquals("Nothing to change. Those settings were already set.", ShadowToast.getTextOfLatestToast());
+            assertEquals("Nothing to change. Those controls were already set.", ShadowToast.getTextOfLatestToast());
         }
     }
 
@@ -145,13 +209,13 @@ public class QuickSetupsTest {
      * file, still goes off with the rest.
      */
     @Test public void backToDefaultsAlsoTurnsOffAControlThisPhoneCantRun() throws Exception {
-        installedFeatures("ads", "bubbles");
+        installedFeatures("growth", "bubbles");
         Settings.preferences.edit().putBoolean("bubbles", true).commit();
         try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
             View root = screen.get().getWindow().getDecorView();
             root.findViewWithTag("tab_app").performClick();
             root.findViewWithTag("quick_defaults").performClick();
-            assertEquals("Changed 1 setting", ShadowToast.getTextOfLatestToast());
+            assertEquals("Changed 1 control", ShadowToast.getTextOfLatestToast());
             assertFalse(Settings.preferences.getBoolean("bubbles", true));
         }
     }
@@ -161,8 +225,12 @@ public class QuickSetupsTest {
         try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
             View root = screen.get().getWindow().getDecorView();
             root.findViewWithTag("tab_app").performClick();
-            assertTrue(((TextView) ((android.view.ViewGroup) root.findViewWithTag("quick_setups")).getChildAt(0))
-                .getText().toString().endsWith("Press and hold to hide this section."));
+            // The section is its header and then the card, whose first line is the help.
+            android.view.ViewGroup card = (android.view.ViewGroup) ((android.view.ViewGroup) root.findViewWithTag("quick_setups")).getChildAt(1);
+            assertTrue(((TextView) card.getChildAt(0)).getText().toString().endsWith("Press and hold to hide this section."));
+            // Holding the header hides it too.
+            assertTrue(root.findViewWithTag("section_quick_setups").performLongClick());
+            assertFalse(root.findViewWithTag("quick_setups").isShown());
         }
     }
 
@@ -176,7 +244,11 @@ public class QuickSetupsTest {
             assertTrue(root.findViewWithTag("quick_privacy").performLongClick());
             assertTrue(Settings.preferences.getBoolean("hide_quick_setups", false));
             assertFalse(root.findViewWithTag("quick_setups").isShown());
-            assertEquals("Quick setups hidden. Bring it back from App.", ShadowToast.getTextOfLatestToast());
+            // The long press happens on the App tab, so the toast has to name the button there, not send you to App.
+            TextView restore = root.findViewWithTag("quick_setups_home");
+            assertTrue(restore.isShown());
+            assertEquals("Hidden. Tap " + restore.getText() + " under Your choices.",
+                ShadowToast.getTextOfLatestToast());
             assertEquals("Hidden. Tap to show it again.", status.getText().toString());
             root.findViewWithTag("quick_setups_home").performClick();
             assertFalse(Settings.preferences.getBoolean("hide_quick_setups", false));

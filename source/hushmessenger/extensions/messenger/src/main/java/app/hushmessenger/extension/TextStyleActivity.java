@@ -1,12 +1,15 @@
 package app.hushmessenger.extension;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.PatternMatcher;
 import android.view.View;
 import android.widget.Toast;
 import java.text.Normalizer;
@@ -208,10 +211,33 @@ public final class TextStyleActivity extends Activity {
         if (key == null || KEY.equals(key) || "paused".equals(key)) refresh();
     };
 
+    /**
+     * Messenger's first start after an install enables every component in its manifest, these two included, and it
+     * does that after this start's sync, so the entries showed with the switch off until the next start. Android tells
+     * the app's own receivers about each change to its components, and the sync puts them back right away.
+     */
+    private static final BroadcastReceiver CHANGED = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) { refresh(); }
+    };
+    private static Context listening;
+
     /** Settings started in Messenger's main process: the menu entries follow the switch and Pause from now on. */
     static void watch() {
         SharedPreferences preferences = Settings.preferences;
         if (preferences != null) preferences.registerOnSharedPreferenceChangeListener(FOLLOW);
+        Context context = Settings.appContext;
+        if (context != null && context != listening) {
+            IntentFilter filter = new IntentFilter(Intent.ACTION_PACKAGE_CHANGED);
+            filter.addDataScheme("package");
+            filter.addDataSchemeSpecificPart(context.getPackageName(), PatternMatcher.PATTERN_LITERAL);
+            try {
+                // A protected system broadcast, so no export flag is needed on any version.
+                context.registerReceiver(CHANGED, filter);
+                listening = context;
+            } catch (RuntimeException error) {
+                Settings.hookFailed(KEY, "Can't watch the Bold and Italic menu entries", error);
+            }
+        }
         refresh();
     }
 

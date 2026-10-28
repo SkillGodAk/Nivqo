@@ -107,6 +107,39 @@ public class CompatibleTracksTest {
     }
 
     /**
+     * Issue #189: with convert to keep the full size on too, issue #11's reel, 1080p AV1 beside
+     * 720p H.264, is saved from the AV1 picture made H.264, with its AAC-LC sound. A quality the
+     * H.264 track already fits, a picture no larger, or a phone that can't convert keeps the H.264
+     * track, and the switch without saves other apps can open converts nothing.
+     */
+    @Test
+    public void aLargerPictureIsConvertedWithTheFullSizeSwitch() {
+        DashManifest.Converter any = track -> true;
+        DashManifest.Pick full = DashManifest.pick(ISSUE_11, true, DownloadQuality.BEST, true, true, any, true);
+        assertSame(AV1_1080, full.video);
+        assertSame(LC_64, full.audio);
+        assertTrue(full.transcodeVideo);
+        assertFalse(full.reencodeSound);
+
+        assertSame("the switch off", H264_720,
+                DashManifest.pick(ISSUE_11, true, DownloadQuality.BEST, true, true, any, false).video);
+        assertSame("a quality the H.264 track fits", H264_720,
+                DashManifest.pick(ISSUE_11, true, DownloadQuality.P720, true, true, any, true).video);
+        assertSame("a phone that can't convert", H264_720,
+                DashManifest.pick(ISSUE_11, true, DownloadQuality.BEST, true, true, track -> false, true).video);
+        assertSame("no converter", H264_720,
+                DashManifest.pick(ISSUE_11, true, DownloadQuality.BEST, true, true, null, true).video);
+        DashManifest.Pick tie = DashManifest.pick(Arrays.asList(VP9_720, H264_720, LC_64), true, DownloadQuality.BEST,
+                true, true, any, true);
+        assertSame("the same size needs no converting", H264_720, tie.video);
+        assertFalse(tie.transcodeVideo);
+
+        DashManifest.Pick notCompatible = DashManifest.pick(ISSUE_11, true, DownloadQuality.BEST, false, true, any, true);
+        assertSame(AV1_1080, notCompatible.video);
+        assertFalse(notCompatible.transcodeVideo);
+    }
+
+    /**
      * Only 8-bit VP9, AV1 and H.265 pictures are ever offered for converting: a 10-bit one is HDR
      * or made to look like it, and an 8-bit encoder would wash it out.
      */
@@ -143,6 +176,34 @@ public class CompatibleTracksTest {
         assertEquals(3_600_000, VideoTranscode.bitRate(720, 1280, 30, 1_200_000));
         assertEquals(VideoTranscode.MAX_BIT_RATE, VideoTranscode.bitRate(1080, 1920, 60, 4_000_000));
         assertEquals(VideoTranscode.MIN_BIT_RATE, VideoTranscode.bitRate(720, 1280, 0, 0));
+    }
+
+    /**
+     * A long, thin picture gets room for what the encoder makes of it. The S22's four minute 1080p
+     * reel came at 467 kbps in 14.9 MB, so six times the file, the room it used to get, was 89 MB,
+     * and the H.264 asked for 2.5 Mbps outgrew it and the save fell back to the 720p file. Half
+     * again over 2.5 Mbps, 119 MB, ran out too: that encoder made about 8 Mbps of 1080p whatever
+     * it was asked for (8.0 Mbps asked for 3.0, 8.2 for 3.2). A picture that doesn't say how long
+     * it runs keeps the old room.
+     */
+    @Test
+    public void aLongThinPictureGetsRoomForWhatItBecomes() {
+        long durationUs = 254_505_375L;
+        long bytes = 14_881_053L;
+        long asked = (long) VideoTranscode.bitRate(1920, 1080, 30, 467_000) / 8 * durationUs / 1_000_000;
+        assertTrue("the old room gave the encoder a fifth over its rate", bytes * 6 < asked * 6 / 5);
+        long room = VideoTranscode.roomFor(durationUs, 1920, 1080, 30, 467_000, bytes);
+        assertTrue("the room is no larger than half again over the asked rate", room > asked * 3 / 2 + OutputAllowance.BOXES);
+        // The most the S22's encoder made of a 1080p picture, 8.2 Mbps, for the whole reel.
+        long most = 8_200_000L / 8 * durationUs / 1_000_000;
+        assertTrue("no room for an encoder at its quality floor", room > most + OutputAllowance.BOXES);
+        assertEquals("a picture that says nothing keeps the old room", bytes * 6,
+            VideoTranscode.roomFor(-1, 1920, 1080, 30, 467_000, bytes));
+        assertEquals("a short clip keeps the old floor", VideoTranscode.LEAST_ROOM,
+            VideoTranscode.roomFor(5_000_000L, 1920, 1080, 30, 467_000, 300_000));
+        long rich = 200_000_000L;
+        assertEquals("a large file keeps six times itself", rich * 6,
+            VideoTranscode.roomFor(durationUs, 1920, 1080, 30, 467_000, rich));
     }
 
     /** Safer sound must not cost the requested picture resolution (silent Gallery report #14). */
@@ -249,6 +310,30 @@ public class CompatibleTracksTest {
         assertEquals("its sound is HE-AAC, which other apps take", "mp4a.40.5",
                 DashManifest.bestCompatibleAudio(tracks).codecs);
         assertNotNull(DashManifest.pick(tracks, true, DownloadQuality.BEST, false));
+    }
+
+    /**
+     * How long a manifest says it runs, which a save weighs a conversion by before it fetches
+     * anything. A 13:38 reel with only AV1 pictures had its 1080p track fetched, then refused as
+     * too long to convert, and two error toasts came before the single file.
+     */
+    @Test
+    public void aManifestSaysHowLongItRuns() throws IOException {
+        assertEquals(64_814_812L, DashManifest.durationUs(resource("meta-public-dash.mpd")));
+        assertEquals(818_033_000L, DashManifest.durationUs(mpd("PT13M38.033S")));
+        assertTrue("over the length a picture is converted for",
+                DashManifest.durationUs(mpd("PT13M38.033S")) > VideoTranscode.MAX_DURATION_US);
+        assertEquals(3_723_500_000L, DashManifest.durationUs(mpd("PT1H2M3.5S")));
+        assertEquals(86_400_000_000L, DashManifest.durationUs(mpd("P1D")));
+        assertEquals("no length in it", -1L, DashManifest.durationUs(mpd("PT")));
+        assertEquals("not a length", -1L, DashManifest.durationUs(mpd("13 minutes")));
+        assertEquals("too long to hold", -1L, DashManifest.durationUs(mpd("PT99999999999999999H")));
+        assertEquals("no attribute", -1L, DashManifest.durationUs("<MPD type=\"static\"><Period/></MPD>"));
+        assertEquals(-1L, DashManifest.durationUs(null));
+    }
+
+    private static String mpd(String length) {
+        return "<MPD type=\"static\" mediaPresentationDuration=\"" + length + "\"><Period/></MPD>";
     }
 
     /** AAC-LC first, whatever its bitrate, then HE-AAC, then HE-AAC v2 at the same rank. */

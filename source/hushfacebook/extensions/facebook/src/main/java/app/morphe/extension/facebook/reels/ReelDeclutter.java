@@ -17,6 +17,7 @@ import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.diagnostics.FeedFilterCounters;
 import app.morphe.extension.shared.diagnostics.HookStatus;
 import app.morphe.extension.shared.settings.BaseSettings;
+import app.morphe.extension.shared.settings.BooleanSetting;
 
 /**
  * What the Clean up Reels patch asks before a reel's footer is built.
@@ -28,7 +29,11 @@ import app.morphe.extension.shared.settings.BaseSettings;
  *       builds the list of those it will draw. The patch hands that list here before each return,
  *       and {@link #filterChips} answers the chips to keep, or null to keep the list as it came.
  *       Each chip is a generated model that answers its GraphQL type with {@code getTypeName()},
- *       and only the types in {@link #HIDDEN_CHIPS} go. A type this doesn't know stays.
+ *       and only the types in {@link #HIDDEN_CHIPS} go. A type this doesn't know stays. The line
+ *       naming the reel's sound, "Original audio" or a song, is one of those chips, and it goes
+ *       under its own switch ({@link #SOUNDTRACK_CHIP}, #200). The footer draws nothing for a
+ *       list left empty. The Reels tab draws that line in a component of its own, which picks the
+ *       soundtrack out of the models itself, and {@link #hideAudioLine} is asked first thing there.
  *   <li>The Follow button beside a reel's author is built only when Facebook's Follow check
  *       answers yes, and {@link #hideFollowButton} is asked first thing in that check. The author
  *       row asks it on every surface, the Reels tab included. So do the author rows of sponsored
@@ -40,6 +45,26 @@ import app.morphe.extension.shared.settings.BaseSettings;
  *   <li>The comment Facebook picks to show under a reel and the bubbles of friends who reacted each
  *       come from a query a runnable starts. {@link #skipHotComment} and {@link #skipSocialBubbles}
  *       are asked first thing in each, and true makes the runnable return before it queries.
+ *   <li>Each button down a reel's right side is one vertical button component whose constructor
+ *       takes the text under the icon. {@link #countText} is handed that text first thing in the
+ *       constructor and answers what the button keeps (#180).
+ *   <li>The sidebar builds those buttons by walking a list of types, one icon constant each.
+ *       {@link #hideSidebarButton} is handed each type as it's read, and true skips Save or the
+ *       direct WhatsApp button (#190, #243).
+ *   <li>The speaker button under them comes from one of two places, picked by a server flag: the
+ *       video controls build it only when one check of Facebook's answers yes, and
+ *       {@link #showsSoundButton} is handed that answer before they branch on it. Otherwise the
+ *       footer builds it, and {@link #soundButton} is handed what was built before the footer's
+ *       null check. Either way the button stays out while the switch is on (#190).
+ *   <li>A video that keeps buffering has Facebook post a runnable that shows "This is taking a
+ *       while. Try checking your network connection." {@link #hideSlowConnectionMessage} is asked
+ *       first thing in it, and true makes it return before the message is built (#222).
+ *   <li>Each tile of the feed's Reels row plays a short clip of its reel that Facebook picks, and
+ *       a clip it can't use comes out as the first second, played over and over (#228).
+ *       {@link #allowsPreviewClip} is handed the last check before the tile asks for its clip, and
+ *       false takes Facebook's own path for a tile with no clip. {@link #previewClipEnd} is handed
+ *       the position the tile's player stops and loops at, and answers -1, the player's own
+ *       default, so the reel plays to its end.
  * </ul>
  *
  * <p>Every hook fails open: until the settings are ready, while Hushfacebook is paused, with a
@@ -64,10 +89,76 @@ public final class ReelDeclutter {
             "XFBFBShortsExternalLinkAttribution",
     };
 
+    /**
+     * The GraphQL type of the line naming a reel's sound, "Original audio" or a song, which the audio
+     * line switch hides on its own (#200). The chips switch leaves it, and the patch holds the builder
+     * to it as it does to the hidden chips.
+     */
+    static final String SOUNDTRACK_CHIP = "XFBFBShortsSoundtrackTitle";
+
     /** The diagnostic counter routes. */
     static final String CHIPS_ROUTE = "Reel chips";
     static final String FOLLOW_ROUTE = "Reel Follow button";
     static final String FOOTER_ROUTE = "Reel footer queries";
+
+    /** Counted under its own name each time the search pill isn't built. */
+    static final String SEARCH_ROUTE = "Reel search pill";
+    static final String SEARCH_PILL = "search pill";
+    static final String COMMENT_SEARCH_PILL = "comment search pill";
+    /** The search bar over a reel opened from a profile, and its send button, each counted as it's handed in. */
+    static final String SEARCH_BAR = "search bar";
+
+    /** Counted under its own name each time the Reels tab's audio line isn't drawn. */
+    static final String AUDIO_ROUTE = "Reel audio line";
+    static final String AUDIO_LINE = "audio line";
+
+    /** Counted under its own name each time a video's slow connection message isn't shown. */
+    static final String SLOW_ROUTE = "Slow connection message";
+    static final String SLOW_MESSAGE = "slow connection message";
+
+    /**
+     * Counted under its own name for each tile of the feed's Reels row, as its end is handed in, and
+     * removed each time a tile that had an end plays its whole reel. The clip check is tallied as its
+     * own kind: Facebook asks it only while one of its server flags is on, and the end on every tile.
+     */
+    static final String PREVIEW_ROUTE = "Feed reel previews";
+    static final String PREVIEW_CLIP = "preview clip";
+    static final String PREVIEW_END = "clip end";
+    static final String PREVIEW_NO_END = "no end";
+
+    /** What the tile's player reads as no stop position: the default its settings builder starts with. */
+    static final int NO_END = -1;
+
+    /** Counted under its own name each time a sidebar button's number is taken away. */
+    static final String COUNTS_ROUTE = "Reel counts";
+    static final String COUNT = "button count";
+
+    /** Counted under its own name each time a sidebar button is skipped. */
+    static final String SIDEBAR_ROUTE = "Reel sidebar buttons";
+    static final String SAVE_BUTTON = "Save button";
+    static final String WHATSAPP_BUTTON = "WhatsApp button";
+    static final String LIKE_BUTTON = "Like button";
+    static final String COMMENT_BUTTON = "Comment button";
+    static final String SHARE_BUTTON = "Share button";
+    static final String SOUND_BUTTON = "speaker button";
+
+    /**
+     * The constant of Facebook's icon enum the reel sidebar builds its Save button for (#190). The
+     * sidebar walks one constant per button, and the enum's names are kept as strings in the app,
+     * so {@code name()} reads this on any build. Like, Comment and Share are LIKE, COMMENT and SHARE (#265).
+     */
+    static final String SAVE_TYPE = "BOOKMARK";
+    static final String WHATSAPP_TYPE = "APP_WHATSAPP";
+    static final String LIKE_TYPE = "LIKE";
+    static final String COMMENT_TYPE = "COMMENT";
+    static final String SHARE_TYPE = "SHARE";
+
+    /**
+     * What a hidden count becomes: one zero-width space. The button still has a text row, so it
+     * keeps the height it has with a number and the icons above and below it don't move, but the
+     * row shows nothing. A null text would drop the row and pull every icon under it up.
+     */
+    static final String NO_COUNT = String.valueOf((char) 0x200B);
 
     /** The kind a chip is counted under when its type can't be read. It stays. */
     static final String UNREADABLE = "unreadable type";
@@ -99,7 +190,10 @@ public final class ReelDeclutter {
             if (!(chips instanceof List)) return null;
             List<?> list = (List<?>) chips;
             FeedFilterCounters.sawList(CHIPS_ROUTE, list.size());
-            if (list.isEmpty() || !Utils.settingsReady() || !Settings.HIDE_REEL_CHIPS.get()) return null;
+            if (list.isEmpty() || !Utils.settingsReady()) return null;
+            boolean hideChips = Settings.HIDE_REEL_CHIPS.get();
+            boolean audioLine = Settings.HIDE_REEL_AUDIO_LINE.get();
+            if (!hideChips && !audioLine) return null;
 
             List<Object> kept = new ArrayList<>(list.size());
             for (Object chip : list) {
@@ -108,7 +202,7 @@ public final class ReelDeclutter {
                 String type = FeedFilter.typeName(chip);
                 // The report names every chip type a reel carried, which is how a new one is found.
                 FeedFilterCounters.sawKind(CHIPS_ROUTE, type == null ? UNREADABLE : type);
-                if (isHiddenChip(type)) {
+                if ((hideChips && isHiddenChip(type)) || (audioLine && SOUNDTRACK_CHIP.equals(type))) {
                     FeedFilterCounters.removed(CHIPS_ROUTE, 1, type);
                     logOnce("chip " + type, () -> "Reel chips: hid " + type);
                     continue;
@@ -201,6 +295,280 @@ public final class ReelDeclutter {
             Logger.printException(() -> "Reel footer: could not read its switch", failure);
             return false;
         }
+    }
+
+    /**
+     * Injection point, first thing in the component that draws the audio line on the Reels tab
+     * (#200). That row picks the soundtrack out of the reel's attribution models on its own, so the
+     * chip filter never sees it. True makes it draw nothing, as it does for a reel with no sound
+     * line. Never throws: false draws it as before.
+     */
+    public static boolean hideAudioLine() {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_DECLUTTER);
+            FeedFilterCounters.sawList(AUDIO_ROUTE, 1);
+            FeedFilterCounters.sawKind(AUDIO_ROUTE, AUDIO_LINE);
+            boolean hide = Utils.settingsReady() && Settings.HIDE_REEL_AUDIO_LINE.get();
+            if (hide) {
+                FeedFilterCounters.removed(AUDIO_ROUTE, 1, AUDIO_LINE);
+                logOnce(AUDIO_LINE, () -> "Reel audio line: not drawn");
+            }
+            return hide;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, AUDIO_LINE, failure);
+            Logger.printException(() -> "Reel audio line: could not read its switch", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Injection point, first thing in the runnable Facebook posts when a video has been loading for
+     * a while, which shows "This is taking a while. Try checking your network connection." (#222).
+     * True makes it return before the message is built, as it does on its own when the video started
+     * playing in the meantime. The video keeps loading either way. Never throws: false shows it.
+     */
+    public static boolean hideSlowConnectionMessage() {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_DECLUTTER);
+            FeedFilterCounters.sawList(SLOW_ROUTE, 1);
+            FeedFilterCounters.sawKind(SLOW_ROUTE, SLOW_MESSAGE);
+            boolean hide = Utils.settingsReady() && Settings.HIDE_SLOW_CONNECTION_MESSAGE.get();
+            if (hide) {
+                FeedFilterCounters.removed(SLOW_ROUTE, 1, SLOW_MESSAGE);
+                logOnce(SLOW_MESSAGE, () -> "Slow connection message: not shown");
+            }
+            return hide;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, SLOW_MESSAGE, failure);
+            Logger.printException(() -> "Slow connection message: could not read its switch", failure);
+            return false;
+        }
+    }
+
+    /** Whether the feed's Reels row tiles play their whole reel: the switch, once the settings can be read. */
+    private static boolean playsFeedReelsWhole() {
+        return Utils.settingsReady() && Settings.PLAY_FEED_REELS_WHOLE.get();
+    }
+
+    /**
+     * Injection point, in the render of a tile of the feed's Reels row, handed the last check
+     * Facebook makes before it asks for the short clip the tile plays (#228). False takes Facebook's
+     * own path for a tile with no clip: no start partway in, no speed change, no seek back to the
+     * clip's start each loop. Never throws: anything going wrong answers what it was handed.
+     */
+    public static boolean allowsPreviewClip(boolean allowed) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_DECLUTTER);
+            FeedFilterCounters.sawKind(PREVIEW_ROUTE, PREVIEW_CLIP);
+            if (!playsFeedReelsWhole()) return allowed;
+            logOnce(PREVIEW_CLIP, () -> "Feed reel previews: skipping the clip");
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, PREVIEW_CLIP, failure);
+            Logger.printException(() -> "Feed reel previews: could not read their switch", failure);
+            return allowed;
+        }
+    }
+
+    /**
+     * Injection point, in the same render, handed the position in milliseconds the tile's player
+     * stops and starts over at, before it's stored (#228). Answers {@link #NO_END} while the switch
+     * is on, so the reel plays to its end. Never throws: anything going wrong answers what it was handed.
+     */
+    public static int previewClipEnd(int endMs) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_DECLUTTER);
+            FeedFilterCounters.sawList(PREVIEW_ROUTE, 1);
+            boolean hasEnd = endMs >= 0;
+            FeedFilterCounters.sawKind(PREVIEW_ROUTE, hasEnd ? PREVIEW_END : PREVIEW_NO_END);
+            if (!playsFeedReelsWhole()) return endMs;
+            if (hasEnd) {
+                FeedFilterCounters.removed(PREVIEW_ROUTE, 1, PREVIEW_END);
+                logOnce(PREVIEW_END, () -> "Feed reel previews: playing the whole reel, not stopping at " + endMs + " ms");
+            }
+            return NO_END;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, PREVIEW_CLIP, failure);
+            return endMs;
+        }
+    }
+
+    /**
+     * Injection point, first thing in the builder of the search pill under a reel's caption (#173).
+     * True makes the builder answer with Facebook's own empty component, so no pill is drawn.
+     * Never throws: false builds the pill as before.
+     */
+    public static boolean hideSearchPill() {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_DECLUTTER);
+            FeedFilterCounters.sawList(SEARCH_ROUTE, 1);
+            FeedFilterCounters.sawKind(SEARCH_ROUTE, SEARCH_PILL);
+            boolean hide = Utils.settingsReady() && Settings.HIDE_REEL_SEARCH_PILL.get();
+            if (hide) {
+                FeedFilterCounters.removed(SEARCH_ROUTE, 1, SEARCH_PILL);
+                logOnce(SEARCH_PILL, () -> "Reel search pill: not built");
+            }
+            return hide;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, SEARCH_PILL, failure);
+            Logger.printException(() -> "Reel search pill: could not read its switch", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Injection point, right after the comment sheet's builder reads the search prompt it puts over
+     * a reel's comments (#197). Null while the search pill switch is on, which is the path Facebook
+     * takes for a sheet that has no prompt, so the row isn't built. Never throws: off, paused, before
+     * the settings are ready or on a failure the prompt comes back as it was handed in.
+     *
+     * @param prompt Facebook's SearchPromptParam, or null when the sheet has none.
+     */
+    public static Object commentSearchPrompt(Object prompt) {
+        if (prompt == null) return null;
+        try {
+            HookStatus.invoked(FamilyNames.REEL_DECLUTTER);
+            FeedFilterCounters.sawList(SEARCH_ROUTE, 1);
+            FeedFilterCounters.sawKind(SEARCH_ROUTE, COMMENT_SEARCH_PILL);
+            if (!Utils.settingsReady() || !Settings.HIDE_REEL_SEARCH_PILL.get()) return prompt;
+            FeedFilterCounters.removed(SEARCH_ROUTE, 1, COMMENT_SEARCH_PILL);
+            logOnce(COMMENT_SEARCH_PILL, () -> "Reel search pill: none over the comments");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, COMMENT_SEARCH_PILL, failure);
+            Logger.printException(() -> "Reel search pill: could not read its switch for the comments", failure);
+            return prompt;
+        }
+    }
+
+    /**
+     * Injection point, in place of the call that puts the search bar, or the send button beside it,
+     * into the header over a reel opened from a profile (#201). Null while the search pill switch is
+     * on, which that call skips, as it does a part Facebook didn't build. Never throws: off, paused,
+     * before the settings are ready or on a failure the part comes back as it was handed in.
+     *
+     * @param part Facebook's component for the bar or the button, or null when it built none.
+     */
+    public static Object searchBarPart(Object part) {
+        if (part == null) return null;
+        try {
+            HookStatus.invoked(FamilyNames.REEL_DECLUTTER);
+            FeedFilterCounters.sawList(SEARCH_ROUTE, 1);
+            FeedFilterCounters.sawKind(SEARCH_ROUTE, SEARCH_BAR);
+            if (!Utils.settingsReady() || !Settings.HIDE_REEL_SEARCH_PILL.get()) return part;
+            FeedFilterCounters.removed(SEARCH_ROUTE, 1, SEARCH_BAR);
+            logOnce(SEARCH_BAR, () -> "Reel search pill: no search bar over the reel");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, SEARCH_BAR, failure);
+            Logger.printException(() -> "Reel search pill: could not read its switch for the search bar", failure);
+            return part;
+        }
+    }
+
+    /**
+     * Injection point, first thing in the constructor of the vertical button a reel's sidebar is
+     * made of (Like, Comment, Share and the rest), handed the text the button shows under its icon.
+     * A text holding a number becomes {@link #NO_COUNT} while the switch is on, so the icon stays
+     * and nothing shows under it. A word such as "Share" stays, and so does a missing text. Never
+     * throws: off, paused, before the settings are ready or on a failure the text comes back as it
+     * was handed in.
+     */
+    public static String countText(String text) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_DECLUTTER);
+            if (text == null || !Utils.settingsReady() || !Settings.HIDE_REEL_COUNTS.get()) return text;
+            if (!holdsDigit(text)) return text;
+            FeedFilterCounters.sawList(COUNTS_ROUTE, 1);
+            FeedFilterCounters.sawKind(COUNTS_ROUTE, COUNT);
+            FeedFilterCounters.removed(COUNTS_ROUTE, 1, COUNT);
+            logOnce(COUNT, () -> "Reel counts: a sidebar button's number was taken away");
+            return NO_COUNT;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, COUNT, failure);
+            return text;
+        }
+    }
+
+    /**
+     * Injection point, in the reel sidebar builders, handed each button type before anything is
+     * built for it (#190, #243). True skips that type, so the button isn't built, marked or named,
+     * and the others close the gap. Like, Comment, Share, Save and direct WhatsApp each have their
+     * own switch (#265). Never throws: off, paused, before the settings are ready, for any other
+     * type or on a failure the button is built as before.
+     *
+     * @param type the constant of Facebook's icon enum the sidebar is about to build a button for.
+     */
+    public static boolean hideSidebarButton(Object type) {
+        String button = SAVE_BUTTON;
+        try {
+            HookStatus.invoked(FamilyNames.REEL_DECLUTTER);
+            if (!(type instanceof Enum)) return false;
+            BooleanSetting setting;
+            switch (((Enum<?>) type).name()) {
+                case SAVE_TYPE: setting = Settings.HIDE_REEL_SAVE_BUTTON; break;
+                case WHATSAPP_TYPE: button = WHATSAPP_BUTTON; setting = Settings.HIDE_REEL_WHATSAPP_BUTTON; break;
+                case LIKE_TYPE: button = LIKE_BUTTON; setting = Settings.HIDE_REEL_LIKE_BUTTON; break;
+                case COMMENT_TYPE: button = COMMENT_BUTTON; setting = Settings.HIDE_REEL_COMMENT_BUTTON; break;
+                case SHARE_TYPE: button = SHARE_BUTTON; setting = Settings.HIDE_REEL_SHARE_BUTTON; break;
+                default: return false;
+            }
+            if (!Utils.settingsReady()) return false;
+            if (!setting.get()) return false;
+            FeedFilterCounters.sawList(SIDEBAR_ROUTE, 1);
+            FeedFilterCounters.sawKind(SIDEBAR_ROUTE, button);
+            FeedFilterCounters.removed(SIDEBAR_ROUTE, 1, button);
+            String hidden = button;
+            logOnce(hidden, () -> "Reel sidebar: skipped the " + hidden);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, button, failure);
+            return false;
+        }
+    }
+
+    /**
+     * Injection point, in the reel viewer, handed Facebook's answer to whether the speaker button
+     * at the bottom of the sidebar is built (#190). Answers false while the switch is on, so the
+     * viewer takes its own branch for a reel without the button. Never throws: off, paused, before
+     * the settings are ready, when Facebook already said no or on a failure, Facebook's answer
+     * stands.
+     *
+     * @param shows whether Facebook would build the speaker button.
+     */
+    public static boolean showsSoundButton(boolean shows) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_DECLUTTER);
+            if (!shows || !Utils.settingsReady() || !Settings.HIDE_REEL_SOUND_BUTTON.get()) return shows;
+            FeedFilterCounters.sawList(SIDEBAR_ROUTE, 1);
+            FeedFilterCounters.sawKind(SIDEBAR_ROUTE, SOUND_BUTTON);
+            FeedFilterCounters.removed(SIDEBAR_ROUTE, 1, SOUND_BUTTON);
+            logOnce(SOUND_BUTTON, () -> "Reel sidebar: left out the speaker button");
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, SOUND_BUTTON, failure);
+            return shows;
+        }
+    }
+
+    /**
+     * Injection point, in the reel footer, handed the speaker button Facebook just built, or null
+     * when it built none (#190). Answers null while the switch is on, so the footer's own null check
+     * leaves the button out. Asks {@link #showsSoundButton}, so both places the speaker can come
+     * from answer to one switch and count the same way.
+     *
+     * @param button the speaker button's component, or null.
+     */
+    public static Object soundButton(Object button) {
+        return button == null || showsSoundButton(true) ? button : null;
+    }
+
+    /** Whether the text has a digit in any script, which a count always has and a word doesn't. */
+    static boolean holdsDigit(String text) {
+        for (int i = 0; i < text.length(); i++) {
+            if (Character.isDigit(text.charAt(i))) return true;
+        }
+        return false;
     }
 
     /**

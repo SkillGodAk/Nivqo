@@ -20,6 +20,7 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.resourcePatch
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
@@ -70,6 +71,24 @@ internal fun isTokenColorMethod(method: Method): Boolean {
     }
 }
 
+/** An FDS resolver: `(Context, ?, ?)I`, asking a `(Context)Z` whether dark mode is on. */
+private fun isFdsResolver(method: Method): Boolean =
+    method.returnType == "I" && method.parameterTypes.size == 3 && method.parameterTypes[0] == "Landroid/content/Context;" &&
+        method.implementation?.instructions?.any { insn ->
+            ((insn as? ReferenceInstruction)?.reference as? MethodReference)?.let {
+                it.returnType == "Z" && it.parameterTypes.map(CharSequence::toString) == listOf("Landroid/content/Context;")
+            } == true
+        } == true
+
+/**
+ * FDSColors by its shape, for the builds that dropped its name (584 calls it LX/9TH;): a class whose only field is a
+ * static instance of itself, with FDS resolvers. scripts/CompatReport.java looks for the same shape.
+ */
+internal fun isFdsColorsShape(cls: ClassDef): Boolean {
+    val field = cls.fields.singleOrNull() ?: return false
+    return field.type == cls.type && AccessFlags.STATIC.isSet(field.accessFlags) && cls.methods.any(::isFdsResolver)
+}
+
 private val materialYouResources = resourcePatch(description = "Record HushMessenger capability: material_you") {
     dependsOn(settingsResources)
     execute {
@@ -115,51 +134,12 @@ val materialYouPatch = bytecodePatch(
             ?: throw app.morphe.patcher.patch.PatchException("DarkColorScheme's color token method not found")
         planReturns(resolver, "$THEME->mig(I)I")
 
-        val fdsMethods = classDefBy(FDS_COLORS).methods.filter {
-            it.returnType == "I" && it.implementation != null
-        }
-        val fdsResolvers = fdsMethods.filter {
-            it.parameterTypes.size == 3 && it.parameterTypes[0] == "Landroid/content/Context;"
-        }
-        val darkChecks = fdsResolvers.flatMap { method ->
-            method.implementation!!.instructions.mapNotNull { instruction ->
-                if (instruction.opcode != Opcode.INVOKE_STATIC) return@mapNotNull null
-                ((instruction as? ReferenceInstruction)?.reference as? MethodReference)?.takeIf {
-                    it.returnType == "Z" && it.parameterTypes == listOf("Landroid/content/Context;")
-                }
-            }
-        }.distinctBy { it.toString() }
-        val darkCheckRef = darkChecks.singleOrNull()
-            ?: throw app.morphe.patcher.patch.PatchException("Expected one FDS (Context)Z dark mode check")
-        val darkCheck = classDefBy(darkCheckRef.definingClass).methods.singleOrNull {
-            it.hookId() == darkCheckRef.toString() && AccessFlags.STATIC.isSet(it.accessFlags)
-        } ?: throw app.morphe.patcher.patch.PatchException("Dark mode check not found: $darkCheckRef")
-        planReturns(darkCheck, "$THEME->darkModeAnswer(Z)Z")
-        // A method that only returns another FDSColors method's answer (583's A02 hands its token to A01) already gets
-        // the remapped color from that one, so wrapping it too would remap twice.
-        val fdsIds = fdsMethods.map { it.hookId() }.toSet()
-        fun Method.delegatedReturns(): Set<Int> {
-            val code = implementation!!.instructions.toList()
-            val targets = jumpTargets()
-            return code.indices.filter { at ->
-                val call = (code.getOrNull(at - 2) as? ReferenceInstruction)?.reference as? MethodReference
-                code[at].opcode == Opcode.RETURN && at >= 2 && at !in targets &&
-                    code[at - 1].opcode == Opcode.MOVE_RESULT &&
-                    (code[at - 1] as OneRegisterInstruction).registerA == (code[at] as OneRegisterInstruction).registerA &&
-                    call != null && call.toString() != hookId() && call.toString() in fdsIds
-            }.toSet()
-        }
-        for (method in fdsMethods) {
-            val skip = method.delegatedReturns()
-            if (skip.size < method.implementation!!.instructions.count { it.opcode == Opcode.RETURN }) {
-                planReturns(method, "$THEME->fds(I)I", skip)
-            }
-        }
-
         var surfaceCount = 0
         var colorCount = 0
+        val fdsShapes = mutableListOf<ClassDef>()
         classDefForEach { cls ->
             if (cls.type.startsWith("Lapp/hushmessenger/extension/")) return@classDefForEach
+            if (isFdsColorsShape(cls)) fdsShapes += cls
             for (method in cls.methods) {
                 val implementation = method.implementation ?: continue
                 for ((index, instruction) in implementation.instructions.withIndex()) {
@@ -198,6 +178,49 @@ val materialYouPatch = bytecodePatch(
         }
         if (surfaceCount == 0 || colorCount == 0) {
             throw app.morphe.patcher.patch.PatchException("Missing Material You surface or color-call route")
+        }
+
+        val fdsColors = classDefByOrNull(FDS_COLORS) ?: fdsShapes.singleOrNull()
+            ?: throw app.morphe.patcher.patch.PatchException("Expected one FDSColors, found ${fdsShapes.size} by shape")
+        val fdsMethods = fdsColors.methods.filter {
+            it.returnType == "I" && it.implementation != null
+        }
+        val fdsResolvers = fdsMethods.filter {
+            it.parameterTypes.size == 3 && it.parameterTypes[0] == "Landroid/content/Context;"
+        }
+        val darkChecks = fdsResolvers.flatMap { method ->
+            method.implementation!!.instructions.mapNotNull { instruction ->
+                if (instruction.opcode != Opcode.INVOKE_STATIC) return@mapNotNull null
+                ((instruction as? ReferenceInstruction)?.reference as? MethodReference)?.takeIf {
+                    it.returnType == "Z" && it.parameterTypes == listOf("Landroid/content/Context;")
+                }
+            }
+        }.distinctBy { it.toString() }
+        val darkCheckRef = darkChecks.singleOrNull()
+            ?: throw app.morphe.patcher.patch.PatchException("Expected one FDS (Context)Z dark mode check")
+        val darkCheck = classDefBy(darkCheckRef.definingClass).methods.singleOrNull {
+            it.hookId() == darkCheckRef.toString() && AccessFlags.STATIC.isSet(it.accessFlags)
+        } ?: throw app.morphe.patcher.patch.PatchException("Dark mode check not found: $darkCheckRef")
+        planReturns(darkCheck, "$THEME->darkModeAnswer(Z)Z")
+        // A method that only returns another FDSColors method's answer (583's A02 hands its token to A01) already gets
+        // the remapped color from that one, so wrapping it too would remap twice.
+        val fdsIds = fdsMethods.map { it.hookId() }.toSet()
+        fun Method.delegatedReturns(): Set<Int> {
+            val code = implementation!!.instructions.toList()
+            val targets = jumpTargets()
+            return code.indices.filter { at ->
+                val call = (code.getOrNull(at - 2) as? ReferenceInstruction)?.reference as? MethodReference
+                code[at].opcode == Opcode.RETURN && at >= 2 && at !in targets &&
+                    code[at - 1].opcode == Opcode.MOVE_RESULT &&
+                    (code[at - 1] as OneRegisterInstruction).registerA == (code[at] as OneRegisterInstruction).registerA &&
+                    call != null && call.toString() != hookId() && call.toString() in fdsIds
+            }.toSet()
+        }
+        for (method in fdsMethods) {
+            val skip = method.delegatedReturns()
+            if (skip.size < method.implementation!!.instructions.count { it.opcode == Opcode.RETURN }) {
+                planReturns(method, "$THEME->fds(I)I", skip)
+            }
         }
 
         // Resolve every editable target before the first edit. Apply backwards so original

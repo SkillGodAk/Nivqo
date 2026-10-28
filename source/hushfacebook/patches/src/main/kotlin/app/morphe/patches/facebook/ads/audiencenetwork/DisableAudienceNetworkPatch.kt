@@ -8,6 +8,7 @@
  */
 package app.morphe.patches.facebook.ads.audiencenetwork
 
+import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.resourcePatch
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
@@ -59,6 +60,8 @@ internal fun disableAudienceNetwork(manifest: Document) {
             if (name !in AUDIENCE_NETWORK_COMPONENTS) continue
 
             element.setAttribute("android:enabled", "false")
+            // Or Facebook's AppComponentManager turns it straight back on (#168).
+            keepOffByDefault(element)
             disabled += name
         }
     }
@@ -81,6 +84,13 @@ val disableAudienceNetworkPatch = bytecodePatch(
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {
+        // Facebook's startup task turns the ipc components on again, so its calls go through
+        // the extension (see AudienceNetworkAnchors.kt).
+        val setup = mutableClassDefByOrNull(REMOTE_APIS_SETUP)
+            ?: throw PatchException("$PATCH: this Facebook has no $REMOTE_APIS_SETUP")
+        val calls = setup.methods.flatMap { method -> componentStateCalls(method).map { method to it } }
+        if (calls.isEmpty()) throw PatchException("$PATCH: $REMOTE_APIS_SETUP turns no component on")
+        calls.forEach { (method, index) -> method.passComponentState(PATCH, index) }
         enableStatus("audienceNetwork")
     }
 }

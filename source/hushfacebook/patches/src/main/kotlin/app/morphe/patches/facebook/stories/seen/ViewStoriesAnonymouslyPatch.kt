@@ -14,8 +14,10 @@ import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
+import app.morphe.patches.facebook.misc.extension.localRegisterCount
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.classDefForEachReferencing
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
@@ -38,6 +40,10 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
  * publishes a bucket watched to its newest story as watched, with the same calls Facebook makes
  * when its servers answer (#61). The servers keep sending it as unwatched, so it's published again
  * each time it's built, until a newer story arrives.
+ *
+ * Facebook also opens a bucket at its first card not marked seen, and that mark is lost on a
+ * restart for a view it never heard about, so a sixth hook, in the check that picks the card a
+ * bucket opens at, passes over each card watched on this phone (#218).
  *
  * In the default selection with its switch and the button's both off, since it changes what other
  * people see.
@@ -72,8 +78,19 @@ val viewStoriesAnonymouslyPatch = bytecodePatch(
         // The helper's literal can sit in a string table (582's armeabi-v7a build), so the sender's
         // callers are where it's looked for.
         val callers = mutableListOf<ClassDef>()
-        classDefForEach { classDef ->
-            if (!classDef.type.startsWith(EXTENSION_PACKAGE) && callsSender(classDef, sender)) callers += classDef
+        val startChecks = mutableListOf<Method>()
+        // A caller names the sender's class, and the start check casts to StoryCard.
+        classDefForEachReferencing(types = listOf(sender.definingClass, STORY_CARD)) { classDef ->
+            if (classDef.type.startsWith(EXTENSION_PACKAGE)) return@classDefForEachReferencing
+            if (callsSender(classDef, sender)) callers += classDef
+            startCheck(classDef)?.let { startChecks += it }
+        }
+        val opener = startChecks.singleOrNull() ?: throw PatchException(
+            "$PATCH: expected one class with an (Object, int)I method casting to $STORY_BUCKET and an (Object)Z " +
+                "method asking a $STORY_CARD for getMedia() and then a flag, found ${startChecks.size}",
+        )
+        if (opener.localRegisterCount() < 1) {
+            throw PatchException("$PATCH: ${opener.definingClass}->${opener.name} has no local register for the start hook")
         }
         val tables = { call: MethodReference -> classDefByOrNull(call.definingClass)?.let { resolveStatic(it, call) } }
         val helper = seenHelper(callers, sender, tables)
@@ -143,6 +160,7 @@ val viewStoriesAnonymouslyPatch = bytecodePatch(
         mutableClassDefBy(later.listener.type).methods.single { it.sameAs(later.constructor) }.reportCardLater()
         for ((owner, update) in updates) mutableClassDefBy(owner.type).methods.single { it.sameAs(update) }.reportState()
         mutableClassDefBy(REGULAR_BUCKET).methods.single { it.sameAs(marking.constructor) }.hearBucketMade()
+        mutableClassDefBy(opener.definingClass).methods.single { it.sameAs(opener) }.skipWatchedCards()
         sendStub.fillSend(sender)
         cardIdStub.fillCardId()
         fillEyeStubs(eyeStubs, flag, helper.type, later.session)

@@ -182,7 +182,7 @@ public class SetupSummaryTest {
             assertTrue(report.contains("Group chats aren't tested. Messenger's own Read receipts setting under Privacy & safety"));
             assertTrue(report.contains("Encrypted chats aren't supported and group chats aren't tested."));
             assertTrue(report.contains("It doesn't add replay or saving."));
-            assertTrue(report.contains("Native Bubbles needs Android 11 or newer, a supported account and notification permission."));
+            assertTrue(report.contains("Android bubbles need Android 11 or newer, a supported account and notification permission."));
             assertTrue(report.contains("Search and community folders still show them."));
         }
     }

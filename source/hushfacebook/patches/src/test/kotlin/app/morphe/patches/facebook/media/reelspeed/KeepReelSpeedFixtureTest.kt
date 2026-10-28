@@ -164,7 +164,8 @@ class KeepReelSpeedFixtureTest {
                 val dropdownClass = dropdownHolders.single { it.type == dropdowns.single().definingClass }
 
                 // The gear menu's speed sheet builder makes the gear pick's class, takes its flag for
-                // reading speeds from floats last, and reads a speed for each label in one place (#95).
+                // reading speeds from floats last (584 reads it from MobileConfig), and reads a speed for
+                // each label in one place (#95).
                 val sheetHolders = FixtureDex.classesHolding(bundle, GEAR_SHEET).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
                 val sheets = sheetHolders.flatMap { it.methods }.filter { isGearSheet(it, gearPick.definingClass) }
                 assertEquals("$name: gear speed sheet builders making ${gearPick.definingClass}", 1, sheets.size)
@@ -173,6 +174,16 @@ class KeepReelSpeedFixtureTest {
                 assertEquals("$name: places ${sheet.definingClass}->${sheet.name} reads a speed for each label", 1, meets.size)
                 val meet = meets.single()
                 val sheetClass = sheetHolders.single { it.type == sheet.definingClass }
+                // With no player found it checks normal speed, loaded where the getter's path goes on (#199).
+                val misses = gearMisses(sheet, owner.type)
+                assertEquals("$name: places ${sheet.definingClass}->${sheet.name} checks normal speed for a player it can't find",
+                    1, misses.size)
+                val miss = misses.single()
+                val speedGetter = owner.methods.singleOrNull {
+                    it.name == miss.getter.name && it.returnType == "F" && it.parameterTypes.isEmpty()
+                }
+                assertTrue("$name: ${owner.type} has no public ()F ${miss.getter.name}",
+                    speedGetter != null && AccessFlags.PUBLIC.isSet(speedGetter.accessFlags))
 
                 // HeroManager's setPlaybackSpeed loads its 0.25x floor once and keeps speeds over it.
                 val rangeHolders = FixtureDex.classesHolding(bundle, SPEED_RANGE_LOG).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
@@ -231,8 +242,10 @@ class KeepReelSpeedFixtureTest {
                     assertEquals("$name: the register $what takes it back in", list, (code[result + 2] as OneRegisterInstruction).registerA)
                 }
 
-                // The sheet hands its flag over first and takes it back in the same register. Where it walks
-                // its labels it hands over the speeds and then the labels, taking each back in its own register.
+                // The sheet hands its flag over as soon as it has it and takes it back in the same register.
+                // Where it walks its labels it hands over the speeds and then the labels, taking each back in
+                // its own register. Each hook moves what comes after it: the flag's two instructions, the
+                // normal speed's two and the walk's four.
                 val sheetCode = patched(sheet.definingClass, sheet)
                 fun assertHook(at: Int, what: String, hook: String, register: Int, result: Opcode) {
                     assertEquals("$name: the sheet's $what hook", hook, sheetCode[at].call.toString())
@@ -241,11 +254,22 @@ class KeepReelSpeedFixtureTest {
                     assertEquals("$name: the register the sheet takes its $what back in", register,
                         (sheetCode[at + 1] as OneRegisterInstruction).registerA)
                 }
-                assertHook(0, "flag", GEAR_VALUES, meet.values, Opcode.MOVE_RESULT)
-                val walk = meet.index + 2
+                val flagAt = meet.valuesAt + if (miss.index < meet.valuesAt) 2 else 0
+                assertHook(flagAt, "flag", GEAR_VALUES, meet.values, Opcode.MOVE_RESULT)
+                if (meet.valuesAt > 0) {
+                    assertEquals("$name: the flag isn't handed over as it's read", Opcode.MOVE_RESULT, sheetCode[flagAt - 1].opcode)
+                }
+                val walk = meet.index + 2 + if (miss.index < meet.index) 2 else 0
                 assertHook(walk, "speeds", GEAR_SPEEDS, meet.speeds, Opcode.MOVE_RESULT_OBJECT)
                 assertHook(walk + 2, "labels", GEAR_LABELS, meet.labels, Opcode.MOVE_RESULT_OBJECT)
                 assertEquals("$name: the walk doesn't follow the hooks", Opcode.ARRAY_LENGTH, sheetCode[walk + 4].opcode)
+                // Its normal speed goes to the extension straight after it's loaded and comes back in the same
+                // register, ahead of the goto back to the getter's path.
+                val normalAt = miss.index + (if (meet.valuesAt <= miss.index) 2 else 0) + if (miss.index > meet.index) 4 else 0
+                assertEquals("$name: the sheet's normal speed", Opcode.CONST_HIGH16, sheetCode[normalAt].opcode)
+                assertHook(normalAt + 1, "normal speed", GEAR_SHEET_SPEED, miss.speed, Opcode.MOVE_RESULT)
+                assertTrue("$name: the sheet doesn't go back after the normal speed hook",
+                    sheetCode[normalAt + 3].opcode in setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32))
 
                 val stubs = context.mutableClassDefBy(REEL_SPEED)
                 val setStub = stubs.methods.single { it.name == SET_SPEED_STUB }.code()
@@ -260,6 +284,10 @@ class KeepReelSpeedFixtureTest {
                 assertEquals("$name: the params stub's call", "${owner.type}->${paramsGetter.single().name}()$VIDEO_PLAYER_PARAMS",
                     paramsStub[1].call.toString())
                 assertEquals("$name: the params stub's answer", Opcode.RETURN_OBJECT, paramsStub[3].opcode)
+                val speedStub = stubs.methods.single { it.name == SPEED_STUB }.code()
+                assertEquals("$name: the speed stub's cast", owner.type, ((speedStub[0] as ReferenceInstruction).reference as TypeReference).type)
+                assertEquals("$name: the speed stub's call", "${owner.type}->${miss.getter.name}()F", speedStub[1].call.toString())
+                assertEquals("$name: the speed stub's answer", Opcode.RETURN, speedStub[3].opcode)
                 for ((stub, field) in flagFields) {
                     val code = stubs.methods.single { it.name == stub }.code()
                     assertEquals("$name: the $stub stub's cast", VIDEO_PLAYER_PARAMS, ((code[0] as ReferenceInstruction).reference as TypeReference).type)

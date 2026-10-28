@@ -6,14 +6,21 @@
 package app.morphe.manager.ui.screen.shared
 
 import android.graphics.Canvas
+import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.graphics.createBitmap
@@ -25,11 +32,8 @@ import app.morphe.manager.R
  */
 @Composable
 fun MorpheLauncherLogo(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
     Image(
-        painter = rememberDrawablePainter(
-            drawable = remember(context) { AppCompatResources.getDrawable(context, R.drawable.ic_launcher_foreground) }
-        ),
+        painter = rememberAppCompatPainter(R.drawable.ic_launcher_foreground),
         contentDescription = null,
         contentScale = ContentScale.Fit,
         modifier = modifier.graphicsLayer {
@@ -37,6 +41,44 @@ fun MorpheLauncherLogo(modifier: Modifier = Modifier) {
             scaleY = 1.5f
         }
     )
+}
+
+/**
+ * The Morphe wordmark: the logo's M in its own colors, then the rest of the name in [textColor],
+ * so it reads on whatever the theme lays under it.
+ */
+@Composable
+fun MorpheWordmark(
+    modifier: Modifier = Modifier,
+    textColor: Color = MaterialTheme.colorScheme.onSurface
+) {
+    // Both halves share one viewport, so laid over each other they line up as the one mark
+    Box(modifier = modifier.aspectRatio(WORDMARK_ASPECT_RATIO)) {
+        Image(
+            painter = rememberAppCompatPainter(R.drawable.ic_morphe_wordmark_letter),
+            contentDescription = null,
+            modifier = Modifier.matchParentSize()
+        )
+        Image(
+            painter = rememberAppCompatPainter(R.drawable.ic_morphe_wordmark_text),
+            contentDescription = null,
+            colorFilter = ColorFilter.tint(textColor),
+            modifier = Modifier.matchParentSize()
+        )
+    }
+}
+
+/** Width over height of the wordmark's viewport, cut to the edges of the letters. */
+private const val WORDMARK_ASPECT_RATIO = 428f / 106f
+
+/**
+ * Painter for a vector of the Morphe branding, loaded through AppCompat as `painterResource` cannot
+ * be trusted with them in release builds, see [rememberMorpheLogoBitmap].
+ */
+@Composable
+private fun rememberAppCompatPainter(@DrawableRes id: Int): Painter {
+    val context = LocalContext.current
+    return rememberDrawablePainter(drawable = remember(context, id) { AppCompatResources.getDrawable(context, id) })
 }
 
 /**

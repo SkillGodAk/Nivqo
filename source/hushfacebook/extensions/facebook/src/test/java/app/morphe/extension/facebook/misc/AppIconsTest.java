@@ -57,12 +57,14 @@ public class AppIconsTest {
     @Before
     public void turnTheSwitchOn() {
         Settings.UNLOCK_APP_ICONS.save(true);
+        Settings.USE_APP_ICON_IN_HEADER.save(true);
     }
 
     @After
     public void restore() {
         PauseForTests.resume();
         Settings.UNLOCK_APP_ICONS.resetToDefault();
+        Settings.USE_APP_ICON_IN_HEADER.resetToDefault();
         FeedFilterCounters.clear();
         HookStatus.clear();
     }
@@ -247,6 +249,46 @@ public class AppIconsTest {
         logo.setColorFilter(Color.MAGENTA);
         assertNull("Facebook's wordmark tint does not recolor the app icon", picked.getColorFilter());
         assertTrue(counterLine(), counterLine().contains("Last reason: header logo"));
+    }
+
+    /** #172: the unlock alone no longer swaps the wordmark. The header choice is its own switch. */
+    @Test
+    public void theHeaderKeepsFacebooksWordmarkUntilItsOwnSwitchIsOn() {
+        Context context = RuntimeEnvironment.getApplication();
+        assertFalse("the header switch starts off", Settings.USE_APP_ICON_IN_HEADER.defaultValue);
+        ImageView logo = new ImageView(context);
+        Drawable stock = new ColorDrawable(Color.BLUE);
+        logo.setImageDrawable(stock);
+        enableIcon("vaporwave_ic", new ColorDrawable(Color.MAGENTA));
+
+        Settings.USE_APP_ICON_IN_HEADER.save(false);
+        AppIcons.dressLogo(logo);
+        assertSame("a picked icon with the header switch off keeps the wordmark", stock, logo.getDrawable());
+        String line = counterLine();
+        assertTrue("nothing was replaced, so no header logo is counted: " + line,
+                line == null || !line.contains("header logo"));
+
+        Settings.USE_APP_ICON_IN_HEADER.save(true);
+        AppIcons.dressLogo(logo);
+        assertNotSame("the header switch on puts the icon in", stock, logo.getDrawable());
+
+        Settings.UNLOCK_APP_ICONS.save(false);
+        ImageView other = new ImageView(context);
+        other.setImageDrawable(stock);
+        AppIcons.dressLogo(other);
+        assertSame("the header switch needs the unlock", stock, other.getDrawable());
+    }
+
+    @Test
+    public void theHeaderSwitchNeverChangesTheLauncherAlias() {
+        Context context = RuntimeEnvironment.getApplication();
+        enableIcon("vaporwave_ic", new ColorDrawable(Color.MAGENTA));
+        PackageManager manager = context.getPackageManager();
+        ComponentName alias = component(AppIcons.LAUNCHER + ".vaporwave_ic");
+        Settings.USE_APP_ICON_IN_HEADER.save(false);
+        assertEquals(PackageManager.COMPONENT_ENABLED_STATE_ENABLED, manager.getComponentEnabledSetting(alias));
+        Settings.USE_APP_ICON_IN_HEADER.save(true);
+        assertEquals(PackageManager.COMPONENT_ENABLED_STATE_ENABLED, manager.getComponentEnabledSetting(alias));
     }
 
     @Test

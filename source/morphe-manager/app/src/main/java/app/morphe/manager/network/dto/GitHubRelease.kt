@@ -42,6 +42,12 @@ data class GitHubAsset(
     val contentType: String? = null,
 )
 
+/** The account a token belongs to, as GitHub names it. */
+@Serializable
+data class GitHubUser(
+    val login: String
+)
+
 @Serializable
 data class GitHubPullRequest(
     val url: String,

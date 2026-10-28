@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import android.util.Log
@@ -27,7 +28,9 @@ import androidx.compose.ui.res.stringResource
 import app.morphe.manager.R
 import app.morphe.manager.data.platform.Filesystem
 import app.morphe.manager.domain.manager.PreferencesManager
+import app.morphe.manager.ui.screen.shared.DialogHost
 import app.morphe.manager.ui.screen.shared.FilePicker
+import app.morphe.manager.ui.screen.shared.UserMessages
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -64,9 +67,10 @@ fun Uri.toFilePath(): String {
     }
 
     return when {
-        // "primary:Download/subfolder" → "/storage/emulated/0/Download/subfolder"
+        // "primary:Download/subfolder" → "/storage/emulated/<user>/Download/subfolder", the user
+        // being whoever runs the manager, as a work profile or second user has storage of its own
         docId?.startsWith("primary:") == true ->
-            "/storage/emulated/0/${docId.removePrefix("primary:")}"
+            "${Environment.getExternalStorageDirectory().absolutePath}/${docId.removePrefix("primary:")}"
         // "raw:/storage/emulated/0/Download/file" → "/storage/emulated/0/Download/file"
         docId?.startsWith("raw:") == true ->
             docId.removePrefix("raw:")
@@ -84,13 +88,32 @@ fun Uri.displayName(contentResolver: ContentResolver): String? =
             }
     }.getOrNull() ?: lastPathSegment
 
+/**
+ * Copies the APK behind this URI to a new file in [dir], named [prefix] plus the extension it is
+ * shown under. Null when the provider has nothing to read, and a copy cut short is deleted.
+ */
+fun Uri.copyApkInto(dir: File, prefix: String, contentResolver: ContentResolver): File? {
+    val extension = displayName(contentResolver)?.substringAfterLast('.', "apk")?.lowercase() ?: "apk"
+    val target = dir.resolve("${prefix}_${System.currentTimeMillis()}.$extension")
+    val copied = try {
+        // Null when the provider is unavailable, e.g. Samsung storage held back by battery optimization
+        contentResolver.openInputStream(this)?.use { input ->
+            target.outputStream().use { output -> input.copyTo(output) }
+        }
+    } catch (e: Exception) {
+        target.delete()
+        throw e
+    }
+    if (copied == null || copied == 0L) {
+        target.delete()
+        return null
+    }
+    return target
+}
+
 /** Whether the URI names a .mpp patch bundle. */
 fun Uri.hasMppExtension(contentResolver: ContentResolver): Boolean =
     displayName(contentResolver)?.endsWith(".mpp", ignoreCase = true) == true
-
-/** Whether the URI names an APK-family file, so generic octet-stream shares can be told apart. */
-fun Uri.hasApkExtension(contentResolver: ContentResolver): Boolean =
-    displayName(contentResolver)?.substringAfterLast('.', "")?.lowercase() in APK_EXTENSIONS
 
 /**
  * The manifest of a .mpp patch bundle, or null when it cannot be read. Values of "na" in any case
@@ -144,7 +167,7 @@ fun rememberFolderPickerWithPermission(
     val useCustomPicker by prefs.useCustomFilePicker.getAsState()
     val showPickerState = remember { mutableStateOf(false) }
 
-    if (showPickerState.value) {
+    DialogHost(visible = showPickerState.value) {
         FilePicker(
             mimeTypes = arrayOf("*/*"),
             allowFolderSelection = true,
@@ -297,11 +320,12 @@ fun rememberAdaptiveMultiFilePicker(
 
 /**
  * [rememberAdaptiveFilePicker] for a single image, decoded off the main thread. [onLoaded] only
- * hears of images that decoded, anything else is reported with a toast.
+ * hears of images that decoded, anything else is reported with a message.
  */
 @Composable
 fun rememberImagePicker(onLoaded: (Bitmap) -> Unit): () -> Unit {
     val context = LocalContext.current
+    val messages = koinInject<UserMessages>()
     val scope = rememberCoroutineScope()
     val currentOnLoaded by rememberUpdatedState(onLoaded)
     val loadFailedMessage = stringResource(R.string.image_load_failed)
@@ -323,7 +347,7 @@ fun rememberImagePicker(onLoaded: (Bitmap) -> Unit): () -> Unit {
                     }
                 }
                 if (bitmap != null) currentOnLoaded(bitmap)
-                else context.toast(loadFailedMessage)
+                else messages.show(loadFailedMessage)
             }
         }
     )
@@ -360,7 +384,7 @@ private fun rememberAdaptivePicker(
         if (granted) showPickerState.value = true else onResult(emptyList())
     }
 
-    if (showPickerState.value) {
+    DialogHost(visible = showPickerState.value) {
         FilePicker(
             mimeTypes = customPickerMimeTypes,
             multiple = multiple,

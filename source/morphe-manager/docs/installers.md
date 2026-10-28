@@ -10,15 +10,17 @@ Google Play keeps trying to overwrite your patched build.
 
 ## Where the setting lives
 
-Open **Settings → System → Installer → Default installer**. The **Select installer** dialog
-lists everything available on your device, with the shared options underneath.
+Open **Settings → Installation**. The **Default installer** section lists everything available
+on your device, with the shared options underneath. The row in the settings shows the installer
+you picked.
 
 <p align="center">
-  <img src="images/installers/01-select-installer.jpg" width="320" alt="Select installer dialog" />
+  <img src="images/installers/01-select-installer.jpg" width="320" alt="Installation settings with the default installer list" />
 </p>
 
 Options your device cannot use are greyed out with the reason underneath, for example
-**Requires root access**. Pick one and tap **Confirm**.
+**Install Shizuku or Sui to use this option**. Tap one to select it, there is nothing to
+confirm.
 
 ## The installers
 
@@ -60,6 +62,7 @@ over and waits for that app to report the result.
 ## The shared options
 
 Below the installer list are the settings that apply to whichever installer you selected.
+**Install as Play Store** sits right under the list, the rest are grouped under **Patching**.
 
 ### Install as Play Store
 
@@ -104,8 +107,9 @@ framework. Without one, the install is rejected and the conflict dialog comes ba
 
 ### Installer selection prompt
 
-Shows the installer dialog every time a patched app is installed, so you can choose per
-install instead of committing to one default.
+Asks how to install every app instead of committing to one default. On a rooted device the
+question comes before patching, since root mount has to be decided then, otherwise it comes
+when the patched app is installed.
 
 ## Root mount in detail
 
@@ -121,7 +125,10 @@ That buys you two things ordinary installs cannot offer:
   normally require GmsCore work without it.
 
 Morphe writes a Magisk-style module for each mounted app, so the mount is restored
-automatically after a reboot.
+automatically after a reboot. The module also covers a restart of the Android framework without
+a reboot, which some ROMs and modules offer as a soft reboot: it lifts the mount while the system
+starts again, so Android does not take the patched APK for a broken install and remove the app,
+and mounts it back once the system is up.
 
 ### Choosing the mode
 
@@ -133,8 +140,8 @@ Morphe shows a **Choose patch mode** dialog when you start patching:
   installer setting is used afterwards.
 
 > [!IMPORTANT]
-> The patch mode is separate from **Settings → System → Installer** and cannot be changed
-> after patching. To switch, patch the app again in the other mode.
+> The patch mode is separate from **Settings → Installation** and cannot be changed after
+> patching. To switch, patch the app again in the other mode.
 
 In root mount mode the APK download step also changes: you **do** install the original APK,
 because the stock app has to be present for the patched one to mount over it. In standard
@@ -155,8 +162,11 @@ with a **Mount** chip and offers **Remount** and **Unmount**, an unmounted one o
   version to install.
 - **KernelSU and APatch users**: disable module unmounting or hiding for apps installed with
   root mount. Otherwise the stock app may keep running even though Morphe reports it as
-  mounted.
-- The **Root mount** entry in the installer dialog only handles apps that were patched in
+  mounted. With [NoMount](https://github.com/maxsteeel/nomount) 2.2.0 or newer installed,
+  Morphe redirects the app to the patched APK in the kernel instead of mounting it, which
+  module unmounting does not affect and the mount table does not show. Keep the app off
+  NoMount's own exclusion list, or it sees the stock APK.
+- The **Root mount** entry in the installer list only handles apps that were patched in
   root mount mode. Standard patched APKs still go through whichever other installer you
   selected.
 
@@ -179,7 +189,7 @@ with a **Mount** chip and offers **Remount** and **Unmount**, an unmounted one o
 | "Your preferred installer is unavailable" | Fix the underlying issue and retry, or let Morphe fall back to the standard installer |
 | Play Store replaced the patched app with the original | Turn off updates for that app on its Play Store page, then patch and install again |
 | Mount fails with a version mismatch | Install the stock version that matches the patched APK, then mount again |
-| Morphe says the app is mounted but the stock app still runs | On KernelSU or APatch, disable module unmounting or hiding for that app |
+| Morphe says the app is mounted but the stock app still runs | On KernelSU or APatch, disable module unmounting or hiding for that app, or install NoMount 2.2.0 or newer. With NoMount, take the app off its exclusion list |
 
 ## Next steps
 

@@ -21,7 +21,12 @@ import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.parameterRegister
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.settings.settingsPatch
+import app.morphe.patches.facebook.notifications.TRAY_MANAGER
+import app.morphe.patches.facebook.notifications.TrayPost
+import app.morphe.patches.facebook.notifications.postNothingWhenBlocked
+import app.morphe.patches.facebook.notifications.trayPost
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.classDefForEachReferencing
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
@@ -34,6 +39,7 @@ private const val HANDOFF = "$EXTENSION_PACKAGE/chats/MessengerHandoff;"
 internal const val DROP_CALL_PUSH = "$HANDOFF->dropCallPush()Z"
 internal const val DROP_RING = "$HANDOFF->dropRing()Z"
 internal const val DROP_CHAT = "$HANDOFF->dropChat(Ljava/lang/Object;)Z"
+internal const val DROP_CHAT_PUSH = "$HANDOFF->dropChatPush(Ljava/lang/String;)Z"
 internal const val CLIENT_CAPABILITIES = "$HANDOFF->clientCapabilities(J)J"
 
 /**
@@ -52,9 +58,12 @@ internal const val CLIENT_CAPABILITIES = "$HANDOFF->clientCapabilities(J)J"
  * (issues #39, #100 and #157): Facebook and Messenger both ring for a call and both notify for a message,
  * and with the switch on and Messenger installed only Messenger does. The patch asks the extension
  * first where Facebook supplies its MQTT client capabilities, in Facebook's VOIP push handlers, in
- * the parser every incoming ring goes through and in the dispatcher that hands chat notifications
- * to Facebook's notifiers (MessengerHandoffAnchors.kt). Without Messenger, or with it disabled when
- * Facebook starts, the extension leaves the VOIP capability and Facebook rings as before. Every
+ * the parser every incoming ring goes through, in the dispatcher that hands chat notifications
+ * to Facebook's notifiers (MessengerHandoffAnchors.kt), and in the method that posts Facebook's
+ * own push notifications (NotificationAnchors.kt), where a message in Facebook's Chats arrives as
+ * a push typed MESSAGING_IN_BLUE_DIRECT_MESSAGE and never reaches the dispatcher (#193). Without
+ * Messenger, or with it disabled when Facebook starts, the extension leaves the VOIP capability
+ * and Facebook rings as before. Every
  * anchor is found before anything changes, so a build missing one stops the patch whole.
  */
 @Suppress("unused")
@@ -101,6 +110,8 @@ val openMessengerFromTopBarPatch = bytecodePatch(
         }
         mutableClassDefBy(handoff.ringParse.definingClass).methods.single { it.isSameAs(handoff.ringParse) }.parseNoRingFirst()
         mutableClassDefBy(MESSAGES_NOTIFICATION_MANAGER).methods.single { it.isSameAs(handoff.chatDispatch) }.dropChatFirst()
+        mutableClassDefBy(TRAY_MANAGER).methods.single { it.isSameAs(handoff.trayPost.method) }
+            .postNothingWhenBlocked(handoff.trayPost.notification, DROP_CHAT_PUSH, ICON_PATCH)
         enableStatus("messengerIcon")
     }
 }
@@ -111,12 +122,13 @@ internal class HandoffTargets(
     val callPushes: List<Method>,
     val ringParse: Method,
     val chatDispatch: Method,
+    val trayPost: TrayPost,
 )
 
 /**
- * Finds the VOIP push handlers' handle methods, the ring parser's parse and the chat dispatcher
- * (see MessengerHandoffAnchors.kt), or stops the patch naming what this build lacks. One pass over
- * the classes finds both the handlers and the parser.
+ * Finds the VOIP push handlers' handle methods, the ring parser's parse, the chat dispatcher (see
+ * MessengerHandoffAnchors.kt) and the push tray's post method, or stops the patch naming what
+ * this build lacks. One pass over the classes finds both the handlers and the parser.
  */
 internal fun BytecodePatchContext.handoffTargets(): HandoffTargets {
     val mqttDelegate = classDefByOrNull(MQTT_XPLAT_SERVICE_DELEGATE)
@@ -131,10 +143,12 @@ internal fun BytecodePatchContext.handoffTargets(): HandoffTargets {
         ?: throw PatchException("$ICON_PATCH: $NOTIFICATION_TYPE doesn't store a constant named $VOIP")
     val handlers = mutableListOf<ClassDef>()
     val parsers = mutableListOf<ClassDef>()
+    // The parser by its kept method names, which reads no code, then the handlers, which read the constant.
     classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_PACKAGE)) return@classDefForEach
-        if (isRingParser(classDef)) parsers += classDef
-        if (claimsVoip(classDef, voip)) handlers += classDef
+        if (!classDef.type.startsWith(EXTENSION_PACKAGE) && isRingParser(classDef)) parsers += classDef
+    }
+    classDefForEachReferencing(types = listOf(voip.definingClass)) { classDef ->
+        if (!classDef.type.startsWith(EXTENSION_PACKAGE) && claimsVoip(classDef, voip)) handlers += classDef
     }
     if (handlers.isEmpty()) {
         throw PatchException("$ICON_PATCH: no push handler claims $VOIP pushes alone by reading $voip")
@@ -161,7 +175,7 @@ internal fun BytecodePatchContext.handoffTargets(): HandoffTargets {
         "$ICON_PATCH: expected one static dispatcher of $MESSAGES_NOTIFICATION_MANAGER handing a notification to " +
             "the notifiers, found ${dispatches.size}",
     )
-    return HandoffTargets(mqtt, callPushes, ringParse, chatDispatch)
+    return HandoffTargets(mqtt, callPushes, ringParse, chatDispatch, trayPost(ICON_PATCH))
 }
 
 /**
@@ -252,8 +266,9 @@ internal fun MutableMethod.dropChatFirst() {
  * First thing in FbFragmentActivity.dispatchTouchEvent, every touch on a Facebook screen goes to
  * MessengerIcon.touch before Facebook sees it. Where Facebook builds the icon without its
  * long-click listener, a press held on the icon reaches the tap as a plain tap when the finger
- * lifts, and the touch is what tells the extension it was held. Tap to play reads the same
- * dispatch for its own clock. Each hook only reads the event, and the range form passes it
+ * lifts, and the touch is what tells the extension it was held. Other hooks share the dispatch:
+ * Tap to play reads it for its own clock, and the feed's long press and Pinch to zoom turn the rest
+ * of a gesture they take into a cancel. This one only reads the event, and the range form passes it
  * without borrowing a register.
  */
 internal fun MutableMethod.handTouchesToIcon() {

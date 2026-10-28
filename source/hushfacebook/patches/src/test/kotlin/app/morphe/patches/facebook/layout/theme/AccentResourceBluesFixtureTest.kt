@@ -7,7 +7,6 @@ package app.morphe.patches.facebook.layout.theme
 import app.morphe.Fixtures
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
-import com.android.tools.smali.dexlib2.AccessFlags
 import com.reandroid.arsc.chunk.TableBlock
 import com.reandroid.arsc.model.ResourceEntry
 import com.reandroid.arsc.value.ResTableMapEntry
@@ -44,11 +43,7 @@ class AccentResourceBluesFixtureTest {
 
     private fun check(bundle: File) {
         val name = bundle.name
-        val fdsColors = FixtureDex.classes(bundle, setOf(FDS_COLORS)).getValue(FDS_COLORS)
-        val source = fdsColors.methods.single { method ->
-            AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Ljava/lang/Integer;" &&
-                method.parameterTypes.size == 3 && method.parameterTypes[0].toString() == "Landroid/content/Context;"
-        }
+        val source = fdsColourSource(fdsColorsOf(bundle))!!
         val tokenType = source.parameterTypes[1].toString()
         val initializer = FixtureDex.classes(bundle, setOf(tokenType)).getValue(tokenType).methods.single { it.name == "<clinit>" }
         val tokens = tokenAttributes(initializer, tokenType).entries.associate { (token, attribute) -> "attr_0x%08x".format(attribute) to token }

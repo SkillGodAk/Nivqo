@@ -5,11 +5,13 @@
 package app.morphe.extension.facebook.settings;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.app.Fragment;
 import android.content.Intent;
 import android.preference.Preference;
 import android.view.View;
@@ -20,7 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import app.morphe.extension.shared.SettingsContextRule;
-import app.morphe.extension.shared.settings.BaseSettings;
+import app.morphe.extension.facebook.menu.MenuSettingsRow;
+import app.morphe.extension.shared.settings.BooleanSetting;
 import app.morphe.extension.shared.settings.preference.ReopenSettingsAfterRestart;
 
 import org.junit.After;
@@ -43,16 +46,16 @@ public class SettingsEntryTest {
     private final SettingsEntry.OpenWhenResumed watcher = new SettingsEntry.OpenWhenResumed();
 
     @Before public void watch() {
-        BaseSettings.HUSHFACEBOOK_LANGUAGE.save("facebook");
         RuntimeEnvironment.getApplication().registerActivityLifecycleCallbacks(watcher);
     }
 
     @After public void stopWatching() {
-        BaseSettings.HUSHFACEBOOK_LANGUAGE.resetToDefault();
         RuntimeEnvironment.getApplication().unregisterActivityLifecycleCallbacks(watcher);
         HushfacebookPreferenceFragment.failNextInitialization = null;
         PatchFamily.inBuildForTests = null;
         Settings.SETTINGS_SHORTCUT.resetToDefault();
+        Settings.SETTINGS_LOGO_PRESS.resetToDefault();
+        Settings.SETTINGS_MENU_ROW.resetToDefault();
     }
 
     /** PausedHooksTest's probe: a start publishes the settings shortcut. */
@@ -98,6 +101,85 @@ public class SettingsEntryTest {
         assertNotNull("on didn't put it back", ours);
         org.junit.Assert.assertEquals(0, ours.getRank());
         assertNotNull(shortcut(manager, "reels"));
+    }
+
+    private static void waysIn(boolean shortcut, boolean logo, boolean menuRow) {
+        Settings.SETTINGS_SHORTCUT.save(shortcut);
+        Settings.SETTINGS_LOGO_PRESS.save(logo);
+        Settings.SETTINGS_MENU_ROW.save(menuRow);
+    }
+
+    /** Each of the three ways into the settings goes off alone and the other two carry on (#146). */
+    @Test public void eachWayInSwitchesOffAlone() {
+        PatchFamily.inBuildForTests = java.util.EnumSet.of(PatchFamily.MENU_SETTINGS_ROW);
+
+        waysIn(true, true, true);
+        assertTrue(SettingsEntry.logoPressOn());
+        assertTrue(SettingsEntry.menuRowOn());
+
+        waysIn(true, false, true);
+        assertFalse("the logo press stayed on", SettingsEntry.logoPressOn());
+        assertTrue(SettingsEntry.menuRowOn());
+        assertTrue(Settings.SETTINGS_SHORTCUT.get());
+
+        waysIn(true, true, false);
+        assertTrue(SettingsEntry.logoPressOn());
+        assertFalse("the Menu row stayed on", SettingsEntry.menuRowOn());
+        assertTrue(Settings.SETTINGS_SHORTCUT.get());
+
+        waysIn(false, true, true);
+        assertTrue(SettingsEntry.logoPressOn());
+        assertTrue(SettingsEntry.menuRowOn());
+        assertFalse("the shortcut stayed on", Settings.SETTINGS_SHORTCUT.get());
+    }
+
+    /** With one off, nothing is locked. With two off, the third is the last way in and can't be turned off. */
+    @Test public void theLastWayInIsLocked() {
+        waysIn(true, true, true);
+        for (BooleanSetting way : new BooleanSetting[]{Settings.SETTINGS_SHORTCUT, Settings.SETTINGS_LOGO_PRESS, Settings.SETTINGS_MENU_ROW}) {
+            org.junit.Assert.assertFalse(SettingsEntry.isLastWayIn(way, true));
+        }
+        waysIn(true, false, true);
+        assertFalse(SettingsEntry.isLastWayIn(Settings.SETTINGS_SHORTCUT, true));
+        assertFalse(SettingsEntry.isLastWayIn(Settings.SETTINGS_MENU_ROW, true));
+        assertFalse("an off switch is never the last one on", SettingsEntry.isLastWayIn(Settings.SETTINGS_LOGO_PRESS, true));
+
+        waysIn(false, false, true);
+        assertTrue(SettingsEntry.isLastWayIn(Settings.SETTINGS_MENU_ROW, true));
+        assertFalse(SettingsEntry.isLastWayIn(Settings.SETTINGS_SHORTCUT, true));
+        waysIn(false, true, false);
+        assertTrue(SettingsEntry.isLastWayIn(Settings.SETTINGS_LOGO_PRESS, true));
+        waysIn(true, false, false);
+        assertTrue(SettingsEntry.isLastWayIn(Settings.SETTINGS_SHORTCUT, true));
+    }
+
+    /** A build without the Menu row has two ways in, so the second to last is already the last. */
+    @Test public void aBuildWithoutTheMenuRowLocksOneSoonerAndNeverCountsTheRow() {
+        waysIn(true, true, true);
+        assertFalse(SettingsEntry.isLastWayIn(Settings.SETTINGS_SHORTCUT, false));
+        waysIn(false, true, true);
+        assertTrue("the row isn't in this build, so the logo is the last way in", SettingsEntry.isLastWayIn(Settings.SETTINGS_LOGO_PRESS, false));
+        PatchFamily.inBuildForTests = java.util.Collections.emptySet();
+        waysIn(false, false, true);
+        assertTrue("a stored Menu row switch counted as a way in on a build without the row", SettingsEntry.logoPressOn());
+    }
+
+    /** Stored off in all three, as a backup import can leave it, the reads still leave a way in. */
+    @Test public void theReadPathNeverReportsEveryWayInOff() {
+        PatchFamily.inBuildForTests = java.util.EnumSet.of(PatchFamily.MENU_SETTINGS_ROW);
+        waysIn(false, false, false);
+        assertTrue("no way in was left", SettingsEntry.logoPressOn());
+        assertTrue("no way in was left", SettingsEntry.menuRowOn());
+        assertFalse("the shortcut was forced on", Settings.SETTINGS_SHORTCUT.get());
+        assertFalse("the stored choice was rewritten", Settings.SETTINGS_LOGO_PRESS.savedValue());
+    }
+
+    /** Before the settings are read, a long press and the Menu row are Facebook's own. */
+    @Test public void untilTheSettingsAreReadyBothAreFacebooks() {
+        SettingsContextRule.withoutContext(() -> {
+            assertFalse(SettingsEntry.logoPressOn());
+            assertFalse(SettingsEntry.menuRowOn());
+        });
     }
 
     /** The switch is kept while paused: a pause neither brings the shortcut back nor takes it away. */
@@ -350,6 +432,40 @@ public class SettingsEntryTest {
      * login screen, so the replacement is already in front when the request comes back, and it
      * never resumes again to pick it up. On a phone that left the request pending until it expired.
      */
+    @Test public void repeatedDirectOpensBeforeTheFragmentCommitKeepOneSettingsDialog() {
+        PatchFamily.inBuildForTests = java.util.EnumSet.allOf(PatchFamily.class);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            assertTrue(SettingsEntry.open(activity));
+            assertTrue(SettingsEntry.open(activity));
+
+            assertOneSettingsDialog(activity);
+        }
+    }
+
+    @Test public void repeatedMenuTapsBeforeTheFragmentCommitKeepOneSettingsDialog() {
+        PatchFamily.inBuildForTests = java.util.EnumSet.allOf(PatchFamily.class);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            View menuRow = new View(activity);
+            assertTrue(MenuSettingsRow.onTap(menuRow, MenuSettingsRow.ROW_ID));
+            assertTrue(MenuSettingsRow.onTap(menuRow, MenuSettingsRow.ROW_ID));
+
+            assertOneSettingsDialog(activity);
+        }
+    }
+
+    private static void assertOneSettingsDialog(Activity activity) {
+        activity.getFragmentManager().executePendingTransactions();
+        ShadowLooper.idleMainLooper();
+        int count = 0;
+        for (Fragment fragment : activity.getFragmentManager().getFragments()) {
+            if (fragment instanceof SettingsDialog) count++;
+        }
+        assertEquals("the two requests stacked settings screens", 1, count);
+        assertNotNull(dialogOver(activity));
+    }
+
     @Test public void theScreenFollowsItsHostToAReplacementAlreadyInFront() {
         ActivityController<Activity> login = openedOverNewActivity();
 
@@ -446,9 +562,8 @@ public class SettingsEntryTest {
                         && Settings.OPEN_LINKS_EXTERNALLY.key.equals(((Preference) row).getKey())) onLinks = true;
             }
             assertTrue("the screen didn't open on Links", onLinks);
+            assertTrue(pageOver(activity.get()).navigation.isExpanded("Links"));
 
-            SettingsL10nTest.backOf(dialog).performClick();
-            SettingsL10nTest.backOf(dialog).performClick();
             SettingsL10nTest.backOf(dialog).performClick();
             ShadowLooper.idleMainLooper();
             assertNull("the screen stayed open", dialogOver(activity.get()));
@@ -472,7 +587,8 @@ public class SettingsEntryTest {
         ShadowLooper.idleMainLooper();
         List<String> titles = titles(pageOver(activity.get()));
         assertTrue(titles.toString(), titles.contains("Save videos other apps can open"));
-        assertFalse(titles.toString(), titles.contains("Browse settings"));
+        assertTrue(titles.toString(), titles.contains("Opening Facebook"));
+        assertTrue(pageOver(activity.get()).navigation.isExpanded("Downloads"));
         assertNull("the request was kept for the next screen", SettingsEntry.takeRequestedSetting());
     }
 
@@ -480,23 +596,35 @@ public class SettingsEntryTest {
     @Test public void aRequestForASettingMovesAScreenAlreadyOpen() {
         PatchFamily.inBuildForTests = java.util.EnumSet.allOf(PatchFamily.class);
         ActivityController<Activity> activity = openedOverNewActivity();
-        assertTrue(titles(pageOver(activity.get())).contains("Browse settings"));
+        HushfacebookPreferenceFragment page = pageOver(activity.get());
+        assertTrue(titles(page).contains("Downloads"));
+        assertFalse(page.navigation.isExpanded("Downloads"));
+        page.navigation.navigate("Playback");
         SettingsEntry.onNewIntent(activity.get(),
                 SettingsEntry.settingIntent(RuntimeEnvironment.getApplication(), Settings.DOWNLOAD_COMPATIBLE.key));
         activity.pause().resume();
         ShadowLooper.idleMainLooper();
         List<String> titles = titles(pageOver(activity.get()));
         assertTrue(titles.toString(), titles.contains("Save videos other apps can open"));
+        assertTrue(pageOver(activity.get()).navigation.isExpanded("Downloads"));
+        assertTrue("a setting request collapsed an open section", pageOver(activity.get()).navigation.isExpanded("Playback"));
+        assertNull("the request was kept for the next screen", SettingsEntry.takeRequestedSetting());
     }
 
     /** The launcher entry is open to every app: a request that isn't a key's shape opens the overview. */
     @Test public void aRequestThatIsNoKeyOpensTheOverview() {
+        PatchFamily.inBuildForTests = java.util.EnumSet.allOf(PatchFamily.class);
         Intent odd = SettingsEntry.settingIntent(RuntimeEnvironment.getApplication(), "Save videos\nFAKE LINE");
         ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class, odd).create();
         SettingsEntry.onActivityCreate(activity.get());
         activity.start().resume();
         ShadowLooper.idleMainLooper();
-        assertTrue(titles(pageOver(activity.get())).contains("Browse settings"));
+        HushfacebookPreferenceFragment page = pageOver(activity.get());
+        ListView list = page.getView().findViewById(android.R.id.list);
+        org.junit.Assert.assertEquals(23, list.getCount());
+        org.junit.Assert.assertEquals("section_Opening Facebook", ((Preference) list.getItemAtPosition(0)).getKey());
+        assertFalse(page.navigation.isExpanded("Downloads"));
+        assertFalse(titles(pageOver(activity.get())).contains("More settings"));
         String report = app.morphe.extension.shared.settings.preference.LogBufferManager.buildExportText();
         assertFalse(report, report.contains("FAKE LINE"));
     }

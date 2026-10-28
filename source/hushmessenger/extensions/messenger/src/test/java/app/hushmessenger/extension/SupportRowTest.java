@@ -81,7 +81,7 @@ public class SupportRowTest {
             // Ko-fi is the last row; only the license lines follow it.
             for (int i = page.indexOfChild(support) + 1; i < page.getChildCount(); i++)
                 assertTrue(page.getChildAt(i) instanceof android.widget.TextView && !page.getChildAt(i).isClickable());
-            assertEquals("Report a problem. Opens a public GitHub report with your versions and the switches you have on filled in."
+            assertEquals("Report a problem. Opens a public GitHub report with your versions and the controls you have on filled in."
                 + " Look it over and add what happened.", report.getContentDescription().toString());
             report.performClick();
             Intent opened = Shadows.shadowOf(screen.get()).getNextStartedActivity();

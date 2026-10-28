@@ -30,6 +30,16 @@ public final class SaveRulesForTests {
         return pick != null && DashManifest.isCompatibleVideo(pick.video);
     }
 
+    /**
+     * Whether a save starting now converts the 1080p AV1 picture rather than keep the 720p H.264
+     * one, as convert to keep the full size does. Any picture counts as one the phone converts.
+     */
+    public static boolean convertsTheFullSize() {
+        DashManifest.Pick pick = DashManifest.pick(AV1_OR_H264, true, MediaDownload.quality(),
+                MediaDownload.compatibleSaves(), false, track -> true, MediaDownload.convertSaves());
+        return pick != null && pick.transcodeVideo;
+    }
+
     /** Whether a save starting now would finish without its Saved to toast, as quiet saves does. */
     public static boolean finishesQuietly() {
         return !MediaDownload.endToast(MediaDownload.quietSaves(), false, false, false);

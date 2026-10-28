@@ -26,7 +26,8 @@ import org.junit.Test
  * is #333334 under the account's picture, which Facebook writes right after its own dark check says
  * yes (582 `LX/3Nj;->invoke`, the AddToStoryTileSplitCardComponentSpec, and `LX/374;->render`).
  * Route three's dark-branch pass finds at least those two, and every site it finds gets the
- * extension's call right after its `const`, on the same register.
+ * extension's call right after its `const`, on the same register. AMOLED reads them first for Black
+ * cards (#191), as an all-patches build does, and Material You's call then goes in after AMOLED's.
  */
 class DarkBranchLiteralFixtureTest {
     private val versions = AppCompatibilities.facebook().single().targets.mapNotNull { it.version }.toSet()
@@ -58,15 +59,23 @@ class DarkBranchLiteralFixtureTest {
                 assertTrue("$name: the Create story tile's two #333334 writes, at least (${cards.map { it.first.descriptor() }})", cards.size >= 2)
 
                 val context = PatchContexts.of(owners)
+                assertEquals("$name: every site changed for AMOLED", sites.size, with(context) { readDarkBranchLiterals(darkCheck, AMOLED_DARK_BRANCH) })
                 assertEquals("$name: every site changed", sites.size, with(context) { readDarkBranchLiterals(darkCheck) })
-                for ((method, index) in sites) {
+                // Each site ahead of another in the same method pushes it on by the four instructions added.
+                val moved = sites.groupBy { it.first.descriptor() }.values.flatMap { inMethod ->
+                    inMethod.sortedBy { it.second }.mapIndexed { ahead, (method, index) -> method to index + 4 * ahead }
+                }
+                for ((method, index) in moved) {
                     val after = context.mutableClassDefBy(method.definingClass).methods.single { it.descriptor() == method.descriptor() }.body()
+                    assertEquals("$name: ${method.descriptor()} keeps its const", Opcode.CONST, after[index].opcode)
                     val register = (after[index] as OneRegisterInstruction).registerA
-                    val call = after[index + 1]
-                    assertEquals("$name: ${method.descriptor()} calls the extension", DARK_BRANCH, (call as ReferenceInstruction).reference.toString())
-                    assertEquals("$name: on the const's register", register, (call as RegisterRangeInstruction).startRegister)
-                    assertEquals("$name: then reads it back", Opcode.MOVE_RESULT, after[index + 2].opcode)
-                    assertEquals("$name: into the same register", register, (after[index + 2] as OneRegisterInstruction).registerA)
+                    for ((at, target) in listOf(index + 1 to AMOLED_DARK_BRANCH, index + 3 to DARK_BRANCH)) {
+                        val call = after[at]
+                        assertEquals("$name: ${method.descriptor()} calls the extension", target, (call as ReferenceInstruction).reference.toString())
+                        assertEquals("$name: on the const's register", register, (call as RegisterRangeInstruction).startRegister)
+                        assertEquals("$name: then reads it back", Opcode.MOVE_RESULT, after[at + 1].opcode)
+                        assertEquals("$name: into the same register", register, (after[at + 1] as OneRegisterInstruction).registerA)
+                    }
                 }
                 checked += version
             }

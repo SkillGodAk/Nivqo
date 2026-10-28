@@ -23,16 +23,32 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * factory already answers null when the feature is off for that browser, so the patch has it answer
  * null on a yes from {@link #hold} too, and the writer never exists.
  *
+ * <p>The page data reaches Facebook through one upload, the link history save request, which other
+ * parts of the browser can call too. It asks {@link #holdUpload} first, and a yes returns before
+ * anything is sent. Nothing waits for that upload: its answer only goes to Facebook's own logging.
+ *
+ * <p>When you fill in a form on a page, the browser also logs two autofill reports to Facebook's
+ * analytics: one with the page's address and host, the form's fields and the ad the page came from,
+ * and a first-party data event. Each asks {@link #holdAutofillReport} first, and a yes returns before
+ * the event is built. Autofill itself keeps what you declined in its own preferences and never reads
+ * the reports, so it works the same either way.
+ *
  * <p>It fails open: the switch off, a pause, settings that aren't ready yet, or a failure in here,
- * and the browser builds its writers as it would have. Login, checkout and autofill are other parts
+ * and the browser builds its writers and sends as it would have. Login and checkout are other parts
  * of the browser and don't ask.
  */
 public final class LinkHistory {
-    /** The diagnostic counter route: each writer the browser went to build, and the ones held back. */
+    /** The diagnostic counter route: each writer and upload the browser went to make, and the ones held back. */
     static final String ROUTE = "Link history";
 
     /** What a writer that wasn't built is counted under. */
     static final String WRITERS = "Link history writers";
+
+    /** What an upload that wasn't sent is counted under. */
+    static final String UPLOADS = "Link history uploads";
+
+    /** What an autofill report that wasn't logged is counted under. */
+    static final String AUTOFILL_REPORTS = "Autofill reports";
 
     private LinkHistory() {
     }
@@ -42,15 +58,35 @@ public final class LinkHistory {
      * answer null, its own answer when the feature is off. Never throws.
      */
     public static boolean hold() {
+        return held(WRITERS, "link history writer", "a writer");
+    }
+
+    /**
+     * Injection point, first thing in the link history upload. True makes it return without sending
+     * the page's address, title and times. Never throws.
+     */
+    public static boolean holdUpload() {
+        return held(UPLOADS, "link history upload", "an upload");
+    }
+
+    /**
+     * Injection point, first thing in each of the browser's two autofill reports. True makes it
+     * return before the page's address, the form's fields and the ad are logged. Never throws.
+     */
+    public static boolean holdAutofillReport() {
+        return held(AUTOFILL_REPORTS, "autofill report", "an autofill report");
+    }
+
+    private static boolean held(String counted, String site, String what) {
         try {
             HookStatus.invoked(FamilyNames.EXTERNAL_BROWSER);
             FeedFilterCounters.sawList(ROUTE, 1);
             if (!Utils.settingsReady() || !Settings.HOLD_LINK_HISTORY.get()) return false;
-            FeedFilterCounters.removed(ROUTE, 1, WRITERS);
-            Logger.printDebug(() -> "Link history: held back a writer");
+            FeedFilterCounters.removed(ROUTE, 1, counted);
+            Logger.printDebug(() -> "Link history: held back " + what);
             return true;
         } catch (Throwable failure) {
-            HookStatus.threw(FamilyNames.EXTERNAL_BROWSER, "link history writer", failure);
+            HookStatus.threw(FamilyNames.EXTERNAL_BROWSER, site, failure);
             return false;
         }
     }

@@ -85,6 +85,7 @@ public class PhotoMenuItemTest {
         PauseForTests.resume();
         Settings.DOWNLOAD_PHOTOS.resetToDefault();
         Settings.POST_MENU_PHOTO_SAVE.resetToDefault();
+        Settings.POST_MENU_DOWNLOAD_FIRST.resetToDefault();
         HookStatus.clear();
     }
 
@@ -103,6 +104,18 @@ public class PhotoMenuItemTest {
         GraphQLStoryAttachment[] each = new GraphQLStoryAttachment[photos];
         for (int i = 0; i < photos; i++) each[i] = new GraphQLStoryAttachment(PhotoMenuItemForTests.photo(i + 1));
         return new GraphQLStory(null, new GraphQLStoryAttachment(null, each));
+    }
+
+    /** Download first (#151): Save photo and Save all photos ride above Facebook's rows. */
+    @Test
+    public void downloadFirstPutsSavePhotoOnTop() {
+        Settings.POST_MENU_DOWNLOAD_FIRST.save(true);
+        Menu menu = filled(PhotoMenuItemForTests.photoPost());
+        assertEquals(3, menu.size());
+        assertEquals("Save photo", String.valueOf(menu.getItem(0).getTitle()));
+        assertEquals("Save video", String.valueOf(menu.getItem(1).getTitle()));
+        assertEquals("Save all photos", String.valueOf(filled(album(3)).getItem(0).getTitle()));
+        assertEquals("a post without photos got a row", 2, filled(new GraphQLStory(null)).size());
     }
 
     @Test

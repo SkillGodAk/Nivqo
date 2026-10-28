@@ -221,6 +221,12 @@ public final class FeedFilter {
     /** The kind a post counts under when it was read and no line matched. */
     static final String NO_SOURCE_MATCH = "no line matched";
     /**
+     * The stories Hide posts from Pages read, counted only while its switch is on, with what kind of
+     * author wrote each as the kind: {@value PostSources#PAGE} when every author is a Page, or the
+     * first other author's type, or why nothing was read. Never a name or an id.
+     */
+    static final String PAGES_ROUTE = "Posts from Pages";
+    /**
      * The Stories tray adapters the feed asked for, each call counted with its adapter as the kind,
      * and a skipped one as a removal. The tray is never a feed edge: the feed's adapter list adds it
      * as an adapter of its own, so it never reaches the edge guard.
@@ -314,7 +320,7 @@ public final class FeedFilter {
                 RecommendationLabel.PATCHED, SettingsStatus.aiDetectedPosts(), GenAiLabel.PATCHED,
                 SettingsStatus.feedReels(), ShowcaseType.PATCHED, SettingsStatus.postWords(), PostText.MESSAGE,
                 PostText.ATTACHED, GenAiLabel.SELF_LABEL_PATCHED, AiCharacterPosts.ATTACHMENTS,
-                AiCharacterPosts.STYLES, PostTypes.READERS);
+                AiCharacterPosts.STYLES, PostTypes.READERS, GroupPosts.PATCHED);
     }
 
     /** The guard with the sponsored and suggested patch-time flags passed in, and no GenAI rule. */
@@ -423,6 +429,23 @@ public final class FeedFilter {
             StoryFlag.Accessor messageAccessor, StoryFlag.Accessor attachedAccessor,
             StoryFlag.Accessor aiLabelAccessor, @Nullable StoryFlag.Accessor attachmentsAccessor,
             @Nullable AiCharacterPosts.Finder styleFinder, @Nullable PostTypes.Readers typeReaders) {
+        return hideEdge(category, feedUnit, sponsoredPatched, suggestedPatched, recommendationAccessor, aiPatched,
+                aiAccessor, reelsPatched, showcaseAccessor, wordsPatched, messageAccessor, attachedAccessor,
+                aiLabelAccessor, attachmentsAccessor, styleFinder, typeReaders, null);
+    }
+
+    /**
+     * The guard with the two readers of the groups rule passed in too, so a test can stand in for
+     * the stubs Hide suggested and promoted posts fills: the story's {@code to} and that group's join
+     * state. Null readers leave the rule out, as the overloads above do.
+     */
+    static boolean hideEdge(Object category, Object feedUnit, boolean sponsoredPatched, boolean suggestedPatched,
+            StoryFlag.Accessor recommendationAccessor, boolean aiPatched, StoryFlag.Accessor aiAccessor,
+            boolean reelsPatched, StoryFlag.Accessor showcaseAccessor, boolean wordsPatched,
+            StoryFlag.Accessor messageAccessor, StoryFlag.Accessor attachedAccessor,
+            StoryFlag.Accessor aiLabelAccessor, @Nullable StoryFlag.Accessor attachmentsAccessor,
+            @Nullable AiCharacterPosts.Finder styleFinder, @Nullable PostTypes.Readers typeReaders,
+            @Nullable GroupPosts.Readers groupReaders) {
         boolean trayPatched = storiesTrayInBuild();
         try {
             if (sponsoredPatched) HookStatus.invoked(FamilyNames.SPONSORED_POSTS);
@@ -447,14 +470,19 @@ public final class FeedFilter {
             // only read with the patch that fills their accessor.
             Logger.printDebug(() -> {
                 String type = typeName(feedUnit);
+                String id = SeenPosts.shortId(feedUnit);
                 return "Feed edge: " + categoryName + " " + type + " ifr="
                         + (suggestedPatched ? recommendationFlag(feedUnit, recommendationAccessor) : "none")
                         + (reelsPatched ? " showcase=" + showcaseFor(type, feedUnit, showcaseAccessor) : "")
                         + (suggestedPatched && DISCOVER_UNIT_TYPE.equals(type)
                                 ? " stories=" + unconnectedStories(feedUnit) : "")
+                        + (suggestedPatched && groupReaders != null
+                                ? " group=" + GroupPosts.read(feedUnit, groupReaders) : "")
                         + (aiPatched ? " genai=" + flagValue(GenAiLabel.FLAG, feedUnit, aiAccessor)
                                 + " ailabel=" + flagValue(GenAiLabel.SELF_LABEL, feedUnit, aiLabelAccessor) : "")
-                        + (ENGAGEMENT_PROMO.equals(categoryName) ? " qp=" + promotionId(feedUnit) : "");
+                        + (ENGAGEMENT_PROMO.equals(categoryName) ? " qp=" + promotionId(feedUnit) : "")
+                        + (wordsPatched ? " author=" + PostSources.authorKind(feedUnit, PostSources.ACTORS) : "")
+                        + (id != null ? " id=" + id : "");
             });
             // An edge a prefetch adds before the settings are ready stays: no switch can be read yet.
             if (!Utils.settingsReady()) return false;
@@ -495,6 +523,9 @@ public final class FeedFilter {
                         reason = unconnectedStoriesReason(feedUnit);
                     }
                 }
+                if (reason == null && groupReaders != null && Settings.HIDE_GROUP_POSTS_NOT_JOINED.get()) {
+                    reason = groupReason(feedUnit, groupReaders);
+                }
             }
             if (reason == null && trayPatched && Settings.HIDE_STORIES_BETWEEN_POSTS.get()) {
                 reason = storiesRowReason(typeName(feedUnit));
@@ -516,10 +547,14 @@ public final class FeedFilter {
                 reason = flagReason(GenAiLabel.SELF_LABEL, AI_LABEL_ROUTE, feedUnit, aiLabelAccessor);
             }
             if (reason == null && wordsPatched && Settings.HIDE_POSTS_WITH_WORDS.get()) {
-                reason = wordsReason(feedUnit, messageAccessor, attachedAccessor);
+                reason = wordsReason(feedUnit, messageAccessor, attachedAccessor, PostSources.ATTACHMENTS,
+                        PostText.ACTION_LINKS);
             }
             if (reason == null && wordsPatched) {
                 reason = sourcesReason(feedUnit, PostSources.ACTORS, PostSources.ATTACHMENTS, attachedAccessor);
+            }
+            if (reason == null && wordsPatched && Settings.HIDE_PAGE_POSTS.get()) {
+                reason = pagesReason(feedUnit, PostSources.ACTORS);
             }
             if (reason == null && wordsPatched && typeReaders != null) {
                 reason = typesReason(feedUnit, typeReaders, attachedAccessor);
@@ -739,13 +774,31 @@ public final class FeedFilter {
     }
 
     /**
-     * The word filter: {@link #WORDS_REASON} when the post's own words, or those of the post it
-     * shares, hold a phrase from the hide list and none from the keep list, otherwise null. Every
-     * story it's asked about is counted on its route under which list matched or why nothing was
-     * read, so a kept post always has a reason in the report. With the hide list empty nothing of
-     * the post is read, and a post whose words can't be read is kept.
+     * Hide posts from Pages (#262): {@value PostSources#PAGE} when every author of the post is a
+     * Page, otherwise null. Only the post's own authors count, so a friend's share of a Page's post
+     * stays, and so does a post in a group, which its member wrote. An author whose type can't be
+     * read counts as a person, and a post whose authors can't be read is kept.
      */
-    private static String wordsReason(Object feedUnit, StoryFlag.Accessor message, StoryFlag.Accessor attached) {
+    static String pagesReason(Object feedUnit, StoryFlag.Accessor actors) {
+        FeedFilterCounters.sawList(PAGES_ROUTE, 1);
+        String kind = PostSources.authorKind(feedUnit, actors);
+        FeedFilterCounters.sawKind(PAGES_ROUTE, kind);
+        if (!PostSources.PAGE.equals(kind)) return null;
+        FeedFilterCounters.removed(PAGES_ROUTE, 1, kind);
+        return kind;
+    }
+
+    /**
+     * The word filter: {@link #WORDS_REASON} when the post's own words, or those of the post it
+     * shares, hold a phrase from the hide list and none from the keep list, otherwise null. A post's
+     * words include its link cards' headlines and descriptions, read through [links] and each card's
+     * [actionLinks]. Every story
+     * it's asked about is counted on its route under which list matched or why nothing was read, so
+     * a kept post always has a reason in the report. With the hide list empty nothing of the post is
+     * read, and a post whose words can't be read is kept.
+     */
+    static String wordsReason(Object feedUnit, StoryFlag.Accessor message, StoryFlag.Accessor attached,
+            StoryFlag.Accessor links, StoryFlag.Accessor actionLinks) {
         FeedFilterCounters.sawList(WORDS_ROUTE, 1);
         PostWords.Rules rules = PostWords.rules(Settings.HIDDEN_WORDS.get(), Settings.KEPT_WORDS.get(),
                 Settings.POST_WORDS_WHOLE_WORDS.get());
@@ -753,7 +806,7 @@ public final class FeedFilter {
             FeedFilterCounters.sawKind(WORDS_ROUTE, NO_WORDS);
             return null;
         }
-        PostText.Read read = PostText.read(feedUnit, message, attached);
+        PostText.Read read = PostText.read(feedUnit, message, attached, links, actionLinks);
         if (read.outcome != PostText.Outcome.TEXT) {
             FeedFilterCounters.sawKind(WORDS_ROUTE, read.outcome.reason);
             return null;
@@ -764,6 +817,22 @@ public final class FeedFilter {
         FeedFilterCounters.removed(WORDS_ROUTE, 1, verdict.reason);
         PostWords.HIDDEN.incrementAndGet();
         return WORDS_REASON;
+    }
+
+    /**
+     * Hide posts from groups you're not in: the group type and the join state, such as
+     * {@code Group:CAN_JOIN}, when the post was posted in a group Facebook would show a Join button
+     * for, otherwise null. Nothing is read while the switch is off, and a post that can't be read
+     * stays. Each post it reads is counted on its route by what the read found.
+     */
+    static String groupReason(Object feedUnit, GroupPosts.Readers readers) {
+        String kind = GroupPosts.read(feedUnit, readers);
+        FeedFilterCounters.sawList(GroupPosts.ROUTE, 1);
+        FeedFilterCounters.sawKind(GroupPosts.ROUTE, kind);
+        if (!GroupPosts.notJoined(kind)) return null;
+        String reason = GroupPosts.GROUP_TYPE + ":" + kind;
+        FeedFilterCounters.removed(GroupPosts.ROUTE, 1, reason);
+        return reason;
     }
 
     /**

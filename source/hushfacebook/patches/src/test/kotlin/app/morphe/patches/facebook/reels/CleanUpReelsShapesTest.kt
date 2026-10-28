@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
@@ -16,6 +17,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
@@ -384,6 +386,134 @@ class CleanUpReelsShapesTest {
         assertThrows(PatchException::class.java) { noLocal.returnFalseWhen(HIDE_FOLLOW_BUTTON) }
     }
 
+    private fun render(smali: String, name: String = RENDER) =
+        method(name, listOf("Lfixture/Context;"), "Lfixture/Component;", 6, static = false, smali)
+
+    /** A model's type, compared with the soundtrack's, and on to `:line` when it's the soundtrack. */
+    private val pickSoundtrack = """
+        invoke-interface { p1 }, Lfixture/Model;->getTypeName()Ljava/lang/String;
+        move-result-object v1
+        const-string v0, "$SOUNDTRACK_CHIP"
+        invoke-virtual { v0, v1 }, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+        move-result v0
+        if-nez v0, :line
+    """
+
+    /**
+     * The Reels tab's audio line row (#200) is the render that picks the soundtrack before it can
+     * return and answers null first. Renders that return a component first, return before they
+     * name the type, or aren't a render are the lookalikes 583 has. The hook asks first and answers
+     * null, in a local of its own.
+     */
+    @Test
+    fun `the audio line row is the render that answers null before anything else`() {
+        val row = render("""
+            const/16 v3, 0x0
+            $pickSoundtrack
+            return-object v3
+            :line
+            new-instance v2, Lfixture/Row;
+            return-object v2
+        """)
+        assertTrue(isAudioLineRender(row))
+        val builtFirst = render("""
+            new-instance v3, Lfixture/Row;
+            $pickSoundtrack
+            return-object v3
+            :line
+            const/4 v2, 0x0
+            return-object v2
+        """)
+        assertTrue("a render answering a built component first was taken", !isAudioLineRender(builtFirst))
+        val returnsFirst = render("""
+            const/4 v3, 0x0
+            if-nez p1, :pick
+            return-object v3
+            :pick
+            $pickSoundtrack
+            return-object v3
+            :line
+            return-object v3
+        """)
+        assertTrue("a render returning before it names the type was taken", !isAudioLineRender(returnsFirst))
+        val notRender = render("""
+            const/16 v3, 0x0
+            $pickSoundtrack
+            return-object v3
+            :line
+            return-object p1
+        """, name = "A1C")
+        assertTrue("a method that isn't a render was taken", !isAudioLineRender(notRender))
+
+        row.returnNullWhen(HIDE_AUDIO_LINE)
+        val body = row.body()
+        assertEquals(HIDE_AUDIO_LINE, body[0].call)
+        assertEquals(Opcode.MOVE_RESULT, body[1].opcode)
+        assertEquals(0, (body[1] as OneRegisterInstruction).registerA)
+        assertEquals(Opcode.IF_EQZ, body[2].opcode)
+        assertEquals("off draws Facebook's row", 5, row.target(2))
+        assertEquals(Opcode.CONST_4, body[3].opcode)
+        assertEquals("the hook answers null", 0, (body[3] as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals(Opcode.RETURN_OBJECT, body[4].opcode)
+        assertEquals(0, (body[4] as OneRegisterInstruction).registerA)
+        assertEquals(15, body.size)
+
+        val noLocal = method(RENDER, listOf("Lfixture/Context;"), "Lfixture/Component;", 2, static = false, "return-object p1")
+        assertThrows(PatchException::class.java) { noLocal.returnNullWhen(HIDE_AUDIO_LINE) }
+    }
+
+    /** A reel header: p0 the row, p1 the search bar, p2 its send button, each wrapped and tagged when there is one. */
+    private fun header(add: String = "Lfixture/Row;->add(Lfixture/Component;)V", sendTag: String = SEARCH_BAR_SEND) = method(
+        "A00", listOf("Lfixture/Row;", "Lfixture/Component;", "Lfixture/Component;"), "Lfixture/Component;", 6, static = true, """
+            if-eqz p1, :add_bar
+            const-string v0, "$SEARCH_BAR"
+            invoke-static { p1, v0 }, Lfixture/Wrap;->tag(Lfixture/Component;Ljava/lang/String;)Lfixture/Component;
+            move-result-object p1
+            :add_bar
+            invoke-virtual { p0, p1 }, $add
+            if-eqz p2, :add_send
+            const-string v0, "$sendTag"
+            invoke-static { p2, v0 }, Lfixture/Wrap;->tag(Lfixture/Component;Ljava/lang/String;)Lfixture/Component;
+            move-result-object p2
+            :add_send
+            invoke-virtual { p0, p2 }, $add
+            invoke-virtual { p0 }, Lfixture/Row;->build()Lfixture/Component;
+            move-result-object v0
+            return-object v0
+        """,
+    )
+
+    /**
+     * The search bar over a reel opened from a profile and its send button (#201): the header is the
+     * builder holding both tags, each part's add is the first call after its tag that takes one
+     * component and returns nothing, and the hook takes that call's place, so the jump Facebook makes
+     * for a part it didn't wrap lands on the hook too, then the add follows with the answer.
+     */
+    @Test
+    fun `the search bar's parts go through the extension on their way into the header`() {
+        val row = header()
+        assertTrue(isSearchBarHeader(row))
+        assertTrue("a header without the send button's tag was taken", !isSearchBarHeader(header(sendTag = "fb_video_ghost_bar_sent")))
+        assertEquals(4, partAddAfter(row, SEARCH_BAR))
+        assertEquals(9, partAddAfter(row, SEARCH_BAR_SEND))
+        assertNull("an add answering something was taken", partAddAfter(header(add = "Lfixture/Row;->add(Lfixture/Component;)Lfixture/Row;"), SEARCH_BAR))
+        assertNull("an add taking something else was taken", partAddAfter(header(add = "Lfixture/Row;->add(Ljava/lang/Object;)V"), SEARCH_BAR))
+        assertNull("a literal the header doesn't hold found an add", partAddAfter(row, "fb_video_ghost_bar_sent"))
+
+        for (literal in listOf(SEARCH_BAR, SEARCH_BAR_SEND)) row.handPartFirst(partAddAfter(row, literal)!!)
+        val body = row.body()
+        assertEquals(19, body.size)
+        for ((hook, part) in listOf(4 to 4, 12 to 5)) {
+            assertEquals(SEARCH_BAR_PART, body[hook].call)
+            assertEquals(Opcode.MOVE_RESULT_OBJECT, body[hook + 1].opcode)
+            assertEquals("the answer goes back in the part's register", part, (body[hook + 1] as OneRegisterInstruction).registerA)
+            assertEquals(Opcode.CHECK_CAST, body[hook + 2].opcode)
+            assertEquals("Lfixture/Row;->add(Lfixture/Component;)V", body[hook + 3].call)
+        }
+        assertEquals("a bar Facebook didn't build skips to the hook", 4, row.target(0))
+        assertEquals("a button Facebook didn't build skips to the hook", 12, row.target(8))
+    }
+
     @Test
     fun `a footer runnable returns first when the extension says so`() {
         val run = method("run", emptyList(), "V", 2, static = false,
@@ -398,6 +528,101 @@ class CleanUpReelsShapesTest {
         assertEquals("off runs Facebook's query", 4, run.target(2))
         assertEquals(Opcode.RETURN_VOID, body[3].opcode)
         assertEquals(Opcode.SGET_OBJECT, body[4].opcode)
+    }
+
+    private val lambdaType = "Lfixture/Lambda;"
+
+    /** A static of the merged lambda that takes the lambda and its key and answers an Object. */
+    private fun handOn(name: String, smali: String): Method = MutableMethod(
+        ImmutableMethod(
+            lambdaType, name, listOf(ImmutableMethodParameter(lambdaType, null, null), ImmutableMethodParameter("I", null, null)),
+            "Ljava/lang/Object;", AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null,
+            ImmutableMethodImplementation(3, emptyList(), null, null),
+        ),
+    ).apply { addInstructionsWithLabels(0, smali) }
+
+    /**
+     * A merged lambda shaped like 584's: `invoke()` and its first hand-on switch have no case for
+     * the Follow flags' keys (0x29 and 0x2a), so each falls through two defaults before the last
+     * switch names its method.
+     */
+    private fun lambda(): ClassDef {
+        val invoke = MutableMethod(
+            ImmutableMethod(
+                lambdaType, "invoke", emptyList(), "Ljava/lang/Object;", AccessFlags.PUBLIC.value, null, null,
+                ImmutableMethodImplementation(2, emptyList(), null, null),
+            ),
+        ).apply {
+            addInstructionsWithLabels(
+                0,
+                """
+                    iget v0, p0, $lambdaType->key:I
+                    packed-switch v0, :cases
+                    invoke-static { p0, v0 }, $lambdaType->A1D(${lambdaType}I)Ljava/lang/Object;
+                    move-result-object v0
+                    return-object v0
+                    :one
+                    invoke-static { p0 }, $lambdaType->A01($lambdaType)Ljava/lang/Object;
+                    move-result-object v0
+                    return-object v0
+                    :cases
+                    .packed-switch 0x1
+                        :one
+                    .end packed-switch
+                """,
+            )
+        }
+        val first = handOn(
+            "A1D",
+            """
+                sparse-switch p1, :cases
+                invoke-static { p0, p1 }, $lambdaType->A1B(${lambdaType}I)Ljava/lang/Object;
+                move-result-object v0
+                return-object v0
+                :five
+                invoke-static { p0 }, $lambdaType->A05($lambdaType)Ljava/lang/Object;
+                move-result-object v0
+                return-object v0
+                :cases
+                .sparse-switch
+                    0x5 -> :five
+                .end sparse-switch
+            """,
+        )
+        val second = handOn(
+            "A1B",
+            """
+                packed-switch p1, :cases
+                const/4 v0, 0x0
+                return-object v0
+                :following
+                invoke-static { p0 }, $lambdaType->A0A($lambdaType)Ljava/lang/Object;
+                move-result-object v0
+                return-object v0
+                :shorts
+                invoke-static { p0 }, $lambdaType->A0h($lambdaType)Ljava/lang/Object;
+                move-result-object v0
+                return-object v0
+                :cases
+                .packed-switch 0x29
+                    :following
+                    :shorts
+                .end packed-switch
+            """,
+        )
+        return ImmutableClassDef(
+            lambdaType, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, emptyList(), listOf(invoke, first, second),
+        )
+    }
+
+    @Test
+    fun `a lambda key with no case is followed through each switch's default`() {
+        val lambda = lambda()
+        assertEquals("A0A", lambdaCase(lambda, 0x29)?.name)
+        assertEquals("A0h", lambdaCase(lambda, 0x2a)?.name)
+        assertEquals("a case of invoke() itself", "A01", lambdaCase(lambda, 1)?.name)
+        assertEquals("a case of the first hand-on", "A05", lambdaCase(lambda, 5)?.name)
+        assertNull("a key the last switch has no case for", lambdaCase(lambda, 0x30))
     }
 
     private val loopFlag = com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference(

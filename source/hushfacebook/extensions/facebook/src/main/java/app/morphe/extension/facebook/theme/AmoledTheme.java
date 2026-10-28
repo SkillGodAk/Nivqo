@@ -17,9 +17,14 @@ import androidx.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
+import app.morphe.extension.facebook.settings.Settings;
+import app.morphe.extension.facebook.settings.SettingsStatus;
+import app.morphe.extension.shared.Logger;
+import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -45,11 +50,17 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * leave Facebook's text under 4.5:1, gets smaller steps in the same order ({@link #lightestStep},
  * {@link #scaled}), and its text and icon roles come back just light enough ({@link #foreground}).
  *
+ * <p>The Background color row in Hushfacebook's settings swaps that colour once Facebook is running
+ * (issue #214, {@link #load}). The patch wrote its colour into resources and code, so route three
+ * reads {@link #PAGE} where the patch wrote one, {@link AmoledResources} gives the resources the
+ * row's colour as each activity is created, and route one and the colour resource reads take the
+ * patch's colour ({@link #written}) wherever it still comes through as the row's.
+ *
  * <p>{@link #apply} runs for each colour on each layout pass. Thus it makes no object and writes no
  * log. The one thing it adds is a count in Hook status, a hash lookup and an increment once the
  * first call has made the family's entry, which is what shows a report that the theme ran at all.
  * The colour resource reads ({@link #getColor(Context, int)} and the rest) run as often and add no
- * count: in dark mode they cost one compare and a volatile read.
+ * count: in dark mode they cost two compares and a volatile read.
  */
 public final class AmoledTheme {
 
@@ -111,6 +122,23 @@ public final class AmoledTheme {
             new HashSet<>(Arrays.asList("PRIMARY_UI", "BACKGROUND_PRIMARY_UI")));
 
     /**
+     * FDS's tokens for a secondary button's fill, such as the Menu's See more and Log out: #333334,
+     * or #46484B for the opaque and floating ones, in dark mode. Route one leaves them as Facebook
+     * drew them, unless Black cards is on ({@link #flatCards}): then the card under one takes the
+     * page's colour, and the button takes an input's fill ({@link #buttonFill}) so it keeps a shape
+     * on the page, issue #191.
+     */
+    private static final Set<String> BUTTON_TOKENS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "SECONDARY_BUTTON_BACKGROUND", "SECONDARY_BUTTON_BACKGROUND_OPAQUE",
+            "SECONDARY_BUTTON_BACKGROUND_FLOATING")));
+
+    /** The largest value a channel of a secondary button's dark fill can have: the opaque one's #46484B. */
+    static final int MAX_BUTTON_CHANNEL = 0x4B;
+
+    /** FDS's dark card, the grey an input's fill is a {@link #FILL_SHIFT} below. */
+    private static final int CARD_GREY = 0xFF333334;
+
+    /**
      * FDS's token for the row of an unread notification. Facebook's dark theme gives it a 10% blue,
      * {@code #192D88FF}, which reads as a blue row over Facebook's grey page and as almost black over
      * AMOLED's black one ({@code #050E1A}), issue #72. The Notifications tab's row asks for it
@@ -130,6 +158,13 @@ public final class AmoledTheme {
      * green or dark brown banner has much more, and it keeps its colour.
      */
     private static final int MAX_SPREAD = 8;
+
+    /**
+     * The smallest value each channel of a light grey route one moves in light mode has
+     * ({@link #light}). Facebook's light WASH, #C9CCD1, is its darkest background grey, and no dark
+     * style gives a background token one this light (MaterialYouTokenFixtureTest).
+     */
+    static final int LIGHT_MIN_CHANNEL = 0xC0;
 
     /**
      * The largest value that a channel of a status bar colour can have and still turn black. The
@@ -183,6 +218,16 @@ public final class AmoledTheme {
                     "BACKGROUND_PRIMARY_UI")));
 
     /**
+     * Light grey fills that light mode's Light background color moves as well ({@link #light}): the
+     * composer's bar and the grey buttons. Dark mode leaves them, so they aren't {@link #BACKGROUND_TOKENS}.
+     */
+    private static final Set<String> LIGHT_BACKGROUND_TOKENS = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(
+                    "TEXT_INPUT_BAR_BACKGROUND",
+                    "SECONDARY_BUTTON_BACKGROUND",
+                    "SECONDARY_BUTTON_BACKGROUND_OPAQUE")));
+
+    /**
      * How far above the background colour the lightest surface route one makes sits: an input's
      * fill from the lightest raised grey, {@link #MAX_RAISED_CHANNEL} less {@link #FILL_SHIFT}.
      * Every step a surface takes is at most this.
@@ -224,6 +269,29 @@ public final class AmoledTheme {
                     "LINK")));
 
     /**
+     * FDS's blue text roles that light mode's Light background color holds too, past
+     * {@link #TEXT_TOKENS} ({@link #light}): a text field's typed text, the Like button's blue and FB
+     * Lite's accent text. Facebook's light theme gives each a blue ({@link MaterialYouTheme#FDS_LIGHT})
+     * that no dark style gives the token, so the Video tab keeps its own (MaterialYouTokenFixtureTest).
+     * ACCENT isn't one: its light blue is the dark style's too.
+     */
+    static final Set<String> LIGHT_TEXT_TOKENS = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(
+                    "TEXT_INPUT_ACTIVE_TEXT",
+                    "REACTION_LIKE",
+                    "FBLITE_ACCENT_ON_BACKGROUND")));
+
+    /**
+     * Mig's light grey fills that light mode's Light background color moves, past its surfaces in
+     * {@link #BACKGROUND_TOKENS} ({@link #applyLight}): a pill or a chip's fill and the grey buttons.
+     */
+    static final Set<String> MIG_LIGHT_FILLS = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(
+                    "FILL",
+                    "SECONDARY_BUTTON_ENABLED",
+                    "SECONDARY_BUTTON_ON_CARD")));
+
+    /**
      * Facebook's tint for an unread notification's row in dark mode (FDS's NEW_NOTIFICATION_BACKGROUND,
      * #192D88FF), at the alpha {@link #unreadRow} gives it. Over a lighter Background colour it can
      * be the lightest thing text sits on.
@@ -233,8 +301,28 @@ public final class AmoledTheme {
     /** Opaque black, what route two writes over a dark grey unless the patch asks for another colour. */
     private static final int BLACK = 0xFF000000;
 
-    /** What a background turns into: {@link #backgroundColour} as the patch filled it in. */
-    private static int background = backgroundColour();
+    /**
+     * The colour the patch wrote over Facebook's dark greys, in its resources (route two) and its
+     * code (route three): {@link #backgroundColour} as the patch filled it in.
+     */
+    private static int written = backgroundColour();
+
+    /**
+     * What a background turns into: {@link #written}, unless the Background color row asked for
+     * another colour ({@link #load}).
+     */
+    private static int background = written;
+
+    /**
+     * Route three's colour. Each dark grey Facebook writes in its code reads this field where the
+     * patch once wrote its colour, so the Background color row reaches them too (issue #214). It's
+     * {@link #written} until {@link #load} reads the row, so a class Facebook sets up before that
+     * keeps the patch's colour.
+     */
+    public static volatile int PAGE = written;
+
+    /** {@link #PAGE} as the long a {@code const-wide/32} gave, sign extended the same way. */
+    public static volatile long PAGE_WIDE = written;
 
     /**
      * How far above the background its lightest surface sits: {@link #lightestStep} as the patch
@@ -247,6 +335,20 @@ public final class AmoledTheme {
      * the text roles keep {@link #TEXT_CONTRAST} against. Unused at {@link #LIGHTEST_STEP}.
      */
     private static double textSurface = textSurface(background, step);
+
+    /**
+     * The Light background color row's colour (issue #214), or 0 while it's blank: what route one
+     * gives Facebook's white backgrounds in its light mode ({@link #light}). Volatile and written
+     * after {@link #lightTextSurface}, so a thread that sees the colour sees its surface too.
+     */
+    private static volatile int lightBackground;
+
+    /**
+     * With {@link #lightBackground}, the luminance of the grey text sits on in light mode
+     * ({@link AmoledLightBackground#textSurface}), which the light theme's text roles keep
+     * {@link #TEXT_CONTRAST} against.
+     */
+    private static double lightTextSurface;
 
     /**
      * Route two's rewrites, sorted by resource id, and the colour Facebook had at each:
@@ -275,13 +377,31 @@ public final class AmoledTheme {
      * the background colour, in Facebook's dark mode, or {@code color} unchanged. The background
      * colour itself comes back as it is, from route two's resources. An unread notification's tint
      * comes back stronger ({@link #unreadRow}). On a lighter Background colour the steps are
-     * smaller ({@link #scaled}) and a text role comes back lifted ({@link #foreground}).
+     * smaller ({@link #scaled}) and a text role comes back lifted ({@link #foreground}). With Black
+     * cards on, a raised surface comes back as the background colour and a secondary button's fill
+     * as {@link #buttonFill}. In light mode a Light background color takes Facebook's whites
+     * ({@link #light}).
      */
     public static int apply(int color, Object token) {
         HookStatus.invoked(FamilyNames.AMOLED_THEME);
+        // Every rule below waits for dark mode, so light mode has only the Light background color's.
+        if (lightBackground != 0 && !DarkMode.on()) {
+            return token instanceof Enum ? light(color, ((Enum<?>) token).name()) : color;
+        }
+        // A background whose resource still holds the patch's colour, read past AmoledResources'
+        // table, takes the row's (#214). Before the grey test: the patch's colour needn't be grey.
+        // Not when the patch wrote black: Facebook's own black reads the same, and stays black.
+        if (color == written && written != BLACK && background != written && token instanceof Enum && DarkMode.on()
+                && BACKGROUND_TOKENS.contains(((Enum<?>) token).name())) {
+            return background;
+        }
         if (!isDarkNeutral(color, MAX_RAISED_CHANNEL)) {
             if ((color >>> 24) < NEW_NOTIFICATION_ALPHA) {
                 return token instanceof Enum && DarkMode.on() ? unreadRow(color, ((Enum<?>) token).name()) : color;
+            }
+            if (isDarkNeutral(color, MAX_BUTTON_CHANNEL) && token instanceof Enum && DarkMode.on()
+                    && BUTTON_TOKENS.contains(((Enum<?>) token).name())) {
+                return flatCards() ? buttonFill() : color;
             }
             return step < LIGHTEST_STEP && token instanceof Enum && DarkMode.on()
                     ? foreground(color, ((Enum<?>) token).name())
@@ -289,14 +409,37 @@ public final class AmoledTheme {
         }
         if (!(token instanceof Enum) || !DarkMode.on()) return color;
         String name = ((Enum<?>) token).name();
+        if (BUTTON_TOKENS.contains(name)) {
+            return !isDarkNeutral(color, MAX_CHANNEL) && flatCards() ? buttonFill() : color;
+        }
         if (!BACKGROUND_TOKENS.contains(name)) return color;
         if (color == BLACK || color == background) return color;
 
         if (isDarkNeutral(color, MAX_CHANNEL)) return background;
+        boolean fill = FILL_TOKENS.contains(name);
+        if (!fill && flatCards()) return background;
         // Every channel of a grey above the black band is at least MAX_CHANNEL + 1 - MAX_SPREAD,
         // above either shift, so no channel borrows from the next.
-        int shift = FILL_TOKENS.contains(name) ? FILL_SHIFT : RAISED_SHIFT;
+        int shift = fill ? FILL_SHIFT : RAISED_SHIFT;
         return raise(background, scaled(color - shift * 0x010101));
+    }
+
+    /**
+     * Whether Black cards is on (issue #191): a card, a comment or a popover takes the page's
+     * colour rather than the near black of {@link #RAISED_SHIFT}. Off until the settings are ready,
+     * and while Hushfacebook is paused.
+     */
+    static boolean flatCards() {
+        return Utils.settingsReady() && Settings.AMOLED_FLAT_CARDS.get();
+    }
+
+    /**
+     * A secondary button's fill with Black cards on: what an input's fill is ({@link #FILL_SHIFT}
+     * below a card's grey, #262627 on black), so a button that sat on a card still shows once the
+     * card is gone into the page.
+     */
+    static int buttonFill() {
+        return raise(background, scaled(CARD_GREY - FILL_SHIFT * 0x010101));
     }
 
     /**
@@ -316,6 +459,21 @@ public final class AmoledTheme {
         double needs = TEXT_CONTRAST * (textSurface + 0.05) - 0.05;
         double luminance = TonePalette.luminance(color);
         if (luminance >= needs || luminance <= textSurface) return color;
+        return lifted(color, needs);
+    }
+
+    /**
+     * {@code color}, or the first step from it toward white that reads at {@code ratio} or more on
+     * the opaque {@code surface}: white when none does. The Hushfacebook settings page lifts its
+     * text and switches this way over a lighter Background colour (issue #214).
+     */
+    public static int readable(int color, int surface, double ratio) {
+        double needs = ratio * (TonePalette.luminance(surface) + 0.05) - 0.05;
+        return TonePalette.luminance(color) >= needs ? color : lifted(color, needs);
+    }
+
+    /** The first step of {@code color} toward white whose luminance is {@code needs} or more. */
+    private static int lifted(int color, double needs) {
         // White passes on every surface the patch lets through, and each step toward it is at least
         // as light as the one before, so the lightest passing step is the first.
         int low = 0;
@@ -337,6 +495,94 @@ public final class AmoledTheme {
         green += ((0xFF - green) * amount + 0x7F) / 0xFF;
         blue += ((0xFF - blue) * amount + 0x7F) / 0xFF;
         return (color & 0xFF000000) | red << 16 | green << 8 | blue;
+    }
+
+    /**
+     * Route one in Facebook's light mode with a Light background color (issue #214). A background
+     * token's white or light grey ({@link #isLightNeutral}) takes the row's colour as far below it
+     * as the grey sits below white, no lower than a grey button ({@link AmoledLightBackground#fill}).
+     * A text role in Facebook's light colours comes back darkened toward black where it would fall
+     * under {@link #TEXT_CONTRAST} on that button ({@link AmoledLightBackground#held}), so a blue link
+     * stays blue. The Video tab,
+     * which stays dark in light mode, keeps its colours: its backgrounds are dark greys, and its
+     * text comes with dark mode's colours, which no FDS token has in light mode
+     * ({@link LightTheme}). The blue text roles of {@link #LIGHT_TEXT_TOKENS} are held the same way.
+     */
+    static int light(int color, String token) {
+        if ((color >>> 24) != 0xFF) return color;
+        if (BACKGROUND_TOKENS.contains(token) || LIGHT_BACKGROUND_TOKENS.contains(token)) {
+            return lightSurface(color);
+        }
+        if (!(TEXT_TOKENS.contains(token) || LIGHT_TEXT_TOKENS.contains(token)) || !LightTheme.text(token, color)) {
+            return color;
+        }
+        return AmoledLightBackground.held(color, lightTextSurface);
+    }
+
+    /**
+     * Route one for Mig's light scheme, which only light mode asks (issue #214). With the Light
+     * background color row set and Facebook in light mode, a Mig surface ({@link #BACKGROUND_TOKENS})
+     * or light fill ({@link #MIG_LIGHT_FILLS}) in white or a light grey takes the row's colour the
+     * way FDS's do ({@link #light}), and a text role ({@link #TEXT_TOKENS}) comes back darkened
+     * toward black where it would fall under {@link #TEXT_CONTRAST} on the moved grey. The light
+     * scheme answers light mode only, so no dark colour comes through here. Unset, or in dark mode,
+     * each colour comes back as it came.
+     *
+     * @param token an enum constant. Only its name is used.
+     */
+    public static int applyLight(int color, Object token) {
+        HookStatus.invoked(FamilyNames.AMOLED_THEME);
+        if (lightBackground == 0 || (color >>> 24) != 0xFF || !(token instanceof Enum) || DarkMode.on()) return color;
+        String name = ((Enum<?>) token).name();
+        if (BACKGROUND_TOKENS.contains(name) || MIG_LIGHT_FILLS.contains(name)) return lightSurface(color);
+        return TEXT_TOKENS.contains(name) ? AmoledLightBackground.held(color, lightTextSurface) : color;
+    }
+
+    /**
+     * A background's white or light grey ({@link #isLightNeutral}) in light mode, as the Light
+     * background color takes it ({@link AmoledLightBackground#fill}). A colour that's already one of
+     * the row's fills comes back as it is: a surface resource AmoledResources gave the row's colour
+     * reads that way, and filling it again would darken it.
+     */
+    static int lightSurface(int color) {
+        int row = lightBackground;
+        if (row == 0 || !isLightNeutral(color) || AmoledResources.givesLight(color, row)) return color;
+        return AmoledLightBackground.fill(row, color);
+    }
+
+    /**
+     * {@link #light} for a hook that knows its colour's role by name, such as the comment time
+     * ({@link CommentTimeColour}): Facebook's colour while the Light background color row is blank.
+     */
+    static int lightNamed(int color, String token) {
+        return lightBackground == 0 ? color : light(color, token);
+    }
+
+    /** The Light background color row's colour, or 0 while it's blank. */
+    static int lightBackground() {
+        return lightBackground;
+    }
+
+    /**
+     * Which text colours are Facebook's light theme's, read from Material You's table the first
+     * time light mode asks. Not through MaterialYouTheme, whose start binds the wallpaper palette.
+     */
+    private static final class LightTheme {
+        private static final Map<String, int[]> LIGHT = FdsTokens.parse(MaterialYouTheme.FDS_LIGHT);
+
+        /**
+         * Whether {@code color} is the one {@link MaterialYouTheme#FDS_LIGHT} gives {@code token}.
+         * Mig's names never are: Mig's light scheme goes through {@link #applyLight}, so a Mig colour
+         * here comes from its dark scheme, a dark surface's such as the Video tab's.
+         */
+        static boolean text(String token, int color) {
+            int[] light = LIGHT.get(token);
+            if (light == null) return false;
+            for (int value : light) {
+                if (value == color) return true;
+            }
+            return false;
+        }
     }
 
     /**
@@ -413,6 +659,74 @@ public final class AmoledTheme {
     }
 
     /**
+     * Route three for a colour Facebook writes into its code for its dark theme only, issue #191:
+     * the patch sends here each colour {@code const} that is the first thing Facebook does once its
+     * own dark check said yes. The Create story tile at the start of the stories tray is #333334
+     * written that way, a card's grey above the greys route three blackens, so it stayed grey with
+     * every other card gone black.
+     *
+     * <p>With Material You in the build, its stand-in for the same {@code const} comes after this
+     * one, so it gets the page's colour this gives, and black stays black there.
+     *
+     * @return the background colour for a card's grey, up to {@link #MAX_SERVER_CARD_CHANNEL} as
+     * route four takes one with no token, with Black cards on, in Facebook's dark mode, otherwise
+     * {@code color}. Black stays black, and so does a lighter grey such as a popover's #3B3C3E.
+     */
+    public static int darkBranch(int color) {
+        HookStatus.invoked(FamilyNames.AMOLED_THEME);
+        if (color == BLACK || !isDarkNeutral(color, MAX_SERVER_CARD_CHANNEL) || !DarkMode.on() || !flatCards()) return color;
+        return background;
+    }
+
+    /** The colour resource the patch adds, which holds the Background colour, for {@link #tokenResource}. */
+    static final String PAGE_COLOUR = "hushfacebook_amoled_page";
+
+    /** {@link #PAGE_COLOUR}'s id: 0 until {@link #pageColour} looks it up, -1 when the build has none. */
+    private static volatile int pageColourId;
+
+    /**
+     * Route one for a token's colour resource, issue #191. FDS's token lookup (582 {@code
+     * LX/24i;->A02}) answers the colour resource a token's theme attribute points at, and the code
+     * that asked reads the resource itself: the band behind the Menu's Log out button is a drawable
+     * of CARD_BACKGROUND_FLAT's, past every resolver, so it stayed #333334 with Black cards on.
+     * Facebook's dark style points a dozen tokens at that one #333334 resource, cards, buttons and
+     * inputs alike, so a read of it can't tell which token it's for. The patch sends each answer here
+     * with the lookup's context and token instead, and a card's answer becomes a resource of the
+     * page's colour.
+     *
+     * @return {@link #PAGE_COLOUR}'s id for a background token whose colour {@link #apply} makes the
+     * page's, with Black cards on in Facebook's dark mode, otherwise {@code id} as it came. An
+     * input's fill and a button aren't the page's, so they keep theirs, and so does every resource
+     * when the build has no {@link #PAGE_COLOUR}.
+     */
+    public static int tokenResource(int id, @Nullable Context context, Object token) {
+        if (id == 0 || context == null || !(token instanceof Enum) || !DarkMode.on() || !flatCards()) return id;
+        if (!BACKGROUND_TOKENS.contains(((Enum<?>) token).name())) return id;
+        int color;
+        try {
+            color = context.getColor(id);
+        } catch (Resources.NotFoundException notAColour) {
+            return id;
+        }
+        if (color == background || apply(color, token) != background) return id;
+        int page = pageColour(context);
+        return page > 0 ? page : id;
+    }
+
+    /** {@link #PAGE_COLOUR}'s id, looked up once: -1 when the build has none. */
+    static int pageColour(Context context) {
+        int id = pageColourId;
+        if (id != 0) return id;
+        id = context.getResources().getIdentifier(PAGE_COLOUR, "color", context.getPackageName());
+        pageColourId = id = id != 0 ? id : -1;
+        return id;
+    }
+
+    static void forgetPageColourForTests() {
+        pageColourId = 0;
+    }
+
+    /**
      * Route four: a colour that the server sends as text.
      *
      * <p>The patch replaces each call to {@link Color#parseColor} in the app with a call to this
@@ -436,11 +750,28 @@ public final class AmoledTheme {
     /**
      * A background a React Native screen sets on a view (ReactColours), such as the strip behind
      * Marketplace home's chips. It comes from the screen's JavaScript with no token, so it takes
-     * route four's rule.
+     * route four's rule. Only backgrounds come here, so in light mode with the Light background
+     * color row set a white or light grey one takes the row's colour as route one's surfaces do
+     * ({@link #lightSurface}, issue #214).
      */
     static int react(int color) {
         HookStatus.invoked(FamilyNames.AMOLED_THEME);
+        if (lightBackground != 0 && !DarkMode.on()) return lightSurface(color);
         return withoutToken(color);
+    }
+
+    /**
+     * Route four for the fill of a Bloks box (582 {@code LX/4Nl;}) or a native template's box (the
+     * Menu's profile card), a server colour that comes with its role (issue #214).
+     * {@link #parseColor} can't tell a white page from the white label on a blue button, so it
+     * leaves light mode alone. A box's fill is always a background, so with the
+     * Light background color row set and Facebook in light mode a white or light grey one takes the
+     * row's colour as route one's surfaces do ({@link #lightSurface}). Unset, or in dark mode, where
+     * {@link #parseColor} has already answered for it, the fill comes back as it came.
+     */
+    public static int bloksFill(int color) {
+        HookStatus.invoked(FamilyNames.AMOLED_THEME);
+        return lightBackground == 0 || DarkMode.on() ? color : lightSurface(color);
     }
 
     /**
@@ -452,11 +783,13 @@ public final class AmoledTheme {
         return isDarkNeutral(color, MAX_SERVER_CARD_CHANNEL) && DarkMode.on();
     }
 
-    /** Route four's rule for a colour that comes with no token. */
+    /** Route four's rule for a colour that comes with no token. With Black cards on, a card's grey takes the page's colour too. */
     private static int withoutToken(int color) {
         if (!ownsWithoutToken(color)) return color;
         if (color == BLACK || color == background) return color;
-        return isDarkNeutral(color, MAX_CHANNEL) ? background : raise(background, scaled(color - RAISED_SHIFT * 0x010101));
+        return isDarkNeutral(color, MAX_CHANNEL) || flatCards()
+                ? background
+                : raise(background, scaled(color - RAISED_SHIFT * 0x010101));
     }
 
     /**
@@ -472,18 +805,18 @@ public final class AmoledTheme {
      * the black stands.
      */
     public static int getColor(Context context, int id) {
-        return lightMode(context.getColor(id), id);
+        return resourceColour(context.getColor(id), id);
     }
 
     /** The same for {@code Resources.getColor(int)}. */
     @SuppressWarnings("deprecation")
     public static int getColor(Resources resources, int id) {
-        return lightMode(resources.getColor(id), id);
+        return resourceColour(resources.getColor(id), id);
     }
 
     /** The same for {@code Resources.getColor(int, Theme)}. */
     public static int getColor(Resources resources, int id, @Nullable Resources.Theme theme) {
-        return lightMode(resources.getColor(id, theme), id);
+        return resourceColour(resources.getColor(id, theme), id);
     }
 
     /**
@@ -492,12 +825,32 @@ public final class AmoledTheme {
      */
     public static int getColor(TypedArray array, int index, int fallback) {
         int color = array.getColor(index, fallback);
-        return color == background && !DarkMode.on() ? lightMode(color, array.getResourceId(index, 0)) : color;
+        if (color != background && color != written) return color;
+        // In dark mode only the patch's colour under the row's needs the id.
+        if (DarkMode.on() && (color != written || background == written)) return color;
+        return resourceColour(color, array.getResourceId(index, 0));
     }
 
-    /** Facebook's own colour for resource {@code id} when route two wrote {@code color} there in light mode. */
+    /**
+     * Resource {@code id}'s colour as it should read: Facebook's own in light mode where route two
+     * wrote {@code color} there ({@link #lightMode}), and in dark mode the Background color row's
+     * where the resource still holds the patch's colour, as resources AmoledResources' table hasn't
+     * reached do (issue #214).
+     */
+    static int resourceColour(int color, int id) {
+        if (color != background && color != written) return color;
+        if (!DarkMode.on()) return lightMode(color, id);
+        return color == written && background != written && (AmoledResources.wrote(id) || (id != 0 && id == pageColourId))
+                ? background
+                : color;
+    }
+
+    /**
+     * Facebook's own colour for resource {@code id} when route two wrote {@code color} there in light
+     * mode: the patch's colour, or the row's that AmoledResources gives the same resource.
+     */
     static int lightMode(int color, int id) {
-        if (color != background || DarkMode.on()) return color;
+        if ((color != background && color != written) || DarkMode.on()) return color;
         int at = Arrays.binarySearch(rewrittenIds, id);
         return at >= 0 ? facebookColours[at] : color;
     }
@@ -527,9 +880,105 @@ public final class AmoledTheme {
         return LIGHTEST_STEP;
     }
 
-    /** The background colour in use: {@link #backgroundColour} as the patch filled it in. */
-    static int background() {
+    /**
+     * Reads the Background color row (issue #214), once, as Facebook's application starts: the patch
+     * calls this right after the extension gets its context, before Facebook sets itself up, and the
+     * application's resources take the row's colour from here ({@link AmoledResources}). A blank
+     * row, a paused Facebook, a colour the row's rule refuses and a build with Material You keep the
+     * patch's colour. Material You recolours the same greys, and its resources aren't this table's.
+     * The Light background color row is read here too ({@link #loadLight}), and the application's
+     * resources take either row's colour once both are read.
+     */
+    public static void load() {
+        try {
+            if (!Utils.settingsReady() || SettingsStatus.materialYouTheme()) return;
+            try {
+                loadLight();
+            } catch (Throwable failure) {
+                // Its own catch, so a failure here still leaves the Background color row read.
+                Logger.printException(() -> "AMOLED: could not read the Light background color row", failure);
+            }
+            loadBackground();
+            Context context = Utils.getContext();
+            if (context != null) AmoledResources.recolour(context);
+        } catch (Throwable failure) {
+            // Throwable, as in every hook: this runs as the application starts.
+            Logger.printException(() -> "AMOLED: could not read the Background color row", failure);
+        }
+    }
+
+    /**
+     * The Background color row's part of {@link #load}. A blank row and a colour its rule refuses
+     * keep the patch's colour.
+     */
+    private static void loadBackground() {
+        String text = Settings.AMOLED_BACKGROUND.get();
+        String stored = AmoledBackground.stored(text);
+        if (stored == null) {
+            Logger.printInfo(() -> "AMOLED: Background color " + text + " can't be used, so the patch's colour stays");
+            return;
+        }
+        Integer colour = AmoledBackground.colour(stored);
+        if (stored.isEmpty() || colour == null || colour == written) return;
+        use(colour, AmoledBackground.lightestStep(colour));
+        Logger.printDebug(() -> "AMOLED: Background color " + stored + " in place of the patch's");
+    }
+
+    /**
+     * The Light background color row's part of {@link #load} (issue #214). A blank row and a colour
+     * its rule refuses leave Facebook's own light colours.
+     */
+    private static void loadLight() {
+        String text = Settings.AMOLED_LIGHT_BACKGROUND.get();
+        String stored = AmoledLightBackground.stored(text);
+        if (stored == null) {
+            Logger.printInfo(() -> "AMOLED: Light background color " + text + " can't be used, so Facebook's white stays");
+            return;
+        }
+        Integer colour = AmoledLightBackground.colour(stored);
+        if (stored.isEmpty() || colour == null) return;
+        useLight(colour);
+        Logger.printDebug(() -> "AMOLED: Light background color " + stored + " in light mode");
+    }
+
+    /**
+     * Puts the Light background color row's {@code colour} in use for route one in light mode, or
+     * none with 0. Package-visible for tests.
+     */
+    static void useLight(int colour) {
+        lightTextSurface = colour == 0 ? 0 : AmoledLightBackground.textSurface(colour);
+        lightBackground = colour;
+    }
+
+    /**
+     * Puts the Background color row's {@code colour} in use for every route, with its
+     * {@link #lightestStep}, over the patch's {@link #written}. Package-visible for tests.
+     */
+    static void use(int colour, int lightest) {
+        background = colour;
+        step = lightest;
+        textSurface = textSurface(colour, lightest);
+        PAGE = colour;
+        PAGE_WIDE = colour;
+    }
+
+    /** The colour the patch wrote, which the Background color row can stand in for. */
+    static int written() {
+        return written;
+    }
+
+    /** The background colour in use: the Background color row's, or {@link #backgroundColour} as the patch filled it in. */
+    public static int background() {
         return background;
+    }
+
+    /**
+     * The background colour in use and the surfaces route one makes on it, darkest first: page,
+     * card, popover and input fill ({@link AmoledBackground#surfaces}). The Hushfacebook settings
+     * page takes its colours from these when the background isn't black (issue #214).
+     */
+    public static int[] surfaces() {
+        return AmoledBackground.surfaces(background, step);
     }
 
     /** Package-visible for tests: puts a background colour of {@link #backgroundColour}'s kind in use. */
@@ -537,11 +986,13 @@ public final class AmoledTheme {
         useBackground(colour, LIGHTEST_STEP);
     }
 
-    /** Package-visible for tests: a background colour and its {@link #lightestStep}, as the patch fills them. */
+    /**
+     * Package-visible for tests: a background colour and its {@link #lightestStep}, as the patch fills
+     * them, so it's {@link #written} too and no row stands in for it.
+     */
     static void useBackground(int colour, int lightest) {
-        background = colour;
-        step = lightest;
-        textSurface = textSurface(colour, lightest);
+        written = colour;
+        use(colour, lightest);
     }
 
     /** {@code base} with each channel of {@code step} added, as far as white. Both are opaque. */
@@ -621,5 +1072,17 @@ public final class AmoledTheme {
         int high = Math.max(red, Math.max(green, blue));
         int low = Math.min(red, Math.min(green, blue));
         return high <= maxChannel && high - low <= MAX_SPREAD;
+    }
+
+    /** True for an opaque grey with each channel at or above {@link #LIGHT_MIN_CHANNEL}, white included. */
+    static boolean isLightNeutral(int color) {
+        if ((color >>> 24) != 0xFF) return false;
+
+        int red = (color >> 16) & 0xFF;
+        int green = (color >> 8) & 0xFF;
+        int blue = color & 0xFF;
+        int high = Math.max(red, Math.max(green, blue));
+        int low = Math.min(red, Math.min(green, blue));
+        return low >= LIGHT_MIN_CHANNEL && high - low <= MAX_SPREAD;
     }
 }

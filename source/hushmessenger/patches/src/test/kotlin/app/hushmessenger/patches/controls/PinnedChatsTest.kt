@@ -28,7 +28,7 @@ private val STATIC = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
 private val LIMIT_BODY = """
     invoke-static {p0}, LX/19a;->A0E(Ljava/lang/Object;)LX/5dD;
     move-result-object p0
-    const-wide v0, 0x8205c10002107bL
+    const-wide v0, 0x8205b900021070L
     invoke-static {p0, v0, v1}, $CONFIG_READ
     move-result v0
     return v0
@@ -55,7 +55,7 @@ class PinnedChatsTest {
     }
 
     @Test fun everyProfileHooksItsOwnGetter() {
-        val getters = mapOf(SYNTHETIC_PROFILE to "LX/2na;", BASE_PROFILE to "LX/2nP;", PROFILE_346611351 to "LX/2nP;")
+        val getters = mapOf(SYNTHETIC_PROFILE to "LX/2na;", BASE_PROFILE to "LX/2pm;")
         for ((profile, owner) in getters) {
             val id = SYNTHETIC_PINNED_CHAT_LIMIT.replace("LX/2na;", owner)
             assertEquals(setOf(id), profile.hooks.getValue(PINNED_CHATS))
@@ -67,14 +67,14 @@ class PinnedChatsTest {
     // A getter that only looks like the limit's would raise some other number, so anything off the exact shape is refused.
     @Test fun anythingButTheOneStraightLineGetterIsLeftAlone() {
         val cases = mapOf(
-            "another config id" to pinnedChatLimitFixture(limit(LIMIT_BODY.replace("0x8205c10002107bL", "0x8205c10002107cL"))),
+            "another config id" to pinnedChatLimitFixture(limit(LIMIT_BODY.replace("0x8205b900021070L", "0x8205c10002107cL"))),
             "an instance method" to pinnedChatLimitFixture(limit(flags = AccessFlags.PUBLIC.value)),
             "a boolean getter" to pinnedChatLimitFixture(limit(id = SYNTHETIC_PINNED_CHAT_LIMIT.dropLast(1) + "Z")),
             "no session parameter" to pinnedChatLimitFixture(limit(id = "LX/2na;->A00(Ljava/lang/Object;)I")),
             "a branch around the read" to pinnedChatLimitFixture(limit(LIMIT_BODY.replace("const-wide v0,", "if-eqz p0, :done\nconst-wide v0,")
                 .replace("return v0", ":done\nreturn v0"))),
             "an answer that isn't the read's" to pinnedChatLimitFixture(limit(LIMIT_BODY.replace("return v0", "const/4 v0, 0x3\nreturn v0"))),
-            "the id loaded twice" to pinnedChatLimitFixture(limit(LIMIT_BODY.replace("const-wide v0, 0x8205c10002107bL", "const-wide v0, 0x8205c10002107bL\nconst-wide v0, 0x8205c10002107bL"))),
+            "the id loaded twice" to pinnedChatLimitFixture(limit(LIMIT_BODY.replace("const-wide v0, 0x8205b900021070L", "const-wide v0, 0x8205b900021070L\nconst-wide v0, 0x8205b900021070L"))),
             "two getters" to pinnedChatLimitFixture() + pinnedChatLimitFixture(limit(id = SYNTHETIC_PINNED_CHAT_LIMIT.replace("LX/2na;", "LX/2nb;"))),
         )
         for ((case, classes) in cases) {
@@ -103,7 +103,7 @@ class PinnedChatsTest {
 
     @Test fun anUnusableMethodRefusesTheSwitchBeforeAnyEdit() {
         val cases = mapOf(
-            "another config id" to limit(LIMIT_BODY.replace("0x8205c10002107bL", "0x1L")),
+            "another config id" to limit(LIMIT_BODY.replace("0x8205b900021070L", "0x1L")),
             "a branch" to limit(LIMIT_BODY.replace("const-wide v0,", "if-eqz p0, :done\nconst-wide v0,").replace("return v0", ":done\nreturn v0")),
             "another method" to fixtureMethod("LX/2na;->A01($FB_USER_SESSION)I", "const/4 v0, 0x3\nreturn v0", registers = 3, flags = STATIC),
         )

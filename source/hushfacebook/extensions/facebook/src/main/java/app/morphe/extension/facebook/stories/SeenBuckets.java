@@ -28,13 +28,26 @@ import java.util.Map;
  * read once, the first time it's needed, and every change after that writes only the keys it
  * changes. The oldest bucket goes first once there are too many, and one past its age is dropped
  * when it's read.
+ *
+ * <p>A second one, in {@link #CARDS_FILE}, keeps each story card watched by its own id, with its
+ * bucket's id in the newest story's place, so the viewer can start a bucket at the first card that
+ * wasn't watched (#218).
  */
 final class SeenBuckets {
     /** The preferences file, in Facebook's own preferences folder. Only this class writes it. */
     static final String FILE = "hushfacebook_seen_story_buckets";
 
+    /** The cards' preferences file. */
+    static final String CARDS_FILE = "hushfacebook_seen_story_cards";
+
     /** How many buckets are remembered. The least recently watched goes first. */
     static final int MAX_BUCKETS = 500;
+
+    /**
+     * How many cards are remembered: a hundred or more buckets' worth. Kept well under what makes
+     * the file slow to write, since Android writes all of it for each card.
+     */
+    static final int MAX_CARDS = 1000;
 
     /** How long a bucket is kept after it was watched: 48 hours, twice a story's life. */
     static final long KEEP_MS = 48L * 60 * 60 * 1000;
@@ -50,12 +63,19 @@ final class SeenBuckets {
     }
 
     private final SharedPreferences store;
+    private final int max;
     /** In the order they were watched, oldest first. */
     private final LinkedHashMap<String, Entry> buckets = new LinkedHashMap<>();
     private boolean loaded;
 
     SeenBuckets(SharedPreferences store) {
+        this(store, MAX_BUCKETS);
+    }
+
+    /** Keeps at most [max] of them. */
+    SeenBuckets(SharedPreferences store, int max) {
         this.store = store;
+        this.max = max;
     }
 
     /** The newest story [bucketId] had when it was watched to the end, or null. */
@@ -79,7 +99,7 @@ final class SeenBuckets {
         buckets.put(bucketId, new Entry(newestStory, now));
         SharedPreferences.Editor edit = store.edit().putString(bucketId, encode(newestStory, now));
         Iterator<String> oldest = buckets.keySet().iterator();
-        while (buckets.size() > MAX_BUCKETS && oldest.hasNext()) {
+        while (buckets.size() > max && oldest.hasNext()) {
             String gone = oldest.next();
             oldest.remove();
             edit.remove(gone);
@@ -122,7 +142,7 @@ final class SeenBuckets {
             read.add(new AbstractMap.SimpleImmutableEntry<>(stored.getKey(), entry));
         }
         Collections.sort(read, (a, b) -> Long.compare(a.getValue().watchedAt, b.getValue().watchedAt));
-        int surplus = Math.max(0, read.size() - MAX_BUCKETS);
+        int surplus = Math.max(0, read.size() - max);
         for (int index = 0; index < read.size(); index++) {
             Map.Entry<String, Entry> entry = read.get(index);
             if (index < surplus) dropped.add(entry.getKey());

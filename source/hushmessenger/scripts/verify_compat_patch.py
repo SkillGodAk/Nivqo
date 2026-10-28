@@ -12,9 +12,11 @@ from pathlib import Path
 from zipfile import BadZipFile, ZipFile
 
 if __package__:
+    from . import desktop_result
     from .build_queue import gradle, queued, time_limit
     from .check_release import run_bounded, stop_process_tree
 else:
+    import desktop_result
     from build_queue import gradle, queued, time_limit
     from check_release import run_bounded, stop_process_tree
 
@@ -102,8 +104,8 @@ def verify(apk, bundle, desktop, java, names, apk_sha256, aapt2):
                 + (run.stdout + run.stderr)[-4000:]
             )
         report = json.loads(result.read_text(encoding="utf-8"))
-        applied = [patch["name"] for patch in report["appliedPatches"]]
-        steps = report["patchingSteps"]
+        applied = desktop_result.applied_names(report)
+        steps = desktop_result.steps(report) or []
         if (
             len(applied) != len(names)
             or set(applied) != set(names)

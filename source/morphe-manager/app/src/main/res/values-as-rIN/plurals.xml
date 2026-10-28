@@ -4,6 +4,7 @@
         <item quantity="one">%s  টা প্যাচ</item>
         <item quantity="other">%s টা প্যাচ</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
     <plurals name="option_count">
         <item quantity="one">%s টা প্যাচ বিকল্প</item>
         <item quantity="other">%s টা প্যাচ বিকল্প</item>
@@ -31,4 +32,5 @@
         <item quantity="one">%s টা সোর্স ইনষ্টল হৈ আছে</item>
         <item quantity="other">%s টা সোর্স ইনষ্টল হৈ আছে</item>
     </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
 </resources>

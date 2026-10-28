@@ -6,6 +6,13 @@
         <item quantity="many">%s патчей</item>
         <item quantity="other">%s патчей</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">библиотека %s</item>
+        <item quantity="few">библиотеки %s</item>
+        <item quantity="many">библиотек %s</item>
+        <item quantity="other">библиотек %s</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s опция патча</item>
         <item quantity="few">%s опции патчей</item>
@@ -38,6 +45,12 @@
         <item quantity="few">Источники патчей для %s приложений</item>
         <item quantity="many">Источники патчей для %s приложений</item>
         <item quantity="other">Источники патчей для %s приложений</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">Источник %s скрыт для этого приложения. Выберите приложение на вкладке \"Приложения\" и откройте \"Скрыть источники\", чтобы вернуть его</item>
+        <item quantity="few">Источники %s скрыты для этого приложения. Выберите приложение на вкладке \"Приложения\" и откройте \"Скрыть источники\", чтобы вернуть их</item>
+        <item quantity="many">Источники %s скрыты для этого приложения. Выберите приложение на вкладке \"Приложения\" и откройте \"Скрыть источники\", чтобы вернуть их</item>
+        <item quantity="other">Источники %s скрыты для этого приложения. Выберите приложение на вкладке \"Приложения\" и откройте \"Скрыть источники\", чтобы вернуть их</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s источник скрыт. Нажмите, чтобы показать</item>
@@ -81,6 +94,12 @@
         <item quantity="many">Установлено %s приложений</item>
         <item quantity="other">Установлено %s приложений</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Установлено приложение %s</item>
+        <item quantity="few">Установлено приложений %s</item>
+        <item quantity="many">Установлено приложений %s</item>
+        <item quantity="other">Установлено приложений %s</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Переустановлено %s приложений</item>
         <item quantity="few">Переустановлено %s приложения</item>
@@ -104,6 +123,18 @@
         <item quantity="few">%s приложения готовы к установке</item>
         <item quantity="many">%s приложений готовы к установке</item>
         <item quantity="other">%s приложений готовы к установке</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s приложение в очереди на исправление</item>
+        <item quantity="few">%s приложения в очереди на исправление</item>
+        <item quantity="many">%s приложений в очереди на исправление</item>
+        <item quantity="other">%s приложений в очереди на исправление</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s скрытое уведомление, нажмите, чтобы показать его</item>
+        <item quantity="few">%s скрытых уведомления, нажмите, чтобы показать их</item>
+        <item quantity="many">%s скрытых уведомлений, нажмите, чтобы показать их</item>
+        <item quantity="other">%s скрытых уведомлений, нажмите, чтобы показать их</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s приложение можно перепатчить</item>
@@ -129,11 +160,23 @@
         <item quantity="many">%s источников установлено</item>
         <item quantity="other">%s источников установлено</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · отфильтровано: %2$s</item>
-        <item quantity="few">%1$s · отфильтровано: %2$s</item>
-        <item quantity="many">%1$s · отфильтровано: %2$s</item>
-        <item quantity="other">%1$s · отфильтровано: %2$s</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">Скрыто приложений: %s</item>
+        <item quantity="few">Скрыто приложений: %s</item>
+        <item quantity="many">Скрыто приложений: %s</item>
+        <item quantity="other">Скрыто приложений: %s</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">Показано приложений: %s</item>
+        <item quantity="few">Показано приложений: %s</item>
+        <item quantity="many">Показано приложений: %s</item>
+        <item quantity="other">Показано приложений: %s</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Показать %s приложение?</item>
+        <item quantity="few">Показать %s приложения?</item>
+        <item quantity="many">Показать %s приложений?</item>
+        <item quantity="other">Показать %s приложений?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s скрытое приложение</item>
@@ -188,6 +231,13 @@
         <item quantity="few">%s изменения</item>
         <item quantity="many">%s изменений</item>
         <item quantity="other">%s изменения</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d новое</item>
+        <item quantity="few">%1$s · %2$d новых</item>
+        <item quantity="many">%1$s · %2$d новых</item>
+        <item quantity="other">%1$s · %2$d новых</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s новый релиз</item>

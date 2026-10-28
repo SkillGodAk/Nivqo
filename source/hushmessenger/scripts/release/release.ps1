@@ -8,9 +8,12 @@
     the others. State and assets live in build/release/<version>/.
 
       prepare    Version and pinned UTC bundle timestamp in gradle.properties, the CHANGELOG cut,
-                 README badge, links and checksum, the source index and the catalog. Builds the
-                 bundle once to learn its checksum. Then review the README counts and the index
-                 description by hand and commit "chore: release v<version>".
+                 README badge, links and checksum, the source index and the catalog. The index
+                 description keeps its summary and gets the section's ### groups after it, which
+                 Morphe Manager shows for the release an app was patched with. Builds the bundle
+                 once to learn its checksum. Then review the README counts and rewrite the
+                 description's summary by hand and commit "chore: release v<version>". After a
+                 CHANGELOG edit, run prepare again to carry it into the description.
       preflight  The quick checks, a few minutes: the script tests, the patch and extension unit
                  tests without the private fixture replays, and the release facts.
       build      From the clean, preflighted commit: the full gate with the fixture replays,
@@ -19,9 +22,12 @@
                  Messenger build family (CompatReport --save into a scratch folder, which must
                  match scripts/profiles). A family that already passed with this bundle keeps its
                  receipt and isn't patched again.
-      publish    The annotated tag, pushed on its own, and the GitHub release with the bundle,
-                 SHA256SUMS.txt and the signature. Notes are the whole CHANGELOG section. Each
-                 asset is downloaded back and compared.
+      publish    Refuses unless -Walk names the walk-receipt.json of a full, passing whole-app
+                 walk of this exact bundle on a release phone or an emulator, with the screenshot
+                 and UI dump of every required step beside it. Then the annotated
+                 tag, pushed on its own, and the GitHub release with the bundle, SHA256SUMS.txt
+                 and the signature. Notes are the whole CHANGELOG section. Each asset is
+                 downloaded back and compared.
       index      Pushes main, which carries the new source index, then checks that GitHub serves
                  it and that its download URL returns the released bundle.
 
@@ -30,7 +36,8 @@
 
 .EXAMPLE
     scripts/release/release.ps1 -Stage prepare -Version 0.23.0
-    scripts/release/release.ps1 -Stage build -Version 0.23.0 -DesktopJar C:\tools\morphe-desktop-1.18.1-all.jar -CompatClasspath "<dexlib2>;<guava>;<failureaccess>"
+    scripts/release/release.ps1 -Stage build -Version 0.23.0 -DesktopJar C:\tools\morphe-desktop-1.19.1-all.jar -CompatClasspath "<dexlib2>;<guava>;<failureaccess>"
+    scripts/release/release.ps1 -Stage publish -Version 0.23.0 -Walk <walk folder>/walk-receipt.json
 #>
 #Requires -Version 7
 [CmdletBinding()]
@@ -46,6 +53,8 @@ param(
     [string]$Bundle,
     [string]$BundleSha256,
     [string]$HeldIndexSha256,
+    # publish: the walk-receipt.json a whole-app walk of this exact bundle left.
+    [string]$Walk,
     [string]$Repository = 'SysAdminDoc/HushMessenger'
 )
 
@@ -98,6 +107,7 @@ if (-not $Java) { $Java = if ($env:JAVA_HOME) { Join-Path $env:JAVA_HOME 'bin/ja
 $env:BUILD_QUEUE_PRIORITY = 'release'
 
 function Write-Step([string]$Text) { Write-Host "[release $Version] $Text" -ForegroundColor Cyan }
+. (Join-Path $root 'scripts/walk-receipt.ps1')
 
 function Invoke-Checked([string]$What, [scriptblock]$Block) {
     $global:LASTEXITCODE = 0
@@ -267,8 +277,11 @@ switch ($Stage) {
             throw "The first CHANGELOG heading is '$heading', neither Unreleased nor $Version."
         }
 
-        Write-Step 'bundle and catalog (one Gradle run)'
         try {
+            # The section's groups after the description's summary, again on a rerun so a CHANGELOG
+            # edit reaches it. check_release.py refuses a release whose two differ.
+            Invoke-Python (Join-Path $root 'scripts/check_release.py') --describe
+            Write-Step 'bundle and catalog (one Gradle run)'
             Invoke-Gradle @(':patches:buildAndroid', ':patches:generatePatchCatalog', '--no-configuration-cache')
             $digest = Get-FileSha256 (Join-Path $root "patches/build/libs/$bundleName")
             $readme = Get-Content -LiteralPath $readmePath -Raw
@@ -283,7 +296,7 @@ switch ($Stage) {
         }
         Save-Stage 'prepare' @{ base = (Get-Head); sha256 = $digest }
         Write-Step "bundle SHA-256 $digest"
-        Write-Host 'Next: update the README intro and counts and the index description by hand, review the diff,'
+        Write-Host 'Next: update the README intro and counts and the index description''s summary above its ### groups by hand, review the diff,'
         Write-Host "commit it as 'chore: release $tag', then run -Stage preflight."
     }
 
@@ -335,7 +348,7 @@ switch ($Stage) {
         if (-not $env:HUSH_NATIVE_FIXTURES -or -not (Test-Path -LiteralPath $env:HUSH_NATIVE_FIXTURES -PathType Container)) {
             throw 'Set HUSH_NATIVE_FIXTURES to the folder of exact stock APKs.'
         }
-        if (-not $DesktopJar -or -not (Test-Path -LiteralPath $DesktopJar)) { throw 'Pass -DesktopJar, or set HUSHMESSENGER_DESKTOP_JAR, to Morphe Desktop 1.18.1 or newer.' }
+        if (-not $DesktopJar -or -not (Test-Path -LiteralPath $DesktopJar)) { throw 'Pass -DesktopJar, or set HUSHMESSENGER_DESKTOP_JAR, to Morphe Desktop 1.19.1 or newer.' }
         if (-not $CompatClasspath) { throw 'Pass -CompatClasspath, or set HUSHMESSENGER_COMPAT_CLASSPATH, to the dexlib2, Guava and failureaccess JARs.' }
         $commit = Get-Head
         $state = Read-State
@@ -379,6 +392,11 @@ switch ($Stage) {
             $recorded = Join-Path $root "scripts/profiles/$code.txt"
             # CompatReport writes LF; a checkout can hold the record with CRLF.
             $profileText = (Get-Content -LiteralPath $recorded -Raw) -replace "`r`n", "`n"
+            # Only the stock APK the profile was recorded from proves this bundle patches that build.
+            $recordedStock = [regex]::Match($profileText, '(?m)^sha256 ([0-9a-f]{64})$').Groups[1].Value
+            if ($stock -ne $recordedStock) {
+                throw "$apk is $stock, but scripts/profiles/$code.txt was recorded from $recordedStock. Put the unmodified APK from APKMirror in HUSH_NATIVE_FIXTURES."
+            }
             $profileHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($profileText))).ToLowerInvariant()
             if (Test-Path -LiteralPath $receipt) {
                 $kept = Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json
@@ -420,6 +438,17 @@ switch ($Stage) {
         if ($build.sums_sha256 -and ((Get-FileSha256 $files[1]) -ne $build.sums_sha256 -or (Get-FileSha256 $files[2]) -ne $build.sig_sha256)) {
             throw 'SHA256SUMS.txt or its signature changed after the build stage. Run -Stage build again.'
         }
+        # Nothing goes public until the whole app has been walked with this exact bundle.
+        if (-not $Walk) {
+            throw ('-Walk names the walk-receipt.json a whole-app walk of this bundle left on a release phone or an emulator. ' +
+                "scripts/walk-app.ps1 -Bundle $($files[0]) writes one.")
+        }
+        $walked = Test-WalkReceipt -Path $Walk -BundlePath $files[0]
+        if (-not $walked.Valid) {
+            throw ("The whole-app walk doesn't back $bundleName, so nothing was published: $($walked.Reason). " +
+                "Walk the whole app with scripts/walk-app.ps1 -Bundle $($files[0]) on a release phone or an emulator, and pass its walk-receipt.json as -Walk.")
+        }
+        Write-Step "walked on $($walked.Receipt.device): $($walked.Receipt.screens) screens, no crash"
         $notes = Join-Path $work 'notes.md'
         Write-Text $notes ((Get-ChangelogSection) + "`n")
 

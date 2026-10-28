@@ -9,9 +9,9 @@ import android.app.Application
 import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
-import android.provider.OpenableColumns
 import android.util.Log
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -26,21 +26,26 @@ import app.morphe.manager.domain.batch.*
 import app.morphe.manager.domain.bundles.AppVersionCatalog
 import app.morphe.manager.domain.bundles.BundledAppTarget
 import app.morphe.manager.domain.bundles.patchableBy
+import app.morphe.manager.domain.bundles.recommendedEntry
+import app.morphe.manager.domain.installer.RootInstaller
 import app.morphe.manager.domain.manager.DownloadUrlResolver
 import app.morphe.manager.domain.manager.PreferencesManager
 import app.morphe.manager.domain.repository.InstalledAppRepository
 import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.domain.repository.PatchSelectionRepository
+import app.morphe.manager.domain.repository.SourceMuteRepository
 import app.morphe.manager.patcher.patch.*
 import app.morphe.manager.ui.model.ApkDownloadHelperHost
 import app.morphe.manager.ui.model.PostPatchPrompts
 import app.morphe.manager.ui.model.createApkDownloadHelperRequest
 import app.morphe.manager.ui.model.helperSignatureCheckAvailable
 import app.morphe.manager.ui.screen.shared.CopySelectionCandidate
+import app.morphe.manager.ui.screen.shared.UserMessages
 import app.morphe.manager.util.*
 import app.morphe.manager.util.PatchSelectionUtils.applyAvailability
 import app.morphe.manager.util.PatchSelectionUtils.bulkEnableHoldsUniversal
 import app.morphe.manager.util.PatchSelectionUtils.bulkEnablePatches
+import app.morphe.manager.util.PatchSelectionUtils.listedWith
 import app.morphe.manager.util.PatchSelectionUtils.mergeBundleOptions
 import app.morphe.manager.util.PatchSelectionUtils.resetOptionsForPatch
 import app.morphe.manager.util.PatchSelectionUtils.spansMultipleBundles
@@ -51,11 +56,10 @@ import app.morphe.patcher.patch.ApkArchitecture
 import app.morphe.patcher.patch.AppTarget
 import app.morphe.patcher.patch.InstallerType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.io.File
 
 /**
@@ -93,15 +97,7 @@ class BatchPatchEdit(
     private var universalArmedFor by mutableStateOf<Pair<Int, Set<String>>?>(null)
 
     val allPatchesInfo: List<Pair<PatchBundleInfo.Scoped, List<Pair<PatchInfo, Boolean>>>>
-        get() = bundles.map { bundle ->
-            val selected = selection[bundle.uid].orEmpty()
-            val patches = bundle.patchSequence(true)
-                .map { patch -> patch to (patch.name in selected) }
-                .sortedBy { (patch, _) -> patch.name }
-                .toList()
-            bundle to patches
-        }.filter { it.second.isNotEmpty() }
-            .sortedByDescending { (bundle, _) -> bundle.compatible.size }
+        get() = bundles.listedWith(selection)
 
     val totalSelectedCount get() = selection.values.sumOf { it.size }
 
@@ -110,7 +106,7 @@ class BatchPatchEdit(
     private val patchesByName = bundles.associate { it.uid to it.patches.associateBy { patch -> patch.name } }
 
     /**
-     * Lock state of [patch] for the install target this queue runs against.
+     * Lock state of [patch] for the install target this app is patched for.
      *
      * A REQUIRED patch only locks while the item draws its patches from one bundle, see
      * [PatchSelectionUtils.applyAvailability].
@@ -213,19 +209,24 @@ class BatchPatchEdit(
  * the batch screen keeps a queue going. This ViewModel only owns screen state such as which
  * item a file picker was opened for.
  */
-class BatchPatcherViewModel : ViewModel(), KoinComponent, ApkDownloadHelperHost {
-    private val app: Application by inject()
-    private val fs: Filesystem by inject()
-    private val pm: PM by inject()
-    private val coordinator: BatchPatchCoordinator by inject()
-    private val installedAppRepository: InstalledAppRepository by inject()
-    private val patchBundleRepository: PatchBundleRepository by inject()
-    private val patchSelectionRepository: PatchSelectionRepository by inject()
-    private val downloadUrlResolver: DownloadUrlResolver by inject()
-    private val versionCatalog: AppVersionCatalog by inject()
-    private val localApkSources: LocalApkSources by inject()
-    private val prefs: PreferencesManager by inject()
-
+class BatchPatcherViewModel(
+    private val app: Application,
+    private val messages: UserMessages,
+    private val fs: Filesystem,
+    private val pm: PM,
+    private val coordinator: BatchPatchCoordinator,
+    private val installedAppRepository: InstalledAppRepository,
+    private val patchBundleRepository: PatchBundleRepository,
+    private val patchSelectionRepository: PatchSelectionRepository,
+    private val sourceMuteRepository: SourceMuteRepository,
+    private val downloadUrlResolver: DownloadUrlResolver,
+    private val versionCatalog: AppVersionCatalog,
+    private val localApkSources: LocalApkSources,
+    private val prefs: PreferencesManager,
+    rootInstaller: RootInstaller,
+    /** Picker behind the copy-from-another-bundle action of the editor. */
+    val editCopy: CopySelectionController
+) : ViewModel(), ApkDownloadHelperHost {
     val state = coordinator.state
 
     /** Notification and tour prompts raised once the queue installs or saves an app. */
@@ -236,21 +237,19 @@ class BatchPatcherViewModel : ViewModel(), KoinComponent, ApkDownloadHelperHost 
         private set
 
     /**
-     * Plans the run once. Re-entering the screen while a queue is alive keeps the existing
-     * state instead of throwing away progress, and a run that already covers exactly these
-     * apps is reused so rotation does not restart planning.
+     * Adds [targets] to the queue being prepared, so re-entering the screen with the same apps
+     * changes nothing. A finished run is kept for its own apps and replaced for any others.
      */
-    fun ensurePlan(targets: List<BatchTarget>, useMount: Boolean) {
+    fun ensurePlan(targets: List<BatchTarget>) {
         // Two cards can stand for the same install, such as a mount and a renamed build of one
         // app, and the queue lists each install once
         val queued = targets.distinctBy { it.id }
         val current = state.value
-        if (current != null) {
-            if (current.phase == BatchPhase.PLANNING || current.phase == BatchPhase.RUNNING) return
+        if (current?.phase == BatchPhase.FINISHED) {
             if (current.targets == queued) return
             coordinator.clear()
         }
-        coordinator.plan(queued, useMount, BatchInstallPolicy.SAVE_ONLY)
+        coordinator.enqueue(queued)
     }
 
     fun requestAttach(packageName: String) {
@@ -270,37 +269,71 @@ class BatchPatcherViewModel : ViewModel(), KoinComponent, ApkDownloadHelperHost 
         /** The unpatched version on the device, even where [installed] is no source to patch from. */
         val installedVersion: String?,
         val hasStockInstall: Boolean,
-        val selectedVersion: AppTarget?
+        /** Kept with its source, since sources share versions and the pick is one entry. */
+        val selectedVersion: BundledAppTarget?,
+        /** Sources the app is kept from, which the dialog says how to bring back. */
+        val hiddenSources: Int
     )
 
     var apkChoice: ApkChoice? by mutableStateOf(null)
         private set
 
+    /**
+     * Opens the APK availability dialog, asking simple mode which source to patch from first the
+     * way the single-app flow does: the source settles which versions are worth looking for.
+     */
     fun beginApkChoice(item: BatchPatchItem) {
         viewModelScope.launch {
-            val recommended = versionCatalog.recommendedVersions.first()[item.packageName]
-            val compatible = versionCatalog.compatibleVersions.first()[item.packageName].orEmpty()
-            val expertMode = prefs.useExpertMode.get()
-            val device = withContext(Dispatchers.IO) {
-                localApkSources.installed(item.packageName)
+            if (!prefs.useExpertMode.get()) {
+                val choices = withContext(Dispatchers.IO) {
+                    patchBundleRepository.simpleSourceChoices(item.packageName)
+                }
+                if (choices.size > 1) {
+                    sourcePick = SourcePick(
+                        item = item,
+                        choices = choices,
+                        versions = versionCatalog.compatibleVersions.first()[item.packageName].orEmpty()
+                    )
+                    return@launch
+                }
             }
-
-            apkChoice = ApkChoice(
-                item = item,
-                recommended = recommended,
-                compatible = compatible,
-                saved = withContext(Dispatchers.IO) { localApkSources.saved(item.packageName) },
-                // The installed source is an expert-mode offer, and only for a version the
-                // patches target: the two conditions the single-app flow puts on the button
-                installed = device.apk.takeIf { expertMode }.patchableBy(compatible),
-                installedVersion = device.version,
-                hasStockInstall = device.hasStockInstall,
-                selectedVersion = recommended
-            )
+            showApkChoice(item, item.chosenBundleUid)
         }
     }
 
-    fun selectApkVersion(target: AppTarget) {
+    /**
+     * The availability dialog for [item], covering the versions of [bundleUid] alone when given.
+     * Looking into the APKs on hand can take a while for an installed app, which is checked for
+     * being the stock one, so the screen says it is busy meanwhile.
+     */
+    private suspend fun showApkChoice(item: BatchPatchItem, bundleUid: Int?) = whileProcessingApk {
+        val allCompatible = versionCatalog.compatibleVersions.first()[item.packageName].orEmpty()
+        val compatible = allCompatible.filter { it.bundleUid == bundleUid }.ifEmpty { allCompatible }
+        val recommended = compatible.recommendedEntry()
+        val expertMode = prefs.useExpertMode.get()
+        val device = withContext(Dispatchers.IO) {
+            localApkSources.installed(item.packageName)
+        }
+        val choice = ApkChoice(
+            item = item,
+            recommended = recommended?.target,
+            compatible = compatible,
+            saved = withContext(Dispatchers.IO) { localApkSources.saved(item.packageName) },
+            // The installed source is an expert-mode offer, and only for a version the
+            // patches target: the two conditions the single-app flow puts on the button
+            installed = device.apk.takeIf { expertMode }.patchableBy(compatible),
+            installedVersion = device.version,
+            hasStockInstall = device.hasStockInstall,
+            selectedVersion = recommended,
+            hiddenSources = patchBundleRepository.hiddenSourceCount(item.packageName)
+        )
+
+        // Takes over from the source question it may follow, which stays up until now
+        sourcePick = null
+        apkChoice = choice
+    }
+
+    fun selectApkVersion(target: BundledAppTarget) {
         apkChoice = apkChoice?.copy(selectedVersion = target)
     }
 
@@ -308,11 +341,14 @@ class BatchPatcherViewModel : ViewModel(), KoinComponent, ApkDownloadHelperHost 
         apkChoice = null
     }
 
-    /** Keeps the APK already on hand, re-resolving in case the user switched between the two. */
+    /**
+     * Keeps the APK already on hand, re-resolving in case the user switched between the two. The
+     * question stays up until the answer is in, so the editor it may lead to takes over from it.
+     */
     fun useApkSource(preferInstalled: Boolean) {
         val choice = apkChoice ?: return
-        apkChoice = null
-        coordinator.useSource(choice.item.id, preferInstalled)
+        val resolution = coordinator.useSource(choice.item.id, preferInstalled)
+        viewModelScope.launch { settleGivenApk(choice.item.id, resolution) }
     }
 
     /**
@@ -350,7 +386,8 @@ class BatchPatcherViewModel : ViewModel(), KoinComponent, ApkDownloadHelperHost 
             val resolved = withContext(Dispatchers.IO) {
                 downloadUrlResolver.resolve(item.packageName, version)
             }
-            apkSearch = apkSearch?.takeIf { it.item.packageName == item.packageName }?.copy(url = resolved)
+            // A search reopened meanwhile, for another version or a clone, waits on its own answer
+            apkSearch = apkSearch?.takeIf { it.item.id == item.id && it.version == version }?.copy(url = resolved)
         }
     }
 
@@ -375,7 +412,7 @@ class BatchPatcherViewModel : ViewModel(), KoinComponent, ApkDownloadHelperHost 
         if (handOff(search.url)) {
             attachPrompt = search.item
         } else {
-            app.toast(app.getString(R.string.sources_management_failed_to_open_url))
+            messages.show(R.string.sources_management_failed_to_open_url)
         }
     }
 
@@ -404,7 +441,7 @@ class BatchPatcherViewModel : ViewModel(), KoinComponent, ApkDownloadHelperHost 
             versionName = search.version,
             compatible = search.compatible,
             metadata = patchBundleRepository.appMetadata.value[packageName],
-            stockInstallRequired = state.value?.useMount == true &&
+            stockInstallRequired = search.item.useMount &&
                     search.item.source !is BatchApkSource.Installed,
             fallbackWebUrl = downloadUrlResolver.webSearchUrl(packageName, search.version)
         )
@@ -426,7 +463,7 @@ class BatchPatcherViewModel : ViewModel(), KoinComponent, ApkDownloadHelperHost 
         val item = apkSearch?.item ?: return
         if (packageName != item.packageName) {
             // The helper answered about an app the queue never asked to patch
-            app.toast(app.getString(R.string.home_apk_helper_wrong_package))
+            messages.show(R.string.home_apk_helper_wrong_package)
             return
         }
 
@@ -434,57 +471,99 @@ class BatchPatcherViewModel : ViewModel(), KoinComponent, ApkDownloadHelperHost 
         attachPrompt = null
         // Re-resolved rather than taken on the helper's word: an installed app is only accepted
         // while it still looks like the stock one, see BatchPlanResolver
-        coordinator.useSource(item.id, preferInstalled = true)
+        val resolution = coordinator.useSource(item.id, preferInstalled = true)
+        viewModelScope.launch { settleGivenApk(item.id, resolution) }
+    }
+
+    /**
+     * True while the APKs on hand for a queued app are looked into, or one given to it is read and
+     * the app resolved against it.
+     */
+    val processingApk get() = apkProcessingCount > 0
+
+    // Counted rather than flagged, so APKs given one over another keep it up until the last is in
+    private var apkProcessingCount by mutableIntStateOf(0)
+
+    private suspend fun <T> whileProcessingApk(block: suspend () -> T): T {
+        apkProcessingCount++
+        try {
+            return block()
+        } finally {
+            apkProcessingCount--
+        }
+    }
+
+    /**
+     * Waits for [itemId] to be resolved against the APK just given to it, and then opens the
+     * editor when none of its patches is selected. Expert mode, as the single-app flow opens the
+     * expert dialog after the APK, so the app is not left for the user to find the editor for. The
+     * APK question is closed otherwise, having waited for the answer.
+     */
+    private suspend fun settleGivenApk(itemId: String, resolution: Job?) = whileProcessingApk {
+        resolution?.join()
+        // Another APK given to the app meanwhile settles all this itself
+        if (resolution?.isCancelled == true) return@whileProcessingApk
+        val item = state.value?.items?.firstOrNull { it.id == itemId }?.takeIf { resolution != null }
+        // The card changes little for an APK of the version it already had, so the choice is confirmed
+        if (item?.source != null) messages.show(R.string.batch_patch_apk_selected)
+        if (item?.state == BatchItemState.NO_SELECTION && item.source != null && prefs.useExpertMode.get()) {
+            openEdit(item)
+        } else if (apkChoice?.item?.id == itemId) {
+            apkChoice = null
+        }
     }
 
     /** Patch selection editor for one queued app, null when none is open. */
     var edit: BatchPatchEdit? by mutableStateOf(null)
         private set
 
-    /** Picker behind the copy-from-another-bundle action of the editor. */
-    val editCopy = CopySelectionController()
-
     /**
      * Opens the editor for [item], scoping the patch list to the exact APK version the queue
      * resolved so the user never sees patches that could not run against it anyway.
      */
     fun beginEdit(item: BatchPatchItem) {
+        viewModelScope.launch { openEdit(item) }
+    }
+
+    private suspend fun openEdit(item: BatchPatchItem) {
         val source = item.source ?: return
-        viewModelScope.launch {
-            val bundles = patchBundleRepository
-                .offeredBundleInfoFlow(item.packageName, source.version, source.versionCode)
-                .first()
-                .filter { it.enabled }
+        val bundles = patchBundleRepository
+            .offeredBundleInfoFlow(item.packageName, source.version, source.versionCode)
+            .first()
+            .filter { it.enabled }
 
-            // A patch counts as new when it was absent from the snapshot taken at the last
-            // run. Without a snapshot there is no "last run" to compare against, so nothing
-            // is badged rather than everything
-            val newPatches = bundles.associate { bundle ->
-                val seen = patchSelectionRepository.getSeenPatches(item.configurationKey, bundle.uid)
-                bundle.uid to bundle.patches
-                    .filter { seen != null && it.name !in seen }
-                    .mapTo(mutableSetOf()) { it.name }
-            }.filterValues { it.isNotEmpty() }
+        // A patch counts as new when it was absent from the snapshot taken at the last
+        // run. Without a snapshot there is no "last run" to compare against, so nothing
+        // is badged rather than everything
+        val newPatches = bundles.associate { bundle ->
+            val seen = patchSelectionRepository.getSeenPatches(item.configurationKey, bundle.uid)
+            bundle.uid to bundle.patches
+                .filter { seen != null && it.name !in seen }
+                .mapTo(mutableSetOf()) { it.name }
+        }.filterValues { it.isNotEmpty() }
 
-            edit = BatchPatchEdit(
-                itemId = item.id,
-                configurationKey = item.configurationKey,
-                packageName = item.packageName,
-                appName = item.appName,
-                bundles = bundles,
-                savedSelection = item.selection,
-                newPatches = newPatches,
-                initialOptions = item.options,
-                // The queue resolved its plan against one install target, so the editor has to
-                // lock patches by the same rules the run will be executed with
-                installerType = installerTypeFor(state.value?.useMount == true),
-                // Read from the same APK the plan was resolved against, so an edit answers the
-                // architecture rules with what the run will hand the patcher
-                apkArchitecture = source.apkArchitecture(),
-                // Same rule the plan was resolved with, see BatchPlanResolver
-                allowIncompatible = item.forceVersionMismatch || prefs.disablePatchVersionCompatCheck.get()
-            )
-        }
+        val opened = BatchPatchEdit(
+            itemId = item.id,
+            configurationKey = item.configurationKey,
+            packageName = item.packageName,
+            appName = item.appName,
+            bundles = bundles,
+            savedSelection = item.selection,
+            newPatches = newPatches,
+            initialOptions = item.options,
+            // The plan was resolved against this app's install target, so the editor has to
+            // lock patches by the same rules the run will be executed with
+            installerType = installerTypeFor(item.useMount),
+            // Read from the same APK the plan was resolved against, so an edit answers the
+            // architecture rules with what the run will hand the patcher
+            apkArchitecture = source.apkArchitecture(),
+            // Same rule the plan was resolved with, see BatchPlanResolver
+            allowIncompatible = item.forceVersionMismatch || prefs.disablePatchVersionCompatCheck.get()
+        )
+
+        // Takes over from the APK question it may follow, which stays up until now
+        apkChoice = null
+        edit = opened
     }
 
     /** Opens the copy-from-another-bundle picker for [targetBundleUid] of the open editor. */
@@ -522,27 +601,35 @@ class BatchPatcherViewModel : ViewModel(), KoinComponent, ApkDownloadHelperHost 
         editCopy.close()
     }
 
-    /**
-     * App whose patch source is being chosen, null when no picker is open.
-     *
-     * Simple mode is asked which source to use in the single-app flow too. The queue cannot
-     * ask mid-run, so the same question is answered here instead.
-     */
-    var sourcePick: BatchPatchItem? by mutableStateOf(null)
-        private set
+    /** The source question simple mode answers before an APK is chosen for one queued app. */
+    data class SourcePick(
+        val item: BatchPatchItem,
+        val choices: List<Pair<PatchBundleInfo.Scoped, Set<String>>>,
+        val versions: List<BundledAppTarget>
+    )
 
-    fun beginSourcePick(item: BatchPatchItem) {
-        sourcePick = item
-    }
+    var sourcePick: SourcePick? by mutableStateOf(null)
+        private set
 
     fun cancelSourcePick() {
         sourcePick = null
     }
 
-    fun pickSource(bundleUid: Int) {
-        val item = sourcePick ?: return
-        sourcePick = null
-        coordinator.narrowToSource(item.id, bundleUid)
+    /**
+     * Patches the app from [bundleUid] and moves on to its APK. [rememberChoice] keeps the app
+     * from the other sources the same way the single-app question does. The question stays up
+     * until the APK one takes over from it.
+     */
+    fun pickSource(bundleUid: Int, rememberChoice: Boolean) {
+        val pick = sourcePick ?: return
+        coordinator.chooseSource(pick.item.id, bundleUid)
+        viewModelScope.launch {
+            if (rememberChoice) {
+                val offered = pick.choices.mapTo(mutableSetOf()) { (bundle, _) -> bundle.uid }
+                sourceMuteRepository.keepOnly(pick.item.packageName, bundleUid, offered)
+            }
+            showApkChoice(pick.item, bundleUid)
+        }
     }
 
     fun applyEdit() {
@@ -562,36 +649,45 @@ class BatchPatcherViewModel : ViewModel(), KoinComponent, ApkDownloadHelperHost 
         if (uri == null || itemId == null) return
 
         viewModelScope.launch {
-            val file = withContext(Dispatchers.IO) { copyToWorkspace(uri) }
-            if (file == null) {
-                app.toast(app.getString(R.string.home_invalid_apk_io_error))
-                return@launch
+            whileProcessingApk {
+                val file = withContext(Dispatchers.IO) { copyToWorkspace(uri) }
+                if (file == null) {
+                    messages.show(R.string.home_invalid_apk_io_error)
+                    return@whileProcessingApk
+                }
+                settleGivenApk(itemId, coordinator.attachApk(itemId, file))
             }
-            coordinator.attachApk(itemId, file)
         }
     }
 
     fun toggleExcluded(itemId: String) = coordinator.toggleExcluded(itemId)
 
+    /** Whether the device can mount builds, which is when the install target is worth asking about. */
+    val canMount = rootInstaller.isDeviceRooted()
+
+    fun setInstallTarget(itemId: String, useMount: Boolean) = coordinator.setInstallTarget(itemId, useMount)
+
     /**
-     * Accepts an unsupported version. Confirmed with a toast because the card only swaps a
+     * Accepts an unsupported version. Confirmed with a message because the card only swaps a
      * badge, which does not say what was just taken on.
      */
     fun forceVersion(itemId: String) {
         coordinator.forceVersion(itemId)
-        app.toast(app.getString(R.string.batch_patch_force_version_done))
+        messages.show(R.string.batch_patch_force_version_done)
     }
 
     /**
-     * Accepts an APK signed by someone the sources do not vouch for. Confirmed with a toast for
+     * Accepts an APK signed by someone the sources do not vouch for. Confirmed with a message for
      * the same reason as [forceVersion]: the card only swaps a badge.
      */
     fun acceptUnverifiedSignature(itemId: String) {
         coordinator.acceptUnverifiedSignature(itemId)
-        app.toast(app.getString(R.string.batch_patch_accept_signature_done))
+        messages.show(R.string.batch_patch_accept_signature_done)
     }
 
     fun setPolicy(policy: BatchInstallPolicy) = coordinator.setPolicy(policy)
+
+    fun markAutoInstallStarted() = coordinator.markAutoInstallStarted()
 
     fun markInstalled(itemId: String, installedPackageName: String) =
         coordinator.markInstallResult(
@@ -614,22 +710,7 @@ class BatchPatcherViewModel : ViewModel(), KoinComponent, ApkDownloadHelperHost 
 
     fun clear() = coordinator.clear()
 
-    /**
-     * Re-plans the apps that failed or were canceled so the user can retry without
-     * rebuilding the selection from the home screen.
-     */
-    fun retryUnfinished() {
-        val current = state.value ?: return
-        val targets = current.items
-            .filter { it.state == BatchItemState.FAILED || it.state == BatchItemState.CANCELLED }
-            .map { it.target }
-        if (targets.isEmpty()) return
-
-        val useMount = current.useMount
-        val policy = current.policy
-        coordinator.clear()
-        coordinator.plan(targets, useMount, policy)
-    }
+    fun retryUnfinished() = coordinator.retryUnfinished()
 
     /**
      * Records the [InstallType] of a patched app once it is installed from the summary,
@@ -659,22 +740,7 @@ class BatchPatcherViewModel : ViewModel(), KoinComponent, ApkDownloadHelperHost 
     }
 
     private fun copyToWorkspace(uri: Uri): File? = try {
-        val displayName = app.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-            val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (cursor.moveToFirst() && index != -1) cursor.getString(index) else null
-        }
-        val extension = displayName?.substringAfterLast('.', "apk")?.lowercase() ?: "apk"
-        val target = fs.uiTempDir.resolve("batch_input_${System.currentTimeMillis()}.$extension")
-
-        val copied = app.contentResolver.openInputStream(uri)?.use { input ->
-            target.outputStream().use { output -> input.copyTo(output) }
-        }
-        if (copied == null || copied == 0L) {
-            target.delete()
-            null
-        } else {
-            target
-        }
+        uri.copyApkInto(fs.uiTempDir, "batch_input", app.contentResolver)
     } catch (e: Exception) {
         Log.e(tag, "Failed to copy attached APK", e)
         null

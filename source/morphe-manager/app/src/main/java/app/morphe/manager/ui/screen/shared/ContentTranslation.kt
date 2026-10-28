@@ -5,10 +5,7 @@
 
 package app.morphe.manager.ui.screen.shared
 
-import android.app.Application
 import android.content.res.Resources
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.runtime.*
 import androidx.compose.ui.res.stringResource
 import app.morphe.manager.R
@@ -20,7 +17,8 @@ import app.morphe.manager.util.ChangelogSection
 import app.morphe.manager.util.ContentTranslator
 import app.morphe.manager.util.mapItemTexts
 import app.morphe.manager.util.simpleMessage
-import app.morphe.manager.util.toast
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,7 +35,7 @@ private const val PREFETCH_BATCH = 50
  */
 @Stable
 class ContentTranslation(
-    private val app: Application,
+    private val messages: UserMessages,
     private val translator: ContentTranslator,
     private val networkInfo: NetworkInfo,
     private val prefs: PreferencesManager
@@ -123,10 +121,11 @@ class ContentTranslation(
     }
 
     private fun reportFailure(error: Exception) {
-        app.toast(
-            if (networkInfo.isConnected()) app.getString(R.string.content_translation_failed, error.simpleMessage())
-            else app.getString(R.string.no_network_toast)
-        )
+        if (networkInfo.isConnected()) {
+            messages.show(R.string.content_translation_failed, error.simpleMessage())
+        } else {
+            messages.show(R.string.no_network_toast)
+        }
     }
 }
 
@@ -178,7 +177,7 @@ fun translateAction(): DialogAction? {
             if (translation.isEnabled) R.string.content_show_original else R.string.content_translate
         ),
         onClick = translation::toggle,
-        icon = Icons.Outlined.Translate,
+        icon = MaterialSymbols.Rounded.Translate,
         emphasis = DialogActionEmphasis.Outlined
     )
 }

@@ -12,6 +12,7 @@ import app.morphe.manager.data.room.apps.installed.InstalledApp
 import app.morphe.manager.domain.bundles.AppVersionStatus
 import app.morphe.manager.ui.model.HomeAppItem
 import app.morphe.manager.util.tag
+import app.morphe.manager.util.writeTextAtomically
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -49,11 +50,7 @@ internal class HomeCardCache(private val file: File) {
         )
         if (cached == lastWritten && file.exists()) return
         runCatching {
-            file.parentFile?.mkdirs()
-            val temp = File(file.path + ".tmp")
-            temp.writeText(json.encodeToString(CachedHome.serializer(), cached))
-            // Atomic swap, so a killed write keeps the previous file
-            if (!temp.renameTo(file)) error("Could not replace ${file.name}")
+            file.writeTextAtomically(json.encodeToString(CachedHome.serializer(), cached))
             lastWritten = cached
         }.onFailure { Log.w(tag, "Could not keep the home cards", it) }
     }
@@ -72,11 +69,15 @@ internal data class CachedHome(
     /** These cards, with records from [installedApps] and the sort mode from [prefs]. */
     fun toCards(installedApps: List<InstalledApp>, prefs: HomePrefs): HomeCards {
         val records = installedApps.associateBy { it.currentPackageName }
-        // Cards are keyed by id on screen, and a file kept by an older build can repeat one
+        // Split as the user has it now, as hiding or showing an app while the bundles load must
+        // not wait for them
+        val (hiddenCards, visibleCards) = (visible + hidden)
+            // Cards are keyed by id on screen, and a file kept by an older build can repeat one
+            .distinctBy { it.id }
+            .partition { it.id in prefs.hiddenPackages }
         return HomeCards(
-            visible = visible.distinctBy { it.id }.map { it.toItem(records) },
-            hidden = hidden.distinctBy { it.id }.map { it.toItem(records) },
-            sortMode = prefs.sortMode,
+            visible = visibleCards.map { it.toItem(records) },
+            hidden = hiddenCards.map { it.toItem(records) },
             sourceGroups = sourceGroups.map { it.toGroup() }
         )
     }

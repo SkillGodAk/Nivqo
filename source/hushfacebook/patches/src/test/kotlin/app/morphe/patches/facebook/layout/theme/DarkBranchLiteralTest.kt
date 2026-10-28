@@ -133,6 +133,28 @@ class DarkBranchLiteralTest {
         assertEquals("the light branch jumps to the return, past the call", Opcode.RETURN, card.target(goto).opcode)
     }
 
+    /** Issue #191: AMOLED's Black cards answers first, whichever of the two patches reads the site first. */
+    @Test
+    fun `AMOLED's call comes before Material You's in either order`() {
+        for (amoledFirst in listOf(true, false)) {
+            val app = app()
+            val order = if (amoledFirst) listOf(AMOLED_DARK_BRANCH, DARK_BRANCH) else listOf(DARK_BRANCH, AMOLED_DARK_BRANCH)
+            for (target in order) assertEquals("$target's sites", 1, with(app) { readDarkBranchLiterals(check, target) })
+
+            val card = app.body("card")
+            assertEquals(Opcode.CONST, card[3].opcode)
+            for ((at, target) in listOf(4 to AMOLED_DARK_BRANCH, 6 to DARK_BRANCH)) {
+                assertEquals("AMOLED first $amoledFirst: $target at $at", target, card[at].call())
+                assertEquals("on the const's register", 1, (card[at] as RegisterRangeInstruction).startRegister)
+                assertEquals(Opcode.MOVE_RESULT, card[at + 1].opcode)
+                assertEquals("into it", 1, (card[at + 1] as OneRegisterInstruction).registerA)
+            }
+            assertEquals("the dark branch then returns it", Opcode.RETURN, card[8].opcode)
+            val goto = card.indexOfLast { it.opcode == Opcode.GOTO }
+            assertEquals("the light branch jumps to the return, past both", Opcode.RETURN, card.target(goto).opcode)
+        }
+    }
+
     @Test
     fun `a resource id, the other branch order, a shared const and another check stay`() {
         val app = app()

@@ -99,6 +99,39 @@ if ($KeepIn) {
     }
 }
 
+# The jar's patcher against the one the bundle was built with, before anything is merged or
+# patched: a bundle built for one morphe-patcher major dies on the other only once the CLI loads it.
+# A bundle whose manifest names none is held to this checkout's pin instead.
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+try { $bundleArchive = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $Bundle).Path) } catch {
+    throw "The bundle $Bundle is not a readable .mpp: $($_.Exception.Message)"
+}
+try {
+    $manifestEntry = $bundleArchive.GetEntry('META-INF/MANIFEST.MF')
+    $bundleManifest = ''
+    if ($manifestEntry) {
+        $manifestReader = New-Object System.IO.StreamReader($manifestEntry.Open())
+        try { $bundleManifest = $manifestReader.ReadToEnd() -replace "\r?\n ", '' } finally { $manifestReader.Dispose() }
+    }
+} finally { $bundleArchive.Dispose() }
+$bundlePatcher = [regex]::Match($bundleManifest, '(?m)^Patcher-Version:\s*(\S+)\s*$')
+if ($bundlePatcher.Success) {
+    $expectedPatcher = $bundlePatcher.Groups[1].Value
+    $expectedFrom = "the bundle $(Split-Path -Leaf $Bundle)"
+} else {
+    $pinFile = Join-Path $root 'gradle/libs.versions.toml'
+    $pinText = if (Test-Path -LiteralPath $pinFile -PathType Leaf) { Get-Content -LiteralPath $pinFile -Raw } else { '' }
+    $pin = [regex]::Match([string]$pinText, '(?m)^\s*morphe-patcher\s*=\s*"([^"]+)"')
+    if (-not $pin.Success) {
+        throw ("The bundle $(Split-Path -Leaf $Bundle) names no Patcher-Version, and $pinFile pins no morphe-patcher, " +
+            'so the desktop CLI has nothing to be checked against.')
+    }
+    $expectedPatcher = $pin.Groups[1].Value
+    $expectedFrom = 'gradle/libs.versions.toml'
+}
+$jarPatcher = Assert-DesktopPatcherVersion -Jar $DesktopJar -Expected $expectedPatcher -ExpectedFrom $expectedFrom
+Write-Host "[verify] the desktop CLI bundles morphe-patcher $jarPatcher, as $expectedFrom needs ($expectedPatcher)"
+
 try {
     $catalog = Get-Content -LiteralPath $PatchList -Raw | ConvertFrom-Json
     $names = @($catalog.patches | ForEach-Object { $_.name })
@@ -162,9 +195,9 @@ $verdict = @{ ExitCode = 1 }
 $keepStamp = $null
 if ($KeepIn) {
     $keepStamp = [ordered]@{
-        # 2: the stamp also names the kept outputs by SHA-256 (patchedSha256, resultSha256 and,
-        # for a merge, mergedSha256). A receipt reads no stamp without them.
-        schema           = 2
+        # 3: exact output hashes and the fingerprint validation mode belong to this run.
+        schema           = 3
+        validated        = $true
         bundleSha256     = Get-Sha256Hex -Path $Bundle
         apkSha256        = Get-Sha256Hex -Path $Apk
         patchListSha256  = Get-Sha256Hex -Path $PatchList
@@ -188,7 +221,7 @@ try {
         if ($patchInput -eq $mergedApk) { Write-Host "[verify] merged $(Split-Path -Leaf $Apk) into one APK for the CLI" }
         $enable = @()
         foreach ($name in $names) { $enable += '-e'; $enable += $name }
-        $arguments = @('patch', '--exclusive', '--continue-on-error', '--unsigned', '-p', $Bundle,
+        $arguments = @('patch', '--validate', '--exclusive', '--continue-on-error', '--unsigned', '-p', $Bundle,
             '-o', $out, '-t', $temp, '-r', $result)
         if ($forced) { $arguments += '-f' }
         $arguments = $arguments + $enable + @($patchInput)
@@ -208,7 +241,7 @@ try {
         # the build lacks there, and still applies.
         $cliOutput | ForEach-Object {
             $line = [string]$_
-            if ($line -match 'SEVERE|ERROR|WARNING|Exception|result saved|Saved to') { Write-Host "[verify] $line" }
+            if ($line -match 'SEVERE|ERROR|WARNING|Exception|result saved|Saved to|Fingerprint took \d+ ms to resolve:') { Write-Host "[verify] $line" }
         }
 
         $report = $null

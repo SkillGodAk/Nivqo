@@ -267,6 +267,25 @@ class StatusBarHookTest {
         }
     }
 
+    /**
+     * 584 (LX/2LF;->A00) takes its own class between the window and the colour, so the colour is the
+     * fourth parameter. The hook reads the last one, and a third parameter of any other type isn't the painter.
+     */
+    @Test
+    fun `a navigation bar painter with its own class as third parameter takes the hook on its last parameter`() {
+        val parameters = navigationParameters.take(2) + navigationBarUtil + "I"
+        val painter = method("paint", 6, """
+            invoke-virtual { p1, p3 }, Landroid/view/Window;->setNavigationBarColor(I)V
+            return-void
+        """, parameters, owner = navigationBarUtil)
+        val hooked = hookNavigation(painter) { hookNavigationBarColour(darkCheck) }
+        assertStatusBarHook("584 shape", hooked, darkCheck, painter.body(), NAVIGATION_BAR, 1, 3, navigationHooks)
+
+        forgetMatches()
+        val other = method("paint", 6, paintsNavigation, navigationParameters.take(2) + "Ljava/lang/String;" + "I", owner = navigationBarUtil)
+        assertThrows(PatchException::class.java) { hookNavigation(other) { hookNavigationBarColour(darkCheck) } }
+    }
+
     /** Material You's navigation bar hook: in place of AMOLED's call when AMOLED went first, its own without. */
     @Test
     fun `Material You takes over AMOLED's navigation bar call, or hooks the painter itself`() {

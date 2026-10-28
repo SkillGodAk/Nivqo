@@ -6,6 +6,9 @@ package app.morphe.patches.facebook.misc.transitions
 
 import app.morphe.patcher.Fingerprint
 import app.morphe.patches.facebook.shared.redexOriginalName
+import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 
 /** What the tab bar's pager controller logs when it's asked for a tab past its pages. */
 internal const val TAB_OUT_OF_BOUNDS_LOG = "Trying to get item out of bounds from visibleTabTags (item: "
@@ -49,6 +52,32 @@ internal object PagerTabsSelectedFingerprint : Fingerprint(
     name = "run",
     returnType = "V",
     custom = { _, classDef -> redexOriginalName(classDef) == PAGER_TABS_SELECTED },
+)
+
+/**
+ * The photo viewer showing itself with its zoom (583 `A0G(viewer, Z)`). Like the drag that follows
+ * the finger (`A0E`) it's static and takes the viewer and a flag; it's the one that compares the
+ * phone's year class with 2015 before it picks the spring or the older animator (PhotoZoom.kt).
+ */
+internal object PhotoOpenFingerprint : Fingerprint(
+    definingClass = PHOTO_VIEWER,
+    returnType = "V",
+    parameters = listOf(PHOTO_VIEWER, "Z"),
+    custom = { method, _ ->
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.implementation?.instructions?.any {
+            it.opcode == Opcode.CONST_16 && (it as NarrowLiteralInstruction).narrowLiteral == SPRING_YEAR
+        } == true
+    },
+)
+
+/**
+ * BackStackRecord's dump(writer, prefix, full), which prints a fragment transaction's four custom
+ * animations by name (583 `LX/0Aa;->A0V`). The androidx labels outlive Redex (FragmentSlides.kt).
+ */
+internal object BackStackDumpFingerprint : Fingerprint(
+    returnType = "V",
+    parameters = listOf("Ljava/io/PrintWriter;", "Ljava/lang/String;", "Z"),
+    strings = listOf(ENTER_ANIM_LOG, POP_ENTER_ANIM_LOG),
 )
 
 /** The composer's Feelings and Activities picker, which keeps its class name. */

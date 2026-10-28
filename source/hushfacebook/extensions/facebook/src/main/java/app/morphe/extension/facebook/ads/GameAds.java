@@ -65,7 +65,15 @@ public final class GameAds {
 
     private static final AtomicInteger instances = new AtomicInteger();
 
+    /** Set while {@link GameBridge} passes a message on, so a hooked bridge behind it doesn't ask again. */
+    private static final ThreadLocal<Boolean> forwarded = new ThreadLocal<>();
+
     private GameAds() {
+    }
+
+    static void forwarding(boolean on) {
+        if (on) forwarded.set(Boolean.TRUE);
+        else forwarded.remove();
     }
 
     /**
@@ -76,6 +84,7 @@ public final class GameAds {
     @Nullable
     public static String heldPromise(@Nullable String message) {
         try {
+            if (forwarded.get() != null) return null;
             HookStatus.invoked(FamilyNames.GAME_ADS);
             String type = type(message);
             if (code(type) == null) return null;

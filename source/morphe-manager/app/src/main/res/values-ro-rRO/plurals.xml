@@ -5,6 +5,12 @@
         <item quantity="few">%s patch-uri</item>
         <item quantity="other">%s de patch-uri</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s bibliotecă</item>
+        <item quantity="few">%s biblioteci</item>
+        <item quantity="other">%s de biblioteci</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s opțiune de patch</item>
         <item quantity="few">%s opțiuni de patch</item>
@@ -32,6 +38,11 @@
         <item quantity="one">Surse de patch pentru %s aplicație</item>
         <item quantity="few">Surse de patch pentru %s aplicații</item>
         <item quantity="other">Surse de patch pentru %s de aplicații</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s sursa este ascunsă pentru această aplicație. Selectați aplicația din fila Aplicații și deschideți Sursa patch-ului pentru a o aduce înapoi</item>
+        <item quantity="few">%sursele sunt ascunse pentru această aplicație. Selectați aplicația din fila Aplicații și deschideți Surse patch-ului pentru a le aduce înapoi</item>
+        <item quantity="other">%s surse sunt ascunse pentru această aplicație. Selectați aplicația din fila Aplicații și deschideți Surse patch-ului pentru a le aduce înapoi</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s sursă ascunsă. Atingeți pentru a afișa</item>
@@ -68,6 +79,11 @@
         <item quantity="few">A instalat %s aplicaţii</item>
         <item quantity="other">A instalat %s de aplicaţii</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">A fost montată %s aplicație</item>
+        <item quantity="few">Au fost montate %s aplicații</item>
+        <item quantity="other">Au fost montate %s de aplicații</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">A reinstalat %s aplicaţie</item>
         <item quantity="few">A reinstalat %s aplicaţii</item>
@@ -87,6 +103,16 @@
         <item quantity="one">%s aplicaţie gata de patch</item>
         <item quantity="few">%s aplicaţii gata de patch</item>
         <item quantity="other">%s de aplicaţii gata de patch</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">Aplicația %s este în așteptare pentru remediere</item>
+        <item quantity="few">%s aplicații sunt în așteptare pentru remediere</item>
+        <item quantity="other">%s de aplicații sunt în așteptare pentru remediere</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s notificare ascunsă, atingeți pentru a o afișa</item>
+        <item quantity="few">%s notificări ascunse, atingeți pentru a le afișa</item>
+        <item quantity="other">%s notificări ascunse, atingeți pentru a le afișa</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s aplicație poate fi re-patchuită</item>
@@ -108,10 +134,20 @@
         <item quantity="few">%s surse instalate</item>
         <item quantity="other">%s de surse instalate</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s aplicație filtrată</item>
-        <item quantity="few">%1$s · %2$s aplicații filtrate</item>
-        <item quantity="other">%1$s · %2$s de aplicații filtrate</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s aplicație ascunsă</item>
+        <item quantity="few">%s aplicații ascunse</item>
+        <item quantity="other">%s aplicații ascunse</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s aplicație afișată</item>
+        <item quantity="few">%s aplicații afișate</item>
+        <item quantity="other">%s aplicații afișate</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Afișați aplicația %s?</item>
+        <item quantity="few">Afișați aplicațiile %s?</item>
+        <item quantity="other">Afișați aplicațiile %s?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s aplicație ascunsă</item>
@@ -157,6 +193,12 @@
         <item quantity="one">%s modificare</item>
         <item quantity="few">%s modificări</item>
         <item quantity="other">%s de modificări</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d nouă</item>
+        <item quantity="few">%1$s · %2$d noi</item>
+        <item quantity="other">%1$s · %2$d de noi</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s versiune nouă</item>

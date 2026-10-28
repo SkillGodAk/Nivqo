@@ -25,6 +25,7 @@ import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
+import app.morphe.util.classDefForEachReferencing
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -33,6 +34,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val DECLUTTER = "$EXTENSION_PACKAGE/reels/ReelDeclutter;"
 internal const val FILTER_CHIPS = "$DECLUTTER->filterChips(Ljava/lang/Object;)[Ljava/lang/Object;"
+internal const val HIDE_AUDIO_LINE = "$DECLUTTER->hideAudioLine()Z"
 internal const val HIDE_FOLLOW_BUTTON = "$DECLUTTER->hideFollowButton()Z"
 internal const val HIDE_FOLLOWING_BUTTON = "$DECLUTTER->hideFollowingButton()Z"
 internal const val SKIP_HOT_COMMENT = "$DECLUTTER->skipHotComment()Z"
@@ -49,7 +51,21 @@ private const val PATCH = "Clean up Reels"
  * also off, starts reels and videos in Facebook's own Clean mode (see ReelCleanMode.kt), and a
  * sixth, also off, plays each reel once instead of starting it over at its end (see ReelLoop.kt,
  * whose hook is reelLoopPatch's). A seventh, also off, keeps reels and videos in the audio they
- * were made with instead of a Meta AI dub (see OriginalAudio.kt).
+ * were made with instead of a Meta AI dub (see OriginalAudio.kt). An eighth, also off, takes the
+ * search pill out from under a reel's caption and off the top of its comments, along with the search
+ * bar and send button over a reel opened from a profile (see SearchPill.kt). A ninth, also off, takes the
+ * numbers away from under the sidebar's Like, Comment and Share icons (see ReelCounts.kt). A
+ * tenth, also off, leaves the Save button out of that sidebar (see ReelSaveButton.kt). An
+ * eleventh, also off, opens a video tapped in the feed on its own, with no reels after it (see
+ * FeedVideoAlone.kt). A twelfth, also off, leaves the speaker button out of the bottom of the
+ * sidebar (see ReelSoundButton.kt). A thirteenth, also off, takes the line naming a reel's sound,
+ * "Original audio" or a song, out of the same chip list the first switch filters, and has the row
+ * the Reels tab draws it in on its own draw nothing (#200, see ReelAnchors.kt). A fourteenth, also
+ * off, keeps a video that's slow to load from showing "This is taking a while. Try checking your
+ * network connection." (#222, see ReelSlowConnection.kt). A fifteenth, also off, plays whole reels
+ * in the feed's Reels row instead of the short clip each tile repeats (#228, see FeedReelPreviews.kt). With Debug
+ * logging on, it also reports whether a reel that ends
+ * is on the player the Reels auto-advance controller holds (see ReelBinding.kt), with no switch.
  *
  * Every anchor is a kept name or literal (see ReelAnchors.kt), and every one of them is required: a
  * build where one can't be found stops the patch with what's missing, rather than shipping a switch
@@ -64,21 +80,43 @@ val cleanUpReelsPatch = bytecodePatch(
     name = "Clean up Reels",
     description = "Hides clutter on reels, such as the Follow button, comment previews, Remix and Use template " +
         "buttons and Threads cards between reels, so more of the video shows, and can play each reel once " +
-        "instead of over and over or keep its original audio instead of a Meta AI dub. Starts off. Turn on the parts you want in Hushfacebook settings > Reels and Watch.",
+        "instead of over and over, keep its original audio instead of a Meta AI dub, drop the search suggestions under the caption, over the comments and at the top of a profile's reels, or hide the like, comment and share counts, the Like, Comment, Share, Save or speaker button, or the line naming the reel's sound. It can also open a video you tap in the feed on its own, with no reels after it, stop the \"This is taking a while\" message when a video is slow to load, and play whole reels in the feed's Reels row instead of the same second over and over. Starts off. Turn on the parts you want in Hushfacebook settings > Reels and Watch.",
 ) {
     category("Reels")
     dependsOn(settingsPatch)
-    dependsOn(facebookExtensionPatch, reelLoopPatch)
+    dependsOn(facebookExtensionPatch, reelLoopPatch, reelBindingPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {
         filterChips()
+        // #200: the Reels tab draws the audio line in a row of its own, past the chip list.
+        hideReelsTabAudioLine()
         hideFollowButtons()
         skipFooterQueries()
         hideThreadsCards()
         startReelsInCleanMode()
         // #148: the audio language the player picks a video's sound by.
         hookOriginalAudio()
+        // #173: the search pill under a reel's caption.
+        hideSearchPill()
+        // #197: the same switch, for the search pill over a reel's comments.
+        hideCommentSearchPill()
+        // #201: and for the search bar and its send button over a reel opened from a profile.
+        hideSearchBar()
+        // #180: the numbers under the sidebar's Like, Comment and Share icons.
+        hideReelCounts()
+        // #190, #243, #265: Like, Comment, Share, Save and the direct WhatsApp button, skipped as their icon types come up.
+        hideReelSaveButton()
+        // #190: the speaker button under the sidebar, from whichever place a server flag picks:
+        // the video controls, through Facebook's own check for it, or the footer, through its null check.
+        hideReelSoundButton()
+        hideReelFooterSoundButton()
+        // #161: a feed video's player asks for no more reels after it.
+        keepFeedVideosAlone()
+        // #222: the "This is taking a while" message a stalled video posts.
+        hideSlowConnectionMessage()
+        // #228: the clip each tile of the feed's Reels row plays, and where it stops.
+        playFeedReelsWhole()
         enableStatus("reelDeclutter")
     }
 }
@@ -94,10 +132,40 @@ private fun BytecodePatchContext.filterChips() {
     val builders = classDefByStrings(CHIP_ANCHOR, StringComparisonType.EQUALS)
         .flatMap { owner -> chipListBuilders(owner, tables).map { owner to it } }
     val (owner, builder) = builders.singleOrNull() ?: throw PatchException(
-        "$PATCH: expected one ImmutableList builder naming every hidden chip (${HIDDEN_CHIPS.joinToString()}), " +
+        "$PATCH: expected one ImmutableList builder naming every hidden chip (${(HIDDEN_CHIPS + SOUNDTRACK_CHIP).joinToString()}), " +
             "found ${builders.size}",
     )
     mutableClassDefBy(owner).methods.first { it.sameSignatureAs(builder) }.filterChipsBeforeEveryReturn()
+}
+
+/**
+ * The Reels tab's audio line row asks the extension first thing and answers null when it says so,
+ * Facebook's own answer for a reel with no sound line. Refuses unless exactly one render fits.
+ */
+private fun BytecodePatchContext.hideReelsTabAudioLine() {
+    val rows = classDefByStrings(SOUNDTRACK_CHIP, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
+        .flatMap { classDef -> classDef.methods.filter(::isAudioLineRender).map { classDef.type to it } }
+    val (owner, row) = rows.singleOrNull() ?: throw PatchException(
+        "$PATCH: expected one render that picks $SOUNDTRACK_CHIP and answers null first, found ${rows.size}",
+    )
+    mutableClassDefBy(owner).methods.first { it.sameSignatureAs(row) }.returnNullWhen(HIDE_AUDIO_LINE)
+}
+
+/** Asks [hook] first thing and answers null when it says so. v0 is free there, as in [answerWhen]. */
+internal fun MutableMethod.returnNullWhen(hook: String) {
+    requireLocals(PATCH, 1)
+    addInstructionsWithLabels(
+        0,
+        """
+            invoke-static { }, $hook
+            move-result v0
+            if-eqz v0, :facebooks_row
+            const/4 v0, 0x0
+            return-object v0
+        """,
+        ExternalLabel("facebooks_row", getInstruction(0)),
+    )
 }
 
 /**
@@ -149,7 +217,9 @@ private fun BytecodePatchContext.hideFollowButtons() {
     val getter = found.getter ?: throw PatchException("$PATCH: ${found.problem}")
 
     val readers = mutableListOf<Method>()
-    classDefForEach { classDef -> classDef.methods.filterTo(readers) { calls(it, getter) } }
+    classDefForEachReferencing(types = listOf(getter.definingClass)) { classDef ->
+        classDef.methods.filterTo(readers) { calls(it, getter) }
+    }
     followReaderProblem(readers, dumper)?.let { throw PatchException("$PATCH: $it") }
 
     val author = authorRow(readers, dumper)
@@ -166,7 +236,7 @@ private fun BytecodePatchContext.hideFollowButtons() {
 }
 
 /**
- * The same two buttons on 583, where the Following button's config is two flag reads in a merged
+ * The same two buttons from 583 on, where the Following button's config is two flag reads in a merged
  * lambda rather than one getter: each read answers true when the switch is on, and the author row,
  * the one method holding [AUTHOR_COMPONENT], asks the Follow check as before.
  */

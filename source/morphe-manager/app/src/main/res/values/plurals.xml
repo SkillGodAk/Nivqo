@@ -4,6 +4,11 @@
         <item quantity="one">%s patch</item>
         <item quantity="other">%s patches</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s library</item>
+        <item quantity="other">%s libraries</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s patch option</item>
         <item quantity="other">%s patch options</item>
@@ -26,6 +31,10 @@
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Patch sources for %s app</item>
         <item quantity="other">Patch sources for %s apps</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s source is hidden for this app. Select the app on the Apps tab and open Patch sources to bring it back</item>
+        <item quantity="other">%s sources are hidden for this app. Select the app on the Apps tab and open Patch sources to bring them back</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s source hidden. Tap to show</item>
@@ -55,6 +64,10 @@
         <item quantity="one">Installed %s app</item>
         <item quantity="other">Installed %s apps</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Mounted %s app</item>
+        <item quantity="other">Mounted %s apps</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Reinstalled %s app</item>
         <item quantity="other">Reinstalled %s apps</item>
@@ -70,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">%s app ready to patch</item>
         <item quantity="other">%s apps ready to patch</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s app queued for patching</item>
+        <item quantity="other">%s apps queued for patching</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s hidden notification, tap to show it</item>
+        <item quantity="other">%s hidden notifications, tap to show them</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s app can be re-patched</item>
@@ -87,9 +108,17 @@
         <item quantity="one">%s source installed</item>
         <item quantity="other">%s sources installed</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s filtered</item>
-        <item quantity="other">%1$s · %2$s filtered</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s app hidden</item>
+        <item quantity="other">%s apps hidden</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s app shown</item>
+        <item quantity="other">%s apps shown</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Unhide %s app?</item>
+        <item quantity="other">Unhide %s apps?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s hidden app</item>
@@ -126,6 +155,11 @@
     <plurals name="changelog_change_count">
         <item quantity="one">%s change</item>
         <item quantity="other">%s changes</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d new</item>
+        <item quantity="other">%1$s · %2$d new</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s new release</item>

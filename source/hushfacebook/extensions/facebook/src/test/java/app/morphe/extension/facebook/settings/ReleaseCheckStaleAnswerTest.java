@@ -28,26 +28,26 @@ public class ReleaseCheckStaleAnswerTest {
 
     @Test
     public void anAnswerOlderThanTheRunningReleaseSaysNothingOfItsFacebook() {
-        assertNull(ReleaseCheck.statusLine("0.7.1", "582.0.0.50.54", "0.9.0", "583.0.0.39.55"));
-        assertNull("nor without a target", ReleaseCheck.statusLine("0.7.1", "", "0.9.0", "583.0.0.39.55"));
+        assertNull(ReleaseCheck.statusLine("0.7.1", "583.0.0.39.55", "0.9.0", "584.0.0.51.56"));
+        assertNull("nor without a target", ReleaseCheck.statusLine("0.7.1", "", "0.9.0", "584.0.0.51.56"));
     }
 
     @Test
     public void theRunningReleaseStillNamesAnotherFacebook() {
-        assertEquals("Hushfacebook " + L10n.isolate("0.9.0") + " targets Facebook " + L10n.isolate("583.0.0.39.55") + ".",
-                ReleaseCheck.statusLine("0.9.0", "583.0.0.39.55", "0.9.0", "582.0.0.50.54"));
+        assertEquals("Hushfacebook " + L10n.isolate("0.9.0") + " targets Facebook " + L10n.isolate("584.0.0.51.56") + ".",
+                ReleaseCheck.statusLine("0.9.0", "584.0.0.51.56", "0.9.0", "583.0.0.39.55"));
     }
 
     @Test
     public void aNewerReleaseIsStillNamedWithItsFacebook() {
         assertEquals("Hushfacebook " + L10n.isolate("0.10.0") + " is out. Update it in Morphe Manager. It targets Facebook "
-                        + L10n.isolate("584.0.0.1.2") + ".",
-                ReleaseCheck.statusLine("0.10.0", "584.0.0.1.2", "0.9.0", "583.0.0.39.55"));
+                        + L10n.isolate("585.0.0.1.2") + ".",
+                ReleaseCheck.statusLine("0.10.0", "585.0.0.1.2", "0.9.0", "584.0.0.51.56"));
     }
 
     @Test
     public void aRunningVersionThisCantReadStillNamesAnotherFacebook() {
-        assertEquals("Hushfacebook " + L10n.isolate("0.9.0") + " targets Facebook " + L10n.isolate("583.0.0.39.55") + ".",
-                ReleaseCheck.statusLine("0.9.0", "583.0.0.39.55", "", "582.0.0.50.54"));
+        assertEquals("Hushfacebook " + L10n.isolate("0.9.0") + " targets Facebook " + L10n.isolate("584.0.0.51.56") + ".",
+                ReleaseCheck.statusLine("0.9.0", "584.0.0.51.56", "", "583.0.0.39.55"));
     }
 }

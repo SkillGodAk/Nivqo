@@ -38,9 +38,10 @@ import app.morphe.extension.shared.settings.preference.JavaCrashReport;
  * ({@link Setting#get()}); saved values stay as they are and come back on the next start.
  *
  * <p>Three things pause a process: the Pause switch, safe mode, and a file named
- * {@value #MARKER_FILE_NAME} in Facebook's own folder under {@code Android/data}, for a phone that
- * can't reach the settings at all. Safe mode turns on after three starts in a row that crashed
- * within a minute. A start is recorded when the process begins and cleared once it has run for a
+ * {@value #MARKER_FILE_NAME} in Facebook's own folder under {@code Android/data} or
+ * {@code Android/media}, for a phone that can't reach the settings at all. Safe mode turns on after
+ * three starts in a row that crashed within a minute. A start is recorded when the process begins
+ * and cleared once it has run for a
  * minute, so a record that is still there at the next start belonged to a process that died
  * young. Android 11 and newer say why it died, and only a crash, a native crash or a hang counts;
  * being swiped away or force-stopped does not. Older Android counts the crashes that reached the
@@ -114,16 +115,15 @@ public final class HushfacebookPause {
     }
 
     /**
-     * Turns the marker file, safe mode and the Pause switch off, and starts the crash count again.
-     * The change applies from the next start. The two switches go in one commit and only once the
-     * marker is gone, so a step that fails leaves the pause the person had rather than part of it.
+     * Turns the marker files, safe mode and the Pause switch off, and starts the crash count again.
+     * The change applies from the next start. The two switches go in one commit and only once both
+     * markers are gone, so a step that fails leaves the pause the person had rather than part of it.
      * The crash count is reset last: one that can't be only lets safe mode count on from where it was.
      *
      * @return why the next start still runs paused, read back from what was kept; NONE when it won't.
      */
     public static Reason turnBackOn(Context context) {
-        File marker = markerFile(context);
-        if (marker == null || !marker.exists() || marker.delete()) {
+        if (removeMarkers(context)) {
             Map<Setting<?>, Object> on = new HashMap<>();
             on.put(BaseSettings.SAFE_MODE, false);
             on.put(BaseSettings.PAUSED, false);
@@ -145,14 +145,54 @@ public final class HushfacebookPause {
         return dir == null ? null : new File(dir, MARKER_FILE_NAME);
     }
 
+    /**
+     * The same marker in Facebook's own folder under {@code Android/media}, or null when there is no
+     * storage. Android 11 refuses adb's shell in {@code Android/data} but lets it make a file here.
+     * Asking Android for the folder makes it, so the file goes in without a {@code mkdir}; when
+     * Android gives none, the folder's usual place on the phone's own storage stands in.
+     */
+    @Nullable
+    @SuppressWarnings("deprecation")
+    public static File mediaMarkerFile(Context context) {
+        try {
+            File[] dirs = context.getExternalMediaDirs();
+            File dir = dirs != null && dirs.length > 0 ? dirs[0] : null;
+            if (dir == null) {
+                File storage = android.os.Environment.getExternalStorageDirectory();
+                if (storage == null) return null;
+                dir = new File(storage, "Android/media/" + context.getPackageName());
+            }
+            return new File(dir, MARKER_FILE_NAME);
+        } catch (RuntimeException unavailable) {
+            return null;
+        }
+    }
+
+    /** The marker that is there now, the files folder's first, or null when neither is. */
+    @Nullable
+    public static File presentMarker(Context context) {
+        File marker = markerFile(context);
+        if (marker != null && marker.exists()) return marker;
+        File media = mediaMarkerFile(context);
+        return media != null && media.exists() ? media : null;
+    }
+
+    /** Deletes both markers; false when one is still there. */
+    private static boolean removeMarkers(Context context) {
+        boolean gone = true;
+        for (File marker : new File[]{markerFile(context), mediaMarkerFile(context)}) {
+            if (marker != null && marker.exists() && !marker.delete()) gone = false;
+        }
+        return gone;
+    }
+
     /** Whether the next start runs paused, as things stand now. */
     public static boolean pausesNextStart(Context context) {
         return decide(context) != Reason.NONE;
     }
 
     static Reason decide(Context context) {
-        File marker = markerFile(context);
-        if (marker != null && marker.exists()) return Reason.MARKER_FILE;
+        if (presentMarker(context) != null) return Reason.MARKER_FILE;
         if (BaseSettings.SAFE_MODE.savedValue()) return Reason.CRASH_LOOP;
         if (BaseSettings.PAUSED.savedValue()) return Reason.SWITCH;
         return Reason.NONE;

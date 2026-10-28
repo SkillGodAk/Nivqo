@@ -37,6 +37,8 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
+import app.morphe.extension.facebook.theme.AmoledTheme;
+import app.morphe.extension.facebook.theme.MaterialYouTheme;
 import app.morphe.extension.facebook.theme.TonePalette;
 import app.morphe.extension.shared.settings.preference.ImmediateAction;
 
@@ -52,7 +54,8 @@ import app.morphe.extension.shared.settings.preference.ImmediateAction;
  * which ScreenColorsTest works out.
  *
  * <p>Without the theme in the build, {@link #forScreen} answers null and the screen keeps the black
- * page and dark Material rows it always had.
+ * page and dark Material rows it always had, in the AMOLED theme's Background colour when that
+ * isn't black ({@link #black}).
  */
 final class ScreenColors {
     final boolean light;
@@ -80,6 +83,14 @@ final class ScreenColors {
     @Nullable
     static volatile ScreenColors shown;
     static final ScreenColors DEFAULT = new ScreenColors();
+
+    /** WCAG 2.2 AA for text, and for the parts of a control that show its state. */
+    private static final double TEXT_CONTRAST = 4.5;
+    private static final double CONTROL_CONTRAST = 3.0;
+
+    /** {@link #black} for the last Background colour it was asked about. */
+    @Nullable
+    private static volatile ScreenColors tinted;
 
     private ScreenColors() {
         light = false;
@@ -123,6 +134,52 @@ final class ScreenColors {
     }
 
     /**
+     * The black page over another Background colour: the page in it, cards and dialogs on the card
+     * step AMOLED raises Facebook's own cards by, and their edge on the input fill's step, so the
+     * screen matches the app around it. The black page's text and switches move toward white
+     * wherever the lighter card leaves them under AA, and the primary action's text turns black
+     * when the lifted accent leaves white under it.
+     */
+    private ScreenColors(int[] surfaces) {
+        light = false;
+        background = surfaces[0];
+        card = surfaces[1];
+        dialog = card;
+        outline = surfaces[surfaces.length - 1];
+        title = AmoledTheme.readable(DEFAULT.title, card, TEXT_CONTRAST);
+        summary = AmoledTheme.readable(DEFAULT.summary, card, TEXT_CONTRAST);
+        heading = AmoledTheme.readable(DEFAULT.heading, card, TEXT_CONTRAST);
+        accent = AmoledTheme.readable(DEFAULT.accent, card, CONTROL_CONTRAST);
+        switchOff = AmoledTheme.readable(DEFAULT.switchOff, card, CONTROL_CONTRAST);
+        onAccent = TonePalette.luminance(accent) <= (1.05 / TEXT_CONTRAST) - 0.05 ? Color.WHITE : Color.BLACK;
+    }
+
+    /**
+     * The black page's colours: {@link #DEFAULT}, unless the AMOLED theme is in this build with a
+     * Background colour other than black. Then they're built from that colour (issue #214), which
+     * left the page black with dark blue cards under an app in #0D1117. A Material You build hides
+     * the Background row, so a colour saved before it doesn't count.
+     */
+    static ScreenColors black() {
+        if (!PatchFamily.AMOLED_THEME.inBuild() || PatchFamily.MATERIAL_YOU_THEME.inBuild()) return DEFAULT;
+        int[] surfaces = AmoledTheme.surfaces();
+        if (surfaces[0] == Color.BLACK) return DEFAULT;
+        ScreenColors colors = tinted;
+        if (colors == null || colors.background != surfaces[0] || colors.card != surfaces[1]
+                || colors.outline != surfaces[surfaces.length - 1]) {
+            colors = new ScreenColors(surfaces);
+            tinted = colors;
+        }
+        return colors;
+    }
+
+    /** The colours on show, or {@link #black} when the black page is. */
+    static ScreenColors current() {
+        ScreenColors colors = shown;
+        return colors == null ? black() : colors;
+    }
+
+    /**
      * The thumb of a switch that's off, read against its track. On a dark wallpaper palette the
      * title's light tone sat at 2.46:1 on the neutral track, under the 3:1 a control's state
      * needs; the dark tone that fills the on thumb reads above 5:1 there. The black page's white
@@ -163,7 +220,7 @@ final class ScreenColors {
     static ScreenColors forScreen(Context context) {
         if (!PatchFamily.MATERIAL_YOU_THEME.inBuild()) return null;
         int night = context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-        return new ScreenColors(TonePalette.of(context), night != Configuration.UI_MODE_NIGHT_YES);
+        return new ScreenColors(MaterialYouTheme.phonePalette(context), night != Configuration.UI_MODE_NIGHT_YES);
     }
 
     /** The framework theme rows and dialogs are built with, so what this class doesn't paint still reads. */
@@ -182,7 +239,7 @@ final class ScreenColors {
         TextView title = row.findViewById(android.R.id.title);
         if (title != null) {
             title.setTextColor(dimmedWhenDisabled(this.title));
-            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             if (title.getParent() instanceof View) {
                 View text = (View) title.getParent();
@@ -193,8 +250,8 @@ final class ScreenColors {
         TextView summary = row.findViewById(android.R.id.summary);
         if (summary != null) {
             summary.setTextColor(dimmedWhenDisabled(this.summary));
-            summary.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-            summary.setLineSpacing(dp(row, 2), 1);
+            summary.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            summary.setLineSpacing(0, 1);
         }
         View widget = row.findViewById(android.R.id.switch_widget);
         if (widget instanceof Switch) {
@@ -239,36 +296,27 @@ final class ScreenColors {
 
     /** Group boundaries follow the visible rows, including a filtered search result. */
     void paintSurface(View row, Preference preference, boolean first, boolean last) {
-        float radius = dp(row, 8);
         GradientDrawable surface = new GradientDrawable();
         surface.setColor(card);
         surface.setStroke(dp(row, 1), focusStroke(heading, outline));
-        surface.setCornerRadii(new float[]{
-                first ? radius : 0, first ? radius : 0,
-                first ? radius : 0, first ? radius : 0,
-                last ? radius : 0, last ? radius : 0,
-                last ? radius : 0, last ? radius : 0});
-        Drawable inset = new InsetDrawable(surface, dp(row, 20), first ? dp(row, 4) : -dp(row, 1),
-                dp(row, 20), last ? dp(row, 4) : 0);
+        Drawable inset = new InsetDrawable(surface, 0, first ? 0 : -dp(row, 1), 0, 0);
         row.setBackground(preference.isSelectable()
                 ? new RippleDrawable(ColorStateList.valueOf(half(accent)), inset, null) : inset);
         // Explicit padding after the inset background prevents its padding from moving the text.
-        int vertical = 14;
-        row.setPaddingRelative(dp(row, 36), dp(row, vertical + (first ? 4 : 0)),
-                dp(row, 36), dp(row, vertical + (last ? 4 : 0)));
-        row.setMinimumHeight(dp(row, preference.getIcon() == null ? 72 : 64));
+        row.setPaddingRelative(dp(row, 16), dp(row, 7), dp(row, 16), dp(row, 7));
+        row.setMinimumHeight(dp(row, 52));
     }
 
     /** A section title. */
     void paintHeading(View row) {
         TextView title = row.findViewById(android.R.id.title);
         if (title != null) {
-            title.setTextColor(heading);
-            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            title.setTextColor(summary);
+            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
             title.setLetterSpacing(0.07f);
             title.setAllCaps(true);
         }
-        row.setPaddingRelative(dp(row, 20), dp(row, 22), dp(row, 20), dp(row, 10));
+        row.setPaddingRelative(dp(row, 16), dp(row, 16), dp(row, 16), dp(row, 8));
     }
 
     /** Marks the chevron a row was given, so a recycled row's can be found and taken off. */
@@ -438,7 +486,7 @@ final class ScreenColors {
 
     static void recoveryMessage(View row) {
         ScreenColors palette = forScreen(row.getContext());
-        if (palette == null) palette = DEFAULT;
+        if (palette == null) palette = black();
         HushfacebookPreferenceFragment.showAllText(row);
         TextView title = row.findViewById(android.R.id.title);
         TextView summary = row.findViewById(android.R.id.summary);
@@ -447,7 +495,7 @@ final class ScreenColors {
             fillWidth(title);
             title.setGravity(android.view.Gravity.CENTER);
             title.setTextSize(22);
-            title.setTextColor(palette.title);
+            ShimmerTitle.wear(title, palette.background);
             title.setTypeface(Typeface.create("sans-serif-medium", 0));
             Drawable icon = SettingsIcons.icon(row.getContext(), SettingsIcons.ABOUT, palette.heading);
             icon.setBounds(0, 0, dp(row, 56), dp(row, 56));
@@ -497,7 +545,7 @@ final class ScreenColors {
         int titleId = dialog.getContext().getResources().getIdentifier("alertTitle", "id", "android");
         TextView title = titleId == 0 ? null : dialog.findViewById(titleId);
         if (title != null) {
-            title.setTextColor(this.title);
+            ShimmerTitle.wear(title, this.dialog);
             title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
             title.setSingleLine(false);
             title.setMaxLines(Integer.MAX_VALUE);
@@ -606,26 +654,23 @@ final class ScreenColors {
 
     /** Paints a row with the colours on show, if there are any. */
     static void row(View row, Preference preference) {
-        ScreenColors colors = shown;
-        (colors == null ? DEFAULT : colors).paintRow(row, preference);
+        current().paintRow(row, preference);
     }
 
     /** Paints a section title with the colours on show, if there are any. */
     static void heading(View row) {
-        ScreenColors colors = shown;
-        (colors == null ? DEFAULT : colors).paintHeading(row);
+        current().paintHeading(row);
     }
 
     /** Paints both recovery actions even if the ordinary settings page failed to initialize. */
     static void recoveryAction(View row, boolean primary) {
         ScreenColors colors = forScreen(row.getContext());
-        (colors == null ? DEFAULT : colors).paintRecoveryAction(row, primary);
+        (colors == null ? black() : colors).paintRecoveryAction(row, primary);
     }
 
     /** Paints a dialog with the colours on show, if there are any. */
     static void dialog(@Nullable AlertDialog dialog) {
-        ScreenColors colors = shown;
-        (colors == null ? DEFAULT : colors).paint(dialog);
+        current().paint(dialog);
     }
 
     private static int dp(View view, int value) {

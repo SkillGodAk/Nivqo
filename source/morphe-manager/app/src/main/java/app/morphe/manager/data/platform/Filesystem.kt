@@ -25,12 +25,10 @@ import app.morphe.manager.util.FilenameUtils
 import app.morphe.manager.util.RequestManageStorageContract
 import app.morphe.manager.util.formatBytesForReport
 import app.morphe.manager.util.purgeDirectoryAsync
+import app.morphe.manager.util.totalBytes
 import java.io.File
 
 private const val TAG = "Morphe Filesystem"
-
-// Name prefix of the directory the patcher extracts a bundle's DEX into under java.io.tmpdir
-private const val LEAKED_BUNDLE_DEX_PREFIX = "morphe-extracted-patches"
 
 class Filesystem(
     private val app: Application,
@@ -55,7 +53,6 @@ class Filesystem(
 
     init {
         invalidatePatcherWorkspaceOnUpgrade()
-        deleteLeakedBundleDex()
     }
 
     /**
@@ -75,6 +72,9 @@ class Filesystem(
 
     /** Home card cache, kept apart so storage management does not take it for patcher scratch. */
     val homeCardCacheDir: File = app.cacheDir.resolve("home")
+
+    /** Avatars of patch sources, kept apart for the same reason as [homeCardCacheDir]. */
+    val avatarCacheDir: File = app.cacheDir.resolve("avatars")
     private val patchedAppsDir: File = app.getDir("patched-apps", Context.MODE_PRIVATE).apply { mkdirs() }
 
     /**
@@ -85,8 +85,9 @@ class Filesystem(
 
     private fun usesManagePermission() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
 
-    private val storagePermissionName =
-        if (usesManagePermission()) Manifest.permission.MANAGE_EXTERNAL_STORAGE else Manifest.permission.READ_EXTERNAL_STORAGE
+    /** Storage permission the app asks for on this Android version, write access below Android 11. */
+    val storagePermissionName =
+        if (usesManagePermission()) Manifest.permission.MANAGE_EXTERNAL_STORAGE else Manifest.permission.WRITE_EXTERNAL_STORAGE
 
     fun permissionContract(): Pair<ActivityResultContract<String, Boolean>, String> {
         val contract =
@@ -99,6 +100,9 @@ class Filesystem(
             storagePermissionName
         ) == PackageManager.PERMISSION_GRANTED
 
+    /** Every file in the directory retained patched APKs are kept in. */
+    fun patchedAppFiles(): List<File> = patchedAppsDir.listFiles()?.filter(File::isFile).orEmpty()
+
     fun getPatchedAppFile(packageName: String, version: String): File {
         val safePackage = FilenameUtils.sanitize(packageName)
         val safeVersion = FilenameUtils.sanitize(version.ifBlank { "unspecified" })
@@ -106,10 +110,10 @@ class Filesystem(
     }
 
     /**
-     * Wipes `cacheDir/framework` and `cacheDir/patcher` when the persisted manager version code
-     * differs from the running one. These caches hold dex/framework files tied to the patcher
-     * module bundled with the manager, so stale entries from a previous version can cause
-     * ClassNotFoundError or ABI mismatches during patching.
+     * Wipes `cacheDir/patcher` when the persisted manager version code differs from the running
+     * one. It holds dex files tied to the patcher module bundled with the manager, so stale entries
+     * from a previous version can cause ClassNotFoundError or ABI mismatches during patching.
+     * `cacheDir/framework` goes too: the apktool framework cache of patchers before 2.0, now unused.
      */
     private fun invalidatePatcherWorkspaceOnUpgrade() {
         val current = BuildConfig.VERSION_CODE
@@ -120,22 +124,6 @@ class Filesystem(
             Log.i(TAG, "Manager version changed ($markedVersion -> $current), wiped patcher workspace")
         }
         runCatching { versionMarker.writeText(current.toString()) }
-    }
-
-    /**
-     * Deletes the `morphe-extracted-patches*` directories patchers from 1.4.0 left in `cacheDir`
-     * on every bundle load, which piled up to hundreds of megabytes. Runs before anything can
-     * load a bundle, so none of them is still being read.
-     */
-    // TODO: Remove a few releases after the manager ships a patcher that deletes them itself
-    private fun deleteLeakedBundleDex() {
-        val leaked = app.cacheDir.listFiles { file ->
-            file.isDirectory && file.name.startsWith(LEAKED_BUNDLE_DEX_PREFIX)
-        }.orEmpty()
-        if (leaked.isEmpty()) return
-
-        leaked.forEach { runCatching { it.deleteRecursively() } }
-        Log.i(TAG, "Deleted ${leaked.size} leaked bundle DEX directories")
     }
 
     /**
@@ -151,7 +139,7 @@ class Filesystem(
     }
 
     private fun logDir(label: String, dir: File, indent: String = "") {
-        val totalSize = dir.walkBottomUp().filter { it.isFile }.sumOf { it.length() }
+        val totalSize = dir.totalBytes()
         Log.i(TAG, "$indent[$label] ${dir.absolutePath} (total: ${formatBytesForReport(totalSize)})")
         dir.listFiles()
             ?.sortedWith(compareBy({ it.isFile }, { it.name }))

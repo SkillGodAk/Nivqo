@@ -19,70 +19,45 @@ in full detail in the Expert mode log:
 
 While this runs, Morphe keeps a **Patching in progress** notification so you can leave the
 app and come back, and a notification arrives the moment it finishes. **Completion sound** in
-**Settings → System → Notifications** adds a distinct tone for success and failure.
+**Settings → Notifications** adds a distinct tone for success and failure.
 
 The red button stops the run, with a confirmation. Nothing is installed or changed on your
 device until you press Install afterwards.
 
 ## Keeping the run alive
 
-Some devices stop background work aggressively. Before the first patch Morphe asks to be
-excluded from battery optimization, see
-[Allow background patching](patching-simple-mode.md#allow-background-patching). If you
-declined and runs keep dying when you switch away, grant it from **Settings → System** or
-keep Morphe in the foreground.
+Some devices stop background work aggressively. **Battery optimization** in
+**Settings → Patcher** lets Morphe run without battery restrictions, and Expert mode asks for
+it before the first patch, see
+[Allow background patching](patching-expert-mode.md#allow-background-patching). Without it,
+keep Morphe in the foreground while patching.
 
 Patching also needs room: at least **1 GB of free storage** for the input, the output, and
 temporary files. Morphe warns you before starting if you are below that.
 
-## Process runtime
+## Patcher runtime
 
-**Settings → Advanced → Patcher → Process runtime** decides where the patcher runs.
+Every run happens in a process of its own, apart from the Morphe app, so a run that fails or
+is stopped by the system never takes the app down with it. **Settings → Patcher → Use
+embedded VM** decides what runs the patcher inside that process.
 
 <p align="center">
-  <img src="images/patching-process/01-process-runtime.jpg" width="320" alt="Process runtime dialog with the memory slider" />
+  <img src="images/patching-process/01-process-runtime.jpg" width="320" alt="Patcher settings with the embedded VM switch" />
 </p>
 
-With **Enable process runtime** on, patching happens in a separate process with its own
-memory budget instead of inside the Morphe app process. That is more stable, and it lets you
-raise the memory ceiling beyond what the app process would get.
+- **On** (the default) - Morphe patches in a Java VM it carries itself. It can use far more
+  memory than Android gives an app: about a third of the device RAM, between 1 GB and 3 GB,
+  and up to 1 GB on 32-bit devices.
+- **Off** - Morphe patches with the runtime of Android, which gets the same memory an app
+  does. Worth trying only if the embedded VM causes problems on your device.
 
-It is on by default on devices that support it. Android 10 and older cannot use it, and
-Morphe disables it there.
-
-### The memory limit
-
-The slider sets how much memory the patcher process may use, in steps of 128 MB:
-
-- The **minimum is 512 MB**, and **1280 MB** is as high as the slider goes on most devices.
-- The upper end adapts to your device, roughly a quarter of its total RAM, so a phone with
-  less memory offers a lower ceiling.
-- 64-bit devices on Android 11 and newer can go **past 1280 MB, up to 2048 MB**, in steps of
-  256 MB. Morphe warns you there: some devices slow to a crawl with a heap that size, and the
-  range exists for apps that carry tens of thousands of classes and will not patch otherwise.
-- Morphe picks a sensible starting value on first launch, below the safe maximum whatever
-  your RAM, no need to touch it unless something goes wrong.
-
-**Higher limits speed up patching on capable devices.** Below 640 MB Morphe warns you that
-larger apps may fail to patch. If a run dies with an out-of-memory error, raise the limit
-first, and if it is already at the top, switch the bytecode mode to Fast. A run the system
-kills is retried with a lower limit, twice at most, since each retry patches the app from
-scratch.
-
-## Bytecode processing mode
-
-**Settings → Advanced → Patcher → Bytecode processing mode** controls how the app's code is
-processed. It affects speed, memory usage, and the size of the output APK.
-
-| Mode | Trade-off |
-| --- | --- |
-| **Fast** (default) | Faster patching and lower memory usage, at the cost of a larger APK. Recommended on low-RAM or older devices |
-| **Full** | Slower, replicates the legacy behaviour. Worth trying only if Fast causes problems |
+The switch needs an ARM or 64-bit x86 device, elsewhere it stays off. There is nothing to tune
+by hand, the memory limit follows from the device.
 
 ## Making the output smaller
 
-**Optimize for device architecture** drops the native libraries and split modules your device
-does not need, which shrinks the result considerably. It is an Expert mode setting, see
+**Optimize for device architecture** in **Settings → Patcher** drops the native libraries and
+split modules your device does not need, which shrinks the result considerably, see
 [Optimize for device architecture](patching-expert-mode.md#optimize-for-device-architecture).
 
 ## When patching fails
@@ -93,12 +68,14 @@ clipboard.
 For anything you want to report, the Expert mode log is the useful part: it opens with a
 summary of app version, patches version, APK size, patch count, split APK or not, runtime and
 heap limit, your Android version and device, and free RAM and storage. The copy button at the
-bottom of the log takes the whole thing. **Export debug logs** in **Settings → System →
-About** additionally exports full system logs.
+bottom of the log takes the whole thing. **Export debug logs** in **Settings → Help & info**
+additionally exports full system logs.
 
 | Symptom | What to try |
 | --- | --- |
-| Out of memory, or the run dies near the end | Raise the memory limit, keep **Process runtime** on, and use the **Fast** bytecode mode |
+| Out of memory | Keep **Use embedded VM** on, it gives the patcher the most memory. If it still runs out, the app is too large for the selection: patch with fewer patch sources or fewer patches |
+| "The system stopped the patcher" | Android ended the patcher, usually to free memory. Close other apps and try again |
+| "The patcher crashed" | Try again. If it keeps crashing, turn **Use embedded VM** off and report the issue with the log |
 | Patching stops when you leave the app | Allow Morphe to run without battery restrictions |
 | "Low disk space" warning or a corrupt output | Free storage, patching wants at least 1 GB |
 | Fails right after "Merging split APK" | Split bundles are less reliable than a full APK. Download a full APK if the site offers one |

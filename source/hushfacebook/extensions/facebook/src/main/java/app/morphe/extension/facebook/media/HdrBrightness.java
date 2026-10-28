@@ -71,6 +71,13 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * the screen the way it does for any wide colour video. A stream that names HLG itself (HEVC, AV1)
  * keeps HLG on the decoder, and the request above still asks for the tone map.
  *
+ * <p>A Qualcomm Codec2 decoder (its name starts {@code c2.qti.}) is never sent the request. On a
+ * Samsung phone with a Snapdragon chip the request starts the vendor's tone-map filter inside the
+ * media codec service, and on HDR reels that filter aborts the whole service, which comes back a
+ * few seconds later. So on that decoder an HLG video still goes over named at the usual range,
+ * which is all a VP9 stream needs (one that names HLG itself keeps HLG), and a PQ video is set up
+ * exactly as Facebook asked. The report counts each one passed over.
+ *
  * <p>A switch change shows from the next screen Facebook brings to the front. Nothing here may
  * throw into Facebook's screen: off, paused, before the settings are ready or when anything here
  * fails, Facebook's request goes through unchanged.
@@ -100,6 +107,12 @@ public final class HdrBrightness {
     /** Counted for each HLG video handed to its decoder as one at the usual range, in its own colours. */
     static final String HLG_AS_USUAL_RANGE = "HLG video handed over at the usual range";
 
+    /** Counted for each HDR video on a Qualcomm decoder, which isn't asked to tone-map: its tone map aborts. */
+    static final String QUALCOMM_NOT_ASKED = "HDR video on a Qualcomm decoder, not asked to tone-map";
+
+    /** How a Qualcomm Codec2 decoder's name starts. */
+    private static final String QUALCOMM_CODEC2 = "c2.qti.";
+
     /** No headroom over the screen's usual white, so nothing on screen goes brighter than it. */
     static final float NO_HEADROOM = 1f;
 
@@ -123,7 +136,9 @@ public final class HdrBrightness {
     public static void configure(MediaCodec codec, @Nullable MediaFormat format, @Nullable Surface surface,
                                  @Nullable MediaCrypto crypto, int flags) {
         boolean hlg = hlg(format);
-        if (!askForUsualRange(format, surface, flags)) {
+        // Only a decoder drawing to a surface is ever asked, so only its name is read.
+        boolean qualcomm = surface != null && qualcomm(codec);
+        if (!askForUsualRange(format, surface, flags, qualcomm)) {
             codec.configure(format, surface, crypto, flags);
             return;
         }
@@ -140,31 +155,62 @@ public final class HdrBrightness {
             }
             codec.configure(format, surface, crypto, flags);
             count(DECODER_REFUSED);
+            if (qualcomm) count(QUALCOMM_NOT_ASKED);
             return;
         }
         if (hlg) count(HLG_AS_USUAL_RANGE);
-        count(toneMaps(codec) ? DECODER_TONE_MAPS : DECODER_CANNOT);
+        count(qualcomm ? QUALCOMM_NOT_ASKED : toneMaps(codec) ? DECODER_TONE_MAPS : DECODER_CANNOT);
     }
 
     /**
      * Whether [format] was just asked to come out in the usual range: an HDR video ({@link
      * #hdrVideo}) going to [surface] on a decoder, on Android 12 or newer, with the switch on and
      * no request of Facebook's own. Adds the request to [format] when it answers yes, and for an
-     * HLG video names the usual transfer in place of HLG, its BT.2020 colours left alone.
+     * HLG video names the usual transfer in place of HLG, its BT.2020 colours left alone. On a
+     * [qualcomm] decoder only the HLG part is done, so a PQ video there answers no and is counted.
      */
-    static boolean askForUsualRange(@Nullable MediaFormat format, @Nullable Surface surface, int flags) {
+    static boolean askForUsualRange(@Nullable MediaFormat format, @Nullable Surface surface, int flags,
+                                    boolean qualcomm) {
         if (Build.VERSION.SDK_INT < 31 || format == null || surface == null
                 || (flags & MediaCodec.CONFIGURE_FLAG_ENCODE) != 0) return false;
         try {
             if (!hdrVideo(format) || format.containsKey(MediaFormat.KEY_COLOR_TRANSFER_REQUEST) || !on()) return false;
-            format.setInteger(MediaFormat.KEY_COLOR_TRANSFER_REQUEST, MediaFormat.COLOR_TRANSFER_SDR_VIDEO);
-            if (hlg(format)) format.setInteger(MediaFormat.KEY_COLOR_TRANSFER, MediaFormat.COLOR_TRANSFER_SDR_VIDEO);
+            boolean hlg = hlg(format);
+            if (qualcomm && !hlg) {
+                HookStatus.bound(FAMILY, "decoder");
+                count(QUALCOMM_NOT_ASKED);
+                return false;
+            }
+            if (!qualcomm) format.setInteger(MediaFormat.KEY_COLOR_TRANSFER_REQUEST, MediaFormat.COLOR_TRANSFER_SDR_VIDEO);
+            if (hlg) format.setInteger(MediaFormat.KEY_COLOR_TRANSFER, MediaFormat.COLOR_TRANSFER_SDR_VIDEO);
             HookStatus.bound(FAMILY, "decoder");
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "decoder", failure);
             return false;
         }
+    }
+
+    /** Whether [codec] is a Qualcomm Codec2 decoder, under its own name or an alias. False when unreadable. */
+    static boolean qualcomm(MediaCodec codec) {
+        try {
+            return qualcomm(codec.getCanonicalName(), codec.getName());
+        } catch (Throwable unreadable) {
+            return false;
+        }
+    }
+
+    /**
+     * Whether a decoder whose underlying name is [canonical], opened as [name] (an alias when the
+     * two differ), is a Qualcomm Codec2 one.
+     */
+    static boolean qualcomm(@Nullable String canonical, @Nullable String name) {
+        return qualcomm(canonical) || qualcomm(name);
+    }
+
+    /** Whether a decoder named [name] is a Qualcomm Codec2 one. */
+    static boolean qualcomm(@Nullable String name) {
+        return name != null && name.regionMatches(true, 0, QUALCOMM_CODEC2, 0, QUALCOMM_CODEC2.length());
     }
 
     /** Whether [format] names the HLG transfer. False for anything unreadable. */

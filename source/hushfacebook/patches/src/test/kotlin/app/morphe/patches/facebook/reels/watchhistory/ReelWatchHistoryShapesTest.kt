@@ -107,6 +107,38 @@ class ReelWatchHistoryShapesTest {
         assertEquals(4, sendPoint(flush(), lookup(sendClass())))
     }
 
+    private val input = "Lfixture/Input;"
+
+    /** A GraphQL input whose `(List)` constructor loads [field], the way 584's merged `LX/7nD` loads `video_ids`. */
+    private fun inputClass(field: String = VIDEO_IDS): ClassDef {
+        val constructor = ImmutableMethod(
+            input, "<init>", listOf(ImmutableMethodParameter("Ljava/util/List;", null, null)), "V",
+            AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value, null, null,
+            ImmutableMethodImplementation(3, listOf(string(0, field), returnVoid), null, null),
+        )
+        return ImmutableClassDef(input, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(constructor))
+    }
+
+    /** 584's flush: the input is built (and `video_ids` filled) by its constructor, then the mutation is named. */
+    private fun mergedInputBody(constructFirst: Boolean = true): List<Instruction> {
+        val build = listOf(
+            newInstance(5, input),
+            ImmutableInstruction35c(
+                Opcode.INVOKE_DIRECT, 2, 5, 2, 0, 0, 0, ImmutableMethodReference(input, "<init>", listOf("Ljava/util/List;"), "V"),
+            ),
+        )
+        val name = listOf(string(3, SEEN_STATE_MUTATION))
+        return (if (constructFirst) build + name else name + build) + listOf(newInstance(0), construct(0, 4), handOver(), returnVoid)
+    }
+
+    @Test
+    fun `a flush whose input constructor fills the ids is found`() {
+        assertEquals(5, sendPoint(flush(mergedInputBody()), lookup(sendClass(), inputClass())))
+        assertNull("the constructor fills something else", sendPoint(flush(mergedInputBody()), lookup(sendClass(), inputClass("post_ids"))))
+        assertNull("the input is built after the mutation is named", sendPoint(flush(mergedInputBody(constructFirst = false)), lookup(sendClass(), inputClass())))
+        assertNull("an input class the build doesn't have", sendPoint(flush(mergedInputBody()), lookup(sendClass())))
+    }
+
     @Test
     fun `both literals are required`() {
         assertNull(sendPoint(flush(standardBody().filterIndexed { i, _ -> i != 0 }), lookup(sendClass())))

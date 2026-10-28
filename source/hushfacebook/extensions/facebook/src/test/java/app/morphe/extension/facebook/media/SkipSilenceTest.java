@@ -6,7 +6,12 @@ package app.morphe.extension.facebook.media;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Arrays;
+import java.util.Collections;
 
 import org.junit.After;
 import org.junit.Before;
@@ -41,10 +46,14 @@ public class SkipSilenceTest {
 
     @After
     public void restore() {
+        SkipSilenceForTests.forget();
         PauseForTests.resume();
         Settings.SKIP_SILENT_PARTS.resetToDefault();
         HookStatus.clear();
     }
+
+    private static final String ON = "Skip silent parts: on";
+    private static final String KEPT = "Skip silent parts: off for this video";
 
     private static String statusLine() {
         for (String line : HookStatus.report()) {
@@ -89,5 +98,109 @@ public class SkipSilenceTest {
         String line = statusLine();
         assertFalse("a flag left to Facebook was counted: " + line, line != null && line.contains("Counted"));
         assertTrue("on again after the pause, a sink's sound kept its silent parts", SkipSilence.skipSilence(false));
+    }
+
+    // ---- The row (#144) -------------------------------------------------------------------------
+
+    @Test
+    public void aRowKeepsOneVideosSilentPartsAndSeeksInPlaceUntilAnotherStarts() {
+        Settings.SKIP_SILENT_PARTS.save(true);
+        ResumePlaybackForTests.Player first = SkipSilenceForTests.playing("111");
+        assertEquals("111", SkipSilence.rowFor("111"));
+        assertEquals(ON, SkipSilence.rowTitle("111"));
+
+        SkipSilence.flip(null, "111");
+        assertEquals("the playing video wasn't sought in place, so its sound kept the old flag",
+                Collections.singletonList("BY_PLAYER@12000"), first.seeks);
+        assertFalse("the row's video still skipped its silent parts", SkipSilence.skipSilence(false));
+        assertEquals(KEPT, SkipSilence.rowTitle("111"));
+        assertTrue("a yes of Facebook's own became a no", SkipSilence.skipSilence(true));
+
+        // The same video starting again, a reel's loop, keeps the pick.
+        ResumePlayback.started(first, ResumePlaybackForTests.Trigger.BY_AUTOPLAY);
+        assertFalse("a loop of the row's video skipped its silent parts", SkipSilence.skipSilence(false));
+
+        ResumePlayback.started(new ResumePlaybackForTests.Player(new ResumePlaybackForTests.Params("222", 60_000)),
+                ResumePlaybackForTests.Trigger.BY_USER);
+        assertTrue("the next video kept its silent parts", SkipSilence.skipSilence(false));
+        assertEquals("the pick outlived another video's start", ON, SkipSilence.rowTitle("111"));
+        assertTrue(statusLine(), statusLine().contains(SkipSilence.LEFT_IN + " 2"));
+    }
+
+    @Test
+    public void aSecondTapSkipsAgain() {
+        Settings.SKIP_SILENT_PARTS.save(true);
+        ResumePlaybackForTests.Player player = SkipSilenceForTests.playing("111");
+        SkipSilence.flip(null, "111");
+        player.position = 15_000;
+        SkipSilence.flip(null, "111");
+        assertTrue("the second tap left the silent parts in", SkipSilence.skipSilence(false));
+        assertEquals(ON, SkipSilence.rowTitle("111"));
+        assertEquals(Arrays.asList("BY_PLAYER@12000", "BY_PLAYER@15000"), player.seeks);
+    }
+
+    @Test
+    public void aRowForAVideoNotPlayingWaitsForItsStart() {
+        Settings.SKIP_SILENT_PARTS.save(true);
+        ResumePlaybackForTests.Player playing = SkipSilenceForTests.playing("111");
+        assertEquals("a menu naming no video isn't for the playing one", "111", SkipSilence.rowFor(null));
+        assertEquals("333", SkipSilence.rowFor("333"));
+
+        SkipSilence.flip(null, "333");
+        assertTrue("another video's pick sought the playing one", playing.seeks.isEmpty());
+        assertTrue("another video's pick kept the playing one's silent parts", SkipSilence.skipSilence(false));
+
+        ResumePlayback.started(new ResumePlaybackForTests.Player(new ResumePlaybackForTests.Params("333", 60_000)),
+                ResumePlaybackForTests.Trigger.BY_USER);
+        assertFalse("the picked video skipped its silent parts once it started", SkipSilence.skipSilence(false));
+    }
+
+    @Test
+    public void noRowOffPausedOrBeforeAVideoStarted() {
+        SkipSilenceForTests.playing("111");
+        assertFalse("off, a start was kept for the row", SkipSilence.offersRow());
+        assertNull("off, a menu got the row", SkipSilence.rowFor("111"));
+
+        Settings.SKIP_SILENT_PARTS.save(true);
+        assertNull("a menu got the row before any video started", SkipSilence.rowFor("111"));
+        ResumePlaybackForTests.Player player = SkipSilenceForTests.playing("111");
+        assertTrue(SkipSilence.offersRow());
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse("paused, a menu could get the row", SkipSilence.offersRow());
+        assertNull("paused, a menu got the row", SkipSilence.rowFor("111"));
+        SkipSilence.flip(null, "111");
+        assertTrue("paused, a tap sought the video", player.seeks.isEmpty());
+        PauseForTests.resume();
+        assertEquals("paused, a tap kept the silent parts", ON, SkipSilence.rowTitle("111"));
+    }
+
+    @Test
+    public void aStartWhileOffForgetsTheVideoAndThePick() {
+        Settings.SKIP_SILENT_PARTS.save(true);
+        SkipSilenceForTests.playing("111");
+        SkipSilence.flip(null, "111");
+        Settings.SKIP_SILENT_PARTS.save(false);
+        SkipSilenceForTests.playing("222");
+
+        Settings.SKIP_SILENT_PARTS.save(true);
+        assertFalse("a video started before the switch went off still offered a row", SkipSilence.offersRow());
+        assertNull("a reel's sheet naming no video got a row for one from before", SkipSilenceRow.forReel(null));
+        assertEquals("a pick outlived the switch going off", ON, SkipSilence.rowTitle("111"));
+    }
+
+    @Test
+    public void theReelSheetsRowFollowsTheSameVideo() {
+        assertNull("off, a reel's sheet got the row", SkipSilenceRow.forReel("111"));
+        Settings.SKIP_SILENT_PARTS.save(true);
+        ResumePlaybackForTests.Player reel = SkipSilenceForTests.playing("111");
+
+        SkipSilenceRow row = SkipSilenceRow.forReel("111");
+        assertNotNull("a reel's sheet got no row", row);
+        assertEquals(ON, row.title());
+        row.run();
+        assertEquals(KEPT, row.title());
+        assertEquals(Collections.singletonList("BY_PLAYER@12000"), reel.seeks);
+        assertFalse(SkipSilence.skipSilence(false));
     }
 }

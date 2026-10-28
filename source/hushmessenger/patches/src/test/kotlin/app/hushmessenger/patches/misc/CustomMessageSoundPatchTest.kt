@@ -141,14 +141,11 @@ class CustomMessageSoundPatchTest {
         assumeTrue(root != null, "Set HUSH_NATIVE_FIXTURES to the exact stock fixture directory")
         val apks = Files.list(Path.of(root!!)).use { it.filter { p -> p.toString().endsWith(".apk") }.sorted().toList() }
         assertEquals(MessengerTarget.VERSION_CODES.size, apks.size)
-        val paths = mutableSetOf<String>()
         for (apk in apks) ZipFile(apk.toFile()).use { zip ->
             val entries = zip.entries().asSequence().toList()
             val path = findMessageSound(entries.map { it.name }) { name -> zip.getInputStream(zip.getEntry(name)).use { it.readBytes() } }
             assertEquals(ZipEntry.STORED, zip.getEntry(path).method, "$apk $path")
             assertEquals(11_615L, zip.getEntry(path).size, "$apk $path")
-            paths += path
         }
-        assertTrue(paths.size > 1, "The obfuscated path differs between builds, so it can't be pinned: $paths")
     }
 }

@@ -35,7 +35,7 @@ interface PatchBundleDao {
     @Query("DELETE FROM patch_bundles WHERE uid = :uid")
     suspend fun remove(uid: Int)
 
-    @Query("SELECT name, display_name, version, auto_update, source, enabled, sort_order, created_at, updated_at FROM patch_bundles WHERE uid = :uid")
+    @Query("SELECT name, display_name, version, source, enabled, sort_order, created_at, updated_at FROM patch_bundles WHERE uid = :uid")
     suspend fun getProps(uid: Int): PatchBundleProperties?
 
     @Upsert

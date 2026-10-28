@@ -24,14 +24,13 @@ import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import org.junit.Assert.*
 import org.junit.Test
 
-/** Both supported ABIs prove kept, typed outcomes and read-only injection without Redex class names. */
+/** Every declared ABI proves kept, typed outcomes and read-only injection without Redex class names. */
 class PushDiagnosticsFixtureTest {
     @Test fun `each declared ABI gets server transport and receive observers without payload reads`() {
         val versions = AppCompatibilities.facebook().single().targets.mapNotNull { it.version }.toSet()
         for (version in versions) {
             val bundles = Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }
-            assertTrue("$version: arm64 fixture missing", bundles.any { it.name.contains("-arm64-v8a.") })
-            assertTrue("$version: armv7 fixture missing", bundles.any { it.name.contains("-armeabi-v7a.") })
+            for (abi in Fixtures.declaredAbis()) assertTrue("$version: $abi fixture missing", bundles.any { it.name.contains("-$abi.") })
             for (bundle in bundles) {
                 val label = bundle.name
                 val registrars = FixtureDex.classesHolding(bundle, "FacebookPushServerRegistrar")

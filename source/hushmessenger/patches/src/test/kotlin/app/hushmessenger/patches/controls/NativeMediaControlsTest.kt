@@ -1,5 +1,7 @@
 package app.hushmessenger.patches.controls
 
+import app.hushmessenger.patches.CompatMirror
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableClass
@@ -18,11 +20,13 @@ import java.security.MessageDigest
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import kotlin.test.*
 
-/** Emoji drawer flag reads in each 583 build, across its nine drawer hooks. */
-private const val EMOJI_DRAWER_READS = 10
+/** Emoji drawer flag reads in 584, one in each of its four drawer hooks. */
+private const val EMOJI_DRAWER_READS = 4
 
-/** [resumeTail] pads onResume after the guarded part: 22 instructions in 583. An older release's two more are refused. */
-internal fun screenshotViewerFixture(id: String, quickSize: Int = 449, resumeTail: Int = 22): MutableMethod {
+/** [resumeTail] pads onResume after the guarded part: 22 instructions in 584. An older release's two more are refused. */
+internal fun screenshotViewerFixture(
+    id: String, quickSize: Int = 446, resumeTail: Int = 22, quickSite: Int = 32,
+): MutableMethod {
     val body: String
     val registers: Int
     when {
@@ -52,7 +56,7 @@ internal fun screenshotViewerFixture(id: String, quickSize: Int = 449, resumeTai
         }
         id.contains("->onCreateView(") -> {
             registers = 23
-            body = List(25) { "nop" }.joinToString("\n") + "\n" + """
+            body = List(quickSite - 7) { "nop" }.joinToString("\n") + "\n" + """
                 invoke-virtual {v8}, LX/Fragment;->getDialog()Landroid/app/Dialog;
                 move-result-object v0
                 if-eqz v0, :inflate
@@ -64,7 +68,7 @@ internal fun screenshotViewerFixture(id: String, quickSize: Int = 449, resumeTai
                 :inflate
                 invoke-static {}, LX/Lifecycle;->inflate()V
                 const/4 v0, 0x0
-            """.trimIndent() + "\n" + List(quickSize - 36) { "nop" }.joinToString("\n") + "\nreturn-object v0"
+            """.trimIndent() + "\n" + List(quickSize - quickSite - 4) { "nop" }.joinToString("\n") + "\nreturn-object v0"
         }
         else -> {
             registers = 5
@@ -97,6 +101,12 @@ internal fun aiStickerCellFixture(
     sourceCount: Int = aiCells.single { it.render == id }.sources,
     superclass: String = aiCells.single { it.render == id }.superclass,
     size: Int = aiCells.single { it.render == id }.size,
+    // An older release's render isn't in aiCells, so it gets 584's menu label.
+    menu: Int = aiCells.singleOrNull { it.render == id }?.menu ?: GENERATE_MENU_LABEL,
+    menuSources: Int = aiCells.singleOrNull { it.render == id }?.menuSources ?: AI_MENU_SOURCES,
+    // The first menu source as 584's Suggested grid loop instead of a bare render, and what to break in it.
+    grid: Boolean = false,
+    gridChange: String? = null,
 ): List<MutableClass> {
     val type = id.substringBefore("->")
     val render = fixtureMethod(id, "const/4 v0, 0x0\n" + List(size - 2) { "nop" }.joinToString("\n") + "\nreturn-object v0", AI_CELL_REGISTERS)
@@ -118,7 +128,94 @@ internal fun aiStickerCellFixture(
             return-object v0
         """.trimIndent(), 14)))
     }
-    return listOf(cell) + sources
+    // 584's CZ2.render: the music sticker branch jumps into the Generate menu cell's constructor call.
+    val menus = (0 until menuSources).map { index ->
+        if (index == 0 && (grid || gridChange != null)) return@map aiStickerGridClass(type, ctorId, menu, label, gridChange)
+        val source = "LX/MenuSource$index;"
+        fixtureClass(source, listOf(fixtureMethod("$source->render(LX/Scope;)LX/Component;", """
+            if-eqz p1, :music
+            const v11, 0x${menu.toString(16)}
+            :joined
+            new-instance v0, $type
+            invoke-direct/range {v0 .. v11}, $ctorId
+            const/4 v0, 0x0
+            return-object v0
+            :music
+            const v11, 0x7f14398b
+            goto :joined
+        """.trimIndent(), 14)))
+    }
+    return listOf(cell) + sources + menus
+}
+
+/**
+ * 584's CZ2.render as the Suggested grid: a loop over the items whose instance-of chain builds the Generate menu cell
+ * straight from its label, the custom cell, the Generate AI cell (its label jumps into the custom cell's constructor call)
+ * and the music cell (it jumps into the menu cell's). [change] breaks one part of that for the refusal tests.
+ */
+private fun aiStickerGridClass(type: String, ctorId: String, menu: Int, ai: Int, change: String?): MutableClass {
+    val id = activeProfile.hooks.getValue("ai_sticker_grid").single()
+    val aiFlag = if (change == "flag") "v5" else "v4"
+    val body = """
+        invoke-static {}, LX/GridItems;->get()Ljava/util/List;
+        move-result-object v12
+        invoke-interface {v12}, Ljava/util/List;->iterator()Ljava/util/Iterator;
+        move-result-object v12
+        const/4 v13, 0x0
+        :head
+        invoke-interface {v12}, Ljava/util/Iterator;->hasNext()Z
+        move-result v1
+        if-eqz v1, :done
+        invoke-interface {v12}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+        move-result-object v1
+        add-int/lit8 v2, v13, 0x1
+        if-ltz v13, :overflow
+        check-cast v1, LX/GridItem;
+        instance-of v4, v1, LX/StickerItem;
+        if-eqz v4, :menu_item
+        invoke-static {v1}, LX/Grid;->add(Ljava/lang/Object;)V
+        :next
+        ${if (change == "continue") "move v13, v3" else "move v13, v2"}
+        goto :head
+        :menu_item
+        instance-of v4, v1, LX/MenuItem;
+        if-eqz v4, :custom_item
+        :menu_site
+        const v11, 0x${(if (change == "menu_label") 0x7f14128f else menu).toString(16)}
+        :menu_cell
+        new-instance v0, $type
+        invoke-direct/range {v0 .. v11}, $ctorId
+        :added
+        invoke-static {v0}, LX/Grid;->add(Ljava/lang/Object;)V
+        goto :next
+        :custom_item
+        instance-of v4, v1, LX/CustomItem;
+        if-eqz v4, :ai_item
+        const v11, 0x7f14128f
+        :custom_cell
+        new-instance v0, $type
+        invoke-direct/range {v0 .. v11}, $ctorId
+        ${if (change == "back_edge") "goto :head" else "goto :added"}
+        :ai_item
+        instance-of $aiFlag, v1, LX/AiItem;
+        if-eqz $aiFlag, :music_item
+        :ai_site
+        const v11, 0x${(if (change == "ai_label") 0x7f140560 else ai).toString(16)}
+        ${if (change == "unfed") "const/4 v11, 0x0" else ""}
+        goto :custom_cell
+        :music_item
+        instance-of v4, v1, LX/MusicItem;
+        if-eqz v4, :next
+        const v11, 0x7f14398b
+        ${when (change) { "entered" -> "goto :menu_site"; "ai_entered" -> "goto :ai_site"; else -> "goto :menu_cell" }}
+        :overflow
+        invoke-static {}, LX/Grid;->overflow()V
+        :done
+        ${if (change == "stray") "const v11, 0x${menu.toString(16)}" else ""}
+        const/4 v0, 0x0
+        return-object v0
+    """.trimIndent().lines().filter { it.isNotBlank() }.joinToString("\n")
+    return fixtureClass(id.substringBefore("->"), listOf(fixtureMethod(id, body, 16)))
 }
 
 private fun MethodImplementation.tryLocations() = tryBlocks.map { block ->
@@ -136,7 +233,7 @@ class NativeMediaControlsTest {
     @Test fun allMappingsReplaceOnlyTheFourCallsAndRetainTheirMasksAndLifecycle() {
         for (profile in controlProfiles.values.toSet()) {
             activeProfile = profile
-            for (size in listOf(449, 450)) {
+            for (size in listOf(451)) {
                 val methods = profile.hooks.getValue("screenshot_viewers").map { screenshotViewerFixture(it, size) }
                 for (method in methods) {
                     val before = method.implementation!!.instructions.toList()
@@ -192,18 +289,30 @@ class NativeMediaControlsTest {
         assertFailsWith<PatchException> { screenshotViewerFixture(resume, resumeTail = 24).screenshotViewerSites() }
         val mask = screenshotViewerFixture(resume).apply { replaceInstruction(9, "const/16 v1, 0x80") }
         assertFailsWith<PatchException> { mask.screenshotViewerSites() }
-        assertEquals(listOf(9), screenshotViewerFixture("$EPHEMERAL_VIEWER->A1F(Landroid/os/Bundle;)Landroid/app/Dialog;").screenshotViewerSites())
-        // 582's A1D override, same body, is refused.
+        assertEquals(listOf(9), screenshotViewerFixture("$EPHEMERAL_VIEWER->A1K(Landroid/os/Bundle;)Landroid/app/Dialog;").screenshotViewerSites())
+        // 583's A1F and 582's A1D overrides, same body, are refused.
+        assertFailsWith<PatchException> {
+            screenshotViewerFixture("$EPHEMERAL_VIEWER->A1F(Landroid/os/Bundle;)Landroid/app/Dialog;").screenshotViewerSites()
+        }
         assertFailsWith<PatchException> {
             screenshotViewerFixture("$EPHEMERAL_VIEWER->A1D(Landroid/os/Bundle;)Landroid/app/Dialog;").screenshotViewerSites()
         }
         val quick = "$QUICKSNAP_VIEWER->onCreateView(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;"
-        // Messenger 583 runs it to 449, or 450 in 346611351, with the same guarded prefix.
-        assertEquals(listOf(32), screenshotViewerFixture(quick, 449).screenshotViewerSites())
-        assertEquals(listOf(32), screenshotViewerFixture(quick, 450).screenshotViewerSites())
-        assertFailsWith<PatchException> { screenshotViewerFixture(quick, 444).screenshotViewerSites() }
-        // 582's 438 and 441 instruction bodies are refused.
-        for (size in listOf(438, 441)) assertFailsWith<PatchException> { screenshotViewerFixture(quick, size).screenshotViewerSites() }
+        // 584.1 armv7 runs it to 446 with the flag at 32, the 584.1 arm64 builds to 444 or 445 with it at 29 or 32. The one
+        // addFlags call is the site, with the same guarded prefix ahead of it.
+        assertEquals(listOf(32), screenshotViewerFixture(quick, 446).screenshotViewerSites())
+        assertEquals(listOf(29), screenshotViewerFixture(quick, 444, quickSite = 29).screenshotViewerSites())
+        assertEquals(listOf(32), screenshotViewerFixture(quick, 445).screenshotViewerSites())
+        assertEquals(listOf(29), CompatMirror.screenshotViewerSites(screenshotViewerFixture(quick, 444, quickSite = 29)))
+        assertEquals(listOf(32), CompatMirror.screenshotViewerSites(screenshotViewerFixture(quick, 445)))
+        val twice = screenshotViewerFixture(quick, 445).apply { replaceInstruction(40, "invoke-virtual {v1, v0}, Landroid/view/Window;->addFlags(I)V") }
+        assertFailsWith<PatchException> { twice.screenshotViewerSites() }
+        assertEquals(emptyList(), CompatMirror.screenshotViewerSites(twice))
+        val bare = screenshotViewerFixture(quick, 445).apply { replaceInstruction(28, "nop") }
+        assertFailsWith<PatchException> { bare.screenshotViewerSites() }
+        assertEquals(emptyList(), CompatMirror.screenshotViewerSites(bare))
+        assertEquals(listOf(9), screenshotViewerFixture("$EPHEMERAL_VIEWER->A1I(Landroid/os/Bundle;)Landroid/app/Dialog;").screenshotViewerSites())
+        assertEquals(listOf(9), screenshotViewerFixture("$EPHEMERAL_VIEWER->A1J(Landroid/os/Bundle;)Landroid/app/Dialog;").screenshotViewerSites())
     }
 
     @Test fun eachAiCellNeedsItsOwnLabelAndAllItsSources() {
@@ -211,13 +320,30 @@ class NativeMediaControlsTest {
             assertEquals(listOf(cell.render), findAiStickerCells(aiStickerCellFixture(cell.render)).map { it.hookId() })
             assertTrue(findAiStickerCells(aiStickerCellFixture(cell.render, sourceCount = cell.sources - 1)).isEmpty())
             assertTrue(findAiStickerCells(aiStickerCellFixture(cell.render, sourceCount = cell.sources + 1)).isEmpty())
-            // An older release's label for the same row, and 582's.
-            assertTrue(findAiStickerCells(aiStickerCellFixture(cell.render, label = 0x7f140511)).isEmpty())
+            // An older release's label for the same row: 583's and 582's.
+            assertTrue(findAiStickerCells(aiStickerCellFixture(cell.render, label = 0x7f140560)).isEmpty())
             assertTrue(findAiStickerCells(aiStickerCellFixture(cell.render, label = 0x7f14051c)).isEmpty())
+            assertTrue(findAiStickerCells(aiStickerCellFixture(cell.render, menuSources = cell.menuSources - 1)).isEmpty())
+            assertTrue(findAiStickerCells(aiStickerCellFixture(cell.render, menuSources = cell.menuSources + 1)).isEmpty())
+            // "Generate custom stickers" in the menu label's place: the custom sticker cell isn't the AI menu.
+            assertTrue(findAiStickerCells(aiStickerCellFixture(cell.render, menu = 0x7f14128f)).isEmpty())
         }
-        // Both namings offer 583's label from four renders, and 346611351's cell render is one instruction shorter.
-        assertEquals(listOf(Triple(GENERATE_AI_LABEL, 4, 104), Triple(GENERATE_AI_LABEL, 4, 105)),
-            aiCells.map { Triple(it.label, it.sources, it.size) })
+        // Every 584.1 cell offers its AI label from four renders and its Generate menu label from one.
+        assertEquals(listOf(
+            listOf(GENERATE_AI_LABEL, 4, 107, GENERATE_MENU_LABEL, 1),
+            listOf(GENERATE_AI_LABEL, 4, 107, GENERATE_MENU_LABEL, 1),
+            listOf(GENERATE_AI_LABEL, 4, 109, GENERATE_MENU_LABEL_5841, 1),
+            listOf(GENERATE_AI_LABEL, 4, 109, GENERATE_MENU_LABEL, 1),
+        ), aiCells.map { listOf(it.label, it.sources, it.size, it.menu, it.menuSources) })
+    }
+
+    @Test fun aMenuLabelThatBranchesBeforeTheCellIsNotASource() {
+        val fixture = aiStickerCellFixture().toMutableList()
+        val menu = fixture.last().methods.single()
+        // A branch between the menu label and the constructor call means the label may not reach the cell.
+        menu.addInstructionsWithLabels(2, "if-eqz p1, :skip\nnop\n:skip\nnop")
+        assertTrue(findAiStickerCells(fixture).isEmpty())
+        assertFailsWith<PatchException> { validateControls(mirroredControls(fixture), setOf("ai_sticker_cell")) }
     }
 
     @Test fun a582CellIsNoLongerFound() {
@@ -239,7 +365,7 @@ class NativeMediaControlsTest {
         val found = mirroredControls(listOf(fixtureClass(payment.definingClass, listOf(payment)), fixtureClass(cleanup.definingClass, listOf(cleanup))))
         assertTrue(found.getValue("screenshot_viewers").isEmpty())
         assertEquals(before, listOf(payment, cleanup).map { it.implementation!!.instructions.toList() })
-        activeProfile = PROFILE_346611351
+        activeProfile = BASE_PROFILE
         assertFailsWith<PatchException> { screenshotViewerFixture("$EPHEMERAL_VIEWER->A1D(Landroid/os/Bundle;)Landroid/app/Dialog;").injectScreenshotViewer() }
     }
 
@@ -251,7 +377,7 @@ class NativeMediaControlsTest {
         assertEquals(before, listOf(original, viewer).map { it.implementation!!.instructions.toList() })
     }
 
-    @Test fun onlyTheProvenAiLabelCanBypassTheOriginalCellRender() {
+    @Test fun onlyTheProvenAiLabelsCanBypassTheOriginalCellRender() {
         for (profile in controlProfiles.values.toSet()) {
             activeProfile = profile
             val fixture = aiStickerCellFixture()
@@ -262,36 +388,43 @@ class NativeMediaControlsTest {
             val tries = method.implementation!!.tryLocations()
             method.injectAiStickerCell()
             val after = method.implementation!!.instructions.toList()
-            assertEquals(before, after.drop(10))
+            val cell = aiCells.single { it.render == method.hookId() }
+            assertEquals(before, after.drop(12))
             assertEquals("${method.definingClass}->A00:I", (after[1] as ReferenceInstruction).reference.toString())
-            assertEquals(aiCells.single { it.render == method.hookId() }.label, (after[2] as NarrowLiteralInstruction).narrowLiteral)
-            assertEquals(10, after.branchTarget(3))
-            assertEquals(10, after.branchTarget(7))
-            assertEquals(Opcode.IF_NE, after[3].opcode)
-            assertEquals(Opcode.IF_EQZ, after[7].opcode)
-            assertEquals("ai_stickers", ((after[4] as ReferenceInstruction).reference as StringReference).string)
-            assertEquals("$SETTINGS->enabled(Ljava/lang/String;)Z", (after[5] as ReferenceInstruction).reference.toString())
-            assertShiftedTries(tries, method, after.take(10).sumOf { it.codeUnits })
+            // The AI label goes to the switch check, the Generate menu label too, any other label straight to the stock render.
+            assertEquals(cell.label, (after[2] as NarrowLiteralInstruction).narrowLiteral)
+            assertEquals(Opcode.IF_EQ, after[3].opcode)
+            assertEquals(6, after.branchTarget(3))
+            assertEquals(cell.menu, (after[4] as NarrowLiteralInstruction).narrowLiteral)
+            assertEquals(Opcode.IF_NE, after[5].opcode)
+            assertEquals(12, after.branchTarget(5))
+            assertEquals("ai_stickers", ((after[6] as ReferenceInstruction).reference as StringReference).string)
+            assertEquals("$SETTINGS->enabled(Ljava/lang/String;)Z", (after[7] as ReferenceInstruction).reference.toString())
+            assertEquals(Opcode.IF_EQZ, after[9].opcode)
+            assertEquals(12, after.branchTarget(9))
+            assertEquals(Opcode.RETURN_OBJECT, after[11].opcode)
+            assertShiftedTries(tries, method, after.take(12).sumOf { it.codeUnits })
         }
     }
 
-    /** Both 583 namings' cells, each under its own name, to check the injection compares 583's label. */
-    @Test fun eachCellCompares583sLabel() {
-        assertEquals(2, aiCells.size)
+    /** Each cell under its own name, to check the injection compares that cell's labels. */
+    @Test fun eachCellComparesItsOwnLabels() {
         for (cell in aiCells) {
             val base = SYNTHETIC_PROFILE
             activeProfile = ControlProfile(base.hooks + ("ai_sticker_cell" to setOf(cell.render)), base.pluginSentinel, base.preferenceGetter,
                 base.peopleKey, base.peopleFlagCheck, base.subtabsSupplier, base.browserPreferenceKey, base.browserPreferenceIndex,
-                base.adFilterSize, base.adFilterExits, base.bubbleCapabilityGetter, base.bubbleRolloutGetter, base.nativeBubbleRoutes,
+                base.bubbleCapabilityGetter, base.bubbleRolloutGetter, base.nativeBubbleRoutes,
                 base.nativeCommunityInbox)
             val method = findAiStickerCells(aiStickerCellFixture(cell.render)).single() as MutableMethod
             val before = method.implementation!!.instructions.toList()
             method.injectAiStickerCell()
             val after = method.implementation!!.instructions.toList()
-            assertEquals(before, after.drop(10), cell.type)
-            assertEquals(GENERATE_AI_LABEL, (after[2] as NarrowLiteralInstruction).narrowLiteral)
-            assertEquals(10, after.branchTarget(3))
-            assertEquals(10, after.branchTarget(7))
+            assertEquals(before, after.drop(12), cell.type)
+            assertEquals(cell.label, (after[2] as NarrowLiteralInstruction).narrowLiteral)
+            assertEquals(cell.menu, (after[4] as NarrowLiteralInstruction).narrowLiteral)
+            assertEquals(6, after.branchTarget(3))
+            assertEquals(12, after.branchTarget(5))
+            assertEquals(12, after.branchTarget(9))
         }
     }
 
@@ -313,6 +446,92 @@ class NativeMediaControlsTest {
             }
             assertTrue(findAiStickerCells(fixture).isEmpty(), change)
             assertFailsWith<PatchException>(change) { validateControls(mirroredControls(fixture), setOf("ai_sticker_cell")) }
+        }
+    }
+
+    /** Checks [method]'s grid injection keeps every original instruction in order and every original branch on its target. */
+    private fun assertGridInjected(method: MutableMethod, where: String) {
+        val before = method.implementation!!.instructions.toList()
+        val targets = before.indices.filter { before[it] is OffsetInstruction }.associateWith { before.branchTarget(it) }
+        val grid = method.validateAiStickerGrid()
+        assertEquals(2, grid.sites.size, where)
+        assertEquals(Opcode.INSTANCE_OF, before[grid.sites[0] - 2].opcode, where)
+        assertEquals(Opcode.INSTANCE_OF, before[grid.sites[1] - 2].opcode, where)
+        method.injectAiStickerGrid()
+        val after = method.implementation!!.instructions.toList()
+        fun moved(at: Int) = at + 7 * grid.sites.count { it <= at }
+        assertEquals(before.size + 14, after.size, where)
+        val addresses = after.runningFold(0) { sum, instruction -> sum + instruction.codeUnits }
+        for (at in before.indices) {
+            val now = after[moved(at)]
+            // dexlib2 widens a goto whose jump grew past 8 bits (584 has one), and only that one; the target check below still pins it.
+            if (before[at].opcode == Opcode.GOTO && now.opcode in setOf(Opcode.GOTO_16, Opcode.GOTO_32)) {
+                assertTrue(addresses[after.branchTarget(moved(at))] - addresses[moved(at)] !in -128..127, "$where goto $at widened")
+                continue
+            }
+            assertSame(before[at], now, "$where instruction $at")
+        }
+        for ((at, target) in targets) assertEquals(moved(target), after.branchTarget(moved(at)), "$where branch $at")
+        for (site in grid.sites) {
+            val block = site + 7 * grid.sites.count { it < site }
+            assertEquals("ai_stickers", ((after[block] as ReferenceInstruction).reference as StringReference).string, where)
+            assertEquals(grid.flag, (after[block] as OneRegisterInstruction).registerA, where)
+            assertEquals("$SETTINGS->enabled(Ljava/lang/String;)Z", (after[block + 1] as ReferenceInstruction).reference.toString(), where)
+            assertEquals(Opcode.MOVE_RESULT, after[block + 2].opcode, where)
+            assertEquals(Opcode.IF_EQZ, after[block + 3].opcode, where)
+            assertEquals(block + 6, after.branchTarget(block + 3), where)
+            assertEquals(0, (after[block + 4] as NarrowLiteralInstruction).narrowLiteral, where)
+            // On: straight to the loop's continue step, so the item never reaches the grid.
+            assertEquals(Opcode.GOTO_16, after[block + 5].opcode, where)
+            assertEquals(moved(grid.skip), after.branchTarget(block + 5), where)
+            // Off: the flag gets back the instance-of result it held, then the branch runs as it shipped.
+            assertEquals(1, (after[block + 6] as NarrowLiteralInstruction).narrowLiteral, where)
+            assertSame(before[site], after[block + 7], where)
+        }
+    }
+
+    @Test fun theGridSkipsOnlyTheGenerateItemsAndEveryOtherBranchKeepsItsTarget() {
+        for (profile in controlProfiles.values.toSet()) {
+            activeProfile = profile
+            val fixture = aiStickerCellFixture(grid = true)
+            val discovered = mirroredControls(fixture)
+            // The grid stays the cell's one Generate menu source, so the cell hook is found alongside it.
+            validateControls(discovered, setOf("ai_sticker_cell", "ai_sticker_grid"))
+            val method = discovered.getValue("ai_sticker_grid").single() as MutableMethod
+            val code = method.implementation!!.instructions.toList()
+            val grid = method.validateAiStickerGrid()
+            assertEquals(4, grid.flag)
+            assertEquals(Opcode.MOVE, code[grid.skip].opcode)
+            val menu = aiCells.single { it.render == activeProfile.hooks.getValue("ai_sticker_cell").single() }.menu
+            assertEquals(listOf(menu, GENERATE_AI_LABEL), grid.sites.map { (code[it] as NarrowLiteralInstruction).narrowLiteral })
+            assertGridInjected(method, "fixture")
+        }
+        // A bare render that builds the menu cell with no loop around it is no grid.
+        assertTrue(findAiStickerGrids(aiStickerCellFixture()).isEmpty())
+    }
+
+    @Test fun aGridThatChangesShapeIsRefused() {
+        for (change in listOf("menu_label", "ai_label", "flag", "continue", "back_edge", "entered", "ai_entered", "unfed", "stray")) {
+            val fixture = aiStickerCellFixture(gridChange = change)
+            assertTrue(findAiStickerGrids(fixture).isEmpty(), change)
+            assertFailsWith<PatchException>(change) { validateControls(mirroredControls(fixture), setOf("ai_sticker_grid")) }
+        }
+        // The stock grid passes the same checks, so each refusal above is the change's own.
+        validateControls(mirroredControls(aiStickerCellFixture(grid = true)), setOf("ai_sticker_grid"))
+    }
+
+    @Test fun exactStockGridSkipsOnlyItsTwoGenerateBranches() {
+        val root = System.getenv("HUSH_NATIVE_FIXTURES")
+        assumeTrue(root != null, "Set HUSH_NATIVE_FIXTURES to the exact stock fixture directory")
+        val apks = Files.list(Path.of(root!!)).use { it.filter { p -> p.toString().endsWith(".apk") }.sorted().toList() }
+        assertEquals(controlProfiles.size, apks.size)
+        for (apk in apks) {
+            val code = apk.fileName.toString().substringBeforeLast(".apk").substringAfterLast('-')
+            activeProfile = controlProfileFor(code)
+            val dex = DexFileFactory.loadDexContainer(apk.toFile(), Opcodes.forApi(35))
+            val grids = findAiStickerGrids(dex.dexEntryNames.flatMap { dex.getEntry(it)!!.dexFile.classes })
+            assertEquals(activeProfile.hooks.getValue("ai_sticker_grid"), grids.map { it.hookId() }.toSet(), code)
+            assertGridInjected(MutableMethod(grids.single()), code)
         }
     }
 
@@ -369,8 +588,8 @@ class NativeMediaControlsTest {
             val tries = render.implementation!!.tryLocations()
             render.injectAiStickerCell()
             val after = render.implementation!!.instructions.toList()
-            assertEquals(before, after.drop(10), code)
-            assertShiftedTries(tries, render, after.take(10).sumOf { it.codeUnits })
+            assertEquals(before, after.drop(12), code)
+            assertShiftedTries(tries, render, after.take(12).sumOf { it.codeUnits })
             assertEquals(4, render.implementation!!.tryBlocks.size)
         }
     }

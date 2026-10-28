@@ -105,6 +105,8 @@ internal val accentResourcePatch = resourcePatch {
     dependsOn(fdsTokenNamesPatch)
 
     execute {
+        // Patcher 2.0 decodes only the files a patch asks for, and a folder lists only those.
+        decode("res/values*/colors.xml", "res/values/style*.xml")
         val folders = get("res", false).listFiles().orEmpty()
             .filter { it.isDirectory && it.name.split('-').first() == "values" }
         fun coloursIn(folder: File) = File(folder, "colors.xml").takeIf { it.isFile }?.let { readOnly(it).colourValues() }.orEmpty()

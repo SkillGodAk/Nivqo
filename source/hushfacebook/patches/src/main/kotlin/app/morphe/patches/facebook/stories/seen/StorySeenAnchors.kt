@@ -9,6 +9,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.feed.namesString
 import app.morphe.patches.facebook.feed.tableStringAt
@@ -478,6 +479,78 @@ internal fun MutableMethod.hearBucketMade() {
     requireThisIntact(PATCH, listOf(at))
     val self = localRegisterCount()
     addInstructions(at, "invoke-static/range { v$self .. v$self }, $BUCKET_MADE")
+}
+
+/*
+ * Where a bucket opens (#218, read from 584 arm64 on 2026-10-22).
+ *
+ * The story viewer (StoryViewerFragment's caller LX/BJt;->A05 among others) asks a static method
+ * (584 LX/B6M;->A01) for the card a bucket starts at. It goes through an interface Facebook
+ * implements for StoryBucket (584 LX/B6N;, which also has an (Object, int)I method that casts to
+ * StoryBucket). Past a card the launch names and a few upload states, it takes the first card its
+ * (Object)Z method answers yes for: a StoryCard with media (getMedia()) whose seen flag (an
+ * abstract ()Z on StoryCard, 584 A1d) is false. Facebook sets that flag in memory as cards play,
+ * and its servers set it from their view records, which a held-back view never makes, so after a
+ * restart a bucket watched partway opened at card 1 again. The hook goes first in that method and
+ * answers no for a card the extension kept as watched, so the viewer starts at the first one that
+ * wasn't. The flag isn't touched, so nothing else Facebook reads from it changes.
+ */
+internal const val WATCHED_HERE = "$STORY_SEEN->watchedHere(${OBJECT})Z"
+
+/**
+ * Whether [method] is the start check: an instance (Object)Z method that casts its argument to
+ * StoryCard once and makes exactly two virtual calls, getMedia() and then one ()Z flag, both on
+ * StoryCard. Static calls are let by, since Kotlin puts a null check first in the methods beside it.
+ */
+internal fun isStartCheck(method: Method): Boolean {
+    if (AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != "Z" ||
+        method.parameterTypes.map(Any::toString) != listOf(OBJECT)
+    ) return false
+    val code = method.implementation?.instructions?.toList() ?: return false
+    val casts = code.count { it.opcode == Opcode.CHECK_CAST && ((it as ReferenceInstruction).reference as TypeReference).type == STORY_CARD }
+    val calls = code.mapNotNull {
+        it.call(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE, Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE)
+    }
+    val direct = code.count { it.call(Opcode.INVOKE_DIRECT, Opcode.INVOKE_DIRECT_RANGE, Opcode.INVOKE_SUPER, Opcode.INVOKE_SUPER_RANGE) != null }
+    if (casts != 1 || calls.size != 2 || direct != 0) return false
+    val (media, flag) = calls
+    return media.definingClass == STORY_CARD && media.name == "getMedia" && media.parameterTypes.isEmpty() &&
+        flag.definingClass == STORY_CARD && flag.parameterTypes.isEmpty() && flag.returnType == "Z"
+}
+
+/** Whether [method] is the interface's (Object, int)I method that casts its first argument to StoryBucket. */
+private fun isBucketIndex(method: Method): Boolean =
+    !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "I" &&
+        method.parameterTypes.map(Any::toString) == listOf(OBJECT, "I") &&
+        method.implementation?.instructions?.any {
+            it.opcode == Opcode.CHECK_CAST && ((it as ReferenceInstruction).reference as TypeReference).type == STORY_BUCKET
+        } == true
+
+/** [owner]'s start check, when it's StoryBucket's card interface: one start check and one bucket index method. */
+internal fun startCheck(owner: ClassDef): Method? {
+    val check = owner.methods.filter(::isStartCheck).singleOrNull() ?: return null
+    return if (owner.methods.count(::isBucketIndex) == 1) check else null
+}
+
+/**
+ * First thing in the start check: a card the extension kept as watched answers no, and every
+ * other card goes on to Facebook's own check. The argument is read before anything writes it, and
+ * the one local the check has is free there.
+ */
+internal fun MutableMethod.skipWatchedCards() {
+    requireLocals(PATCH, 1)
+    val card = parameterRegisterNumber(0)
+    addInstructionsWithLabels(
+        0,
+        """
+            invoke-static/range { v$card .. v$card }, $WATCHED_HERE
+            move-result v0
+            if-eqz v0, :facebook
+            const/4 v0, 0x0
+            return v0
+        """,
+        ExternalLabel("facebook", getInstruction(0)),
+    )
 }
 
 internal fun MethodReference.smali(): String = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"

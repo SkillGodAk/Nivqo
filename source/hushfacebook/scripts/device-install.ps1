@@ -55,3 +55,35 @@ function Remove-AndroidPackageIfInstalled {
     if ($LASTEXITCODE -ne 0) { throw "adb uninstall failed on $Serial." }
     return $true
 }
+
+function Select-AndroidLauncher {
+    <#
+    .SYNOPSIS
+        The one enabled launcher entry in `cmd package query-activities --brief` output.
+    .DESCRIPTION
+        Picking an alternate app icon turns the default launcher entry off and one of its aliases
+        on, and Android starts nothing for a component that is off. Android lists only enabled
+        components, so the single LauncherClass or LauncherClass.<alias> line is the one to start.
+        None or several throw, so a caller can stop before it changes anything. Reads text only.
+    #>
+    [CmdletBinding()]
+    param(
+        [AllowEmptyCollection()][AllowNull()][string[]]$Lines,
+        [Parameter(Mandatory = $true)][string]$PackageName,
+        [Parameter(Mandatory = $true)][string]$LauncherClass
+    )
+
+    $found = New-Object System.Collections.Generic.List[string]
+    foreach ($line in @($Lines)) {
+        $match = [regex]::Match(([string]$line).Trim(), '\A' + [regex]::Escape($PackageName) + '/([A-Za-z0-9_.$]+)\z')
+        if (-not $match.Success) { continue }
+        $class = $match.Groups[1].Value
+        if ($class.StartsWith('.', [StringComparison]::Ordinal)) { $class = $PackageName + $class }
+        if ($class -ceq $LauncherClass -or $class.StartsWith("$LauncherClass.", [StringComparison]::Ordinal)) {
+            if (-not $found.Contains($class)) { $found.Add($class) }
+        }
+    }
+    if ($found.Count -eq 0) { throw "$PackageName lists no enabled launcher entry. No device changes were made." }
+    if ($found.Count -gt 1) { throw "$PackageName lists several launcher entries ($($found -join ', ')). No device changes were made." }
+    return $found[0]
+}

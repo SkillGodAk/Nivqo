@@ -11,8 +11,15 @@ import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.fieldAccess
 import app.morphe.patcher.methodCall
 import app.morphe.patcher.opcode
+import app.morphe.patcher.patch.BytecodePatchContext
+import app.morphe.patcher.patch.PatchException
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import java.util.WeakHashMap
 
 /**
  * The four resolvers, which answer the first of the four routes that a colour takes.
@@ -24,16 +31,55 @@ import com.android.tools.smali.dexlib2.Opcode
  *
  * R8 keeps the owner class names but renames the methods on every release. Thus each fingerprint
  * uses the class, the return type, the parameters and the shape of the body, and never a name.
+ * 584 renamed `FDSColors` too, so it's found by its shape ([fdsColors]).
  */
 
 internal const val DARK_COLOR_SCHEME = "Lcom/facebook/mig/scheme/schemes/DarkColorScheme;"
-internal const val FDS_COLORS = "Lcom/facebook/fds/core/theme/component/FDSColors;"
+internal const val LIGHT_COLOR_SCHEME = "Lcom/facebook/mig/scheme/schemes/LightColorScheme;"
 internal const val FDS_COLOR_SCHEME = "Lcom/facebook/mig/scheme/schemes/fds/FdsColorScheme;"
 internal const val STATUS_BAR_UTIL = "Lcom/facebook/navigation/statusbar/StatusBarUtil;"
 internal const val SET_STATUS_BAR_COLOR = "Landroid/view/Window;->setStatusBarColor(I)V"
 internal const val SYSTEM_BARS_CONTROLLER = "Lcom/facebook/navigation/statusbar/controller/SystemBarsController;"
 
 internal const val THEME_PREFERENCES_STATE = "Lcom/facebook/prefs/theme/ThemePreferences\$State;"
+
+private val fdsColorsTypes = WeakHashMap<BytecodePatchContext, String>()
+
+/**
+ * `FDSColors`, the class answering Litho's colour tokens. Redex kept its name up to 583
+ * (`Lcom/facebook/fds/core/theme/component/FDSColors;`) and renamed it on 584 (`LX/29y`), so it's
+ * found by its shape ([fdsColourSource]), which hasn't moved. One class has it, or the lookup fails.
+ */
+internal fun BytecodePatchContext.fdsColors(): String = fdsColorsTypes.getOrPut(this) {
+    val found = mutableListOf<String>()
+    classDefForEach { classDef ->
+        if (!classDef.type.startsWith(EXTENSION_PACKAGE) && fdsColourSource(classDef) != null) found += classDef.type
+    }
+    found.singleOrNull() ?: throw PatchException(
+        "expected one FDSColors (a singleton whose static Integer colour source hands a token to its own switch), found $found",
+    )
+}
+
+/**
+ * The static `Integer` colour source of [classDef] when the class is `FDSColors`, else null. The
+ * class holds a singleton of its own type, and the source takes a Context, a token and a palette and
+ * hands the token on to a static method of the same class taking the token, an int and a boolean
+ * (583 `A04` to `A05`, 584 `A05` to `A06`). The token type is the source's second parameter.
+ */
+internal fun fdsColourSource(classDef: ClassDef): Method? {
+    if (classDef.fields.none { AccessFlags.STATIC.isSet(it.accessFlags) && it.type == classDef.type }) return null
+    return classDef.methods.singleOrNull { method ->
+        val parameters = method.parameterTypes.map { it.toString() }
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Ljava/lang/Integer;" &&
+            parameters.size == 3 && parameters[0] == "Landroid/content/Context;" &&
+            method.implementation?.instructions?.any { instruction ->
+                val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+                instruction.opcode == Opcode.INVOKE_STATIC && call?.definingClass == classDef.type &&
+                    call.returnType == "Ljava/lang/Integer;" &&
+                    call.parameterTypes.map { it.toString() } == listOf(parameters[1], "I", "Z")
+            } == true
+    }
+}
 
 /**
  * Facebook's dark mode controller answering whether its dark mode is on, for the whole app: the
@@ -63,6 +109,18 @@ internal object BoxDecorationBorderFingerprint : Fingerprint(
     strings = listOf(BOX_DECORATION_BORDER_ERROR),
 )
 
+internal const val NATIVE_TEMPLATE_BOX = "NTBox3Builder#build"
+
+/**
+ * Native Templates' component builder (584 `LX/4Kb;->D9f(LX/3tD;LX/5en;LX/4Km;)LX/3T3;`): the
+ * method that builds each node of a native template by its kind, such as the Menu's profile card,
+ * and traces a box as [NATIVE_TEMPLATE_BOX]. It and its child builder set a box's server colour
+ * with Litho's backgroundColor ([hookNativeTemplateBackgrounds]).
+ */
+internal object NativeTemplateBuilderFingerprint : Fingerprint(
+    strings = listOf(NATIVE_TEMPLATE_BOX),
+)
+
 /**
  * The Data mode banner of Facebook Flex, issue #86: the one method that logs both of its own steps,
  * as it starts and when the banner's wrapper isn't there. It paints the wrapper with a card's token.
@@ -77,15 +135,26 @@ internal object FlexBannerFingerprint : Fingerprint(
  * calls `Window.setNavigationBarColor`, and on Android 15 and newer paints Facebook's own navigation
  * bar view instead. Its class has a Redex name, so the fingerprint uses the shape and the framework
  * call.
+ *
+ * 584 (LX/2LF;->A00) takes its own class as a third parameter, (Activity, Window, LX/2LF, int): the
+ * Kotlin object's instance, passed in once the companion was inlined. The colour is the last
+ * parameter either way ([navigationBarColourIndex]).
  */
 internal object NavigationBarPainterFingerprint : Fingerprint(
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.STATIC, AccessFlags.FINAL),
     returnType = "V",
-    parameters = listOf("Landroid/app/Activity;", "Landroid/view/Window;", "I"),
     filters = listOf(
         methodCall(definingClass = "Landroid/view/Window;", name = "setNavigationBarColor"),
     ),
+    custom = { method, _ ->
+        val parameters = method.parameterTypes.map(CharSequence::toString)
+        parameters.size in 3..4 && parameters[0] == "Landroid/app/Activity;" && parameters[1] == "Landroid/view/Window;" &&
+            parameters.last() == "I" && (parameters.size == 3 || parameters[2] == method.definingClass)
+    },
 )
+
+/** The register-parameter index of the colour in the navigation bar's painter: its last parameter (2 up to 583, 3 on 584). */
+internal fun navigationBarColourIndex(painter: Method): Int = painter.parameterTypes.size - 1
 
 /**
  * The Mig dark scheme resolver. The return type and the interface call remove the three sibling
@@ -100,6 +169,29 @@ internal object DarkSchemeResolveFingerprint : Fingerprint(
         opcode(Opcode.MOVE_RESULT),
         opcode(Opcode.RETURN),
     ),
+)
+
+/**
+ * The Mig light scheme's resolver, for the Light background color row (#214): the dark one's shape
+ * on the light scheme's class. Its sibling that takes an Integer has the same shape and asks the
+ * scheme through the interface, so the call has to be on the token's own type.
+ */
+internal object LightSchemeResolveFingerprint : Fingerprint(
+    definingClass = LIGHT_COLOR_SCHEME,
+    returnType = "I",
+    parameters = listOf("L"),
+    filters = listOf(
+        methodCall(opcode = Opcode.INVOKE_INTERFACE, returnType = "I"),
+        opcode(Opcode.MOVE_RESULT),
+        opcode(Opcode.RETURN),
+    ),
+    custom = { method, _ ->
+        val token = method.parameterTypes.singleOrNull()?.toString()
+        method.implementation?.instructions?.any { instruction ->
+            instruction.opcode == Opcode.INVOKE_INTERFACE &&
+                ((instruction as ReferenceInstruction).reference as MethodReference).definingClass == token
+        } == true
+    },
 )
 
 /**

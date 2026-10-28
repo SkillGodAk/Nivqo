@@ -1,6 +1,176 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s პაჩი</item>
+        <item quantity="other">%s პაჩი</item>
+    </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s ბიბლიოთეკა</item>
+        <item quantity="other">%s ბიბლიოთეკა</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s პაჩის ოფცია</item>
+        <item quantity="other">%s პაჩის ოფცია</item>
+    </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s ელემენტი</item>
+        <item quantity="other">%s ელემენტი</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">აირჩიეთ %s ფაილი</item>
+        <item quantity="other">აირჩიეთ %s ფაილი</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">დაამატეთ %s წყარო</item>
+        <item quantity="other">დაამატეთ %s წყარო</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">პაჩის წყაროები %s აპლიკაციისთვის</item>
+        <item quantity="other">პაჩის წყაროები %s აპლიკაციისთვის</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s წყარო დამალულია ამ აპლიკაციისთვის. აირჩიეთ აპლიკაცია აპების ჩანართზე და გახსენით პაჩის წყაროები, რომ დააბრუნოთ ის.</item>
+        <item quantity="other">%s წყარო დამალულია ამ აპლიკაციისთვის. აირჩიეთ აპლიკაცია აპების ჩანართზე და გახსენით პაჩის წყაროები, რომ დააბრუნოთ ისინი.</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s წყარო დამალულია. შეეხეთ საჩვენებლად</item>
+        <item quantity="other">%s წყარო დამალულია. შეეხეთ საჩვენებლად</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s შესაბამისი პაჩი</item>
+        <item quantity="other">%s შესაბამისი პაჩი</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s წყარო</item>
+        <item quantity="other">%s წყარო</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s პაკეტი</item>
+        <item quantity="other">%s პაკეტი</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">შესრულდა %s პაჩი</item>
+        <item quantity="other">შესრულდა %s პაჩი</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK ფაილი</item>
+        <item quantity="other">%s APK ფაილი</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">დაინსტალირდა %s აპლიკაცია</item>
+        <item quantity="other">დაინსტალირდა %s აპლიკაცია</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">დამონტაჟდა %s აპლიკაცია</item>
+        <item quantity="other">დამონტაჟდა %s აპლიკაცია</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">ხელახლა დაინსტალირდა %s აპლიკაცია</item>
+        <item quantity="other">ხელახლა დაინსტალირდა %s აპლიკაცია</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">წაიშალა %s აპლიკაცია</item>
+        <item quantity="other">წაიშალა %s აპლიკაცია</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">წავშალოთ %s აპლიკაცია?</item>
+        <item quantity="other">წავშალოთ %s აპლიკაცია?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s აპლიკაცია მზად არის დასაპაჩად</item>
+        <item quantity="other">%s აპლიკაცია მზად არის დასაპაჩად</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s აპლიკაცია რიგშია დასაპაჩად</item>
+        <item quantity="other">%s აპლიკაცია რიგშია დასაპაჩად</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s დამალული შეტყობინება, შეეხეთ საჩვენებლად</item>
+        <item quantity="other">%s დამალული შეტყობინება, შეეხეთ საჩვენებლად</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s აპლიკაცია შეიძლება ხელახლა დაპაჩდეს</item>
+        <item quantity="other">%s აპლიკაცია შეიძლება ხელახლა დაპაჩდეს</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">გამოტოვდა %s აპლიკაცია</item>
+        <item quantity="other">გამოტოვდა %s აპლიკაცია</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">შენახული არჩევანიდან ამოღებულია %s მოძველებული პაჩი</item>
+        <item quantity="other">შენახული არჩევანიდან ამოღებულია %s მოძველებული პაჩი</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s წყარო დაყენებულია</item>
+        <item quantity="other">%s წყარო დაყენებულია</item>
+    </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s აპლიკაცია დამალულია</item>
+        <item quantity="other">%s აპლიკაცია დამალულია</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s აპლიკაცია ნაჩვენებია</item>
+        <item quantity="other">%s აპლიკაცია ნაჩვენებია</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">გამოაჩინოთ %s აპლიკაცია?</item>
+        <item quantity="other">გამოაჩინოთ %s აპლიკაცია?</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s დამალული აპლიკაცია</item>
+        <item quantity="other">%s დამალული აპლიკაცია</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s აპლიკაცია</item>
+        <item quantity="other">%s აპლიკაცია</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s არჩეულია</item>
+        <item quantity="other">%s არჩეულია</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">დაკოპირდა %s პაჩი არჩეული ნაკრებიდან</item>
+        <item quantity="other">დაკოპირდა %s პაჩი არჩეული ნაკრებიდან</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s ბირთვი</item>
+        <item quantity="other">%s ბირთვი</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s ფუნქცია</item>
+        <item quantity="other">%s ფუნქცია</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s შესწორება</item>
+        <item quantity="other">%s შესწორება</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s ოპტიმიზაცია</item>
+        <item quantity="other">%s ოპტიმიზაცია</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s ცვლილება</item>
+        <item quantity="other">%s ცვლილება</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d ახალი</item>
+        <item quantity="other">%1$s · %2$d ახალი</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s ახალი გამოშვება</item>
+        <item quantity="other">%s ახალი გამოშვება</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d ბმული ჩართულია</item>
+        <item quantity="other">%d ბმული ჩართულია</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d დაუმოწმებელი ბმული</item>
+        <item quantity="other">%d დაუმოწმებელი ბმული</item>
+    </plurals>
 </resources>

@@ -27,7 +27,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
  * The footer's reactions add-on is a Litho component named "FDSInlineReactions" (arm64 LX/3Dz;,
  * armv7 LX/3Et;). Its one static factory for the facepile (arm64 A0F) reads the bling bar style's
  * clipColor (an enum whose fields keep their names: COLOR and MEDIA give ALWAYS_TRANSPARENT, SURFACE
- * gives SURFACE_BACKGROUND), resolves it through FDSColors (a class Redex keeps) on the row's context,
+ * gives SURFACE_BACKGROUND), resolves it through FDSColors (renamed by Redex on 584) on the row's context,
  * and hands the answer to the facepile drawable (arm64 LX/3E0;) as its ring colour. That drawable
  * cuts each ring out with clipPath when the colour has any transparency, and paints a disc of it
  * otherwise. A light answer on a black page is the white disc behind the icons.
@@ -41,7 +41,7 @@ internal const val CLIP_COLOR = "clipColor"
 internal const val REACTION_RING = "Lapp/morphe/extension/facebook/theme/ReactionRing;->ring(I)I"
 
 /**
- * The index of the move-result of each ring colour [method] resolves: an FDSColors call answering an
+ * The index of the move-result of each ring colour [method] resolves: a call taking the token and answering an
  * int, after a read of a `clipColor` field and before any other such read.
  */
 internal fun reactionRingReads(method: Method): List<Int> {
@@ -55,7 +55,8 @@ internal fun reactionRingReads(method: Method): List<Int> {
             call != null && code[index].opcode.name.startsWith("invoke")
         } ?: return@forEachIndexed
         val call = (code[resolve] as ReferenceInstruction).reference as MethodReference
-        if (call.definingClass == FDS_COLORS && call.returnType == "I" && code.getOrNull(resolve + 1)?.opcode == Opcode.MOVE_RESULT) {
+        val token = call.parameterTypes.any { it.toString() == field.type }
+        if (token && call.returnType == "I" && code.getOrNull(resolve + 1)?.opcode == Opcode.MOVE_RESULT) {
             reads += resolve + 1
         }
     }

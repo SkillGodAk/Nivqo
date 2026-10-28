@@ -64,7 +64,7 @@ public final class DoubleTapLike {
     @Nullable
     public static Object heart(@Nullable Object handler) {
         HookStatus.invoked(FamilyNames.DOUBLE_TAP_LIKE);
-        return handler != null && holdingBack("double tap heart", false) ? null : handler;
+        return handler != null && noLike("double tap heart", false) ? null : handler;
     }
 
     /**
@@ -85,7 +85,7 @@ public final class DoubleTapLike {
      */
     public static boolean holdBackLike(@Nullable String source) {
         HookStatus.invoked(FamilyNames.DOUBLE_TAP_LIKE);
-        return DOUBLE_TAP.equals(source) && holdingBack("double tap like source", true);
+        return DOUBLE_TAP.equals(source) && noLike("double tap like source", true);
     }
 
     /**
@@ -95,7 +95,25 @@ public final class DoubleTapLike {
      */
     public static boolean holdBackTap() {
         HookStatus.invoked(FamilyNames.DOUBLE_TAP_LIKE);
-        return holdingBack("attachment double tap", true);
+        return noLike("attachment double tap", true);
+    }
+
+    /**
+     * Whether a double tap must not like or show a heart here: the switch holds it back, or
+     * Double tap opens comments is on and {@link ReelGestures} takes the double tap instead. The
+     * handler and the reel like's key stay on the first switch alone, so that a double tap still
+     * reaches the reel like helper's double-tap like, where ReelGestures takes it.
+     */
+    private static boolean noLike(String where, boolean count) {
+        if (holdingBack(where, count)) return true;
+        try {
+            if (!Utils.settingsReady() || !Settings.DOUBLE_TAP_OPENS_COMMENTS.get()) return false;
+            if (count) ReelGestures.likeReplaced(where);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.DOUBLE_TAP_LIKE, where, failure);
+            return false;
+        }
     }
 
     /**

@@ -10,8 +10,8 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
-import app.morphe.patches.facebook.chats.jumpTargets
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
+import app.morphe.patches.facebook.layout.theme.branchTargets
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.requireStatusMethod
@@ -100,7 +100,7 @@ internal fun Method.qualityPut(): QualityPut {
     }
     val put = sites.singleOrNull() ?: refuse("expected one putString of \"$VIDEO_UPLOAD_QUALITY\" in $name, found ${sites.size}")
     val value = (code[put] as FiveRegisterInstruction).registerE
-    if (put in jumpTargets(code)) refuse("the putString in $name is a jump target")
+    if (put in branchTargets(code)) refuse("the putString in $name is a jump target")
     if (readsAfter(put, value).isNotEmpty()) refuse("$name reads the upload quality again after the putString")
     return QualityPut(this, put, value)
 }

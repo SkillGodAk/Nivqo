@@ -42,13 +42,15 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
  *
  * The batcher and its flush are renamed every build (580 and 577 each call it A00 of a different
  * class), so the flush is found by the two literals it loads and the shape of its one hand-over.
+ * 584's Redex merged the mutation's input into a class many GraphQL inputs share (`LX/7nD`), so
+ * `video_ids` moved into the constructor the flush builds its input with.
  */
 internal const val PATCH = "Don't send reel watch history"
 
 /** The mutation's name: the flush loads it to build the query. */
 internal const val SEEN_STATE_MUTATION = "FbShortsSeenStateMutation"
 
-/** The input field every build's flush fills with the watched reels' ids. */
+/** The input field every build fills with the watched reels' ids, in the flush or its input's constructor. */
 internal const val VIDEO_IDS = "video_ids"
 
 /** The name Redex keeps on the runnable the flush hands its executor. */
@@ -80,17 +82,17 @@ private fun Instruction.loads(string: String): Boolean =
 
 /**
  * The index where the flush hands the seen-state send to its executor, or null when [method]
- * isn't that flush: a void instance method taking nothing, loading both literals, that makes one
+ * isn't that flush: a void instance method taking nothing that fills [VIDEO_IDS] (loading it, or
+ * through the constructor of the input it builds before naming the mutation) and makes one
  * `Executor.execute` call after it loads the mutation's name, whose runnable is a new instance of
  * the Runnable Redex left [SEEN_STATE_SEND] on and reaches the call by no other way. [classOf]
  * looks a class up by its type.
  */
 internal fun sendPoint(method: Method, classOf: (String) -> ClassDef?): Int? {
-    if (method.returnType != "V" || method.parameterTypes.isNotEmpty() ||
-        AccessFlags.STATIC.isSet(method.accessFlags) || !holdsString(method, VIDEO_IDS)
-    ) return null
+    if (method.returnType != "V" || method.parameterTypes.isNotEmpty() || AccessFlags.STATIC.isSet(method.accessFlags)) return null
     val instructions = method.implementation?.instructions?.toList() ?: return null
     val named = instructions.indices.singleOrNull { instructions[it].loads(SEEN_STATE_MUTATION) } ?: return null
+    if (!holdsString(method, VIDEO_IDS) && (0 until named).none { instructions[it].fillsVideoIds(classOf) }) return null
     val send = instructions.indices.singleOrNull { instructions[it].isExecute() } ?: return null
     if (send < named) return null
     val runnable = instructions[send].callRegisters().getOrNull(1) ?: return null
@@ -105,6 +107,18 @@ internal fun sendPoint(method: Method, classOf: (String) -> ClassDef?): Int? {
     val sender = classOf(type) ?: return null
     if (redexOriginalName(sender) != SEEN_STATE_SEND || sender.interfaces.none { it.toString() == RUNNABLE }) return null
     return send
+}
+
+/** Whether this calls a constructor, found through [classOf], that loads [VIDEO_IDS]: 584's merged input. */
+private fun Instruction.fillsVideoIds(classOf: (String) -> ClassDef?): Boolean {
+    if (opcode != Opcode.INVOKE_DIRECT && opcode != Opcode.INVOKE_DIRECT_RANGE) return false
+    val call = (this as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+    if (call.name != "<init>") return false
+    val parameters = call.parameterTypes.map { it.toString() }
+    val constructor = classOf(call.definingClass)?.methods?.singleOrNull {
+        it.name == "<init>" && it.parameterTypes.map { type -> type.toString() } == parameters
+    } ?: return false
+    return holdsString(constructor, VIDEO_IDS)
 }
 
 /**

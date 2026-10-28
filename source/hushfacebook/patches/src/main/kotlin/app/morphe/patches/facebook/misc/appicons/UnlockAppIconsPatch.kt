@@ -31,8 +31,9 @@ val unlockAppIconsPatch = bytecodePatch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Unlock app icons",
     description = "Lets you pick the app icons Facebook keeps for Facebook Plus on its App icon page (Menu > " +
-        "Settings and privacy > App icon), so your home screen icon and the logo at the top of Home match your pick. " +
-        "The normal blue icon keeps Facebook's wordmark. Starts off. Turn it on in Hushfacebook settings > Appearance.",
+        "Settings and privacy > App icon), so your home screen icon can be any of them. " +
+        "A second switch, Use the icon at the top of Home, puts your pick at the top of Home too. Both start off. " +
+        "Turn them on in Hushfacebook settings > Appearance.",
 ) {
     category("Theme")
     dependsOn(settingsPatch, facebookExtensionPatch)

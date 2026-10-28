@@ -1,6 +1,176 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s կարկատան</item>
+        <item quantity="other">%s կարկատաններ</item>
+    </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s գրադարան</item>
+        <item quantity="other">%s գրադարաններ</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s կարկատանի ընտրանք</item>
+        <item quantity="other">%s կարկատանի ընտրանքներ</item>
+    </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s տարր</item>
+        <item quantity="other">%s տարրեր</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Ընտրել %s ֆայլ</item>
+        <item quantity="other">Ընտրել %s ֆայլեր</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Ավելացնել %s աղբյուր</item>
+        <item quantity="other">Ավելացնել %s աղբյուրներ</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Կարկատման աղբյուրներ %s հավելվածի համար</item>
+        <item quantity="other">Կարկատման աղբյուրներ %s հավելվածների համար</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s աղբյուր թաքցված է այս հավելվածի համար։ Ընտրեք հավելվածը «Հավելվածներ» ներդիրում և բացեք «Կարկատման աղբյուրներ»՝ այն հետ բերելու համար</item>
+        <item quantity="other">%s աղբյուրներ թաքցված են այս հավելվածի համար։ Ընտրեք հավելվածը «Հավելվածներ» ներդիրում և բացեք «Կարկատման աղբյուրներ»՝ դրանք հետ բերելու համար</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s աղբյուր թաքցված է։ Հպեք՝ ցույց տալու համար</item>
+        <item quantity="other">%s աղբյուրներ թաքցված են։ Հպեք՝ ցույց տալու համար</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s համապատասխան կարկատան</item>
+        <item quantity="other">%s համապատասխան կարկատաններ</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s աղբյուր</item>
+        <item quantity="other">%s աղբյուրներ</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s փաթեթ</item>
+        <item quantity="other">%s փաթեթներ</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">Կատարվեց %s կարկատան</item>
+        <item quantity="other">Կատարվեցին %s կարկատաններ</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK ֆայլ</item>
+        <item quantity="other">%s APK ֆայլեր</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">Տեղադրվեց %s հավելված</item>
+        <item quantity="other">Տեղադրվեցին %s հավելվածներ</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Միացվեց %s հավելված</item>
+        <item quantity="other">Միացվեցին %s հավելվածներ</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">Վերատեղադրվեց %s հավելված</item>
+        <item quantity="other">Վերատեղադրվեցին %s հավելվածներ</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">Տեղահանվեց %s հավելված</item>
+        <item quantity="other">Տեղահանվեցին %s հավելվածներ</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Տեղահանե՞լ %s հավելվածը</item>
+        <item quantity="other">Տեղահանե՞լ %s հավելվածները</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s հավելված պատրաստ է կարկատման</item>
+        <item quantity="other">%s հավելվածներ պատրաստ են կարկատման</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s հավելված հերթագրված է կարկատման համար</item>
+        <item quantity="other">%s հավելվածներ հերթագրված են կարկատման համար</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s թաքցված ծանուցում, հպեք՝ այն ցույց տալու համար</item>
+        <item quantity="other">%s թաքցված ծանուցումներ, հպեք՝ դրանք ցույց տալու համար</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s հավելված կարող է վերակարկատվել</item>
+        <item quantity="other">%s հավելվածներ կարող են վերակարկատվել</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">Բաց թողնվեց %s հավելված</item>
+        <item quantity="other">Բաց թողնվեցին %s հավելվածներ</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Պահված ընտրությունից հեռացվեց %s հնացած կարկատան</item>
+        <item quantity="other">Պահված ընտրությունից հեռացվեցին %s հնացած կարկատաններ</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s աղբյուր տեղադրված է</item>
+        <item quantity="other">%s աղբյուրներ տեղադրված են</item>
+    </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s հավելված թաքցված է</item>
+        <item quantity="other">%s հավելվածներ թաքցված են</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s հավելված ցուցադրված է</item>
+        <item quantity="other">%s հավելվածներ ցուցադրված են</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Ցուցադրե՞լ %s հավելվածը</item>
+        <item quantity="other">Ցուցադրե՞լ %s հավելվածները</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s թաքցված հավելված</item>
+        <item quantity="other">%s թաքցված հավելվածներ</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s հավելված</item>
+        <item quantity="other">%s հավելվածներ</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">Ընտրված է %s</item>
+        <item quantity="other">Ընտրված են %s</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Ընտրված փաթեթից պատճենվեց %s կարկատան</item>
+        <item quantity="other">Ընտրված փաթեթից պատճենվեցին %s կարկատաններ</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s միջուկ</item>
+        <item quantity="other">%s միջուկներ</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s հնարավորություն</item>
+        <item quantity="other">%s հնարավորություններ</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s ուղղում</item>
+        <item quantity="other">%s ուղղումներ</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s օպտիմիզացիա</item>
+        <item quantity="other">%s օպտիմիզացիաներ</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s փոփոխություն</item>
+        <item quantity="other">%s փոփոխություններ</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d նոր</item>
+        <item quantity="other">%1$s · %2$d նոր</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s նոր թողարկում</item>
+        <item quantity="other">%s նոր թողարկումներ</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d հղում միացված է</item>
+        <item quantity="other">%d հղումներ միացված են</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d չստուգված հղում</item>
+        <item quantity="other">%d չստուգված հղումներ</item>
+    </plurals>
 </resources>

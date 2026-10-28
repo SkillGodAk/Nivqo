@@ -266,13 +266,23 @@ class VideoTabColourFixtureTest {
                 }.map { it.name }.toSet()
                 assertEquals("$name: the Video tab's colours read the bar's #252728 in one method", 1, barReads.size)
                 val owners = setOfNotNull(type, colours.superclass)
+                // 583 calls the framework's setNavigationBarColor with the read. 584 hands the read to
+                // a static (Window, int) method of the navigation bar painter's class (LX/2LF;->A02),
+                // which reaches the painter, so the bar hook sees this colour there.
+                val paintsBar = navigationPainterOf(bundle).definingClass
 
                 val painters = FixtureDex.methodsWhere(bundle, dexFilter = { dex -> dex.typeSection.any { it == type } }) { method ->
                     val body = method.body()
                     body.any { it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as TypeReference).type == type } &&
                         body.withIndex().any { (at, instruction) ->
-                            if (instruction.reference() != setNavigationBarColor || at < 2) return@any false
-                            val colour = (instruction as FiveRegisterInstruction).registerD
+                            val painted = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+                            if (painted == null || at < 2 || instruction !is FiveRegisterInstruction) return@any false
+                            if (painted.toString() != setNavigationBarColor && !(instruction.opcode == Opcode.INVOKE_STATIC &&
+                                    painted.definingClass == paintsBar && painted.returnType == "V" &&
+                                    painted.parameterTypes.map(CharSequence::toString) == listOf("Landroid/view/Window;", "I"))) {
+                                return@any false
+                            }
+                            val colour = instruction.registerD
                             val result = body[at - 1]
                             val read = (body[at - 2] as? ReferenceInstruction)?.reference as? MethodReference
                             result.opcode == Opcode.MOVE_RESULT && (result as OneRegisterInstruction).registerA == colour &&

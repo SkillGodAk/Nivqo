@@ -9,6 +9,10 @@ import app.morphe.Fixtures
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
+import app.morphe.patches.facebook.notifications.BUILDER_PARAMETER
+import app.morphe.patches.facebook.notifications.TRAY_MANAGER
+import app.morphe.patches.facebook.notifications.TRAY_NOTIFICATION
+import app.morphe.patches.facebook.notifications.isPostMethod
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -40,8 +44,14 @@ internal object HandoffFixture {
             MESSAGES_NOTIFICATION_MANAGER,
             MQTT_XPLAT_SERVICE_DELEGATE,
             MQTT_CONNECTION_CONFIG,
+            TRAY_MANAGER,
+            TRAY_NOTIFICATION,
         ))
         val notificationType = kept[NOTIFICATION_TYPE] ?: throw AssertionError("${bundle.name} has no $NOTIFICATION_TYPE")
+        // The push tray's post method and the builder it takes, for the chats Facebook posts itself.
+        val post = kept[TRAY_MANAGER]?.methods?.singleOrNull(::isPostMethod)
+            ?: throw AssertionError("${bundle.name}: no single post method in $TRAY_MANAGER")
+        val builder = FixtureDex.classes(bundle, setOf(post.parameterTypes[BUILDER_PARAMETER].toString())).values
         val voip = voipConstant(notificationType) ?: throw AssertionError("${bundle.name}: $NOTIFICATION_TYPE stores no $VOIP")
         val found = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
@@ -54,7 +64,7 @@ internal object HandoffFixture {
                 }
             }
         }
-        return (kept.values + found).distinctBy { it.type }
+        return (kept.values + builder + found).distinctBy { it.type }
     }
 }
 
@@ -99,11 +109,26 @@ class MessengerHandoffFixtureTest {
         return kinds
     }
 
+    private val constantName = Regex("[A-Z][A-Z0-9_]*")
+
+    private fun literals(method: Method): List<String> =
+        method.implementation?.instructions?.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
+            .orEmpty()
+
+    /** The push kinds the extension leaves to Messenger: the constant names its static initializer loads. */
+    private fun extensionChatPushKinds(): Set<String> {
+        val kinds = ExtensionDex.classDef(handoffClass).methods.filter { it.name == "<clinit>" }.flatMap(::literals)
+            .filter { constantName.matches(it) }.toSet()
+        assertEquals("chat push kinds the extension leaves to Messenger: $kinds", 10, kinds.size)
+        return kinds
+    }
+
     @Test
     fun `each declared build has two VOIP handlers, one ring parse and one chat dispatcher, each with a local to borrow`() {
         val versions = AppCompatibilities.facebook().single().targets.mapNotNull { it.version }.toSet()
         assertTrue("the bundle declares no Facebook build", versions.isNotEmpty())
         val kinds = extensionChatKinds()
+        val pushKinds = extensionChatPushKinds()
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
@@ -239,6 +264,14 @@ class MessengerHandoffFixtureTest {
                 for (kind in kindClasses.values) {
                     assertEquals("$name: ${kind.type} isn't a MessagingNotification", MESSAGING_NOTIFICATION, kind.superclass)
                 }
+
+                // Chats Facebook posts itself (#193): every push kind the extension leaves to
+                // Messenger is a NotificationType constant here, and the post method has a local.
+                val constants = classes.single { it.type == NOTIFICATION_TYPE }.methods.filter { it.name == "<clinit>" }
+                    .flatMap(::literals).filter { constantName.matches(it) }.toSet()
+                assertEquals("$name: chat push kinds that aren't NotificationType constants", emptySet<String>(), pushKinds - constants)
+                val post = classes.single { it.type == TRAY_MANAGER }.methods.single(::isPostMethod)
+                assertTrue("$name: the push tray's post has no local", post.localRegisterCount() >= 1)
                 checked += version
             }
         }

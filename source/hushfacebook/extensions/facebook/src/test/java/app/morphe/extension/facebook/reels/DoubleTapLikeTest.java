@@ -40,6 +40,8 @@ public class DoubleTapLikeTest {
     /** The patch is in Morphe Manager's default selection with its switch off; these tests turn it on. */
     @Before
     public void turnTheSwitchOn() {
+        // Other classes in the sandbox (PausedHooksTest) leave counts under this family.
+        HookStatus.clear();
         Settings.TURN_OFF_DOUBLE_TAP_LIKE.save(true);
     }
 
@@ -104,6 +106,30 @@ public class DoubleTapLikeTest {
         PauseForTests.resume();
         assertNull(DoubleTapLike.handler(new Object()));
         assertTrue(DoubleTapLike.holdBackLike(DoubleTapLike.DOUBLE_TAP));
+    }
+
+    /** Double tap opens comments keeps the like from being sent, but leaves the handler to the gesture patch. */
+    @Test
+    public void opensCommentsAloneStopsTheLikeButNotTheHandler() {
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE.save(false);
+        Settings.DOUBLE_TAP_OPENS_COMMENTS.save(true);
+        try {
+            Object handler = new Object();
+            assertSame(handler, DoubleTapLike.handler(handler));
+            assertSame("key", DoubleTapLike.likeKey("key"));
+            assertNull("the heart played", DoubleTapLike.heart(new Object()));
+            assertTrue(DoubleTapLike.holdBackLike(DoubleTapLike.DOUBLE_TAP));
+            assertFalse("a reaction was held back", DoubleTapLike.holdBackLike("REACT_BUTTON"));
+            assertTrue(DoubleTapLike.holdBackTap());
+            PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+            assertFalse(DoubleTapLike.holdBackLike(DoubleTapLike.DOUBLE_TAP));
+            assertFalse(DoubleTapLike.holdBackTap());
+            Object paused = new Object();
+            assertSame(paused, DoubleTapLike.heart(paused));
+        } finally {
+            PauseForTests.resume();
+            Settings.DOUBLE_TAP_OPENS_COMMENTS.resetToDefault();
+        }
     }
 
     /** The Like button, a reaction and every other source go to Facebook whatever the switch says. */

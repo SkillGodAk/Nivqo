@@ -74,17 +74,18 @@ class ControlsTest {
         val supplier = "Lcom/facebook/messaging/inboxsubtabs/plugins/subtabs/itemsupplier/InboxSubtabsItemSupplierImplementation;"
         fun subtabs(value: String) = method(registers = 3, returnType = "V", body = """
             iget-object v0, p0, LX/2UL;->A00:$supplier
-            iget-object v1, v0, $supplier->A07:Ljava/util/concurrent/atomic/AtomicBoolean;
+            iget-object v0, v0, $supplier->A07:LX/21D;
+            iget-object v1, v0, LX/21D;->A00:Ljava/util/concurrent/atomic/AtomicBoolean;
             const/4 v0, 0x1
             invoke-virtual {v1, $value}, Ljava/util/concurrent/atomic/AtomicBoolean;->set(Z)V
             return-void
         """.trimIndent())
         val original = subtabs("v0")
         original.injectSubtabs()
-        assertEquals(7, original.implementation!!.instructions.size)
+        assertEquals(8, original.implementation!!.instructions.size)
         val changed = subtabs("v2")
         assertFailsWith<PatchException> { changed.injectSubtabs() }
-        assertEquals(5, changed.implementation!!.instructions.size)
+        assertEquals(6, changed.implementation!!.instructions.size)
     }
 
     @Test fun compatReportRefusesEveryInboxTabsBodyThePatchRefuses() {
@@ -92,7 +93,8 @@ class ControlsTest {
         val supplier = "Lcom/facebook/messaging/inboxsubtabs/plugins/subtabs/itemsupplier/InboxSubtabsItemSupplierImplementation;"
         val body = """
             iget-object v0, p0, LX/2UL;->A00:$supplier
-            iget-object v1, v0, $supplier->A07:Ljava/util/concurrent/atomic/AtomicBoolean;
+            iget-object v0, v0, $supplier->A07:LX/21D;
+            iget-object v1, v0, LX/21D;->A00:Ljava/util/concurrent/atomic/AtomicBoolean;
             const/4 v0, 0x1
             invoke-virtual {v1, v0}, Ljava/util/concurrent/atomic/AtomicBoolean;->set(Z)V
             return-void
@@ -105,7 +107,9 @@ class ControlsTest {
         for ((name, taken) in listOf(
             "the setter's value" to takenBy(body.replace("{v1, v0}", "{v1, v2}")),
             "the value" to takenBy(body.replace("v0, 0x1", "v0, 0x0")),
-            "the flag field" to takenBy(body.replace("->A07:", "->A08:")),
+            "the holder field" to takenBy(body.replace("->A07:", "->A08:")),
+            "the flag field" to takenBy(body.replace("LX/21D;->A00:", "LX/21D;->A01:")),
+            "the flag's owner" to takenBy(body.replace("LX/21D;->A00:", "LX/21E;->A00:")),
             "the setter" to takenBy(body.replace("->set(Z)V", "->lazySet(Z)V")),
             "the register count" to takenBy(body, registers = 4),
         )) assertEquals(false to false, taken, name)
@@ -153,39 +157,40 @@ class ControlsTest {
         assertFailsWith<PatchException> { flag(static, flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value).validateDeltaUnsent() }
     }
 
-    /** 582's instance (Intent, session, String) handler, with its Intent in p1, is refused. */
-    @Test fun a582InstanceRevokeHandlerIsRefused() {
+    /** 582's three-parameter instance handler and 583's static four-parameter one are refused. */
+    @Test fun anOlderRevokeHandlerIsRefused() {
+        val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
+        val map = "${SESSION}Ljava/lang/String;Ljava/util/Map;"
         fun revoke(registers: Int, flags: Int = AccessFlags.PUBLIC.value, types: String = "${SESSION}Ljava/lang/String;") = fixtureMethod(
             "Lfixture/Revoke;->A00(Landroid/content/Intent;$types)V", "return-void", registers, flags)
         assertFailsWith<PatchException> { revoke(5).validateKeepUnsent() }
-        assertFailsWith<PatchException> { revoke(5, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value).validateKeepUnsent() }
-        assertFailsWith<PatchException> { revoke(11, types = "${SESSION}Ljava/lang/String;Ljava/util/Map;").validateKeepUnsent() }
+        assertFailsWith<PatchException> { revoke(5, static).validateKeepUnsent() }
+        assertFailsWith<PatchException> { revoke(11, static, map).validateKeepUnsent() }
         for (types in listOf("Ljava/lang/String;Ljava/lang/Object;", "Ljava/lang/String;$SESSION"))
             assertFailsWith<PatchException>(types) { revoke(5, types = types).validateKeepUnsent() }
     }
 
-    @Test fun discoveryFindsOnlyTheStaticRevokeHandler() {
+    @Test fun discoveryFindsOnlyTheInstanceRevokeHandler() {
         val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
         val revoke = "const-string v0, \"com.facebook.stella.ipc.messenger.ACTION_REVOKE_MESSAGE\"\nreturn-void"
         fun found(types: String, flags: Int) = mirroredControls(listOf(fixtureClass("Lfixture/Revoke;", listOf(
             fixtureMethod("Lfixture/Revoke;->A00(Landroid/content/Intent;$types)V", revoke, 11, flags))))).getValue("keep_unsent").size
-        assertEquals(1, found("${SESSION}Ljava/lang/String;Ljava/util/Map;", static))
+        assertEquals(1, found("${SESSION}Ljava/lang/String;Ljava/util/Map;", AccessFlags.PUBLIC.value))
         assertEquals(0, found("${SESSION}Ljava/lang/String;", AccessFlags.PUBLIC.value))
         assertEquals(0, found("${SESSION}Ljava/lang/String;", static))
-        assertEquals(0, found("${SESSION}Ljava/lang/String;Ljava/util/Map;", AccessFlags.PUBLIC.value))
+        assertEquals(0, found("${SESSION}Ljava/lang/String;Ljava/util/Map;", static))
         assertEquals(0, found("Ljava/lang/String;Ljava/lang/Object;", AccessFlags.PUBLIC.value))
     }
 
-    /** 583 handles the revoke in a static (Intent, session, String, Map) method, so its Intent is p0. */
-    @Test fun theStaticRevokeHandlerReadsItsIntentFromP0() {
-        val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
+    /** 584 handles the revoke in an instance (Intent, session, String, Map) method, so its Intent is p1. */
+    @Test fun theInstanceRevokeHandlerReadsItsIntentFromP1() {
         val map = "${SESSION}Ljava/lang/String;Ljava/util/Map;"
         fun handler(types: String, registers: Int = 11) =
-            fixtureMethod("Lfixture/Revoke;->A00(Landroid/content/Intent;$types)V", "return-void", registers, static)
-        assertEquals(0, handler(map).validateKeepUnsent())
+            fixtureMethod("Lfixture/Revoke;->A00(Landroid/content/Intent;$types)V", "return-void", registers, AccessFlags.PUBLIC.value)
+        assertEquals(1, handler(map).validateKeepUnsent())
         assertFailsWith<PatchException> { handler("${SESSION}Ljava/lang/String;Ljava/lang/Object;").validateKeepUnsent() }
         assertFailsWith<PatchException> { handler("Ljava/lang/Object;Ljava/lang/String;Ljava/util/Map;").validateKeepUnsent() }
-        // p0 lands on v15 with 19 registers and on v16 with 20, where a plain invoke can't reach it.
+        // p1 lands on v15 with 19 registers and on v16 with 20, where a plain invoke can't reach it.
         handler(map, 19).validateKeepUnsent()
         assertFailsWith<PatchException> { handler(map, 20).validateKeepUnsent() }
         val method = handler(map)
@@ -193,7 +198,7 @@ class ControlsTest {
         val read = method.implementation!!.instructions.single {
             (it as? ReferenceInstruction)?.reference?.toString() == "Landroid/content/Intent;->getStringExtra(Ljava/lang/String;)Ljava/lang/String;"
         } as FiveRegisterInstruction
-        assertEquals(method.parameterRegister(0), read.registerC)
+        assertEquals(method.parameterRegister(1), read.registerC)
     }
 
     @Test fun settingsHaveALauncherEntryAndAPrivateProviderWithoutChangingHostPermissions() {
@@ -239,24 +244,32 @@ class ControlsTest {
         assertEquals(code.lastIndex, code.branchTarget(serverBranch + 4))
     }
 
-    /** The reader has eight registers and keeps false in v3; 582's ten-register reader with its own flag is refused. */
-    @Test fun theNotificationsReaderKeepsFalseInV3AndRefuses582s() {
-        val reader = peopleJewelMethod()
-        reader.injectPeopleSection()
-        val code = reader.implementation!!.instructions.toList()
-        assertEquals("$SETTINGS->hidePeopleSection(Z)Z", (code[12] as ReferenceInstruction).reference.toString())
-        assertEquals("$SETTINGS->keepPeopleSection(Z)Z", (code[22] as ReferenceInstruction).reference.toString())
-        val flag582 = "72344188615734930L"
+    /**
+     * 584 and most 584.1 builds keep false in v5 of ten registers, and some 584.1 arm64 builds in v3 of eight. Either
+     * works while the default stays a local nothing overwrites before the server branch. 583's reader is refused.
+     */
+    @Test fun theNotificationsReaderTakesEitherFalseRegisterAndRefuses583s() {
+        for (reader in listOf(peopleJewelMethod(), peopleJewelMethod(default = "v3", registers = 8, logger = "v4"))) {
+            reader.injectPeopleSection()
+            val code = reader.implementation!!.instructions.toList()
+            assertEquals("$SETTINGS->hidePeopleSection(Z)Z", (code[12] as ReferenceInstruction).reference.toString())
+            assertEquals("$SETTINGS->keepPeopleSection(Z)Z", (code[22] as ReferenceInstruction).reference.toString())
+            assertEquals(code.lastIndex, code.branchTarget(14))
+        }
+        assertEquals(2, listOf(peopleJewelMethod(), peopleJewelMethod(default = "v3", registers = 8, logger = "v4"))
+            .count { CompatMirror.peopleSection(it, PREFERENCE_GETTER) != null })
+        val flag583 = "72344188615735036L"
         for (changed in listOf(
-            // The false default has to be in v3 of eight registers.
-            peopleJewelMethod(default = "v5"),
-            peopleJewelMethod(registers = 10),
-            peopleJewelMethod(registers = 9),
-            // 582's reader: its own flag, false in v5 of ten registers.
-            peopleJewelMethod(serverFlag = flag582, default = "v5", registers = 10, logger = "v3"),
-            peopleJewelMethod(serverFlag = flag582),
+            // v1 holds the preferences, v8 is a parameter, and v2 takes the logger's result before the server branch.
+            peopleJewelMethod(default = "v1"),
+            peopleJewelMethod(default = "v8"),
+            peopleJewelMethod(default = "v2"),
+            // 583's reader: its own flag, false in v3 of eight registers.
+            peopleJewelMethod(serverFlag = flag583, default = "v3", registers = 8, logger = "v4"),
+            peopleJewelMethod(serverFlag = flag583),
         )) {
             val before = changed.implementation!!.instructions.toList()
+            assertNull(CompatMirror.peopleSection(changed, PREFERENCE_GETTER))
             assertFailsWith<PatchException> { changed.injectPeopleSection() }
             assertEquals(before, changed.implementation!!.instructions.toList())
         }
@@ -329,6 +342,22 @@ class ControlsTest {
             assertFailsWith<PatchException> { changed.injectPeopleSearch() }
             assertEquals(before, changed.implementation!!.instructions.toList())
         }
+    }
+
+    @Test fun theStoryQueryIsFoundThroughARedexStringTableLookup() {
+        val lookup = "LX/Tbl;->A00(I)Ljava/lang/String;"
+        val tables = mapOf(lookup to mapOf(7 to STORY_SUGGESTIONS_QUERY, 6 to "SomethingElse"))
+        fun caller(key: String, call: String = "invoke-static {v1}, $lookup") = fixtureMethod(PEOPLE_STORY_HOOK,
+            "$key\n$call\nmove-result-object v0\nreturn-void", registers = 4,
+            flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)
+        assertEquals(setOf(STORY_SUGGESTIONS_QUERY), caller("const/4 v1, 0x7").tableStrings(tables))
+        assertEquals(1, caller("const/4 v1, 0x7").implementation!!.instructions.toList().indexOfAnchor(STORY_SUGGESTIONS_QUERY, tables))
+        assertEquals(setOf("SomethingElse"), caller("const/4 v1, 0x6").tableStrings(tables))
+        // A key loaded into another register, a key that is not in the table, or another table gives no anchor.
+        assertEquals(emptySet(), caller("const/4 v2, 0x7").tableStrings(tables))
+        assertEquals(emptySet(), caller("const/4 v1, 0x9").tableStrings(tables))
+        assertEquals(emptySet(), caller("const/4 v1, 0x7", "invoke-static {v1}, LX/Other;->A00(I)Ljava/lang/String;").tableStrings(tables))
+        assertEquals(-1, caller("const/4 v1, 0x9").implementation!!.instructions.toList().indexOfAnchor(STORY_SUGGESTIONS_QUERY, tables))
     }
 
     @Test fun storyViewerSkipsItsSuggestionsRequestOnlyWhileTheSwitchIsOn() {
@@ -411,11 +440,13 @@ class ControlsTest {
         assertEquals(Opcode.MOVE_RESULT, code[64].opcode)
         assertEquals(0, (code[64] as OneRegisterInstruction).registerA)
         assertEquals(Opcode.IF_NEZ, code[65].opcode)
+        // 584.1 arm64 gives the same check nine registers, still with false in v2.
+        assertEquals(63, browserCheck(registers = 9).validateBrowserPreference())
         // 582's shape (false in v3 of nine registers, skipping ahead when the answer is off) and any mix of the two are
         // refused before anything changes.
         for ((registers, default, branch) in listOf(
-            Triple(9, 3, "if-eqz"), Triple(9, 3, "if-nez"), Triple(8, 2, "if-eqz"), Triple(8, 3, "if-nez"), Triple(9, 2, "if-nez"),
-            Triple(10, 3, "if-eqz"),
+            Triple(9, 3, "if-eqz"), Triple(9, 3, "if-nez"), Triple(8, 2, "if-eqz"), Triple(8, 3, "if-nez"), Triple(9, 2, "if-eqz"),
+            Triple(10, 3, "if-eqz"), Triple(10, 2, "if-nez"),
         )) {
             val changed = browserCheck(registers, default, branch)
             val before = changed.implementation!!.instructions.toList()

@@ -147,6 +147,49 @@ class StorySeenMarkingFixtureTest {
     }
 
     @Test
+    fun `each declared build has one story start check and it takes the watched-here hook first`() = bundles { bundle ->
+        val name = bundle.name
+        val owners = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            dex.classes.filter { startCheck(it) != null }.mapTo(owners) { ImmutableClassDef.of(it) }
+        }
+        assertEquals("$name: story start checks", 1, owners.size)
+        val check = startCheck(owners.single())!!
+
+        // The viewer asks for it through the interface the check implements.
+        val interfaces = owners.single().interfaces.toSet()
+        val referencing = { dex: com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile ->
+            dex.methodSection.any { it.definingClass in interfaces && it.name == check.name }
+        }
+        val asking = FixtureDex.methodsWhere(bundle, referencing) { method ->
+            method.implementation?.instructions?.any {
+                it.opcode == Opcode.INVOKE_INTERFACE && it.call?.let { call ->
+                    call.definingClass in interfaces && call.name == check.name && call.returnType == "Z"
+                } == true
+            } == true
+        }
+        assertTrue("$name: nothing asks ${check.definingClass}'s interface for ${check.name}", asking.isNotEmpty())
+
+        val code = check.implementation!!.instructions.toList()
+        val card = check.parameterRegisterNumber(0)
+        val after = MutableMethod(check).apply { skipWatchedCards() }.implementation!!.instructions.toList()
+        assertEquals("$name: instructions added to the start check", code.size + 5, after.size)
+        val hook = after[0]
+        assertEquals("$name: the start hook's form", Opcode.INVOKE_STATIC_RANGE, hook.opcode)
+        assertEquals("$name: the start hook", WATCHED_HERE, hook.call!!.smali())
+        assertEquals("$name: the start hook reads the card", card, (hook as RegisterRangeInstruction).startRegister)
+        assertEquals("$name: the start hook's registers", 1, hook.registerCount)
+        assertEquals(
+            "$name: the start hook's answer",
+            listOf(Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CONST_4, Opcode.RETURN),
+            after.subList(1, 5).map { it.opcode },
+        )
+        for (index in code.indices) {
+            assertEquals("$name: start check instruction $index changed", code[index].opcode, after[index + 5].opcode)
+        }
+    }
+
+    @Test
     fun `the extension has the marking hooks and the stubs the patch fills`() {
         val seen = ExtensionDex.classDef(STORY_SEEN).methods
         fun has(name: String, answer: String, vararg parameters: String) = seen.any {
@@ -157,6 +200,7 @@ class StorySeenMarkingFixtureTest {
         val string = "Ljava/lang/String;"
         assertTrue("StorySeen has no viewed hook", has("viewed", "V", obj, obj, obj, "Z"))
         assertTrue("StorySeen has no bucketMade hook", has("bucketMade", "V", obj))
+        assertTrue("StorySeen has no watchedHere hook", has("watchedHere", "Z", obj))
         for (stub in listOf("bucketIdOf", "cardsOf", "storyIdOf", "sessionOf")) assertTrue("StorySeen has no $stub", has(stub, obj, obj))
         assertTrue("StorySeen has no hasUnwatchedOf", has("hasUnwatchedOf", "Z", obj))
         assertTrue("StorySeen has no publishSeen", has("publishSeen", "V", obj, string, string, string, "Z"))

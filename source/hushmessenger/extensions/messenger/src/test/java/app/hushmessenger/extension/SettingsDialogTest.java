@@ -463,6 +463,106 @@ public class SettingsDialogTest {
         }
     }
 
+    /** Clear empties the file at once and keeps a copy in memory, which Undo writes back under anything logged since. */
+    @Test public void undoPutsBackWhatClearTookUnderAnythingLoggedSince() throws Exception {
+        long now = System.currentTimeMillis();
+        MessageLog.write(Settings.appContext, List.of(new MessageLog.Entry(now - 2000, "t", "Older message"),
+            new MessageLog.Entry(now - 1000, "t", "Newer message")));
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View settings = screen.get().getWindow().getDecorView();
+            SettingsText text = new SettingsText(screen.get());
+            settings.findViewWithTag("message_log_view").performClick();
+            View root = ShadowDialog.getLatestDialog().getWindow().getDecorView();
+            awaitText(root, "Newer message");
+            root.findViewWithTag("message_log_dialog_clear").performClick();
+            awaitText(root, text.get("message_log_empty"));
+            assertTrue(MessageLog.entries().isEmpty());
+            Button offer = settings.findViewWithTag("undo");
+            assertEquals(View.VISIBLE, offer.getVisibility());
+            assertEquals("Undo Clear log", offer.getText().toString());
+            MessageLog.write(Settings.appContext, List.of(new MessageLog.Entry(now, "t", "After the clear")));
+            root.findViewWithTag("message_log_undo").performClick();
+            assertEquals(View.GONE, offer.getVisibility());
+            awaitText(root, "Older message");
+            List<String> back = new ArrayList<>();
+            for (MessageLog.Entry entry : MessageLog.entries()) back.add(entry.text);
+            assertEquals(List.of("After the clear", "Newer message", "Older message"), back);
+            assertEquals(text.get("message_log_restored"), org.robolectric.shadows.ShadowToast.getTextOfLatestToast());
+            assertNull(root.findViewWithTag("message_log_undo"));
+        }
+    }
+
+    @Test public void aClearIsFinalOnceUndoRunsOutOrSettingsClose() throws Exception {
+        for (boolean close : new boolean[] {false, true}) {
+            MessageLog.write(Settings.appContext, List.of(new MessageLog.Entry(System.currentTimeMillis(), "t", "A saved message")));
+            try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+                View settings = screen.get().getWindow().getDecorView();
+                settings.findViewWithTag("message_log_view").performClick();
+                Dialog log = ShadowDialog.getLatestDialog();
+                View root = log.getWindow().getDecorView();
+                awaitText(root, "A saved message");
+                root.findViewWithTag("message_log_dialog_clear").performClick();
+                awaitText(root, new SettingsText(screen.get()).get("message_log_empty"));
+                assertNotNull(root.findViewWithTag("message_log_undo"));
+                if (close) {
+                    log.dismiss();
+                    screen.pause().stop();
+                    screen.start().resume();
+                } else {
+                    // With the sheet up, a frame moves Robolectric's clock about 16 ms past an idleFor, so this stays a second inside.
+                    Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(SettingsActivity.UNDO_MILLIS - 1000));
+                    assertNotNull(root.findViewWithTag("message_log_undo"));
+                    assertEquals(View.VISIBLE, settings.findViewWithTag("undo").getVisibility());
+                    Shadows.shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(1000));
+                    awaitGone(root, "message_log_undo");
+                }
+                assertEquals(View.GONE, settings.findViewWithTag("undo").getVisibility());
+                // A hidden button still takes performClick, so this shows the copy is gone, not just the button.
+                settings.findViewWithTag("undo").performClick();
+                for (int wait = 0; wait < 30; wait++) {
+                    Shadows.shadowOf(Looper.getMainLooper()).idle();
+                    Thread.sleep(10);
+                }
+                assertTrue(MessageLog.entries().isEmpty());
+            }
+        }
+    }
+
+    /** Settings that stop while a Clear runs make it final, even when they're back before it ends. */
+    @Test public void aClearStillRunningWhenSettingsStopOffersNoUndo() throws Exception {
+        MessageLog.Vault working = MessageLog.vault;
+        MessageLog.write(Settings.appContext, List.of(new MessageLog.Entry(System.currentTimeMillis(), "t", "A saved message")));
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View settings = screen.get().getWindow().getDecorView();
+            settings.findViewWithTag("message_log_view").performClick();
+            View root = ShadowDialog.getLatestDialog().getWindow().getDecorView();
+            awaitText(root, "A saved message");
+            CountDownLatch release = new CountDownLatch(1);
+            // Holds the log's worker, so the clear is still running across the stop and start.
+            MessageLog.vault = new MessageLog.Vault() {
+                @Override public byte[] seal(byte[] plain) throws Exception { return working.seal(plain); }
+                @Override public byte[] open(byte[] blob) throws Exception {
+                    release.await(5, TimeUnit.SECONDS);
+                    return working.open(blob);
+                }
+                @Override public void forget() throws Exception { working.forget(); }
+            };
+            try {
+                root.findViewWithTag("message_log_dialog_clear").performClick();
+                screen.pause().stop();
+                screen.start().resume();
+                release.countDown();
+                awaitText(root, new SettingsText(screen.get()).get("message_log_empty"));
+            } finally {
+                release.countDown();
+                MessageLog.vault = working;
+            }
+            assertTrue(MessageLog.entries().isEmpty());
+            assertEquals(View.GONE, settings.findViewWithTag("undo").getVisibility());
+            assertNull(root.findViewWithTag("message_log_undo"));
+        }
+    }
+
     private static void awaitGone(View root, String tag) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
         do {

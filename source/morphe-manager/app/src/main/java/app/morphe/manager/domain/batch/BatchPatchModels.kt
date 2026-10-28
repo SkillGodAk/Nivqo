@@ -12,6 +12,7 @@ import app.morphe.manager.util.Options
 import app.morphe.manager.util.PatchSelection
 import app.morphe.manager.util.PathValidationResult
 import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.Serializable
 import java.io.File
 
 /**
@@ -22,6 +23,7 @@ import java.io.File
  *   several the app was cloned into. Null rebuilds the app's own install, or creates it.
  */
 @Parcelize
+@Serializable
 data class BatchTarget(
     val packageName: String,
     val repatchedPackageName: String? = null
@@ -86,6 +88,9 @@ enum class BatchItemState {
     /** No enabled bundle contributes any patch for this package. */
     NO_PATCHES,
 
+    /** The bundles offer patches for this package, but none of them is selected. */
+    NO_SELECTION,
+
     /** Removed from the run by the user. */
     EXCLUDED,
 
@@ -98,8 +103,10 @@ enum class BatchItemState {
     val isRunnable get() = this == READY
 
     /** True when the item is blocked by something the user can fix on the preflight screen. */
-    val needsAttention get() =
-        this == NEEDS_APK || this == VERSION_MISMATCH || this == UNVERIFIED_SIGNATURE || this == NO_PATCHES
+    val needsAttention get() = when (this) {
+        NEEDS_APK, VERSION_MISMATCH, UNVERIFIED_SIGNATURE, NO_PATCHES, NO_SELECTION -> true
+        else -> false
+    }
 
     val isTerminal get() = this == SUCCEEDED || this == FAILED || this == CANCELLED
 }
@@ -130,6 +137,8 @@ data class BatchBundleRef(
  *
  * @param bundles Every enabled source that contributes patches to this app. An app covered by
  *   more than one source is patched with all of them at once, exactly like the single-app flow.
+ * @param useMount Whether the app is patched to be mounted over its stock install with root. It is
+ *   the install target the patches declare their availability against, so it shapes the selection.
  * @param forceVersionMismatch Set when the user chose to patch despite an unsupported version.
  * @param forceUnverifiedSignature Set when the user chose to patch an APK whose signing certificate
  *   none of the bundles vouch for. Carried along so re-resolving the item does not ask again.
@@ -138,7 +147,7 @@ data class BatchBundleRef(
  * @param restoreState State to return to when the user un-excludes the item.
  * @param patchedFile Populated after a successful run with the retained patched APK.
  * @param installOutcome Set once the user installs from the summary, so a failure is visible
- *   on the app it belongs to rather than only in a toast that is gone a moment later.
+ *   on the app it belongs to rather than only in a message that is gone a moment later.
  */
 data class BatchPatchItem(
     val target: BatchTarget,
@@ -148,6 +157,7 @@ data class BatchPatchItem(
     val options: Options,
     val bundles: List<BatchBundleRef>,
     val state: BatchItemState,
+    val useMount: Boolean = false,
     val message: String? = null,
     /** The patch a failed run failed on, null when it failed outside of one. */
     val failedPatch: String? = null,
@@ -157,8 +167,10 @@ data class BatchPatchItem(
     val suggestedVersion: String? = null,
     val forceVersionMismatch: Boolean = false,
     val forceUnverifiedSignature: Boolean = false,
-    /** Selection before the user narrowed it to one source, so another can still be chosen. */
-    val resolvedSelection: PatchSelection? = null,
+    /** The one source simple mode was told to patch this app from, null to use every source. */
+    val chosenBundleUid: Int? = null,
+    /** True once the user edited the patches by hand, which resolving the app again would lose. */
+    val selectionEdited: Boolean = false,
     val unreadableOptionPaths: List<PathValidationResult> = emptyList(),
     val restoreState: BatchItemState? = null,
     val patchedFile: File? = null,
@@ -175,6 +187,21 @@ data class BatchPatchItem(
 
     val patchCount get() = selection.values.sumOf { it.size }
     val version get() = source?.version
+
+    /**
+     * State of this item with a selection picked by hand, over the [resolved] one: nothing picked
+     * leaves nothing to run, and anything picked runs even where the defaults had nothing.
+     */
+    fun stateForSelection(resolved: BatchItemState) = when {
+        patchCount == 0 -> BatchItemState.NO_SELECTION
+        resolved == BatchItemState.NO_PATCHES || resolved == BatchItemState.NO_SELECTION -> BatchItemState.READY
+        else -> resolved
+    }
+
+    /** Removed from the run, remembering the state an [included] call puts back. */
+    fun excluded() = copy(state = BatchItemState.EXCLUDED, restoreState = state)
+
+    fun included() = copy(state = restoreState ?: BatchItemState.READY, restoreState = null)
 
     /**
      * Whether patching this item under [resultPackageName] produced a copy of the app rather
@@ -220,10 +247,11 @@ data class BatchRunState(
     val items: List<BatchPatchItem>,
     val phase: BatchPhase,
     val policy: BatchInstallPolicy,
-    val useMount: Boolean = false,
     val activeIndex: Int? = null,
     val activeRun: PatchRunProgress? = null,
-    val finishedInForeground: Boolean = false
+    val finishedInForeground: Boolean = false,
+    /** Set once the summary started installing on its own, which a reopened summary must not repeat. */
+    val autoInstallStarted: Boolean = false
 ) {
     val activeItem get() = activeIndex?.let(items::getOrNull)
     val runnable get() = items.filter { it.state.isRunnable }
@@ -234,11 +262,17 @@ data class BatchRunState(
     val failed get() = items.count { it.state == BatchItemState.FAILED }
     val skipped get() = items.count { it.state.needsAttention || it.state == BatchItemState.EXCLUDED }
 
-    /** Number of items already processed by the queue, used for the "3 / 7" counter. */
+    /** Number of items already processed by the queue, which is how far along its progress is. */
     val processed get() = items.count { it.state.isTerminal }
 
     /** Total number of items the queue will process in this run. */
     val total get() = items.count { it.state.isRunnable || it.state.isTerminal || it.state == BatchItemState.RUNNING }
+
+    /**
+     * Place of the app being patched, or of the next one between apps, counted from one for the
+     * "Patching 3 of 7" counter. Shown beside that app, a count of the finished ones reads as its place.
+     */
+    val position get() = (processed + 1).coerceAtMost(total)
 
     val isActive get() = phase == BatchPhase.RUNNING
 
@@ -250,4 +284,30 @@ data class BatchRunState(
 
     /** Successful items that still have their patched APK on disk, in queue order. */
     val patchedItems get() = items.filter { it.state == BatchItemState.SUCCEEDED && it.patchedFile != null }
+
+    /** What is kept of a queue that has not started yet, null once it has. */
+    val savedQueue: SavedBatchQueue?
+        get() = if (phase == BatchPhase.PLANNING || phase == BatchPhase.PREFLIGHT) {
+            SavedBatchQueue(
+                targets = targets,
+                excluded = items.filter { it.state == BatchItemState.EXCLUDED }.mapTo(mutableSetOf()) { it.id },
+                policy = policy
+            )
+        } else {
+            null
+        }
+}
+
+/**
+ * A queue waiting to be started, stored so apps can be added to it over several sessions. Only
+ * the user's own choices are kept, the rest is resolved again because sources and APKs move on.
+ */
+@Serializable
+data class SavedBatchQueue(
+    val targets: List<BatchTarget>,
+    val excluded: Set<String> = emptySet(),
+    val policy: BatchInstallPolicy = BatchInstallPolicy.SAVE_ONLY
+) {
+    /** Apps the queue would patch if it were started now. */
+    val queuedCount get() = targets.count { it.id !in excluded }
 }

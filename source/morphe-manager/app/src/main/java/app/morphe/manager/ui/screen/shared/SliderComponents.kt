@@ -13,13 +13,8 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +29,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -42,6 +36,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 import java.util.Locale
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -160,20 +156,16 @@ fun SliderValuePill(
     )
     val content = dialogTextColor()
 
-    val shape = RoundedCornerShape(percent = 50)
-
     Surface(
-        shape = shape,
+        shape = Defaults.PillShape,
         color = container,
         modifier = Modifier
             .scale(scale)
-            // Clipped before the click, otherwise the ripple is drawn on the square bounds
-            .clip(shape)
-            .clickable(onClick = onClick)
+            .shapedClickable(Defaults.PillShape, onClick = onClick)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = Defaults.SpaceMedium, vertical = Defaults.SpaceSmall),
+            horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraSmall),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -184,7 +176,7 @@ fun SliderValuePill(
             )
 
             Icon(
-                imageVector = Icons.Outlined.Edit,
+                imageVector = MaterialSymbols.Rounded.Edit,
                 contentDescription = stringResource(R.string.patch_option_slider_edit),
                 tint = content.copy(alpha = 0.7f),
                 modifier = Modifier.size(14.dp)
@@ -220,13 +212,13 @@ fun ScaleSliderRow(
     onValueChange: (Float) -> Unit,
     valueRange: ClosedFloatingPointRange<Float>,
     modifier: Modifier = Modifier,
-    icon: ImageVector = Icons.Outlined.Image,
+    icon: ImageVector = MaterialSymbols.Rounded.Image,
     trailing: @Composable RowScope.() -> Unit = {}
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = Defaults.SpaceExtraSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -235,7 +227,7 @@ fun ScaleSliderRow(
             modifier = Modifier.size(16.dp),
             tint = dialogSecondaryTextColor()
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(Defaults.SpaceSmall))
         val sliderState = remember(valueRange) { SliderState(value = value, trackRange = valueRange) }
         // The caller owns the value, so anything that moves it elsewhere has to reach the state
         sliderState.value = value
@@ -244,7 +236,7 @@ fun ScaleSliderRow(
             onValueChange = { onValueChange(it.coerceIn(valueRange.start, valueRange.endInclusive)) },
             modifier = Modifier.weight(1f)
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(Defaults.SpaceSmall))
         Icon(
             imageVector = icon,
             contentDescription = null,
@@ -267,31 +259,19 @@ fun RowScope.SliderResetAction(
 ) {
     AnimatedVisibility(visible = visible) {
         Row {
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(Defaults.SpaceSmall))
             IconButton(
                 onClick = onReset,
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.RestartAlt,
+                    imageVector = MaterialSymbols.Rounded.Restart_alt,
                     contentDescription = contentDescription,
                     modifier = Modifier.size(24.dp),
                     tint = dialogTextColor()
                 )
             }
         }
-    }
-}
-
-/** The two ends of the scale, shown under the track. */
-@Composable
-fun SliderScaleLabels(start: String, end: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        SliderScaleLabel(start)
-        SliderScaleLabel(end)
     }
 }
 
@@ -303,4 +283,49 @@ fun SliderScaleLabel(text: String) {
         style = MaterialTheme.typography.labelSmall,
         color = dialogSecondaryTextColor()
     )
+}
+
+/**
+ * A setting picked on a slider, in a card of its own: the picked [value] captioned with [title],
+ * over the [slider] flanked by the two ends of its scale, then any [footer] the setting needs.
+ *
+ * The footer is laid out without gaps of its own, so what it folds away leaves none behind;
+ * each part of it brings its own top padding.
+ */
+@Composable
+fun SettingsSliderCard(
+    value: String,
+    title: String,
+    rangeStart: String,
+    rangeEnd: String,
+    slider: @Composable () -> Unit,
+    footer: @Composable ColumnScope.() -> Unit = {}
+) {
+    SearchableSetting(listOf(title)) {
+        SettingsItemCard(onClick = null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Defaults.SpaceLarge)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)) {
+                    InfoStatBox(
+                        value = value,
+                        subtitle = title,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                        modifier = Modifier.padding(bottom = Defaults.SpaceSmall)
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
+                    ) {
+                        SliderScaleLabel(rangeStart)
+                        Box(modifier = Modifier.weight(1f)) { slider() }
+                        SliderScaleLabel(rangeEnd)
+                    }
+                }
+                footer()
+            }
+        }
+    }
 }

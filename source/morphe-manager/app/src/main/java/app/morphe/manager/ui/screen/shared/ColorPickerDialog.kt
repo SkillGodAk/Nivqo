@@ -5,11 +5,12 @@
 
 package app.morphe.manager.ui.screen.shared
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -19,24 +20,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.ui.screen.shared.colorpicker.*
-import app.morphe.manager.util.contrastingContent
 import app.morphe.manager.util.toColorOrNull
 import app.morphe.manager.util.toHexString
 import app.morphe.manager.util.toHsv
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 
 /**
- * Switch offered above the picker controls for colors that can follow a value computed elsewhere.
- * While it is on the picker returns [token] instead of a hex value and the manual controls are
- * disabled, because there is nothing to pick.
+ * A choice offered beside a custom color, for colors that can follow a value computed elsewhere.
+ * While it is picked the picker returns [token] instead of a hex value and the manual controls
+ * fold away, because there is nothing to pick.
  *
+ * @param icon            Marks the choice among the picker's modes.
  * @param previewColor    Color the token currently resolves to, used to seed the manual controls
- *   when the switch is turned back off.
+ *   when the custom color is picked again.
  * @param previewGradient Shown instead of [previewColor] when the token stands for a value that
  *   varies rather than a single color; needs at least two colors to render.
  */
@@ -45,7 +47,8 @@ data class ColorPickerToggle(
     val description: String,
     val token: String,
     val previewColor: Color,
-    val previewGradient: List<Color> = emptyList()
+    val previewGradient: List<Color> = emptyList(),
+    val icon: ImageVector = MaterialSymbols.Rounded.Apps
 )
 
 /**
@@ -59,7 +62,7 @@ data class ColorPickerToggle(
  *   list where a palette would only be noise.
  */
 @Composable
-fun ColorPickerDialog(
+fun DialogHostScope.ColorPickerDialog(
     title: String,
     currentColor: String,
     onColorSelected: (String) -> Unit,
@@ -77,6 +80,10 @@ fun ColorPickerDialog(
     // value it currently resolves to instead of on black
     val initial = remember(currentColor, toggle?.previewColor) {
         initialToggle?.previewColor ?: currentColor.toColorOrNull() ?: Color.Black
+    }
+    // What the comparison opens on, a following color showing as the gradient it stands for
+    val initialFill = remember(initial, initialToggle) {
+        initialToggle?.previewGradient?.takeIf { it.size > 1 } ?: listOf(initial)
     }
 
     // Saved rather than merely remembered, a color half chosen being worth more than the one it
@@ -97,8 +104,6 @@ fun ColorPickerDialog(
 
     val activeToggle = toggle?.takeIf { useToggle }
     val enabled = activeToggle == null
-    val previewColor = activeToggle?.previewColor ?: hsv.color
-    val previewGradient = activeToggle?.previewGradient?.takeIf { it.size > 1 }
 
     AppDialog(
         onDismissRequest = onDismiss,
@@ -134,20 +139,20 @@ fun ColorPickerDialog(
 
         val swatches: @Composable () -> Unit = {
             if (presets.isNotEmpty()) {
-                ColorPresetRow(
+                ColorPresetGrid(
                     colors = presets,
                     selected = hsv.color,
                     onSelect = { preset ->
                         val (hue, saturation, value) = preset.toHsv()
                         moveTo(HsvColor(hue, saturation, value))
-                    }
+                    },
+                    columns = PICKER_PRESET_COLUMNS
                 )
             }
         }
 
         val hexField: @Composable () -> Unit = {
             AppDialogTextField(
-                enabled = enabled,
                 value = hexInput,
                 onValueChange = { input ->
                     hexInput = input
@@ -162,31 +167,62 @@ fun ColorPickerDialog(
                         isHexError = input.isNotEmpty() && !input.startsWith("@")
                     }
                 },
-                label = { Text(stringResource(R.string.hex_color)) },
                 placeholder = { Text("#RRGGBB") },
                 isError = isHexError
             )
         }
 
-        val switch: @Composable () -> Unit = {
-            if (toggle != null) {
-                SettingsSwitchItem(
-                    checked = useToggle,
-                    onToggle = { useToggle = !useToggle },
-                    title = toggle.label,
-                    subtitle = toggle.description,
-                    showBorder = true
+        // The color it opened on beside the one it would save, then what that color is: the hex
+        // to type over, or what following the toggle does, there being no hex to type then
+        val header: @Composable () -> Unit = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium)
+            ) {
+                ColorComparison(
+                    before = initialFill,
+                    after = activeToggle?.let { followed ->
+                        followed.previewGradient.takeIf { it.size > 1 }
+                            ?: listOf(followed.previewColor)
+                    } ?: listOf(hsv.color)
                 )
+                AnimatedContent(
+                    targetState = activeToggle,
+                    transitionSpec = Animations.fadeCrossfade(),
+                    contentAlignment = Alignment.CenterStart,
+                    modifier = Modifier.weight(1f),
+                    label = "color_picker_value"
+                ) { followed ->
+                    if (followed == null) {
+                        hexField()
+                    } else {
+                        Text(
+                            text = followed.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = dialogSecondaryTextColor()
+                        )
+                    }
+                }
             }
         }
 
-        val preview: @Composable () -> Unit = {
-            ColorPreview(
-                color = previewColor,
-                gradient = previewGradient,
-                label = activeToggle?.label ?: hexInput,
-                height = if (landscape) 44.dp else 60.dp
-            )
+        // A custom color or the one the toggle follows, picked the way the settings pick a mode
+        val modes: @Composable () -> Unit = {
+            if (toggle != null) {
+                val customLabel = stringResource(R.string.custom_color)
+                OptionGroup(items = listOf(false, true)) { follows, shape, source, itemModifier ->
+                    ModernIconOptionCard(
+                        selected = useToggle == follows,
+                        onClick = { useToggle = follows },
+                        icon = if (follows) toggle.icon else MaterialSymbols.Rounded.Colorize,
+                        label = if (follows) toggle.label else customLabel,
+                        modifier = itemModifier,
+                        compact = true,
+                        shape = shape,
+                        interactionSource = source
+                    )
+                }
+            }
         }
 
         // Landscape leaves barely half the height this stacks into, and the panel cannot give way
@@ -195,93 +231,92 @@ fun ColorPickerDialog(
         if (landscape) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
+                horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)
             ) {
-                AnimatedVisibility(
+                FoldingVisibility(
                     visible = enabled,
-                    modifier = Modifier.weight(1f),
-                    enter = Animations.expandFadeEnter,
-                    exit = Animations.shrinkFadeExit
+                    modifier = Modifier.weight(1f)
                 ) {
                     panel()
                 }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
-                ) {
-                    preview()
-                    switch()
-                    AnimatedVisibility(
-                        visible = enabled,
-                        enter = Animations.expandFadeEnter,
-                        exit = Animations.shrinkFadeExit
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)) {
+                        header()
+                        modes()
+                    }
+                    FoldingVisibility(visible = enabled) {
+                        Column(
+                            modifier = Modifier.padding(top = Defaults.SpaceLarge),
+                            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)
+                        ) {
                             swatches()
                             strip()
                         }
                     }
-                    hexField()
                 }
             }
             return@AppDialog
         }
 
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
-        ) {
-            preview()
-            switch()
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)) {
+                header()
+                modes()
+            }
 
             // The manual controls have nothing to offer while the color follows the toggle, and
-            // leaving them grayed out in place would only hold the room they need
-            AnimatedVisibility(
-                visible = enabled,
-                enter = Animations.expandFadeEnter,
-                exit = Animations.shrinkFadeExit
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)) {
+            // leaving them grayed out in place would only hold the room they need. Spaced from
+            // within, so the gap above them folds away along with them
+            FoldingVisibility(visible = enabled) {
+                Column(
+                    modifier = Modifier.padding(top = Defaults.SpaceLarge),
+                    verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)
+                ) {
                     swatches()
                     panel()
                     strip()
                 }
             }
-
-            hexField()
         }
     }
 }
 
+/** Presets to a row in the picker, where two short rows leave the panel more room than three. */
+private const val PICKER_PRESET_COLUMNS = 8
+
+private val ComparisonSize = 56.dp
+
 /**
- * The color as it will be used, captioned with what it is. A gradient carries its own meaning and
- * is labeled by the switch under it, so the caption only makes sense for a single picked color.
+ * The color the dialog opened on and the one it would save, the two halves of one circle, so a
+ * change reads against where it started. A half is a gradient when its color is one that varies.
  */
 @Composable
-private fun ColorPreview(color: Color, gradient: List<Color>?, label: String, height: Dp) {
-    val animated by animateColorAsState(color, label = "color_preview")
+private fun ColorComparison(before: List<Color>, after: List<Color>) {
+    Row(
+        modifier = Modifier
+            .size(ComparisonSize)
+            .clip(CircleShape)
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), CircleShape)
+    ) {
+        ComparisonHalf(before)
+        ComparisonHalf(after)
+    }
+}
+
+@Composable
+private fun RowScope.ComparisonHalf(colors: List<Color>) {
+    val solid by animateColorAsState(colors.first(), label = "color_comparison")
 
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(height)
-            .clip(RoundedCornerShape(Defaults.CompactCornerRadius))
+            .weight(1f)
+            .fillMaxHeight()
             .then(
-                if (gradient != null) {
-                    Modifier.background(Brush.horizontalGradient(gradient))
+                if (colors.size > 1) {
+                    Modifier.background(Brush.verticalGradient(colors))
                 } else {
-                    Modifier.background(animated)
+                    Modifier.background(solid)
                 }
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        if (gradient == null) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = animated.contrastingContent()
             )
-        }
-    }
+    )
 }

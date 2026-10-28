@@ -46,6 +46,15 @@ class RestoreNameCasingTest {
     }
 
     @Test
+    fun `a single capital letter is no name`() {
+        // English "I" would otherwise recase the Polish conjunction "i"
+        assertEquals(
+            "Teraz i później",
+            restoreNameCasing(source = "I fixed it now and later", translated = "Teraz i później")
+        )
+    }
+
+    @Test
     fun `translated words are never touched`() {
         assertEquals(
             "Приховує рекламу",

@@ -16,8 +16,6 @@ import android.content.ContextWrapper;
 import android.content.res.Configuration;
 import android.os.LocaleList;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,8 +27,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
-import app.morphe.extension.shared.settings.BaseSettings;
 
 /**
  * How the catalog picks a language: the phone's list in order, a region falling back to its
@@ -44,19 +40,10 @@ public class L10nTest {
 
     private static final String KEY = "Hide sponsored posts";
 
-    @Before
-    public void catalogTestsFollowFacebooksConfiguration() {
-        BaseSettings.HUSHFACEBOOK_LANGUAGE.save("facebook");
-    }
-
-    @After
-    public void restoreNivqoLanguageChoice() {
-        BaseSettings.HUSHFACEBOOK_LANGUAGE.resetToDefault();
-    }
-
     @Test
     public void everyLanguageTheBundleCarriesHasATableWithTheKey() {
-        assertEquals(Arrays.asList("de", "es", "in", "pt-rbr", "tr", "vi", "zh-rtw"), Arrays.asList(L10nTranslations.LANGUAGES));
+        assertEquals(Arrays.asList("de", "es", "in", "pt-rbr", "tr", "vi", "zh-rcn", "zh-rtw"),
+                Arrays.asList(L10nTranslations.LANGUAGES));
         for (String language : L10nTranslations.LANGUAGES) {
             Map<String, String> table = L10nTranslations.of(language);
             assertNotNull(language, table);
@@ -82,6 +69,78 @@ public class L10nTest {
         // to it reads English rather than a neighbour's spelling it never asked for.
         assertEquals(table("pt-rbr").get(KEY), L10n.t(in(new Locale("pt", "BR")), KEY));
         assertEquals(KEY, L10n.t(in(new Locale("pt", "PT")), KEY));
+    }
+
+    /** With no explicit script, the region chooses the Chinese table. Plain zh stays Simplified. */
+    @Test
+    public void chineseRegionsChooseTheMatchingScript() {
+        String simplified = table("zh-rcn").get(KEY);
+        String traditional = table("zh-rtw").get(KEY);
+        assertNotEquals(KEY, simplified);
+        assertNotEquals(KEY, traditional);
+        assertNotEquals(simplified, traditional);
+        for (String region : new String[]{"CN", "SG", "MY", ""}) {
+            assertEquals("zh-" + region, simplified, L10n.t(in(new Locale("zh", region)), KEY));
+        }
+        for (String region : new String[]{"TW", "HK", "MO"}) {
+            assertEquals("zh-" + region, traditional, L10n.t(in(new Locale("zh", region)), KEY));
+        }
+    }
+
+    /** A declared script takes priority even when the region normally reads the other one. */
+    @Test
+    public void anExplicitChineseScriptWinsOverItsRegion() {
+        for (String region : new String[]{"CN", "SG", "MY", "TW", "HK", "MO", ""}) {
+            Locale traditional = chinese("Hant", region);
+            assertEquals(traditional.toLanguageTag(), table("zh-rtw").get(KEY), L10n.t(in(traditional), KEY));
+            Locale simplified = chinese("Hans", region);
+            assertEquals(simplified.toLanguageTag(), table("zh-rcn").get(KEY), L10n.t(in(simplified), KEY));
+        }
+    }
+
+    @Test
+    public void chineseChoicesKeepTheLanguageListsOrderAndEnglishStopsTheSearch() {
+        Locale traditional = chinese("Hant", "CN");
+        Locale simplified = chinese("Hans", "TW");
+        assertEquals(table("zh-rtw").get(KEY), L10n.t(in(Locale.FRANCE, traditional, simplified), KEY));
+        assertEquals(table("zh-rcn").get(KEY), L10n.t(in(Locale.FRANCE, simplified, traditional), KEY));
+        assertEquals(table("zh-rtw").get(KEY), L10n.t(in(Locale.JAPAN, Locale.TAIWAN), KEY));
+        assertEquals(table("de").get(KEY), L10n.t(in(Locale.FRANCE, Locale.GERMANY, traditional), KEY));
+        assertEquals(KEY, L10n.t(in(Locale.US, traditional), KEY));
+        assertEquals(KEY, L10n.t(in(Locale.FRANCE, Locale.US, traditional), KEY));
+        assertEquals(table("zh-rtw").get(KEY), L10n.t(in(Locale.FRANCE, traditional, Locale.US), KEY));
+    }
+
+    @Test
+    public void anUnrecognisedChineseScriptOrRegionTriesTheNextLanguage() {
+        for (Locale unsupported : new Locale[]{chinese("Latn", "CN"), chinese("Latn", "TW"),
+                new Locale("zh", "US")}) {
+            assertEquals(unsupported.toLanguageTag(), KEY, L10n.t(in(unsupported), KEY));
+            assertEquals(unsupported.toLanguageTag(), table("de").get(KEY),
+                    L10n.t(in(unsupported, Locale.GERMANY), KEY));
+        }
+    }
+
+    @Test
+    public void theSelectedChineseTableSuppliesTheTextLocaleAndPluralRule() {
+        String one = "Set when you patched, so Pause can't turn it off:\n%1$s\nTo rule it out, patch again and "
+                + "leave out its patch.";
+        String other = "Set when you patched, so Pause can't turn these off:\n%1$s\nTo rule one out, patch again "
+                + "and leave out its patch.";
+        Context traditional = in(Locale.FRANCE, chinese("Hant", "CN"));
+        assertEquals(Locale.FRANCE, L10n.locale(traditional));
+        assertEquals(Locale.TAIWAN, L10n.textLocale(traditional));
+        assertEquals("other", L10n.pluralCategory(traditional, 1));
+        assertEquals(String.format(Locale.FRANCE, table("zh-rtw").get(other), "x"),
+                L10n.quantity(traditional, 1, one, other, "x"));
+        Context simplified = in(Locale.FRANCE, chinese("Hans", "TW"));
+        assertEquals(Locale.CHINA, L10n.textLocale(simplified));
+        assertEquals("other", L10n.pluralCategory(simplified, 1));
+        assertEquals(String.format(Locale.FRANCE, table("zh-rcn").get(other), "x"),
+                L10n.quantity(simplified, 1, one, other, "x"));
+        Context englishFirst = in(Locale.US, Locale.TAIWAN);
+        assertEquals(Locale.ENGLISH, L10n.textLocale(englishFirst));
+        assertEquals("one", L10n.pluralCategory(englishFirst, 1));
     }
 
     @Test
@@ -159,48 +218,11 @@ public class L10nTest {
     public void englishAndEveryLanguageWithNoTableReadTheEnglish() {
         assertEquals(KEY, L10n.t(in(Locale.US), KEY));
         assertEquals(KEY, L10n.t(in(Locale.FRANCE), KEY));
-        assertEquals(KEY, L10n.t(in(Locale.JAPAN, Locale.CHINA), KEY));
+        assertEquals(KEY, L10n.t(in(Locale.JAPAN, Locale.FRANCE), KEY));
         // A string nobody translated is its own English, never an empty label.
         assertEquals("Not a key of any table", L10n.t(in(Locale.GERMANY), "Not a key of any table"));
         assertEquals("", L10n.t(in(Locale.GERMANY), ""));
         assertNull(L10n.t(in(Locale.GERMANY), (String) null));
-    }
-
-    @Test
-    public void aHushfacebookLanguageOverrideWinsWithoutChangingFacebooksConfiguration() {
-        Context germanFacebook = in(Locale.GERMANY);
-        try {
-            BaseSettings.HUSHFACEBOOK_LANGUAGE.save("zh-TW");
-            assertEquals(table("zh-rtw").get(KEY), L10n.t(germanFacebook, KEY));
-            assertEquals("zh", L10n.textLocale(germanFacebook).getLanguage());
-            assertEquals("TW", L10n.textLocale(germanFacebook).getCountry());
-            assertEquals("de", germanFacebook.getResources().getConfiguration().getLocales().get(0).getLanguage());
-
-            BaseSettings.HUSHFACEBOOK_LANGUAGE.save("en");
-            assertEquals(KEY, L10n.t(germanFacebook, KEY));
-
-            BaseSettings.HUSHFACEBOOK_LANGUAGE.save("facebook");
-            assertEquals(table("de").get(KEY), L10n.t(germanFacebook, KEY));
-        } finally {
-            BaseSettings.HUSHFACEBOOK_LANGUAGE.save("facebook");
-        }
-    }
-
-    @Test
-    public void theDefaultHushfacebookLanguageFollowsThePhoneSystemNotFacebook() {
-        Locale previous = Locale.getDefault();
-        try {
-            BaseSettings.HUSHFACEBOOK_LANGUAGE.resetToDefault();
-            Locale.setDefault(Locale.TAIWAN);
-            Context germanFacebook = in(Locale.GERMANY);
-            assertEquals(table("zh-rtw").get(KEY), L10n.t(germanFacebook, KEY));
-            assertEquals("zh", L10n.textLocale(germanFacebook).getLanguage());
-            assertEquals("TW", L10n.textLocale(germanFacebook).getCountry());
-            assertEquals("de", germanFacebook.getResources().getConfiguration().getLocales().get(0).getLanguage());
-        } finally {
-            Locale.setDefault(previous);
-            BaseSettings.HUSHFACEBOOK_LANGUAGE.save("facebook");
-        }
     }
 
     @Test
@@ -299,10 +321,10 @@ public class L10nTest {
 
     @Test
     public void anIsolatedValueIsWrappedInFirstStrongIsolates() {
-        String isolated = L10n.isolate("583.0.0.39.55");
+        String isolated = L10n.isolate("584.0.0.51.56");
         assertEquals((char) 0x2068, isolated.charAt(0));
         assertEquals((char) 0x2069, isolated.charAt(isolated.length() - 1));
-        assertEquals("583.0.0.39.55", isolated.substring(1, isolated.length() - 1));
+        assertEquals("584.0.0.51.56", isolated.substring(1, isolated.length() - 1));
         assertEquals("", L10n.isolate(""));
         assertEquals("", L10n.isolate(null));
     }
@@ -318,7 +340,8 @@ public class L10nTest {
         LocaleList appBefore = application.getResources().getConfiguration().getLocales();
 
         for (Locale locale : new Locale[]{Locale.GERMANY, new Locale("tr", "TR"), new Locale("en", "XA"),
-                new Locale("ar", "XB"), new Locale("in", "ID"), Locale.FRANCE}) {
+                new Locale("ar", "XB"), new Locale("in", "ID"), Locale.FRANCE, Locale.TAIWAN,
+                chinese("Hant", "CN"), chinese("Hans", "TW")}) {
             Context phone = in(locale);
             L10n.t(phone, KEY);
             L10n.f(phone, "Saved to %1$s", "x");
@@ -357,8 +380,33 @@ public class L10nTest {
     public void aChangedLanguageListIsNeverAnsweredFromTheLastOne() {
         assertEquals(table("de").get(KEY), L10n.t(in(Locale.GERMANY), KEY));
         assertEquals(table("tr").get(KEY), L10n.t(in(new Locale("tr", "TR")), KEY));
+        assertEquals(table("zh-rtw").get(KEY), L10n.t(in(chinese("Hant", "CN")), KEY));
+        assertEquals(table("zh-rcn").get(KEY), L10n.t(in(chinese("Hans", "TW")), KEY));
         assertEquals(KEY, L10n.t(in(Locale.US), KEY));
         assertNotEquals(table("de").get(KEY), KEY);
+    }
+
+    /** An existing caller must pick up the application's new script without retaining its last table. */
+    @Test
+    @SuppressWarnings("deprecation")
+    public void changingTheApplicationsChineseScriptUpdatesAnExistingCaller() {
+        Context caller = configured(Locale.US);
+        android.content.res.Resources resources = RuntimeEnvironment.getApplication().getResources();
+        Configuration before = new Configuration(resources.getConfiguration());
+        Locale[] choices = {Locale.TAIWAN, Locale.CHINA, chinese("Hant", "CN"), chinese("Hans", "TW"),
+                Locale.US, Locale.TAIWAN};
+        String[] languages = {"zh-rtw", "zh-rcn", "zh-rtw", "zh-rcn", null, "zh-rtw"};
+        try {
+            for (int index = 0; index < choices.length; index++) {
+                Configuration changed = new Configuration(before);
+                changed.setLocales(new LocaleList(choices[index]));
+                resources.updateConfiguration(changed, resources.getDisplayMetrics());
+                assertEquals(choices[index].toLanguageTag(), languages[index] == null ? KEY
+                        : table(languages[index]).get(KEY), L10n.t(caller, KEY));
+            }
+        } finally {
+            resources.updateConfiguration(before, resources.getDisplayMetrics());
+        }
     }
 
     private static Map<String, String> table(String language) {
@@ -371,13 +419,21 @@ public class L10nTest {
         switch (tag) {
             case "pt-rbr":
                 return new Locale("pt", "BR");
-            case "zh-rtw":
-                return Locale.TAIWAN;
             case "in":
                 return new Locale("in", "ID");
+            case "zh-rcn":
+                return new Locale("zh", "CN");
+            case "zh-rtw":
+                return Locale.TAIWAN;
             default:
                 return new Locale(tag);
         }
+    }
+
+    private static Locale chinese(String script, String region) {
+        Locale.Builder builder = new Locale.Builder().setLanguage("zh").setScript(script);
+        if (!region.isEmpty()) builder.setRegion(region);
+        return builder.build();
     }
 
     /**

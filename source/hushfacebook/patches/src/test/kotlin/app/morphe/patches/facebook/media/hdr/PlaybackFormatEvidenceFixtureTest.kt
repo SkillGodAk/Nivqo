@@ -92,7 +92,15 @@ class PlaybackFormatEvidenceFixtureTest {
         }) { method ->
             method.implementation?.instructions?.any { it.call?.let { call -> call.definingClass == adapterInterface.type && call.name == "configure" } == true } == true
         }
-        assertTrue("$name: the Hero video renderer reaches this adapter interface", configured.any { it.definingClass in constructed })
+        // 584 configures the codec in the renderers' abstract bases, so the classes those extend count too.
+        val lineage = mutableSetOf<String>()
+        var layer = constructed
+        while (layer.isNotEmpty() && lineage.size < 64) {
+            lineage += layer
+            layer = FixtureDex.classes(bundle, layer).values.mapNotNull { it.superclass }
+                .filter { it !in lineage && !it.startsWith("Ljava/") && !it.startsWith("Landroid/") }.toSet()
+        }
+        assertTrue("$name: the Hero video renderer reaches this adapter interface", configured.any { it.definingClass in lineage })
 
         val context = PatchContexts.of(listOf(dav1d, platform, adapterInterface, ExtensionDex.classDef(FORMAT_EVIDENCE)))
         val anchors = context.findPlaybackEvidenceAnchors()

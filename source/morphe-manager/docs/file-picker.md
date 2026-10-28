@@ -6,7 +6,7 @@ reads storage directly.
 
 ## Turning it on
 
-**Settings → System → Files & storage → Custom file picker**. From then on, every place that
+**Settings → Custom file picker**, in the **Files** section. From then on, every place that
 asks for a file or a folder, selecting an APK, importing a keystore, or pointing a patch at
 an icon folder, opens Morphe's picker instead.
 
@@ -16,15 +16,15 @@ an icon folder, opens Morphe's picker instead.
   <img src="images/file-picker/01-select-folder.jpg" width="320" alt="The built-in picker in folder selection mode with the sort menu open" />
 </p>
 
-The path along the top shows where you are, and **Previous directory** goes back up. Morphe
-offers the usual entry points: **Internal storage**, **SD card**, and **Root (/)**.
+The path along the top shows where you are, one step per folder, and tapping a step jumps back
+to it. The button at its start, **Storages**, lists the usual entry points: **Internal
+storage**, **SD card**, and **Root (/)**.
 
-The three actions in the header are:
+The two actions in the header are:
 
 - **Sort** - **Name (A-Z)** or **(Z-A)**, **Size** largest or smallest first, and **Date**
   newest or oldest first. The same menu holds **Show hidden files**, for folders and files
-  starting with a dot.
-- **Refresh** - re-reads the current directory.
+  starting with a dot, and **Refresh**, which re-reads the current directory.
 - **Search** - filters what is listed.
 
 ## Picking

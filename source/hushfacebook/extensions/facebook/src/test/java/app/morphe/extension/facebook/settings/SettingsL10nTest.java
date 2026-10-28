@@ -42,7 +42,6 @@ import java.util.Set;
 
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.SettingsContextRule;
-import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.PauseForTests;
 import app.morphe.extension.shared.settings.preference.LogBufferManager;
@@ -61,11 +60,12 @@ public class SettingsL10nTest {
 
     /** Text that stays as it is in every language: the product's name and its source's address. */
     private static final Set<String> AS_IS = new LinkedHashSet<>(Arrays.asList(
-            "Hushfacebook", "github.com/SysAdminDoc/Hushfacebook"));
+            "Hushfacebook", "github.com/SysAdminDoc/Hushfacebook",
+            // The Badge and Logo color rows' hint: a color code reads the same in every language.
+            "#2ECC71"));
 
     @Before
     public void everyPatchIn() {
-        BaseSettings.HUSHFACEBOOK_LANGUAGE.save("facebook");
         PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
         // Another class may have left a bundle's own sentences set; this one reads the catalog's.
         LogBufferManager.clearedMessage = null;
@@ -75,7 +75,6 @@ public class SettingsL10nTest {
 
     @After
     public void restore() {
-        BaseSettings.HUSHFACEBOOK_LANGUAGE.resetToDefault();
         PatchFamily.inBuildForTests = null;
         HushfacebookPreferenceFragment.failNextInitialization = null;
         PauseForTests.resume();
@@ -155,7 +154,8 @@ public class SettingsL10nTest {
      */
     @Test
     public void inEveryShippedLanguageNothingOnTheScreenStaysEnglish() throws Exception {
-        String[][] languages = {{"de", "de"}, {"es", "es"}, {"in-rID", "in"}, {"pt-rBR", "pt-rbr"}, {"tr", "tr"}, {"zh-rTW", "zh-rtw"}};
+        String[][] languages = {{"de", "de"}, {"es", "es"}, {"in-rID", "in"}, {"pt-rBR", "pt-rbr"}, {"tr", "tr"},
+                {"vi", "vi"}, {"zh-rCN", "zh-rcn"}, {"zh-rTW", "zh-rtw"}};
         for (String[] language : languages) {
             RuntimeEnvironment.setQualifiers("+" + language[0]);
             Map<String, String> table = TranslationsForTests.of(language[1]);
@@ -239,7 +239,7 @@ public class SettingsL10nTest {
         String other = "Set when you patched, so Pause can't turn these off:\n%1$s\nTo rule one out, patch again and "
                 + "leave out its patch.";
         String[][] languages = {{"en", null}, {"de", "de"}, {"es", "es"}, {"in-rID", "in"}, {"pt-rBR", "pt-rbr"},
-                {"tr", "tr"}, {"zh-rTW", "zh-rtw"}};
+                {"tr", "tr"}, {"vi", "vi"}, {"zh-rCN", "zh-rcn"}, {"zh-rTW", "zh-rtw"}};
         for (String[] language : languages) {
             RuntimeEnvironment.setQualifiers("+" + language[0]);
             Map<String, String> table = language[1] == null ? null : TranslationsForTests.of(language[1]);
@@ -286,7 +286,7 @@ public class SettingsL10nTest {
                 "Disable Audience Network"));
 
         List<String> repeats = new ArrayList<>();
-        for (String language : new String[]{"en", "de", "es", "in-rID", "pt-rBR", "tr", "zh-rTW"}) {
+        for (String language : new String[]{"en", "de", "es", "in-rID", "pt-rBR", "tr", "vi", "zh-rCN", "zh-rTW"}) {
             RuntimeEnvironment.setQualifiers("+" + language);
             for (PatchFamily family : PatchFamily.values()) {
                 // An item that is its patch's name has no brackets to repeat it in.
@@ -318,6 +318,38 @@ public class SettingsL10nTest {
 
     private static String row(Map<String, String> table, String english) {
         return table == null ? english : table.get(english);
+    }
+
+    @Test
+    @Config(qualifiers = "zh-rTW")
+    public void traditionalChineseSearchAndSaveFeedbackUseTheSelectedTable() {
+        Map<String, String> traditional = TranslationsForTests.of("zh-rtw");
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            SettingsDialog dialog = show(controller.get());
+            try {
+                HushfacebookPreferenceFragment page = pageOf(dialog);
+                String title = traditional.get("Hide sponsored posts");
+                page.navigation.search(title);
+                boolean found = false;
+                for (int index = 0; index < page.navigation.getCount(); index++) {
+                    Object item = page.navigation.getItem(index);
+                    if (item instanceof Preference && Settings.HIDE_SPONSORED_POSTS.key.equals(((Preference) item).getKey())) {
+                        assertEquals(title, String.valueOf(((Preference) item).getTitle()));
+                        found = true;
+                    }
+                }
+                assertTrue("the translated switch was absent from search", found);
+                String saved = "Saved as %1$s in the Notifications folder. Pick it under Sound in Android's notification "
+                        + "settings for Facebook.";
+                String name = "Facebook notification.m4a";
+                assertEquals(String.format(Locale.TAIWAN, traditional.get(saved), L10n.isolate(name)),
+                        AppPages.notificationSoundMessage(
+                                app.morphe.extension.facebook.notifications.NotificationSound.Outcome.SAVED, name));
+            } finally {
+                dialog.dismissAllowingStateLoss();
+                ShadowLooper.idleMainLooper();
+            }
+        }
     }
 
     /** Titles, summaries, dialog text and toasts, from every state the screen can be drawn in. */
@@ -548,8 +580,8 @@ public class SettingsL10nTest {
      * try can end.
      */
     private static void addReleaseCheckText(Set<String> shown) {
-        shown.add(ReleaseCheck.statusLine("0.2.0", "584.0.0.40.70", "0.1.8", "583.0.0.39.55"));
-        shown.add(ReleaseCheck.statusLine("0.1.8", "583.0.0.39.55", "0.1.8", "582.0.0.50.54"));
+        shown.add(ReleaseCheck.statusLine("0.2.0", "585.0.0.40.70", "0.1.8", "584.0.0.51.56"));
+        shown.add(ReleaseCheck.statusLine("0.1.8", "584.0.0.51.56", "0.1.8", "583.0.0.39.55"));
         shown.add(ReleaseCheck.checkingSummary());
         shown.add(ReleaseCheck.idleSummary());
         for (ReleaseCheck.Result result : ReleaseCheck.Result.values()) {

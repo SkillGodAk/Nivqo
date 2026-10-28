@@ -66,7 +66,71 @@ public class LogoPressTest {
     @After public void closeFeed() {
         RuntimeEnvironment.getApplication().unregisterActivityLifecycleCallbacks(watcher);
         PauseForTests.resume();
+        Settings.SETTINGS_LOGO_PRESS.resetToDefault();
+        Settings.SETTINGS_SHORTCUT.resetToDefault();
+        Settings.SETTINGS_MENU_ROW.resetToDefault();
+        PatchFamily.inBuildForTests = null;
         feed.pause().stop().destroy();
+    }
+
+    /** PausedHooksTest's probe: a finger put down on the logo is timed for a long press. */
+    static boolean aPressIsTimed() {
+        View logo = new View(RuntimeEnvironment.getApplication());
+        SettingsEntry.LogoPress press = new SettingsEntry.LogoPress();
+        press.onTouch(logo, MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 1, 1, 0));
+        boolean timing = press.timing();
+        press.onTouch(logo, MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 1, 1, 0));
+        return timing;
+    }
+
+    /**
+     * Switched off, the long press is Facebook's again (#146): nothing opens, no touch is taken
+     * from the logo, and the hold ends in Facebook's tap, as it does without Hushfacebook.
+     */
+    @Test public void withTheSwitchOffALongPressIsFacebooks() {
+        Settings.SETTINGS_LOGO_PRESS.save(false);
+        View logo = logo();
+        SettingsEntry.setLogoTouchListener(logo, null);
+
+        press(logo, longPress());
+
+        assertNull("a long press opened the screen with its switch off", screen());
+        assertEquals("the hold wasn't Facebook's tap", 1, taps);
+        assertFalse(aPressIsTimed());
+    }
+
+    /** Switched back on, the same logo opens the screen again, with no new listener. */
+    @Test public void theSwitchTakesEffectOnTheLogoAlreadyOnScreen() {
+        View logo = logo();
+        SettingsEntry.setLogoTouchListener(logo, null);
+        Settings.SETTINGS_LOGO_PRESS.save(false);
+        press(logo, longPress());
+        assertNull(screen());
+
+        Settings.SETTINGS_LOGO_PRESS.save(true);
+        press(logo, longPress());
+        assertNotNull("on again didn't open the screen", screen());
+    }
+
+    /** With every way in stored off, as a backup could leave it, the logo still opens the settings. */
+    @Test public void withEveryWayInStoredOffTheLongPressStillOpens() {
+        Settings.SETTINGS_LOGO_PRESS.save(false);
+        Settings.SETTINGS_SHORTCUT.save(false);
+        Settings.SETTINGS_MENU_ROW.save(false);
+        View logo = logo();
+        SettingsEntry.setLogoTouchListener(logo, null);
+
+        press(logo, longPress());
+
+        assertNotNull("no way in was left", screen());
+    }
+
+    /** The switch is kept while paused: the long press still opens the settings, where a pause is lifted. */
+    @Test public void aPauseLeavesTheLongPressAsItsSwitchSays() {
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertTrue("a pause took the way back to the settings", aPressIsTimed());
+        Settings.SETTINGS_LOGO_PRESS.save(false);
+        assertFalse("a pause brought a switched-off long press back", aPressIsTimed());
     }
 
     /** The logo as Facebook builds it, in the feed's activity: a view with Facebook's tap. */
@@ -245,5 +309,59 @@ public class LogoPressTest {
         View logo = logo();
 
         assertFalse("a touch it failed on wasn't left to the logo", new SettingsEntry.LogoPress().onTouch(logo, null));
+    }
+
+    /** Touches the bar itself got, past the logo. */
+    private final List<Integer> barTouches = new ArrayList<>();
+
+    /**
+     * The logo as 583 leaves it on its path with no tap (#12, taken in Arabic), after the patch's
+     * stand-in for that path's accessibility call: Facebook had disabled it and gives it no
+     * listener. Touches go to the bar, which hands them on the way the phone does.
+     */
+    private FrameLayout barWithLogoWithoutTap() {
+        View logo = new View(feed.get());
+        logo.setEnabled(false);
+        FrameLayout bar = new FrameLayout(feed.get());
+        bar.setOnTouchListener((v, event) -> barTouches.add(event.getActionMasked()));
+        bar.addView(logo, new FrameLayout.LayoutParams(360, 90));
+        feed.get().setContentView(bar);
+        ShadowLooper.idleMainLooper();
+        SettingsEntry.setLogoWithoutTap(logo, View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        return bar;
+    }
+
+    @Test public void aLogoWithNoTapOpensTheScreenOnALongPress() {
+        FrameLayout bar = barWithLogoWithoutTap();
+        View logo = bar.getChildAt(0);
+
+        press(bar, longPress());
+
+        assertNotNull("a long press on a logo with no tap didn't open the screen", screen());
+        assertEquals("Facebook's importance wasn't kept", View.IMPORTANT_FOR_ACCESSIBILITY_NO, logo.getImportantForAccessibility());
+        assertTrue("no line said the logo was watched: " + logged(), logged().contains(
+                "Settings entry: Facebook gave the logo no tap here, so a long press on it opens the settings"));
+    }
+
+    /** The logo hears the finger lift, so a tap doesn't run out the long-press time and open the screen. */
+    @Test public void aTapOnALogoWithNoTapOpensNothing() {
+        FrameLayout bar = barWithLogoWithoutTap();
+
+        press(bar, 80);
+        ShadowLooper.idleMainLooper(longPress(), TimeUnit.MILLISECONDS);
+
+        assertNull("a tap on a logo with no tap opened the screen", screen());
+    }
+
+    /** Switched off, the touch goes past the logo with no tap to the bar, as it does without Hushfacebook. */
+    @Test public void switchedOffTheTouchGoesPastALogoWithNoTap() {
+        Settings.SETTINGS_LOGO_PRESS.save(false);
+        FrameLayout bar = barWithLogoWithoutTap();
+
+        press(bar, longPress());
+
+        assertNull("a long press opened the screen with its switch off", screen());
+        assertEquals("the bar didn't get the touch",
+                java.util.Arrays.asList(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP), barTouches);
     }
 }

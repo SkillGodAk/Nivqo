@@ -72,6 +72,8 @@ public class OriginalPhotoTest {
         completion = OriginalPhoto.completion;
         OriginalPhoto.completion = Runnable::run;
         OriginalPhoto.inputOpener = java.io.FileInputStream::new;
+        OriginalPhoto.freeMemory = () -> Long.MAX_VALUE;
+        OriginalPhoto.decoder = BitmapFactory::decodeFile;
         OriginalPhoto.tempDir = folder.getRoot().toPath().resolve("copies").toFile();
         assertTrue(OriginalPhoto.tempDir.mkdirs());
         ShadowLog.clear();
@@ -99,6 +101,8 @@ public class OriginalPhotoTest {
         OriginalPhoto.completion = completion;
         OriginalPhoto.tempDir = null;
         OriginalPhoto.inputOpener = java.io.FileInputStream::new;
+        OriginalPhoto.freeMemory = OriginalPhoto::freeMemory;
+        OriginalPhoto.decoder = BitmapFactory::decodeFile;
     }
 
     private static byte[] encode(int width, int height, ColorSpace space) {
@@ -672,5 +676,183 @@ public class OriginalPhotoTest {
             assertFalse(line, line.contains(nowhere.getName()) || line.contains(photo.getName()) || line.contains(folder.getRoot().getName()));
         }
         assertEquals(0, Settings.lastActive(OriginalPhoto.KEY));
+    }
+
+    private static Map<Object, Object> config(Object nativeTranscoder) {
+        Map<Object, Object> config = new HashMap<>();
+        config.put(OriginalPhoto.NATIVE_TRANSCODER, nativeTranscoder);
+        config.put("ENABLE_UIT_V2", false);
+        return config;
+    }
+
+    @Test public void withTheSwitchOnPhotosTakeMessengersJavaTranscoder() {
+        Map<Object, Object> off = config(true);
+        OriginalPhoto.transcodeConfig(off);
+        assertEquals("the switch off keeps the server's choice", true, off.get(OriginalPhoto.NATIVE_TRANSCODER));
+        switchOn();
+        Map<Object, Object> on = config(true);
+        OriginalPhoto.transcodeConfig(on);
+        assertEquals(false, on.get(OriginalPhoto.NATIVE_TRANSCODER));
+        assertEquals("nothing else in the config changes", false, on.get("ENABLE_UIT_V2"));
+        assertEquals(2, on.size());
+        Map<Object, Object> missing = new HashMap<>();
+        OriginalPhoto.transcodeConfig(missing);
+        assertTrue("a config without the switch gains nothing", missing.isEmpty());
+        Map<Object, Object> notABoolean = config(1);
+        OriginalPhoto.transcodeConfig(notABoolean);
+        assertEquals(1, notABoolean.get(OriginalPhoto.NATIVE_TRANSCODER));
+        OriginalPhoto.transcodeConfig(null);
+        assertTrue(Settings.hookErrors.isEmpty());
+        assertEquals("picking the route isn't a use", 0, Settings.lastActive(OriginalPhoto.KEY));
+
+        OriginalPhoto.transcodeConfig(java.util.Collections.unmodifiableMap(config(true)));
+        assertTrue("a map it can't change is recorded, not thrown", Settings.hookErrors.containsKey(OriginalPhoto.KEY));
+        Settings.preferences.edit().putBoolean("paused", true).commit();
+        Map<Object, Object> paused = config(true);
+        OriginalPhoto.transcodeConfig(paused);
+        assertEquals(true, paused.get(OriginalPhoto.NATIVE_TRANSCODER));
+    }
+
+    @Test public void anHdDecodeOfALargerJpegKeepsItsFullSize() throws Exception {
+        File photo = jpeg(4200, 300);
+        switchOn();
+        assertEquals(4200, OriginalPhoto.decodeWidth(photo.getPath(), 4096, 4096), 0);
+        assertEquals(4200, OriginalPhoto.decodeHeight(photo.getPath(), 4200, 4096), 0);
+        Bitmap decoded = OriginalPhoto.decodeFile(photo.getPath());
+        assertEquals(4200, decoded.getWidth());
+        assertEquals(300, decoded.getHeight());
+        assertTrue(logs().contains("Original photo: 4200x300 sent whole"));
+        assertTrue(Settings.lastActive(OriginalPhoto.KEY) > 0);
+        assertTrue(Settings.hookErrors.isEmpty());
+    }
+
+    @Test public void normalSendsPreviewsAndSmallerPhotosKeepMessengersLimits() throws Exception {
+        File large = jpeg(4200, 300);
+        switchOn();
+        // A normal send decodes at the largest halving that still covers Messenger's 2048, 2100 wide instead of 4200.
+        assertEquals(2048, OriginalPhoto.decodeWidth(large.getPath(), 2048, 2048), 0);
+        assertEquals(2048, OriginalPhoto.decodeHeight(large.getPath(), 2048, 2048), 0);
+        Bitmap normal = OriginalPhoto.decodeFile(large.getPath());
+        assertEquals(2100, normal.getWidth());
+        assertEquals(150, normal.getHeight());
+        assertEquals(512, OriginalPhoto.decodeWidth(large.getPath(), 512, 512), 0);
+        assertEquals("a preview decodes at an eighth", 525, OriginalPhoto.decodeFile(large.getPath()).getWidth());
+        assertEquals("each sizing serves one decode, so a decode with none is Messenger's own", 4200,
+            OriginalPhoto.decodeFile(large.getPath()).getWidth());
+
+        File small = jpeg(1600, 1200);
+        assertEquals("Messenger already sends it whole", 4096, OriginalPhoto.decodeWidth(small.getPath(), 4096, 4096), 0);
+        assertEquals(4096, OriginalPhoto.decodeHeight(small.getPath(), 4096, 4096), 0);
+        assertEquals(1600, OriginalPhoto.decodeFile(small.getPath()).getWidth());
+
+        Bitmap pixels = Bitmap.createBitmap(4200, 300, Bitmap.Config.ARGB_8888);
+        ByteArrayOutputStream png = new ByteArrayOutputStream();
+        assertTrue(pixels.compress(Bitmap.CompressFormat.PNG, 100, png));
+        File notJpeg = write(png.toByteArray());
+        assertEquals(4096, OriginalPhoto.decodeWidth(notJpeg.getPath(), 4096, 4096), 0);
+        assertEquals(4200, OriginalPhoto.decodeFile(notJpeg.getPath()).getWidth());
+        assertTrue(logs().contains("Original photo skipped: not a JPEG"));
+        assertEquals(4096, OriginalPhoto.decodeWidth("content://media/external/images/1", 4096, 4096), 0);
+        assertTrue(logs().contains("Original photo skipped: not a file"));
+        assertEquals("no width swapped in, no height either", 4096, OriginalPhoto.decodeHeight(large.getPath(), 1234, 4096), 0);
+        assertEquals(0, Settings.lastActive(OriginalPhoto.KEY));
+        assertTrue(Settings.hookErrors.isEmpty());
+    }
+
+    @Test public void withTheSwitchOffDecodeBitmapIsMessengersOwn() throws Exception {
+        File photo = jpeg(4200, 300);
+        OriginalPhoto.inputOpener = file -> { throw new AssertionError("the photo was opened"); };
+        assertEquals(4096, OriginalPhoto.decodeWidth(photo.getPath(), 4096, 4096), 0);
+        assertEquals(4096, OriginalPhoto.decodeHeight(photo.getPath(), 4096, 4096), 0);
+        assertEquals("Messenger's own whole decode", 4200, OriginalPhoto.decodeFile(photo.getPath()).getWidth());
+        assertEquals(2048, OriginalPhoto.decodeWidth(photo.getPath(), 2048, 2048), 0);
+        assertEquals(4200, OriginalPhoto.decodeFile(photo.getPath()).getWidth());
+        switchOn();
+        Settings.preferences.edit().putBoolean("paused", true).commit();
+        assertEquals(4096, OriginalPhoto.decodeWidth(photo.getPath(), 4096, 4096), 0);
+        assertEquals(4200, OriginalPhoto.decodeFile(photo.getPath()).getWidth());
+        assertEquals(0, Settings.lastActive(OriginalPhoto.KEY));
+    }
+
+    @Test public void aDecodeThatWontFitInMemoryIsLiftedOnlyAsFarAsItFits() throws Exception {
+        assertTrue(OriginalPhoto.freeMemory() >= 0);
+        File photo = jpeg(8400, 200);
+        switchOn();
+        OriginalPhoto.freeMemory = () -> 8400L * 200 * 4 - 1;
+        assertEquals(4200, OriginalPhoto.decodeWidth(photo.getPath(), 4096, 4096), 0);
+        assertEquals(4200, OriginalPhoto.decodeHeight(photo.getPath(), 4200, 4096), 0);
+        assertEquals(4200, OriginalPhoto.decodeFile(photo.getPath()).getWidth());
+        assertTrue(logs().contains("Original photo: 8400x200 sent at 1/2"));
+        // A quarter would be smaller than Messenger's own 4096, so then Messenger's limit stays.
+        OriginalPhoto.freeMemory = () -> 4200L * 100 * 4 - 1;
+        assertEquals(4096, OriginalPhoto.decodeWidth(photo.getPath(), 4096, 4096), 0);
+        assertEquals(4096, OriginalPhoto.decodeHeight(photo.getPath(), 4096, 4096), 0);
+        assertEquals(4200, OriginalPhoto.decodeFile(photo.getPath()).getWidth());
+        assertTrue(logs().contains("Original photo skipped: not enough memory for 8400x200"));
+    }
+
+    @Test public void aTurnedPhotoCountsTheUprightCopyMessengerMakes() throws Exception {
+        File photo = jpeg(4200, 300);
+        ExifInterface exif = new ExifInterface(photo.getPath());
+        exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_ROTATE_90));
+        exif.saveAttributes();
+        switchOn();
+        OriginalPhoto.freeMemory = () -> 4200L * 300 * 4 * 2;
+        assertEquals(4200, OriginalPhoto.decodeWidth(photo.getPath(), 4096, 4096), 0);
+        assertEquals(4200, OriginalPhoto.decodeFile(photo.getPath()).getWidth());
+        OriginalPhoto.freeMemory = () -> 4200L * 300 * 4 * 2 - 1;
+        assertEquals(4096, OriginalPhoto.decodeWidth(photo.getPath(), 4096, 4096), 0);
+        assertEquals(4200, OriginalPhoto.decodeFile(photo.getPath()).getWidth());
+    }
+
+    @Test public void aDecodeThatRunsOutOfMemoryTriesAgainAtHalfTheSizeUntilOneSixtyFourth() throws Exception {
+        File photo = jpeg(4200, 300);
+        switchOn();
+        List<Integer> samples = new ArrayList<>();
+        OriginalPhoto.decoder = (path, options) -> {
+            samples.add(options.inSampleSize);
+            if (samples.size() < 3) throw new OutOfMemoryError("test");
+            return BitmapFactory.decodeFile(path, options);
+        };
+        assertEquals(4200, OriginalPhoto.decodeWidth(photo.getPath(), 4096, 4096), 0);
+        assertEquals(4200, OriginalPhoto.decodeHeight(photo.getPath(), 4200, 4096), 0);
+        Bitmap smaller = OriginalPhoto.decodeFile(photo.getPath());
+        assertEquals(Arrays.asList(1, 2, 4), samples);
+        assertEquals("two misses, then a quarter", 1050, smaller.getWidth());
+        assertEquals(75, smaller.getHeight());
+        assertTrue(Settings.hookErrors.isEmpty());
+
+        samples.clear();
+        OriginalPhoto.decoder = (path, options) -> {
+            samples.add(options.inSampleSize);
+            throw new OutOfMemoryError("test");
+        };
+        assertEquals(4200, OriginalPhoto.decodeWidth(photo.getPath(), 4096, 4096), 0);
+        assertNull("past 1/64 it fails the way a decode fails", OriginalPhoto.decodeFile(photo.getPath()));
+        assertEquals(Arrays.asList(1, 2, 4, 8, 16, 32, OriginalPhoto.MAX_SAMPLE), samples);
+        assertTrue(Settings.hookErrors.containsKey(OriginalPhoto.KEY));
+        for (String line : logs()) assertFalse(line, line.contains(photo.getName()));
+    }
+
+    @Test public void aPhotoItCantReadKeepsMessengersDecodeAndLogsNoPath() throws Exception {
+        File photo = jpeg(4200, 300);
+        switchOn();
+        OriginalPhoto.inputOpener = file -> { throw new IOException(file.getPath()); };
+        assertEquals(4096, OriginalPhoto.decodeWidth(photo.getPath(), 4096, 4096), 0);
+        assertEquals(4096, OriginalPhoto.decodeHeight(photo.getPath(), 4096, 4096), 0);
+        OriginalPhoto.inputOpener = java.io.FileInputStream::new;
+        assertEquals(4200, OriginalPhoto.decodeFile(photo.getPath()).getWidth());
+        assertTrue(Settings.hookErrors.containsKey(OriginalPhoto.KEY));
+        for (String line : logs()) assertFalse(line, line.contains(photo.getName()));
+        assertEquals(0, Settings.lastActive(OriginalPhoto.KEY));
+    }
+
+    @Test public void theDecodeShrinksOnlyByPowersOfTwoThatStillCoverTheFitEitherWayRound() {
+        assertEquals(2, OriginalPhoto.sample(8000, 6000, 2048, 2048));
+        assertEquals(4, OriginalPhoto.sample(8192, 6144, 2048, 2048));
+        // 3000x4000 still covers a 4096x2048 fit of a 6000x8000 photo, upright (1536x2048) or turned (2730x2048).
+        assertEquals(2, OriginalPhoto.sample(6000, 8000, 4096, 2048));
+        assertEquals(1, OriginalPhoto.sample(4000, 3000, 4096, 4096));
+        assertEquals(OriginalPhoto.MAX_SAMPLE, OriginalPhoto.sample(100_000, 100_000, 10, 10));
     }
 }

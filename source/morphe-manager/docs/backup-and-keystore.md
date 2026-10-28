@@ -25,7 +25,7 @@ copy, every app you patched before becomes un-updatable in place.
 
 ## Exporting the keystore
 
-Open **Settings → System → Import & export → Signing key**. The dialog shows the key Morphe
+Open **Settings → Signing key**, in the **Backup** section. The dialog shows the key Morphe
 signs with: its alias, the date it was created, and its SHA-256 fingerprint. The badge beside
 the alias is tinted from that fingerprint, so two different keys look different at a glance.
 Tap **Export** and Morphe writes a `Morphe.keystore` file wherever you choose.
@@ -65,7 +65,7 @@ as **Incorrect keystore credentials**.
   <img src="images/backup-and-keystore/02-morphe-settings.jpg" width="320" alt="Morphe settings backup dialog with its sections" />
 </p>
 
-**Settings → System → Import & export → Morphe settings** lists what a backup can carry, each
+**Settings → Morphe settings**, next to **Signing key**, lists what a backup can carry, each
 with a checkbox:
 
 | Section | What it holds |
@@ -101,7 +101,7 @@ backup carries neither the signing key nor its credentials.
 
 Saved patch selections and patch options survive uninstalling a patched app, and travel with
 the settings backup while **Patch selections** is ticked. They can also be moved on their own:
-**Settings → System → Files & storage → Patch selections** lists them per app and per source,
+**Settings → Patch selections**, in Expert mode, lists them per app and per source,
 with its own export and import, and the same **Replace** or **Merge** choice, see
 [Storage and saved data](storage-and-saved-data.md#patch-selections).
 
@@ -110,7 +110,7 @@ your Expert mode choices.
 
 ## Saved APKs
 
-**Settings → System** also keeps the APK copies, controlled by two switches:
+**Settings → Storage management** also keeps the APK copies, controlled by two switches:
 
 - **Keep original APKs** - the pre-patch file, so repatching does not need a new download.
   One version per app is kept.
@@ -149,7 +149,7 @@ need, see [Storage and saved data](storage-and-saved-data.md).
 | The **Signing key** dialog offers no **Export** | Morphe has not generated a key yet. Patch an app once, then export |
 | Signature conflict after reinstalling Morphe | The keystore changed. Import your backup, then patch again. Without a backup, uninstall the patched app and start fresh |
 | Imported settings removed sources you still wanted | **Replace existing** matches the backup exactly. Use **Merge with existing** to keep what you have |
-| Patch selections did not come back | Tick **Patch selections** both when exporting and when importing Morphe settings, or restore them from **Settings → System → Files & storage → Patch selections** |
+| Patch selections did not come back | Tick **Patch selections** both when exporting and when importing Morphe settings, or restore them from **Settings → Patch selections** in Expert mode |
 
 ## Next steps
 

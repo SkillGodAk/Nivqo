@@ -47,8 +47,8 @@ class ReelItemStoryFixtureTest {
      */
     private val expected = mapOf(
         AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
-            "arm64-v8a" to ("LX/YyO;" to "BWg"),
-            "armeabi-v7a" to ("LX/VL4;" to "BWQ"),
+            "arm64-v8a" to ("LX/VRJ;" to "BWn"),
+            "armeabi-v7a" to ("LX/VRJ;" to "BWn"),
         ),
     )
 

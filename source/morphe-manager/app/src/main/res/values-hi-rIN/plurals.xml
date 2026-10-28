@@ -4,6 +4,11 @@
         <item quantity="one">%s पैच</item>
         <item quantity="other">%s पैच</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s लाइब्रेरी</item>
+        <item quantity="other">%s लाइब्रेरियाँ</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s पैच विकल्प</item>
         <item quantity="other">%s पैच विकल्प</item>
@@ -26,6 +31,10 @@
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">%s ऐप के लिए पैच सोर्स</item>
         <item quantity="other">%s ऐप्स के लिए पैच सोर्स</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s स्रोत इस ऐप के लिए छिपा हुआ है। इसे वापस लाने के लिए ऐप्स टैब पर ऐप का चयन करें और पैच स्रोत खोलें</item>
+        <item quantity="other">इस ऐप के लिए %s स्रोत छिपे हुए हैं। उन्हें वापस लाने के लिए Apps टैब पर ऐप का चयन करें और Patch sources खोलें</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s सोर्स छिपा हुआ है। देखने के लिए टैप करें</item>
@@ -55,6 +64,10 @@
         <item quantity="one">%s इंस्टॉल किया गया ऐप</item>
         <item quantity="other">%s इंस्टॉल किए गए ऐप्स</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">%s ऐप माउंट किया गया</item>
+        <item quantity="other">%s ऐप्स माउंट किए गए</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">%s ऐप फिर से इंस्टॉल किया गया</item>
         <item quantity="other">%s ऐप्स फिर से इंस्टॉल किए गए</item>
@@ -70,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">%s ऐप पैच करने के लिए तैयार है</item>
         <item quantity="other">%s ऐप्स पैच करने के लिए तैयार हैं</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">पैचिंग के लिए %s ऐप कतार में</item>
+        <item quantity="other">पैचिंग के लिए %s ऐप्स कतार में</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s छिपी हुई सूचना, इसे दिखाने के लिए टैप करें</item>
+        <item quantity="other">%s छिपी हुई सूचनाएं, उन्हें दिखाने के लिए टैप करें</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s ऐप को फिर से पैच किया जा सकता है</item>
@@ -87,9 +108,17 @@
         <item quantity="one">%s सोर्स इंस्टॉल किया गया है</item>
         <item quantity="other">%s सोर्स इंस्टॉल किए गए हैं</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s फ़िल्टर किया गया</item>
-        <item quantity="other">%1$s · %2$s फ़िल्टर किए गए</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s ऐप छिपा हुआ</item>
+        <item quantity="other">%s ऐप्स छिपे हुए</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s ऐप दिखा</item>
+        <item quantity="other">%s ऐप्स दिखाए गए</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">अनुपदर्शित करें %s ऐप?</item>
+        <item quantity="other">अनुपदर्शित करें %s ऐप्स?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s छिपा हुआ ऐप</item>
@@ -126,6 +155,11 @@
     <plurals name="changelog_change_count">
         <item quantity="one">%s बदलाव</item>
         <item quantity="other">%s बदलाव</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d नया</item>
+        <item quantity="other">%1$s · %2$d नए</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s नई रिलीज़</item>

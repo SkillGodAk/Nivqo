@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
 import android.graphics.Color;
@@ -23,6 +24,7 @@ import android.widget.TextView;
 
 import app.morphe.extension.facebook.comments.CommentOrder;
 import app.morphe.extension.facebook.download.DownloadQuality;
+import app.morphe.extension.facebook.download.SaveStorage;
 import app.morphe.extension.facebook.download.SaveTo;
 import app.morphe.extension.facebook.download.SendLink;
 import app.morphe.extension.facebook.feed.PostWordsForTests;
@@ -58,6 +60,7 @@ import org.robolectric.shadows.ShadowToast;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -92,6 +95,8 @@ public class HushfacebookPreferenceFragmentTest {
         ScreenColors.shown = null;
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.resetToDefault();
+        Settings.DOWNLOAD_REELS.resetToDefault();
+        Settings.SHOW_REEL_DOWNLOAD_BUTTON.resetToDefault();
         Settings.SAVE_FOLDER.resetToDefault();
         Settings.SAVE_TO.resetToDefault();
         Settings.VIDEO_SUBFOLDER.resetToDefault();
@@ -109,6 +114,58 @@ public class HushfacebookPreferenceFragmentTest {
     public void everyRowHasATitleAndLightText() {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             assertReadable(rowsOf(controller));
+        }
+    }
+
+    @Test
+    public void theLastSettingsEntryStaysDisabledWhenThePageInitializes() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.MENU_SETTINGS_ROW);
+        List<BooleanSetting> ways = Arrays.asList(Settings.SETTINGS_SHORTCUT,
+                Settings.SETTINGS_LOGO_PRESS, Settings.SETTINGS_MENU_ROW);
+        try {
+            for (BooleanSetting last : ways) {
+                for (BooleanSetting way : ways) way.save(way == last);
+                try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+                    HushfacebookPreferenceFragment page = SettingsL10nTest.pageOf(SettingsL10nTest.show(controller.get()));
+                    SwitchPreference row = (SwitchPreference) page.findPreference(last.key);
+                    assertTrue(last.key, row.isChecked());
+                    assertFalse(last.key + " can be switched off after initialization", row.isEnabled());
+                    assertEquals("The last way into these settings stays on.", String.valueOf(row.getSummary()));
+                }
+            }
+        } finally {
+            for (BooleanSetting way : ways) way.resetToDefault();
+        }
+    }
+
+    @Test
+    public void anUnrelatedChangeKeepsTheLastSettingsEntryDisabled() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.MENU_SETTINGS_ROW, PatchFamily.SPONSORED_POSTS);
+        Settings.SETTINGS_SHORTCUT.save(true);
+        Settings.SETTINGS_LOGO_PRESS.save(true);
+        Settings.SETTINGS_MENU_ROW.save(true);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushfacebookPreferenceFragment page = SettingsL10nTest.pageOf(SettingsL10nTest.show(controller.get()));
+            for (BooleanSetting way : Arrays.asList(Settings.SETTINGS_SHORTCUT, Settings.SETTINGS_LOGO_PRESS)) {
+                SwitchPreference row = (SwitchPreference) page.findPreference(way.key);
+                assertNotNull(row.getOnPreferenceChangeListener());
+                assertTrue(row.getOnPreferenceChangeListener().onPreferenceChange(row, false));
+                row.setChecked(false);
+            }
+            ShadowLooper.idleMainLooper();
+            SwitchPreference last = (SwitchPreference) page.findPreference(Settings.SETTINGS_MENU_ROW.key);
+            assertFalse("the normal entry callbacks did not protect the last way in", last.isEnabled());
+
+            SwitchPreference unrelated = (SwitchPreference) page.findPreference(Settings.HIDE_SPONSORED_POSTS.key);
+            unrelated.setChecked(!unrelated.isChecked());
+            ShadowLooper.idleMainLooper();
+            assertTrue(last.isChecked());
+            assertFalse("an unrelated preference change enabled the last way in", last.isEnabled());
+        } finally {
+            Settings.SETTINGS_SHORTCUT.resetToDefault();
+            Settings.SETTINGS_LOGO_PRESS.resetToDefault();
+            Settings.SETTINGS_MENU_ROW.resetToDefault();
+            Settings.HIDE_SPONSORED_POSTS.resetToDefault();
         }
     }
 
@@ -137,6 +194,13 @@ public class HushfacebookPreferenceFragmentTest {
                 String text = row.getTitle() + " " + row.getSummary();
                 assertFalse("\"" + text + "\" says a paused Facebook is unpatched", UNPATCHED.matcher(text).find());
                 if (row instanceof SwitchPreference && switchKeys.contains(row.getKey())) shown.add(row.getKey());
+                // The tab bar's switches come in pairs, each pair one row of three choices.
+                for (TabBarChoices.Pair pair : TabBarChoices.Pair.values()) {
+                    if (pair.rowKey.equals(row.getKey())) {
+                        shown.add(pair.first.key);
+                        shown.add(pair.second.key);
+                    }
+                }
                 if (HushfacebookPreferenceFragment.STAYS_WHILE_PAUSED.contentEquals(row.getTitle())) stays = row;
             }
             assertEquals("a switch Pause turns off is missing from the screen", switchKeys, shown);
@@ -196,17 +260,17 @@ public class HushfacebookPreferenceFragmentTest {
     }
 
     /**
-     * With Material You theme in the build the Accent color row stays greyed out, even after the
-     * shared page enables every row it syncs from its setting.
+     * With Material You theme in the build the Accent color row still takes taps: its pick stands in
+     * for the wallpaper's accent (#272).
      */
     @Test
-    public void theAccentRowStaysGreyedOutWhenMaterialYouIsInTheBuild() {
+    public void theAccentRowTakesTapsWithMaterialYouInTheBuild() {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.ACCENT_COLOR, PatchFamily.MATERIAL_YOU_THEME);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             List<Preference> rows = rowsOf(controller);
             int at = indexOfKey(rows, Settings.ACCENT_COLOR.key);
             assertTrue("no Accent color row with its patch in the build", at >= 0);
-            assertFalse("the row still takes taps", rows.get(at).isEnabled());
+            assertTrue("the row is greyed out", rows.get(at).isEnabled());
         }
 
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.ACCENT_COLOR);
@@ -309,19 +373,35 @@ public class HushfacebookPreferenceFragmentTest {
     @Test
     public void thePausedCardSaysWhatStaysInForEveryReason() {
         for (HushfacebookPause.Reason why : HushfacebookPause.Reason.values()) {
-            String summary = HushfacebookPreferenceFragment.pausedSummary(why, "com.facebook.katana");
+            String summary = HushfacebookPreferenceFragment.pausedSummary(why,
+                    HushfacebookPreferenceFragment.markerFolder("com.facebook.katana"));
             assertFalse(why + ": " + summary, UNPATCHED.matcher(summary).find());
             assertTrue(why + ": " + summary, summary.contains("what was set when you patched stays in"));
             // Debug logging and Lock Facebook keep working while paused, so the card can't say every switch is off.
             assertTrue(why + ": " + summary, summary.contains("Every switch but Debug logging and Lock Facebook"));
         }
 
-        // The marker counts only in the app's own files folder, and the card names that folder,
-        // not the one above it a person finds first. The folder is isolated, so a right-to-left
-        // sentence keeps the path in the order it was written.
-        String pkg = RuntimeEnvironment.getApplication().getPackageName();
-        assertTrue(HushfacebookPreferenceFragment.pausedSummary(HushfacebookPause.Reason.MARKER_FILE, pkg)
+        // The marker counts in the app's own files folder, and the card names that folder, not the
+        // one above it a person finds first. The folder is isolated, so a right-to-left sentence
+        // keeps the path in the order it was written.
+        Context app = RuntimeEnvironment.getApplication();
+        String pkg = app.getPackageName();
+        assertTrue(HushfacebookPreferenceFragment.pausedSummary(HushfacebookPause.Reason.MARKER_FILE,
+                HushfacebookPreferenceFragment.markerFolder(app))
                 .contains("in " + L10n.isolate("Android/data/" + pkg + "/files") + " paused Hushfacebook"));
+        // The one adb can make on Android 11, in Android/media, is named where it is.
+        java.io.File media = HushfacebookPause.mediaMarkerFile(app);
+        try {
+            assertTrue(media.getParentFile().exists() || media.getParentFile().mkdirs());
+            assertTrue(media.createNewFile());
+            assertTrue(HushfacebookPreferenceFragment.pausedSummary(HushfacebookPause.Reason.MARKER_FILE,
+                    HushfacebookPreferenceFragment.markerFolder(app))
+                    .contains("in " + L10n.isolate("Android/media/" + pkg) + " paused Hushfacebook"));
+        } catch (java.io.IOException failure) {
+            throw new AssertionError(failure);
+        } finally {
+            media.delete();
+        }
 
         PauseForTests.pause(HushfacebookPause.Reason.CRASH_LOOP);
         // A crash-loop pause comes from safe mode, which stays on for the next start too. The card
@@ -330,20 +410,20 @@ public class HushfacebookPreferenceFragmentTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             Preference card = rowsOf(controller).get(0);
             assertEquals("Hushfacebook is paused", String.valueOf(card.getTitle()));
-            assertEquals(HushfacebookPreferenceFragment.pausedSummary(HushfacebookPause.Reason.CRASH_LOOP, RuntimeEnvironment.getApplication().getPackageName())
+            assertEquals(HushfacebookPreferenceFragment.pausedSummary(HushfacebookPause.Reason.CRASH_LOOP, HushfacebookPreferenceFragment.markerFolder(app))
                     + " Tap to turn it back on.\n" + HushfacebookPreferenceFragment.overviewBuildDetails(), String.valueOf(card.getSummary()));
         }
     }
 
     /**
      * A version is a value set into a sentence, so both rows that show one isolate it: in a
-     * right-to-left sentence "583.0.0.39.55" then keeps the order it was written in.
+     * right-to-left sentence "584.0.0.51.56" then keeps the order it was written in.
      */
     @Test
     public void theVersionRowsIsolateTheVersions() {
         android.content.Context context = RuntimeEnvironment.getApplication();
         org.robolectric.Shadows.shadowOf(context.getPackageManager())
-                .getInternalMutablePackageInfo(context.getPackageName()).versionName = "583.0.0.39.55";
+                .getInternalMutablePackageInfo(context.getPackageName()).versionName = "584.0.0.51.56";
         String facebook = app.morphe.extension.shared.Utils.getAppVersionName();
         assertTrue("no Facebook version to look for", facebook != null && !facebook.isEmpty());
 
@@ -529,6 +609,111 @@ public class HushfacebookPreferenceFragmentTest {
             }
             assertEquals("DOWNLOAD", to.getValue());
             assertEquals("Videos and photos go to " + L10n.isolate("Download/Clips") + ".", String.valueOf(folder.getSummary()));
+        }
+    }
+
+    /** The Save on row (#274) sits right above Save to and starts on the phone's storage. */
+    @Test
+    public void theSaveOnRowSitsAboveSaveTo() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.STORY_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(controller);
+            int onAt = -1;
+            int toAt = -1;
+            for (int i = 0; i < rows.size(); i++) {
+                if (rows.get(i) instanceof ValueRows.SaveStorageRow) onAt = i;
+                if (rows.get(i) instanceof ValueRows.SaveToRow) toAt = i;
+            }
+            assertTrue("no Save on row with a download in the build", onAt >= 0);
+            assertEquals("Save on isn't right above Save to", toAt - 1, onAt);
+            ValueRows.SaveStorageRow on = (ValueRows.SaveStorageRow) rows.get(onAt);
+            assertEquals(Settings.SAVE_STORAGE.key, on.getKey());
+            assertEquals("Save on", String.valueOf(on.getTitle()));
+            assertEquals("", on.getValue());
+        }
+    }
+
+    /**
+     * The Save on row lists the phone's storage and each card in the phone, keeps a picked card
+     * that's out of the phone, and says where saves go in each case.
+     */
+    @Test
+    public void theSaveOnRowListsThePhoneAndEachCard() {
+        Context context = RuntimeEnvironment.getApplication();
+        List<SaveStorage.Card> card = Arrays.asList(new SaveStorage.Card("1a2b-3c4d", "SanDisk SD card"));
+
+        ValueRows.SaveStorageRow none = HushfacebookPreferenceFragment.saveStorageRow(context, Collections.emptyList());
+        assertEquals(Arrays.asList("Phone storage"), texts(none.getEntries()));
+        assertEquals(Arrays.asList(""), texts(none.getEntryValues()));
+        assertEquals("Videos and photos are saved on the phone's storage. Put in an SD card to save on it instead.",
+                String.valueOf(none.getSummary()));
+
+        ValueRows.SaveStorageRow phone = HushfacebookPreferenceFragment.saveStorageRow(context, card);
+        assertEquals(Arrays.asList("Phone storage", L10n.isolate("SanDisk SD card")), texts(phone.getEntries()));
+        assertEquals(Arrays.asList("", "1a2b-3c4d"), texts(phone.getEntryValues()));
+        assertEquals("Videos and photos are saved on the phone's storage.", String.valueOf(phone.getSummary()));
+        phone.setValue("1a2b-3c4d");
+        assertEquals("Videos and photos are saved on " + L10n.isolate("SanDisk SD card")
+                + ", in the same folders. Saves you already have stay where they are.", String.valueOf(phone.getSummary()));
+
+        Settings.SAVE_STORAGE.save("1a2b-3c4d");
+        try {
+            ValueRows.SaveStorageRow out = HushfacebookPreferenceFragment.saveStorageRow(context, Collections.emptyList());
+            assertEquals(Arrays.asList("Phone storage", "SD card that isn't in the phone"), texts(out.getEntries()));
+            assertEquals(Arrays.asList("", "1a2b-3c4d"), texts(out.getEntryValues()));
+            assertEquals("1a2b-3c4d", out.getValue());
+            assertEquals("The SD card you picked isn't in the phone, so videos and photos are saved on the phone's "
+                    + "storage until it's back.", String.valueOf(out.getSummary()));
+            assertEquals("Videos and photos are saved on " + L10n.isolate("SanDisk SD card")
+                    + ", in the same folders. Saves you already have stay where they are.",
+                    String.valueOf(HushfacebookPreferenceFragment.saveStorageRow(context, card).getSummary()));
+        } finally {
+            Settings.SAVE_STORAGE.resetToDefault();
+        }
+    }
+
+    private static List<String> texts(CharSequence[] items) {
+        List<String> out = new ArrayList<>();
+        for (CharSequence item : items) out.add(String.valueOf(item));
+        return out;
+    }
+
+    @Test
+    public void theReelSidebarChoiceIsIndependentAndFollowsTheDownloadSwitch() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(controller);
+            int mainAt = indexOfKey(rows, Settings.DOWNLOAD_REELS.key);
+            int buttonAt = indexOfKey(rows, Settings.SHOW_REEL_DOWNLOAD_BUTTON.key);
+            assertTrue("no overall reel Download switch", mainAt >= 0);
+            assertEquals("the sidebar choice is not beside its parent", mainAt + 1, buttonAt);
+            SwitchPreference main = (SwitchPreference) rows.get(mainAt);
+            SwitchPreference button = (SwitchPreference) rows.get(buttonAt);
+            assertEquals("Download", String.valueOf(main.getTitle()));
+            assertEquals("Download button on reels", String.valueOf(button.getTitle()));
+            assertTrue(main.isChecked());
+            assertTrue("the existing sidebar layout changed by default", button.isChecked());
+
+            button.setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse(Settings.SHOW_REEL_DOWNLOAD_BUTTON.savedValue());
+            assertTrue("the sidebar choice changed the overall switch", Settings.DOWNLOAD_REELS.savedValue());
+
+            main.setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse("the sidebar choice is usable without downloads", button.isEnabled());
+            assertTrue(String.valueOf(button.getSummary()), String.valueOf(button.getSummary()).contains(
+                    L10n.f("Turn on %1$s to use this.", L10n.isolate("Download"))));
+            main.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(button.isEnabled());
+            assertFalse("re-enabling downloads forgot menu-only", Settings.SHOW_REEL_DOWNLOAD_BUTTON.savedValue());
+        }
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(controller);
+            SwitchPreference button = (SwitchPreference) rows.get(indexOfKey(rows, Settings.SHOW_REEL_DOWNLOAD_BUTTON.key));
+            assertFalse("a new page forgot the sidebar choice", button.isChecked());
+            assertTrue(button.isEnabled());
         }
     }
 
@@ -894,6 +1079,7 @@ public class HushfacebookPreferenceFragmentTest {
             collect(page.getPreferenceScreen(), rows);
             ValueRows.QualityRow quality = null;
             int qualityAt = -1;
+            int onAt = -1;
             int toAt = -1;
             int folderAt = -1;
             for (int i = 0; i < rows.size(); i++) {
@@ -901,12 +1087,15 @@ public class HushfacebookPreferenceFragmentTest {
                     quality = (ValueRows.QualityRow) rows.get(i);
                     qualityAt = i;
                 }
+                if (rows.get(i) instanceof ValueRows.SaveStorageRow) onAt = i;
                 if (rows.get(i) instanceof ValueRows.SaveToRow) toAt = i;
                 if (rows.get(i) instanceof ValueRows.FolderRow) folderAt = i;
             }
             assertNotNull("no quality row with a download in the build", quality);
-            // Save to (#42) goes between them: the top folder, then the folder under it.
-            assertEquals("the quality row isn't right above Save to", toAt - 1, qualityAt);
+            // Save on (#274) and Save to (#42) go between them: the storage, the top folder, then the
+            // folder under it.
+            assertEquals("the quality row isn't right above Save on", onAt - 1, qualityAt);
+            assertEquals("Save on isn't right above Save to", toAt - 1, onAt);
             assertEquals("Save to isn't right above the folder", folderAt - 1, toAt);
             assertEquals(Settings.DOWNLOAD_QUALITY.key, quality.getKey());
             assertEquals("Download quality", String.valueOf(quality.getTitle()));
@@ -975,11 +1164,17 @@ public class HushfacebookPreferenceFragmentTest {
                 Preference row = rows.get(compatible);
                 assertTrue(row instanceof SwitchPreference);
                 assertFalse(((SwitchPreference) row).isChecked());
-                assertEquals(indexOfKey(rows, Settings.DOWNLOAD_QUALITY.key) - 1, compatible);
+                assertEquals(indexOfKey(rows, Settings.DOWNLOAD_QUALITY.key) - 2, compatible);
                 assertEquals("Save videos other apps can open", String.valueOf(row.getTitle()));
                 assertEquals("Fixes saved videos that play without sound in WhatsApp, video editors such as CapCut and InShot, or "
                         + "some galleries and players. May lower quality.",
                         String.valueOf(row.getSummary()));
+                // Convert to keep the full size (issue #189) works with it, so it's right below.
+                Preference convert = rows.get(compatible + 1);
+                assertEquals(download + ": convert to keep the full size isn't below saves other apps can open",
+                        Settings.DOWNLOAD_CONVERT.key, convert.getKey());
+                assertFalse(((SwitchPreference) convert).isChecked());
+                assertEquals("Convert to keep the full size", String.valueOf(convert.getTitle()));
                 // Quiet saves (issue #142) is every save's too, right above it.
                 Preference quiet = rows.get(compatible - 1);
                 assertEquals(download + ": quiet saves isn't above saves other apps can open",
@@ -997,6 +1192,7 @@ public class HushfacebookPreferenceFragmentTest {
             assertEquals("a compatible-saves row with no download in the build",
                     -1, indexOfKey(rows, Settings.DOWNLOAD_COMPATIBLE.key));
             assertEquals("a quiet-saves row with no download in the build", -1, indexOfKey(rows, Settings.DOWNLOAD_QUIET.key));
+            assertEquals("a convert row with no download in the build", -1, indexOfKey(rows, Settings.DOWNLOAD_CONVERT.key));
         }
     }
 
@@ -1207,7 +1403,7 @@ public class HushfacebookPreferenceFragmentTest {
                 }
             }
             assertNotNull(section);
-            assertEquals("Comments", String.valueOf(section.getTitle()));
+            assertEquals("Comments and writing", String.valueOf(section.getTitle()));
             assertEquals(2, section.getPreferenceCount());
             assertEquals("Default comment order", String.valueOf(rows.get(toggle).getTitle()));
             assertTrue(rows.get(toggle + 1) instanceof ValueRows.CommentOrderRow);
@@ -1284,14 +1480,18 @@ public class HushfacebookPreferenceFragmentTest {
                 }
             }
             assertNotNull(section);
-            assertEquals("Playback", String.valueOf(section.getTitle()));
-            assertEquals(4, section.getPreferenceCount());
+            assertEquals("Video and audio", String.valueOf(section.getTitle()));
+            // The quality rows sit under their own heading, which nothing saves.
+            assertEquals(5, section.getPreferenceCount());
+            assertTrue(section.getPreference(0) instanceof SettingsRows.Subheading);
+            assertEquals("Video quality", String.valueOf(section.getPreference(0).getTitle()));
+            assertEquals(Settings.DEFAULT_PLAYBACK_QUALITY.key, section.getPreference(1).getKey());
             assertEquals("Default playback quality", String.valueOf(rows.get(toggle).getTitle()));
             assertTrue(rows.get(toggle + 1) instanceof ValueRows.PlaybackQualityRow);
             ValueRows.PlaybackQualityRow quality =
                     (ValueRows.PlaybackQualityRow) rows.get(toggle + 1);
             assertEquals(Settings.PLAYBACK_QUALITY.key, quality.getKey());
-            assertEquals("Playback quality", String.valueOf(quality.getTitle()));
+            assertEquals("Default quality", String.valueOf(quality.getTitle()));
 
             List<String> entries = new ArrayList<>();
             for (CharSequence entry : quality.getEntries()) entries.add(String.valueOf(entry));
@@ -1329,20 +1529,20 @@ public class HushfacebookPreferenceFragmentTest {
             assertEquals("Stories quality", String.valueOf(stories.getTitle()));
             List<String> own = new ArrayList<>();
             for (CharSequence entry : reels.getEntries()) own.add(String.valueOf(entry));
-            assertEquals(Arrays.asList("Same as Playback quality", "Auto", "Data saver", "Up to " + L10n.isolate("480p"),
+            assertEquals(Arrays.asList("Same as default", "Auto", "Data saver", "Up to " + L10n.isolate("480p"),
                     "Up to " + L10n.isolate("720p"), "Highest"), own);
             assertEquals("SAME", reels.getValue());
-            assertEquals("Reels follow the Playback quality row.", String.valueOf(reels.getSummary()));
-            assertEquals("Video stories follow the Playback quality row.", String.valueOf(stories.getSummary()));
-            // #90: a quality of their own says it's separate from Playback quality, not just its name.
+            assertEquals("Reels follow the Default quality row.", String.valueOf(reels.getSummary()));
+            assertEquals("Video stories follow the Default quality row.", String.valueOf(stories.getSummary()));
+            // #90: a quality of their own says it's separate from Default quality, not just its name.
             reels.setValue("DATA_SAVER");
             ShadowLooper.idleMainLooper();
             assertEquals(SurfaceQuality.DATA_SAVER, Settings.REELS_PLAYBACK_QUALITY.savedValue());
-            assertEquals("Data saver for reels, whatever Playback quality is set to.", String.valueOf(reels.getSummary()));
+            assertEquals("Data saver for reels, whatever Default quality is set to.", String.valueOf(reels.getSummary()));
             assertEquals(SurfaceQuality.SAME, Settings.STORIES_PLAYBACK_QUALITY.savedValue());
             stories.setValue("HIGHEST");
             ShadowLooper.idleMainLooper();
-            assertEquals("Highest for video stories, whatever Playback quality is set to.",
+            assertEquals("Highest for video stories, whatever Default quality is set to.",
                     String.valueOf(stories.getSummary()));
         } finally {
             Settings.PLAYBACK_QUALITY.resetToDefault();
@@ -1399,7 +1599,7 @@ public class HushfacebookPreferenceFragmentTest {
             SwitchPreference qualitySwitch = (SwitchPreference) page.findPreference(Settings.DEFAULT_PLAYBACK_QUALITY.key);
             ListPreference stories = (ListPreference) page.findPreference(Settings.STORIES_PLAYBACK_QUALITY.key);
             pick(stories, "SAME");
-            assertFalse("Same as Playback quality turned the switch on", Settings.DEFAULT_PLAYBACK_QUALITY.savedValue());
+            assertFalse("Same as default turned the switch on", Settings.DEFAULT_PLAYBACK_QUALITY.savedValue());
             pick(stories, "HIGHEST");
             assertEquals(SurfaceQuality.HIGHEST, Settings.STORIES_PLAYBACK_QUALITY.savedValue());
             assertTrue(Settings.DEFAULT_PLAYBACK_QUALITY.savedValue());
@@ -1432,7 +1632,7 @@ public class HushfacebookPreferenceFragmentTest {
      * one switch, which says what goes and what stays. Without the patch there's no such row.
      */
     @Test
-    public void theTagSuggestionRowSitsAloneUnderWriting() {
+    public void theTagSuggestionRowSitsAloneUnderWritingInComments() {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.TAG_SUGGESTIONS, PatchFamily.SPONSORED_POSTS);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             HushfacebookPreferenceFragment page = new HushfacebookPreferenceFragment();
@@ -1446,9 +1646,11 @@ public class HushfacebookPreferenceFragmentTest {
                 }
             }
             assertNotNull("no Tag suggestions only after @ switch", section);
-            assertEquals("Writing", String.valueOf(section.getTitle()));
-            assertEquals(1, section.getPreferenceCount());
-            Preference toggle = section.getPreference(0);
+            assertEquals("Comments and writing", String.valueOf(section.getTitle()));
+            assertEquals(2, section.getPreferenceCount());
+            assertTrue(section.getPreference(0) instanceof SettingsRows.Subheading);
+            assertEquals("Writing", String.valueOf(section.getPreference(0).getTitle()));
+            Preference toggle = section.getPreference(1);
             assertTrue(toggle instanceof SwitchPreference);
             assertEquals("Tag suggestions only after @", String.valueOf(toggle.getTitle()));
             assertEquals("Type @ before Facebook suggests someone to tag in posts or comments. Your text stays unchanged.",
@@ -1683,8 +1885,10 @@ public class HushfacebookPreferenceFragmentTest {
             assertEquals("Home shows the same posts as All in the Feeds tab.", String.valueOf(feed.getSummary()));
             pick(feed, "FRIENDS");
             assertEquals(FeedsSubtab.FRIENDS, Settings.HOME_FEED.savedValue());
-            assertEquals("Home shows the same posts as Friends in the Feeds tab. If Facebook doesn't have that feed, "
-                    + "Home shows All.", String.valueOf(feed.getSummary()));
+            assertEquals("Home asks Facebook for the posts Friends shows in the Feeds tab. When there's nothing new "
+                    + "there, Facebook can fill Home with suggested posts and reels, which Hide \"Suggested for you\" "
+                    + "posts and Hide Reels in the feed take out. If Facebook doesn't have that feed, Home shows All.",
+                    String.valueOf(feed.getSummary()));
 
             assertTrue(following.getOnPreferenceChangeListener().onPreferenceChange(following, false));
             Settings.FOLLOWING_FEED_HOME.save(false);

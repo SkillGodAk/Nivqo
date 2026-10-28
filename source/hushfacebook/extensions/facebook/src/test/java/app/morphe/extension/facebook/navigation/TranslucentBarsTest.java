@@ -12,10 +12,14 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.view.SurfaceView;
 import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 
 import org.junit.After;
 import org.junit.Before;
@@ -37,7 +41,9 @@ import app.morphe.extension.shared.settings.PauseForTests;
 /**
  * See-through bars (#124): each background that spans a bar gets its alpha scaled, small ones and
  * touch ripples keep theirs, Facebook setting a fill again is scaled again, and off, paused or a
- * hidden bar gives Facebook's own alpha back. Android 11 here, so no frost.
+ * hidden bar gives Facebook's own alpha back. With the tab bar at the top both stacked rows count
+ * (#171). Android 11 here, so no frost: where it may go is checked on its own, and its nodes on
+ * Android 14 (#250).
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)
@@ -111,6 +117,116 @@ public class TranslucentBarsTest {
         screen.bars.update();
         assertEquals(SEE_THROUGH, screen.topHolder.getBackground().getAlpha());
         assertTrue(statusLine(), statusLine().contains(TranslucentBars.MADE_SEE_THROUGH + " 2"));
+    }
+
+    @Test
+    public void withTheTabBarAtTheTopBothRowsOfTheOneHolderGoSeeThrough() {
+        TranslucentBarsForTests.TabBarOnTop screen = new TranslucentBarsForTests.TabBarOnTop();
+        assertSame("one holder for both rows", screen.header, TranslucentBars.barOf(screen.topBar, 1600));
+        assertSame(screen.header, TranslucentBars.barOf(screen.tabBar, 1600));
+
+        screen.bars.update();
+
+        assertEquals(SEE_THROUGH, screen.topRow.getBackground().getAlpha());
+        assertEquals(SEE_THROUGH, screen.tabBar.getBackground().getAlpha());
+        assertEquals("the line under the rows keeps its colour", 255, screen.line.getBackground().getAlpha());
+        assertEquals("the page under the header is left alone", 255, screen.page.getBackground().getAlpha());
+        assertEquals(2, screen.bars.fills.size());
+        assertTrue(statusLine(), statusLine().contains(TranslucentBars.MADE_SEE_THROUGH + " 2"));
+    }
+
+    @Test
+    public void theFrostStaysInsideTheRowsOnTheFeedsSide() {
+        // A tab bar at the bottom whose holder reaches 100 pixels above its tabs.
+        Rect area = new Rect(0, 1340, 720, 1600);
+        TranslucentBars.keepInside(area, new Rect(0, 1440, 720, 1600), 1600);
+        assertEquals(new Rect(0, 1440, 720, 1600), area);
+
+        // A header at the top: the status bar above its rows stays frosted, nothing below them.
+        area = new Rect(0, 0, 720, 260);
+        TranslucentBars.keepInside(area, new Rect(0, 48, 720, 226), 1600);
+        assertEquals(new Rect(0, 0, 720, 226), area);
+
+        area = new Rect(0, 1340, 720, 1600);
+        TranslucentBars.keepInside(area, new Rect(), 1600);
+        assertEquals("no rows on screen leaves it as it was", new Rect(0, 1340, 720, 1600), area);
+    }
+
+    @Test
+    @Config(sdk = 34) // not 33: ColdStartHooksTest needs that sandbox to itself
+    public void aFadingFrostIsClippedToItsBoxOutsideTheBlur() {
+        // #250: a blurred node drawn half faded spread its clamped edge above a tab bar sliding away.
+        TranslucentBarsForTests screen = new TranslucentBarsForTests();
+        int[] origin = new int[2];
+        screen.page.getLocationInWindow(origin);
+        TranslucentBars.Frost frost = new TranslucentBars.Frost(screen.page, 47f);
+        frost.update(new Rect(0, 1440, 720, 1600), 0.5f, 1);
+        assertEquals("the fade is on the clipping node", 0.5f, frost.node.getAlpha(), 0f);
+        assertEquals(1440 - origin[1], frost.node.getTop());
+        assertEquals(1600 - origin[1], frost.node.getBottom());
+        assertEquals("the blur itself is drawn whole", 1f, frost.blur.getAlpha(), 0f);
+        assertEquals(0, frost.blur.getTop());
+        assertEquals(160, frost.blur.getBottom());
+        assertEquals(720, frost.blur.getRight());
+        frost.remove();
+    }
+
+    @Test
+    public void aPageHoldingASurfaceViewIsSeenAnywhereInIt() {
+        TranslucentBarsForTests screen = new TranslucentBarsForTests();
+        Rect box = new Rect();
+        assertFalse(TranslucentBars.holdsSurface(screen.page, box));
+        FrameLayout reel = new FrameLayout(screen.activity);
+        reel.addView(new SurfaceView(screen.activity));
+        FrameLayout pageOfReels = new FrameLayout(screen.activity);
+        pageOfReels.addView(new View(screen.activity));
+        pageOfReels.addView(reel);
+        screen.page.addView(pageOfReels);
+        screen.layOut();
+        assertTrue(TranslucentBars.holdsSurface(screen.page, box));
+        assertTrue(TranslucentBars.holdsSurface(new SurfaceView(screen.activity), box));
+    }
+
+    @Test
+    public void aHiddenPageHoldingASurfaceViewDoesntCount() {
+        TranslucentBarsForTests screen = new TranslucentBarsForTests();
+        FrameLayout reels = new FrameLayout(screen.activity);
+        reels.addView(new SurfaceView(screen.activity));
+        screen.page.addView(reels);
+        screen.layOut();
+        Rect box = new Rect();
+        assertTrue(TranslucentBars.holdsSurface(screen.page, box));
+        reels.setVisibility(View.GONE);
+        assertFalse("a gone page", TranslucentBars.holdsSurface(screen.page, box));
+        reels.setVisibility(View.INVISIBLE);
+        assertFalse("an invisible page", TranslucentBars.holdsSurface(screen.page, box));
+    }
+
+    @Test
+    public void anotherTabsPageWaitingBesideTheScreenDoesntCount() {
+        // Facebook 583 lays each opened tab's page beside the next in one pager and scrolls it to
+        // the one shown, so Reels waits beside Home with its video once it's been opened (#188).
+        TranslucentBarsForTests screen = new TranslucentBarsForTests();
+        LinearLayout pager = new LinearLayout(screen.activity);
+        FrameLayout home = new FrameLayout(screen.activity);
+        FrameLayout reels = new FrameLayout(screen.activity);
+        reels.addView(new SurfaceView(screen.activity));
+        pager.addView(home, new LinearLayout.LayoutParams(720, 1600));
+        pager.addView(reels, new LinearLayout.LayoutParams(720, 1600));
+        screen.page.addView(pager, new FrameLayout.LayoutParams(1440, 1600));
+        screen.layOut();
+        Rect box = new Rect();
+        assertFalse("Home shown, Reels beside it", TranslucentBars.holdsSurface(screen.page, box));
+        pager.scrollTo(720, 0);
+        assertTrue("Reels shown", TranslucentBars.holdsSurface(screen.page, box));
+        pager.scrollTo(360, 0);
+        assertTrue("halfway between them", TranslucentBars.holdsSurface(screen.page, box));
+        pager.scrollTo(0, 0);
+        reels.setTranslationX(-720);
+        assertTrue("slid over Home", TranslucentBars.holdsSurface(screen.page, box));
+        reels.setTranslationX(0);
+        assertFalse(TranslucentBars.holdsSurface(screen.page, box));
+        assertEquals("the scratch box is the page's", new Rect(0, 0, 720, 1600), box);
     }
 
     @Test

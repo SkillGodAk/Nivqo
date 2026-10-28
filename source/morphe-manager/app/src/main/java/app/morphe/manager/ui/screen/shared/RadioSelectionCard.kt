@@ -5,7 +5,6 @@
 
 package app.morphe.manager.ui.screen.shared
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
@@ -13,11 +12,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,12 +22,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.morphe.manager.util.contrastingContent
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 
 /**
  * Selectable card used in radio-button style dialogs. Shares the outer card look
@@ -103,8 +100,8 @@ fun RadioSelectionCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(Defaults.ContentPadding),
-                    horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
+                        .padding(Defaults.SpaceLarge),
+                    horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (leadingContent != null) {
@@ -114,11 +111,7 @@ fun RadioSelectionCard(
                     }
                     content()
                 }
-                AnimatedVisibility(
-                    visible = footerContent != null,
-                    enter = Animations.expandFadeEnter,
-                    exit = Animations.shrinkFadeExit
-                ) {
+                FoldingVisibility(visible = footerContent != null) {
                     Column {
                         SettingsDivider(fullWidth = true)
                         Box(
@@ -127,8 +120,8 @@ fun RadioSelectionCard(
                                 .background(footerColor)
                                 .animateContentSize()
                                 .padding(
-                                    horizontal = Defaults.ContentPadding,
-                                    vertical = Defaults.ContentPaddingSmall
+                                    horizontal = Defaults.SpaceLarge,
+                                    vertical = Defaults.SpaceSmall
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
@@ -195,7 +188,7 @@ fun SelectionLeadingBox(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     size: Dp = 28.dp,
-    cornerRadius: Dp = 8.dp,
+    cornerRadius: Dp = Defaults.CornerSmall,
     content: @Composable BoxScope.() -> Unit
 ) {
     val borderColor by animateColorAsState(
@@ -222,18 +215,26 @@ fun SelectionLeadingBox(
  *
  * @param accentColor Color of the card the indicator sits on, see [RadioSelectionCard] and
  *   [LocalAccent].
+ * @param ink Content color of a surface no theme color reads on, such as a gradient card. The
+ *   circle is filled with it and outlined in it, in place of [accentColor].
  */
 @Composable
 fun SelectionCheckIndicator(
     state: ToggleableState,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    accentColor: Color? = LocalAccent.current
+    accentColor: Color? = LocalAccent.current,
+    ink: Color? = null
 ) {
     val colors = MaterialTheme.colorScheme
     val accent = usableAppAccent(accentColor)
-    val container = accent?.copy(alpha = AccentAlpha.LEAD) ?: colors.primaryContainer
-    val content = if (accent != null) appAccentContent(container) else colors.onPrimaryContainer
+    val container = ink ?: accent?.copy(alpha = AccentAlpha.LEAD) ?: colors.primaryContainer
+    val content = when {
+        ink != null -> ink.contrastingContent()
+        accent != null -> appAccentContent(container)
+        else -> colors.onPrimaryContainer
+    }
+    val outline = ink?.copy(alpha = 0.6f) ?: colors.outlineVariant
     // Eased between the states, so picking a card fades its mark in as its border comes up
     Crossfade(
         targetState = state,
@@ -242,9 +243,9 @@ fun SelectionCheckIndicator(
         label = "selection_check"
     ) { shown ->
         val icon = when (shown) {
-            ToggleableState.On -> Icons.Outlined.Check
-            ToggleableState.Indeterminate -> Icons.Outlined.Remove
-            ToggleableState.Off -> return@Crossfade StatusCirclePlaceholder()
+            ToggleableState.On -> MaterialSymbols.Rounded.Check
+            ToggleableState.Indeterminate -> MaterialSymbols.Rounded.Remove
+            ToggleableState.Off -> return@Crossfade StatusCirclePlaceholder(color = outline)
         }
 
         StatusCircleIcon(
@@ -275,19 +276,19 @@ fun SelectionCheckRow(
             // Pressed on a rounded plate around the box and its label, as a menu item is, rather
             // than across the whole width the row is centered in
             .wrapContentWidth(Alignment.CenterHorizontally)
-            .clip(RoundedCornerShape(Defaults.CompactCornerRadius))
-            .toggleable(
+            .shapedToggleable(
+                shape = RoundedCornerShape(Defaults.CornerMedium),
                 value = checked,
                 enabled = enabled,
                 role = Role.Checkbox,
                 onValueChange = onCheckedChange
             )
-            .padding(Defaults.ContentPaddingSmall),
+            .padding(Defaults.SpaceSmall),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing, Alignment.CenterHorizontally)
+        horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium, Alignment.CenterHorizontally)
     ) {
         SelectionCheckIndicator(
-            state = if (checked) ToggleableState.On else ToggleableState.Off,
+            state = ToggleableState(checked),
             enabled = enabled
         )
         Text(
@@ -308,7 +309,7 @@ private fun selectionBorderColor(selected: Boolean, enabled: Boolean) = when {
 
 @Composable
 private fun DefaultRadioIndicator(selected: Boolean, enabled: Boolean, accentColor: Color?) = SelectionCheckIndicator(
-    state = if (selected) ToggleableState.On else ToggleableState.Off,
+    state = ToggleableState(selected),
     enabled = enabled,
     accentColor = accentColor
 )

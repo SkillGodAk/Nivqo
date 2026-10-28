@@ -32,6 +32,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import app.morphe.extension.facebook.comments.CommentOrder;
+import app.morphe.extension.facebook.reels.ReelsOrder;
 import app.morphe.extension.facebook.download.DownloadQuality;
 import app.morphe.extension.facebook.download.FileNameTemplate;
 import app.morphe.extension.facebook.download.SaveFolder;
@@ -39,13 +40,18 @@ import app.morphe.extension.facebook.download.SaveTo;
 import app.morphe.extension.facebook.download.SendLink;
 import app.morphe.extension.facebook.feed.PostSources;
 import app.morphe.extension.facebook.feed.PostWords;
+import app.morphe.extension.facebook.menu.MenuTiles;
 import app.morphe.extension.facebook.media.PlaybackQuality;
 import app.morphe.extension.facebook.media.SurfaceQuality;
 import app.morphe.extension.facebook.misc.AppLock;
+import app.morphe.extension.facebook.misc.HeaderText;
 import app.morphe.extension.facebook.misc.ShareSheetItems;
 import app.morphe.extension.facebook.misc.TextSize;
 import app.morphe.extension.facebook.feed.ReactionCeiling;
 import app.morphe.extension.facebook.theme.AccentColor;
+import app.morphe.extension.facebook.theme.AmoledBackground;
+import app.morphe.extension.facebook.theme.AmoledLightBackground;
+import app.morphe.extension.facebook.theme.MarkColors;
 import app.morphe.extension.facebook.navigation.FeedsSubtab;
 import app.morphe.extension.facebook.navigation.StartTab;
 import app.morphe.extension.facebook.feed.SeenPosts;
@@ -68,17 +74,18 @@ import app.morphe.extension.shared.settings.StringSetting;
  * subfolders, the save quality, the video file name, what a tap on Download does, the app links go
  * to, the tab Facebook opens on, the order comments open in, the qualities videos, reels and
  * video stories play at, the hours notification quiet hours start and end, how long the app lock
- * waits, and the share sheet items to hide) go out or come in. Pause, safe mode, the debug settings, the app language
+ * waits, the share sheet items to hide and AMOLED's Background color) go out or come in. Pause, safe mode, the debug settings, the app language
  * and the counters Hushfacebook keeps for itself stay out, and so do the log, the diagnostic data
  * and anything about the person or the phone: a file is a format name, a version number, one true
  * or false per switch, two word lists, one top folder, one folder name and two subfolder names,
  * one save quality, one file name template, one download action, one package name or none, one
- * tab, one comment order, three playback qualities, two hours, one lock time and one list of
- * share item types. The word lists go only into the file the
+ * tab, one comment order, three playback qualities, two hours, one lock time, one list of
+ * share item types and one color code or none. The word lists go only into the file the
  * person picks, with the rest. An import applies what it read in one preference commit. A file
  * that is too large, isn't JSON, names something twice, holds a value of the wrong type, a word
  * list that isn't one clean list, word lists past the room they share, a folder or a template
- * that isn't one clean name, an app that isn't a package name, or a top folder, quality, download
+ * that isn't one clean name, an app that isn't a package name, a color the Background color row
+ * refuses, or a top folder, quality, download
  * action, tab, comment order or lock time this build doesn't offer, or comes from a newer version changes
  * nothing.
  * <p>The release check stays out of the file: it puts the phone online, so it's switched on
@@ -89,12 +96,13 @@ import app.morphe.extension.shared.settings.StringSetting;
  */
 public final class SettingsBackup {
     /**
-     * Far more than a settings file needs: one is a few hundred bytes, or about 81 KB at most with
-     * both word lists filling the room they share and the sources list filling its own. The 16 KB
-     * left past the two lists' 72 KB is for every other value, switches and the 2 KB of share sheet
-     * items included, and leaves room for switches to come.
+     * Far more than a settings file needs: one is a few hundred bytes, or about 88 KB at most with
+     * both word lists filling the room they share, the sources list filling its own and every
+     * other value at its longest, switches and the 2 KB of share sheet items included. That leaves
+     * about 8 KB for switches to come. SettingsBackupTest's longest-file check fails once they've
+     * used it; raise this then.
      */
-    public static final int MAX_BYTES = 88 * 1024;
+    public static final int MAX_BYTES = 96 * 1024;
     public static final String FORMAT = "hushfacebook-settings";
     /** The file shape this build writes and the newest it reads. A file declaring more is refused. */
     static final int SCHEMA = 1;
@@ -115,11 +123,16 @@ public final class SettingsBackup {
             Settings.HIDE_SUGGESTED_FOR_YOU,
             Settings.HIDE_PEOPLE_YOU_MAY_KNOW,
             Settings.HIDE_SUGGESTED_GROUPS,
+            Settings.HIDE_GROUP_POSTS_NOT_JOINED,
             Settings.HIDE_STORIES_YOU_MIGHT_LIKE,
             Settings.HIDE_FEED_MEMORIES,
             Settings.HIDE_FEED_FRIEND_REQUESTS,
             Settings.HIDE_FRIENDS_LOCATIONS,
             Settings.HIDE_NOTIFICATION_POST_FOOTER,
+            Settings.HIDE_RELATED_POSTS,
+            Settings.HIDE_FIND_FRIENDS_CARD,
+            Settings.HIDE_SEARCH_FOR_YOU,
+            Settings.HIDE_SEARCH_PEOPLE_YOU_MAY_KNOW,
             Settings.HIDE_TOP_STORIES_TRAY,
             Settings.HIDE_STORIES_BETWEEN_POSTS,
             Settings.HIDE_HOME_COMPOSER,
@@ -139,11 +152,16 @@ public final class SettingsBackup {
             Settings.HIDE_LINK_POSTS,
             Settings.HIDE_BACKGROUND_POSTS,
             Settings.HIDE_REPOSTS,
+            Settings.HIDE_PAGE_POSTS,
             Settings.HIDE_POST_PROMPTS,
             Settings.HIDE_POST_FOLLOW_LINK,
+            Settings.HIDE_POST_COUNTS,
+            Settings.HIDE_POST_REACTIONS,
+            Settings.HIDE_COMMENT_REACTIONS,
             Settings.HIDE_SEEN_POSTS,
             Settings.HIDE_META_AI_QUESTIONS,
             Settings.KEEP_POST_DATES,
+            Settings.SHOW_FULL_POST_TEXT,
             Settings.TURN_OFF_AUTO_TRANSLATION,
             Settings.HIDE_FEEDS_HEADER,
             Settings.HIDE_SPONSORED_STORIES,
@@ -155,9 +173,20 @@ public final class SettingsBackup {
             Settings.VIEW_STORIES_ANONYMOUSLY,
             Settings.MARK_STORIES_SEEN,
             Settings.UPLOAD_STORIES_IN_HD,
+            Settings.LONGER_STORY_MUSIC,
+            Settings.PINCH_TO_ZOOM,
+            Settings.PINCH_TO_ZOOM_KEEP,
+            Settings.PINCH_TO_ZOOM_DOUBLE_TAP,
             Settings.HIDE_SPONSORED_REELS,
             Settings.HIDE_SPONSORED_SEARCH_RESULTS,
             Settings.HIDE_SPONSORED_PROFILE_POSTS,
+            Settings.HIDE_PROFILE_NOTES,
+            Settings.POST_SAVE_BUTTON,
+            Settings.POST_DOWNLOAD_BUTTON,
+            Settings.HIDE_POST_LIKE_BUTTON,
+            Settings.HIDE_POST_COMMENT_BUTTON,
+            Settings.HIDE_POST_SHARE_BUTTON,
+            Settings.HIDE_POST_SEND_BUTTON,
             Settings.HIDE_SPONSORED_MARKETPLACE_LISTINGS,
             Settings.SHOW_SELLER_VIEW_PROFILE,
             Settings.BLOCK_GAME_ADS,
@@ -170,7 +199,20 @@ public final class SettingsBackup {
             Settings.REEL_CLEAN_MODE,
             Settings.PLAY_REELS_ONCE,
             Settings.ORIGINAL_AUDIO,
+            Settings.HIDE_REEL_SEARCH_PILL,
+            Settings.HIDE_REEL_COUNTS,
+            Settings.HIDE_REEL_SAVE_BUTTON,
+            Settings.HIDE_REEL_WHATSAPP_BUTTON,
+            Settings.HIDE_REEL_LIKE_BUTTON,
+            Settings.HIDE_REEL_COMMENT_BUTTON,
+            Settings.HIDE_REEL_SHARE_BUTTON,
+            Settings.HIDE_REEL_SOUND_BUTTON,
+            Settings.HIDE_REEL_AUDIO_LINE,
+            Settings.HIDE_SLOW_CONNECTION_MESSAGE,
+            Settings.FEED_VIDEOS_ALONE,
+            Settings.PLAY_FEED_REELS_WHOLE,
             Settings.DONT_SEND_REEL_WATCH_HISTORY,
+            Settings.NEWEST_REELS_FIRST,
             Settings.HOLD_ANALYTICS_UPLOADS,
             Settings.HOLD_CAMERA_ROLL_PROCESSING,
             Settings.ALLOW_SCREENSHOTS,
@@ -179,37 +221,56 @@ public final class SettingsBackup {
             Settings.HIDE_FREE_MODE_BANNER,
             Settings.TURN_OFF_SCREEN_TRANSITIONS,
             Settings.UNLOCK_APP_ICONS,
+            Settings.USE_APP_ICON_IN_HEADER,
             Settings.BLOCK_SCREENSHOT_DETECTION,
             Settings.HIDE_CHAT_TYPING,
             Settings.HIDE_COMMENT_TYPING,
             Settings.HIDE_READ_RECEIPTS,
             Settings.ORIGINAL_CHAT_MEDIA,
             Settings.TURN_OFF_DOUBLE_TAP_LIKE,
+            Settings.DOUBLE_TAP_SKIP,
+            Settings.TAP_SHOWS_CONTROLS,
+            Settings.DOUBLE_TAP_OPENS_COMMENTS,
+            Settings.LONG_PRESS_OPENS_COMMENTS,
             Settings.KEEP_REEL_SPEED,
             Settings.KEEP_VIDEO_SPEED,
             Settings.SLOWER_REEL_SPEEDS,
             Settings.HOLD_REEL_FOR_2X,
             Settings.HOLD_REEL_RIGHT_EDGE,
+            Settings.HOLD_FEED_VIDEO_FOR_2X,
             Settings.DEFAULT_COMMENT_ORDER,
             Settings.HIDE_META_AI_SUMMARIES,
             Settings.LIKE_ONLY,
             Settings.HIDE_COMMENT_GIF_STICKER_BUTTONS,
             Settings.OPEN_REPLY_THREADS,
             Settings.LOAD_WHOLE_REPLY_THREADS,
+            Settings.TAP_ANYWHERE_ON_VIEW_MORE_REPLIES,
+            Settings.HIDE_POST_COMMENT_PREVIEWS,
+            Settings.HIDE_COMMENT_DOWNVOTE_BUTTON,
             Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS,
             Settings.HIDE_SHOP_LINK_COMMENTS,
             Settings.HIDE_COMMENTS_WITH_WORDS,
+            Settings.HIDE_INCOMING_COMMENT_TYPING,
+            Settings.HIDE_NEW_COMMENTS_PILL,
+            Settings.HIDE_VIDEO_COMMENT_COMPOSER,
+            Settings.OPEN_COMMENTS_FULL_HEIGHT,
+            Settings.PAUSE_REELS_UNDER_COMMENTS,
             Settings.TAG_SUGGESTIONS_ONLY_AFTER_AT,
             Settings.TAP_TO_PLAY,
             Settings.TAP_TO_PLAY_REELS_AFTER_FIRST,
+            Settings.INLINE_FEED_VIDEO_CONTROLS,
+            Settings.FEED_VIDEO_CAST_BUTTON,
             Settings.RESUME_LONG_VIDEOS,
+            Settings.RECENTLY_WATCHED,
             Settings.FRAME_STEP,
             Settings.DEFAULT_PLAYBACK_QUALITY,
             Settings.PICTURE_IN_PICTURE,
             Settings.PICTURE_IN_PICTURE_FROM_MENU,
+            Settings.PICTURE_IN_PICTURE_BUTTON,
             Settings.TURN_OFF_HDR_BRIGHTNESS,
             Settings.PREFER_SDR_RENDITIONS,
             Settings.SKIP_SILENT_PARTS,
+            Settings.KEEP_FEED_VIDEOS_MUTED,
             Settings.KEEP_PROGRESS_BAR,
             Settings.KEEP_PROGRESS_BAR_TIME,
             Settings.TAP_TO_SEEK,
@@ -220,23 +281,33 @@ public final class SettingsBackup {
             Settings.SANITIZE_SHARING_LINKS,
             Settings.SHARE_POST_OWN_LINK,
             Settings.HIDE_SHARE_GROUP_BUTTONS,
+            Settings.HIDE_SHARE_PEOPLE_ROW,
             Settings.STOP_UPDATE_PROMPTS,
             Settings.DOWNLOAD_STORIES,
             Settings.SAVE_STORY_PHOTOS,
             Settings.DOWNLOAD_REELS,
+            Settings.SHOW_REEL_DOWNLOAD_BUTTON,
+            Settings.COPY_REEL_CAPTION,
             Settings.DOWNLOAD_VIDEOS,
             Settings.CLIPBOARD_DOWNLOAD,
             Settings.DOWNLOAD_PHOTOS,
             Settings.POST_MENU_PHOTO_SAVE,
+            Settings.OPEN_IN_ANOTHER_APP,
+            Settings.POST_MENU_DOWNLOAD_FIRST,
             Settings.DOWNLOAD_COMPATIBLE,
+            Settings.DOWNLOAD_CONVERT,
             Settings.DOWNLOAD_QUIET,
             Settings.OPEN_ON_CHOSEN_TAB,
             Settings.FOLLOWING_FEED_HOME,
             Settings.SAVED_SHORTCUT,
             Settings.WATCH_HISTORY_SHORTCUT,
+            Settings.FREE_STUFF_SHORTCUT,
             Settings.SETTINGS_SHORTCUT,
+            Settings.SETTINGS_LOGO_PRESS,
+            Settings.SETTINGS_MENU_ROW,
             Settings.APP_LOCK,
             Settings.SAVE_CRASH_FILE,
+            Settings.CLOSE_WHEN_LEFT,
             Settings.MARKETPLACE_ONLY,
             Settings.EVENTS_ONLY,
             Settings.MARKETPLACE_QUIET_NOTIFICATIONS,
@@ -271,7 +342,14 @@ public final class SettingsBackup {
             Settings.KEEP_TOP_BAR,
             Settings.PHONE_LAYOUT_ON_BIG_SCREENS,
             Settings.TRANSLUCENT_BARS,
+            Settings.HIDE_STATUS_BAR,
+            Settings.HIDE_MESSENGER_BUTTON,
+            Settings.HIDE_MESSENGER_COUNT,
+            Settings.HIDE_FACEBOOK_LOGO,
+            Settings.HIDE_CREATE_BUTTON,
             Settings.FORCE_DARK_MODE,
+            Settings.AMOLED_FLAT_CARDS,
+            Settings.AMOLED_FEED_GAPS,
             Settings.HIDE_REEL_PROMPTS,
             Settings.HIDE_GET_MESSENGER_CARD,
             Settings.HIDE_CHAT_NOTES_TRAY,
@@ -281,6 +359,8 @@ public final class SettingsBackup {
             Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER,
             Settings.HIDE_MENU_UPGRADES,
             Settings.HIDE_MENU_ALSO_FROM_META,
+            Settings.HIDE_MENU_HELP,
+            Settings.KEEP_MENU_SETTINGS_EXPANDED,
             Settings.HIDE_MENU_MUSE,
             Settings.HIDE_MENU_META_AI,
             Settings.HIDE_EDITS_UPSELLS,
@@ -292,6 +372,7 @@ public final class SettingsBackup {
             Settings.HIDE_META_AI_IMAGINE,
             Settings.HIDE_META_AI_POST_BUTTONS,
             Settings.HIDE_META_AI_IN_SEARCH,
+            Settings.DONT_SAVE_SEARCH_HISTORY,
             Settings.BLOCK_TRENDING_VIDEO_NOTIFICATIONS,
             Settings.BLOCK_MEMORY_NOTIFICATIONS,
             Settings.BLOCK_BIRTHDAY_NOTIFICATIONS,
@@ -396,6 +477,30 @@ public final class SettingsBackup {
     static final EnumSetting<FeedsSubtab> HOME_FEED = Settings.HOME_FEED;
 
     /**
+     * AMOLED's Background color, held in a file as its row keeps it: blank, or {@code #RRGGBB} in
+     * capitals. A colour {@link AmoledBackground} refuses, or one written any other way, refuses the
+     * whole file, as a Menu tiles list does.
+     */
+    static final StringSetting BACKGROUND = Settings.AMOLED_BACKGROUND;
+
+    /** AMOLED's Light background color, held and refused the same way, by {@link AmoledLightBackground}'s rule. */
+    static final StringSetting LIGHT_BACKGROUND = Settings.AMOLED_LIGHT_BACKGROUND;
+
+    /**
+     * Badge and logo colors, each held in a file as its row keeps it: blank, or {@code #RRGGBB} in
+     * capitals that {@link MarkColors} takes. Anything else refuses the whole file, as a Background
+     * color does.
+     */
+    static final StringSetting BADGE = Settings.BADGE_COLOR;
+    static final StringSetting LOGO = Settings.LOGO_COLOR;
+
+    /**
+     * Home header text, held in a file as its row keeps it: blank, or one line {@link HeaderText}
+     * leaves as it is. Text written any other way refuses the whole file.
+     */
+    static final StringSetting HEADER_TEXT = Settings.HEADER_TEXT;
+
+    /**
      * The order comment sheets ask for, held in a file as its {@link CommentOrder#fileValue}.
      * Anything else refuses the whole file, as a tab does.
      */
@@ -413,6 +518,12 @@ public final class SettingsBackup {
      */
     static final EnumSetting<SurfaceQuality> REELS_QUALITY = Settings.REELS_PLAYBACK_QUALITY;
     static final EnumSetting<SurfaceQuality> STORIES_QUALITY = Settings.STORIES_PLAYBACK_QUALITY;
+
+    /**
+     * What Sort loaded reels sorts by, held in a file as its {@link ReelsOrder#fileValue}. Anything
+     * else refuses the whole file, as a comment order does.
+     */
+    static final EnumSetting<ReelsOrder> REELS_ORDER = Settings.REELS_ORDER;
 
     /**
      * The hours notification quiet hours start and end, each held in a file as its
@@ -462,11 +573,18 @@ public final class SettingsBackup {
      */
     static final StringSetting SHARE_ITEMS = Settings.HIDDEN_SHARE_ITEMS;
 
+    /**
+     * The Menu tiles to hide, held in a file exactly as their row stores them: the first word of each
+     * tile's deep link, commas between. A key this build doesn't list is carried like any other. A list
+     * {@link MenuTiles#clean} would change refuses the whole file, as a share items list does.
+     */
+    static final StringSetting MENU_TILES = Settings.HIDDEN_MENU_TILES;
+
     /** The settings a file carries that aren't switches, in the order Settings declares them. */
     static final List<Setting<?>> VALUES = Collections.unmodifiableList(
-            Arrays.<Setting<?>>asList(HIDDEN, KEPT, SOURCES, CEILING, SHARE_ITEMS, HOME_FEED, SEEN_KEEP, TO, FOLDER, VIDEO_SUBFOLDER, PHOTO_SUBFOLDER, QUALITY,
+            Arrays.<Setting<?>>asList(HIDDEN, KEPT, SOURCES, CEILING, REELS_ORDER, SHARE_ITEMS, MENU_TILES, HOME_FEED, BACKGROUND, LIGHT_BACKGROUND, HEADER_TEXT, SEEN_KEEP, TO, FOLDER, VIDEO_SUBFOLDER, PHOTO_SUBFOLDER, QUALITY,
                     FILE_NAME, PHOTO_NAME, ACTION, APP, START, SUBTAB, ORDER, PLAYBACK, REELS_QUALITY, STORIES_QUALITY,
-                    QUIET_FROM, QUIET_UNTIL, LOCK_AFTER, TEXT_SIZE, ACCENT));
+                    QUIET_FROM, QUIET_UNTIL, LOCK_AFTER, TEXT_SIZE, ACCENT, BADGE, LOGO));
 
     /** The longest name or value a file holds that isn't a word list, far past a package name. */
     private static final int MAX_OTHER_CHARS = 1024;
@@ -540,7 +658,8 @@ public final class SettingsBackup {
      * What a file says: a value for each switch it names, the folder, the quality, the file name,
      * the start tab, the comment order, the playback quality, the download action, the app links go
      * to, the top folder, the Feeds filter, the two subfolders, the reels and video stories
-     * qualities, the quiet hours and the app lock's time when it names them, and how many other names it holds.
+     * qualities, the quiet hours, the app lock's time and the Background color when it names them, and
+     * how many other names it holds.
      */
     public static final class Snapshot {
         private static final String SWITCHES = "switches";
@@ -571,7 +690,14 @@ public final class SettingsBackup {
         private static final String ACCENT_NAME = "accent_color";
         private static final String CEILING_NAME = "hide_posts_over_reactions";
         private static final String SHARE_ITEMS_NAME = "hidden_share_items";
+        private static final String MENU_TILES_NAME = "hidden_menu_tiles";
         private static final String HOME_FEED_NAME = "home_feed";
+        private static final String BACKGROUND_NAME = "amoled_background";
+        private static final String LIGHT_BACKGROUND_NAME = "amoled_light_background";
+        private static final String BADGE_NAME = "badge_color";
+        private static final String LOGO_NAME = "logo_color";
+        private static final String HEADER_TEXT_NAME = "header_text";
+        private static final String REELS_ORDER_NAME = "reels_order";
 
         /** In {@link #ALLOWLIST} order, and only the switches the file named. */
         final Map<BooleanSetting, Boolean> values;
@@ -653,9 +779,30 @@ public final class SettingsBackup {
         /** The clean list of share sheet items to hide the file holds, or null when it names none. Set once, as it's read. */
         @Nullable
         String shareItems;
+        /** The clean list of Menu tiles to hide the file holds, or null when it names none. Set once, as it's read. */
+        @Nullable
+        String menuTiles;
         /** The feed the file says Home shows, or null when it names none. Set once, as it's read. */
         @Nullable
         FeedsSubtab homeFeed;
+        /** The Background color the file holds, blank or {@code #RRGGBB}, or null when it names none. Set once, as it's read. */
+        @Nullable
+        String background;
+        /** The Light background color the file holds, the same way. */
+        @Nullable
+        String lightBackground;
+        /** The Badge color the file holds, the same way. */
+        @Nullable
+        String badge;
+        /** The Logo color the file holds, the same way. */
+        @Nullable
+        String logo;
+        /** The Home header text the file holds, the same way. */
+        @Nullable
+        String headerText;
+        /** What the file says Sort loaded reels sorts by, or null when it names none. Set once, as it's read. */
+        @Nullable
+        ReelsOrder reelsOrder;
         /** Names the file holds that aren't settings this build knows. They're left out. */
         final int unknown;
 
@@ -867,14 +1014,34 @@ public final class SettingsBackup {
             if (ceilingChange != null) changes.put(CEILING, ceilingChange);
             String shareItemsChange = shareItemsChange();
             if (shareItemsChange != null) changes.put(SHARE_ITEMS, shareItemsChange);
+            String menuTilesChange = menuTilesChange();
+            if (menuTilesChange != null) changes.put(MENU_TILES, menuTilesChange);
             if (seenKeep != null && seenKeep != SEEN_KEEP.savedValue()) changes.put(SEEN_KEEP, seenKeep);
             FeedsSubtab homeFeedChange = homeFeedChange();
             if (homeFeedChange != null) changes.put(HOME_FEED, homeFeedChange);
+            String backgroundChange = backgroundChange();
+            if (backgroundChange != null) changes.put(BACKGROUND, backgroundChange);
+            String lightBackgroundChange = lightBackgroundChange();
+            if (lightBackgroundChange != null) changes.put(LIGHT_BACKGROUND, lightBackgroundChange);
+            String badgeChange = badgeChange();
+            if (badgeChange != null) changes.put(BADGE, badgeChange);
+            String logoChange = logoChange();
+            if (logoChange != null) changes.put(LOGO, logoChange);
+            String headerTextChange = headerTextChange();
+            if (headerTextChange != null) changes.put(HEADER_TEXT, headerTextChange);
+            ReelsOrder reelsOrderChange = reelsOrderChange();
+            if (reelsOrderChange != null) changes.put(REELS_ORDER, reelsOrderChange);
             SendLink.Action actionChange = actionChange();
             if (actionChange != null) changes.put(ACTION, actionChange);
             String appChange = appChange();
             if (appChange != null) changes.put(APP, appChange);
             return changes;
+        }
+
+        private boolean wordListsFit() {
+            return (hidden == null && kept == null) || PostWords.fits(
+                    hidden != null ? hidden : PostWords.clean(HIDDEN.savedValue()),
+                    kept != null ? kept : PostWords.clean(KEPT.savedValue()));
         }
 
         /** How many switches this file changes, the number the preview and the toast give. */
@@ -1057,10 +1224,58 @@ public final class SettingsBackup {
             return shareItems.equals(ShareSheetItems.clean(SHARE_ITEMS.savedValue())) ? null : shareItems;
         }
 
+        /** The Menu tiles to hide this file sets, or null when it names none or the ones already set. */
+        @Nullable
+        String menuTilesChange() {
+            if (menuTiles == null) return null;
+            return menuTiles.equals(MenuTiles.clean(MENU_TILES.savedValue())) ? null : menuTiles;
+        }
+
+        /** The Background color this file sets, or null when it names none or the one already set. */
+        @Nullable
+        String backgroundChange() {
+            if (background == null) return null;
+            return background.equals(BACKGROUND.savedValue()) ? null : background;
+        }
+
+        /** The Light background color this file sets, or null when it names none or the one already set. */
+        @Nullable
+        String lightBackgroundChange() {
+            if (lightBackground == null) return null;
+            return lightBackground.equals(LIGHT_BACKGROUND.savedValue()) ? null : lightBackground;
+        }
+
+        /** The Badge color this file sets, or null when it names none or the one already set. */
+        @Nullable
+        String badgeChange() {
+            if (badge == null) return null;
+            return badge.equals(BADGE.savedValue()) ? null : badge;
+        }
+
+        /** The Logo color this file sets, or null when it names none or the one already set. */
+        @Nullable
+        String logoChange() {
+            if (logo == null) return null;
+            return logo.equals(LOGO.savedValue()) ? null : logo;
+        }
+
+        /** The Home header text this file sets, or null when it names none or the one already set. */
+        @Nullable
+        String headerTextChange() {
+            if (headerText == null) return null;
+            return headerText.equals(HEADER_TEXT.savedValue()) ? null : headerText;
+        }
+
         /** The feed Home shows after this file, or null when it names none or the one already set. */
         @Nullable
         FeedsSubtab homeFeedChange() {
             return homeFeed == null || homeFeed == HOME_FEED.savedValue() ? null : homeFeed;
+        }
+
+        /** What Sort loaded reels sorts by after this file, or null when it names none or the one already set. */
+        @Nullable
+        ReelsOrder reelsOrderChange() {
+            return reelsOrder == null || reelsOrder == REELS_ORDER.savedValue() ? null : reelsOrder;
         }
 
         @Nullable
@@ -1103,7 +1318,14 @@ public final class SettingsBackup {
             if (ceiling != null) state.putString(CEILING_NAME, ceiling.fileValue);
             if (seenKeep != null) state.putString(SEEN_KEEP_NAME, seenKeep.fileValue);
             if (shareItems != null) state.putString(SHARE_ITEMS_NAME, shareItems);
+            if (menuTiles != null) state.putString(MENU_TILES_NAME, menuTiles);
             if (homeFeed != null) state.putString(HOME_FEED_NAME, homeFeed.fileValue);
+            if (background != null) state.putString(BACKGROUND_NAME, background);
+            if (lightBackground != null) state.putString(LIGHT_BACKGROUND_NAME, lightBackground);
+            if (badge != null) state.putString(BADGE_NAME, badge);
+            if (logo != null) state.putString(LOGO_NAME, logo);
+            if (headerText != null) state.putString(HEADER_TEXT_NAME, headerText);
+            if (reelsOrder != null) state.putString(REELS_ORDER_NAME, reelsOrder.fileValue);
             state.putInt(UNKNOWN, unknown);
             return state;
         }
@@ -1160,7 +1382,23 @@ public final class SettingsBackup {
             Object shareItems = state.get(SHARE_ITEMS_NAME);
             read.shareItems = shareItems instanceof String && ShareSheetItems.isClean((String) shareItems)
                     ? (String) shareItems : null;
+            Object menuTiles = state.get(MENU_TILES_NAME);
+            read.menuTiles = menuTiles instanceof String && MenuTiles.isClean((String) menuTiles)
+                    ? (String) menuTiles : null;
             read.homeFeed = FeedsSubtab.fromFile(state.get(HOME_FEED_NAME));
+            read.reelsOrder = ReelsOrder.fromFile(state.get(REELS_ORDER_NAME));
+            Object background = state.get(BACKGROUND_NAME);
+            read.background = isBackground(background) ? (String) background : null;
+            Object lightBackground = state.get(LIGHT_BACKGROUND_NAME);
+            read.lightBackground = isLightBackground(lightBackground) ? (String) lightBackground : null;
+            Object badge = state.get(BADGE_NAME);
+            read.badge = isMarkColor(badge) ? (String) badge : null;
+            Object logo = state.get(LOGO_NAME);
+            read.logo = isMarkColor(logo) ? (String) logo : null;
+            Object headerText = state.get(HEADER_TEXT_NAME);
+            read.headerText = HeaderText.isClean(headerText instanceof String ? (String) headerText : null)
+                    ? (String) headerText : null;
+            if (read.hidden != null && read.kept != null && !read.wordListsFit()) return null;
             return read;
         }
     }
@@ -1211,6 +1449,7 @@ public final class SettingsBackup {
             switches.put(PLAYBACK.key, of(PLAYBACK).fileValue);
             switches.put(REELS_QUALITY.key, of(REELS_QUALITY).fileValue);
             switches.put(STORIES_QUALITY.key, of(STORIES_QUALITY).fileValue);
+            switches.put(REELS_ORDER.key, of(REELS_ORDER).fileValue);
             switches.put(QUIET_FROM.key, of(QUIET_FROM).fileValue());
             switches.put(QUIET_UNTIL.key, of(QUIET_UNTIL).fileValue());
             switches.put(LOCK_AFTER.key, of(LOCK_AFTER).fileValue);
@@ -1226,6 +1465,17 @@ public final class SettingsBackup {
             switches.put(KEPT.key, PostWords.clean(of(KEPT)));
             switches.put(SOURCES.key, PostSources.clean(of(SOURCES)));
             switches.put(SHARE_ITEMS.key, ShareSheetItems.clean(of(SHARE_ITEMS)));
+            switches.put(MENU_TILES.key, MenuTiles.clean(of(MENU_TILES)));
+            // The colour as the row keeps it, so a file never carries one an import would refuse.
+            String background = AmoledBackground.stored(of(BACKGROUND));
+            switches.put(BACKGROUND.key, background == null ? "" : background);
+            String lightBackground = AmoledLightBackground.stored(of(LIGHT_BACKGROUND));
+            switches.put(LIGHT_BACKGROUND.key, lightBackground == null ? "" : lightBackground);
+            String badge = MarkColors.stored(of(BADGE));
+            switches.put(BADGE.key, badge == null ? "" : badge);
+            String logo = MarkColors.stored(of(LOGO));
+            switches.put(LOGO.key, logo == null ? "" : logo);
+            switches.put(HEADER_TEXT.key, HeaderText.clean(of(HEADER_TEXT)));
             return new JSONObject()
                     .put(FORMAT_NAME, FORMAT)
                     .put(SCHEMA_NAME, SCHEMA)
@@ -1348,7 +1598,14 @@ public final class SettingsBackup {
         AccentColor.Preset accent = null;
         ReactionCeiling ceiling = null;
         String shareItems = null;
+        String menuTiles = null;
         FeedsSubtab homeFeed = null;
+        String background = null;
+        String lightBackground = null;
+        String badge = null;
+        String logo = null;
+        String headerText = null;
+        ReelsOrder reelsOrder = null;
         JSONObject values = (JSONObject) settings;
         for (Iterator<String> names = values.keys(); names.hasNext(); ) {
             String name = names.next();
@@ -1418,6 +1675,33 @@ public final class SettingsBackup {
                 if (homeFeed == null) throw new Rejected(Reason.VALUE, "Not a Home feed: " + name);
                 continue;
             }
+            if (BACKGROUND.key.equals(name)) {
+                Object value = values.opt(name);
+                if (!isBackground(value)) throw new Rejected(Reason.VALUE, "Not a Background color: " + name);
+                background = (String) value;
+                continue;
+            }
+            if (LIGHT_BACKGROUND.key.equals(name)) {
+                Object value = values.opt(name);
+                if (!isLightBackground(value)) throw new Rejected(Reason.VALUE, "Not a Light background color: " + name);
+                lightBackground = (String) value;
+                continue;
+            }
+            if (BADGE.key.equals(name) || LOGO.key.equals(name)) {
+                Object value = values.opt(name);
+                if (!isMarkColor(value)) throw new Rejected(Reason.VALUE, "Not a color code: " + name);
+                if (BADGE.key.equals(name)) badge = (String) value;
+                else logo = (String) value;
+                continue;
+            }
+            if (HEADER_TEXT.key.equals(name)) {
+                Object value = values.opt(name);
+                if (!(value instanceof String) || !HeaderText.isClean((String) value)) {
+                    throw new Rejected(Reason.VALUE, "Not a Home header text: " + name);
+                }
+                headerText = (String) value;
+                continue;
+            }
             if (ORDER.key.equals(name)) {
                 order = CommentOrder.fromFile(values.opt(name));
                 if (order == null) throw new Rejected(Reason.VALUE, "Not a comment order: " + name);
@@ -1433,6 +1717,11 @@ public final class SettingsBackup {
                 if (choice == null) throw new Rejected(Reason.VALUE, "Not a playback quality: " + name);
                 if (REELS_QUALITY.key.equals(name)) reelsQuality = choice;
                 else storiesQuality = choice;
+                continue;
+            }
+            if (REELS_ORDER.key.equals(name)) {
+                reelsOrder = ReelsOrder.fromFile(values.opt(name));
+                if (reelsOrder == null) throw new Rejected(Reason.VALUE, "Not a reels order: " + name);
                 continue;
             }
             if (QUIET_FROM.key.equals(name) || QUIET_UNTIL.key.equals(name)) {
@@ -1513,6 +1802,14 @@ public final class SettingsBackup {
                 shareItems = (String) value;
                 continue;
             }
+            if (MENU_TILES.key.equals(name)) {
+                Object value = values.opt(name);
+                if (!(value instanceof String) || !MenuTiles.isClean((String) value)) {
+                    throw new Rejected(Reason.VALUE, "Not one clean list of Menu tiles: " + name);
+                }
+                menuTiles = (String) value;
+                continue;
+            }
             BooleanSetting setting = known.get(name);
             if (setting == null) {
                 // A name this build doesn't know, Pause and the debug settings included: left
@@ -1548,8 +1845,30 @@ public final class SettingsBackup {
                 quietUntil, lockAfter, textSize, accent, ceiling, unknown);
         read.seenKeep = seenKeep;
         read.shareItems = shareItems;
+        read.menuTiles = menuTiles;
         read.homeFeed = homeFeed;
+        read.background = background;
+        read.lightBackground = lightBackground;
+        read.badge = badge;
+        read.logo = logo;
+        read.headerText = headerText;
+        read.reelsOrder = reelsOrder;
         return read;
+    }
+
+    /** A Background color as the row keeps it: blank, or {@code #RRGGBB} in capitals that {@link AmoledBackground} takes. */
+    static boolean isBackground(@Nullable Object value) {
+        return value instanceof String && value.equals(AmoledBackground.stored((String) value));
+    }
+
+    /** A Light background color as its row keeps it, which {@link AmoledLightBackground} takes. */
+    static boolean isLightBackground(@Nullable Object value) {
+        return value instanceof String && value.equals(AmoledLightBackground.stored((String) value));
+    }
+
+    /** A Badge or Logo color as its row keeps it, which {@link MarkColors} takes. */
+    static boolean isMarkColor(@Nullable Object value) {
+        return value instanceof String && value.equals(MarkColors.stored((String) value));
     }
 
     /**
@@ -1562,17 +1881,21 @@ public final class SettingsBackup {
      *                     worked for every one of them.
      */
     static int apply(Snapshot snapshot) throws ApplyFailed {
-        Map<Setting<?>, Object> changes = snapshot.changes();
-        if (changes.isEmpty()) return 0;
-        try {
-            StoriesSetting.finishMigration();
-            Setting.saveAll(changes);
-            return changes.size();
-        } catch (Setting.BatchFailed failed) {
-            throw new ApplyFailed(failed.restored, failed);
-        } catch (IOException | RuntimeException refused) {
-            // Refused before anything was written.
-            throw new ApplyFailed(true, refused);
+        synchronized (Setting.class) {
+            try {
+                // A preview can outlive an edit to the list its partial file leaves in place.
+                if (!snapshot.wordListsFit()) throw new IOException("Word lists past their shared room");
+                Map<Setting<?>, Object> changes = snapshot.changes();
+                if (changes.isEmpty()) return 0;
+                StoriesSetting.finishMigration();
+                Setting.saveAll(changes);
+                return changes.size();
+            } catch (Setting.BatchFailed failed) {
+                throw new ApplyFailed(failed.restored, failed);
+            } catch (IOException | RuntimeException refused) {
+                // Refused before anything was written.
+                throw new ApplyFailed(true, refused);
+            }
         }
     }
 }

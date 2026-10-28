@@ -8,6 +8,7 @@ import app.morphe.patcher.patch.BytecodePatch
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.Patch
 import app.morphe.patcher.patch.ResourcePatchContext
+import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcodes
 import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -151,7 +152,7 @@ class ControlLifecycleTest {
             "${selection.name}: chat list route")
         // Every run records the build it started from, which the manifest's own mapping names here.
         val build = host.methods.single { it.hookId() == ORIGINAL_BUILD }
-        assertEquals("583.0.0.29.95|$LIFECYCLE_VERSION_CODE|$LIFECYCLE_VERSION_CODE",
+        assertEquals("584.1.0.61.98|$LIFECYCLE_VERSION_CODE|$LIFECYCLE_VERSION_CODE",
             ((build.implementation!!.instructions.first() as ReferenceInstruction).reference as StringReference).string,
             "${selection.name}: original build")
         val factory = classes.single { it.type == FACTORY_TYPE }
@@ -161,6 +162,12 @@ class ControlLifecycleTest {
         )) assertEquals(1, factory.methods.single { it.hookId() == method }.implementation!!.instructions.count {
             (it as? ReferenceInstruction)?.reference.toString() == call
         }, "${selection.name}: single $call injection")
+        // Messenger's shortcut writes now call these, so each is a static HostScreens method of exactly that shape, and none
+        // is left going straight to Android.
+        for (helper in SHORTCUT_WRITES.values) assertEquals(1, host.methods.count {
+            it.hookId() == helper && AccessFlags.STATIC.isSet(it.accessFlags)
+        }, "${selection.name}: $helper")
+        assertEquals(emptyMap(), shortcutWriters(classes), "${selection.name}: direct shortcut writes")
         val settings = classes.single { it.type == SETTINGS }
         assertEquals(1, settings.methods.count { it.hookId() == LEGACY_SECTION }, selection.name)
         assertEquals(1, settings.directMethods.count { it.hookId() == LEGACY_SECTION }, selection.name)

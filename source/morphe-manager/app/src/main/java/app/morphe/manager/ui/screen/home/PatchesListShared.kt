@@ -7,11 +7,9 @@ package app.morphe.manager.ui.screen.home
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -33,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.patcher.patch.PatchInfo
 import app.morphe.manager.ui.screen.shared.*
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 import org.koin.compose.koinInject
 
 /**
@@ -68,7 +68,7 @@ internal data class PatchGroup<T>(
     val key: String,
     val title: String?,
     val items: List<T>,
-    val icon: ImageVector = Icons.Outlined.Category,
+    val icon: ImageVector = MaterialSymbols.Rounded.Category,
     /** Enabled patches, the ones a folded block would otherwise hide. */
     val selectedCount: Int = 0,
     val defaultExpanded: Boolean = true
@@ -128,7 +128,7 @@ internal fun <T> buildPatchGroups(
                     key = UNIVERSAL_GROUP_KEY,
                     title = options.universalTitle,
                     items = universal,
-                    icon = Icons.Outlined.Public,
+                    icon = MaterialSymbols.Rounded.Public,
                     selectedCount = universal.count(isEnabled),
                     defaultExpanded = false
                 )
@@ -186,6 +186,7 @@ internal fun <T> rememberPatchGroups(
  *
  * @param leading Drawn in place of [icon], for a block that stands for an app or a source.
  * @param badges What the whole block shares, such as the app versions, under the title.
+ * @param shape Its place among the rows of the block it heads, see [ListSegment].
  */
 @Composable
 internal fun PatchGroupHeader(
@@ -194,7 +195,8 @@ internal fun PatchGroupHeader(
     isExpanded: Boolean,
     onToggle: (() -> Unit)?,
     modifier: Modifier = Modifier,
-    icon: ImageVector = Icons.Outlined.Category,
+    shape: CornerBasedShape? = null,
+    icon: ImageVector = MaterialSymbols.Rounded.Category,
     leading: (@Composable () -> Unit)? = null,
     accentColor: Color? = null,
     selectedCount: Int = 0,
@@ -233,11 +235,11 @@ internal fun PatchGroupHeader(
                     )
                     StatusBadge(
                         text = shownSelectedCount.toString(),
-                        icon = Icons.Outlined.Check,
+                        icon = MaterialSymbols.Rounded.Check,
                         tone = SemanticTone.Primary,
                         // The bare number is meaningless read out, and the row merges its children
                         modifier = Modifier
-                            .padding(end = Defaults.ContentPaddingSmall)
+                            .padding(end = Defaults.SpaceSmall)
                             .clearAndSetSemantics { contentDescription = selectedLabel }
                     )
                 }
@@ -254,14 +256,14 @@ internal fun PatchGroupHeader(
                 }
             }
         },
-        cornerRadius = Defaults.SettingsCornerRadius,
+        shape = shape,
         color = appAccentCardFill(accentColor),
         borderColor = accentColor?.let { appAccentBorder(it) },
         below = badges?.let { content ->
             {
                 FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
-                    verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
+                    horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
+                    verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
                     content = content
                 )
             }
@@ -271,13 +273,32 @@ internal fun PatchGroupHeader(
 }
 
 /**
- * Rows of one patch list, block by block, each behind a collapsible header of its own.
+ * Header gathering every group of [patchGroupRows] into one block, such as the app a section of
+ * a longer list is for. [content] draws it in the place it is handed, and a [folded] one stands alone.
+ */
+internal class PatchBlockHead(
+    val key: Any,
+    val folded: Boolean,
+    val content: @Composable LazyItemScope.(ListSegment) -> Unit
+)
+
+/** One row of a block as [patchGroupRows] lays it out. */
+private sealed interface PatchBlockRow<out T> {
+    data object Head : PatchBlockRow<Nothing>
+    class GroupHeader<T>(val group: PatchGroup<T>, val expanded: Boolean) : PatchBlockRow<T>
+    class Patch<T>(val item: T) : PatchBlockRow<T>
+}
+
+/**
+ * Rows of one patch list, block by block, as Material's segmented lists stand rows together. A
+ * [head] gathers every group under it into one block, the groups' own headers then running on
+ * as its middle rows. Without one, each group is a block of its own under its header.
  *
  * There is nothing worth folding away when the list is a single block, and a filter already
  * narrows it far enough that a fold would only hide results, so both keep every block open.
  *
- * [row] draws one patch and stays with the caller, since the lists differ in what a row carries
- * and in what it can be toggled into.
+ * [row] draws one patch in the [ListSegment] it is handed and stays with the caller, since the
+ * lists differ in what a row carries and in what it can be toggled into.
  *
  * [folds] is a plain snapshot rather than the state holder itself: this builder runs while the
  * lazy list assembles its items, so a fold has to reach it as a value the screen already read.
@@ -290,33 +311,50 @@ internal fun <T> LazyListScope.patchGroupRows(
     folds: PatchFolds,
     onToggle: (PatchGroup<T>) -> Unit,
     accentColor: Color? = null,
-    row: @Composable LazyItemScope.(T) -> Unit
+    head: PatchBlockHead? = null,
+    row: @Composable LazyItemScope.(T, ListSegment) -> Unit
 ) {
     val alwaysOpen = isFiltering || groups.size == 1
-
-    groups.forEach { group ->
-        if (group.title == null) {
-            items(group.items, key = key, itemContent = row)
-            return@forEach
+    val groupRows = { group: PatchGroup<T> ->
+        val expanded = group.title == null || alwaysOpen || folds.isExpanded(sectionKey, group)
+        buildList {
+            if (group.title != null) add(PatchBlockRow.GroupHeader(group, expanded))
+            if (expanded) group.items.forEach { add(PatchBlockRow.Patch(it)) }
         }
+    }
+    val blocks = when {
+        head == null -> groups.map(groupRows)
+        head.folded -> listOf(listOf(PatchBlockRow.Head))
+        else -> listOf(listOf(PatchBlockRow.Head) + groups.flatMap(groupRows))
+    }
 
-        val isExpanded = alwaysOpen || folds.isExpanded(sectionKey, group)
+    blocks.forEach { block ->
+        block.forEachIndexed { index, blockRow ->
+            val segment = ListSegment.of(index, block.size)
+            when (blockRow) {
+                PatchBlockRow.Head -> if (head != null) item(key = head.key) { head.content(this, segment) }
 
-        item(key = "group_${sectionKey}_${group.key}") {
-            PatchGroupHeader(
-                title = group.title,
-                count = group.items.size,
-                isExpanded = isExpanded,
-                onToggle = if (alwaysOpen) null else ({ onToggle(group) }),
-                icon = group.icon,
-                // Universal patches are for no app in particular, so they do not wear its color
-                accentColor = accentColor.takeUnless { group.key == UNIVERSAL_GROUP_KEY },
-                selectedCount = group.selectedCount,
-                modifier = Modifier.animatedListItem(this)
-            )
+                is PatchBlockRow.GroupHeader -> item(key = "group_${sectionKey}_${blockRow.group.key}") {
+                    val group = blockRow.group
+                    PatchGroupHeader(
+                        title = group.title.orEmpty(),
+                        count = group.items.size,
+                        isExpanded = blockRow.expanded,
+                        onToggle = if (alwaysOpen) null else ({ onToggle(group) }),
+                        icon = group.icon,
+                        // Universal patches are for no app in particular, so they do not wear its color
+                        accentColor = accentColor.takeUnless { group.key == UNIVERSAL_GROUP_KEY },
+                        selectedCount = group.selectedCount,
+                        shape = segment.shape,
+                        modifier = Modifier
+                            .animatedListItem(this)
+                            .endsBlock(segment.endsBlock)
+                    )
+                }
+
+                is PatchBlockRow.Patch -> item(key = key(blockRow.item)) { row(blockRow.item, segment) }
+            }
         }
-
-        if (isExpanded) items(group.items, key = key, itemContent = row)
     }
 }
 
@@ -350,7 +388,7 @@ internal fun PatchCardText(
 internal fun PatchesListEmptyState(modifier: Modifier = Modifier) {
     EmptyState(
         message = stringResource(R.string.expert_mode_no_results),
-        icon = Icons.Outlined.SearchOff,
+        icon = MaterialSymbols.Rounded.Search_off,
         modifier = modifier
     )
 }

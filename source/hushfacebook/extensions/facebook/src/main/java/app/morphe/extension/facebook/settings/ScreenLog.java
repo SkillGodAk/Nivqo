@@ -12,6 +12,8 @@ import android.os.SystemClock;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +31,9 @@ import app.morphe.extension.shared.settings.preference.LogBufferManager;
  * <p>Each line keeps the screen's class, the intent's action, and a Meta link's host and path; any
  * other link is written as an outside link and nothing more. A link's query, fragment and user part
  * are never kept, and the report's redaction runs over every line as it does over every section.
- * With Debug logging off nothing is recorded.
+ * When Facebook's module download screen closes, its line also says which modules it was fetching,
+ * the error it kept, and what its downloader did ({@link ModuleDownloadEvidence}). With Debug
+ * logging off nothing is recorded.
  */
 final class ScreenLog {
     /** The screens kept, oldest dropped first. */
@@ -72,6 +76,54 @@ final class ScreenLog {
         } catch (Throwable ignored) {
             // A screen that can't be described is left out rather than holding Facebook's resume up.
         }
+    }
+
+    /** Facebook's screen that downloads an app module, such as a game, before opening it. */
+    static final String MODULE_DOWNLOAD = "com.facebook.voltron.ui.impl.AppModuleDownloadActivity2";
+
+    /** The most of the screen's error text kept, enough for the exception and its message. */
+    static final int ERROR_LIMIT = 400;
+
+    /**
+     * Called as each Facebook screen pauses, on the main thread. Never throws. When the module
+     * download screen is closing, writes what it was fetching and the error it kept: in #168 a
+     * game's download screen closed a tenth of a second after it opened, and the report couldn't
+     * say why.
+     */
+    static void paused(Activity activity) {
+        try {
+            if (!activity.isFinishing() || !MODULE_DOWNLOAD.equals(activity.getClass().getName())) return;
+            if (!Utils.settingsReady() || !BaseSettings.DEBUG.get()) return;
+            add(SystemClock.elapsedRealtime(), moduleDownload(activity));
+        } catch (Throwable ignored) {
+            // A screen that can't be read is left out rather than holding Facebook's pause up.
+        }
+    }
+
+    /**
+     * What the module download screen held as it closed: the module names in its String[] fields
+     * and the text in its String fields, where a failed download leaves its exception. Read by
+     * type, since the fields' names change with every Facebook build.
+     */
+    static String moduleDownload(Object screen) throws IllegalAccessException {
+        List<String> modules = new ArrayList<>();
+        List<String> texts = new ArrayList<>();
+        for (Field field : screen.getClass().getDeclaredFields()) {
+            if (Modifier.isStatic(field.getModifiers())) continue;
+            if (field.getType() != String.class && field.getType() != String[].class) continue;
+            field.setAccessible(true);
+            Object value = field.get(screen);
+            if (value instanceof String) {
+                if (!((String) value).isEmpty()) texts.add((String) value);
+            } else if (value != null) {
+                for (String name : (String[]) value) if (name != null && !name.isEmpty()) modules.add(name);
+            }
+        }
+        String error = String.join(" | ", texts);
+        if (error.length() > ERROR_LIMIT) error = error.substring(0, ERROR_LIMIT) + "...";
+        return "module download closed" + (modules.isEmpty() ? ", modules unknown" : " for " + String.join(", ", modules))
+                + (error.isEmpty() ? ", no error kept" : ", error: " + error)
+                + ModuleDownloadEvidence.forScreen(modules, SystemClock.elapsedRealtime());
     }
 
     static void add(long at, String line) {
@@ -157,5 +209,6 @@ final class ScreenLog {
         }
         lastScreen = null;
         lastIntent = null;
+        ModuleDownloadEvidence.clearForTests();
     }
 }

@@ -6,6 +6,13 @@
         <item quantity="many">%s modyfikacji</item>
         <item quantity="other">%s modyfikacji</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s biblioteka</item>
+        <item quantity="few">%s biblioteki</item>
+        <item quantity="many">%s bibliotek</item>
+        <item quantity="other">%s bibliotek</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s opcja modyfikacji</item>
         <item quantity="few">%s opcje modyfikacji</item>
@@ -38,6 +45,12 @@
         <item quantity="few">Źródła modyfikacji dla %s aplikacji</item>
         <item quantity="many">Źródła modyfikacji dla %s aplikacji</item>
         <item quantity="other">Źródła modyfikacji dla %s aplikacji</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s źródło jest ukryte dla tej aplikacji. Wybierz aplikację w zakładce Aplikacje i otwórz Źródła modyfikacji, aby je przywrócić</item>
+        <item quantity="few">%s źródła są ukryte dla tej aplikacji. Wybierz aplikację w zakładce Aplikacje i otwórz Źródła modyfikacji, aby je przywrócić</item>
+        <item quantity="many">%s źródeł jest ukrytych dla tej aplikacji. Wybierz aplikację w zakładce Aplikacje i otwórz Źródła modyfikacji, aby je przywrócić</item>
+        <item quantity="other">%s źródeł jest ukrytych dla tej aplikacji. Wybierz aplikację w zakładce Aplikacje i otwórz Źródła modyfikacji, aby je przywrócić</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">Ukryto %s źródło. Dotknij, aby pokazać</item>
@@ -81,6 +94,12 @@
         <item quantity="many">Zainstalowano %s aplikacji</item>
         <item quantity="other">Zainstalowano %s aplikacji</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Zamontowano %s aplikację</item>
+        <item quantity="few">Zamontowano %s aplikacje</item>
+        <item quantity="many">Zamontowano %s aplikacji</item>
+        <item quantity="other">Zamontowano %s aplikacji</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Ponownie zainstalowano %s aplikację</item>
         <item quantity="few">Ponownie zainstalowano %s aplikacje</item>
@@ -104,6 +123,18 @@
         <item quantity="few">%s aplikacje gotowe do modyfikacji</item>
         <item quantity="many">%s aplikacji gotowych do modyfikacji</item>
         <item quantity="other">%s aplikacji gotowych do modyfikacji</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s aplikacja w kolejce do zmodyfikowania</item>
+        <item quantity="few">%s aplikacje w kolejce do zmodyfikowania</item>
+        <item quantity="many">%s aplikacji w kolejce do zmodyfikowania</item>
+        <item quantity="other">%s aplikacji w kolejce do zmodyfikowania</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s ukryte powiadomienie, dotknij, aby je pokazać</item>
+        <item quantity="few">%s ukryte powiadomienia, dotknij, aby je pokazać</item>
+        <item quantity="many">%s ukrytych powiadomień, dotknij, aby je pokazać</item>
+        <item quantity="other">%s ukrytych powiadomień, dotknij, aby je pokazać</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s aplikacja może zostać ponownie zmodyfikowana</item>
@@ -129,11 +160,23 @@
         <item quantity="many">%s zainstalowanych źródeł</item>
         <item quantity="other">%s zainstalowanych źródeł</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s odfiltrowana</item>
-        <item quantity="few">%1$s · %2$s odfiltrowane</item>
-        <item quantity="many">%1$s · %2$s odfiltrowanych</item>
-        <item quantity="other">%1$s · %2$s odfiltrowanych</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">Ukryto %s aplikację</item>
+        <item quantity="few">Ukryto %s aplikacje</item>
+        <item quantity="many">Ukryto %s aplikacji</item>
+        <item quantity="other">Ukryto %s aplikacji</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">Wyświetlono %s aplikację</item>
+        <item quantity="few">Wyświetlono %s aplikacje</item>
+        <item quantity="many">Wyświetlono %s aplikacji</item>
+        <item quantity="other">Wyświetlono %s aplikacji</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Odkryć %s aplikację?</item>
+        <item quantity="few">Odkryć %s aplikacje?</item>
+        <item quantity="many">Odkryć %s aplikacji?</item>
+        <item quantity="other">Odkryć %s aplikacji?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s ukryta aplikacja</item>
@@ -188,6 +231,13 @@
         <item quantity="few">%s zmiany</item>
         <item quantity="many">%s zmian</item>
         <item quantity="other">%s zmian</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d nowa</item>
+        <item quantity="few">%1$s · %2$d nowe</item>
+        <item quantity="many">%1$s · %2$d nowych</item>
+        <item quantity="other">%1$s · %2$d nowych</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s nowe wydanie</item>

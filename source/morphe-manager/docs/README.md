@@ -19,7 +19,7 @@ Step-by-step guides for using Morphe. If you are new here, start with the first 
 - **[Managing patch sources](patch-sources.md)** - adding remote and local sources, and what
   the toggles on a source card do.
 - **[How patching works and how to tune it](patching-process.md)** - the steps of a run, the
-  process runtime and memory limit, and what to do when patching fails.
+  patcher runtime, and what to do when patching fails.
 
 ## 🎨 Customization
 

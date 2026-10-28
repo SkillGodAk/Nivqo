@@ -43,10 +43,12 @@ import java.util.Set;
 
 import app.morphe.extension.facebook.coexist.FamilySignatureTrust;
 import app.morphe.extension.facebook.comments.CommentOrder;
+import app.morphe.extension.facebook.reels.ReelsOrder;
 import app.morphe.extension.facebook.download.DownloadQuality;
 import app.morphe.extension.facebook.download.FileNameTemplate;
 import app.morphe.extension.facebook.download.SaveControl;
 import app.morphe.extension.facebook.download.SaveFolder;
+import app.morphe.extension.facebook.download.SaveStorage;
 import app.morphe.extension.facebook.download.SaveTo;
 import app.morphe.extension.facebook.download.SendLink;
 import app.morphe.extension.facebook.feed.PostSources;
@@ -57,9 +59,15 @@ import app.morphe.extension.facebook.feed.SeenPosts;
 import app.morphe.extension.facebook.media.PlaybackQuality;
 import app.morphe.extension.facebook.media.SurfaceQuality;
 import app.morphe.extension.facebook.misc.AppLock;
+import app.morphe.extension.facebook.misc.HeaderText;
+import app.morphe.extension.facebook.menu.MenuTiles;
 import app.morphe.extension.facebook.misc.ShareSheetItems;
 import app.morphe.extension.facebook.misc.TextSize;
 import app.morphe.extension.facebook.theme.AccentColor;
+import app.morphe.extension.facebook.theme.AmoledBackground;
+import app.morphe.extension.facebook.theme.AmoledLightBackground;
+import app.morphe.extension.facebook.theme.AmoledTheme;
+import app.morphe.extension.facebook.theme.MarkColors;
 import app.morphe.extension.facebook.navigation.HiddenTabs;
 import app.morphe.extension.facebook.navigation.FeedsSubtab;
 import app.morphe.extension.facebook.navigation.StartTab;
@@ -68,11 +76,16 @@ import app.morphe.extension.facebook.notifications.QuietHour;
 import app.morphe.extension.facebook.settings.SettingsRows.Heading;
 import app.morphe.extension.facebook.settings.SettingsRows.Row;
 import app.morphe.extension.facebook.settings.SettingsRows.SaveRow;
+import app.morphe.extension.facebook.settings.SettingsRows.Subheading;
 import app.morphe.extension.facebook.settings.SettingsRows.Toggle;
 import app.morphe.extension.facebook.settings.ValueRows.CommentOrderRow;
+import app.morphe.extension.facebook.settings.ValueRows.ReelsOrderRow;
 import app.morphe.extension.facebook.settings.ValueRows.LockAfterRow;
 import app.morphe.extension.facebook.settings.ValueRows.SeenKeepRow;
 import app.morphe.extension.facebook.settings.ValueRows.AccentRow;
+import app.morphe.extension.facebook.settings.ValueRows.BackgroundRow;
+import app.morphe.extension.facebook.settings.ValueRows.HeaderTextRow;
+import app.morphe.extension.facebook.settings.ValueRows.MarkColorRow;
 import app.morphe.extension.facebook.settings.ValueRows.ReactionCeilingRow;
 import app.morphe.extension.facebook.settings.ValueRows.TextSizeRow;
 import app.morphe.extension.facebook.settings.ValueRows.DownloadActionRow;
@@ -84,6 +97,7 @@ import app.morphe.extension.facebook.settings.ValueRows.HomeFeedRow;
 import app.morphe.extension.facebook.settings.ValueRows.PlaybackQualityRow;
 import app.morphe.extension.facebook.settings.ValueRows.QuietHourRow;
 import app.morphe.extension.facebook.settings.ValueRows.QualityRow;
+import app.morphe.extension.facebook.settings.ValueRows.SaveStorageRow;
 import app.morphe.extension.facebook.settings.ValueRows.SaveToRow;
 import app.morphe.extension.facebook.settings.ValueRows.SendAppRow;
 import app.morphe.extension.facebook.settings.ValueRows.StartTabRow;
@@ -173,6 +187,9 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     @Nullable
     SettingsNavigation navigation;
 
+    /** The entry rows' last-way guard, reapplied after the shared page refreshes availability. */
+    @Nullable Runnable refreshWaysIn;
+
     /** The Downloads section, where the running saves are listed, or null when no download patch is in. */
     @Nullable
     private PreferenceCategory downloads;
@@ -198,6 +215,9 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     void showRequestedSetting() {
         String key = SettingsEntry.takeRequestedSetting();
         Preference target = key == null ? null : findPreference(key);
+        // The tab bar switches have no rows of their own: each pair is one choice row.
+        TabBarChoices.Pair pair = TabBarChoices.Pair.forKey(key);
+        if (target == null && pair != null) target = findPreference(pair.rowKey);
         if (target != null) jumpTo(target);
     }
 
@@ -218,7 +238,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             // before it got that far kept an earlier screen's colours, or none, and a light Material
             // You error page drew its dark message on black.
             ScreenColors colors = ScreenColors.forScreen(getContext());
-            list.setBackgroundColor(colors == null ? Color.BLACK : colors.background);
+            list.setBackgroundColor((colors == null ? ScreenColors.black() : colors).background);
         }
     }
 
@@ -276,7 +296,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (SettingsBackupPreference.onResult(this, requestCode, resultCode, data)) return;
-        FontFilePreference.onResult(this, requestCode, resultCode, data);
+        if (FontFilePreference.onResult(this, requestCode, resultCode, data)) return;
+        HeaderPicturePreference.onResult(this, requestCode, resultCode, data);
     }
 
     /** Shows what the switches are saved as, after an import wrote them. */
@@ -286,6 +307,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
 
     @Override
     protected void initialize() {
+        refreshWaysIn = null;
         RuntimeException fault = failNextInitialization;
         if (fault != null) {
             failNextInitialization = null;
@@ -319,7 +341,6 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         FeedPages.stories(this, screen, context, build);
         VideoPages.reels(this, screen, context, build);
         FeedPages.comments(this, screen, context, build);
-        FeedPages.writing(this, screen, context, build);
         VideoPages.playback(this, screen, context, build);
         downloads = VideoPages.downloads(screen, context, build);
         AppPages.chats(this, screen, context, build);
@@ -330,10 +351,12 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         AppPages.links(this, screen, context, build);
         AppPages.privacy(this, screen, context, build);
         HushfacebookPages.updates(this, screen, context, build);
+        HushfacebookPages.tabs(this, screen, context, build);
         HushfacebookPages.appearance(this, screen, context, build);
         HushfacebookPages.patched(this, screen, context, build);
         HushfacebookPages.pause(this, screen, context, build);
         HushfacebookPages.about(this, screen, context, build);
+        dropEmptySubheadings(screen);
 
         // The overview shows these under the card by key. Last in the model, they move no other row.
         Preference restore = missingRestoreTrustRow(context, build);
@@ -488,9 +511,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     private Preference statusCard(Context context) {
         Row card = new Row(context);
         card.setPersistent(false);
-        ScreenColors colors = ScreenColors.shown;
         boolean paused = HushfacebookPause.isPaused();
-        ScreenColors palette = colors == null ? ScreenColors.DEFAULT : colors;
+        ScreenColors palette = ScreenColors.current();
         card.setIcon(SettingsIcons.icon(context, paused ? SettingsIcons.PAUSE : SettingsIcons.PATCHED,
                 paused ? palette.summary : palette.heading));
         statusCard = card;
@@ -580,7 +602,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         if (pause instanceof SwitchPreference) ((SwitchPreference) pause).setChecked(BaseSettings.PAUSED.savedValue());
         if (still == HushfacebookPause.Reason.MARKER_FILE) {
             String file = L10n.isolate(HushfacebookPause.MARKER_FILE_NAME);
-            String folder = L10n.isolate(markerFolder(context.getPackageName()));
+            String folder = L10n.isolate(markerFolder(context));
             // The switches stay as they were until the file goes, so say when they still pause.
             String left = BaseSettings.PAUSED.savedValue() || BaseSettings.SAFE_MODE.savedValue()
                     ? L10n.f("The file %1$s couldn't be removed. Delete it from %2$s, then tap Resume again.", file, folder)
@@ -610,7 +632,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         if (!HushfacebookPause.isPaused()) {
             status = L10n.t(pausedNext ? "Hushfacebook pauses when Facebook restarts." : "Your controls are active.");
         } else if (pausedNext) {
-            status = pausedSummary(HushfacebookPause.reason(), context.getPackageName())
+            status = pausedSummary(HushfacebookPause.reason(), markerFolder(context))
                     + " " + L10n.t("Tap to turn it back on.");
         } else {
             status = L10n.t("Hushfacebook turns back on when Facebook restarts.");
@@ -780,7 +802,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 L10n.t("Hides ads, suggestions, promos and prompts, and stops nagging notifications."),
                 L10n.t("Holds back usage reports and camera roll scans, removes link tracking, and hides your typing and screenshots."),
                 L10n.t("Puts every feature switch but Lock Facebook back the way it started.")};
-        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        ScreenColors colors = ScreenColors.current();
         AlertDialog dialog = show(new AlertDialog.Builder(themed(context))
                 .setTitle(L10n.t("Quick setups"))
                 .setAdapter(new ChoiceCards(colors, names, details),
@@ -798,7 +820,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     int applyQuickSetup(Map<BooleanSetting, Boolean> values) {
         PreferenceScreen screen = getPreferenceScreen();
         if (screen == null) return 0;
-        int changed = QuickSetups.apply(screen, values);
+        // The tab bar's switches have no rows of their own, so their choice rows take them.
+        int changed = QuickSetups.apply(screen, values) + TabBarChoices.apply(this, values);
         Utils.showToastLong(L10n.quantity(changed, "Changed %1$d setting", "Changed %1$d settings", changed));
         return changed;
     }
@@ -808,6 +831,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         super.updateUIAvailability();
         showMarketplaceSettings();
         showSaveFolder();
+        if (refreshWaysIn != null) refreshWaysIn.run();
     }
 
     @Override
@@ -816,6 +840,31 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         showMarketplaceSettings();
         showSaveFolder();
         showShareItemsSummary();
+        showMenuTilesSummary();
+        for (TabBarChoices.Pair pair : TabBarChoices.Pair.values()) {
+            if (getPreferenceScreen() != null) TabBarChoices.showSaved(findPreference(pair.rowKey), pair);
+        }
+        if (refreshWaysIn != null) refreshWaysIn.run();
+    }
+
+    /**
+     * Switches a choice row saved together: each that waits for a restart says so, the way a
+     * flipped switch does, and the restart message shows once for the lot.
+     */
+    void savedTogether(Map<Setting<?>, Object> before) {
+        boolean pending = false;
+        for (Map.Entry<Setting<?>, Object> change : before.entrySet()) {
+            pending |= noteRestartPending(change.getKey(), change.getValue());
+        }
+        updateUIAvailability();
+        if (pending && isAdded()) showRestartDialog(getContext());
+    }
+
+    /** No setting is behind the Menu tiles row's key, so its summary is redone here after an import. */
+    private void showMenuTilesSummary() {
+        if (getPreferenceScreen() == null) return;
+        Preference row = findPreference(AppPages.MENU_TILES_ROW);
+        if (row != null) row.setSummary(AppPages.menuTilesSummary(MenuTiles.hidden()));
     }
 
     /** No setting is behind the share sheet row's key, so its summary is redone here after an import. */
@@ -960,9 +1009,9 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
 
     /**
      * Why this start runs paused, what a pause does and doesn't reach, and that nothing the reader
-     * saved has changed.
+     * saved has changed. {@code folder} is where the marker file is ({@link #markerFolder(Context)}).
      */
-    static String pausedSummary(HushfacebookPause.Reason reason, String packageName) {
+    static String pausedSummary(HushfacebookPause.Reason reason, String folder) {
         String why;
         switch (reason) {
             case CRASH_LOOP:
@@ -972,7 +1021,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 break;
             case MARKER_FILE:
                 why = L10n.f("A file named %1$s in %2$s paused Hushfacebook.",
-                        L10n.isolate(HushfacebookPause.MARKER_FILE_NAME), L10n.isolate(markerFolder(packageName)));
+                        L10n.isolate(HushfacebookPause.MARKER_FILE_NAME), L10n.isolate(folder));
                 break;
             default:
                 why = L10n.t("You paused Hushfacebook.");
@@ -988,6 +1037,19 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
      */
     static String markerFolder(String packageName) {
         return "Android/data/" + packageName + "/files";
+    }
+
+    /** The marker's other folder, the one adb can write on Android 11. */
+    static String mediaMarkerFolder(String packageName) {
+        return "Android/media/" + packageName;
+    }
+
+    /** The folder of the marker that is there now, the files folder when neither is. */
+    static String markerFolder(Context context) {
+        java.io.File present = HushfacebookPause.presentMarker(context);
+        String packageName = context.getPackageName();
+        return present != null && present.equals(HushfacebookPause.mediaMarkerFile(context))
+                ? mediaMarkerFolder(packageName) : markerFolder(packageName);
     }
 
     /**
@@ -1019,6 +1081,30 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         category.setTitle(title);
         screen.addPreference(category);
         return category;
+    }
+
+    /**
+     * A small heading in [section] over the rows added after it. One left with no row under it,
+     * when this build lacks every patch those rows need, is taken off by {@link #dropEmptySubheadings}.
+     */
+    static void subheading(PreferenceCategory section, String title) {
+        Subheading heading = new Subheading(section.getContext());
+        heading.setTitle(title);
+        section.addPreference(heading);
+    }
+
+    /** Takes off each subheading with no row under it before the next subheading or the section's end. */
+    static void dropEmptySubheadings(PreferenceScreen screen) {
+        for (int i = 0; i < screen.getPreferenceCount(); i++) {
+            if (!(screen.getPreference(i) instanceof PreferenceCategory)) continue;
+            PreferenceCategory section = (PreferenceCategory) screen.getPreference(i);
+            for (int row = section.getPreferenceCount() - 1; row >= 0; row--) {
+                Preference item = section.getPreference(row);
+                boolean empty = row + 1 == section.getPreferenceCount()
+                        || section.getPreference(row + 1) instanceof Subheading;
+                if (item instanceof Subheading && empty) section.removePreference(item);
+            }
+        }
     }
 
     static Toggle toggle(Context context, BooleanSetting setting, String summary) {
@@ -1254,12 +1340,16 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
 
     /**
      * What Home shows with [feed], for the row's summary. A filter Facebook hasn't got leaves Home
-     * on All, so the summary says so rather than promise the filter.
+     * on All, so the summary says so rather than promise the filter. Home only asks for the filter:
+     * on the S22 (583, 2026-10-20) Home with Friends got 39 suggested posts, 21 ads and 2 friends'
+     * posts in the request that drew it, so the summary names the switches that take those out.
      */
     static String homeFeedSummary(FeedsSubtab feed) {
         if (feed == FeedsSubtab.ALL) return L10n.t("Home shows the same posts as All in the Feeds tab.");
-        return L10n.f("Home shows the same posts as %1$s in the Feeds tab. If Facebook doesn't have that feed, "
-                + "Home shows All.", feedsSubtabLabel(feed));
+        return L10n.f("Home asks Facebook for the posts %1$s shows in the Feeds tab. When there's nothing new "
+                + "there, Facebook can fill Home with suggested posts and reels, which %2$s and %3$s take out. "
+                + "If Facebook doesn't have that feed, Home shows All.", feedsSubtabLabel(feed),
+                SwitchLabels.title(Settings.HIDE_SUGGESTED_FOR_YOU), SwitchLabels.title(Settings.HIDE_FEED_REELS));
     }
 
     /**
@@ -1325,6 +1415,55 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         }
         return L10n.f("A post's comments open with %1$s picked in their sort menu, where the post offers it.",
                 commentOrderLabel(order));
+    }
+
+    /**
+     * What Sort loaded reels sorts by (#134). Like the comment order row, its values are the
+     * setting's own names and its summary says what the choice does. Newest is the default, so any
+     * other pick turns the switch on.
+     */
+    static ReelsOrderRow reelsOrderRow(Context context) {
+        ReelsOrderRow row = new ReelsOrderRow(context);
+        row.setKey(Settings.REELS_ORDER.key);
+        row.setTitle(L10n.t("Reels order"));
+        row.setDialogTitle(L10n.t("Reels order"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        ReelsOrder[] orders = ReelsOrder.values();
+        CharSequence[] entries = new CharSequence[orders.length];
+        CharSequence[] values = new CharSequence[orders.length];
+        for (int i = 0; i < orders.length; i++) {
+            entries[i] = reelsOrderLabel(orders[i]);
+            values[i] = orders[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.REELS_ORDER.savedValue().name());
+        pickTurnsOn(row, Settings.REELS_ORDER, Settings.NEWEST_REELS_FIRST);
+        return row;
+    }
+
+    /** What the list and its summary call [order]. */
+    static String reelsOrderLabel(ReelsOrder order) {
+        switch (order) {
+            case MOST_LIKED:
+                return L10n.t("Most liked");
+            default:
+                return L10n.t("Newest");
+        }
+    }
+
+    /**
+     * What the Reels tab does with [order], for the row's summary. Only loaded reels move, and a
+     * reel whose count Facebook didn't send keeps its place, so the summary says so rather than
+     * promise a sort of all of Facebook.
+     */
+    static String reelsOrderSummary(ReelsOrder order) {
+        switch (order) {
+            case MOST_LIKED:
+                return L10n.t("Of the reels Facebook has loaded, the ones with the most reactions play first.");
+            default:
+                return L10n.t("Of the reels Facebook has loaded, the newest posted play first.");
+        }
     }
 
     /**
@@ -1512,7 +1651,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         CharSequence[] entries = new CharSequence[choices.length];
         CharSequence[] values = new CharSequence[choices.length];
         for (int i = 0; i < choices.length; i++) {
-            entries[i] = accentLabel(choices[i]);
+            entries[i] = accentLabel(choices[i], materialYou);
             values[i] = choices[i].name();
         }
         row.setEntries(entries);
@@ -1521,8 +1660,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         return row;
     }
 
-    /** What the list and the sentences about it call [accent]. */
-    static String accentLabel(AccentColor.Preset accent) {
+    /** What the list and the sentences about it call [accent]: Facebook blue is the wallpaper's under Material You. */
+    static String accentLabel(AccentColor.Preset accent, boolean materialYou) {
         switch (accent) {
             case TEAL:
                 return L10n.t("Teal");
@@ -1541,18 +1680,215 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             case AMBER:
                 return L10n.t("Amber");
             default:
-                return L10n.t("Facebook blue");
+                return materialYou ? L10n.t("Wallpaper accent") : L10n.t("Facebook blue");
         }
     }
 
-    /** What a choice does, for the row's summary. */
-    static String accentSummary(AccentColor.Preset accent) {
+    /**
+     * What a choice does, for the row's summary. With the Material You theme in the build the pick
+     * stands in for the wallpaper's accent, and Facebook blue leaves the wallpaper's (#272).
+     */
+    static String accentSummary(AccentColor.Preset accent, boolean materialYou) {
+        if (materialYou) {
+            if (accent == AccentColor.Preset.FACEBOOK) {
+                return L10n.t("Material You uses your wallpaper's accent. Pick a color to use it instead.");
+            }
+            return L10n.f("Material You uses %1$s in place of your wallpaper's accent. Restart Facebook to see the change.",
+                    accentLabel(accent, true));
+        }
         if (accent == AccentColor.Preset.FACEBOOK) {
             return L10n.t("Links, buttons, switches and the selected tab keep Facebook's blue.");
         }
         return L10n.f("Links, buttons, switches and the selected tab use %1$s instead of Facebook's blue. Restart Facebook "
-                + "to see the change. If the Material You theme is added, it takes over.",
-                accentLabel(accent));
+                + "to see the change.",
+                accentLabel(accent, false));
+    }
+
+    /**
+     * AMOLED's Background color (#214): a color code dark mode's backgrounds take in place of the
+     * one the patch wrote, read as Facebook starts. Save turns down a color {@link AmoledBackground}
+     * refuses with the dialog still open, and what's saved is the code in capitals.
+     */
+    BackgroundRow backgroundRow(Context context) {
+        BackgroundRow row = new BackgroundRow(context);
+        row.setKey(Settings.AMOLED_BACKGROUND.key);
+        String title = L10n.t("Background color");
+        row.setTitle(title);
+        row.setDialogTitle(title);
+        row.setDialogMessage(L10n.f("A color code (#RRGGBB) for dark mode's backgrounds, like #0D1117. Grays up to about %1$s "
+                + "work. Leave it blank for %2$s, the color Hushfacebook was patched with.",
+                AmoledBackground.LIGHTEST_ADMITTED_GREY, L10n.isolate(patchedBackground())));
+        row.setPositiveButtonText(L10n.t("Save"));
+        // Android's own Cancel follows the activity's language, as the folder row's did.
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        keepEditorInDialog(field, false);
+        field.setHint("#0D1117");
+        row.setText(Settings.AMOLED_BACKGROUND.savedValue());
+        row.refused = why -> show(new AlertDialog.Builder(row.getContext())
+                .setTitle(title)
+                .setMessage(why)
+                .setPositiveButton(L10n.t("OK"), null));
+        row.setOnPreferenceChangeListener((preference, typed) -> {
+            String raw = typed == null ? "" : typed.toString();
+            String clean = AmoledBackground.stored(raw);
+            if (clean == null) return false;
+            if (clean.equals(raw)) return true;
+            // Keeps the code as it's saved in place of what was typed, as the folder row does.
+            ((BackgroundRow) preference).setText(clean);
+            return false;
+        });
+        return row;
+    }
+
+    /** The color the patch wrote, as {@code #RRGGBB}. */
+    static String patchedBackground() {
+        return String.format(Locale.ROOT, "#%06X", AmoledTheme.backgroundColour() & 0xFFFFFF);
+    }
+
+    /** What the Background color row says for [text], the code typed there. One it refuses keeps the patch's color, as Facebook does. */
+    static String backgroundSummary(String text) {
+        String stored = AmoledBackground.stored(text);
+        if (stored == null || stored.isEmpty() || stored.equals(patchedBackground())) {
+            return L10n.f("Uses %1$s, the color Hushfacebook was patched with. Type a color code to change it.",
+                    L10n.isolate(patchedBackground()));
+        }
+        return L10n.f("Dark mode's backgrounds use %1$s. Restart Facebook to see the change.", L10n.isolate(stored));
+    }
+
+    /**
+     * AMOLED's Light background color (#214): a color code light mode's white backgrounds take, read
+     * as Facebook starts. Save turns down a color {@link AmoledLightBackground} refuses with the
+     * dialog still open, and what's saved is the code in capitals.
+     */
+    BackgroundRow lightBackgroundRow(Context context) {
+        BackgroundRow row = new BackgroundRow(context, true);
+        row.setKey(Settings.AMOLED_LIGHT_BACKGROUND.key);
+        String title = L10n.t("Light background color");
+        row.setTitle(title);
+        row.setDialogTitle(title);
+        row.setDialogMessage(L10n.f("A color code (#RRGGBB) for light mode's backgrounds in place of white, like #FFF8E7. "
+                + "Grays down to about %1$s work, and text gets darker where it needs to. Leave it blank for "
+                + "Facebook's own white.", AmoledLightBackground.DARKEST_ADMITTED_GREY));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        keepEditorInDialog(field, false);
+        field.setHint("#FFF8E7");
+        row.setText(Settings.AMOLED_LIGHT_BACKGROUND.savedValue());
+        row.refused = why -> show(new AlertDialog.Builder(row.getContext())
+                .setTitle(title)
+                .setMessage(why)
+                .setPositiveButton(L10n.t("OK"), null));
+        row.setOnPreferenceChangeListener((preference, typed) -> {
+            String raw = typed == null ? "" : typed.toString();
+            String clean = AmoledLightBackground.stored(raw);
+            if (clean == null) return false;
+            if (clean.equals(raw)) return true;
+            // Keeps the code as it's saved in place of what was typed, as the Background color row does.
+            ((BackgroundRow) preference).setText(clean);
+            return false;
+        });
+        return row;
+    }
+
+    /**
+     * Badge and logo colors (#263): a color code the count badges on the tabs take, or with [logo]
+     * the Facebook logo at the top of Home. What's saved is the code in capitals, blank for
+     * Facebook's own.
+     */
+    MarkColorRow markColorRow(Context context, boolean logo) {
+        StringSetting setting = logo ? Settings.LOGO_COLOR : Settings.BADGE_COLOR;
+        MarkColorRow row = new MarkColorRow(context, logo);
+        row.setKey(setting.key);
+        String title = logo ? L10n.t("Logo color") : L10n.t("Badge color");
+        row.setTitle(title);
+        row.setDialogTitle(title);
+        row.setDialogMessage(logo
+                ? L10n.t("A color code (#RRGGBB) for the Facebook logo at the top of Home, like #2ECC71. Leave it "
+                        + "blank for Facebook's blue.")
+                : L10n.t("A color code (#RRGGBB) for the count badges on the tabs, like #2ECC71. Leave it blank for "
+                        + "Facebook's red."));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        keepEditorInDialog(field, false);
+        field.setHint("#2ECC71");
+        row.setText(setting.savedValue());
+        row.refused = why -> show(new AlertDialog.Builder(row.getContext())
+                .setTitle(title)
+                .setMessage(why)
+                .setPositiveButton(L10n.t("OK"), null));
+        row.setOnPreferenceChangeListener((preference, typed) -> {
+            String raw = typed == null ? "" : typed.toString();
+            String clean = MarkColors.stored(raw);
+            if (clean == null) return false;
+            if (clean.equals(raw)) return true;
+            // Keeps the code as it's saved in place of what was typed, as the Background color row does.
+            ((MarkColorRow) preference).setText(clean);
+            return false;
+        });
+        return row;
+    }
+
+    /** What a Badge and logo colors row says for [text], the code typed there. One it refuses keeps Facebook's own. */
+    static String markColorSummary(boolean logo, String text) {
+        String stored = MarkColors.stored(text);
+        if (stored == null || stored.isEmpty()) {
+            return logo ? L10n.t("The Facebook logo keeps its blue. Type a color code to change it.")
+                    : L10n.t("Badges keep Facebook's red. Type a color code to change it.");
+        }
+        return logo ? L10n.f("The Facebook logo at the top of Home is %1$s. Restart Facebook to see the change.",
+                L10n.isolate(stored))
+                : L10n.f("Count badges on the tabs are %1$s. Restart Facebook to see the change.", L10n.isolate(stored));
+    }
+
+    /**
+     * Home header text (#230): your own words at the top of Home in place of Facebook's logo, read
+     * as Facebook builds the header. What's saved is the text {@link HeaderText} shows: one line,
+     * trimmed, at most {@link HeaderText#MAX_LENGTH} characters.
+     */
+    static HeaderTextRow headerTextRow(Context context) {
+        HeaderTextRow row = new HeaderTextRow(context);
+        row.setKey(Settings.HEADER_TEXT.key);
+        String title = L10n.t("Home header text");
+        row.setTitle(title);
+        row.setDialogTitle(title);
+        row.setDialogMessage(L10n.f("Your own words at the top of Home instead of the Facebook logo, up to %1$d "
+                + "characters. They take Facebook's colors in light and dark mode. Leave it blank for Facebook's logo.",
+                HeaderText.MAX_LENGTH));
+        row.setPositiveButtonText(L10n.t("Save"));
+        // Android's own Cancel follows the activity's language, as the folder row's did.
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        keepEditorInDialog(field, false);
+        field.setHint("Hushfacebook");
+        row.setText(Settings.HEADER_TEXT.savedValue());
+        row.setOnPreferenceChangeListener((preference, typed) -> {
+            String raw = typed == null ? "" : typed.toString();
+            String clean = HeaderText.clean(raw);
+            if (clean.equals(raw)) return true;
+            // Keeps the text as the header shows it in place of what was typed, as the folder row does.
+            ((HeaderTextRow) preference).setText(clean);
+            return false;
+        });
+        return row;
+    }
+
+    /** What the Home header text row says for [text], the words typed there. */
+    static String headerTextSummary(String text) {
+        String shown = HeaderText.clean(text);
+        if (shown.isEmpty()) return L10n.t("Facebook's logo stays at the top of Home. Type your own words to show them there.");
+        return L10n.f("The top of Home says %1$s. Restart Facebook to see the change.", L10n.isolate(shown));
+    }
+
+    /** What the Light background color row says for [text], the code typed there. One it refuses keeps Facebook's white. */
+    static String lightBackgroundSummary(String text) {
+        String stored = AmoledLightBackground.stored(text);
+        if (stored == null || stored.isEmpty()) {
+            return L10n.t("Uses Facebook's own white. Type a color code to change it.");
+        }
+        return L10n.f("Light mode's backgrounds use %1$s. Restart Facebook to see the change.", L10n.isolate(stored));
     }
 
     /**
@@ -1562,8 +1898,10 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     static PlaybackQualityRow playbackQualityRow(Context context) {
         PlaybackQualityRow row = new PlaybackQualityRow(context);
         row.setKey(Settings.PLAYBACK_QUALITY.key);
-        row.setTitle(L10n.t("Playback quality"));
-        row.setDialogTitle(L10n.t("Playback quality"));
+        // Under the Video quality heading, beside Reels and Stories quality: the one they default to.
+        row.setTitle(L10n.t("Default quality"));
+        row.setDialogTitle(L10n.t("Default quality"));
+        SettingsRows.alias(row, L10n.t("Playback quality"));
         // Android's own Cancel follows the activity's language, as the other lists' did.
         row.setNegativeButtonText(L10n.t("Cancel"));
         PlaybackQuality[] qualities = PlaybackQuality.values();
@@ -1598,7 +1936,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         CharSequence[] values = new CharSequence[choices.length];
         for (int i = 0; i < choices.length; i++) {
             PlaybackQuality quality = choices[i].quality;
-            entries[i] = quality == null ? L10n.t("Same as Playback quality") : playbackQualityLabel(quality);
+            entries[i] = quality == null ? L10n.t("Same as default") : playbackQualityLabel(quality);
             values[i] = choices[i].name();
         }
         row.setEntries(entries);
@@ -1610,16 +1948,16 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
 
     /**
      * What the Reels ([reels]) or Stories quality row says [choice] does. Both kinds say how the
-     * choice relates to Playback quality, which a bare label left unclear (#90).
+     * choice relates to Default quality, which a bare label left unclear (#90).
      */
     static String surfaceQualitySummary(SurfaceQuality choice, boolean reels) {
         if (choice.quality != null) {
             String label = playbackQualityLabel(choice.quality);
-            return reels ? L10n.f("%1$s for reels, whatever Playback quality is set to.", label)
-                    : L10n.f("%1$s for video stories, whatever Playback quality is set to.", label);
+            return reels ? L10n.f("%1$s for reels, whatever Default quality is set to.", label)
+                    : L10n.f("%1$s for video stories, whatever Default quality is set to.", label);
         }
-        return reels ? L10n.t("Reels follow the Playback quality row.")
-                : L10n.t("Video stories follow the Playback quality row.");
+        return reels ? L10n.t("Reels follow the Default quality row.")
+                : L10n.t("Video stories follow the Default quality row.");
     }
 
     /** What the list calls [quality]: Auto, as Facebook's own quality menu calls it, and a ceiling by its label. */
@@ -1701,6 +2039,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             ((DownloadActionRow) listPreference).showSummary();
         } else if (listPreference instanceof SaveToRow) {
             ((SaveToRow) listPreference).showSummary();
+        } else if (listPreference instanceof SaveStorageRow) {
+            ((SaveStorageRow) listPreference).showSummary();
         } else if (listPreference instanceof StartTabRow) {
             ((StartTabRow) listPreference).showSummary();
         } else if (listPreference instanceof FeedsSubtabRow) {
@@ -1709,6 +2049,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             ((HomeFeedRow) listPreference).showSummary();
         } else if (listPreference instanceof CommentOrderRow) {
             ((CommentOrderRow) listPreference).showSummary();
+        } else if (listPreference instanceof ReelsOrderRow) {
+            ((ReelsOrderRow) listPreference).showSummary();
         } else if (listPreference instanceof LockAfterRow) {
             ((LockAfterRow) listPreference).showSummary();
         } else if (listPreference instanceof SeenKeepRow) {
@@ -1831,6 +2173,59 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 SaveTo.DOWNLOAD.name()});
         row.setValue(Settings.SAVE_TO.savedValue().name());
         return row;
+    }
+
+    /** {@link #saveStorageRow(Context, List)} with the cards in the phone now. */
+    static SaveStorageRow saveStorageRow(Context context) {
+        return saveStorageRow(context, SaveStorage.cards(context));
+    }
+
+    /**
+     * The storage saves go to (#274): the phone's, or one of [cards]. A card picked before and out
+     * of the phone now stays in the list, so the row still shows the choice, and saves go to the
+     * phone's storage until it's back. The cards' names come from Android, so they're isolated
+     * like a folder name.
+     */
+    static SaveStorageRow saveStorageRow(Context context, List<SaveStorage.Card> cards) {
+        SaveStorageRow row = new SaveStorageRow(context);
+        row.setKey(Settings.SAVE_STORAGE.key);
+        row.setTitle(L10n.t("Save on"));
+        row.setDialogTitle(L10n.t("Save on"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        String picked = Settings.SAVE_STORAGE.savedValue();
+        List<CharSequence> entries = new ArrayList<>();
+        List<CharSequence> values = new ArrayList<>();
+        entries.add(L10n.t("Phone storage"));
+        values.add("");
+        for (SaveStorage.Card card : cards) {
+            entries.add(L10n.isolate(card.label));
+            values.add(card.volume);
+        }
+        if (!picked.isEmpty() && SaveStorage.pick(picked, cards) == null) {
+            entries.add(L10n.t("SD card that isn't in the phone"));
+            values.add(picked);
+        }
+        row.setEntries(entries.toArray(new CharSequence[0]));
+        row.setEntryValues(values.toArray(new CharSequence[0]));
+        row.setValue(picked);
+        return row;
+    }
+
+    /**
+     * What the Save on row says for [volume], the list's [label] for it, and whether the list offers
+     * a card at all ([choices]).
+     */
+    static String saveStorageSummary(String volume, String label, boolean choices) {
+        if (volume == null || volume.isEmpty() || label == null) {
+            return choices ? L10n.t("Videos and photos are saved on the phone's storage.")
+                    : L10n.t("Videos and photos are saved on the phone's storage. Put in an SD card to save on it instead.");
+        }
+        if (label.equals(L10n.t("SD card that isn't in the phone"))) {
+            return L10n.t("The SD card you picked isn't in the phone, so videos and photos are saved on the phone's "
+                    + "storage until it's back.");
+        }
+        return L10n.f("Videos and photos are saved on %1$s, in the same folders. Saves you already have stay where "
+                + "they are.", label);
     }
 
     /** What the Save to row says for [to]. */
@@ -2048,6 +2443,12 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         row.setOnPreferenceChangeListener((preference, typed) -> {
             String raw = typed == null ? "" : typed.toString();
             String clean = PostWords.clean(raw);
+            if (row.refuseDuringImport()) return false;
+            String refusal = wordsRefusal(PostWords.size(clean, row.otherListBytes()));
+            if (refusal != null) {
+                row.refuseSave(refusal);
+                return false;
+            }
             if (clean.equals(raw)) return true;
             // Keeps the clean list in place of what was typed, as the folder row does.
             int leftOut = PostWords.leftOut(raw);
@@ -2191,6 +2592,37 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 : L10n.f("Both lists together fill %1$d%% of the room they share.", size.percent()));
     }
 
+    /**
+     * What a word list's dialog says about its sample: what the lists as typed would do with a post
+     * that says it, or how to use the field when it's [empty] or there's no result yet.
+     */
+    static String wordsPreviewLine(@Nullable PostWords.PreviewResult result, boolean empty) {
+        if (result != null && result.verdict == PostWords.Preview.NOTHING_TO_HIDE) {
+            return L10n.t("The hide list is empty, so no post would be hidden.");
+        }
+        if (result == null || empty) {
+            return L10n.t("Type or paste a post's text to see what these lists would do with it. It isn't saved.");
+        }
+        String line;
+        switch (result.verdict) {
+            case HIDDEN:
+                line = L10n.t("A post with this text would be hidden.");
+                break;
+            case KEPT:
+                line = L10n.t("A post with this text would stay, because the keep list matches it.");
+                break;
+            case TOO_SLOW:
+                line = L10n.t("A post with this text would stay, because the patterns took too long on it.");
+                break;
+            default:
+                line = L10n.t("A post with this text would stay. Nothing on either list matches it.");
+        }
+        if (result.cut) {
+            line += " " + L10n.f("Only the first %1$d characters were checked.", PostWords.PREVIEW_MAX_CODE_POINTS);
+        }
+        return line;
+    }
+
     /** What the topic pack list calls [pack]. */
     static String packLabel(TopicPacks.Pack pack) {
         switch (pack) {
@@ -2261,7 +2693,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     }
 
     static Preference mark(Preference row, String icon) {
-        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        ScreenColors colors = ScreenColors.current();
         row.setIcon(SettingsIcons.icon(row.getContext(), icon, colors.heading));
         return row;
     }

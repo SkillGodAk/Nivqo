@@ -28,7 +28,7 @@ public class SettingsPreviewTest {
             assertEquals("HushMessenger UI preview", screen.get().getTitle().toString());
             TextView notice = root.findViewWithTag("preview_notice");
             assertNotNull(notice);
-            assertEquals("UI preview. These switches don't change Messenger.", notice.getText().toString());
+            assertEquals("UI preview. These controls don't change Messenger.", notice.getText().toString());
             root.findViewWithTag("people").performClick();
             assertTrue(Settings.preferences.getBoolean("people", false));
             root.findViewWithTag("tab_app").performClick();

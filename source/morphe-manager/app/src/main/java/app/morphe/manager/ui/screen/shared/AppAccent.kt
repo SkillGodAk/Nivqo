@@ -25,7 +25,7 @@ import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.isDefault
 import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.patcher.patch.BundleAppMetadata
 import app.morphe.manager.ui.theme.ThemeTraitsDefaults
-import app.morphe.manager.util.compositeOver
+import app.morphe.manager.util.compositeOpaqueOver
 import app.morphe.manager.util.contrastingContent
 import app.morphe.manager.util.isDarkBackground
 import app.morphe.manager.util.isExtremeAccent
@@ -88,7 +88,7 @@ fun ProvideAccent(accentColor: Color?, content: @Composable () -> Unit) {
 fun ProvideCardAccent(accentColor: Color?, fill: Color, content: @Composable () -> Unit) {
     CompositionLocalProvider(
         LocalAccent provides usableAppAccent(accentColor),
-        LocalCardBackground provides fill.compositeOver(MaterialTheme.colorScheme.background),
+        LocalCardBackground provides fill.compositeOpaqueOver(MaterialTheme.colorScheme.background),
         content = content
     )
 }

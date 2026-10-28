@@ -2,63 +2,84 @@
 <resources>
     <!-- Home Screen -->
     <string name="home_other_apps">Іншыя праграмы</string>
+    <string name="home_other_apps_action">Выбраць іншыя праграмы</string>
     <string name="home_not_patched_yet">Яшчэ не прапатчана</string>
+    <string name="home_unpatched_version_installed">Усталявана версія без патчаў</string>
+    <string name="home_unpatched_badge">Не прапатчана</string>
     <string name="home_no_patches_available">Няма даступных патчаў</string>
     <string name="home_app_hide_title">Схаваць гэтую праграму?</string>
+    <string name="home_more_apps_title">Больш праграм</string>
+    <string name="home_more_apps_hide_title">Схаваць гэтую картку?</string>
+    <string name="home_more_apps_hide_message">Вы можаце вярнуць яе ў любы час у Налады &gt; Выгляд &gt; Галоўны экран</string>
     <string name="home_app_hide_message">Гэтая праграма будзе схавана з галоўнага экрана. Вы зможаце пазней яе аднавіць са спіса схаваных праграм з дапамогай кнопкі ўнізе спіса</string>
     <string name="home_app_will_be_hidden">Гэтая праграма будзе схавана</string>
+    <string name="home_app_hidden_named">%s схаваных</string>
+    <string name="home_app_shown_named">%s паказаных</string>
     <string name="home_app_no_hidden">Няма схаваных праграм</string>
     <string name="home_app_hidden_apps_title">Схаваныя праграмы</string>
     <string name="home_app_hidden_apps_hint">Націсніце, каб паказаць</string>
+    <string name="home_apps_unhide_message">Паказаныя праграмы вяртаюцца на галоўны экран</string>
+    <string name="home_app_patch_sources_description">Неадзначаныя крыніцы не прапануюцца пры патчынге гэтых праграм, і іх патчы ніколі не далучаюцца да выбару самастойна. Кожная крыніца застаецца ўключанай для ўсіх астатніх праграм</string>
+    <string name="home_app_patch_sources_mixed">Прапанавана для %1$s з %2$s</string>
+    <string name="home_app_patch_sources_covers">Мае патчы для %1$s з %2$s</string>
+    <string name="home_app_patch_sources_last">Кожнай праграме патрэбна хаця б адна крыніца для патчаў</string>
     <string name="android_11_bug_dialog_title">Памылка Android 11</string>
     <string name="android_11_bug_dialog_description">Дазвол на ўсталёўку праграмы неабходна даць загадзя, каб пазбегнуць памылкі ў сістэме Android 11, якая негатыўна паўплывае на карыстальніцкі досвед</string>
     <string name="deep_link_add_source_title">Дадаць крыніцу</string>
     <string name="deep_link_add_source_message">Вы хочаце дадаць гэтую крыніцу патча ў Nivqo?</string>
-<string name="deep_link_add_source_warning">Дадавайце толькі надзейныя крыніцы</string>
-<!-- Home Screen - Update Notifications -->
+    <string name="deep_link_add_source_warning">Дадавайце толькі надзейныя крыніцы</string>
+    <!-- Shown under the app a link was opened for -->
+    <string name="deep_link_add_source_only_app">Толькі гэтая праграма была дададзена. Вы можаце дадаць іншыя праграмы са спіса праграм крыніцы</string>
+    <!-- Shown when the link was opened for the universal patches of a source, which no app is added with -->
+    <string name="deep_link_add_source_only_universal">Дадаюцца толькі ўніверсальныя патчы. Вы можаце дадаваць праграмы са спіса праграм крыніцы</string>
+    <!-- Asked when the link names an app of a source that is already added -->
+    <string name="deep_link_add_source_app_back">Гэтая крыніца ўжо дададзена. Дадаць гэтую праграму з існуючай крыніцы?</string>
+    <!-- Asked when a .mpp file opened from a file manager is another version of a local source, %s being its name -->
+    <!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Даступна абнаўленне Nivqo</string>
-<string name="home_update_available_subtitle">Новая версія гатовая да ўстаноўкі</string>
-<string name="home_blocked_source_title">Выяўлена заблакаваная крыніца патча</string>
+    <string name="home_update_available_subtitle">Новая версія гатовая да ўстаноўкі</string>
+    <string name="home_blocked_source_title">Выяўлена заблакаваная крыніца патча</string>
     <string name="home_blocked_source_subtitle">Націсніце, каб прагледзець і выдаліць</string>
-<string name="home_metadata_errors_title">Некаторыя крыніцы патчаў недаступныя</string>
+    <string name="home_metadata_errors_title">Некаторыя крыніцы патчаў недаступныя</string>
     <string name="home_metadata_errors_subtitle">Націсніце, каб прагледзець крыніцы</string>
-<string name="home_outdated_manager_title">Morphe састарэў</string>
-<string name="home_outdated_manager_subtitle">Некаторым крыніцам патчаў патрэбна больш новая версія</string>
-<string name="home_metered_skipped_title">Абнаўленні прыпынены для мабільных даных</string>
+    <string name="home_outdated_manager_title">Morphe састарэў</string>
+    <string name="home_outdated_manager_subtitle">Некаторым крыніцам патчаў патрэбна больш новая версія</string>
+    <string name="home_metered_skipped_title">Абнаўленні прыпынены для мабільных даных</string>
     <string name="home_metered_skipped_subtitle">Націсніце, каб дазволіць абнаўленні па мабільных даных</string>
-<string name="home_update_error">Абнаўленне не ўдалося</string>
+    <string name="home_update_error">Абнаўленне не ўдалося</string>
     <string name="home_update_error_subtitle">Нешта пайшло не так падчас абнаўлення крыніц.</string>
-<string name="home_update_skipped_metered">Абнаўленні прыпушчаны</string>
+    <string name="home_update_skipped_metered">Абнаўленні прыпушчаны</string>
     <string name="home_update_skipped_metered_subtitle">Мабільныя даныя актыўныя</string>
-<string name="home_updating_sources">Абнаўленне крыніц…</string>
+    <string name="home_updating_sources">Абнаўленне крыніц…</string>
     <string name="home_update_success">Абнаўленне крыніц завершана</string>
-<string name="home_update_success_subtitle">Вашы крыніцы абноўлены</string>
+    <string name="home_update_success_subtitle">Вашы крыніцы абноўлены</string>
     <string name="home_sources_are_loading">Крыніцы загружаюцца, калі ласка, пачакайце…</string>
-<string name="home_search_apps">Пошук праграм</string>
+    <string name="home_search_apps">Пошук праграм</string>
+    <string name="home_app_grouping_none">Няма</string>
     <string name="home_app_sort_manual_description">Націсніце і ўтрымлівайце праграму, затым націсніце кнопку перастаноўкі</string>
-<string name="home_app_sort_recommended">Рэкамендаваны парадак</string>
+    <string name="home_app_sort_recommended">Рэкамендаваны парадак</string>
     <string name="home_app_sort_recommended_description">Спачатку ўсталяваныя і прышпіленыя праграмы</string>
-<string name="home_app_sort_name_asc_description">Па алфавіце, А да Я</string>
+    <string name="home_app_sort_name_asc_description">Па алфавіце, А да Я</string>
     <string name="home_app_sort_name_desc_description">Па абротным алфавіце, ад Я да А</string>
-<string name="home_app_sort_updates_first">Спачатку абнаўленні патчаў</string>
+    <string name="home_app_sort_updates_first">Спачатку абнаўленні патчаў</string>
     <string name="home_no_apps_title">Няма даступных праграм</string>
-<string name="home_no_apps_subtitle">Дадайце крыніцу патча або ўключыце існуючую ў %s</string>
+    <string name="home_no_apps_subtitle">Дадайце крыніцу патча або ўключыце існуючую ў %s</string>
     <string name="home_no_apps_search_subtitle">Ніводная праграма не адпавядае \"%s\"</string>
-<string name="home_all_apps_hidden_title">Усе праграмы схаваны</string>
+    <string name="home_all_apps_hidden_title">Усе праграмы схаваны</string>
     <string name="home_all_apps_hidden_subtitle">Вы схавалі ўсе праграмы з галоўнага экрана</string>
-<string name="home_category_add">Дадаць катэгорыю</string>
+    <string name="home_category_add">Дадаць катэгорыю</string>
     <string name="home_category_all_apps">Усе праграмы</string>
-<string name="home_category_custom">Карыстальніцкае</string>
+    <string name="home_category_custom">Карыстальніцкае</string>
     <string name="home_category_uncategorized">Без катэгорыі</string>
-<string name="home_category_new_title">Новая катэгорыя</string>
+    <string name="home_category_new_title">Новая катэгорыя</string>
     <string name="home_category_rename_title">Перайменаваць катэгорыю</string>
-<string name="home_category_name">Назва катэгорыі</string>
+    <string name="home_category_name">Назва катэгорыі</string>
     <string name="home_category_move_to">Перайсці ў катэгорыю</string>
-<string name="home_category_move_selected_title">Перамясціць выбраныя праграмы</string>
+    <string name="home_category_move_selected_title">Перамясціць выбраныя праграмы</string>
     <string name="home_category_delete_confirm_title">Выдаліць катэгорыю</string>
-<string name="home_category_delete_confirm_message">Выдаліць катэгорыю &lt;b&gt;%1$s&lt;/b&gt;? Праграмы з яе перамясцяцца назад у &lt;b&gt;%2$s&lt;/b&gt;</string>
+    <string name="home_category_delete_confirm_message">Выдаліць катэгорыю &lt;b&gt;%1$s&lt;/b&gt;? Праграмы з яе перамясцяцца назад у &lt;b&gt;%2$s&lt;/b&gt;</string>
     <string name="home_category_actions_unavailable">Дзеянні недаступны для гэтай катэгорыі</string>
-<!-- Home Screen - Home Greetings -->
+    <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">Якую праграму вы хочаце абнавіць?</string>
     <!-- Humorous hype message with light nostalgia -->
     <string name="home_greeting_2">Гатовыя зноў зрабіць праграмы легендарнымі?</string>
@@ -101,6 +122,7 @@
     <string name="home_greeting_super_late_5">Начны і прадуктыўны</string>
     <!-- Halloween greetings, shown instead of the ones above around October 31 -->
     <!-- Pun on "Trick or treat" -->
+    <string name="home_greeting_halloween_1">Жарт ці патч?</string>
     <!-- Pun on "Something wicked this way comes", a line from Shakespeare's Macbeth -->
     <!-- Winter holiday greetings, shown instead of the ones above from late December to early January -->
     <!-- Pun on the song "Let It Snow! Let It Snow! Let It Snow!" -->
@@ -109,7 +131,7 @@
     <!-- Pun on the saying "Out with the old, in with the new" -->
     <!-- Home Screen - Sources Management -->
     <string name="sources_management_title">Крыніцы патчаў</string>
-    <string name="sources_sort_title">Сартаваць крыніцы патчаў</string>
+    <!-- Which sources the sources page lists, each with what it keeps -->
     <string name="sources_sort_manual">Ручны парадак</string>
     <string name="sources_sort_manual_hint">Націсніце і ўтрымлівайце крыніцу, каб перарадаваць яе.</string>
     <string name="sources_sort_last_updated">Апошняе абнаўленне</string>
@@ -118,6 +140,11 @@
     <string name="sources_sort_enabled_first_description">Паказваць актыўныя крыніцы перад адключанымі</string>
     <string name="sources_management_open_in_browser">Адкрыць у браўзеры</string>
     <string name="sources_management_failed_to_open_url">Не ўдалося адкрыць URL</string>
+    <string name="sources_apps">Праграмы</string>
+    <!-- Under an app left out of a source that keeps its home screen card because the user has patched it -->
+    <!-- Marks an app (not a patch) the source started supporting since its app list was last opened -->
+    <string name="sources_apps_new">Новыя</string>
+    <!-- Under the Bring new apps switch in a source's app list, whichever way it is set. "It" is the patch source -->
     <string name="sources_management_prerelease_toggle">Перадвыпускныя патчы</string>
     <string name="sources_management_prerelease_toggle_description">Атрымлівае ранні доступ да новых эксперыментальных версій патчаў</string>
     <string name="sources_management_experimental_versions_toggle">Эксперыментальныя версіі праграмы</string>
@@ -129,9 +156,9 @@
     <string name="sources_management_metadata_unavailable_hint">Знешні файл метаданых недаступны. Прымяненне патча да ўсталяванага пакета па-ранейшаму працуе, але аўтаматычныя абнаўленні для гэтай крыніцы адключаны</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Не ўдалося спампаваць пакет патчаў. Магчыма, URL-адрас крыніцы няправільны або файл не існуе</string>
     <string name="sources_management_outdated_manager_badge">Абнавіць Nivqo</string>
-<string name="sources_management_outdated_manager_hint">Гэтая крыніца створана для патчара %1$s, але Morphe %2$s уключае патчар %3$s. Абнавіце Morphe, каб выкарыстоўваць яе</string>
-<string name="sources_management_source_enabled">Крыніца ўключана</string>
-<string name="sources_management_source_disabled">Крыніца адключана</string>
+    <string name="sources_management_outdated_manager_hint">Гэтая крыніца створана для патчара %1$s, але Morphe %2$s уключае патчар %3$s. Абнавіце Morphe, каб выкарыстоўваць яе</string>
+    <string name="sources_management_source_enabled">Крыніца ўключана</string>
+    <string name="sources_management_source_disabled">Крыніца адключана</string>
     <string name="sources_management_source_updating">Абнаўленне крыніцы</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">Адлюстраванае iмя</string>
@@ -169,22 +196,22 @@
     <string name="home_apk_helper_download">Выкарыстоўваць дапаможную праграму</string>
     <string name="home_apk_helper_title">Спампаваць з дапаможнай праграмай</string>
     <string name="home_apk_helper_description">Nivqo папросіць дапаможную праграму ніжэй спампаваць арыгінальны APK і вярнуць файл</string>
-<!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_apk_helper_warning">Працягвайце толькі ў тым выпадку, калі вы давяраеце гэтай дапаможнай праграме. Nivqo правярае пакет, версію і подпіс атрыманых даных перад патчынгам</string>
-<string name="home_apk_helper_warning_unverified">Працягвайце толькі ў тым выпадку, калі вы давяраеце гэтай дапаможнай праграме. Morphe не можа праверыць подпіс гэтага APK, таму прапатчаны файл не будзе выяўлены</string>
-<string name="home_apk_helper_no_result">Дапаможная праграма не вярнула APK</string>
-<string name="home_apk_helper_no_access">Дапаможная праграма не дала доступу да APK, які яна вярнула</string>
+    <string name="home_apk_helper_warning_unverified">Працягвайце толькі ў тым выпадку, калі вы давяраеце гэтай дапаможнай праграме. Morphe не можа праверыць подпіс гэтага APK, таму прапатчаны файл не будзе выяўлены</string>
+    <string name="home_apk_helper_no_result">Дапаможная праграма не вярнула APK</string>
+    <string name="home_apk_helper_no_access">Дапаможная праграма не дала доступу да APK, які яна вярнула</string>
     <string name="home_apk_helper_no_package">Дапаможная праграма не пазначыла, якую з усталяваных праграм трэба выкарыстоўваць</string>
     <string name="home_apk_helper_wrong_package">Дапаможная праграма вярнула іншую праграму, чым тую, якую патчыла</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo не змог выкарыстоўваць усталяваную праграму</string>
-<string name="home_apk_helper_installed_incompatible">Усталяваную версію немагчыма прапатчыць</string>
-<string name="home_apk_use_saved">Выкарыстоўваць захаваны APK</string>
+    <string name="home_apk_helper_installed_incompatible">Усталяваную версію немагчыма прапатчыць</string>
+    <string name="home_apk_use_saved">Выкарыстоўваць захаваны APK</string>
     <string name="home_apk_use_installed">Выкарыстоўваць усталяваны APK</string>
-<string name="home_apk_use_installed_unverified">Не ўдалося праверыць подпіс усталяванай праграмы, таму яна, магчыма, ужо прапатчана</string>
+    <string name="home_apk_use_installed_unverified">Не ўдалося праверыць подпіс усталяванай праграмы, таму яна, магчыма, ужо прапатчана</string>
     <string name="home_app_info_no_saved_apk">APK не захаваны. Для абнаўлення спатрэбіцца зноў выбраць файл APK</string>
-<string name="home_version_requires_android">Патрабуецца Android %s+</string>
+    <string name="home_version_requires_android">Патрабуецца Android %s+</string>
     <string name="home_apk_no_compatible_versions_title">Не падтрымліваецца на гэтай прыладзе</string>
-<string name="home_apk_no_compatible_versions_message">Для &lt;b&gt;%1$s&lt;/b&gt; няма падтрымліваемых версій Android %2$s (API %3$s). Усе заяўленыя версіі патрабуюць больш новай версіі Android</string>
+    <string name="home_apk_no_compatible_versions_message">Для &lt;b&gt;%1$s&lt;/b&gt; няма падтрымліваемых версій Android %2$s (API %3$s). Усе заяўленыя версіі патрабуюць больш новай версіі Android</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
     <string name="home_download_instructions_title">Спампаваць арыгінальны APK</string>
     <string name="home_download_instructions_step1">Націсніце кнопку \'%s\' ніжэй</string>
@@ -195,14 +222,16 @@
     <string name="home_download_instructions_download_button_toast_4">Усё яшчэ не тут… усё яшчэ не тут… 🙈</string>
     <string name="home_download_instructions_download_button_toast_5">Добра, я паважаю адданасць 🫡</string>
     <string name="home_download_instructions_download_button_toast_6">Вы цяпер афіцыйны тэстар кнопкі Nivqo 🏅</string>
-<string name="home_download_instructions_step3">Дачакайцеся завяршэння спампоўкі і &lt;b&gt;не ўсталёўвайце&lt;/b&gt; APK</string>
-<string name="home_download_instructions_step3_mount">Дачакайцеся завяршэння спампоўкі, затым &lt;b&gt;усталюйце APK&lt;/b&gt;</string>
+    <string name="home_download_instructions_step3">Дачакайцеся завяршэння спампоўкі і &lt;b&gt;не ўсталёўвайце&lt;/b&gt; APK</string>
+    <string name="home_download_instructions_step3_mount">Дачакайцеся завяршэння спампоўкі, затым &lt;b&gt;усталюйце APK&lt;/b&gt;</string>
     <string name="home_download_instructions_step4">Пасля завяршэння спампоўкі вярніцеся да Nivqo</string>
-<string name="home_download_instructions_step4_mount">Пасля ўсталявання арыгінальнага APK, вярніцеся да Nivqo</string>
-<!-- Home Screen - Dialog 3: File Picker Prompt -->
+    <string name="home_download_instructions_step4_mount">Пасля ўсталявання арыгінальнага APK, вярніцеся да Nivqo</string>
+    <!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_file_picker_prompt_title">Выберыце спампаваны APK</string>
     <string name="home_file_picker_prompt_description">Выберыце &lt;b&gt;%s&lt;/b&gt; файл APK, які вы толькі што спампавалі</string>
     <string name="home_file_picker_prompt_open_apk">Адкрыць APK-файл</string>
+    <string name="home_installed_app_picker_title">Усталяваныя праграмы</string>
+    <string name="home_installed_app_picker_empty">Праграмы не знойдзены</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <!-- Home Screen - Home Sub-Dialogs -->
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -221,8 +250,9 @@
     <!-- Header Creator -->
     <!-- Batch patching -->
     <string name="batch_patch_action">Патч выбраны</string>
-    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="shortcut_repatch_long">Перапатчыць састарэлыя праграмы</string>
     <!-- Home Screen - App Info Screen -->
     <!-- Home Screen - Root Mode -->
     <!-- Patcher Screen -->
@@ -232,13 +262,12 @@
     <!-- Free and total RAM of the device, never its storage -->
     <!-- Size of the patched APK, once patching finished -->
     <!-- How long patching took -->
-    <!-- Average and peak memory the patcher process held while it ran -->
+    <!-- Average and peak heap the patcher held while it ran -->
     <!-- Fastest read or write rate reached while patching, in data per second -->
     <!-- Value of "Libraries": the libraries this device cannot use were dropped from the patched APK -->
     <!-- Value of "Libraries": every library was left in the patched APK -->
     <!-- Patcher Screen - Patcher Steps -->
     <!-- Battery optimization pre-flight dialog -->
-    <!-- Memory limit dialog, shown after the patcher process was killed -->
     <!-- Patcher Screen - Patcher Worker -->
     <!-- Patcher Screen - Patcher Messages -->
     <!-- Morphe patches fix YouTube bugs that Google still has not fixed. -->
@@ -247,26 +276,102 @@
     <!-- Quantum physics (box emoji is a reference to Schrödinger's cat). -->
     <!-- Throw away reference to a Saturday Night Live sketch. "fever" means sickness or the flu. "prescription" means medical treatment or can be translated from "cure" -->
     <!-- Expert patcher Screen -->
-    <!-- "%1$s" is the share of the memory limit the patcher is using, already formatted as a percentage. "%2$s" is that limit in megabytes. -->
     <!-- Patcher Screen - Other hidden strings -->
+    <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <!-- Patcher Screen - Mini-games -->
     <!-- Settings -->
+    <string name="appearance">Выгляд</string>
     <!-- Settings - Appearance Tab - Background animation -->
+    <string name="settings_appearance_background">Фонавая анімацыя</string>
+    <string name="settings_appearance_background_circles">Кругі</string>
+    <string name="settings_appearance_background_rings">Кольцы</string>
+    <string name="settings_appearance_background_mesh">Рашотка</string>
+    <string name="settings_appearance_background_space">Космас</string>
+    <string name="settings_appearance_background_shapes">Фігуры</string>
+    <string name="settings_appearance_background_snow">Снег</string>
+    <string name="settings_appearance_background_grid">Сетка</string>
+    <string name="settings_appearance_background_particles">Часціцы</string>
+    <string name="settings_appearance_background_lava">Лававая лампа</string>
+    <string name="settings_appearance_background_halloween">Хэлоўін</string>
+    <string name="settings_appearance_background_fireworks">Феерверкі</string>
+    <string name="settings_appearance_background_none">Няма</string>
+    <string name="settings_appearance_background_random">Выпадковая</string>
+    <string name="settings_appearance_background_random_interval_launch">Пры запуску</string>
+    <string name="settings_appearance_background_random_interval_daily">Штодзённа</string>
+    <string name="settings_appearance_background_random_interval_3days">Кожныя 3 дні</string>
+    <string name="settings_appearance_parallax_effect">Эфект паралакса</string>
+    <string name="settings_appearance_seasonal_themes">Сезонныя тэмы</string>
+    <string name="settings_appearance_seasonal_themes_description">Святочныя фоны і віншаванні падчас святаў</string>
     <!-- %1$s is a holiday background name, such as Halloween. %2$s is a date, such as November 1 -->
     <!-- Settings - Appearance Tab - Theme -->
+    <string name="settings_appearance_display">Адлюстраванне</string>
+    <string name="settings_appearance_effects">Эфекты</string>
+    <string name="settings_appearance_theme">Тэма</string>
+    <string name="settings_appearance_theme_mode">Рэжым тэмы</string>
+    <string name="settings_appearance_system">Сістэма</string>
+    <string name="settings_appearance_light">Светлы</string>
+    <string name="settings_appearance_dark">Цёмны</string>
+    <string name="settings_appearance_dynamic">Material You</string>
+    <string name="settings_appearance_monochrome">Манахромны</string>
+    <string name="settings_appearance_color_style">Стыль колера</string>
+    <string name="settings_appearance_accent_color">Акцэнтны колер</string>
+    <string name="settings_appearance_pure_black">Чыста чорны</string>
+    <string name="settings_appearance_pure_black_description">Выкарыстоўвае чыста чорны фон</string>
+    <string name="settings_appearance_color_accents">Колеры праграмы і крыніцы</string>
+    <string name="settings_appearance_color_accents_description">Выкарыстоўвае колер кожнай праграмы і крыніцы замест акцэнту</string>
+    <string name="settings_appearance_outlines">Контуры</string>
+    <string name="settings_appearance_blur">Размыццё</string>
     <!-- Settings - Appearance Tab - Language Selector -->
+    <string name="settings_appearance_app_language">Мова праграмы</string>
+    <string name="settings_appearance_app_language_current">Бягучая мова</string>
+    <string name="settings_appearance_translate">Дапамажці ў перакладзе Morphe</string>
     <!-- Settings - Appearance Tab - Interface Scale -->
+    <string name="settings_appearance_ui_scale">Маштаб інтэрфейсу</string>
     <!-- Settings - Appearance Tab - Home Screen Section -->
+    <string name="settings_appearance_home_screen">Галоўны экран</string>
+    <string name="settings_appearance_greeting_phrases">Прывітальныя фразы</string>
+    <string name="settings_appearance_greeting_phrases_subtitle">Паказвае прывітальнае паведамленне</string>
+    <string name="settings_appearance_repatch_notice">Паведамленне аб перапатчынгу</string>
+    <string name="settings_appearance_repatch_notice_description">Паказвае банер, калі прапатчаныя праграмы можна перапатчыць</string>
+    <string name="settings_appearance_more_apps_card">Больш картак праграм</string>
+    <string name="settings_appearance_app_card_colors">Колеры карткі праграмы</string>
+    <string name="settings_appearance_app_card_colors_default">Звычайны</string>
+    <string name="settings_appearance_app_card_colors_accent">Акцэнт</string>
+    <string name="settings_appearance_app_card_colors_gradient">Градыент</string>
+    <string name="settings_appearance_app_card_colors_solid">Аднастайны</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
+    <string name="settings_appearance_app_icon_selector_title">Іконка праграмы</string>
+    <string name="settings_appearance_app_icon_light_2">Неба</string>
+    <string name="settings_appearance_app_icon_light_3">Захад сонца</string>
+    <string name="settings_appearance_app_icon_light_4">Лаванда</string>
+    <string name="settings_appearance_app_icon_light_5">Ледавік</string>
+    <string name="settings_appearance_app_icon_light_6">Туман</string>
+    <string name="settings_appearance_app_icon_light_7">Пясок</string>
+    <string name="settings_appearance_app_icon_dark_1">Бірузовая</string>
+    <string name="settings_appearance_app_icon_dark_2">Пустэча</string>
+    <string name="settings_appearance_app_icon_dark_3">Слівовая</string>
+    <string name="settings_appearance_app_icon_dark_4">Паўночная</string>
+    <string name="settings_appearance_app_icon_dark_5">Шыферная</string>
+    <string name="settings_appearance_app_icon_accent_1">Аўрора</string>
+    <string name="settings_appearance_app_icon_accent_2">Чарніла</string>
+    <string name="settings_appearance_app_icon_accent_3">Папера</string>
+    <string name="settings_appearance_app_icon_accent_4">Змярканне</string>
+    <string name="settings_appearance_app_icon_background">Фон</string>
+    <string name="settings_appearance_app_icon_mark">Лагатып</string>
+    <string name="settings_appearance_app_icon_mark_color">Колер</string>
+    <string name="settings_appearance_app_icon_mark_white">Белы</string>
+    <string name="settings_appearance_app_icon_mark_black">Чорны</string>
+    <string name="settings_appearance_app_icon_change_dialog_title">Змяніць колер іконкі?</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Settings - Advanced Tab - Updates Section -->
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
     <!-- Notification content -->
+    <string name="notification_channel_mounted_apps">Замацаваныя праграмы</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
     <!-- Settings - Advanced Tab - GitHub PAT Settings -->
-    <!-- "%s" is "GitHub Personal Access Token", kept in English because GitHub has no localized UI -->
-    <!-- "%3$s" is "GitHub Personal Access Token", "%2$s" is the GitHub scope name and "%1$s" is the GitHub website. "PAT" is its abbreviation, keep it in English -->
+    <!-- "%s" is the GitHub scope name, keep it as is -->
+    <!-- "%s" is the GitHub account name -->
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <!-- Settings - Advanced Tab - Patch Options Section -->
@@ -279,6 +384,7 @@
     <!-- Settings - System Tab - Import and Export Section -->
     <!-- Settings - System Tab - Files & Storage Section -->
     <!-- Settings - System Tab - Storage Management screen -->
+    <!-- Shown under how much Morphe takes up. "%1$s" is the space still available on the device, already formatted with its unit. "Free" as in unused, not as in free of charge. -->
     <!-- Settings - System Tab - Storage Management - Patched APKs Management -->
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
@@ -290,7 +396,11 @@
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <!-- Shared strings -->
     <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
+    <!-- Sections the settings page lists, each opening a page of its own. A summary names what the section holds -->
+    <!-- Who made a patch source, as a field label -->
+    <!-- A file a patch source is added from, as a field label -->
     <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
+    <string name="sources">Крыніцы</string>
     <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
     <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
@@ -302,4 +412,7 @@
     <!-- Translate "System" the same way as the System settings tab -->
     <!-- Tour prompt dialog shown after first successful patch install -->
     <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
+
+    <!-- Nivqo additions preserved from the previously signed Manager -->
+    <string name="sources_sort_title">Сартаваць крыніцы патчаў</string>
 </resources>

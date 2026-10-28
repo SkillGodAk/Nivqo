@@ -59,6 +59,14 @@
 
 .EXAMPLE
     scripts/verify-injected-registers.ps1 -FromDevice -Serial $env:HUSHFACEBOOK_DEVICE_SERIAL
+
+.EXAMPLE
+    scripts/verify-injected-registers.ps1 -PatchedApk C:\work\patched.apk -Serial $env:HUSHFACEBOOK_DEVICE_SERIAL -ReceiptPath verifier-receipt.json
+
+    A release's run. The receipt (New-VerifierReceipt) says which phone verified the APK, the patch
+    build identity read out of the APK's own dex, both halves' results and every verifier message
+    that differs, and it's written PASS or FAIL. release/release.ps1 -Stage publish takes it as
+    -Verifier and refuses a bundle it doesn't back.
 #>
 [CmdletBinding()]
 param(
@@ -69,12 +77,18 @@ param(
     [string]$Serial,
     [string]$Adb,
     [string]$ReportPath,
+    [string]$ReceiptPath,
     [string]$Java,
     [string]$DesktopJar,
     [string]$Aapt2
 )
 
 $ErrorActionPreference = 'Stop'
+# A receipt stands for the device half, so a run that can't take one writes none.
+if ($ReceiptPath -and -not $Serial) { throw '-ReceiptPath needs -Serial: the receipt is the device verifier''s word, and a run without a device has none.' }
+# A run that stops short leaves no receipt, so an older one at that path can't pass for this run's.
+$receiptFile = if ($ReceiptPath) { $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ReceiptPath) }
+if ($receiptFile -and (Test-Path -LiteralPath $receiptFile -PathType Leaf)) { Remove-Item -LiteralPath $receiptFile -Force }
 $root = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'Resolve-Java.ps1')
 . (Join-Path $PSScriptRoot 'common.ps1')
@@ -267,6 +281,17 @@ if ($Serial) {
     } else {
         Write-Host '[registers] device: the clean and patched verifier message tallies are identical.'
     }
+}
+
+if ($ReceiptPath) {
+    $model = Invoke-HushfacebookAdbCommand -Adb $adbPath -Arguments @('-s', $Serial, 'shell', 'getprop ro.product.model')
+    if ($model.ExitCode -ne 0) { throw (Format-HushfacebookAdbFailure -Message "Could not read the model of $Serial" -Result $model) }
+    $receipt = New-VerifierReceipt -Serial $Serial -Device ((@($model.Output) -join '').Trim()) -Facebook $patched.versionName `
+        -PatchBuild (Get-ApkPatchBuild -Apk $PatchedApk) `
+        -PatchedApkSha256 (Get-FileHash -LiteralPath $PatchedApk -Algorithm SHA256).Hash.ToLowerInvariant() `
+        -StaticPassed ($diff.ExitCode -eq 0) -Comparison $comparison
+    [System.IO.File]::WriteAllText($receiptFile, ($receipt | ConvertTo-Json -Depth 5))
+    Write-Host "[registers] receipt: $ReceiptPath ($($receipt.result), patch build $(if ($receipt.patchBuild) { $receipt.patchBuild } else { 'none' }))"
 }
 
 $completed = $true

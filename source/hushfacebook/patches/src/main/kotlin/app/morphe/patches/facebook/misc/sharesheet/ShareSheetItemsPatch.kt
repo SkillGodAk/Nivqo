@@ -20,7 +20,8 @@ import app.morphe.patches.shared.compat.AppCompatibilities
  *
  * Its group switch, beside the list, takes away the share sheet's Send to group button and its
  * new-group entries (#104), the way HushGram's Hide group buttons on the share sheet does for
- * Instagram. Those hooks are shareSheetGroupsPatch's; see ShareSheetGroupsPatch.kt.
+ * Instagram. Those hooks are shareSheetGroupsPatch's; see ShareSheetGroupsPatch.kt. Its people switch takes away
+ * the row of suggested people to send to (#169), shareSheetPeoplePatch's; see ShareSheetPeoplePatch.kt.
  *
  * In the default selection, but it changes nothing until it's turned on in Hushfacebook settings:
  * nobody has seen it on a signed-in account yet.
@@ -30,11 +31,11 @@ val shareSheetItemsPatch = bytecodePatch(
     name = "Share sheet items",
     description = "Lets you hide items you never use from Facebook's share sheet, such as WhatsApp, Meta AI or " +
         "Copy link, so the ones you want are easier to reach. Nothing is hidden until you pick. Choose them in " +
-        "Hushfacebook settings > Links, where a switch that starts off also takes away the buttons that send to " +
-        "the people you picked as a new group chat.",
+        "Hushfacebook settings > Links and sharing, where two switches that start off also take away the buttons that send to " +
+        "the people you picked as a new group chat and the row of people Facebook suggests sending to.",
 ) {
     category("Interface")
-    dependsOn(settingsPatch, facebookExtensionPatch, shareSheetHookPatch, shareSheetGroupsPatch)
+    dependsOn(settingsPatch, facebookExtensionPatch, shareSheetHookPatch, shareSheetGroupsPatch, shareSheetPeoplePatch)
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {

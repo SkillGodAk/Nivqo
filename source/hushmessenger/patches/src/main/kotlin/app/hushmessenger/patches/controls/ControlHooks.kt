@@ -26,6 +26,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference as DexMethodReference
@@ -37,7 +38,6 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 
 internal const val SETTINGS = "Lapp/hushmessenger/extension/Settings;"
-internal const val AD_ITEM = "Lcom/facebook/messaging/business/inboxads/common/InboxAdsItem;"
 internal const val IMMUTABLE_LIST = "Lcom/google/common/collect/ImmutableList;"
 private const val PEOPLE_JEWEL_KEY = "pymk_jewel_section_hidden"
 /** Only the People tab's suggestion handler starts this coroutine; the handler itself is obfuscated. */
@@ -84,13 +84,24 @@ internal const val MEDIA_TRANSCODER = "Lcom/facebook/msys/mci/transcoder/Default
 internal const val TRANSCODE_IMAGE = "$MEDIA_TRANSCODER->transcodeImage(Ljava/lang/String;DDLjava/lang/String;Ljava/util/Map;)[B"
 internal const val TRANSCODE_IMAGE_ASYNC = "$MEDIA_TRANSCODER->transcodeImageAsync(" +
     "Ljava/lang/String;DDLjava/lang/String;Ljava/util/Map;Lcom/facebook/msys/mci/TranscodeImageCompletionCallback;)V"
+/** The config map that picks msys's native photo transcoder, and the Java one's decode; native code calls both by name. */
+internal const val TRANSCODE_CONFIG = "$MEDIA_TRANSCODER->getTranscodeConfig()Ljava/util/Map;"
+internal const val DECODE_BITMAP = "$MEDIA_TRANSCODER->decodeBitmap(Ljava/lang/String;DD)Landroid/graphics/Bitmap;"
+internal val ORIGINAL_PHOTO_HOOKS = setOf(TRANSCODE_IMAGE, TRANSCODE_IMAGE_ASYNC, TRANSCODE_CONFIG, DECODE_BITMAP)
+private const val DECODE_FILE = "Landroid/graphics/BitmapFactory;->decodeFile(Ljava/lang/String;)Landroid/graphics/Bitmap;"
+private const val BITMAP = "Landroid/graphics/Bitmap;"
+private val SCALE_BITMAP_PARAMS = listOf(BITMAP, "I", "I", "Z")
 private const val ORIGINAL_PHOTO = "Lapp/hushmessenger/extension/OriginalPhoto;"
 private const val FLAG_SECURE = 0x2000
+
+internal const val FACEBOOK_PROFILE = "facebook_profile"
+internal const val FACEBOOK_PROFILE_BUTTON =
+    "Lcom/facebook/messaging/profile/plugins/core/threadsettingsactionbutton/facebookprofile/ThreadSettingsFacebookProfileActionButton;"
 
 private val facebookPlugins = setOf(
     "Lcom/facebook/messaging/inbox/tab/plugins/core/tabtoolbarbutton/facebookbutton/facebooktoolbarbutton/FacebookButtonTabButtonImplementation;",
     "Lcom/facebook/messaging/marketplace/plugins/folder/navbarmenuitem/NavBarMenuItemImplementation;",
-    "Lcom/facebook/messaging/profile/plugins/core/threadsettingsactionbutton/facebookprofile/ThreadSettingsFacebookProfileActionButton;",
+    FACEBOOK_PROFILE_BUTTON,
     "Lcom/facebook/messaging/navigation/plugins/drawerfoldersections/fbshortcutsfoldersection/FacebookShortcutsFolderSection;",
     "Lcom/facebook/messaging/navigation/plugins/drawerfoldersections/subscriptionsfoldersection/SubscriptionsFolderSection;",
     "Lcom/facebook/messaging/communitymessaging/plugins/channelinvite/sharetofacebookbutton/ShareToFacebookButtonImplementation;",
@@ -105,15 +116,12 @@ internal fun Method.hookId() = "$definingClass->$name(${parameterTypes.joinToStr
 
 /** Match semantics first, then require the exact set the build's profile records. */
 internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInboxContract? = findCommunityInbox(classes)): Map<String, List<Method>> {
+    // Every build lists the base profile's controls (ControlProfileTest), so these keys are the active build's too. Only
+    // the hook ids differ by build, and validateControls compares what's found here with the active build's.
     val found = BASE_PROFILE.hooks.keys.associateWith { mutableListOf<Method>() }
     community?.let { found.getValue(COMMUNITY_INBOX).add(it.render) }
     found.getValue("ai_sticker_cell").addAll(findAiStickerCells(classes))
-    val adContract = classes.any { it.type == AD_ITEM } && classes.any { cls ->
-        cls.type == IMMUTABLE_LIST && cls.methods.any {
-            it.name == "copyOf" && it.parameterTypes == listOf("Ljava/util/Collection;") &&
-                it.returnType == IMMUTABLE_LIST && AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
-        }
-    }
+    found.getValue("ai_sticker_grid").addAll(findAiStickerGrids(classes))
     // Static fields stored by any class initializer that mentions the Notifications tab's "hide suggestions" preference
     // key. validatePeopleSection checks the exact key before anything is edited.
     val peopleJewelKeys = classes.flatMap { cls ->
@@ -180,6 +188,7 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
     }
     val appIconManagers = findAppIconManagers(classes)
     val stringTables = redexStringTables(classes)
+    activeStringTables = stringTables
     var searchFieldRender: Method? = null
     var changedViewer = false
     val drawerReaders = mutableListOf<Method>()
@@ -189,7 +198,7 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
             ?.initialValue.let { (it as? StringEncodedValue)?.value }
         for (method in cls.methods) {
             fun add(key: String) { found.getValue(key).add(method) }
-            if ((cls.type == EPHEMERAL_VIEWER && (method.name == EPHEMERAL_DIALOG || method.name == "onResume")) ||
+            if ((cls.type == EPHEMERAL_VIEWER && (method.name in EPHEMERAL_DIALOGS || method.name == "onResume")) ||
                 (cls.type == QUICKSNAP_VIEWER && method.name == "onCreateView")) {
                 try {
                     method.screenshotViewerSites()
@@ -211,14 +220,16 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
                 val anchors = strings + method.tableStrings(stringTables)
                 for ((key, spec) in pluginGates) if (anchors.any { it in spec.anchors }) add(key)
             }
-            if (adContract && method.returnType == IMMUTABLE_LIST && method.parameterTypes.size == 3 &&
-                strings.containsAll(setOf("messaging.inbox.itemlistprocessor.ItemListProcessorInterfaceSpec", "processItems", "new_friend_bump_threads"))) add("ads")
             if (gate && "com.facebook.messaging.friendsinboxunit.plugins.inboxunit.FriendsInboxUnitKillSwitch" in strings) add("stories")
             if (cls.type in appIconManagers && method.isAppIconGate()) add(APP_ICONS)
-            if (gate && instructions.any {
-                it.opcode == Opcode.NEW_INSTANCE &&
-                    ((it as? ReferenceInstruction)?.reference as? TypeReference)?.type in facebookPlugins
-            }) add("facebook")
+            if (gate) {
+                val shortcuts = instructions.filter { it.opcode == Opcode.NEW_INSTANCE }
+                    .mapNotNull { ((it as? ReferenceInstruction)?.reference as? TypeReference)?.type }
+                    .filter { it in facebookPlugins }.toSet()
+                // A gate that builds only the chat details Profile button gets its own key, so Keep the Profile button can spare it.
+                if (shortcuts == setOf(FACEBOOK_PROFILE_BUTTON)) add(FACEBOOK_PROFILE)
+                else if (shortcuts.isNotEmpty()) add("facebook")
+            }
             if (gate && strings.any {
                 it == "com.facebook.messaging.navigation.plugins.aicreationfolder.folderitem.AiCreationFolderItem" ||
                     it == "com.facebook.messaging.navigation.plugins.aihomefolder.folderitem.AiHomeFolderItem"
@@ -248,7 +259,7 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
             if (!AccessFlags.STATIC.isSet(method.accessFlags) &&
                 strings.containsAll(setOf(PEOPLE_SEARCH_SOURCE, "Failed to load people you may know"))) add("people_search")
             if (AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.parameterTypes == listOf(cls.type) &&
-                STORY_SUGGESTIONS_QUERY in strings) add("people_story")
+                STORY_SUGGESTIONS_QUERY in strings + method.tableStrings(stringTables)) add("people_story")
             // The chat list supplier's items read, which first traces under its own name.
             if (cls.type == INBOX_SUPPLIER && !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == IMMUTABLE_LIST &&
                 method.parameterTypes.isEmpty() && INBOX_ITEMS_TRACE in strings) add(INBOX_REFRESH_HOOK)
@@ -262,8 +273,11 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
                 !AccessFlags.STATIC.isSet(method.accessFlags) &&
                 instructions.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == FLAG_SECURE } &&
                 refs.any { it.toString() == "Landroid/view/Window;->addFlags(I)V" }) add("allow_screenshot")
-            if (cls.type == MEDIA_TRANSCODER && method.hookId().let { it == TRANSCODE_IMAGE || it == TRANSCODE_IMAGE_ASYNC }) add("original_photo")
-            if (method.isVideoTranscode(strings)) add(ORIGINAL_VIDEO)
+            if (cls.type == MEDIA_TRANSCODER && method.hookId() in ORIGINAL_PHOTO_HOOKS) add("original_photo")
+            if (method.isVideoTranscode(strings)) {
+                add(ORIGINAL_VIDEO)
+                if (method.parsesTranscodeSource()) add(XHE_TRANSCODE)
+            }
             if (method.returnType == "V" && method.isKeepUnsentShape() && strings.any { "ACTION_REVOKE_MESSAGE" in it }) add("keep_unsent")
             // Both unsent hooks call the wrapper's own message id getter, so the wrapper that holds them has to have one.
             if (messageTextGetterName.isNotEmpty() && method.name == messageTextGetterName &&
@@ -359,25 +373,43 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
     if (changedViewer) found.getValue("screenshot_viewers").clear() else screenshotViewerRefusal = null
     found.getValue(EMOJI_DRAWER).addAll(connectEmojiDrawer(drawerReaders, drawerAnchors))
     found.getValue(EMOJI_SEARCH).addAll(findEmojiSearch(classes))
+    found.getValue(TAB_BADGES).addAll(findTabBadges(classes))
+    found.getValue(FACEBOOK_BADGE).addAll(findFacebookBadge(classes))
+    found.getValue(TAB_CONFIG).addAll(findTabConfig(classes))
     found.getValue(AI_MENTIONS).addAll(findAiMentions(classes))
     found.getValue(AI_COMMANDS).addAll(findAiCommands(classes))
-    found.getValue(AI_SEARCH_HINT).addAll(findAiSearchHint(classes))
+    val searchBars = findAiSearchHint(classes)
+    found.getValue(AI_SEARCH_HINT).addAll(searchBars)
+    found.getValue(AI_SEARCH_SCREEN_HINT).addAll(findAiSearchScreenHint(classes, searchBars))
     found.getValue(AI_MENTION_ROWS).addAll(findAiMentionRows(classes))
     found.getValue(XHE_AUDIO).addAll(findXheAudio(classes))
     found.getValue(DISAPPEARING_SWIPE).addAll(findDisappearingSwipe(classes))
-    found.getValue(ANALYTICS_UPLOADS).addAll(findAnalyticsUploads(classes) + findBoundUploadTasks(classes) + findXAnalyticsUploadTimers(classes))
+    found.getValue(RECENT_MEDIA).addAll(findRecentMedia(classes))
+    found.getValue(ANALYTICS_UPLOADS).addAll(findAnalyticsUploads(classes) + findBoundUploadTasks(classes) +
+        findXAnalyticsUploadTimers(classes) + findInProcessUploadStarts(classes))
     found.getValue(ATTRIBUTION_UPLOADS).addAll(findAttributionUploads(classes))
     found.getValue(AD_EVENTS).addAll(findAdEvents(classes))
     found.getValue(MQTT_TELEMETRY).addAll(findMqttTelemetry(classes))
     found.getValue(PINNED_CHATS).addAll(findPinnedChatLimit(classes))
-    found.getValue(NEARBY_SCANS).addAll(findNearbyScans(classes))
-    found.getValue(WIFI_IDENTITY).addAll(findWifiIdentityReads(classes))
+    found.getValue(NEARBY_SCANS).addAll(patchStage("Find nearby scans") { findNearbyScans(classes) })
+    found.getValue(WIFI_IDENTITY).addAll(patchStage("Find Wi-Fi identity reads") { findWifiIdentityReads(classes) })
+    found.getValue(PHONE_ID_SYNC).addAll(findPhoneIdSync(classes))
+    found.getValue(STORY_HOLD).addAll(findStoryHold(classes))
+    found.getValue(SHARE_STORY).addAll(findShareStory(classes))
+    found.getValue(AVATAR_SHAPE).addAll(findAvatarShape(classes))
+    found.getValue(QUIET_CALL_RING).addAll(findQuietCallRing(classes))
+    found.getValue(QUIET_CALL_NOTIFICATION).addAll(findQuietCallNotification(classes))
     found.getValue(TEXT_STYLE).addAll(findTextStyleField(classes))
     found.getValue(MESSAGE_LOG).addAll(findMessageLogHook(classes))
     found.getValue(AUTO_REPLY).addAll(findMessageLogHook(classes))
+    autoReplyPictureRecipe = resolveAutoReplyPictureRecipe(classes)
     messageLogContract = resolveMessageLogContract(classes)
     readReceiptThreadFields = resolveReadReceiptThreadFields(classes)
+    val (markReadBar, markReadClick) = findMarkReadButton(classes)
+    found.getValue(MARK_READ_BAR).addAll(markReadBar)
+    found.getValue(MARK_READ_CLICK).addAll(markReadClick)
     found.getValue(SYSTEM_CAMERA).addAll(findSystemCamera(classes))
+    found.getValue(EXTERNAL_GALLERY).addAll(findExternalGallery(classes))
     for ((hook, methods) in findCustomFont(classes)) found.getValue(hook).addAll(methods)
     return found
 }
@@ -393,7 +425,7 @@ internal fun validateControls(
         if (actual.size != expected.size || actual.toSet() != expected) {
             val why = screenshotViewerRefusal?.takeIf { feature == "screenshot_viewers" }?.let { " $it." } ?: ""
             throw PatchException("Messenger controls: $feature hooks differ from the tested build.$why " +
-                "Use an unmodified arm64 Messenger ${MessengerTarget.supportedApks(versions)}.")
+                "Use an unmodified Messenger ${MessengerTarget.supportedApks(versions)}.")
         }
     }
 }
@@ -482,12 +514,8 @@ internal fun MutableMethod.validatePluginGate() {
         disabled?.opcode != Opcode.CONST_4 || (disabled as? WideLiteralInstruction)?.wideLiteral != 0L ||
         enabledRegister !in 2 until implementation!!.registerCount - 1 ||
         disabledRegister !in 2 until implementation!!.registerCount - 1 || enabledRegister == disabledRegister ||
-        code.drop(3).any { instruction ->
-            val destination = (instruction as? OneRegisterInstruction)?.registerA
-            instruction.opcode.setsRegister() && destination != null &&
-                (destination == enabledRegister || destination == disabledRegister ||
-                    (instruction.opcode.setsWideRegister() &&
-                        (destination + 1 == enabledRegister || destination + 1 == disabledRegister)))
+        rethrowOnlyWrites(code, implementation!!.tryBlocks).let { rethrown ->
+            code.withIndex().drop(3).any { (index, instruction) -> index !in rethrown && instruction.writesEither(enabledRegister, disabledRegister) }
         } ||
         tail.map { it.opcode } != listOf(Opcode.IGET_OBJECT, Opcode.SGET_OBJECT, Opcode.IF_EQ, Opcode.RETURN, Opcode.RETURN) ||
         cache?.registerA != 1 || cache.registerB != first.registerB ||
@@ -501,34 +529,38 @@ internal fun MutableMethod.validatePluginGate() {
     }
 }
 
-/** The registers 583 returns from its two exits, in order. */
-private val AD_FILTER_RESULTS = listOf(7, 2)
-
-/** Wrap both exits, including direct branches to a return. The returned list stays intact on the inactive path. */
-internal fun MutableMethod.validateAdFilter(): List<Int> {
-    val code = implementation!!.instructions
-    val exits = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
-    if (implementation!!.registerCount != 24 || code.size != activeProfile.adFilterSize || exits != activeProfile.adFilterExits ||
-        exits.map { (code[it] as? OneRegisterInstruction)?.registerA ?: -1 } != AD_FILTER_RESULTS) {
-        throw PatchException("Messenger controls: the inbox ad filter exits differ from the tested build")
-    }
-    return exits
+/** Whether [this] writes register [first] or [second], counting the high half of a wide write. */
+private fun Instruction.writesEither(first: Int?, second: Int?): Boolean {
+    val destination = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return opcode.setsRegister() && (destination == first || destination == second ||
+        (opcode.setsWideRegister() && (destination + 1 == first || destination + 1 == second)))
 }
 
-internal fun MutableMethod.injectAdFilter() {
-    val exits = validateAdFilter()
-    for (index in exits.reversed()) {
-        val result = (implementation!!.instructions[index] as OneRegisterInstruction).registerA
-        replaceInstruction(index, "invoke-static {v$result}, $SETTINGS->filterInboxAds(Ljava/util/List;)Ljava/util/List;")
-        addInstructionsWithLabels(index + 1, """
-            move-result-object v0
-            if-eqz v0, :original_list
-            invoke-static {v0}, $IMMUTABLE_LIST->copyOf(Ljava/util/Collection;)$IMMUTABLE_LIST
-            move-result-object v$result
-            :original_list
-            return-object v$result
-        """.trimIndent())
-    }
+private val RETURNS = setOf(Opcode.RETURN_VOID, Opcode.RETURN, Opcode.RETURN_WIDE, Opcode.RETURN_OBJECT)
+
+/**
+ * Indexes of the move-exception writes that can only be rethrown. From the move-exception to the first throw nothing
+ * returns, branches or switches out, writes the caught register again or sits inside a try block, and that throw
+ * rethrows the caught register. 584.1's plugin gates reuse their 0 register in such a systrace handler, which never
+ * reaches the gate's returns.
+ */
+internal fun rethrowOnlyWrites(code: List<Instruction>, tryBlocks: List<com.android.tools.smali.dexlib2.iface.TryBlock<*>>): Set<Int> {
+    val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+    return code.indices.filter { start ->
+        val caught = (code[start] as? OneRegisterInstruction)?.registerA
+        val end = (start + 1 until code.size).firstOrNull { code[it].opcode == Opcode.THROW }
+        code[start].opcode == Opcode.MOVE_EXCEPTION && caught != null && end != null &&
+            (code[end] as OneRegisterInstruction).registerA == caught &&
+            tryBlocks.none { block ->
+                block.startCodeAddress < addresses[end + 1] && addresses[start] < block.startCodeAddress + block.codeUnitCount
+            } &&
+            (start + 1 until end).all { i ->
+                val instruction = code[i]
+                val target = (instruction as? OffsetInstruction)?.let { addresses[i] + it.codeOffset }
+                instruction.opcode !in RETURNS && !instruction.writesEither(caught, null) &&
+                    (target == null || target in addresses[start + 1]..addresses[end])
+            }
+    }.toSet()
 }
 
 /** v0 must be a local register, never a parameter overwritten on the stock branch. */
@@ -572,14 +604,79 @@ internal fun MutableMethod.validateSwitch() {
 
 internal fun MutableMethod.validateOriginalPhoto() {
     validateScratch()
-    if (AccessFlags.STATIC.isSet(accessFlags) || (hookId() != TRANSCODE_IMAGE && hookId() != TRANSCODE_IMAGE_ASYNC)) {
+    if (AccessFlags.STATIC.isSet(accessFlags) || hookId() !in ORIGINAL_PHOTO_HOOKS) {
         throw PatchException("Messenger controls: unexpected photo transcoder ${hookId()}")
+    }
+    when (hookId()) {
+        TRANSCODE_CONFIG -> transcodeConfigReturn()
+        DECODE_BITMAP -> decodeFileCall()
     }
 }
 
-/** Hands an HD photo back as its own file; OriginalPhoto returns null or false to let the stock transcode run. */
+/** getTranscodeConfig's one return, of the map it filled with the native transcoder's switch among the rest. */
+private fun Method.transcodeConfigReturn(): Int {
+    val code = implementation!!.instructions.toList()
+    val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
+    if (returns.size != 1 || code.none { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == "ENABLE_UIT_TRANSCODING" }) {
+        throw PatchException("Messenger controls: the photo transcoder's config changed in ${hookId()}")
+    }
+    return returns.single()
+}
+
+/** decodeBitmap's one whole-file decode, ahead of the shrink to its limits, which its new prologue has to reach first. */
+private fun Method.decodeFileCall(): Int {
+    val code = implementation!!.instructions.toList()
+    val calls = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == DECODE_FILE }
+    val call = calls.singleOrNull()?.let(code::get)
+    // 584.1 routes the shrink through Messenger's own static helper rather than Bitmap.createScaledBitmap.
+    val scale = code.indexOfFirst { instruction ->
+        instruction.opcode in setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE) &&
+            ((instruction as? ReferenceInstruction)?.reference as? DexMethodReference)?.let { reference ->
+                reference.returnType == BITMAP && reference.parameterTypes.map(CharSequence::toString) == SCALE_BITMAP_PARAMS
+            } == true
+    }
+    if (call == null || call.opcode !in setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE) || call.registerList().size != 1 ||
+        scale < calls.single() || 0 in jumpTargets()) {
+        throw PatchException("Messenger controls: the photo transcoder's decode changed in ${hookId()}")
+    }
+    return calls.single()
+}
+
+private fun Instruction.registerList(): List<Int> = when (this) {
+    is RegisterRangeInstruction -> (startRegister until startRegister + registerCount).toList()
+    is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
+    else -> emptyList()
+}
+
+/**
+ * Hands an HD photo back as its own file; OriginalPhoto returns null or false to let the stock transcode run. On 583's
+ * route it picks the Java transcoder and lets decodeBitmap keep an HD photo's size, decoding no larger than it needs.
+ */
 internal fun MutableMethod.injectOriginalPhoto() {
     validateOriginalPhoto()
+    when (hookId()) {
+        TRANSCODE_CONFIG -> {
+            val at = transcodeConfigReturn()
+            val config = (getInstruction(at) as OneRegisterInstruction).registerA
+            // The return's own slot becomes the call, so anything that jumps to the return runs it too.
+            replaceInstruction(at, "invoke-static/range {v$config .. v$config}, $ORIGINAL_PHOTO->transcodeConfig(Ljava/util/Map;)V")
+            addInstructions(at + 1, "return-object v$config")
+            return
+        }
+        DECODE_BITMAP -> {
+            val at = decodeFileCall()
+            val path = getInstruction(at).registerList().single()
+            replaceInstruction(at, "invoke-static/range {v$path .. v$path}, $ORIGINAL_PHOTO->decodeFile(Ljava/lang/String;)Landroid/graphics/Bitmap;")
+            // The URL is p1 and the width and height limits p2-p3 and p4-p5, which Messenger reads only after this.
+            addInstructions(0, """
+                invoke-static/range {p1 .. p5}, $ORIGINAL_PHOTO->decodeWidth(Ljava/lang/String;DD)D
+                move-result-wide p2
+                invoke-static/range {p1 .. p5}, $ORIGINAL_PHOTO->decodeHeight(Ljava/lang/String;DD)D
+                move-result-wide p4
+            """.trimIndent())
+            return
+        }
+    }
     // The URL, target width and height, options, extras and (async) callback sit in one run of parameter registers.
     val call = if (returnType == "[B") """
         invoke-static/range {p1 .. p7}, $ORIGINAL_PHOTO->sync(Ljava/lang/String;DDLjava/lang/String;Ljava/util/Map;)[B
@@ -595,43 +692,55 @@ internal fun MutableMethod.injectOriginalPhoto() {
     addInstructionsWithLabels(0, call.trimIndent(), ExternalLabel("stock_behavior", getInstruction(0)))
 }
 
+private const val SUBTABS_SUPPLIER_CLASS =
+    "Lcom/facebook/messaging/inboxsubtabs/plugins/subtabs/itemsupplier/InboxSubtabsItemSupplierImplementation;"
+
+/**
+ * 584 reads the visibility flag through a holder object: the supplier into v0 from this, its A07 holder into v0, the
+ * holder's AtomicBoolean into v1, 1 into v0, then v1.set(v0).
+ */
 internal fun MutableMethod.validateSubtabs() {
     val instructions = implementation!!.instructions
-    val literal = instructions.getOrNull(2)
+    val literal = instructions.getOrNull(3)
     val supplier = instructions.getOrNull(0) as? TwoRegisterInstruction
-    val flag = instructions.getOrNull(1) as? TwoRegisterInstruction
-    val setter = instructions.getOrNull(3) as? FiveRegisterInstruction
+    val holder = instructions.getOrNull(1) as? TwoRegisterInstruction
+    val flag = instructions.getOrNull(2) as? TwoRegisterInstruction
+    val setter = instructions.getOrNull(4) as? FiveRegisterInstruction
+    val holderRef = (instructions.getOrNull(1) as? ReferenceInstruction)?.reference as? FieldReference
+    val flagRef = (instructions.getOrNull(2) as? ReferenceInstruction)?.reference as? FieldReference
     if (implementation!!.registerCount != 3 || instructions.map { it.opcode } !=
-        listOf(Opcode.IGET_OBJECT, Opcode.IGET_OBJECT, Opcode.CONST_4, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID) ||
-        supplier?.registerA != 0 || supplier.registerB != 2 || flag?.registerA != 1 || flag.registerB != 0 ||
+        listOf(Opcode.IGET_OBJECT, Opcode.IGET_OBJECT, Opcode.IGET_OBJECT, Opcode.CONST_4, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID) ||
+        supplier?.registerA != 0 || supplier.registerB != 2 || holder?.registerA != 0 || holder.registerB != 0 ||
+        flag?.registerA != 1 || flag.registerB != 0 ||
         setter?.registerCount != 2 || setter.registerC != 1 || setter.registerD != 0 ||
         (literal as? OneRegisterInstruction)?.registerA != 0 ||
         (literal as? WideLiteralInstruction)?.wideLiteral != 1L ||
         (instructions[0] as? ReferenceInstruction)?.reference.toString() != activeProfile.subtabsSupplier ||
-        (instructions[1] as? ReferenceInstruction)?.reference.toString() !=
-            "Lcom/facebook/messaging/inboxsubtabs/plugins/subtabs/itemsupplier/InboxSubtabsItemSupplierImplementation;->A07:Ljava/util/concurrent/atomic/AtomicBoolean;" ||
-        (instructions[3] as? ReferenceInstruction)?.reference.toString() != "Ljava/util/concurrent/atomic/AtomicBoolean;->set(Z)V") {
+        holderRef == null || holderRef.definingClass != SUBTABS_SUPPLIER_CLASS || holderRef.name != "A07" ||
+        flagRef == null || flagRef.definingClass != holderRef.type || flagRef.name != "A00" ||
+        flagRef.type != "Ljava/util/concurrent/atomic/AtomicBoolean;" ||
+        (instructions[4] as? ReferenceInstruction)?.reference.toString() != "Ljava/util/concurrent/atomic/AtomicBoolean;->set(Z)V") {
         throw PatchException("Messenger controls: inbox tabs no longer use the checked visibility flag")
     }
 }
 
 internal fun MutableMethod.injectSubtabs() {
     validateSubtabs()
-    addInstructions(3, "invoke-static {v0}, $SETTINGS->showSubtabs(Z)Z\nmove-result v0")
+    addInstructions(4, "invoke-static {v0}, $SETTINGS->showSubtabs(Z)Z\nmove-result v0")
 }
 
 /**
- * How 583 reads the external-browser preference: an eight-register check that keeps the false default in v2 and
- * returns when the answer is on.
+ * How 584 reads the external-browser preference: a check that keeps the false default in v2 and returns when the
+ * answer is on. 584.0 gives it eight registers, 584.1 nine.
  */
-private const val BROWSER_PREFERENCE_REGISTERS = 8
+private val BROWSER_PREFERENCE_REGISTERS = setOf(8, 9)
 private const val BROWSER_PREFERENCE_DEFAULT = 2
 
 internal fun MutableMethod.validateBrowserPreference(): Int {
     val instructions = implementation!!.instructions
     val key = activeProfile.browserPreferenceIndex
     val getter = instructions.getOrNull(key + 1) as? FiveRegisterInstruction
-    if (AccessFlags.STATIC.isSet(accessFlags) || implementation!!.registerCount != BROWSER_PREFERENCE_REGISTERS ||
+    if (AccessFlags.STATIC.isSet(accessFlags) || implementation!!.registerCount !in BROWSER_PREFERENCE_REGISTERS ||
         parameterTypes != listOf("Landroid/net/Uri;", "Lcom/facebook/auth/usersession/FbUserSession;") ||
         returnType != "Z" || instructions.getOrNull(key)?.opcode != Opcode.SGET_OBJECT ||
         (instructions[key] as? OneRegisterInstruction)?.registerA != 0 ||
@@ -704,12 +813,8 @@ internal fun ClassDef.isRowWrapper(): Boolean =
 internal fun ClassDef.hasMessageIdGetter(): Boolean = messageIdGetterName.isNotEmpty() &&
     methods.any { it.name == messageIdGetterName && it.returnType == "Ljava/lang/String;" && it.parameterTypes == listOf("I") }
 
-/** The Notifications tab's server flag ID as 583 numbers it. Meta renumbers it with each release. */
-private const val PEOPLE_SERVER_FLAG = 72344188615735036L
-
-/** The section check's register count, and the register that holds its false default. */
-private const val PEOPLE_SECTION_REGISTERS = 8
-private const val PEOPLE_SECTION_DEFAULT = 3
+/** The Notifications tab's server flag ID as 584 numbers it. Meta renumbers it with each release. */
+private const val PEOPLE_SERVER_FLAG = 72344171435866083L
 
 /**
  * Where the Notifications tab loads its server flag: the method's only constant with that value, at 17, after the
@@ -719,14 +824,21 @@ private fun List<Instruction>.peopleFlagIndex(): Int =
     indices.filter { i -> this[i].opcode == Opcode.CONST_WIDE && (this[i] as? WideLiteralInstruction)?.wideLiteral == PEOPLE_SERVER_FLAG }
         .singleOrNull()?.takeIf { it == 17 } ?: -1
 
+/** Whether [this] writes [register], or a wide pair that covers it. */
+private fun Instruction.setsPeopleDefault(register: Int): Boolean {
+    val target = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return opcode.setsRegister() && (target == register || (opcode.setsWideRegister() && target + 1 == register))
+}
+
 /** The section check takes the suggestions logger, then its owner. */
 private fun Method.isPeopleSectionShape() = parameterTypes.map(CharSequence::toString).let { it.size == 2 && it[1] == definingClass }
 
 /**
  * The Notifications tab reads its stock "section hidden" preference into v0 and branches on it. A hidden
  * section is still shown when a server flag (v0, three instructions after its constant) is on; both branches
- * land on the final false return. The false value lives in v3 of the eight-register body, which logs a skipped
- * impression under a monitor after the server branch.
+ * land on the final false return. The false value is a local loaded at 9: v5 of a ten-register body, or v3 of the
+ * eight-register one some 584.1 arm64 builds compile. The body logs a skipped impression under a monitor after the
+ * server branch.
  */
 internal fun MutableMethod.validatePeopleSection() {
     val code = implementation!!.instructions.toList()
@@ -736,8 +848,11 @@ internal fun MutableMethod.validatePeopleSection() {
     val at = code.peopleFlagIndex()
     val flag = code.getOrNull(at)
     val last = code.lastIndex
-    val no = if (implementation!!.registerCount == PEOPLE_SECTION_REGISTERS) PEOPLE_SECTION_DEFAULT else -1
+    // A local past v0 and v1, which carry the key, the getter and the flag, and below the two parameters.
+    val no = (default as? OneRegisterInstruction)?.registerA?.takeIf { it in 2 until implementation!!.registerCount - 2 } ?: -1
+    // Both branches return it, so nothing between the getter and the server branch may overwrite it.
     if (!AccessFlags.STATIC.isSet(accessFlags) || returnType != "Z" || !isPeopleSectionShape() || no < 0 ||
+        (10..minOf(at + 3, last)).any { code[it].setsPeopleDefault(no) } ||
         flag?.opcode != Opcode.CONST_WIDE || (flag as? OneRegisterInstruction)?.registerA != 0 ||
         code.getOrNull(at + 1)?.opcode != Opcode.INVOKE_STATIC ||
         (code[at + 1] as? ReferenceInstruction)?.reference.toString() != activeProfile.peopleFlagCheck ||
@@ -859,7 +974,7 @@ internal fun MutableMethod.injectPeopleSearch() {
  */
 internal fun MutableMethod.validatePeopleStory(): Int {
     val code = implementation!!.instructions.toList()
-    val query = code.indexOfFirst { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == STORY_SUGGESTIONS_QUERY }
+    val query = code.indexOfAnchor(STORY_SUGGESTIONS_QUERY)
     val set = (query downTo 0).firstOrNull { code[it].opcode == Opcode.IPUT_BOOLEAN }
     val flag = set?.let { (code[it] as ReferenceInstruction).reference.toString() }
     val guard = code.indices.singleOrNull {
@@ -958,21 +1073,37 @@ internal fun MutableMethod.injectMenuDrawerAdd() {
 private const val IMMUTABLE_LIST_BUILDER = "Lcom/google/common/collect/ImmutableList\$Builder;"
 
 /**
- * 583 fills the keyboard's tab list inline: it copies a local ArrayList of tab items into an ImmutableList.Builder once,
- * handing the builder and the list to one static (ImmutableList.Builder, Iterable) -> ImmutableList call. Returns the
- * copy's index and list register.
+ * 584 fills the keyboard's tab list inline: a local ArrayList of tab items goes into a fresh ImmutableList.Builder
+ * through one addAll that is built on the very next instruction:
+ *
+ *     invoke-static {}, ImmutableList;->builder()
+ *     move-result-object vB
+ *     invoke-virtual {vB, vList}, ImmutableList$Builder;->addAll(Iterable)
+ *     invoke-static {vB}, <static (Builder) -> ImmutableList>
+ *
+ * Returns the addAll's index and list register.
  */
 internal fun MutableMethod.validateKeyboardTabsInline(): Pair<Int, Int> {
     fun changed(): Nothing = throw PatchException("Messenger controls: the sticker keyboard tab list differs from the tested build")
     val code = implementation!!.instructions.toList()
     val copy = code.indices.filter { index ->
         val call = (code[index] as? ReferenceInstruction)?.reference as? DexMethodReference
-        code[index].opcode == Opcode.INVOKE_STATIC && call != null && call.returnType == IMMUTABLE_LIST &&
-            call.parameterTypes.map { it.toString() } == listOf(IMMUTABLE_LIST_BUILDER, "Ljava/lang/Iterable;")
+        code[index].opcode == Opcode.INVOKE_VIRTUAL && call != null && call.definingClass == IMMUTABLE_LIST_BUILDER &&
+            call.name == "addAll" && call.returnType == IMMUTABLE_LIST_BUILDER &&
+            call.parameterTypes.map { it.toString() } == listOf("Ljava/lang/Iterable;")
     }.singleOrNull()
     // Code inserted before a jump target would be skipped by whatever jumps there.
-    if (returnType != "V" || copy == null || copy in jumpTargets()) changed()
-    return copy to (code[copy] as FiveRegisterInstruction).registerD
+    if (returnType != "V" || copy == null || copy < 2 || copy + 1 >= code.size || copy in jumpTargets()) changed()
+    val add = code[copy] as FiveRegisterInstruction
+    val builder = (code[copy - 1] as? OneRegisterInstruction)?.takeIf { code[copy - 1].opcode == Opcode.MOVE_RESULT_OBJECT }?.registerA
+    val made = (code[copy - 2] as? ReferenceInstruction)?.reference as? DexMethodReference
+    val build = (code[copy + 1] as? ReferenceInstruction)?.reference as? DexMethodReference
+    if (builder == null || made?.toString() != "$IMMUTABLE_LIST->builder()$IMMUTABLE_LIST_BUILDER" ||
+        code[copy - 2].opcode != Opcode.INVOKE_STATIC || add.registerCount != 2 || add.registerC != builder ||
+        add.registerD == builder || code[copy + 1].opcode != Opcode.INVOKE_STATIC || build == null ||
+        build.returnType != IMMUTABLE_LIST || build.parameterTypes.map { it.toString() } != listOf(IMMUTABLE_LIST_BUILDER) ||
+        (code[copy + 1] as FiveRegisterInstruction).let { it.registerCount != 1 || it.registerC != builder }) changed()
+    return copy to add.registerD
 }
 
 /** Drops the avatar tab from the list just before Messenger adds it to the builder; the list is a local. */
@@ -1002,16 +1133,62 @@ internal fun MutableMethod.injectOutgoingTyping() {
 
 /**
  * The Menu tab's folder row class, which the Settings row is built from. The builder may also make other folder rows
- * of that class (the QR code row) and their folder keys, but nothing else. 583 creates no row icons in the builder.
+ * of that class (the QR code row) and their folder keys, but nothing else. 584 creates no row icons in the builder.
  */
 internal fun Method.menuFolderItemType(): String {
     val code = implementation!!.instructions.toList()
     val types = code.filter { it.opcode == Opcode.NEW_INSTANCE }
         .map { ((it as ReferenceInstruction).reference as TypeReference).type }.toSet()
-    val row = ((code[settingsRowCall()] as ReferenceInstruction).reference as DexMethodReference).definingClass
-    if (row !in types || types.any { it != row && !(it.startsWith(DRAWER_MODEL) && it.endsWith("FolderKey;")) })
-        throw PatchException("Messenger controls: menu settings item builder creates ${types.size} types, expected its rows and folder keys")
+    val rowCall = settingsRowCall()
+    val row = ((code[rowCall] as ReferenceInstruction).reference as DexMethodReference).definingClass
+    // 584.1 builds the row icon in place before passing it to the constructor; that allocation is the only
+    // non-folder-key type besides the row itself.
+    val extras = types.filter { it != row && !(it.startsWith(DRAWER_MODEL) && it.endsWith("FolderKey;")) }
+    val iconAt = if (extras.size == 1) code[rowCall].drawerArgs().getOrNull(3)?.let { drawerOrigin(rowCall, it) } ?: -1 else -1
+    val icon = code.getOrNull(iconAt)?.takeIf { it.opcode == Opcode.NEW_INSTANCE }?.let { instruction ->
+        val type = ((instruction as ReferenceInstruction).reference as TypeReference).type
+        val inserted = code.getOrNull(iconAt + 1) as? ReferenceInstruction
+        val ctor = inserted?.reference as? DexMethodReference
+        val allocation = instruction as OneRegisterInstruction
+        if (type == extras.single() && inserted is FiveRegisterInstruction && inserted.opcode == Opcode.INVOKE_DIRECT &&
+            ctor?.definingClass == type && ctor.name == "<init>" && inserted.registerC == allocation.registerA) type else null
+    }
+    if (row !in types || types.any { it != row && it != icon && !(it.startsWith(DRAWER_MODEL) && it.endsWith("FolderKey;")) })
+        throw PatchException("Messenger controls: menu settings item builder creates ${types.size} types, expected its rows, icons and folder keys")
     return row
+}
+
+private val ROW_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+
+/**
+ * The register holding a folder row at [marker], following the field read or check-cast and any plain object
+ * moves after it. 584.1 already types the row field, so its click handler has no cast before the marker.
+ */
+private fun Method.rowRegisterAt(marker: Int, folderItemType: String): Int? {
+    val code = implementation!!.instructions.toList()
+    val readAt = (marker - 1 downTo 0).firstOrNull { index ->
+        when (code[index].opcode) {
+            Opcode.CHECK_CAST -> ((code[index] as ReferenceInstruction).reference as? TypeReference)?.type == folderItemType
+            Opcode.IGET_OBJECT -> ((code[index] as ReferenceInstruction).reference as? FieldReference)?.type == folderItemType
+            else -> false
+        }
+    } ?: return null
+    val read = code[readAt]
+    val seed = when (read.opcode) {
+        Opcode.CHECK_CAST -> (read as OneRegisterInstruction).registerA
+        else -> (read as TwoRegisterInstruction).registerA
+    }
+    val aliases = mutableSetOf(seed)
+    for (index in readAt + 1 until marker) {
+        val instruction = code[index]
+        if (instruction is TwoRegisterInstruction && instruction.opcode in ROW_MOVES) {
+            if (instruction.registerB in aliases) aliases.add(instruction.registerA)
+            else aliases.remove(instruction.registerA)
+        } else if (instruction is OneRegisterInstruction && instruction.opcode.setsRegister()) {
+            aliases.remove(instruction.registerA)
+        }
+    }
+    return aliases.singleOrNull()?.takeIf { it < implementation!!.registerCount }
 }
 
 /** Messenger casts the tapped folder row just before its folder-selected trace section starts. */
@@ -1027,10 +1204,20 @@ internal fun Method.menuFolderCastIndex(folderItemType: String): Int {
     }
     val marker = markers.singleOrNull()
         ?: throw PatchException("Messenger controls: drawer folder click has ${markers.size} folder-selected markers, expected 1")
-    val casts = code.indices.filter { index ->
-        index < marker && marker - index <= 12 && code[index].opcode == Opcode.CHECK_CAST &&
+    val allCasts = code.indices.filter { index ->
+        code[index].opcode == Opcode.CHECK_CAST &&
             ((code[index] as ReferenceInstruction).reference as TypeReference).type == folderItemType
     }
+    if (allCasts.isEmpty()) {
+        if (rowRegisterAt(marker, folderItemType) == null) {
+            throw PatchException("Messenger controls: drawer folder click has no row read before its marker")
+        }
+        if ((0 until marker).any { it in jumpTargets() } || marker in jumpTargets()) {
+            throw PatchException("Messenger controls: drawer folder click can bypass its row read")
+        }
+        return marker
+    }
+    val casts = allCasts.filter { index -> index < marker && marker - index <= 12 }
     val cast = casts.singleOrNull()
         ?: throw PatchException("Messenger controls: drawer folder click has ${casts.size} row casts before its marker, expected 1")
     if ((code[cast] as OneRegisterInstruction).registerA >= impl.registerCount) {
@@ -1081,10 +1268,12 @@ internal fun Method.menuFolderCastIndex(folderItemType: String): Int {
 }
 
 internal fun MutableMethod.injectMenuFolderClick(folderItemType: String) {
-    val cast = menuFolderCastIndex(folderItemType)
-    val row = (getInstruction(cast) as OneRegisterInstruction).registerA
+    val at = menuFolderCastIndex(folderItemType)
+    val instruction = getInstruction(at)
+    val row = if (instruction.opcode == Opcode.CHECK_CAST) (instruction as OneRegisterInstruction).registerA
+        else rowRegisterAt(at, folderItemType) ?: throw PatchException("Messenger controls: drawer folder click has no row read before its marker")
     // Null means the HushMessenger row opened settings; any other row continues with Messenger's handling.
-    addInstructionsWithLabels(cast + 1, """
+    addInstructionsWithLabels(at + 1, """
         invoke-static/range {v$row .. v$row}, $SETTINGS->drawerFolderClicked(Ljava/lang/Object;)Ljava/lang/Object;
         move-result-object v$row
         if-nez v$row, :hush_folder_row
@@ -1096,20 +1285,20 @@ internal fun MutableMethod.injectMenuFolderClick(folderItemType: String) {
 
 private val KEEP_UNSENT_PARAMETERS = listOf("Landroid/content/Intent;", BUBBLE_SESSION, "Ljava/lang/String;", "Ljava/util/Map;")
 
-/** The revoke handler is a static (Intent, session, String, Map) method. */
+/** The revoke handler is an instance (Intent, session, String, Map) method. */
 private fun Method.isKeepUnsentShape() =
-    AccessFlags.STATIC.isSet(accessFlags) && parameterTypes.map(CharSequence::toString) == KEEP_UNSENT_PARAMETERS
+    !AccessFlags.STATIC.isSet(accessFlags) && parameterTypes.map(CharSequence::toString) == KEEP_UNSENT_PARAMETERS
 
 /**
- * Returns the parameter register number of the Intent, p0 of the static handler. The hook reads it with a plain
- * invoke, so it has to be in reach.
+ * Returns the Intent's parameter number, p1 of the instance handler (p0 is its receiver). The hook reads it with a
+ * plain invoke, so it has to be in reach.
  */
 internal fun MutableMethod.validateKeepUnsent(): Int {
     validateScratch()
     if (returnType != "V") throw PatchException("Messenger controls: keep_unsent hook must return void")
     if (!isKeepUnsentShape())
-        throw PatchException("Messenger controls: keep_unsent hook must be the static (Intent, session, String, Map) handler")
-    val intent = 0
+        throw PatchException("Messenger controls: keep_unsent hook must be the instance (Intent, session, String, Map) handler")
+    val intent = 1
     if (parameterRegister(intent) > 15)
         throw PatchException("Messenger controls: keep_unsent hook must have its Intent at v15 or below")
     return intent
@@ -1133,7 +1322,7 @@ internal fun MutableMethod.validateUnsentIndicator() {
     if (returnType != "Ljava/lang/String;") throw PatchException("Messenger controls: unsent_indicator hook must return String")
     if (parameterTypes != listOf("I")) throw PatchException("Messenger controls: unsent_indicator hook must take one int param")
     val code = implementation!!.instructions.toList()
-    // 583 takes the row from the wrapper's list, casts it and asks it for its text, ending in v0.
+    // 584 takes the row from the wrapper's list, casts it and asks it for its text, ending in v0.
     val shape = listOf(Opcode.IGET_OBJECT, Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST,
         Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT)
     if (code.size != shape.size) throw PatchException("Messenger controls: unsent_indicator hook has ${code.size} instructions, expected ${shape.size}")
@@ -1491,7 +1680,7 @@ internal fun MutableMethod.validateStorySave(): StorySave {
     val card = reg(entry + 3)
     val saveable = mutableListOf<String>()
     var add = entry + 4
-    // 583 lists the card types: a match jumps to the item, the last miss skips it.
+    // 584 lists the card types: a match jumps to the item, the last miss skips it.
     if (op(add) != Opcode.INSTANCE_OF) fail("Save item's card test no longer matches the tested build")
     while (op(add) == Opcode.INSTANCE_OF) {
         val test = code[add] as TwoRegisterInstruction
@@ -1667,6 +1856,9 @@ internal fun MutableMethod.injectLegacyChatAnimation() {
 
 /** Search and notifications open a chat in this activity instead of over the inbox; the extension matches its name. */
 internal const val CHAT_ACTIVITY = "Lcom/facebook/messaging/msys/thread/fragment/MsysThreadViewActivity;"
+
+/** Page and business chats open in Messenger's older chat activity; the extension matches its name too. */
+internal const val BUSINESS_CHAT_ACTIVITY = "Lcom/facebook/orca/threadview/ThreadViewActivity;"
 
 private const val ANDROID_NAMESPACE = "http://schemas.android.com/apk/res/android"
 

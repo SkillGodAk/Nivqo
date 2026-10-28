@@ -4,7 +4,14 @@
         <item quantity="one">%s popravek</item>
         <item quantity="two">%s Popravka</item>
         <item quantity="few">%s popravki</item>
-        <item quantity="other">%s Popravkih</item>
+        <item quantity="other">%s popravkov </item>
+    </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s knjižnica</item>
+        <item quantity="two">%s knjižnici</item>
+        <item quantity="few">%s knjižnice</item>
+        <item quantity="other">%s knjižnic</item>
     </plurals>
     <plurals name="option_count">
         <item quantity="one">%s možnost</item>
@@ -38,6 +45,12 @@
         <item quantity="two">Viri popravkov za %s aplikaciji</item>
         <item quantity="few">Viri popravkov za %s aplikacije</item>
         <item quantity="other">Viri popravkov za %s aplikacij</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s vire so skriti za to aplikacijo. Izberite aplikacijo na zavihku Aplikacije in odprite Viri popravkov, da jih ponovno prikazate</item>
+        <item quantity="two">%s vira sta skrita za to aplikacijo. Izberite aplikacijo na zavihku Aplikacije in odprite Viri popravkov, da ju ponovno prikažete</item>
+        <item quantity="few">%s viri so skriti za to aplikacijo. Izberite aplikacijo na zavihku Aplikacije in odprite Viri popravkov, da jih ponovno prikažete</item>
+        <item quantity="other">%s virov je skritih za to aplikacijo. Izberite aplikacijo na zavihku Aplikacije in odprite Viri popravkov, da jih ponovno prikažete</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s vir je skrit. Tapnite za prikaz</item>
@@ -81,6 +94,12 @@
         <item quantity="few">Nameščene %s aplikacije</item>
         <item quantity="other">Nameščenih %s aplikacij</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Pripeta %s aplikacija</item>
+        <item quantity="two">Pripeti %s aplikaciji</item>
+        <item quantity="few">Pripete %s aplikacije</item>
+        <item quantity="other">Pripetih %s aplikacij</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Ponovno nameščena %s aplikacija</item>
         <item quantity="two">Ponovno nameščeni %s aplikaciji</item>
@@ -104,6 +123,18 @@
         <item quantity="two">%s aplikaciji sta pripravljeni za popravljanje</item>
         <item quantity="few">%s aplikacije so pripravljene za popravljanje</item>
         <item quantity="other">%s aplikacij je pripravljenih za popravljanje</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s aplikacija čakajo na popravljanje</item>
+        <item quantity="two">%s aplikaciji čakata na popravljanje</item>
+        <item quantity="few">%s aplikacije čakajo na popravljanje</item>
+        <item quantity="other">%s aplikacij čakajo na popravljanje</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s skrito obvestilo, tapnite za prikaz</item>
+        <item quantity="two">%s skrita obvestili, tapnite za prikaz</item>
+        <item quantity="few">%s skrita obvestila, tapnite za prikaz</item>
+        <item quantity="other">%s skritih obvestil, kliknite za prikaz</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s aplikacija se lahko ponovno popravi</item>
@@ -129,11 +160,23 @@
         <item quantity="few">%s viri so nameščeni</item>
         <item quantity="other">%s viri so nameščeni</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s filtriran</item>
-        <item quantity="two">%1$s · %2$s filtrirana</item>
-        <item quantity="few">%1$s · %2$s filtrirani</item>
-        <item quantity="other">%1$s · %2$s filtriranih</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">Skritih je %s aplikacija</item>
+        <item quantity="two">Skriti sta %s aplikaciji</item>
+        <item quantity="few">Skrite so %s aplikacije</item>
+        <item quantity="other">Skritih je %s aplikacij</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">Prikazanih je %s aplikacija</item>
+        <item quantity="two">Prikazani sta %s aplikaciji</item>
+        <item quantity="few">Prikazane so %s aplikacije</item>
+        <item quantity="other">Prikazanih je %s aplikacij</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Želite razkriti aplikacijo %s?</item>
+        <item quantity="two">Želite razkriti aplikaciji %s?</item>
+        <item quantity="few">Želite razkriti aplikacije %s?</item>
+        <item quantity="other">Želite razkriti aplikacij %s?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s skrita aplikacija</item>
@@ -188,6 +231,13 @@
         <item quantity="two">%s spremembi</item>
         <item quantity="few">%s spremembe</item>
         <item quantity="other">%s sprememb</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d nov</item>
+        <item quantity="two">%1$s · %2$d novi</item>
+        <item quantity="few">%1$s · %2$d nova</item>
+        <item quantity="other">%1$s · %2$d novih</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s nova izdaja</item>

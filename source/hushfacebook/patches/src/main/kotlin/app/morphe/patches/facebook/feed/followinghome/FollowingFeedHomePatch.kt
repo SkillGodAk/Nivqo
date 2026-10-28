@@ -13,6 +13,7 @@ package app.morphe.patches.facebook.feed.followinghome
 
 import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
@@ -23,13 +24,20 @@ import app.morphe.patches.facebook.feed.methodsHolding
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
+import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.extension.requireStatusMethod
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 private const val PATCH = "Following feed on Home"
 
@@ -51,6 +59,14 @@ internal const val MOST_RECENT_STYLE = "MOST_RECENT_FEED_DEFAULT"
 internal const val FOLLOWING_HOME = "$EXTENSION_PACKAGE/feed/FollowingHome;"
 internal const val FEED_TYPE_ASKED = "$FOLLOWING_HOME->feedType(Ljava/lang/Object;)Ljava/lang/Object;"
 
+/** The trace section the feed query method opens once it builds the feed's own query, past the async ad query. */
+internal const val FEED_QUERY_INNER = "FetchNewsFeedMethod.getGraphQlQueryInner"
+
+/** Facebook's GraphQL parameter set, which keeps its name. */
+internal const val PARAM_SET_CLASS = "Lcom/facebook/graphql/query/GraphQlQueryParamSet;"
+
+internal const val FEED_REQUEST_SENT = "$EXTENSION_PACKAGE/feed/FeedRequestParams;->sent(Ljava/lang/Object;)V"
+
 /**
  * Has Home ask for the newest posts from the friends, groups and Pages you follow, the feed the
  * Feeds tab's All shows, instead of the ranked one.
@@ -71,6 +87,11 @@ internal const val FEED_TYPE_ASKED = "$FOLLOWING_HOME->feedType(Ljava/lang/Objec
  * ("following_feed"), but on the S22 test account (581, 2026-10-08) Facebook answered that request
  * with the ranked feed, suggestions and all.
  *
+ * With debug logging on, the parameters each feed request goes out with are logged too (the
+ * extension's FeedRequestParams), so Home with a Home shows filter can be compared with the Feeds
+ * tab's own filter. The feed query method hands its parameter set to it before each return past
+ * [FEED_QUERY_INNER]; a build without that method still gets the swap.
+ *
  * In the default selection with its switch off: it only acts once the switch is turned on.
  */
 @Suppress("unused")
@@ -79,8 +100,10 @@ val followingFeedHomePatch = bytecodePatch(
     name = "Following feed on Home",
     description = "Makes Home show the newest posts from the friends, groups and Pages you follow instead of " +
         "Facebook's ranked feed, so you see what they posted rather than what Facebook picks. Home shows, right " +
-        "below it, narrows Home to one of the Feeds tab's filters (Friends, Favorites, Groups or Pages). Starts " +
-        "off. Turn it on in Hushfacebook settings > Opening Facebook.",
+        "below it, asks Facebook for one of the Feeds tab's filters (Friends, Favorites, Groups or Pages) instead. " +
+        "When that filter has nothing new, Facebook can fill Home with suggested posts and reels, so pair it with " +
+        "Hide \"Suggested for you\" posts and Hide Reels in the feed. Starts off. Turn it on in Hushfacebook " +
+        "settings > Opening Facebook.",
     default = true,
 ) {
     category("Feed")
@@ -95,6 +118,18 @@ val followingFeedHomePatch = bytecodePatch(
         val builder = newsFeedParamsBuilder()
         mutableClassDefBy(builder.definingClass).methods.single { it.sameAs(builder) }.askForHomeFeed()
         enableStatus("followingHome")
+
+        // Debug logging only; the swap works without it.
+        try {
+            val query = feedQuery(
+                classDefByStrings(FEED_QUERY_INNER, StringComparisonType.EQUALS).filterNot { it.type.startsWith(EXTENSION_CLASSES) },
+            ) { type -> classDefByOrNull(type) }
+            val method = mutableClassDefBy(query.method.definingClass).methods.singleOrNull { it.sameAs(query.method) }
+                ?: refuse("${query.method.definingClass}->${query.method.name} isn't in its class")
+            method.sendsFeedParams(query)
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so debug logging won't list a feed request's parameters.")
+        }
     }
 }
 
@@ -154,6 +189,67 @@ internal fun MutableMethod.askForHomeFeed() {
             move-object/from16 p1, v0
         """,
     )
+}
+
+/** The feed query method, and the field of its result class that keeps the request's parameter set. */
+internal class FeedQuery(val method: Method, val paramSet: String)
+
+/**
+ * The feed query method among [holders] (583 `LX/2Dt;->BWh`): an instance method opening
+ * [FEED_QUERY_INNER] whose result class, looked up with [classOf], keeps one [PARAM_SET_CLASS]
+ * field. Refuses unless there's exactly one.
+ */
+internal fun feedQuery(holders: List<ClassDef>, classOf: (String) -> ClassDef?): FeedQuery {
+    val queries = holders.flatMap { methodsHolding(it, FEED_QUERY_INNER) }
+        .filterNot { AccessFlags.STATIC.isSet(it.accessFlags) }
+        .mapNotNull { method ->
+            val result = classOf(method.returnType) ?: return@mapNotNull null
+            val field = result.fields.singleOrNull { it.type == PARAM_SET_CLASS && !AccessFlags.STATIC.isSet(it.accessFlags) }
+                ?: return@mapNotNull null
+            FeedQuery(method, "${result.type}->${field.name}:$PARAM_SET_CLASS")
+        }
+    return queries.singleOrNull()
+        ?: refuse("expected one method opening \"$FEED_QUERY_INNER\" whose result keeps a parameter set, found ${queries.size}")
+}
+
+/** Where [method] hands back its own feed query: the object returns past [FEED_QUERY_INNER]. */
+internal fun feedQueryReturns(method: Method): List<Int> {
+    val instructions = method.implementation!!.instructions.toList()
+    val inner = instructions.indexOfFirst { loads(it, FEED_QUERY_INNER) }
+    if (inner < 0) return emptyList()
+    return instructions.indices.filter { it > inner && instructions[it].opcode == Opcode.RETURN_OBJECT }
+}
+
+private fun loads(instruction: Instruction, string: String) =
+    ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string == string
+
+/**
+ * Before each of [feedQueryReturns], a result that isn't null has its parameter set handed to the
+ * extension. Nothing after a return reads a register, so v0 (v1 when the result is in v0) is free
+ * there; the result is moved into it first, since it can sit past v15 (never past v255, which is as
+ * far as return-object and move-object/from16 reach). Every return of the method hands back its
+ * declared result class, so the field read fits whichever return it lands before. The hook takes
+ * over the return's own label, so a branch onto the return goes through it too.
+ */
+internal fun MutableMethod.sendsFeedParams(query: FeedQuery) {
+    val returns = feedQueryReturns(this)
+    if (returns.isEmpty()) refuse("${query.method.definingClass}->${query.method.name} returns nothing past \"$FEED_QUERY_INNER\"")
+    if (implementation!!.registerCount < 2) refuse("${query.method.definingClass}->${query.method.name} has no spare register")
+    for (at in returns.reversed()) {
+        val result = getInstruction<OneRegisterInstruction>(at).registerA
+        val spare = if (result == 0) 1 else 0
+        addInstructionsAtControlFlowLabel(
+            at,
+            """
+                move-object/from16 v$spare, v$result
+                if-eqz v$spare, :done
+                iget-object v$spare, v$spare, ${query.paramSet}
+                invoke-static { v$spare }, $FEED_REQUEST_SENT
+                :done
+                nop
+            """,
+        )
+    }
 }
 
 /** The builder [newsFeedParams] finds in this APK. */

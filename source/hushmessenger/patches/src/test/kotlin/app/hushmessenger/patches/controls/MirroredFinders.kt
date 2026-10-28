@@ -28,7 +28,7 @@ private val PROVED_BY_VALIDATE_HOOK: Set<String> by lazy { controlHooks.filterKe
  * get a build recorded, since --save runs the real patch first.
  */
 private val PROVED_ONLY_BY_THE_PATCH: Map<String, String> =
-    (listOf("ads", "bubble_mode", "browser", "subtabs", "people_jewel") + pluginGates.keys)
+    (listOf("bubble_mode", "browser", "subtabs", "people_jewel") + pluginGates.keys)
         .associateWith { "CompatReport proves the body through a profile field, and FIELD_CONTROLS fails the control when it changes" } +
     listOf(HIDE_READ_RECEIPTS, REPLY_READ).associateWith { "the patch proves the account's identity dataflow, CompatReport only the seen handler's and dispatcher's outline" }
 
@@ -65,6 +65,11 @@ private fun mirrored(classes: Iterable<ClassDef>, skip: Set<String>, find: (List
             val saved = listOf(messageTextGetterName, messageIdGetterName, messageIsUnsentGetterName)
             val savedLog = messageLogContract
             val savedThreads = readReceiptThreadFields
+            val savedRecipe = markReadRecipe
+            val savedPicture = autoReplyPictureRecipe
+            val savedGallery = galleryRoute
+            val savedCircle = vitoCircleField
+            val savedTile = tileShapeSetter
             try {
                 val starvedFound = find(starved)
                 val starvedDiffer = disagreements(starved, starvedFound, CompatMirror.controls(starved).filterKeys { it !in skip }, proved)
@@ -75,6 +80,11 @@ private fun mirrored(classes: Iterable<ClassDef>, skip: Set<String>, find: (List
                 messageIsUnsentGetterName = saved[2]
                 messageLogContract = savedLog
                 readReceiptThreadFields = savedThreads
+                markReadRecipe = savedRecipe
+                autoReplyPictureRecipe = savedPicture
+                galleryRoute = savedGallery
+                vitoCircleField = savedCircle
+                tileShapeSetter = savedTile
             }
         }
     }

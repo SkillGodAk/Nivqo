@@ -82,6 +82,7 @@ public class SystemCameraTest {
         android.os.Bundle extras = new android.os.Bundle();
         extras.putString("trigger2", "thread");
         Settings.markChatCamera(extras);
+        Settings.markChatCapture(extras);
         Settings.markChatCamera(null);
         Intent chat = new Intent().setClassName(app.getPackageName(), "com.facebook.messaging.montage.composer.MontageComposerActivity")
             .putExtras(extras);
@@ -90,6 +91,7 @@ public class SystemCameraTest {
         assertEquals(1112, Settings.cameraRequestCode(capture, 7376));
         assertTrue(Settings.lastActive("system_camera") > 0);
         assertFalse("The mark comes off the launch", chat.hasExtra(Settings.CHAT_CAMERA_MARK));
+        assertFalse(chat.hasExtra(Settings.CHAT_CAPTURE_MARK));
 
         Settings.preferences.edit().putBoolean("system_camera", false).commit();
         Intent again = new Intent(chat).putExtras(extras);
@@ -98,6 +100,40 @@ public class SystemCameraTest {
         assertEquals("thread", again.getStringExtra("trigger2"));
         assertEquals(7376, Settings.cameraRequestCode(again, 7376));
         assertTrue(Settings.hookErrors.isEmpty());
+    }
+
+    @Test public void editorLaunchesKeepTheirPayloadWhenTheSharedChatFactoryIsMarked() {
+        for (int mode = 0; mode < 3; mode++) {
+            Settings.preferences.edit().putBoolean("system_camera", mode != 0).putBoolean("paused", mode == 2).commit();
+            android.os.Bundle base = new android.os.Bundle();
+            base.putString("trigger2", "messenger_montage_media_picker");
+            Settings.markChatCamera(base);
+            for (String editor : new String[] {"gallery-photo", "gallery-video", "attachment"}) {
+                android.os.Bundle perLaunch = new android.os.Bundle();
+                perLaunch.putString("editor", editor);
+                perLaunch.putParcelable("selected", Uri.parse("content://media/" + editor));
+                Intent intent = new Intent().setClassName(app.getPackageName(), "com.facebook.messaging.montage.composer.MontageComposerActivity")
+                    .putExtras(base).putExtras(perLaunch);
+                assertSame(intent, Settings.chatCamera(intent));
+                assertEquals(editor, intent.getStringExtra("editor"));
+                assertEquals(Uri.parse("content://media/" + editor), intent.getParcelableExtra("selected"));
+                assertEquals(7376, Settings.cameraRequestCode(intent, 7376));
+                assertFalse(intent.hasExtra(Settings.CHAT_CAMERA_MARK));
+                assertFalse(intent.hasExtra(Settings.CHAT_CAPTURE_MARK));
+            }
+            assertEquals(0, Settings.lastActive("system_camera"));
+        }
+    }
+
+    @Test public void captureEventWithoutTheChatFactoryKeepsStoryAndNoteLaunchesNative() {
+        Settings.preferences.edit().putBoolean("system_camera", true).commit();
+        android.os.Bundle extras = new android.os.Bundle();
+        Settings.markChatCapture(extras);
+        Settings.markChatCapture(null);
+        Intent intent = new Intent().putExtras(extras);
+        assertSame(intent, Settings.chatCamera(intent));
+        assertEquals(0, Settings.lastActive("system_camera"));
+        assertFalse(intent.hasExtra(Settings.CHAT_CAPTURE_MARK));
     }
 
     @Test public void onlyTheCaptureScreensOwnPhotoPassesTheChatsSourceCheck() throws Exception {

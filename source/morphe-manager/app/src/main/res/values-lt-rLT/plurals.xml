@@ -6,6 +6,13 @@
         <item quantity="many">%s pataisa</item>
         <item quantity="other">%s pataisymai</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s biblioteka</item>
+        <item quantity="few">%s bibliotekos</item>
+        <item quantity="many">%s bibliotekų</item>
+        <item quantity="other">%s bibliotekų</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s pataisos nustatymas</item>
         <item quantity="few">%s pataisų nustatymai</item>
@@ -38,6 +45,12 @@
         <item quantity="few">Pataisos šaltiniai, skirti %s programoms</item>
         <item quantity="many">Pataisos šaltiniai, skirti %s programų</item>
         <item quantity="other">Pataisos šaltiniai, skirti %s programų</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s šaltinis yra paslėptas šiai programai. Pasirinkite programą skirtuke „Programos\" ir atidarykite „Koreguoti šaltinius\", kad jį būtų galima atkurti</item>
+        <item quantity="few">%s šaltiniai yra paslėpti šiai programai. Pasirinkite programą skirtuke „Programos\" ir atidarykite „Koreguoti šaltinius“, kad juos būtų galima atkurti</item>
+        <item quantity="many">%s šaltinių yra paslėpta šiai programai. Pasirinkite programą skirtuke „Programos\" ir atidarykite „Koreguoti šaltinius“, kad juos būtų galima atkurti</item>
+        <item quantity="other">%s šaltiniai yra paslėpti šiai programai. Pasirinkite programą skirtuke „Programos\" ir atidarykite „Koreguoti šaltinius“, kad juos būtų galima atkurti</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s šaltinis paslėptas. Bakstelėkite, kad parodytumėte</item>
@@ -81,6 +94,12 @@
         <item quantity="many">Įdiegta %s programų</item>
         <item quantity="other">Įdiegta %s programų</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Prijungta %s programa</item>
+        <item quantity="few">Prijungtos %s programos</item>
+        <item quantity="many">Prijungta %s programų</item>
+        <item quantity="other">Prijungta %s programų</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Iš naujo įdiegta %s programa</item>
         <item quantity="few">Iš naujo įdiegtos %s programos</item>
@@ -104,6 +123,18 @@
         <item quantity="few">%s programos paruoštos pataisymui</item>
         <item quantity="many">%s programų paruošta pataisymui</item>
         <item quantity="other">%s programų paruošta pataisymui</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s app queued for patching</item>
+        <item quantity="few">%s apps queued for patching</item>
+        <item quantity="many">%s apps queued for patching</item>
+        <item quantity="other">%s apps queued for patching</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s paslėptas pranešimas, bakstelėkite norėdami jį rodyti</item>
+        <item quantity="few">%s paslėpti pranešimai, bakstelėkite norėdami juos rodyti</item>
+        <item quantity="many">%s paslėptų pranešimų, baktelėkite norėdami juos rodyti</item>
+        <item quantity="other">%s paslėptų pranešimų, bakstelėkite norėdami juos rodyti</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s programa gali būti pataisyta iš naujo</item>
@@ -129,11 +160,23 @@
         <item quantity="many">%s šaltiniai įdiegti</item>
         <item quantity="other">%s šaltiniai įdiegti</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s filtruota</item>
-        <item quantity="few">%1$s · %2$s filtruota</item>
-        <item quantity="many">%1$s · %2$s filtruota</item>
-        <item quantity="other">%1$s · %2$s filtruota</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s programa paslėpta</item>
+        <item quantity="few">%s programos paslėptos</item>
+        <item quantity="many">%s programų paslėpta</item>
+        <item quantity="other">%s programų paslėptų</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s programa parodyta</item>
+        <item quantity="few">%s programos parodytos</item>
+        <item quantity="many">%s programų parodyta</item>
+        <item quantity="other">%s programų parodytų</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Ar norite parodyti programą „%s”?</item>
+        <item quantity="few">Ar norite parodyti programas „%s”?</item>
+        <item quantity="many">Ar norite parodyti programas „%s”?</item>
+        <item quantity="other">Ar norite parodyti programas „%s”?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s paslėpta programėlė</item>
@@ -188,6 +231,13 @@
         <item quantity="few">%s pakeitimai</item>
         <item quantity="many">%s pakeitimų</item>
         <item quantity="other">%s pakeitimų</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d nauja</item>
+        <item quantity="few">%1$s · %2$d naujos</item>
+        <item quantity="many">%1$s · %2$d naujų</item>
+        <item quantity="other">%1$s · %2$d naujų</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s naujas leidimas</item>

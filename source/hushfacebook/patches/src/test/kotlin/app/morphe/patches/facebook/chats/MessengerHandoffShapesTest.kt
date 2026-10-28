@@ -11,6 +11,13 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.facebook.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.facebook.media.taptoplay.MOTION_EVENT
 import app.morphe.patches.facebook.misc.extension.SETTINGS_STATUS
+import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
+import app.morphe.patches.facebook.notifications.BUILDER_PARAMETER
+import app.morphe.patches.facebook.notifications.SHOW_START
+import app.morphe.patches.facebook.notifications.TRAY_MANAGER
+import app.morphe.patches.facebook.notifications.TRAY_NOTIFICATION
+import app.morphe.patches.facebook.notifications.TYPE_FIELD
+import app.morphe.patches.facebook.notifications.blockPromotionalNotificationsPatch
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -184,6 +191,24 @@ internal object HandoffShapes {
         return method(MQTT_XPLAT_SERVICE_DELEGATE, "connection", parameters, returnType, 18, body, static)
     }
 
+    const val TRAY_BUILDER = "Lfixture/NotificationBuilder;"
+
+    val postParameters = listOf(
+        "Landroid/content/Intent;", "Lcom/facebook/notifications/logging/NotificationLogObject;",
+        "Lcom/facebook/notifications/logging/NotificationsLogger\$Component;", TRAY_BUILDER, "I",
+    )
+
+    /** The push tray's post method, with one local: it loads show_notif_start and returns. */
+    fun post(): Method = method(TRAY_MANAGER, "post", postParameters, "V", 2 + postParameters.size,
+        listOf(string(0, SHOW_START), returnVoid))
+
+    private fun instanceField(owner: String, name: String, type: String) =
+        ImmutableField(owner, name, type, AccessFlags.PUBLIC.value, null, null, null)
+
+    /** The builder the post method takes, holding the push, and the push with its type. */
+    val trayBuilder = classDef(TRAY_BUILDER, fields = listOf(instanceField(TRAY_BUILDER, "push", TRAY_NOTIFICATION)))
+    val trayNotification = classDef(TRAY_NOTIFICATION, fields = listOf(instanceField(TRAY_NOTIFICATION, TYPE_FIELD, STRING)))
+
     /** Every class of the made-up Facebook, [leaveOut] left out and [extra] added. */
     fun classes(leaveOut: Set<String> = emptySet(), extra: List<ClassDef> = emptyList()): List<ClassDef> =
         listOf(
@@ -193,6 +218,9 @@ internal object HandoffShapes {
             classDef(PARSER, ringType(), payload(), parse()),
             classDef(MESSAGES_NOTIFICATION_MANAGER, dispatch(), dispatch("plain", call = null)),
             classDef(MQTT_XPLAT_SERVICE_DELEGATE, mqttConfig()),
+            classDef(TRAY_MANAGER, post()),
+            trayBuilder,
+            trayNotification,
         ).filter { it.type !in leaveOut } + extra
 }
 
@@ -406,6 +434,39 @@ class MessengerHandoffShapesTest {
         assertEquals(Opcode.CONST_STRING,
             context.mutableClassDefBy(HandoffShapes.OTHER_HANDLER).methods.single { it.name == "handle" }.at(0).opcode)
         assertEquals(Opcode.SGET_OBJECT, context.mutableClassDefBy(HandoffShapes.HANDLER).methods.single { it.name == "claim" }.at(0).opcode)
+        // #193: the push tray hands the extension the push's type and posts nothing while
+        // Messenger takes that chat, and runs Facebook's own code otherwise.
+        val post = context.mutableClassDefBy(TRAY_MANAGER).methods.single()
+        assertEquals(Opcode.MOVE_OBJECT_FROM16, post.at(0).opcode)
+        assertEquals("dropChatPush", post.call(5).name)
+        assertEquals(listOf("Ljava/lang/String;"), post.call(5).parameterTypes.map(Any::toString))
+        assertEquals(Opcode.RETURN_VOID, post.at(8).opcode)
+        assertEquals(9, offsetTarget(post, 7))
+        assertEquals(Opcode.CONST_STRING, post.at(9).opcode)
+    }
+
+    /**
+     * Block promotional notifications goes first in the same post method. With both patches in,
+     * each asks in turn, the handoff's no runs on to the promotions' question, and that one's no to
+     * Facebook's own first instruction.
+     */
+    @Test
+    fun `with Block promotional notifications too, both ask in the push tray before Facebook posts`() {
+        val context = build()
+        blockPromotionalNotificationsPatch.execute(context)
+        openMessengerFromTopBarPatch.execute(context)
+        val post = context.mutableClassDefBy(TRAY_MANAGER).methods.single()
+        assertEquals(20, post.implementation!!.instructions.count())
+        assertEquals(listOf("dropChatPush", "block"), post.implementation!!.instructions.mapNotNull {
+            ((it as? ReferenceInstruction)?.reference as? MethodReference)?.name
+        })
+        for (branch in listOf(1, 3, 7)) assertEquals("branch $branch", 9, offsetTarget(post, branch))
+        for (branch in listOf(10, 12, 16)) assertEquals("branch $branch", 18, offsetTarget(post, branch))
+        // Both read the builder from its own parameter register.
+        val builder = HandoffShapes.post().parameterRegisterNumber(BUILDER_PARAMETER)
+        assertEquals(builder, (post.at(0) as TwoRegisterInstruction).registerB)
+        assertEquals(builder, (post.at(9) as TwoRegisterInstruction).registerB)
+        assertEquals(Opcode.CONST_STRING, post.at(18).opcode)
     }
 
     /**
@@ -434,6 +495,11 @@ class MessengerHandoffShapesTest {
             "no MQTT delegate" to build(leaveOut = setOf(MQTT_XPLAT_SERVICE_DELEGATE)),
             "two MQTT connection constructions" to build(leaveOut = setOf(MQTT_XPLAT_SERVICE_DELEGATE), extra = listOf(
                 shapes.classDef(MQTT_XPLAT_SERVICE_DELEGATE, shapes.mqttConfig(constructions = 2)))),
+            "no push tray" to build(leaveOut = setOf(TRAY_MANAGER)),
+            "a builder without the push" to build(leaveOut = setOf(HandoffShapes.TRAY_BUILDER),
+                extra = listOf(shapes.classDef(HandoffShapes.TRAY_BUILDER))),
+            "a push without its type" to build(leaveOut = setOf(TRAY_NOTIFICATION),
+                extra = listOf(shapes.classDef(TRAY_NOTIFICATION))),
         )
         for ((why, context) in broken) {
             val refusal = assertThrows(why, PatchException::class.java) { openMessengerFromTopBarPatch.execute(context) }

@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.util.classDefForEachReferencing
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -64,7 +65,7 @@ private fun jumpTarget(instructions: List<Instruction>, index: Int): Int? {
  */
 internal fun linkBoxFallbacks(method: Method): List<Int> {
     val code = method.implementation?.instructions?.toList() ?: return emptyList()
-    val literal = code.indexOfFirst { (it as? WideLiteralInstruction)?.wideLiteral == LINK_BOX_COLOUR_CONFIG }
+    val literal = code.indexOfFirst { (it as? WideLiteralInstruction)?.wideLiteral in LINK_BOX_COLOUR_CONFIGS }
     if (literal < 0) return emptyList()
     val parse = code.indices.singleOrNull { code[it].referenceText() == PARSE_LINK_BOX } ?: return emptyList()
     if (code.getOrNull(parse + 1)?.opcode != Opcode.MOVE_RESULT) return emptyList()
@@ -101,8 +102,9 @@ internal fun linkBoxFallbacks(method: Method): List<Int> {
  */
 internal fun BytecodePatchContext.hookLinkBoxFallbacks(): Int {
     val owners = mutableSetOf<String>()
-    classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_PACKAGE)) return@classDefForEach
+    // Only a method hookLinkBoxColour sent to PARSE_LINK_BOX has fallbacks to find (#236).
+    classDefForEachReferencing(names = listOf(PARSE_LINK_BOX.substringAfter("->").substringBefore('('))) { classDef ->
+        if (classDef.type.startsWith(EXTENSION_PACKAGE)) return@classDefForEachReferencing
         if (classDef.methods.any { linkBoxFallbacks(it).isNotEmpty() }) owners += classDef.type
     }
     return owners.sumOf { type -> mutableClassDefBy(type).methods.sumOf { it.recolourLinkBoxFallbacks() } }

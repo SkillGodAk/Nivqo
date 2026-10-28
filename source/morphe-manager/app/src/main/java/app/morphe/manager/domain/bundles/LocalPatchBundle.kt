@@ -56,12 +56,13 @@ class LocalPatchBundle(
         target.parentFile?.mkdirs()
         // Made read-only before the swap rather than after: the rename replaces the installed
         // bundle in one step, so a concurrent reader never sees a writable dex container
+        // Checked before the swap, so a broken file never takes the place of a working bundle
+        requireNonEmptyBundleFile(tempFile, "Importing patch bundle")
         tempFile.setReadOnly()
         if (!tempFile.renameTo(target)) {
             runCatching { tempFile.setWritable(true, true) }
             return@withContext false
         }
-        requireNonEmptyBundleFile(target, "Importing patch bundle")
         onProgress?.invoke(0L, totalBytes)
         return@withContext true
     }

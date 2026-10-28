@@ -458,6 +458,36 @@ public class SettingsTest {
         assertEquals(java.util.List.of(emoji, gifs), tabs);
     }
 
+    /** Messenger draws emoji on several threads at once, and the font is loaded once for all of them. */
+    @Test public void threadsThatAskForTheSystemEmojiFontTogetherGetOneTypeface() throws Exception {
+        String font = Settings.systemEmojiFont;
+        java.util.concurrent.ExecutorService threads = java.util.concurrent.Executors.newFixedThreadPool(8);
+        try {
+            // Robolectric's default Typeface stand-in loads any path, as a new typeface each time.
+            Settings.systemEmojiFont = "/system/fonts/AnyColorEmoji.ttf";
+            Settings.systemEmoji = null;
+            Settings.systemEmojiMissing = false;
+            Settings.preferences.edit().putBoolean("use_system_emoji", true).apply();
+            java.util.concurrent.CyclicBarrier together = new java.util.concurrent.CyclicBarrier(8);
+            java.util.List<java.util.concurrent.Future<android.graphics.Typeface>> asks = new java.util.ArrayList<>();
+            for (int i = 0; i < 8; i++) asks.add(threads.submit(() -> {
+                together.await(5, java.util.concurrent.TimeUnit.SECONDS);
+                return Settings.systemEmojiTypeface();
+            }));
+            java.util.Set<android.graphics.Typeface> got = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+            for (var ask : asks) got.add(ask.get(10, java.util.concurrent.TimeUnit.SECONDS));
+            assertEquals(1, got.size());
+            assertNotNull(got.iterator().next());
+            assertEquals("/system/fonts/AnyColorEmoji.ttf", Settings.systemEmojiSource);
+        } finally {
+            threads.shutdownNow();
+            Settings.systemEmojiFont = font;
+            Settings.systemEmoji = null;
+            Settings.systemEmojiMissing = false;
+            Settings.systemEmojiSource = null;
+        }
+    }
+
     // Robolectric's default Typeface stand-in accepts any path; the native one fails on a missing file like a phone does.
     @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
     @Test public void aSystemEmojiFontThatWontLoadIsTriedOnceAndStopsCountingAsAUse() throws Exception {

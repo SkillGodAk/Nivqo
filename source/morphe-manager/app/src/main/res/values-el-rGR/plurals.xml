@@ -4,6 +4,11 @@
         <item quantity="one">%s τροποποίηση</item>
         <item quantity="other">%s τροποποιήσεις</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s βιβλιοθήκη</item>
+        <item quantity="other">%s βιβλιοθήκες</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s επιλογή τροποποίησης</item>
         <item quantity="other">%s επιλογές τροποποίησης</item>
@@ -26,6 +31,10 @@
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Πηγές ενημερώσεων για %s εφαρμογή</item>
         <item quantity="other">Πηγές ενημερώσεων για %s εφαρμογές</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s πηγή κρύβεται για αυτή την εφαρμογή. Επιλέξτε την εφαρμογή στην καρτέλα Εφαρμογές και ανοίξτε τις Τροποποιημένες πηγές για να την επαναφέρετε</item>
+        <item quantity="other">%s πηγές κρύβονται για αυτή την εφαρμογή. Επιλέξτε την εφαρμογή στην καρτέλα Εφαρμογές και ανοίξτε τις Τροποποιημένες πηγές για να τις επαναφέρετε</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s κρυφή πηγή. Πατήστε για εμφάνιση</item>
@@ -55,6 +64,10 @@
         <item quantity="one">Εγκαταστάθηκε η εφαρμογή %s</item>
         <item quantity="other">Εγκαταστάθηκαν οι εφαρμογές %s</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Προσαρτήθηκε %s εφαρμογή</item>
+        <item quantity="other">Προσαρτήθηκαν %s εφαρμογές</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Επανεγκαταστάθηκε %s εφαρμογή</item>
         <item quantity="other">Επανεγκαταστάθηκαν %s εφαρμογές</item>
@@ -70,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">Η εφαρμογή %s είναι έτοιμη για ενημέρωση</item>
         <item quantity="other">Οι εφαρμογές %s είναι έτοιμες για ενημέρωση</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">Η εφαρμογή %s έχει τεθεί σε αναμονή για επιδιόρθωση</item>
+        <item quantity="other">Οι εφαρμογές %s έχουν τεθεί σε αναμονή για επιδιόρθωση</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s κρυφή ειδοποίηση, πατήστε για να την εμφανίσετε</item>
+        <item quantity="other">%s κρυφές ειδοποιήσεις, πατήστε για να τις εμφανίσετε</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s εφαρμογή μπορεί να τροποποιηθεί ξανά</item>
@@ -87,9 +108,17 @@
         <item quantity="one">%s πηγή εγκαταστάθηκε</item>
         <item quantity="other">%s πηγές εγκαταστάθηκαν</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s φιλτραρισμένο</item>
-        <item quantity="other">%1$s · %2$s φιλτραρισμένα</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">Κρύβεται %s εφαρμογή</item>
+        <item quantity="other">Κρύβονται %s εφαρμογές</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">Δείχνεται %s εφαρμογή</item>
+        <item quantity="other">Δείχνονται %s εφαρμογές</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Απόκρυψη εφαρμογής %s;</item>
+        <item quantity="other">Απόκρυψη εφαρμογών %s;</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s κρυφή εφαρμογή</item>
@@ -126,6 +155,11 @@
     <plurals name="changelog_change_count">
         <item quantity="one">%s αλλαγή</item>
         <item quantity="other">%s αλλαγές</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d νέο</item>
+        <item quantity="other">%1$s · %2$d νέα</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s νέα έκδοση</item>

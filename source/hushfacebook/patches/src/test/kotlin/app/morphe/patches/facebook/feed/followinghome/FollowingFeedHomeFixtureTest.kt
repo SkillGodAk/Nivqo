@@ -14,6 +14,8 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -31,6 +33,9 @@ import java.io.File
  * Facebook's code runs. Reads the fixture bundles from HUSHFACEBOOK_FIXTURE_DIR and skips without it.
  */
 class FollowingFeedHomeFixtureTest {
+    /** What the feed query hook adds before each return: move, null check, read, call, nop. */
+    private val HOOK = 5
+
     private fun bundles(check: (File) -> Unit) {
         val versions = AppCompatibilities.facebook().single().targets.mapNotNull { it.version }.toSet()
         assertTrue("the bundle declares no Facebook build", versions.isNotEmpty())
@@ -86,5 +91,52 @@ class FollowingFeedHomeFixtureTest {
         assertEquals("$where: and put back where the feed type was", listOf(Opcode.MOVE_OBJECT_FROM16, feedType, 0),
             (patched[4] as TwoRegisterInstruction).let { listOf(it.opcode, it.registerA, it.registerB) })
         assertEquals("$where: Facebook's code stays", original.map { it.opcode }, patched.drop(5).map { it.opcode })
+    }
+
+    @Test
+    fun `each declared build hands the feed query's parameter set to the debug log before it returns`() = bundles { bundle ->
+        val name = bundle.name
+        val holders = FixtureDex.classesHolding(bundle, FEED_QUERY_INNER).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
+        val query = feedQuery(holders) { type -> FixtureDex.classes(bundle, setOf(type)).values.singleOrNull() }
+        val where = "$name: ${query.method.definingClass}->${query.method.name}"
+        // The extension reads the set through its one public no-argument method answering a map.
+        val paramSet = FixtureDex.classes(bundle, setOf(PARAM_SET_CLASS)).values.single()
+        assertEquals("$name: the parameter set answers no single map", 1, paramSet.methods.count {
+            it.parameterTypes.isEmpty() && it.returnType == "Ljava/util/Map;" &&
+                AccessFlags.PUBLIC.isSet(it.accessFlags) && !AccessFlags.STATIC.isSet(it.accessFlags)
+        })
+        val returns = feedQueryReturns(query.method)
+        assertTrue("$where returns nothing past the feed's own query", returns.isNotEmpty())
+
+        val context = PatchContexts.of(listOf(FixtureDex.classes(bundle, setOf(query.method.definingClass)).values.single()))
+        val method = context.mutableClassDefBy(query.method.definingClass).methods.single {
+            it.name == query.method.name && it.parameterTypes.map(CharSequence::toString) == query.method.parameterTypes.map(CharSequence::toString)
+        }
+        val original = method.implementation!!.instructions.toList()
+        method.sendsFeedParams(query)
+        val patched = method.implementation!!.instructions.toList()
+        assertEquals("$where gains five instructions per return", original.size + HOOK * returns.size, patched.size)
+        var address = 0
+        val addresses = patched.map { val at = address; address += it.codeUnits; at }
+        returns.forEachIndexed { done, at ->
+            val start = at + HOOK * done
+            val hook = patched.subList(start, start + HOOK + 1)
+            val step = "$where: the hook before return ${done + 1}"
+            assertEquals(step, listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.IF_EQZ, Opcode.IGET_OBJECT, Opcode.INVOKE_STATIC, Opcode.NOP,
+                Opcode.RETURN_OBJECT), hook.map { it.opcode })
+            val result = (original[at] as OneRegisterInstruction).registerA
+            val spare = (hook[0] as TwoRegisterInstruction).registerA
+            assertTrue("$step: the spare is the result", spare != result)
+            assertEquals("$step: the result is moved to the spare", result, (hook[0] as TwoRegisterInstruction).registerB)
+            assertEquals("$step: a null result goes straight to the return", listOf(spare, start + 4),
+                listOf((hook[1] as OneRegisterInstruction).registerA, addresses.indexOf(addresses[start + 1] + (hook[1] as OffsetInstruction).codeOffset)))
+            assertEquals("$step: the set is read off the result", listOf(query.paramSet, spare, spare),
+                (hook[2] as TwoRegisterInstruction).let { listOf((it as ReferenceInstruction).reference.toString(), it.registerA, it.registerB) })
+            assertEquals("$step: the extension is handed the set", listOf(FEED_REQUEST_SENT, 1, spare),
+                (hook[3] as FiveRegisterInstruction).let { listOf((it as ReferenceInstruction).reference.toString(), it.registerCount, it.registerC) })
+            assertEquals("$step: the result is still returned", result, (hook[5] as OneRegisterInstruction).registerA)
+        }
+        assertEquals("$where: Facebook's code stays", original.map { it.opcode },
+            patched.filterIndexed { index, _ -> returns.withIndex().none { (done, at) -> index in at + HOOK * done until at + HOOK * (done + 1) } }.map { it.opcode })
     }
 }

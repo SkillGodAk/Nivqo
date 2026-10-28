@@ -8,6 +8,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.readsAfter
 import com.android.apksig.internal.apk.AndroidBinXmlParser
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -17,6 +18,8 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.value.StringEncodedValue
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -333,6 +336,78 @@ class SharedPermissionsFixtureTest {
     }
 
     /**
+     * The rest of Facebook's own authorities are put together from BuildConstants' name and a
+     * suffix, and the cache one closed a clone (#16). The routing finds exactly the suffixes in
+     * [BUILT_AUTHORITIES] put after that name, leaves the ones in [OTHER_PREFIX_AUTHORITIES] (put
+     * after something else), and each built name then goes straight through the extension.
+     */
+    @Test
+    fun eachDeclaredBuildsBuiltAuthoritiesAreTheOnesTheRoutingReaches() {
+        val versions = AppCompatibilities.facebook().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
+                val authorities = documentOf(manifestOf(bundle)).ownAuthorities(FACEBOOK)
+                val suffixes = authorities.filter { it.startsWith("$FACEBOOK.") }.map { it.removePrefix(FACEBOOK) }
+                val routed = sortedSetOf<String>()
+                val left = sortedSetOf<String>()
+                val callers = mutableListOf<ClassDef>()
+                var results = 0
+                FixtureDex.forEach(bundle) { dex ->
+                    if (dex.stringSection.none { text -> suffixes.any { text.endsWith(it) } }) return@forEach
+                    for (classDef in dex.classes) {
+                        var builds = false
+                        for (method in classDef.methods) {
+                            val code = method.instructions()
+                            val loads = code.indices.filter { code[it].loadedString()?.buildsOwnAuthority(FACEBOOK, authorities) == true }
+                            if (loads.isEmpty()) continue
+                            val built = method.builtAuthorityResults(FACEBOOK, authorities)
+                            results += built.size
+                            builds = builds || built.isNotEmpty()
+                            for (load in loads) {
+                                val readers = method.readsAfter(load, (code[load] as OneRegisterInstruction).registerA)
+                                val into = if (built.any { it - 1 in readers }) routed else left
+                                into += code[load].loadedString()!!
+                            }
+                        }
+                        if (builds) callers += ImmutableClassDef.of(classDef)
+                    }
+                }
+
+                assertTrue("${bundle.name}: the cache authority that closed a clone", ".provider.CacheProvider" in routed)
+                assertEquals("${bundle.name}: suffixes put after BuildConstants' name", BUILT_AUTHORITIES.getValue(version), routed)
+                assertEquals("${bundle.name}: suffixes put after anything else", OTHER_PREFIX_AUTHORITIES.getValue(version), left)
+                val context = PatchContexts.of(callers)
+                assertEquals("${bundle.name}: built names routed", results, context.routeBuiltAuthorities(FACEBOOK, authorities))
+                for (before in callers) {
+                    val after = context.mutableClassDefBy(before.type).methods
+                    for (original in before.methods) {
+                        val built = original.builtAuthorityResults(FACEBOOK, authorities)
+                        if (built.isEmpty()) continue
+                        val where = "${bundle.name}: ${original.definingClass}->${original.name}"
+                        val was = original.instructions()
+                        val now = after.single { it.sameSignatureAs(original) }.instructions()
+                        assertEquals("$where: two instructions per built name", was.size + 2 * built.size, now.size)
+                        built.forEachIndexed { done, at ->
+                            val index = at + 2 * done
+                            val register = (now[index] as OneRegisterInstruction).registerA
+                            val call = now[index + 1]
+                            assertEquals("$where at $index", AUTHORITY_CALL, (call as ReferenceInstruction).reference.toString())
+                            assertEquals("$where at $index: the call's register", register to 1,
+                                (call as RegisterRangeInstruction).startRegister to call.registerCount)
+                            assertEquals("$where at $index: the answer's register", register,
+                                (now[index + 2] as OneRegisterInstruction).registerA)
+                            assertEquals("$where at $index: nothing put after the answer", was[at + 1].opcode, now[index + 3].opcode)
+                        }
+                    }
+                }
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /**
      * The rows under Supported links for Meta App Manager (issue #30), Messenger and Instagram (#78)
      * read each app's package without QUERY_ALL_PACKAGES. Android 11 and later only answer for a
      * package `<queries>` covers, so a build that drops it would hide the row on every phone,
@@ -422,10 +497,10 @@ class SharedPermissionsFixtureTest {
     }
 
     /**
-     * #36 leftovers: each declared build's places that name Facebook to Android as this app hand the
-     * name to the extension first (Firebase's notification code and a chat notification's intent),
-     * and afterwards only the setPackage calls that mean Meta's Facebook still take its name straight
-     * from a literal.
+     * #36 leftovers: each declared build's places that name Facebook to Android as this app or look
+     * up its resources hand the name to the extension first (Firebase's notification code, a chat
+     * notification's intent, app info, ProxyAuth and the launcher badge), and afterwards only the
+     * setPackage calls that mean Meta's Facebook still take its name straight from a literal.
      */
     @Test
     fun eachDeclaredBuildsOwnIntentsTakeTheRunningPackage() {
@@ -508,6 +583,81 @@ class SharedPermissionsFixtureTest {
         assertEquals("a declared build has no fixture", versions, checked)
     }
 
+    /**
+     * The call [instruction] makes if it's one that can mean this app when handed Facebook's
+     * package ([OWNER_ARGUMENTS]) and [register] goes in that argument, else null.
+     */
+    private fun ownerCall(instruction: Instruction, register: Int): String? {
+        val called = ((instruction as? ReferenceInstruction)?.reference as? MethodReference)?.toString() ?: return null
+        val position = OWNER_ARGUMENTS[called] ?: return null
+        val arguments = (instruction as? FiveRegisterInstruction)
+            ?.let { listOf(it.registerC, it.registerD, it.registerE, it.registerF, it.registerG).take(it.registerCount) }
+            ?: (instruction as? RegisterRangeInstruction)
+                ?.let { (it.startRegister until it.startRegister + it.registerCount).toList() } ?: return null
+        return if (arguments.getOrNull(position) == register) called.substringAfter("->").substringBefore('(') else null
+    }
+
+    /**
+     * The [ownerCall]s that read what [this] put in [register] at [at], straight or after a move
+     * into another register.
+     */
+    private fun Method.ownerReads(at: Int, register: Int, code: List<Instruction>, moves: Int = 0): Set<String> =
+        readsAfter(at, register).flatMapTo(sortedSetOf()) { reader ->
+            val instruction = code[reader]
+            if (instruction.opcode in MOVES && moves < 4) {
+                ownerReads(reader, (instruction as TwoRegisterInstruction).registerA, code, moves + 1)
+            } else {
+                listOfNotNull(ownerCall(instruction, register))
+            }
+        }
+
+    /**
+     * #16 inventory: in each declared build, every load of Facebook's bare package that a call able
+     * to mean this app reads, straight or after a move, is either one the patch hands to the
+     * extension or one of the places where it means Meta's Facebook ([STOCK_OWNER_SITES]). A new
+     * place of either kind fails here until someone sorts it.
+     */
+    @Test
+    fun eachDeclaredBuildsPackageLoadsAreSortedIntoThisAppAndMetasFacebook() {
+        val versions = AppCompatibilities.facebook().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
+                var routed = 0
+                val stock = mutableListOf<String>()
+                FixtureDex.forEach(bundle) { dex ->
+                    if (FACEBOOK !in dex.stringSection) return@forEach
+                    for (classDef in dex.classes) {
+                        for (method in classDef.methods) {
+                            val code = method.instructions()
+                            val loads = code.indices.filter { code[it].loadedString() == FACEBOOK }
+                            if (loads.isEmpty()) continue
+                            val handed = (method.ownPackageCallLoads(FACEBOOK) + method.remoteViewsPackageLoads(FACEBOOK)).toSet()
+                            for (at in loads) {
+                                if (at in handed) {
+                                    routed++
+                                    continue
+                                }
+                                val reads = method.ownerReads(at, (code[at] as OneRegisterInstruction).registerA, code)
+                                if (reads.isNotEmpty()) stock += "${classDef.type}->${method.name}@$at: ${reads.joinToString()}"
+                            }
+                        }
+                    }
+                }
+                assertEquals("${bundle.name}: package loads handed to the extension",
+                    OWN_PACKAGE_CALL_LOADS.getValue(version) + REMOTE_VIEWS_LOADS.getValue(version), routed)
+                assertEquals("${bundle.name}: $FACEBOOK left where it could mean this app: $stock",
+                    STOCK_OWNER_SITES.getValue(version), stock.size)
+                val named = STOCK_OWNERS.getValue(version).entries.single { "-${it.key}." in bundle.name }.value
+                for (site in named) {
+                    assertEquals("${bundle.name}: $site among $stock", 1, stock.count { site in it })
+                }
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
     private fun Document.authorities(): List<String> =
         elements("provider").flatMap { it.getAttribute("android:authorities").split(';') }
 
@@ -521,21 +671,107 @@ class SharedPermissionsFixtureTest {
         val AUTHORITY_LOADS = mapOf(AppCompatibilities.FACEBOOK_TARGET_VERSION to 13)
 
         /**
-         * Loads of Facebook's package that only build RemoteViews, per build. 582 had 14 notification
-         * template sites (2026-10-14). 583 builds all but one from the running package itself, and
-         * the check after the patch still finds none left spelled out (2026-10-16).
+         * Own authority suffixes Facebook puts after BuildConstants' name, per build, from a dex probe
+         * of arm64 584 (2026-10-23): the cache, the user values (lite and full, first-party and
+         * not), contacts connections, the two deferred deep link providers' own matchers, and
+         * the attribution id pattern.
          */
-        val REMOTE_VIEWS_LOADS = mapOf(AppCompatibilities.FACEBOOK_TARGET_VERSION to 1)
+        val BUILT_AUTHORITIES = mapOf(
+            AppCompatibilities.FACEBOOK_TARGET_VERSION to sortedSetOf(
+                ".liteprovider.FirstPartyUserValuesLiteProvider", ".provider.CacheProvider",
+                ".provider.ContactsConnectionsProvider", ".provider.DeferredDeeplinkProvider",
+                ".provider.FirstPartyUserValuesProvider", ".provider.ThreadsTixuDeferredDeeplinkProvider",
+                ".provider.UserValuesProvider", "content://%s.provider.AttributionIdProvider",
+            ),
+        )
 
         /**
-         * Loads of Facebook's package that only name this app to Android, per build, from a dump of
-         * the arm64 582 dex (2026-10-14), the same on 583: FirebaseMessagingService's two setPackage,
-         * one launch intent and three meta-data reads, and one chat notification's setPackage.
+         * Own authority suffixes put after something else, per build (arm64 584, 2026-10-23). No
+         * method loading one calls BuildConstants.A04(), the only reader of its Facebook name: the
+         * phone id request to each Meta app's package and the access library request to the package
+         * it's handed, which mean that app, the platform and photos providers, whose package comes
+         * from Facebook's injector, and the short suffixes (the secure file provider, threads
+         * properties, contacts, messages and the rest), each in a method that never asks
+         * BuildConstants.
          */
-        val OWN_PACKAGE_CALL_LOADS = mapOf(AppCompatibilities.FACEBOOK_TARGET_VERSION to 7)
+        val OTHER_PREFIX_AUTHORITIES = mapOf(
+            AppCompatibilities.FACEBOOK_TARGET_VERSION to sortedSetOf(
+                ".contacts", ".experiments", ".hatch.chat.files", ".hatch.files", ".identity.feo2.api", ".messages",
+                ".provider.AccessLibraryContentProvider", ".provider.PhotosProvider", ".provider.PlatformProvider",
+                ".provider.phoneid", ".securefileprovider", ".tam-attachment", ".threads_properties",
+            ),
+        )
+
+        /**
+         * Loads of Facebook's package that only build RemoteViews, per build. 582 had 14 notification
+         * template sites (2026-10-14). 583 builds all but one from the running package itself, and
+         * the check after the patch still finds none left spelled out (2026-10-16). 584 spells all
+         * 14 out again (2026-10-22).
+         */
+        val REMOTE_VIEWS_LOADS = mapOf(AppCompatibilities.FACEBOOK_TARGET_VERSION to 14)
+
+        /**
+         * Loads of Facebook's package that only name this app to Android or look up its resources,
+         * per build. From a dump of the arm64 582 dex (2026-10-14), the same on 583:
+         * FirebaseMessagingService's two setPackage, one launch intent and three meta-data reads, and
+         * one chat notification's setPackage. Added from the 583 inventory of both ABIs
+         * (2026-10-20): FirebaseMessagingService's three resource lookups (the notification text,
+         * icon and sound URI), Firebase's own ApplicationInfo and its resource lookup, the manifest
+         * meta-data read for the build revision, AppInfoCore's ApplicationInfo and icon, ProxyAuth's
+         * three setClassName (login and consent deep links, device login) and Xiaomi's launcher
+         * badge call.
+         */
+        val OWN_PACKAGE_CALL_LOADS = mapOf(AppCompatibilities.FACEBOOK_TARGET_VERSION to 19)
 
         /** Of those, the ones in Firebase's notification code. */
-        val FIREBASE_LOADS = mapOf(AppCompatibilities.FACEBOOK_TARGET_VERSION to 6)
+        val FIREBASE_LOADS = mapOf(AppCompatibilities.FACEBOOK_TARGET_VERSION to 9)
+
+        /**
+         * Calls that can mean this app when handed Facebook's package, with the argument it goes in
+         * (0 is the receiver of a virtual call), for the inventory.
+         */
+        val OWNER_ARGUMENTS = mapOf(
+            SET_PACKAGE to 1,
+            SET_CLASS_NAME to 1,
+            LAUNCH_INTENT to 1,
+            APPLICATION_INFO to 1,
+            APPLICATION_ICON to 1,
+            PROVIDER_CALL to 3,
+            RESOURCE_ID to 3,
+            REDEX_RESOURCE_ID to 3,
+            REMOTE_VIEWS_INIT to 1,
+            "Landroid/content/ComponentName;-><init>(Ljava/lang/String;Ljava/lang/String;)V" to 1,
+        )
+
+        val MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+
+        /**
+         * Loads of Facebook's package, per build, that such a call reads but that keep the literal,
+         * because there it means Meta's Facebook app (583, both ABIs, 2026-10-20): Messenger's
+         * warm-start hint (ThreadSettingsActivity), which checks Facebook is installed and then
+         * sends it a broadcast; the forum share link, which checks the same and opens Facebook's
+         * activity; the pick of whichever Facebook build is installed to open a link; Horizon's
+         * launch of Facebook after its install check; and the Meta app picker that hands a link to
+         * the installed Facebook unless that's the running app. Each also reads the load for
+         * something else, an install check at least, so it can't go over whole.
+         */
+        val STOCK_OWNER_SITES = mapOf(AppCompatibilities.FACEBOOK_TARGET_VERSION to 5)
+
+        /**
+         * Those sites by name, per build and ABI, each found once: the link pick, Horizon's launch,
+         * the Meta app picker and the forum share link, then Messenger's warm-start hint. Earlier
+         * builds named these classes differently per ABI; 584's two builds happen to agree.
+         */
+        val STOCK_OWNERS = mapOf(
+            AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
+                "arm64-v8a" to listOf("LX/dWG;->A00@569:", "LX/RQF;->A00@40:", "LX/Gf1;->A00@22:", "LX/RTe;->openForumShareLink\$${FORUM_LINK}@60:"),
+                "armeabi-v7a" to listOf("LX/dWG;->A00@569:", "LX/RQF;->A00@40:", "LX/Gf1;->A00@22:", "LX/RTe;->openForumShareLink\$${FORUM_LINK}@60:"),
+            ).mapValues { (_, sites) ->
+                sites + "Lcom/facebook/messaging/threadsettings2/activity/ThreadSettingsActivity;->onActivityCreate@51:"
+            },
+        )
+
+        const val FORUM_LINK = "fbandroid_java_com_facebook_messaging_linkhandling_linkhandling"
 
         /**
          * How many setPackage calls still take Facebook's package from a literal, per build, because

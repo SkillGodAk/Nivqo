@@ -4,6 +4,11 @@
         <item quantity="one">%s Patch</item>
         <item quantity="other">%s Patches</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s Bibliothek</item>
+        <item quantity="other">%s Bibliotheken</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s Patch-Option</item>
         <item quantity="other">%s Patch-Optionen</item>
@@ -26,6 +31,10 @@
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Patch-Quellen für %s App</item>
         <item quantity="other">Patch-Quellen für %s Apps</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s Quelle ist für diese App versteckt. Wählen Sie die App auf der Registerkarte Apps und öffnen Sie Patch-Quellen, um sie wiederherzustellen</item>
+        <item quantity="other">%s Quellen sind für diese App versteckt. Wählen Sie die App auf der Registerkarte Apps und öffnen Sie Patch-Quellen, um sie wiederherzustellen</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s Quelle ausgeblendet. Zum Anzeigen tippen</item>
@@ -55,6 +64,10 @@
         <item quantity="one">%s App installiert</item>
         <item quantity="other">%s Apps installiert</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">%s App gemountet</item>
+        <item quantity="other">%s Apps gemountet</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">%s App erneut installiert</item>
         <item quantity="other">%s Apps erneut installiert</item>
@@ -70,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">%s App bereit zum Patchen</item>
         <item quantity="other">%s Apps bereit zum Patchen</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">App %s zum Patchen in der Warteschlange</item>
+        <item quantity="other">Apps %s zum Patchen in der Warteschlange</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s verborgene Benachrichtigung, tippen, um sie anzuzeigen</item>
+        <item quantity="other">%s verborgene Benachrichtigungen, tippen, um sie anzuzeigen</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s App kann erneut gepatcht werden</item>
@@ -87,9 +108,17 @@
         <item quantity="one">%s Quelle installiert</item>
         <item quantity="other">%s Quellen installiert</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s gefiltert</item>
-        <item quantity="other">%1$s · %2$s gefiltert</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s App ausgeblendet</item>
+        <item quantity="other">%s Apps ausgeblendet</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s App angezeigt</item>
+        <item quantity="other">%s Apps angezeigt</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Unhide-App %s anzeigen?</item>
+        <item quantity="other">Apps %s unhide?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s ausgeblendete App</item>
@@ -126,6 +155,11 @@
     <plurals name="changelog_change_count">
         <item quantity="one">%s Änderung</item>
         <item quantity="other">%s Änderungen</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d neu</item>
+        <item quantity="other">%1$s · %2$d neu</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s neues Release</item>

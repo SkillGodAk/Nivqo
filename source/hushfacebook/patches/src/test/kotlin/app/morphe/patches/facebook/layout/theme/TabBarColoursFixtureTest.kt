@@ -138,7 +138,7 @@ class TabBarColoursFixtureTest {
                 val at = sites.single() + 1
                 val register = (original[at - 1] as OneRegisterInstruction).registerA
                 val colourCall = original.take(at - 1).last { it.called() != null }.called()!!
-                assertEquals("$name: the colour comes from a token resolver", "Lcom/facebook/fds/core/theme/component/FDSColors;", colourCall.definingClass)
+                assertEquals("$name: the colour comes from a token resolver", fdsColorsOf(bundle).type, colourCall.definingClass)
                 assertEquals("$name: the colour comes from a token resolver", "I", colourCall.returnType)
 
                 val colour = selectedTabColour(layout) { type ->

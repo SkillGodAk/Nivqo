@@ -12,6 +12,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.annotation.RequiresApi
 import androidx.core.net.toUri
 
 /** Opens the system app info screen for Morphe. */
@@ -30,6 +31,20 @@ fun Context.openAppNotificationSettings() {
         Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
             .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
     )
+    if (!opened) openAppDetailsSettings()
+}
+
+/** The "Allow management of all files" screen of Morphe. */
+@RequiresApi(Build.VERSION_CODES.R)
+internal fun Context.allFilesAccessSettingsIntent() =
+    Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.fromParts("package", packageName, null))
+
+/**
+ * Opens [allFilesAccessSettingsIntent], falling back to app info below Android 11 and on builds
+ * that drop the screen, as TV and some OEM builds do.
+ */
+fun Context.openAllFilesAccessSettings() {
+    val opened = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && startSettings(allFilesAccessSettingsIntent())
     if (!opened) openAppDetailsSettings()
 }
 

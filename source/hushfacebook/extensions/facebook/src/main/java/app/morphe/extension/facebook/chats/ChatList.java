@@ -18,9 +18,11 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
 /**
  * What the Clean up Facebook's chat list patch asks while Facebook's own Chats builds its list.
  *
- * <p>Four hooks for three switches. {@link #notesTiles} sits where the state behind the row of notes and
+ * <p>Five hooks for three switches. {@link #notesTiles} sits where the state behind the row of notes and
  * active friends above the chats stores its tiles, and hands back no tiles while Hide the notes and active now row
- * is on. {@link #hidesPromotion} sits first in the show question of each promotion banner at the
+ * is on. {@link #hidesNotesRow} sits first in the section that draws that row, and answers yes with the same
+ * switch, which the patch turns into the section's own empty result, so your own note tile goes too.
+ * {@link #hidesPromotion} sits first in the show question of each promotion banner at the
  * top of Chats, and answers yes while Hide chat list promotions is on, which the patch turns into
  * a no for Facebook. {@link #metaAiButton} takes the Meta AI button the search row just built and
  * hands back none while Hide the Meta AI button in Chats is on, and {@link #showsSearchMetaAiButton}
@@ -31,6 +33,7 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
 public final class ChatList {
     /** The diagnostic counter routes: each time Chats built the piece, and what was taken out. */
     static final String NOTES_ROUTE = "Chat notes tray";
+    static final String NOTES_ROW_ROUTE = "Chat notes row";
     static final String PROMOTIONS_ROUTE = "Chat list promotions";
     static final String META_AI_ROUTE = "Chats Meta AI button";
 
@@ -62,6 +65,23 @@ public final class ChatList {
     }
 
     /**
+     * Injection point, first thing in the render of the section that draws the notes row. True has
+     * the section hand back its own empty result, so the row isn't drawn and leaves no gap. Never throws.
+     */
+    public static boolean hidesNotesRow() {
+        try {
+            HookStatus.invoked(FamilyNames.CHAT_LIST);
+            FeedFilterCounters.sawList(NOTES_ROW_ROUTE, 1);
+            if (!Utils.settingsReady() || !Settings.HIDE_CHAT_NOTES_TRAY.get()) return false;
+            FeedFilterCounters.removed(NOTES_ROW_ROUTE, 1, NOTES_HIDDEN);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CHAT_LIST, "notes row", failure);
+            return false;
+        }
+    }
+
+    /**
      * Injection point, first thing in a promotion banner's show question. True answers no for
      * Facebook, so the banner isn't shown. Never throws.
      */
@@ -79,7 +99,8 @@ public final class ChatList {
     }
 
     /**
-     * Injection point, right after the search row at the top of Chats builds its Meta AI button.
+     * Injection point, right after the search row at the top of Chats builds its Meta AI button,
+     * itself or through a helper it hands the button's builder to (584).
      * The button Facebook built, or null while the Meta AI switch is on, which the row already
      * takes as no button and leaves the search box alone. Never throws.
      */

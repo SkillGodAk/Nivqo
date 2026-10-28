@@ -30,8 +30,6 @@ import io.ktor.utils.io.readAvailable
 import kotlinx.coroutines.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.io.File
 import java.io.IOException
 import java.net.URLEncoder
@@ -45,6 +43,14 @@ data class PatchBundleDownloadResult(
 
 typealias PatchBundleDownloadProgress = (bytesRead: Long, bytesTotal: Long?) -> Unit
 
+/** What a remote bundle reaches its source with, handed to it by whoever builds the bundle. */
+class RemoteBundleServices(
+    val http: HttpService,
+    val api: MorpheAPI,
+    val assetDownloader: AssetDownloader,
+    val prefs: PreferencesManager
+)
+
 sealed class RemotePatchBundle(
     name: String,
     uid: Int,
@@ -55,37 +61,26 @@ sealed class RemotePatchBundle(
     error: Throwable?,
     directory: File,
     val endpoint: String,
-    val autoUpdate: Boolean,
     enabled: Boolean,
-) : PatchBundleSource(name, uid, displayName, createdAt, updatedAt, error, directory, enabled), KoinComponent {
-    protected val http: HttpService by inject()
-    protected val api: MorpheAPI by inject()
-    private val assetDownloader: AssetDownloader by inject()
+    protected val services: RemoteBundleServices,
+) : PatchBundleSource(name, uid, displayName, createdAt, updatedAt, error, directory, enabled) {
+    protected val http = services.http
+    protected val api = services.api
 
     protected abstract suspend fun getLatestInfo(): MorpheAsset
-    abstract fun copy(
-        error: Throwable? = this.error,
-        name: String = this.name,
-        displayName: String? = this.displayName,
-        createdAt: Long? = this.createdAt,
-        updatedAt: Long? = this.updatedAt,
-        autoUpdate: Boolean = this.autoUpdate,
-        enabled: Boolean = this.enabled
-    ): RemotePatchBundle
-
-    override fun copy(
+    abstract override fun copy(
         error: Throwable?,
         name: String,
         displayName: String?,
         createdAt: Long?,
         updatedAt: Long?,
         enabled: Boolean
-    ): RemotePatchBundle = copy(error, name, displayName, createdAt, updatedAt, this.autoUpdate, enabled)
+    ): RemotePatchBundle
 
     protected open suspend fun download(info: MorpheAsset, onProgress: PatchBundleDownloadProgress? = null) =
         withContext(Dispatchers.IO) {
             installPatchBundle("Downloading patch bundle") { staging ->
-                assetDownloader.downloadToFile(
+                services.assetDownloader.downloadToFile(
                     downloadUrl = info.downloadUrl,
                     saveLocation = staging,
                     onProgress = onProgress
@@ -331,10 +326,10 @@ class JsonPatchBundle(
     error: Throwable?,
     directory: File,
     endpoint: String,
-    autoUpdate: Boolean,
     enabled: Boolean,
+    services: RemoteBundleServices,
     val usePrerelease: Boolean = false,
-) : RemotePatchBundle(name, uid, displayName, createdAt, updatedAt, installedVersionSignature, error, directory, endpoint, autoUpdate, enabled) {
+) : RemotePatchBundle(name, uid, displayName, createdAt, updatedAt, installedVersionSignature, error, directory, endpoint, enabled, services) {
 
     /**
      * The branch the endpoint URL currently points to.
@@ -498,16 +493,15 @@ class JsonPatchBundle(
         displayName: String?,
         createdAt: Long?,
         updatedAt: Long?,
-        autoUpdate: Boolean,
         enabled: Boolean
     ) = JsonPatchBundle(
         name, uid, displayName, createdAt, updatedAt,
-        installedVersionSignature, error, directory, endpoint, autoUpdate, enabled, usePrerelease,
+        installedVersionSignature, error, directory, endpoint, enabled, services, usePrerelease,
     )
 
     fun copy(usePrerelease: Boolean) = JsonPatchBundle(
         name, uid, displayName, createdAt, updatedAt,
-        installedVersionSignature, error, directory, endpoint, autoUpdate, enabled, usePrerelease,
+        installedVersionSignature, error, directory, endpoint, enabled, services, usePrerelease,
     )
 
     companion object {
@@ -560,10 +554,10 @@ class APIPatchBundle(
     error: Throwable?,
     directory: File,
     endpoint: String,
-    autoUpdate: Boolean,
     enabled: Boolean,
+    services: RemoteBundleServices,
     val usePrerelease: Boolean = false,
-) : RemotePatchBundle(name, uid, displayName, createdAt, updatedAt, installedVersionSignature, error, directory, endpoint, autoUpdate, enabled) {
+) : RemotePatchBundle(name, uid, displayName, createdAt, updatedAt, installedVersionSignature, error, directory, endpoint, enabled, services) {
     override suspend fun getLatestInfo() = api.getPatchesUpdate(usePrerelease).getOrThrow()
 
     // The endpoint is the API identifier rather than a browsable URL
@@ -592,16 +586,15 @@ class APIPatchBundle(
         displayName: String?,
         createdAt: Long?,
         updatedAt: Long?,
-        autoUpdate: Boolean,
         enabled: Boolean
     ) = APIPatchBundle(
         name, uid, displayName, createdAt, updatedAt,
-        installedVersionSignature, error, directory, endpoint, autoUpdate, enabled, usePrerelease,
+        installedVersionSignature, error, directory, endpoint, enabled, services, usePrerelease,
     )
 
     fun copy(usePrerelease: Boolean) = APIPatchBundle(
         name, uid, displayName, createdAt, updatedAt,
-        installedVersionSignature, error, directory, endpoint, autoUpdate, enabled, usePrerelease,
+        installedVersionSignature, error, directory, endpoint, enabled, services, usePrerelease,
     )
 }
 
@@ -615,9 +608,9 @@ class GitHubPullRequestBundle(
     error: Throwable?,
     directory: File,
     endpoint: String,
-    autoUpdate: Boolean,
-    enabled: Boolean
-) : RemotePatchBundle(name, uid, displayName, createdAt, updatedAt, installedVersionSignature, error, directory, endpoint, autoUpdate, enabled) {
+    enabled: Boolean,
+    services: RemoteBundleServices
+) : RemotePatchBundle(name, uid, displayName, createdAt, updatedAt, installedVersionSignature, error, directory, endpoint, enabled, services) {
 
     override suspend fun getLatestInfo() = withContext(Dispatchers.IO) {
         val (owner, repo, prNumber) = endpoint.split("/").let { parts ->
@@ -628,8 +621,7 @@ class GitHubPullRequestBundle(
     }
 
     override suspend fun download(info: MorpheAsset, onProgress: PatchBundleDownloadProgress?) = withContext(Dispatchers.IO) {
-        val prefs: PreferencesManager by inject()
-        val gitHubPat = prefs.gitHubPat.get().also {
+        val gitHubPat = services.prefs.gitHubPat.get().also {
             if (it.isBlank()) throw RuntimeException("PAT is required")
         }
 
@@ -743,7 +735,6 @@ class GitHubPullRequestBundle(
         displayName: String?,
         createdAt: Long?,
         updatedAt: Long?,
-        autoUpdate: Boolean,
         enabled: Boolean
     ) = GitHubPullRequestBundle(
         name,
@@ -755,7 +746,7 @@ class GitHubPullRequestBundle(
         error,
         directory,
         endpoint,
-        autoUpdate,
-        enabled
+        enabled,
+        services
     )
 }

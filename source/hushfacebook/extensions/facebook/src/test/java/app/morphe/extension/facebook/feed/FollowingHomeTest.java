@@ -84,7 +84,7 @@ public class FollowingHomeTest {
     }
 
     /**
-     * A family's report keeps 16 named counts. Past eight feed types counted by name, the rest are
+     * A family's report keeps 24 named counts. Past eight feed types counted by name, the rest are
      * counted together, so Home's own count still finds room however many feeds a session asks for.
      */
     @Test

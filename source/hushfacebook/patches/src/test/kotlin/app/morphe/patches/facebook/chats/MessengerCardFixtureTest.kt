@@ -35,11 +35,13 @@ class MessengerCardFixtureTest {
      * 583 packs it the same way and the bundle holds nothing else with that text, so its id is 582's
      * moved by the shift between the two builds' tables: the locale packs both ship (which stay
      * plain FRSC) place the ids around it 867 higher, and the dex agrees, as 583's neighbouring
-     * ids sit the same distance apart as 582's. The test below only passes on the one card class
-     * that loads it, and the unpacked 583 table is the check still owed.
+     * ids sit the same distance apart as 582's. 584 packs it the same way again, and its id is
+     * 583's 184 higher: in 76 to 88 of the locale packs both builds ship, the ids on either side
+     * of it (0x3a24 below, 0x3a86 to 0x3a9c above) all moved by exactly that. The test below only
+     * passes on the one card class that loads it, and an unpacked table is the check still owed.
      */
     private val upsellText = mapOf(
-        "583.0.0.39.55" to 0x7f143a50,
+        "584.0.0.51.56" to 0x7f143b08,
     )
 
     private val packageManager = "Landroid/content/pm/PackageManager;"

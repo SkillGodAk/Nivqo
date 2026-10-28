@@ -156,8 +156,13 @@ public class ActiveSavesTest {
                 Shadows.shadowOf(notifications()).getAllNotifications().size());
         View row = row(id);
         assertNotNull("the running save isn't on the Downloads page", row);
-        assertEquals("the save isn't listed first", "running_save_" + id,
-                ((Preference) list().getItemAtPosition(0)).getKey());
+        int downloads = -1;
+        for (int i = 0; i < list().getCount(); i++) {
+            if ("section_Downloads".equals(((Preference) list().getItemAtPosition(i)).getKey())) downloads = i;
+        }
+        assertTrue("Downloads has no expandable heading", downloads >= 0);
+        assertEquals("the save isn't the first control under Downloads", "running_save_" + id,
+                ((Preference) list().getItemAtPosition(downloads + 1)).getKey());
         assertEquals("Saving a video", String.valueOf(((TextView) row.findViewById(android.R.id.title)).getText()));
         assertEquals("Downloading\n4.2 MB of 100 MB\n0:00 elapsed", summaryOf(row));
         Button cancel = cancelOf(row);
@@ -316,6 +321,8 @@ public class ActiveSavesTest {
         SavesForTests.end(id);
         layout();
         TreeSet<String> after = new TreeSet<>(Arrays.asList(prefs.list() == null ? new String[0] : prefs.list()));
+        // Opening the settings stores which rows were seen; that is no part of a save.
+        after.remove(NewRowDots.FILE + ".xml");
         assertEquals("a save stored something", before, after);
     }
 

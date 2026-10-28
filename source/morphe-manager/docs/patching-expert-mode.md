@@ -15,25 +15,29 @@ before patching, and an expanded patching screen.
 
 ## 1. Enable Expert mode
 
-Expert mode is off by default. Open **Settings → Advanced**, scroll to **Expert settings**,
-and turn on **Expert mode**. Morphe asks you to confirm.
+Expert mode is off by default. Open **Settings** and turn on **Expert mode** in the
+**Patching** section. Morphe asks you to confirm, and the **Settings** button in the bottom bar
+gets an extra mark while the mode is on.
 
 <p align="center">
-  <img src="images/patching-expert-mode/01-enable-expert-mode.jpg" width="320" alt="Expert mode toggle in Advanced settings" />
+  <img src="images/patching-expert-mode/01-enable-expert-mode.jpg" width="320" alt="Expert mode turned on in the Patching section of the settings" />
 </p>
 
 The switch changes how the whole patching flow behaves, so you can turn it back off at any
 time and return to Simple mode.
 
 > [!NOTE]
-> Patch options move with the mode. In Simple mode they live in **Settings → Advanced**, in
-> Expert mode they are configured per patch on the selection screen in step 4.
+> Patch options move with the mode. In Simple mode they live in **Settings → Patch options**,
+> in Expert mode they are configured per patch on the selection screen in step 4, and the
+> same row of the settings turns into **Patch selections**, your saved choices per app, see
+> [Storage and saved data](storage-and-saved-data.md#patch-selections). Expert mode also adds
+> **GitHub PAT** to the **Updates** section.
 
 ### Optimize for device architecture
 
-Turning on Expert mode reveals a few extra settings in the same place. The one worth knowing
-before you patch is **Optimize for device architecture**, which strips everything the build
-does not need on your phone. It is off by default and applies to both kinds of input:
+One setting worth knowing before you patch is **Optimize for device architecture** in
+**Settings → Patcher**, which strips everything the build does not need on your phone. It is
+off by default and applies to both kinds of input:
 
 - **A split APK bundle** (APKM, APKS, XAPK) is merged into a single APK before patching.
   With the option on, Morphe skips the modules that do not apply to your device while
@@ -129,25 +133,37 @@ Long press any of them to see its name.
 
 | # | Icon | Button | What it does |
 | --- | --- | --- | --- |
-| 1 | double check, blue | **Enable all** | Turns on every patch in the source. Greyed out when everything is already on. Rarely a good idea, some patches conflict with each other |
-| 2 | thumbs up, purple | **Enable recommended patches** | Restores the default selection, the same one Simple mode applies. Your safety net when a build turns out broken |
+| 1 | double check | **Enable all** | Turns on every patch in the source. Greyed out when everything is already on. Rarely a good idea, some patches conflict with each other |
+| 2 | thumbs up in a circle | **Enable recommended patches** | Restores the default selection, the same one Simple mode applies. Your safety net when a build turns out broken |
 | 3 | clock with arrow | **Restore saved selection** | Reverts to the selection you previously saved for this app. Greyed out when there is none |
 | 4 | two sheets | **Copy selection from another bundle** | Copies enabled patches and their options from a different patch source. Only patches that exist in both sources are copied |
-| 5 | stacked lines, red | **Disable all** | Turns off every patch in the source. Greyed out when nothing is on |
+| 5 | stacked lines | **Disable all** | Turns off every patch in the source. Greyed out when nothing is on |
 
 Each button confirms with a short toast so you can see what changed.
 
-When you are happy with the selection, tap **Proceed to patching** at the bottom. If you
-enabled patches from more than one source, Morphe warns you first, mixing sources can cause
-compatibility issues.
+When you are happy with the selection, tap **Patch** at the bottom. If you enabled patches
+from more than one source, Morphe warns you first, mixing sources can cause compatibility
+issues.
 
-Before the very first patch Morphe also asks to be excluded from battery optimization, see
-[Allow background patching](patching-simple-mode.md#allow-background-patching).
+### Allow background patching
+
+Before the very first patch in Expert mode, Morphe asks to be excluded from battery
+optimization. Some devices stop the patcher when the app is minimized, and this prevents
+that.
+
+<p align="center">
+  <img src="images/common/background-protection.jpg" width="320" alt="Background patching protection dialog" />
+</p>
+
+**Allow** opens the Android system dialog. **Not now** skips it, in which case keep Morphe in
+the foreground while patching. The prompt is shown once, and the same choice is available
+later in **Settings → Patcher → Battery optimization**.
 
 ## 5. Watch the patching process
 
 Expert mode replaces the simple progress ring with a detailed view: overall progress, the
-patch counter, live memory usage against your configured heap limit, and the patcher log.
+patch counter, live memory usage against the patcher's memory limit, storage throughput and
+CPU usage, and the patcher log.
 
 <p align="center">
   <img src="images/patching-expert-mode/05-patching-progress.jpg" width="320" alt="Expert patching screen with logs and memory usage" />
@@ -183,10 +199,11 @@ Tap **Install** here and Android takes over. If it asks to allow installs from u
 sources, follow the prompt and grant it.
 
 > [!IMPORTANT]
-> The patched app keeps the original package name and is signed with a different
-> certificate. If the unpatched app is still installed, Morphe reports an **Uninstall
-> required** conflict and you have to uninstall it first. Uninstalling permanently erases
-> that app's data.
+> The patched app is signed with a different certificate than the original. Patches that give
+> the app a package name of its own, as YouTube and YouTube Music get, let it install next to
+> the stock app. One that keeps the original package name conflicts with the unpatched app:
+> Morphe reports **Uninstall required** and you have to uninstall it first, which permanently
+> erases that app's data.
 
 After the first patched app is installed, Morphe asks once about notification permission and
 offers a quick feature tour, see
@@ -194,19 +211,19 @@ offers a quick feature tour, see
 
 ### Exporting the patched APK
 
-The bottom bar of the completion screen has three buttons in Expert mode: **Logs** returns
-to the patcher log, **Home** goes back to the app list, and **Save** exports the finished
-APK through the system file picker.
+Next to **Install** on the completion screen, **Save** writes the finished APK wherever you
+choose and **Share** hands it to another app. Below them, **Logs** returns to the patcher log
+and **Home** goes back to the app list.
 
-Export it before you close Morphe if you want to keep the file, the patched APK itself sits
-in temporary storage that is cleared the next time the app starts.
+Morphe keeps its own copy while **Keep patched APKs** is on, which it is by default, see
+[Storage and saved data](storage-and-saved-data.md#saved-apks).
 
 ## Troubleshooting
 
 | Problem | What to do |
 | --- | --- |
 | The patched app crashes or misbehaves | Patch again with **Enable recommended patches**, then re-enable your extra patches one at a time |
-| Patching fails partway through | Copy the log with the button at the bottom, it contains the failing step. Raising the memory limit in **Settings → Advanced → Process runtime** helps with out-of-memory failures |
+| Patching fails partway through | Copy the log with the button at the bottom, it contains the failing step. For out-of-memory failures, see [When patching fails](patching-process.md#when-patching-fails) |
 | "Multiple patch sources selected" warning | You enabled patches from more than one source. Stick to a single source unless you know the combination works |
 | A patch shows a red border | It has required options that are not filled in. Open its options and complete them |
 | Experimental version behaves oddly | Expected, patches for that version are still being refined. Use the **Recommended** version for a stable result |

@@ -35,6 +35,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -82,8 +83,9 @@ import java.util.TreeSet;
  * inside an instruction ("target dex pc is not at instruction start"), an invoke whose registers
  * don't match what the callee takes, a parameter register read as the wrong kind (the static and
  * wide off-by-one), a register the body wrote at the wrong width (a narrow const left where a
- * const-wide was, which the AMOLED sweep did on 580), a move-result cut off from its invoke, and a
- * try range or handler off an instruction boundary. A contract file adds
+ * const-wide was, which the AMOLED sweep did on 580), a move-result cut off from its invoke, an
+ * extension's Object answer returned uncast from a method declared to return a class (Comment
+ * sheet options in 0.16.0), and a try range or handler off an instruction boundary. A contract file adds
  * rules about the whole APK: the feed filter's guard is called once, first thing, in the one
  * method doing the funnel's work (addNewEdgeToCollection, or the body 583's wrapper hands its edge
  * to), because two guards stacked on that method is what broke Froggo's builds; and each extension stub a patch fills in with one of Facebook's renamed accessors calls
@@ -197,6 +199,10 @@ public class DexDiff {
      *       once, anywhere in its body, and no other host method calls it. For a hook that has to
      *       read what the method made first, so it can't come first, and follows no one call.
      * </ul>
+     * For start-call, next-call, sole-call and once-call, a method that loads some of the strings
+     * also holds the ones a constructor it calls loads, since a build can move a string into the
+     * class the method builds (Facebook 584 builds the seen-state mutation's input, field name and
+     * all, in the input class's constructor).
      */
     /** The kind a first-call rule that names its class by GraphQL type is read into. */
     private static final String TYPED_FIRST_CALL = "first-call-typed";
@@ -871,6 +877,97 @@ public class DexDiff {
     }
 
     /**
+     * Each return-object in [m] that hands back, unchanged, what a call declared to return Object
+     * answered, while [m] is declared to return some other type: the declared type, and the
+     * finding. ART rejects the whole class for that ("returning 'Reference: java.lang.Object', but
+     * expected from declaration ..."), so every method in it dies with a VerifyError, which is how
+     * Comment sheet options crashed every comment sheet in 0.16.0 (#203, #204). The extension's
+     * hooks take and answer Object, so a hook whose answer is returned has to be cast back first.
+     * The walk goes back from the return along the one straight run into it and stops where
+     * another path joins, so a value only some paths bring is left alone. Whether the declared
+     * type is an interface, which ART lets any object through to, is only known once every class
+     * has been read, so the caller decides which of these stand.
+     */
+    private static List<String[]> objectReturns(Method m) {
+        List<String[]> out = new ArrayList<>();
+        MethodImplementation impl = m.getImplementation();
+        String declared = m.getReturnType();
+        if (impl == null || declared.charAt(0) != 'L' || declared.equals("Ljava/lang/Object;")) return out;
+        Layout layout = new Layout(impl);
+        Set<Integer> joins = joins(impl, layout);
+        for (int k = 0; k < layout.instructions.size(); k++) {
+            Instruction i = layout.instructions.get(k);
+            if (i.getOpcode() != Opcode.RETURN_OBJECT) continue;
+            int register = ((OneRegisterInstruction) i).getRegisterA();
+            int j = k;
+            while (j > 0 && !joins.contains(layout.addresses.get(j))
+                    && layout.instructions.get(j - 1).getOpcode().canContinue()) {
+                j--;
+                Instruction w = layout.instructions.get(j);
+                if (!writes(w, register)) continue;
+                if (w.getOpcode() == Opcode.MOVE_RESULT_OBJECT && j > 0
+                        && layout.instructions.get(j - 1) instanceof ReferenceInstruction) {
+                    Reference callee = ((ReferenceInstruction) layout.instructions.get(j - 1)).getReference();
+                    if (callee instanceof MethodReference
+                            && ((MethodReference) callee).getReturnType().equals("Ljava/lang/Object;")) {
+                        out.add(new String[]{declared, "type: return-object at " + layout.addresses.get(k)
+                                + " returns v" + register + ", the Object " + callee + " answered, uncast, where the method returns "
+                                + declared});
+                    }
+                }
+                break;
+            }
+        }
+        return out;
+    }
+
+    /** Whether [i] writes [register]: as its destination, the upper half of a wide one, or a cast. */
+    private static boolean writes(Instruction i, int register) {
+        Opcode opcode = i.getOpcode();
+        if (!(i instanceof OneRegisterInstruction)) return false;
+        if (opcode != Opcode.CHECK_CAST && !opcode.setsRegister()) return false;
+        int destination = ((OneRegisterInstruction) i).getRegisterA();
+        return destination == register || (opcode.setsWideRegister() && destination + 1 == register);
+    }
+
+    /** Every address a branch, a switch case or an exception handler lands on. */
+    private static Set<Integer> joins(MethodImplementation impl, Layout layout) {
+        Set<Integer> out = new HashSet<>();
+        for (int k = 0; k < layout.instructions.size(); k++) {
+            Instruction i = layout.instructions.get(k);
+            if (!(i instanceof OffsetInstruction) || i.getOpcode() == Opcode.FILL_ARRAY_DATA) continue;
+            int at = layout.addresses.get(k);
+            int target = at + ((OffsetInstruction) i).getCodeOffset();
+            if (i.getOpcode() == Opcode.PACKED_SWITCH || i.getOpcode() == Opcode.SPARSE_SWITCH) {
+                Instruction payload = layout.byAddress.get(target);
+                if (!(payload instanceof SwitchPayload)) continue;
+                for (SwitchElement element : ((SwitchPayload) payload).getSwitchElements()) out.add(at + element.getOffset());
+            } else {
+                out.add(target);
+            }
+        }
+        for (TryBlock<? extends ExceptionHandler> block : impl.getTryBlocks()) {
+            for (ExceptionHandler handler : block.getExceptionHandlers()) out.add(handler.getHandlerCodeAddress());
+        }
+        return out;
+    }
+
+    /**
+     * Whether ART lets any object through to [type]: an interface the APK defines, or one the
+     * desktop runtime knows (java.util.List and the like). A type neither knows, such as one of
+     * Android's own, counts as a class, so a hook returning into it casts first.
+     */
+    private static boolean takesAnyObject(String type, Set<String> interfaces) {
+        if (interfaces.contains(type)) return true;
+        if (!type.startsWith("Ljava/")) return false;
+        try {
+            return Class.forName(type.substring(1, type.length() - 1).replace('/', '.'), false, null).isInterface();
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
+    /**
      * The structural findings for one method, each as "category: detail". The parameter check
      * reads a register only where no path from the entry has written it, where the value can
      * only be the argument the method was called with.
@@ -1260,6 +1357,10 @@ public class DexDiff {
         List<Contract> pickRules = new ArrayList<>();
         Map<Contract, List<Holder>> holders = new LinkedHashMap<>();
         Set<String> pickStrings = new HashSet<>();
+        // What each host constructor loads of those strings, and the methods holding part of a rule's
+        // strings that wait on the constructors they call for the rest.
+        Map<String, Set<String>> builtWith = new HashMap<>();
+        List<Partial> partial = new ArrayList<>();
         // And every method outside the bundle's own code that calls such a rule's method, to say
         // where a hook went when it isn't in the method its rule picks, or went there as well.
         Map<String, List<String>> hookCallers = new HashMap<>();
@@ -1287,16 +1388,22 @@ public class DexDiff {
                 hookCallers.put(contract.callee, new ArrayList<>());
             }
         }
+        // Each uncast Object return in a checked method, as its method, declared type and finding,
+        // and every interface the APK defines, which decides which of them stand.
+        List<String[]> uncast = new ArrayList<>();
+        Set<String> interfaces = new HashSet<>();
         MultiDexContainer<? extends DexFile> container =
                 DexFileFactory.loadDexContainer(apk, Opcodes.getDefault());
         for (String entry : container.getDexEntryNames()) {
             for (ClassDef cd : container.getEntry(entry).getDexFile().getClasses()) {
+                if (AccessFlags.INTERFACE.isSet(cd.getAccessFlags())) interfaces.add(cd.getType());
                 for (Method m : cd.getMethods()) {
                     String s = sig(cd, m);
                     List<String> left = wanted.contains(s) ? unchecked.get(s) : null;
                     if (left != null && left.remove(print(m, digest))) {
                         List<String> findings = structuralFindings(cd, m);
                         if (!findings.isEmpty()) out.computeIfAbsent(s, k -> new ArrayList<>()).addAll(findings);
+                        for (String[] found : objectReturns(m)) uncast.add(new String[]{s, found[0], found[1]});
                     }
                     String firstCallOn = firstCallTargets.get(s);
                     if (firstCallOn != null) firstCalls.put(s, firstCallBeforeReturn(m, firstCallOn));
@@ -1305,7 +1412,7 @@ public class DexDiff {
                     if (leaving != null) firstCalls.put(s, firstCallOutside(m, leaving));
                     if (!typeNamedClasses.isEmpty()) recordTypeNamed(cd, m, typeNamedClasses);
                     if (!pickRules.isEmpty() && !cd.getType().startsWith(OWN)) {
-                        recordHolders(s, m, pickRules, pickStrings, holders);
+                        recordHolders(s, m, pickRules, pickStrings, holders, builtWith, partial);
                     }
                     if ((callSites.isEmpty() && noCallSites.isEmpty() && hookCallers.isEmpty())
                             || m.getImplementation() == null) continue;
@@ -1323,6 +1430,10 @@ public class DexDiff {
                 }
             }
         }
+        for (String[] found : uncast) {
+            if (!takesAnyObject(found[1], interfaces)) out.computeIfAbsent(found[0], k -> new ArrayList<>()).add(found[2]);
+        }
+        resolvePartial(partial, builtWith, holders);
         List<String> contractFindings = new ArrayList<>();
         for (Contract contract : contracts) {
             if (contract.picks()) {
@@ -1467,21 +1578,72 @@ public class DexDiff {
         }
     }
 
-    /** Adds [m] to each rule whose strings it loads, every one of them. */
+    /**
+     * A method holding part of a rule's strings, already in the rule's holders where the scan met it
+     * so they stay in dex order, and waiting on the constructors it calls for the rest.
+     */
+    private static final class Partial {
+        final Contract rule;
+        final Holder holder;
+        final Set<String> held;
+        final List<String> builds;
+
+        Partial(Contract rule, Holder holder, Set<String> held, List<String> builds) {
+            this.rule = rule;
+            this.holder = holder;
+            this.held = held;
+            this.builds = builds;
+        }
+    }
+
+    /**
+     * Adds [m] to each rule whose strings it loads, every one of them. A method loading only part of
+     * them and calling a constructor is added too, and goes to [partial] with the constructors it
+     * calls, which [resolvePartial] reads once every constructor's strings are in [builtWith]. Each
+     * constructor's strings go there as it's read.
+     */
     private static void recordHolders(String s, Method m, List<Contract> rules, Set<String> wanted,
-            Map<Contract, List<Holder>> holders) {
+            Map<Contract, List<Holder>> holders, Map<String, Set<String>> builtWith, List<Partial> partial) {
         if (m.getImplementation() == null) return;
         Set<String> held = null;
+        List<String> builds = null;
         for (Instruction i : m.getImplementation().getInstructions()) {
             if (!(i instanceof ReferenceInstruction)) continue;
             Reference r = ((ReferenceInstruction) i).getReference();
+            if (r instanceof MethodReference && ((MethodReference) r).getName().equals("<init>")) {
+                if (builds == null) builds = new ArrayList<>();
+                builds.add(r.toString());
+                continue;
+            }
             if (!(r instanceof StringReference) || !wanted.contains(((StringReference) r).getString())) continue;
             if (held == null) held = new HashSet<>();
             held.add(((StringReference) r).getString());
         }
         if (held == null) return;
+        if (m.getName().equals("<init>")) builtWith.computeIfAbsent(s, k -> new HashSet<>()).addAll(held);
         for (Contract rule : rules) {
-            if (held.containsAll(rule.strings)) holders.get(rule).add(new Holder(s, rule.hasShape(m), m));
+            boolean all = held.containsAll(rule.strings);
+            if (!all && (builds == null || Collections.disjoint(held, rule.strings))) continue;
+            Holder holder = new Holder(s, rule.hasShape(m), m);
+            holders.get(rule).add(holder);
+            if (!all) partial.add(new Partial(rule, holder, held, builds));
+        }
+    }
+
+    /**
+     * Keeps each method in [partial] among its rule's [holders] only when what it loads and what
+     * the constructors it calls load ([builtWith]) together hold every one of the rule's strings.
+     * Facebook 584 moved the seen-state mutation's input field into its input class's constructor.
+     */
+    private static void resolvePartial(List<Partial> partial, Map<String, Set<String>> builtWith,
+            Map<Contract, List<Holder>> holders) {
+        for (Partial p : partial) {
+            Set<String> held = new HashSet<>(p.held);
+            for (String built : p.builds) {
+                Set<String> with = builtWith.get(built);
+                if (with != null) held.addAll(with);
+            }
+            if (!held.containsAll(p.rule.strings)) holders.get(p.rule).remove(p.holder);
         }
     }
 

@@ -218,8 +218,13 @@ class MaterialYouPatchTest {
         val dir = "patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme"
         val source = File(RepoFiles.root, "$dir/MaterialYouThemePatch.kt").readText()
         val paths = Regex(""""(res/[^"]+)"""").findAll(source).map { it.groupValues[1] }.toSet()
+        // The two globs only decode: patcher 2.0 leaves a file it wasn't asked for undecoded, so it
+        // wouldn't exist to read or check.
         assertEquals(setOf("res/values-night/colors.xml", "res/values-night-v31/colors.xml", "res/values-night",
-            "res/color-night-v31", "res/values/colors.xml", "res/values"), paths)
+            "res/color-night-v31", "res/values/colors.xml", "res/values", "res/values*/colors.xml",
+            "res/values*/style*.xml"), paths)
+        assertTrue("the files it reads are decoded first",
+            source.contains("decode(\"res/values*/colors.xml\", \"res/values*/style*.xml\", NIGHT_V31_STATE_LISTS)"))
         assertTrue("the state lists are written as files", source.contains("get(\"\$NIGHT_V31_STATE_LISTS/\$name.xml\", false)"))
 
         val opened = Regex("""document\((\w+)\)""").findAll(source).map { it.groupValues[1] }.toSet()

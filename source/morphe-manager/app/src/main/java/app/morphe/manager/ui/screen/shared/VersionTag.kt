@@ -5,20 +5,14 @@
 
 package app.morphe.manager.ui.screen.shared
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.InstallMobile
-import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material.icons.outlined.PhoneAndroid
-import androidx.compose.material.icons.outlined.Recommend
-import androidx.compose.material.icons.outlined.Science
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import app.morphe.manager.R
 import app.morphe.manager.util.androidVersionName
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 
 /**
  * What a version list can say about one version. Declared in the order tags are shown.
@@ -68,13 +62,13 @@ val VersionTag.tone: SemanticTone
 
 val VersionTag.icon: ImageVector
     get() = when (this) {
-        is VersionTag.RequiresAndroid -> Icons.Outlined.PhoneAndroid
-        VersionTag.Incompatible, VersionTag.Unsupported -> Icons.Outlined.Block
-        VersionTag.Recommended -> Icons.Outlined.Recommend
-        VersionTag.Experimental -> Icons.Outlined.Science
-        VersionTag.Unpatched -> Icons.Outlined.Inventory2
-        VersionTag.Saved -> Icons.Outlined.History
-        VersionTag.Installed -> Icons.Outlined.InstallMobile
+        is VersionTag.RequiresAndroid -> MaterialSymbols.Rounded.Phone_android
+        VersionTag.Incompatible, VersionTag.Unsupported -> MaterialSymbols.Rounded.Block
+        VersionTag.Recommended -> MaterialSymbols.Rounded.Recommend
+        VersionTag.Experimental -> MaterialSymbols.Rounded.Science
+        VersionTag.Unpatched -> MaterialSymbols.Rounded.Inventory_2
+        VersionTag.Saved -> MaterialSymbols.Rounded.History
+        VersionTag.Installed -> MaterialSymbols.Rounded.Install_mobile
     }
 
 @Composable

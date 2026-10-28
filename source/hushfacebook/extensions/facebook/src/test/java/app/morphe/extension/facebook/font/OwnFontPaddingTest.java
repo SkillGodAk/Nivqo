@@ -35,6 +35,8 @@ import java.util.List;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.diagnostics.HookStatus;
+import app.morphe.extension.shared.settings.BaseSettings;
+import app.morphe.extension.shared.settings.preference.LogBufferManager;
 
 /**
  * Issue #96: with `Use the system font` on, some phones' fonts lost the tails of y, g and p in
@@ -232,6 +234,55 @@ public class OwnFontPaddingTest {
         OwnFont.OVERFLOWS.put(Typeface.DEFAULT, true);
         Settings.USE_SYSTEM_FONT.save(false);
         assertEdges("switch off", false, 7, laidOut(Typeface.DEFAULT, new LineHeight(7)));
+    }
+
+    /** Builds [text] in the phone's font through the stand-ins, as one builder of Facebook's would. */
+    private static void builtByOneBuilder(String text) {
+        assertNotNull(OwnFont.build(OwnFont.obtain(text, 0, text.length(), paint(Typeface.DEFAULT), 1000)));
+    }
+
+    private static int count(String log, String line) {
+        int found = 0;
+        for (int at = log.indexOf(line); at >= 0; at = log.indexOf(line, at + 1)) found++;
+        return found;
+    }
+
+    /**
+     * #96: the reporter's Bengali captions lose their tops on his phone and not here. With Debug
+     * logging on, the first Bengali layout each builder makes logs the font's line box, where its
+     * letters reach and the room the layout gave them, once per builder and without the text.
+     * Latin text, a first line in Latin, and logging off, log nothing.
+     */
+    @Test
+    public void aBengaliLayoutLogsItsLineBoxOnceWithDebugLogging() {
+        OwnFont.SAMPLED.clear();
+        OwnFont.LOOKS.set(0);
+        LogBufferManager.clearLogBuffer();
+        String bengali = "কিছু কীর্তন";
+        try {
+            builtByOneBuilder(bengali);
+            assertEquals("logging off", 0, count(LogBufferManager.buildExportText(), "Bengali layout from"));
+
+            BaseSettings.DEBUG.save(true);
+            builtByOneBuilder("Playback speed");
+            assertEquals("Latin text", 0, count(LogBufferManager.buildExportText(), "Bengali layout from"));
+            builtByOneBuilder("Playback speed\n" + bengali);
+            assertEquals("a first line in Latin", 0,
+                    count(LogBufferManager.buildExportText(), "Bengali layout from"));
+
+            builtByOneBuilder(bengali);
+            builtByOneBuilder(bengali);
+            String log = LogBufferManager.buildExportText();
+            assertEquals(log, 1, count(log, "Bengali layout from StaticLayout.Builder by "
+                    + OwnFontPaddingTest.class.getName() + ".builtByOneBuilder < "));
+            assertTrue(log, log.contains("line room "));
+            assertTrue(log, log.contains("the phone's typeface"));
+            assertFalse("the text reached the log", log.contains(bengali));
+        } finally {
+            BaseSettings.DEBUG.resetToDefault();
+            OwnFont.SAMPLED.clear();
+            OwnFont.LOOKS.set(0);
+        }
     }
 
     /** Each typeface is measured once, and the report counts what the measure found. */

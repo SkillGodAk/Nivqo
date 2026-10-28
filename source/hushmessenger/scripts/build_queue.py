@@ -76,7 +76,8 @@ def gradle(root, tasks):
     wrapper = existing(WRAPPER)
     if not wrapper:
         return [str(Path(root) / ("gradlew.bat" if sys.platform == "win32" else "gradlew")), *tasks]
-    script = "& {} -ProjectDir {} -Tasks @({}); exit $LASTEXITCODE".format(
+    # Without Stop, a wrapper that fails before Gradle starts leaves $LASTEXITCODE empty and the command exits 0.
+    script = "$ErrorActionPreference = 'Stop'; & {} -ProjectDir {} -Tasks @({}); exit $LASTEXITCODE".format(
         quote(wrapper), quote(root), ", ".join(quote(task) for task in tasks)
     )
     return [shell(), "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script]

@@ -28,6 +28,111 @@ object PatchMetadataLocalizer {
     )
 
     private val zh = mapOf(
+        // Nivqo translations for the formal October 28 upstream sync (Manager 2.2 / FB 0.19 / MSG 0.27)
+        "Badge and logo colors" to Zh(
+            "徽章與標誌顏色",
+            "可自訂分頁通知數字徽章與首頁 Facebook 標誌的顏色。未設定時保留原本顏色。"
+        ),
+        "Don't save search history" to Zh(
+            "不儲存搜尋紀錄",
+            "避免將新搜尋的關鍵字、從搜尋開啟的頁面或個人檔案加入歷史紀錄；已儲存的紀錄需自行清除。"
+        ),
+        "Double tap to skip" to Zh(
+            "雙擊快轉或倒轉",
+            "在影片或 Reels 左右側雙擊，可倒轉或快轉 10 秒；短影片為 5 秒。"
+        ),
+        "Hide profile notes" to Zh(
+            "隱藏個人檔案便條",
+            "隱藏個人檔案照片上的便條與自己的「分享想法」提示。"
+        ),
+        "Home header text" to Zh(
+            "自訂首頁標題",
+            "將 Facebook 首頁頂部標誌換成自訂文字或圖片；未設定時維持原標誌。"
+        ),
+        "Keep feed videos muted" to Zh(
+            "動態影片預設靜音",
+            "每次開啟 Facebook 時讓動態消息影片預設靜音，仍可按音量鍵或影片喇叭開聲。"
+        ),
+        "Longer music on photo stories" to Zh(
+            "延長照片動態配樂",
+            "照片限時動態的歌曲最長播放 30 秒，而非原本的 15 秒。"
+        ),
+        "Newest reels first" to Zh(
+            "最新 Reels 優先",
+            "將 Facebook 已載入的 Reels 依發布時間排序；不會額外抓取尚未載入的影片。"
+        ),
+        "Open comments at full height" to Zh(
+            "全高度顯示留言",
+            "貼文、影片、Reels 和限時動態的留言以全高度面板開啟，另可設定留言時暫停 Reels。"
+        ),
+        "Open comments with a gesture" to Zh(
+            "透過手勢開啟留言",
+            "可使用雙擊或長按開啟 Reels 留言，也可長按動態貼文的圖片或名稱列。"
+        ),
+        "Pinch to zoom" to Zh(
+            "雙指縮放照片及限時動態",
+            "透過雙指手勢縮放限時動態或個人檔案照片，可另行設定維持縮放。"
+        ),
+        "Post action buttons" to Zh(
+            "自訂貼文操作按鈕",
+            "可在貼文加入儲存與下載按鈕，或個別隱藏讚、留言、分享及傳送。"
+        ),
+        "Show full post text" to Zh(
+            "顯示完整貼文內容",
+            "在動態消息直接展開貼文全文，不必再點選「查看更多」。"
+        ),
+        "Tap shows the controls" to Zh(
+            "點一下顯示播放控制",
+            "在播放中的 Reels 點一下顯示控制列，不會因此暫停；中央播放鍵仍可暫停。"
+        ),
+        "Custom launcher icon" to Zh(
+            "自訂啟動器圖示",
+            "可將 Messenger 圖示改為黑底白色或白底黑色，需在 Manager 專家模式修補時選擇。"
+        ),
+        "Fix videos that won't send" to Zh(
+            "修正影片無法傳送",
+            "改善 xHE-AAC 音軌及特定 Samsung 螢幕錄製影片導致的傳送失敗。"
+        ),
+        "Hide Your story when sharing" to Zh(
+            "分享時隱藏「你的限時動態」",
+            "從其他應用程式分享到 Messenger 時不顯示「你的限時動態」，降低誤發風險。"
+        ),
+        "Hide the recent photo card" to Zh(
+            "隱藏最近照片提示卡",
+            "隱藏聊天輸入欄上方提示分享最新截圖、照片或影片的卡片。"
+        ),
+        "Hold stories at the end" to Zh(
+            "限時動態播放完保留畫面",
+            "限時動態結束後停留在原畫面，不會自動切換下一則；可手動點選或滑動。"
+        ),
+        "Ignore the swipe up for disappearing messages" to Zh(
+            "關閉上滑啟用閱後即焚",
+            "避免在聊天畫面上滑時意外啟用限時消失訊息；仍可從聊天設定手動調整。"
+        ),
+        "Mark as read button" to Zh(
+            "加入標記已讀按鈕",
+            "隱藏已讀回條時，在聊天頂部加入手動標記已讀按鈕，讓你自行決定何時送出 Seen。"
+        ),
+        "Open your gallery app" to Zh(
+            "使用手機相簿選取照片",
+            "將聊天中的相簿按鈕連結到系統相簿應用程式，選取後仍可透過 Messenger 傳送。"
+        ),
+        "Quiet incoming calls" to Zh(
+            "來電安靜通知",
+            "來電不響鈴、震動或跳出全螢幕，可從通知欄接聽或拒絕。"
+        ),
+        "Square profile pictures" to Zh(
+            "方形個人頭像",
+            "將 Messenger 個人頭像顯示成方形或圓角方形，修改後需重新啟動。"
+        ),
+        "Stop app list and device ID sharing" to Zh(
+            "停止上傳應用程式清單與裝置識別碼",
+            "限制 Messenger 向伺服器回報裝置上的應用程式清單與裝置識別資料。"
+        ),
+        "Stop live connection logging" to Zh(
+            "停止記錄即時連線",
+            "減少 Messenger 即時連線的診斷事件記錄與回傳。"
+        ),
         // HushFacebook 0.14.0 formal additions
         "Hide carrier data banners" to Zh(
             "隱藏電信業者數據模式橫幅",

@@ -571,7 +571,7 @@ class OwnFontFixtureTest {
         }
     }
 
-    /** React Native's text layout, a text span and a text input ask the resolver; the layout keeps its name. */
+    /** React Native's text layout, a text span and a text input ask the resolver; the layout is the one handed the assets and the paint. */
     private fun checkReactNativeCallers(bundle: File, resolver: Method) {
         val callers = FixtureDex.methodsWhere(bundle, dexFilter = { dex ->
             dex.methodSection.any { it.definingClass == resolver.definingClass && it.name == resolver.name }
@@ -583,7 +583,11 @@ class OwnFontFixtureTest {
             } == true
         }
         assertTrue("${bundle.name}: ${callers.size} callers", callers.size >= 3)
+        // 584 renamed the layout's updateTextPaint; it still takes the app's assets and the paint.
         assertTrue("${bundle.name}: React Native's text layout doesn't ask it: ${callers.map { it.name }}",
-            callers.any { it.name.startsWith("updateTextPaint") })
+            callers.any {
+                it.name.startsWith("updateTextPaint") || it.parameterTypes.map(CharSequence::toString)
+                    .containsAll(listOf("Landroid/content/res/AssetManager;", "Landroid/text/TextPaint;"))
+            })
     }
 }

@@ -54,6 +54,8 @@ public class HushfacebookPauseTest {
         streak.delete();
         File marker = HushfacebookPause.markerFile(context);
         if (marker != null) marker.delete();
+        File media = HushfacebookPause.mediaMarkerFile(context);
+        if (media != null) media.delete();
         BaseSettings.SAFE_MODE.save(false);
         BaseSettings.PAUSED.save(false);
     }
@@ -225,6 +227,48 @@ public class HushfacebookPauseTest {
         assertFalse(marker.exists());
         start(null);
         assertEquals(HushfacebookPause.Reason.NONE, HushfacebookPause.reason());
+    }
+
+    /** Android 11's adb can't write in Android/data, so the same file in Android/media pauses too. */
+    @Test public void theMarkerInFacebooksMediaFolderPausesTooAndResumeRemovesBoth() throws Exception {
+        File media = HushfacebookPause.mediaMarkerFile(context);
+        assertTrue(media.getPath(), media.getPath().replace('\\', '/')
+                .endsWith("/Android/media/" + context.getPackageName() + "/" + HushfacebookPause.MARKER_FILE_NAME));
+        assertTrue(media.getParentFile().exists() || media.getParentFile().mkdirs());
+        assertTrue(media.createNewFile());
+
+        start(null);
+        assertEquals(HushfacebookPause.Reason.MARKER_FILE, HushfacebookPause.reason());
+        assertEquals(media, HushfacebookPause.presentMarker(context));
+
+        File data = HushfacebookPause.markerFile(context);
+        assertTrue(data.getParentFile().exists() || data.getParentFile().mkdirs());
+        assertTrue(data.createNewFile());
+        assertEquals("the files folder's marker is named first", data, HushfacebookPause.presentMarker(context));
+
+        BaseSettings.PAUSED.save(true);
+        assertEquals(HushfacebookPause.Reason.NONE, HushfacebookPause.turnBackOn(context));
+        assertFalse(media.exists());
+        assertFalse(data.exists());
+        assertFalse(BaseSettings.PAUSED.savedValue());
+        start(null);
+        assertEquals(HushfacebookPause.Reason.NONE, HushfacebookPause.reason());
+    }
+
+    /** A media marker that can't be removed holds the switches the same way. */
+    @Test public void aMediaMarkerThatCanNotBeRemovedLeavesThePauseSwitchOn() throws Exception {
+        File media = HushfacebookPause.mediaMarkerFile(context);
+        File held = new File(media, "held");
+        // A folder with something in it can't be deleted.
+        assertTrue(media.mkdirs() && held.createNewFile());
+        try {
+            BaseSettings.PAUSED.save(true);
+            assertEquals(HushfacebookPause.Reason.MARKER_FILE, HushfacebookPause.turnBackOn(context));
+            assertTrue("the Pause switch went while the file stayed", BaseSettings.PAUSED.savedValue());
+        } finally {
+            held.delete();
+            media.delete();
+        }
     }
 
     @Test public void thePauseSwitchPausesTheNextStartAndTurningBackOnUndoesEverything() {

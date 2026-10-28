@@ -4,6 +4,11 @@
         <item quantity="one">%s na-patch</item>
         <item quantity="other">%s mga na-patch</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s na aklat</item>
+        <item quantity="other">%s na aklat</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s pagpipilian ng patch</item>
         <item quantity="other">%s mga pagpipilian ng patch</item>
@@ -26,6 +31,10 @@
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Mga pinagmumulan ng patch para sa %s app</item>
         <item quantity="other">Mga pinagmumulan ng patch para sa %s na app</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s source ay nakatago para sa app na ito. Piliin ang app sa Apps tab at buksan Patch sources upang mabalik ito</item>
+        <item quantity="other">%s sources ay nakatago para sa app na ito. Piliin ang app sa Apps tab at buksan Patch sources upang mabalik sila</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">Nakatago ang %s na pinagmumulan. I-tap upang ipakita</item>
@@ -55,6 +64,10 @@
         <item quantity="one">Na-install ang %s app</item>
         <item quantity="other">Na-install ang %s apps</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Naka-mount na %s app</item>
+        <item quantity="other">Naka-mount na %s app</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Muling na-install ang %s app</item>
         <item quantity="other">Muling na-install ang %s apps</item>
@@ -70,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">Ang %s app ay handa nang i-patch</item>
         <item quantity="other">Ang %s apps ay handa nang i-patch</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s app queued for patching</item>
+        <item quantity="other">%s apps queued for patching</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s itaong notification, i-tap para ipakita ito</item>
+        <item quantity="other">%s itaong notifications, i-tap para ipakita sila</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s app ay maaaring i-repatch</item>
@@ -87,9 +108,17 @@
         <item quantity="one">%s na-install na mapagkukunan</item>
         <item quantity="other">%s na-install na mga mapagkukunan</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s na-filter</item>
-        <item quantity="other">%1$s · %2$s na-filter</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">Tagatago na app %s</item>
+        <item quantity="other">Mga tagatagong app %s</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">Ipinakita na app %s</item>
+        <item quantity="other">Mga ipinakitang app %s</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Ipakita muli ang %s na app?</item>
+        <item quantity="other">Ipakita muli ang mga %s na app?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s nakatagong app</item>
@@ -126,6 +155,11 @@
     <plurals name="changelog_change_count">
         <item quantity="one">%s pagbabago</item>
         <item quantity="other">%s pagbabago</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d bagong</item>
+        <item quantity="other">%1$s · %2$d bagong</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s bagong release</item>

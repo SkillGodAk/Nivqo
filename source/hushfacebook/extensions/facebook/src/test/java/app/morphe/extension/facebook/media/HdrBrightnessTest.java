@@ -181,7 +181,7 @@ public class HdrBrightnessTest {
     public void anHdrVideoDecoderIsAskedForTheUsualRange() {
         for (int transfer : new int[] {MediaFormat.COLOR_TRANSFER_HLG, MediaFormat.COLOR_TRANSFER_ST2084}) {
             MediaFormat format = video(transfer);
-            assertTrue("transfer " + transfer, HdrBrightness.askForUsualRange(format, surface(), 0));
+            assertTrue("transfer " + transfer, HdrBrightness.askForUsualRange(format, surface(), 0, false));
             assertEquals("transfer " + transfer, MediaFormat.COLOR_TRANSFER_SDR_VIDEO,
                     format.getInteger(MediaFormat.KEY_COLOR_TRANSFER_REQUEST));
         }
@@ -197,18 +197,18 @@ public class HdrBrightnessTest {
         MediaFormat hlg = video(MediaFormat.COLOR_TRANSFER_HLG);
         hlg.setInteger(MediaFormat.KEY_COLOR_STANDARD, MediaFormat.COLOR_STANDARD_BT2020);
         hlg.setInteger(MediaFormat.KEY_COLOR_RANGE, MediaFormat.COLOR_RANGE_LIMITED);
-        assertTrue(HdrBrightness.askForUsualRange(hlg, surface(), 0));
+        assertTrue(HdrBrightness.askForUsualRange(hlg, surface(), 0, false));
         assertEquals("the transfer", MediaFormat.COLOR_TRANSFER_SDR_VIDEO, hlg.getInteger(MediaFormat.KEY_COLOR_TRANSFER));
         assertEquals("the colours", MediaFormat.COLOR_STANDARD_BT2020, hlg.getInteger(MediaFormat.KEY_COLOR_STANDARD));
         assertEquals("the range", MediaFormat.COLOR_RANGE_LIMITED, hlg.getInteger(MediaFormat.KEY_COLOR_RANGE));
 
         MediaFormat pq = video(MediaFormat.COLOR_TRANSFER_ST2084);
-        assertTrue(HdrBrightness.askForUsualRange(pq, surface(), 0));
+        assertTrue(HdrBrightness.askForUsualRange(pq, surface(), 0, false));
         assertEquals("PQ's transfer", MediaFormat.COLOR_TRANSFER_ST2084, pq.getInteger(MediaFormat.KEY_COLOR_TRANSFER));
 
         Settings.TURN_OFF_HDR_BRIGHTNESS.save(false);
         MediaFormat off = video(MediaFormat.COLOR_TRANSFER_HLG);
-        assertFalse(HdrBrightness.askForUsualRange(off, surface(), 0));
+        assertFalse(HdrBrightness.askForUsualRange(off, surface(), 0, false));
         assertEquals("off, HLG stays", MediaFormat.COLOR_TRANSFER_HLG, off.getInteger(MediaFormat.KEY_COLOR_TRANSFER));
     }
 
@@ -216,7 +216,7 @@ public class HdrBrightnessTest {
     @Test
     public void aRefusedHlgVideoGetsFacebooksFormatBack() {
         MediaFormat hlg = video(MediaFormat.COLOR_TRANSFER_HLG);
-        assertTrue(HdrBrightness.askForUsualRange(hlg, surface(), 0));
+        assertTrue(HdrBrightness.askForUsualRange(hlg, surface(), 0, false));
         assertTrue(HdrBrightness.withdraw(hlg, true));
         assertFalse("the request", hlg.containsKey(MediaFormat.KEY_COLOR_TRANSFER_REQUEST));
         assertEquals("the transfer", MediaFormat.COLOR_TRANSFER_HLG, hlg.getInteger(MediaFormat.KEY_COLOR_TRANSFER));
@@ -255,14 +255,14 @@ public class HdrBrightnessTest {
         assertNotAsked("sound", sound, surface(), 0);
         MediaFormat facebooks = video(MediaFormat.COLOR_TRANSFER_HLG);
         facebooks.setInteger(MediaFormat.KEY_COLOR_TRANSFER_REQUEST, MediaFormat.COLOR_TRANSFER_HLG);
-        assertFalse("a request of Facebook's own", HdrBrightness.askForUsualRange(facebooks, surface(), 0));
+        assertFalse("a request of Facebook's own", HdrBrightness.askForUsualRange(facebooks, surface(), 0, false));
         assertEquals("Facebook's own request", MediaFormat.COLOR_TRANSFER_HLG,
                 facebooks.getInteger(MediaFormat.KEY_COLOR_TRANSFER_REQUEST));
         assertNull("something was counted", statusLine());
     }
 
     private static void assertNotAsked(String what, MediaFormat format, Surface surface, int flags) {
-        assertFalse(what, HdrBrightness.askForUsualRange(format, surface, flags));
+        assertFalse(what, HdrBrightness.askForUsualRange(format, surface, flags, false));
         assertFalse(what + " holds a request", format.containsKey(MediaFormat.KEY_COLOR_TRANSFER_REQUEST));
     }
 
@@ -313,6 +313,72 @@ public class HdrBrightnessTest {
         } finally {
             ShadowMediaCodec.clearCodecs();
         }
+    }
+
+    /**
+     * A Snapdragon Samsung phone's media codec service aborts in the vendor's tone-map filter when
+     * its Qualcomm decoder is sent the request on HDR reels. That decoder never gets it: an HLG
+     * video still goes over at the usual range, a PQ video exactly as Facebook asked.
+     */
+    @Test
+    public void aQualcommDecoderIsNeverSentTheRequest() throws Exception {
+        String name = "c2.qti.vp9.decoder";
+        ShadowMediaCodec.clearCodecs();
+        ShadowMediaCodec.addDecoder(name, new ShadowMediaCodec.CodecConfig(1_024, 1_024, (in, out) -> { }));
+        try {
+            MediaCodec hlg = MediaCodec.createByCodecName(name);
+            assertTrue("the decoder's name", HdrBrightness.qualcomm(hlg));
+            HdrBrightness.configure(hlg, video(MediaFormat.COLOR_TRANSFER_HLG), surface(), null, 0);
+            assertFalse("the HLG video was sent the request", hlg.getInputFormat().containsKey(MediaFormat.KEY_COLOR_TRANSFER_REQUEST));
+            assertEquals("the HLG video's transfer", MediaFormat.COLOR_TRANSFER_SDR_VIDEO,
+                    hlg.getInputFormat().getInteger(MediaFormat.KEY_COLOR_TRANSFER));
+            assertEquals(FamilyNames.HDR_BRIGHTNESS + ": invoked 1, 1 found, 0 missing. Counted: "
+                    + HdrBrightness.HLG_AS_USUAL_RANGE + " 1, " + HdrBrightness.QUALCOMM_NOT_ASKED + " 1", statusLine());
+            hlg.release();
+
+            MediaCodec pq = MediaCodec.createByCodecName(name);
+            MediaFormat format = video(MediaFormat.COLOR_TRANSFER_ST2084);
+            HdrBrightness.configure(pq, format, surface(), null, 0);
+            assertFalse("the PQ video was sent the request", pq.getInputFormat().containsKey(MediaFormat.KEY_COLOR_TRANSFER_REQUEST));
+            assertFalse("Facebook's PQ format was changed", format.containsKey(MediaFormat.KEY_COLOR_TRANSFER_REQUEST));
+            assertEquals("the PQ video's transfer", MediaFormat.COLOR_TRANSFER_ST2084,
+                    pq.getInputFormat().getInteger(MediaFormat.KEY_COLOR_TRANSFER));
+            assertEquals(FamilyNames.HDR_BRIGHTNESS + ": invoked 2, 1 found, 0 missing. Counted: "
+                    + HdrBrightness.HLG_AS_USUAL_RANGE + " 1, " + HdrBrightness.QUALCOMM_NOT_ASKED + " 2", statusLine());
+            pq.release();
+        } finally {
+            ShadowMediaCodec.clearCodecs();
+        }
+    }
+
+    @Test
+    public void onlyAQualcommCodec2DecoderIsPassedOver() {
+        assertTrue("Qualcomm's VP9 decoder", HdrBrightness.qualcomm("c2.qti.vp9.decoder"));
+        assertTrue("any case", HdrBrightness.qualcomm("C2.QTI.hevc.decoder"));
+        assertFalse("Android's own decoder", HdrBrightness.qualcomm("c2.android.vp9.decoder"));
+        assertFalse("an Exynos decoder", HdrBrightness.qualcomm("c2.exynos.vp9.decoder"));
+        assertFalse("Qualcomm's older OMX decoder", HdrBrightness.qualcomm("OMX.qcom.video.decoder.vp9"));
+        assertFalse("no name", HdrBrightness.qualcomm((String) null));
+        assertFalse("a Qualcomm prefix only", HdrBrightness.qualcomm("c2.qti"));
+        assertTrue("opened by an older alias", HdrBrightness.qualcomm("c2.qti.vp9.decoder", "OMX.qcom.video.decoder.vp9"));
+        assertTrue("no underlying name read", HdrBrightness.qualcomm(null, "c2.qti.vp9.decoder"));
+        assertFalse("Android's own, by an alias", HdrBrightness.qualcomm("c2.android.vp9.decoder", "OMX.google.vp9.decoder"));
+
+        MediaFormat pq = video(MediaFormat.COLOR_TRANSFER_ST2084);
+        assertFalse("a PQ video on a Qualcomm decoder", HdrBrightness.askForUsualRange(pq, surface(), 0, true));
+        assertFalse("its request", pq.containsKey(MediaFormat.KEY_COLOR_TRANSFER_REQUEST));
+        MediaFormat hlg = video(MediaFormat.COLOR_TRANSFER_HLG);
+        assertTrue("an HLG video on a Qualcomm decoder", HdrBrightness.askForUsualRange(hlg, surface(), 0, true));
+        assertFalse("its request", hlg.containsKey(MediaFormat.KEY_COLOR_TRANSFER_REQUEST));
+        assertEquals("its transfer", MediaFormat.COLOR_TRANSFER_SDR_VIDEO, hlg.getInteger(MediaFormat.KEY_COLOR_TRANSFER));
+        assertTrue("its withdrawal", HdrBrightness.withdraw(hlg, true));
+        assertEquals("HLG back", MediaFormat.COLOR_TRANSFER_HLG, hlg.getInteger(MediaFormat.KEY_COLOR_TRANSFER));
+
+        Settings.TURN_OFF_HDR_BRIGHTNESS.save(false);
+        MediaFormat off = video(MediaFormat.COLOR_TRANSFER_ST2084);
+        assertFalse(HdrBrightness.askForUsualRange(off, surface(), 0, true));
+        assertEquals("off, nothing counted", FamilyNames.HDR_BRIGHTNESS + ": invoked 3, 1 found, 0 missing. Counted: "
+                + HdrBrightness.QUALCOMM_NOT_ASKED + " 1", statusLine());
     }
 
     @Test

@@ -92,7 +92,7 @@ internal fun resolveInboxRefresh(items: Method, classOf: (String) -> ClassDef?):
     val callback = observer.methods.filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameterTypes == listOf("Ljava/util/List;")
     }.singleOrNull() ?: routeChanged()
-    val body = callback.implementation?.instructions?.toList() ?: routeChanged()
+    val body = (forwardedCallback(callback, observerType, supplier) ?: callback).implementation?.instructions?.toList() ?: routeChanged()
     val site = body.indices.filter { body.isListedWrite(it) }.singleOrNull() ?: routeChanged()
     val field = (body[site] as ReferenceInstruction).reference as FieldReference
     val listed = "$INBOX_SUPPLIER->${field.name}:I"
@@ -101,6 +101,33 @@ internal fun resolveInboxRefresh(items: Method, classOf: (String) -> ClassDef?):
         routeChanged()
     }
     return InboxRefreshRoute(subscribe.hookId(), listed)
+}
+
+/**
+ * 584 moved the list callback's body into a static supplier method; the observer's callback only forwards its list:
+ * `iget-object vS, this, observer->A:supplier; if-eqz list, :end; invoke-static {vS, list}, supplier->M(supplier, List)V; return-void`.
+ * Returns that method, or null when the callback is not exactly this forward.
+ */
+private fun forwardedCallback(callback: Method, observerType: String, supplier: ClassDef): Method? {
+    val implementation = callback.implementation ?: return null
+    val body = implementation.instructions.toList()
+    if (body.size != 4) return null
+    val read = body[0] as? TwoRegisterInstruction
+    val owner = (body[0] as? ReferenceInstruction)?.reference as? FieldReference
+    val check = body[1] as? OneRegisterInstruction
+    val call = body[2] as? FiveRegisterInstruction
+    val target = (body[2] as? ReferenceInstruction)?.reference as? MethodReference
+    val list = implementation.registerCount - 1
+    if (body[0].opcode != Opcode.IGET_OBJECT || read == null || owner == null || read.registerB != list - 1 ||
+        owner.definingClass != observerType || owner.type != INBOX_SUPPLIER ||
+        body[1].opcode != Opcode.IF_EQZ || check == null || check.registerA != list || body.branchTarget(1) != 3 ||
+        body[2].opcode != Opcode.INVOKE_STATIC || call == null || target == null || call.registerCount != 2 ||
+        call.registerC != read.registerA || call.registerD != list ||
+        target.definingClass != INBOX_SUPPLIER || target.returnType != "V" ||
+        target.parameterTypes.map { it.toString() } != listOf(INBOX_SUPPLIER, "Ljava/util/List;") ||
+        body[3].opcode != Opcode.RETURN_VOID) return null
+    return supplier.methods.singleOrNull { it.name == target.name && it.returnType == "V" && AccessFlags.STATIC.isSet(it.accessFlags) &&
+        it.parameterTypes.map { type -> type.toString() } == listOf(INBOX_SUPPLIER, "Ljava/util/List;") }
 }
 
 /** `const/4 vR, 5; if-lt ..., <the write>; const/4 vR, 1; iput vR, supplier->F:I`, the observer's listed-count update. */

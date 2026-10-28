@@ -5,6 +5,8 @@
  */
 package app.morphe
 
+import app.morphe.patcher.patch.SupportedAbi
+import app.morphe.patches.shared.compat.AppCompatibilities
 import java.io.File
 import org.junit.Assert.fail
 import org.junit.Assume.assumeTrue
@@ -39,4 +41,13 @@ internal object Fixtures {
 
     /** Every Facebook APK in the fixture folder. */
     fun apks(): List<File> = files { it.extension == "apk" }
+
+    /**
+     * The ABIs the declared Facebook builds are for, spelled the way Android and APKMirror spell them:
+     * arm64-v8a, armeabi-v7a, x86, x86_64. A test that has to see every ABI compares against this, so
+     * declaring or dropping a build moves the check with it.
+     */
+    fun declaredAbis(): Set<String> =
+        AppCompatibilities.facebook().single().targets.flatMap { it.versionCodes.orEmpty().keys }
+            .map { if (it == SupportedAbi.X86_64) "x86_64" else it.name.lowercase().replace('_', '-') }.toSet()
 }

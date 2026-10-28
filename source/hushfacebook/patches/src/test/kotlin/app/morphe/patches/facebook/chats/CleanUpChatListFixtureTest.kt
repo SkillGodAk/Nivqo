@@ -14,6 +14,7 @@ import app.morphe.patches.facebook.feed.namesString
 import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.SETTINGS_STATUS
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.RegisterLiveness
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
@@ -26,6 +27,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -36,10 +38,12 @@ import org.junit.Test
  * those classes. The tile state: one class whose constructor checks `activeNowTiles` and stores an
  * ImmutableList, found in 577 (`E4x`), 580 (`EBq`) and 581 (`E7k`); the hook goes in front of the
  * store as range calls, because the list's register can sit past v15 elsewhere, and the test reads
- * the instructions back. The promotions: one plugin per tag, each with one show question and a
+ * the instructions back. The section drawing that row: one render naming `ActiveNowSection` with an
+ * empty way out Facebook already jumps to; the hook goes first and jumps there too. The promotions: one plugin per tag, each with one show question and a
  * local to borrow; the hook goes first in the question. The Meta AI button: one search row builds
  * it with a tap action that opens Meta AI from the inbox, and the hook takes the built button
- * before the row's own null check. The search screen's Meta AI button: its tap names the row's
+ * before the row's own null check (on 584, where a static helper builds, checks and adds it, the
+ * hook takes the button's builder and skips the helper's call). The search screen's Meta AI button: its tap names the row's
  * class, the row sets one flag to 1 once, and the hook takes the flag right after.
  */
 class CleanUpChatListFixtureTest {
@@ -108,6 +112,20 @@ class CleanUpChatListFixtureTest {
                             it.parameterTypes.map(CharSequence::toString) == listOf("Ljava/util/Collection;")
                     })
 
+                // The section drawing the row: one render loads its name and tile key and has an empty way
+                // out that a jump of Facebook's own already lands on.
+                val sectionOwners = FixtureDex.classesHolding(bundle, NOTES_SECTION)
+                val sections = sectionOwners.flatMap { owner -> owner.methods.mapNotNull(::notesRowExit) }
+                assertEquals("$name: renders of the notes row with an empty way out", 1, sections.size)
+                val section = sections.single()
+                assertTrue("$name: the render has a local for the answer", locals(section.method) >= 1)
+                val sectionStock = section.method.body()
+                assertEquals("$name: the way out is the render's first new object", section.exit,
+                    sectionStock.indexOfFirst { it.opcode == Opcode.NEW_INSTANCE })
+                assertTrue("$name: Facebook's own branch already lands on the way out",
+                    branches(sectionStock).any { it.second == section.exit })
+                assertTrue("$name: no try block in the render", section.method.implementation!!.tryBlocks.isEmpty())
+
                 // The promotions: one plugin per tag, distinct, each with one show question.
                 val plugins = mutableListOf<ClassDef>()
                 val questions = PROMOTION_TAGS.map { tag ->
@@ -125,7 +143,17 @@ class CleanUpChatListFixtureTest {
                 val openers = FixtureDex.classesHolding(bundle, META_AI_ICON_CLICKED).filter(::opensMetaAiFromSearchRow)
                 assertEquals("$name: classes opening Meta AI from the search row", 1, openers.size)
                 val rows = FixtureDex.classesHolding(bundle, SEARCH_BAR_TAG)
-                val sites = rows.flatMap { owner -> owner.methods.mapNotNull { metaAiButtonSite(it, openers.map { it.type }.toSet()) } }
+                // 584 outlines the button's build into a static helper over the row's CallerContext, so
+                // the classes holding the rows' static calls of that shape come along to be read.
+                val outlining = rows.flatMap { it.methods }.flatMap { it.body() }.filter { it.opcode == Opcode.INVOKE_STATIC }
+                    .mapNotNull { (it as ReferenceInstruction).reference as? MethodReference }
+                    .filter { it.returnType == "V" && it.parameterTypes.firstOrNull()?.toString() == CALLER_CONTEXT }
+                    .map { it.definingClass }.toSet()
+                val helpers = FixtureDex.classes(bundle, outlining)
+                val resolveHelper: (MethodReference) -> Method? = { call -> helpers[call.definingClass]?.let { resolveStatic(it, call) } }
+                val sites = rows.flatMap { owner ->
+                    owner.methods.mapNotNull { metaAiButtonSite(it, openers.map { it.type }.toSet(), resolveHelper) }
+                }
                 assertEquals("$name: search rows building a Meta AI button", 1, sites.size)
                 val site = sites.single()
 
@@ -170,7 +198,8 @@ class CleanUpChatListFixtureTest {
 
                 // The patch on those classes.
                 val context = PatchContexts.of(
-                    (listOf(state) + plugins + openers + rows + pickerOpeners + pickerRow).distinctBy { it.type } +
+                    (listOf(state) + sectionOwners + plugins + openers + rows + pickerOpeners + pickerRow +
+                        listOfNotNull(site.helper?.let { helpers.getValue(it.definingClass) })).distinctBy { it.type } +
                         ExtensionDex.classDef(SETTINGS_STATUS),
                 )
                 val before = store.method.body()
@@ -198,6 +227,30 @@ class CleanUpChatListFixtureTest {
                 assertEquals("$where: the store follows", Opcode.IPUT_OBJECT, after[at + 4].opcode)
                 assertEquals("$where: stores the same register", store.list, (after[at + 4] as OneRegisterInstruction).registerA)
                 assertEquals("$where: stock code after the hook", before.drop(at).map { it.target() }, after.drop(at + 4).map { it.target() })
+
+                val renderStock = section.method.body()
+                val renderHooked = patched(context, section.method).body()
+                val drawn = "$name ${section.method.definingClass}->${section.method.name}"
+                val shape = { code: List<Instruction> -> code.map { it.opcode to it.target() } }
+                assertEquals("$drawn: three instructions in", renderStock.size + 3, renderHooked.size)
+                assertEquals("$drawn: the hook call", Opcode.INVOKE_STATIC, renderHooked[0].opcode)
+                assertEquals("$drawn: the hook", HIDES_NOTES_ROW, renderHooked[0].target())
+                assertEquals("$drawn: no arguments", 0, (renderHooked[0] as FiveRegisterInstruction).registerCount)
+                assertEquals("$drawn: the answer", Opcode.MOVE_RESULT, renderHooked[1].opcode)
+                assertEquals("$drawn: lands in v0", 0, (renderHooked[1] as OneRegisterInstruction).registerA)
+                assertEquals("$drawn: a yes jumps", Opcode.IF_NEZ, renderHooked[2].opcode)
+                assertEquals("$drawn: tests v0", 0, (renderHooked[2] as OneRegisterInstruction).registerA)
+                assertEquals("$drawn: to the render's own empty way out", section.exit + 3,
+                    (renderHooked[2] as BuilderOffsetInstruction).target.location.index)
+                assertEquals("$drawn: which builds an object, reads its result and returns it",
+                    listOf(Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT),
+                    renderHooked.subList(section.exit + 3, section.exit + 7).map { it.opcode })
+                assertEquals("$drawn: a no runs the stock render from its first instruction", shape(renderStock), shape(renderHooked.drop(3)))
+                assertEquals(
+                    "$drawn: Facebook's branches land where they did",
+                    branches(renderStock).map { (from, to) -> from + 3 to to + 3 },
+                    branches(renderHooked).drop(1),
+                )
 
                 for (question in questions) {
                     val stock = question.body()
@@ -229,18 +282,46 @@ class CleanUpChatListFixtureTest {
                 val r = site.result
                 val there = "$name ${site.method.definingClass}->${site.method.name}"
                 assertEquals("$there: three instructions in", rowStock.size + 3, rowHooked.size)
-                assertEquals("$there: stock code up to the button", rowStock.take(r + 1).map { it.target() }, rowHooked.take(r + 1).map { it.target() })
-                assertEquals("$there: the hook call", Opcode.INVOKE_STATIC_RANGE, rowHooked[r + 1].opcode)
-                assertEquals("$there: the hook", META_AI_BUTTON_HOOK, rowHooked[r + 1].target())
-                val handed = rowHooked[r + 1] as RegisterRangeInstruction
-                assertEquals("$there: hands over the button", listOf(site.register, 1), listOf(handed.startRegister, handed.registerCount))
-                assertEquals("$there: the answer", Opcode.MOVE_RESULT_OBJECT, rowHooked[r + 2].opcode)
-                assertEquals("$there: lands where the button was", site.register, (rowHooked[r + 2] as OneRegisterInstruction).registerA)
-                assertEquals("$there: cast back", Opcode.CHECK_CAST, rowHooked[r + 3].opcode)
-                assertEquals("$there: to the built type", site.type, rowHooked[r + 3].target())
-                assertEquals("$there: the row's null check follows", Opcode.IF_EQZ, rowHooked[r + 4].opcode)
-                assertEquals("$there: on the same register", site.register, (rowHooked[r + 4] as OneRegisterInstruction).registerA)
-                assertEquals("$there: stock code after the hook", rowStock.drop(r + 1).map { it.target() }, rowHooked.drop(r + 4).map { it.target() })
+                if (site.helper != null) {
+                    // 584: the helper builds the button, checks it for null and adds it. The builder goes
+                    // through the extension first, and a null skips the call.
+                    assertEquals("$there: the helper builds, checks, adds and returns",
+                        listOf(Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID),
+                        site.helper!!.body().map { it.opcode })
+                    val opener = rowStock.indexOfFirst { it.opcode == Opcode.NEW_INSTANCE && it.target() in openers.map { o -> o.type } }
+                    assertTrue("$there: the builder is handed the tap before the call", rowStock.subList(opener, r).any {
+                        it.opcode == Opcode.IPUT_OBJECT && (it as TwoRegisterInstruction).registerB == site.register
+                    })
+                    val answer = site.answer!!
+                    val live = RegisterLiveness.of(site.method)
+                    assertTrue("$there: the answer's v$answer is still read", answer !in live.liveInto(r) && answer !in live.liveInto(r + 1))
+                    assertEquals("$there: stock code up to the call", rowStock.take(r).map { it.target() }, rowHooked.take(r).map { it.target() })
+                    assertEquals("$there: the hook call", Opcode.INVOKE_STATIC_RANGE, rowHooked[r].opcode)
+                    assertEquals("$there: the hook", META_AI_BUTTON_HOOK, rowHooked[r].target())
+                    val builder = rowHooked[r] as RegisterRangeInstruction
+                    assertEquals("$there: hands over the builder", listOf(site.register, 1), listOf(builder.startRegister, builder.registerCount))
+                    assertEquals("$there: the answer", Opcode.MOVE_RESULT_OBJECT, rowHooked[r + 1].opcode)
+                    assertEquals("$there: lands in the free local", answer, (rowHooked[r + 1] as OneRegisterInstruction).registerA)
+                    assertEquals("$there: a null", Opcode.IF_EQZ, rowHooked[r + 2].opcode)
+                    assertEquals("$there: tests the answer", answer, (rowHooked[r + 2] as OneRegisterInstruction).registerA)
+                    assertEquals("$there: skips the call", r + 4, (rowHooked[r + 2] as BuilderOffsetInstruction).target.location.index)
+                    assertEquals("$there: the call follows", site.helper!!.definingClass, ((rowHooked[r + 3] as ReferenceInstruction).reference as MethodReference).definingClass)
+                    assertEquals("$there: with the builder", site.register, (rowHooked[r + 3] as FiveRegisterInstruction).registerD)
+                    assertEquals("$there: stock code from the call", rowStock.drop(r).map { it.target() }, rowHooked.drop(r + 3).map { it.target() })
+                } else {
+                    assertEquals("$there: stock code up to the button", rowStock.take(r + 1).map { it.target() }, rowHooked.take(r + 1).map { it.target() })
+                    assertEquals("$there: the hook call", Opcode.INVOKE_STATIC_RANGE, rowHooked[r + 1].opcode)
+                    assertEquals("$there: the hook", META_AI_BUTTON_HOOK, rowHooked[r + 1].target())
+                    val handed = rowHooked[r + 1] as RegisterRangeInstruction
+                    assertEquals("$there: hands over the button", listOf(site.register, 1), listOf(handed.startRegister, handed.registerCount))
+                    assertEquals("$there: the answer", Opcode.MOVE_RESULT_OBJECT, rowHooked[r + 2].opcode)
+                    assertEquals("$there: lands where the button was", site.register, (rowHooked[r + 2] as OneRegisterInstruction).registerA)
+                    assertEquals("$there: cast back", Opcode.CHECK_CAST, rowHooked[r + 3].opcode)
+                    assertEquals("$there: to the built type", site.type, rowHooked[r + 3].target())
+                    assertEquals("$there: the row's null check follows", Opcode.IF_EQZ, rowHooked[r + 4].opcode)
+                    assertEquals("$there: on the same register", site.register, (rowHooked[r + 4] as OneRegisterInstruction).registerA)
+                    assertEquals("$there: stock code after the hook", rowStock.drop(r + 1).map { it.target() }, rowHooked.drop(r + 4).map { it.target() })
+                }
 
                 val pickerHooked = patched(context, gate.method).body()
                 val t = gate.test

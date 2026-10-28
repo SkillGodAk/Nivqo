@@ -14,6 +14,8 @@ import app.morphe.patches.facebook.media.taptoplay.touchDispatches
 import app.morphe.patches.facebook.misc.extension.SETTINGS_STATUS
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
 import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
+import app.morphe.patches.facebook.notifications.TRAY_MANAGER
+import app.morphe.patches.facebook.notifications.isPostMethod
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -149,7 +151,8 @@ class MessengerIconFixtureTest {
 
                 // Leave calls and chats to Messenger: both VOIP handlers ask the extension before
                 // they take a call push, the ring parse before it takes its lock, and the chat
-                // dispatcher, once the notification is in its local, before the notifiers see it.
+                // dispatcher, once the notification is in its local, before the notifiers see it,
+                // and the push tray for the chats Facebook posts itself.
                 fun firstCall(method: Method, wanted: String) =
                     method.implementation!!.instructions.indexOfFirst { it.call?.toString() == wanted }
                 val mqttTarget = mqttCapabilitiesTarget(
@@ -175,6 +178,9 @@ class MessengerIconFixtureTest {
                     parse.implementation!!.instructions.toList()[6].opcode)
                 val chatDispatch = context.mutableClassDefBy(MESSAGES_NOTIFICATION_MANAGER).methods.single(::isChatDispatch)
                 assertEquals("$name: the chat dispatcher doesn't ask first", 1, firstCall(chatDispatch, DROP_CHAT))
+                // The push tray, once the push's type is read out of the builder, before Facebook posts.
+                val trayPost = context.mutableClassDefBy(TRAY_MANAGER).methods.single(::isPostMethod)
+                assertEquals("$name: the push tray doesn't ask first", 5, firstCall(trayPost, DROP_CHAT_PUSH))
                 checked += version
             }
         }

@@ -30,7 +30,6 @@ import androidx.annotation.Nullable;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -154,12 +153,12 @@ public final class MaterialYouTheme {
     static final String FDS_LIGHT = "ACCENT_DEEMPHASIZED=EBF5FF;ACTIVE_DOT=080809;ATTACHMENT_FOOTER_BACKGROUND=F8F9FB;"
             + "BLUE_LINK=0064D1;BOTTOM_SHEET_BACKGROUND_DEEMPHASIZED=F2F4F7;BOTTOM_SHEET_HANDLE=84878B;"
             + "CARD_BACKGROUND_FLAT=F8F9FB;CLIENT_BOTTOM_SHEET_PRESSED=E8EAEE;COMMENT_BACKGROUND=F0F2F5;"
-            + "COMMENT_THREADING_LINES=E2E5E9;DISABLED_BUTTON_BACKGROUND=E2E5E9;DISABLED_TEXT=B0B3B8;"
+            + "COMMENT_THREADING_LINES=E2E5E9;DISABLED_BUTTON_BACKGROUND=E2E5E9;DISABLED_ICON=B0B3B8;DISABLED_TEXT=B0B3B8;"
             + "DIVIDER=D0D3D7;DOT_BADGE_BLUE=0866FF;FBLITE_ACCENT_ON_BACKGROUND=0866FF;"
             + "FBLITE_STRONG_SECONDARY=3B3C3E;FBLITE_TEXT_INPUT_INACTIVE_INNER_BORDER=8F9297;"
             + "FBLITE_WASH=B0B3B8;FEED_GAP_VERTICAL=A1A4A9;HOSTED_VIEW_SELECTED_STATE=EBF5FF;"
-            + "INACTIVE_DOT=B0B3B8;META_ICON=65686C;META_TEXT=65686C;NAV_BAR_ICON=080809;"
-            + "NAV_BAR_TEXT=080809;NEW_NOTIFICATION_BACKGROUND=E7F3FF;PLACEHOLDER_ICON=65686C;"
+            + "INACTIVE_DOT=B0B3B8;META_ICON=65686C;META_TEXT=65686C;"
+            + "NEW_NOTIFICATION_BACKGROUND=E7F3FF;PLACEHOLDER_ICON=65686C;"
             + "PLACEHOLDER_TEXT=65686C;PRIMARY_DEEMPHASIZED_BUTTON_BACKGROUND=DDEDFE;"
             + "PRIMARY_DEEMPHASIZED_BUTTON_ICON=0064D1;PRIMARY_DEEMPHASIZED_BUTTON_TEXT=0064D1;"
             + "PRIMARY_ICON=080809;PRIMARY_TEXT=080809;PROGRESS_RING_DISABLED_FOREGROUND=B0B3B8;"
@@ -423,6 +422,25 @@ public final class MaterialYouTheme {
     public static int darkBranch(int color) {
         HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
         return darkSiteGrey(color);
+    }
+
+    /**
+     * A Bloks bottom sheet's background, such as the account switcher the Menu's account name opens
+     * (issue #37). The sheet takes its colour from a light and dark pair the screen sends, not from an
+     * FDS token, and on 584 its dark side is #1F1F20, a grey none of the other routes know, so the
+     * sheet stayed grey over a Menu in the palette's colours. The patch sends here the colour the
+     * sheet paints its rounded background with, and the one its corner view takes. In dark mode a dark
+     * grey takes the palette's neutral at the same lightness. White, colours, see-through colours and,
+     * with AMOLED in the build, the whole sheet keep theirs.
+     */
+    public static int sheetBackground(int color) {
+        return sheetBackground(color, SettingsStatus.amoledTheme());
+    }
+
+    static int sheetBackground(int color, boolean amoled) {
+        HookStatus.invoked(FamilyNames.MATERIAL_YOU_THEME);
+        if (amoled || !DarkMode.on() || !AmoledTheme.isDarkNeutral(color, AmoledTheme.MAX_BAR_CHANNEL)) return color;
+        return palette().sameLightness(TonePalette.NEUTRAL, color);
     }
 
     /**
@@ -987,6 +1005,9 @@ public final class MaterialYouTheme {
 
     /** Where the palette came from and how colourful its accent is. No colours: they follow the wallpaper. */
     static String reportLine(@Nullable TonePalette p) {
+        if (p != null && p.accentPicked) {
+            return (p.dynamic ? "wallpaper palette" : "Facebook's palette") + "; the Accent color row's accent in place of the phone's";
+        }
         if (p == null || !p.dynamic) return "Facebook's blue palette: no wallpaper palette before Android 12, or it couldn't be read";
         String chroma = String.format(Locale.US, "%.1f", p.accentChroma);
         return p.accentReplaced
@@ -1021,8 +1042,13 @@ public final class MaterialYouTheme {
     }
 
     static void reload(Context context) {
-        palette = TonePalette.of(context);
+        palette = phonePalette(context);
         publish();
+    }
+
+    /** The phone's palette, with the accent the Accent color row picked in place of the wallpaper's (#272). */
+    public static TonePalette phonePalette(Context context) {
+        return AccentColor.onWallpaper(TonePalette.of(context), AccentColor.pickedForMaterialYou());
     }
 
     /** Package-visible for tests: puts a palette in use and writes the route three fields from it. */
@@ -1055,22 +1081,9 @@ public final class MaterialYouTheme {
         return p == null ? 0xFF000000 | rgb : p.sameLightness(TonePalette.NEUTRAL, 0xFF000000 | rgb);
     }
 
-    /** A token table: six hex digits are an opaque colour, eight a colour with its alpha first. */
+    /** A token table, as {@link FdsTokens#parse} reads it. */
     static Map<String, int[]> parseTokens(String table) {
-        Map<String, int[]> tokens = new HashMap<>();
-        for (String entry : table.split(";")) {
-            int equals = entry.indexOf('=');
-            String[] hex = entry.substring(equals + 1).split(",");
-            int[] values = new int[hex.length];
-            for (int i = 0; i < hex.length; i++) {
-                int rgb = Integer.parseUnsignedInt(hex[i], 16);
-                values[i] = hex[i].length() == 8 ? rgb : 0xFF000000 | rgb;
-            }
-            if (tokens.put(entry.substring(0, equals), values) != null) {
-                throw new IllegalStateException("token listed twice: " + entry);
-            }
-        }
-        return tokens;
+        return FdsTokens.parse(table);
     }
 
     private static int[] parseSurfaces(String list) {

@@ -11,70 +11,22 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.SearchOff
-import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.ui.model.HomeAppItem
-import app.morphe.manager.ui.screen.shared.AppDialogTextField
+import app.morphe.manager.ui.screen.shared.CardAction
 import app.morphe.manager.ui.screen.shared.Defaults
-import app.morphe.manager.ui.screen.shared.LocalDialogTextColor
-
-/**
- * Wraps [AppDialogTextField] with [LocalDialogTextColor] set to onSurface
- * so it renders correctly outside a dialog context.
- */
-@Composable
-internal fun HomeSearchTextField(
-    modifier: Modifier = Modifier,
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String = stringResource(R.string.home_search_apps),
-    requestFocus: Boolean = false
-) {
-    val focusRequester = remember { FocusRequester() }
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    LaunchedEffect(requestFocus) {
-        if (requestFocus) {
-            focusRequester.requestFocus()
-            keyboardController?.show()
-        }
-    }
-
-    AppDialogTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        leadingIcon = {
-            // The label already announces the field, so the icon stays decorative
-            Icon(
-                imageVector = Icons.Outlined.Search,
-                contentDescription = null
-            )
-        },
-        showClearButton = true,
-        modifier = modifier.focusRequester(focusRequester)
-    )
-}
+import app.morphe.manager.ui.screen.shared.EmptyState
+import app.morphe.manager.ui.screen.shared.autoMirrored
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 
 /**
  * Category-style row that opens the hidden-apps dialog.
@@ -92,7 +44,7 @@ private fun ShowHiddenAppsButton(
         onClick = onClick,
         leading = {
             Icon(
-                imageVector = Icons.Outlined.Visibility,
+                imageVector = MaterialSymbols.Rounded.Visibility,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
                 tint = mutedContentColor
@@ -100,7 +52,7 @@ private fun ShowHiddenAppsButton(
         },
         trailing = {
             Icon(
-                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                imageVector = MaterialSymbols.Rounded.Keyboard_arrow_right.autoMirrored,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
                 tint = mutedContentColor
@@ -110,6 +62,13 @@ private fun ShowHiddenAppsButton(
     )
 }
 
+/**
+ * What ends the list: the hidden apps a search finds, the way on when it finds nothing, and the row
+ * opening the hidden apps.
+ *
+ * @param onOpenCommunityPatches Offered when a search finds nothing, since the app looked for may
+ *   come from a source not added yet.
+ */
 internal fun LazyListScope.hiddenSearchAndShowHiddenItems(
     hiddenAppItems: List<HomeAppItem>,
     filteredHiddenItems: List<HomeAppItem>,
@@ -117,6 +76,7 @@ internal fun LazyListScope.hiddenSearchAndShowHiddenItems(
     isSearchEmpty: Boolean,
     appActions: HomeAppActions,
     onShowHiddenApps: () -> Unit,
+    onOpenCommunityPatches: () -> Unit,
     keyPrefix: String = ""
 ) {
     if (filteredHiddenItems.isNotEmpty()) {
@@ -127,7 +87,7 @@ internal fun LazyListScope.hiddenSearchAndShowHiddenItems(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 4.dp)
+                    .padding(top = Defaults.SpaceSmall, bottom = Defaults.SpaceExtraSmall)
                     .animateItem()
             )
         }
@@ -137,7 +97,7 @@ internal fun LazyListScope.hiddenSearchAndShowHiddenItems(
         ) { _, item ->
             HiddenSearchAppCard(
                 item = item,
-                onUnhide = { appActions.onUnhideApp(item.id) },
+                onUnhide = unhideReporting(item, appActions.onUnhideApp),
                 onAppClick = { appActions.onAppClick(item) },
                 onShowPatches = { appActions.onShowPatches(item) },
                 modifier = Modifier.animateItem()
@@ -147,33 +107,18 @@ internal fun LazyListScope.hiddenSearchAndShowHiddenItems(
 
     if (isSearchEmpty) {
         item(key = "${keyPrefix}search_empty") {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 32.dp)
-                    .animateItem(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.SearchOff,
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp),
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                )
-                Text(
-                    text = stringResource(R.string.search_no_results),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-                Text(
-                    text = stringResource(R.string.home_no_apps_search_subtitle, searchQuery),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                    textAlign = TextAlign.Center
-                )
-            }
+            EmptyState(
+                message = stringResource(R.string.search_no_results),
+                icon = MaterialSymbols.Rounded.Search_off,
+                subtitle = stringResource(R.string.home_no_apps_search_subtitle, searchQuery),
+                action = CardAction(
+                    icon = MaterialSymbols.Rounded.Open_in_new.autoMirrored,
+                    label = stringResource(R.string.sources_dialog_community),
+                    onClick = onOpenCommunityPatches
+                ),
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.animateItem()
+            )
         }
     }
 

@@ -150,7 +150,7 @@ object InstructionExtensions {
      *
      * @param smaliInstructions The instructions to add.
      */
-    @Deprecated("Use addInstructions(int, String). This method will soon be deleted.")
+    @Deprecated("Use addInstructions(int, String)", level = DeprecationLevel.HIDDEN)
     fun MutableMethod.addInstructions(smaliInstructions: String) = implementation!!.addInstructions(smaliInstructions.toInstructions(this))
 
     /**
@@ -431,7 +431,12 @@ object InstructionExtensions {
      * The instructions of a method.
      * @return The instructions or null if the method has no implementation.
      */
-    val Method.instructionsOrNull: Iterable<Instruction>? get() = implementation?.instructions
+    val Method.instructionsOrNull: Iterable<Instruction>?
+        get() = if (this is MutableMethod && !isImplementationCreated) {
+            sourceMethod.implementation?.instructions
+        } else {
+            implementation?.instructions
+        }
 
     /**
      * The instructions of a method.

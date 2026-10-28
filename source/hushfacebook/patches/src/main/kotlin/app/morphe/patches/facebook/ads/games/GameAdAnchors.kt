@@ -4,19 +4,25 @@
  */
 package app.morphe.patches.facebook.ads.games
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableClass
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
 import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 
 /*
  * Where an Instant Game asks Facebook for an ad, on the 577, 580 and 581 builds.
@@ -39,6 +45,14 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
  * to the call holding "...dispatched toJavascript: resolvePromise" (Facebook's spelling, with no
  * space). With Answer rewarded game ads on, the extension gives an answer for a rewarded video and
  * its load and show, and the bridge resolves the promise with it instead of rejecting it.
+ *
+ * That bridge only serves games opened in their own screen. Most games now run inside Facebook's
+ * main screen from code Facebook downloads after install, which brings its own bridge the patch
+ * can't reach (#168). Both register their bridge on a WebView extending the same base class, the
+ * one the bridge's constructor is handed (its one parameter, in the constructor holding the name
+ * "QuicksilverAndroid" the bridge is registered under). That base extends WebView directly and
+ * doesn't override addJavascriptInterface, so the patch gives it one that hands each bridge to
+ * GameBridge.wrap first, which puts a game bridge behind one of Hushfacebook's own.
  */
 internal const val PATCH = "Block Instant Games ads"
 
@@ -69,7 +83,70 @@ internal const val REJECTION = "$GAME_ADS->rejection(Ljava/lang/String;)Ljava/la
 internal const val ANSWER = "$GAME_ADS->answer(Ljava/lang/String;)Ljava/lang/Object;"
 private const val OBJECT = "Ljava/lang/Object;"
 
+/** The name a game's SDK finds the bridge under, as GameBridge.NAME holds it. */
+internal const val BRIDGE_NAME = "QuicksilverAndroid"
+internal const val WEB_VIEW = "Landroid/webkit/WebView;"
+internal const val ADD_JAVASCRIPT_INTERFACE = "addJavascriptInterface"
+internal const val WRAP = "$EXTENSION_PACKAGE/ads/GameBridge;->wrap($WEB_VIEW$OBJECT$STRING)$OBJECT"
+
 private fun Method.parameters() = parameterTypes.map { it.toString() }
+
+/**
+ * The game WebView [bridge] is built for: the one parameter of its constructor holding
+ * [BRIDGE_NAME], or null without exactly one such constructor.
+ */
+internal fun gameViewOf(bridge: ClassDef): String? = bridge.methods
+    .filter { it.name == "<init>" && holdsString(it, BRIDGE_NAME) }
+    .singleOrNull()?.parameters()?.singleOrNull()?.takeIf { it.startsWith("L") }
+
+/**
+ * [view] and its superclasses up to the one extending WebView directly, which comes last, or
+ * null when [view] doesn't reach WebView within 20 classes. [classDef] looks a class up by type.
+ */
+internal fun webViewChain(view: String, classDef: (String) -> ClassDef?): List<ClassDef>? {
+    val chain = mutableListOf<ClassDef>()
+    var at: String? = view
+    while (at != null && chain.size < 20) {
+        val owner = classDef(at) ?: return null
+        chain += owner
+        if (owner.superclass == WEB_VIEW) return chain
+        at = owner.superclass
+    }
+    return null
+}
+
+/** Whether [owner] declares its own addJavascriptInterface(Object, String). */
+internal fun declaresAddJavascriptInterface(owner: ClassDef): Boolean = owner.methods.any {
+    it.name == ADD_JAVASCRIPT_INTERFACE && it.parameters() == listOf(OBJECT, STRING)
+}
+
+/**
+ * Gives the game WebView's base class an addJavascriptInterface that registers what
+ * [WRAP] answers for the object and name in place of the object.
+ */
+internal fun MutableClass.wrapGameBridges() {
+    ImmutableMethod(
+        type,
+        ADD_JAVASCRIPT_INTERFACE,
+        listOf(ImmutableMethodParameter(OBJECT, null, null), ImmutableMethodParameter(STRING, null, null)),
+        "V",
+        AccessFlags.PUBLIC.value,
+        null,
+        null,
+        MutableMethodImplementation(3),
+    ).toMutable().apply {
+        addInstructions(
+            0,
+            """
+                invoke-static { p0, p1, p2 }, $WRAP
+                move-result-object p1
+                invoke-super { p0, p1, p2 }, $WEB_VIEW->$ADD_JAVASCRIPT_INTERFACE($OBJECT$STRING)V
+                return-void
+            """,
+        )
+        methods.add(this)
+    }
+}
 
 /** Whether [method] is the bridge's postMessage: (String, String)V, holding every ad message. */
 internal fun isPostMessage(method: Method): Boolean =

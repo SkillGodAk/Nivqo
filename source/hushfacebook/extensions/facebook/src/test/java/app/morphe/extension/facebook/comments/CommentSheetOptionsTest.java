@@ -53,6 +53,10 @@ public class CommentSheetOptionsTest {
     private static final String RELATED_CONTENT =
             "com.facebook.feedback.comments.plugins.bottomcontent.impl.relatedcontent.RelatedContentPlugin";
 
+    /** The comment box under a feed post, which the socket under its buttons also asks about and which always stays. */
+    private static final String INLINE_COMPOSER =
+            "com.facebook.feed.plugins.belowufifooter.impl.inlinecommentcomposer.InlineCommentComposerPlugin";
+
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
     @Before
@@ -65,9 +69,13 @@ public class CommentSheetOptionsTest {
         PauseForTests.resume();
         Settings.LIKE_ONLY.resetToDefault();
         Settings.HIDE_COMMENT_GIF_STICKER_BUTTONS.resetToDefault();
+        Settings.HIDE_VIDEO_COMMENT_COMPOSER.resetToDefault();
         Settings.OPEN_REPLY_THREADS.resetToDefault();
         Settings.LOAD_WHOLE_REPLY_THREADS.resetToDefault();
+        Settings.TAP_ANYWHERE_ON_VIEW_MORE_REPLIES.resetToDefault();
         Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS.resetToDefault();
+        Settings.HIDE_POST_COMMENT_PREVIEWS.resetToDefault();
+        Settings.HIDE_COMMENT_DOWNVOTE_BUTTON.resetToDefault();
         HookStatus.clear();
     }
 
@@ -102,6 +110,20 @@ public class CommentSheetOptionsTest {
     }
 
     @Test
+    public void videoCommentComposerUsesItsOwnSwitch() {
+        assertFalse("the video comment composer was hidden by default",
+                CommentSheetOptions.hidesVideoCommentComposer());
+        Settings.LIKE_ONLY.save(true);
+        assertFalse("Like only hid the video comment composer",
+                CommentSheetOptions.hidesVideoCommentComposer());
+        Settings.HIDE_VIDEO_COMMENT_COMPOSER.save(true);
+        assertTrue("the video comment composer stayed visible",
+                CommentSheetOptions.hidesVideoCommentComposer());
+        assertEquals(FamilyNames.COMMENT_SHEET_OPTIONS + ": invoked 3, 1 found, 0 missing. Counted: "
+                + CommentSheetOptions.COMPOSER_HIDDEN + " 1", statusLine());
+    }
+
+    @Test
     public void onEveryReplyThreadStartsOpenAndIsCounted() {
         Settings.OPEN_REPLY_THREADS.save(true);
         assertTrue("a comment started with its replies closed", CommentSheetOptions.openReplyThreads(false));
@@ -131,6 +153,41 @@ public class CommentSheetOptionsTest {
         Settings.OPEN_REPLY_THREADS.save(false);
         assertFalse("Load whole reply threads alone opened a thread", CommentSheetOptions.openReplyThreads(false));
         assertTrue("alone, a tapped thread's replies kept View more replies", CommentSheetOptions.loadWholeReplyThreads(false));
+    }
+
+    @Test
+    public void onAViewMoreRepliesRowTakesATapAnywhereAndIsCounted() {
+        Settings.TAP_ANYWHERE_ON_VIEW_MORE_REPLIES.save(true);
+        assertFalse("a row Facebook gave words-only taps kept them", CommentSheetOptions.viewMoreRepliesTextOnly(true));
+        assertFalse("a row Facebook already lets the whole row take was changed",
+                CommentSheetOptions.viewMoreRepliesTextOnly(false));
+        assertFalse("tapping anywhere on the row loaded whole threads", CommentSheetOptions.loadWholeReplyThreads(false));
+        assertEquals(FamilyNames.COMMENT_SHEET_OPTIONS + ": invoked 3, 2 found, 0 missing. Counted: "
+                + CommentSheetOptions.WHOLE_ROW_TAPS + " 1", statusLine());
+    }
+
+    @Test
+    public void offPausedOrColdAViewMoreRepliesRowKeepsFacebooksAnswer() {
+        assertFalse("Tap anywhere on View more replies doesn't start off", Settings.TAP_ANYWHERE_ON_VIEW_MORE_REPLIES.get());
+        assertTrue("off, a row's words-only taps were changed", CommentSheetOptions.viewMoreRepliesTextOnly(true));
+        Settings.LOAD_WHOLE_REPLY_THREADS.save(true);
+        assertTrue("Load whole reply threads changed a row's taps", CommentSheetOptions.viewMoreRepliesTextOnly(true));
+
+        Settings.TAP_ANYWHERE_ON_VIEW_MORE_REPLIES.save(true);
+        for (HushfacebookPause.Reason reason : new HushfacebookPause.Reason[] {
+                HushfacebookPause.Reason.SWITCH, HushfacebookPause.Reason.CRASH_LOOP,
+                HushfacebookPause.Reason.MARKER_FILE}) {
+            PauseForTests.pause(reason);
+            assertTrue("a Hushfacebook paused by " + reason + " changed a row's taps",
+                    CommentSheetOptions.viewMoreRepliesTextOnly(true));
+            PauseForTests.resume();
+        }
+        SettingsContextRule.withoutContext(() -> assertTrue(
+                "a row's taps changed before the settings were ready", CommentSheetOptions.viewMoreRepliesTextOnly(true)));
+
+        String line = statusLine();
+        assertFalse("a row left to Facebook was counted: " + line, line != null && line.contains("Counted"));
+        assertFalse("on again after the pause, a row kept words-only taps", CommentSheetOptions.viewMoreRepliesTextOnly(true));
     }
 
     @Test
@@ -192,6 +249,99 @@ public class CommentSheetOptionsTest {
         assertFalse("a plugin left to Facebook was counted: " + line, line != null && line.contains("Counted"));
         assertTrue("on again after the pause, Related groups stayed",
                 CommentSheetOptions.holdsBottomContent(CommentSheetOptions.RELATED_GROUPS));
+    }
+
+    @Test
+    public void onAPostsInlineCommentsAreHeldUnderItsButtonsAndCounted() {
+        Settings.HIDE_POST_COMMENT_PREVIEWS.save(true);
+        assertFalse("the comment box under a post was held", CommentSheetOptions.holdsPostComments(INLINE_COMPOSER));
+        assertFalse("Meta AI's summary was held by the comments switch", CommentSheetOptions.holdsPostComments(
+                MetaAiSummaries.POST_SUMMARY));
+        assertFalse("a plugin with no name was held", CommentSheetOptions.holdsPostComments(null));
+        assertFalse("Related groups were held under a post's buttons",
+                CommentSheetOptions.holdsPostComments(CommentSheetOptions.RELATED_GROUPS));
+        assertTrue("the inline comments stayed", CommentSheetOptions.holdsPostComments(CommentSheetOptions.INLINE_COMMENTS));
+        assertTrue("the dwell time comments stayed",
+                CommentSheetOptions.holdsPostComments(CommentSheetOptions.INLINE_COMMENTS_DWELL_TIME));
+        assertTrue("the client ranked comments stayed",
+                CommentSheetOptions.holdsPostComments(CommentSheetOptions.INLINE_COMMENTS_CLIENT_RANKING));
+        assertFalse("the comments switch held Related groups under the comments",
+                CommentSheetOptions.holdsBottomContent(CommentSheetOptions.RELATED_GROUPS));
+        assertEquals(FamilyNames.COMMENT_SHEET_OPTIONS + ": invoked 8, 2 found, 0 missing. Counted: "
+                + CommentSheetOptions.POST_COMMENTS_HIDDEN + " 3", statusLine());
+    }
+
+    @Test
+    public void offPausedOrColdAPostsInlineCommentsAreFacebooks() {
+        assertFalse("Hide comments under posts doesn't start off", Settings.HIDE_POST_COMMENT_PREVIEWS.get());
+        assertFalse("off, the inline comments were held",
+                CommentSheetOptions.holdsPostComments(CommentSheetOptions.INLINE_COMMENTS));
+        Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS.save(true);
+        assertFalse("Hide related groups held the inline comments",
+                CommentSheetOptions.holdsPostComments(CommentSheetOptions.INLINE_COMMENTS));
+
+        Settings.HIDE_POST_COMMENT_PREVIEWS.save(true);
+        for (HushfacebookPause.Reason reason : new HushfacebookPause.Reason[] {
+                HushfacebookPause.Reason.SWITCH, HushfacebookPause.Reason.CRASH_LOOP,
+                HushfacebookPause.Reason.MARKER_FILE}) {
+            PauseForTests.pause(reason);
+            assertFalse("a Hushfacebook paused by " + reason + " held the inline comments",
+                    CommentSheetOptions.holdsPostComments(CommentSheetOptions.INLINE_COMMENTS_DWELL_TIME));
+            PauseForTests.resume();
+        }
+        SettingsContextRule.withoutContext(() -> assertFalse("the inline comments were held before the settings were ready",
+                CommentSheetOptions.holdsPostComments(CommentSheetOptions.INLINE_COMMENTS)));
+
+        String line = statusLine();
+        assertFalse("a plugin left to Facebook was counted: " + line, line != null && line.contains("Counted"));
+        assertTrue("on again after the pause, the inline comments stayed",
+                CommentSheetOptions.holdsPostComments(CommentSheetOptions.INLINE_COMMENTS));
+    }
+
+    private static final String COMMENT_LIKE = "com.facebook.feedback.comments.plugins.commentufi.like.LikePlugin";
+
+    private static final String COMMENT_REPLY = "com.facebook.feedback.comments.plugins.commentufi.reply.ReplyPlugin";
+
+    @Test
+    public void onACommentsDislikeIsHeldAndCountedWhileLikeAndReplyStay() {
+        Settings.HIDE_COMMENT_DOWNVOTE_BUTTON.save(true);
+        assertFalse("a comment's Like was held", CommentSheetOptions.holdsCommentButton(COMMENT_LIKE));
+        assertFalse("a comment's Reply was held", CommentSheetOptions.holdsCommentButton(COMMENT_REPLY));
+        assertFalse("a plugin with no name was held", CommentSheetOptions.holdsCommentButton(null));
+        assertFalse("the inline comments were held by the dislike switch",
+                CommentSheetOptions.holdsCommentButton(CommentSheetOptions.INLINE_COMMENTS));
+        assertTrue("the dislike stayed", CommentSheetOptions.holdsCommentButton(CommentSheetOptions.DOWNVOTE));
+        assertTrue("the dislike stayed on the next comment", CommentSheetOptions.holdsCommentButton(CommentSheetOptions.DOWNVOTE));
+        assertFalse("the dislike switch held the inline comments under a post",
+                CommentSheetOptions.holdsPostComments(CommentSheetOptions.INLINE_COMMENTS));
+        assertEquals(FamilyNames.COMMENT_SHEET_OPTIONS + ": invoked 7, 2 found, 0 missing. Counted: "
+                + CommentSheetOptions.DOWNVOTE_HIDDEN + " 2", statusLine());
+    }
+
+    @Test
+    public void offPausedOrColdACommentsDislikeIsFacebooks() {
+        assertFalse("Hide dislike on comments doesn't start off", Settings.HIDE_COMMENT_DOWNVOTE_BUTTON.get());
+        assertFalse("off, the dislike was held", CommentSheetOptions.holdsCommentButton(CommentSheetOptions.DOWNVOTE));
+        Settings.HIDE_POST_COMMENT_PREVIEWS.save(true);
+        assertFalse("Hide comments under posts held the dislike",
+                CommentSheetOptions.holdsCommentButton(CommentSheetOptions.DOWNVOTE));
+
+        Settings.HIDE_COMMENT_DOWNVOTE_BUTTON.save(true);
+        for (HushfacebookPause.Reason reason : new HushfacebookPause.Reason[] {
+                HushfacebookPause.Reason.SWITCH, HushfacebookPause.Reason.CRASH_LOOP,
+                HushfacebookPause.Reason.MARKER_FILE}) {
+            PauseForTests.pause(reason);
+            assertFalse("a Hushfacebook paused by " + reason + " held the dislike",
+                    CommentSheetOptions.holdsCommentButton(CommentSheetOptions.DOWNVOTE));
+            PauseForTests.resume();
+        }
+        SettingsContextRule.withoutContext(() -> assertFalse("the dislike was held before the settings were ready",
+                CommentSheetOptions.holdsCommentButton(CommentSheetOptions.DOWNVOTE)));
+
+        String line = statusLine();
+        assertFalse("a plugin left to Facebook was counted: " + line, line != null && line.contains("Counted"));
+        assertTrue("on again after the pause, the dislike stayed",
+                CommentSheetOptions.holdsCommentButton(CommentSheetOptions.DOWNVOTE));
     }
 
     @Test
@@ -287,7 +437,9 @@ public class CommentSheetOptionsTest {
         for (app.morphe.extension.shared.settings.BooleanSetting setting : new app.morphe.extension.shared.settings.BooleanSetting[] {
                 Settings.LIKE_ONLY, Settings.HIDE_COMMENT_GIF_STICKER_BUTTONS, Settings.OPEN_REPLY_THREADS,
                 Settings.LOAD_WHOLE_REPLY_THREADS, Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS, Settings.HIDE_SHOP_LINK_COMMENTS,
-                Settings.HIDE_COMMENTS_WITH_WORDS}) {
+                Settings.HIDE_COMMENTS_WITH_WORDS, Settings.HIDE_INCOMING_COMMENT_TYPING, Settings.HIDE_NEW_COMMENTS_PILL,
+                Settings.TAP_ANYWHERE_ON_VIEW_MORE_REPLIES, Settings.HIDE_POST_COMMENT_PREVIEWS,
+                Settings.HIDE_COMMENT_DOWNVOTE_BUTTON}) {
             assertFalse(setting.key + " asks for a restart, but each hook reads it again", setting.rebootApp);
             assertNull(setting.key + " asks before it changes", setting.userDialogMessage);
             assertTrue("Pause and the report don't know " + setting.key,

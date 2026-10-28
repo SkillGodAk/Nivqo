@@ -5,6 +5,8 @@ import android.app.Application;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Looper;
 import android.view.View;
 import android.widget.EditText;
 import java.util.Arrays;
@@ -232,6 +234,21 @@ public class TextStyleTest {
         HostScreens.started = true;
         assertTrue(CrashGuard.clearSafeMode());
         assertEquals("Leaving safe mode brings them back", on, state(TextStyleActivity.BOLD));
+    }
+
+    // Messenger's first start after an install enables every component in its manifest, after this start's sync.
+    @Test public void entriesMessengerEnablesAfterTheSyncGoBackOffInTheSameRun() {
+        TextStyleActivity.watch();
+        String[] entries = {TextStyleActivity.BOLD, TextStyleActivity.ITALIC};
+        for (String entry : entries)
+            app.getPackageManager().setComponentEnabledSetting(new ComponentName(app.getPackageName(), entry),
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+        app.sendBroadcast(new Intent(Intent.ACTION_PACKAGE_CHANGED, Uri.fromParts("package", app.getPackageName(), null))
+            .putExtra(Intent.EXTRA_CHANGED_COMPONENT_NAME_LIST, entries));
+        shadowOf(Looper.getMainLooper()).idle();
+        assertEquals(PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, state(TextStyleActivity.BOLD));
+        assertEquals(PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, state(TextStyleActivity.ITALIC));
+        assertTrue(Settings.hookErrors.isEmpty());
     }
 
     @Test public void aStartThatFailsTakesOutEntriesAnEarlierRunLeftOn() {

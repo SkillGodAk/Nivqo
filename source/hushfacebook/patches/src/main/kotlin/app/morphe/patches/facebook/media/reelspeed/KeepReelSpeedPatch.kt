@@ -61,13 +61,17 @@ internal const val PATCH = "Keep the reel speed"
  * gets them too ([addSlowerGearSpeeds]), and its pick goes through the setter the gear hook follows.
  * Facebook's player keeps every speed at 0.25x or faster, so the patch lowers that floor to 0.1x
  * ([lowerSpeedFloor]). Facebook itself never asks for less than 0.5x.
+ *
+ * The gear menu's speed sheet checks Normal when it can't find its player, and its checked row
+ * can't be picked, so the sheet asks the extension which speed to check there ([checkGearSheetSpeed]),
+ * and Normal can be picked to forget a kept speed (#199).
  */
 @Suppress("unused")
 val keepReelSpeedPatch = bytecodePatch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Keep the reel speed",
-    description = "A speed you pick in a reel's menu stays for the next reels until Facebook restarts, so you " +
-        "don't set it every time. On by default. A second switch for feed and Watch videos starts off. Both are " +
+    description = "A speed you pick in a reel's menu stays for the next reels, even after Facebook restarts, " +
+        "so you don't set it every time. Pick normal speed to go back. On by default. A second switch for feed and Watch videos starts off. Both are " +
         "in Hushfacebook settings > Reels and Watch.",
     default = true,
 ) {
@@ -89,6 +93,12 @@ val keepReelSpeedPatch = bytecodePatch(
             addSlowerGearSpeeds(anchors.gearPick)
         } catch (moved: PatchException) {
             patchLog.warning("${moved.message}. The patch goes on without the slower speeds in the gear menu.")
+        }
+        // After the slower speeds, which place their hooks by the sheet's own indexes.
+        try {
+            checkGearSheetSpeed(anchors)
+        } catch (moved: PatchException) {
+            patchLog.warning("${moved.message}. The patch goes on, and a gear menu that finds no player checks Normal.")
         }
         try {
             lowerSpeedFloor()
@@ -232,19 +242,16 @@ internal fun BytecodePatchContext.addSlowerSpeeds(toast: Method) {
 
 /**
  * The gear menu's speed sheet (#95). Its builder, the one method of a class holding
- * "PlayerControlsPlaybackSpeedBottomSheet" that makes [gearPick]'s class, hands the extension its
- * last parameter first thing, the flag for reading each speed from its float, and takes the answer
- * back in the same register, ahead of the copy the pick gets. Where its paths have met and it's about to walk the
+ * "PlayerControlsPlaybackSpeedBottomSheet" that makes [gearPick]'s class, hands the extension the
+ * flag for reading each speed from its float as soon as it has it (its last parameter, first thing,
+ * up to 583; right after the MobileConfig read that answers it on 584), and takes the answer back
+ * in the same register, ahead of the copy the pick gets. Where its paths have met and it's about to walk the
  * labels, it hands over the speeds and then the labels, each through the range form, and takes
  * each back in its own register. That hook goes in under the walk's label, so a branch landing
  * there runs it too. Refuses before anything changes.
  */
 internal fun BytecodePatchContext.addSlowerGearSpeeds(gearPick: Method) {
-    val sheets = classDefByStrings(GEAR_SHEET, StringComparisonType.EQUALS)
-        .filterNot { it.type.startsWith(EXTENSION_CLASSES) }
-        .flatMap { holder -> holder.methods.filter { isGearSheet(it, gearPick.definingClass) } }
-    val sheet = sheets.singleOrNull()
-        ?: refuse("expected one gear speed sheet builder making ${gearPick.definingClass}, found ${sheets.size}")
+    val sheet = gearSheet(gearPick)
     val meets = gearMeets(sheet)
     val meet = meets.singleOrNull()
         ?: refuse("expected one place ${sheet.definingClass}->${sheet.name} reads a speed for each label, found ${meets.size}")
@@ -259,10 +266,59 @@ internal fun BytecodePatchContext.addSlowerGearSpeeds(gearPick: Method) {
         """,
     )
     method.addInstructions(
-        0,
+        meet.valuesAt,
         """
             invoke-static/range { v${meet.values} .. v${meet.values} }, $GEAR_VALUES
             move-result v${meet.values}
+        """,
+    )
+}
+
+/** The gear menu's speed sheet builder: the one method of a class holding [GEAR_SHEET] that makes [gearPick]'s class. */
+private fun BytecodePatchContext.gearSheet(gearPick: Method): Method {
+    val sheets = classDefByStrings(GEAR_SHEET, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_CLASSES) }
+        .flatMap { holder -> holder.methods.filter { isGearSheet(it, gearPick.definingClass) } }
+    return sheets.singleOrNull()
+        ?: refuse("expected one gear speed sheet builder making ${gearPick.definingClass}, found ${sheets.size}")
+}
+
+/**
+ * The speed the gear menu's sheet checks (#199). Where its builder finds no player and loads 1f as
+ * the speed to check, it hands that to the extension through the range form straight after and
+ * takes the answer back in the same register, so the sheet checks the speed the player on screen
+ * plays at, and Normal can be picked to forget a kept speed. The extension's speed stub is filled
+ * with the getter the builder reads when it does find its player. Looks the builder over as it
+ * stands, after [addSlowerGearSpeeds], and refuses before anything changes.
+ */
+internal fun BytecodePatchContext.checkGearSheetSpeed(anchors: ReelSpeedAnchors) {
+    val sheet = gearSheet(anchors.gearPick)
+    val owner = anchors.owner.type
+    val method = mutableClassDefBy(sheet.definingClass).findMutableMethodOf(sheet)
+    val misses = gearMisses(method, owner)
+    val miss = misses.singleOrNull()
+        ?: refuse("expected one place ${sheet.definingClass}->${sheet.name} checks normal speed for a player it can't find, " +
+            "found ${misses.size}")
+    val getter = anchors.owner.methods.singleOrNull {
+        it.name == miss.getter.name && it.returnType == "F" && it.parameterTypes.isEmpty() &&
+            !AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: refuse("$owner has no ()F ${miss.getter.name} of its own")
+    if (!AccessFlags.PUBLIC.isSet(getter.accessFlags)) refuse("$owner->${getter.name} isn't public, so the extension can't call it")
+    val stub = reelSpeedStub(SPEED_STUB, listOf("Ljava/lang/Object;"), "F")
+    method.addInstructions(
+        miss.index + 1,
+        """
+            invoke-static/range { v${miss.speed} .. v${miss.speed} }, $GEAR_SHEET_SPEED
+            move-result v${miss.speed}
+        """,
+    )
+    stub.addInstructions(
+        0,
+        """
+            check-cast p0, $owner
+            invoke-virtual/range { p0 .. p0 }, $owner->${getter.name}()F
+            move-result p0
+            return p0
         """,
     )
 }
@@ -295,13 +351,16 @@ private fun afterGuard(setter: MutableMethod): Int {
     return if (first.reference.toString() == GUARD_SPEED_SET && code.getOrNull(1)?.opcode == Opcode.MOVE_RESULT) 2 else 0
 }
 
-/** Fills the extension's stubs. Each reads only its parameter registers, cast to the player's or the params' own type. */
-private fun BytecodePatchContext.fillStubs(anchors: ReelSpeedAnchors) {
-    val extension = mutableClassDefBy(REEL_SPEED)
-    fun stub(name: String, parameters: List<String>, answer: String): MutableMethod = extension.methods.singleOrNull {
+/** The extension's static [answer] [name]([parameters]) stub. */
+private fun BytecodePatchContext.reelSpeedStub(name: String, parameters: List<String>, answer: String): MutableMethod =
+    mutableClassDefBy(REEL_SPEED).methods.singleOrNull {
         it.name == name && it.returnType == answer && AccessFlags.STATIC.isSet(it.accessFlags) &&
             it.parameterTypes.map(CharSequence::toString) == parameters
     } ?: refuse("$REEL_SPEED has no static $answer $name(${parameters.joinToString("")})")
+
+/** Fills the extension's stubs. Each reads only its parameter registers, cast to the player's or the params' own type. */
+private fun BytecodePatchContext.fillStubs(anchors: ReelSpeedAnchors) {
+    fun stub(name: String, parameters: List<String>, answer: String): MutableMethod = reelSpeedStub(name, parameters, answer)
 
     val owner = anchors.owner.type
     val objectType = "Ljava/lang/Object;"

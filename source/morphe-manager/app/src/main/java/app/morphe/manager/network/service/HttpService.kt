@@ -244,15 +244,14 @@ class HttpService(
         saveLocation.parentFile?.mkdirs()
         saveLocation.delete()
 
-        // Pre-allocate the file so threads can write at independent offsets without coordination
+        // Each chunk writes at its own offset and the file grows to meet it, so the chunks need
+        // no coordination, and the file has its full size once every chunk has arrived
         FileChannel.open(
             saveLocation.toPath(),
             StandardOpenOption.CREATE,
             StandardOpenOption.WRITE,
             StandardOpenOption.READ
         ).use { fileChannel ->
-            fileChannel.truncate(totalSize)
-
             val totalRead = AtomicLong(0L)
             val lastReportedBytes = AtomicLong(0L)
             val lastReportedAt = AtomicLong(0L)
@@ -285,35 +284,54 @@ class HttpService(
                     var position = start
 
                     runWithRetry("downloadRange[$start-$end]", host) {
-                        // A previous attempt may have finished the chunk before failing elsewhere
-                        if (position > end) return@runWithRetry
+                        // A response that ends early is resumed from where it stopped right away:
+                        // a host that caps how much one response carries serves a chunk this way,
+                        // so only a response that brings nothing counts as a failed attempt
+                        while (position <= end) {
+                            val resumedAt = position
 
-                        runWith429Retry("downloadRange[$start-$end]") {
-                            http.prepareGet {
-                                header(HttpHeaders.Range, "bytes=$position-$end")
-                                builder()
-                            }.execute { response ->
-                                when (response.status) {
-                                    HttpStatusCode.TooManyRequests ->
-                                        throw TooManyRequestsException(response.retryAfterMillis())
+                            runWith429Retry("downloadRange[$start-$end]") {
+                                http.prepareGet {
+                                    header(HttpHeaders.Range, "bytes=$position-$end")
+                                    builder()
+                                }.execute { response ->
+                                    when (response.status) {
+                                        HttpStatusCode.TooManyRequests ->
+                                            throw TooManyRequestsException(response.retryAfterMillis())
 
-                                    HttpStatusCode.PartialContent -> {
-                                        val channel: ByteReadChannel = response.body()
-                                        val buf = ByteArray(DEFAULT_BUFFER_SIZE)
+                                        HttpStatusCode.PartialContent -> {
+                                            // The body is written where the request asked for it,
+                                            // so a part that starts anywhere else would land at the
+                                            // wrong offset
+                                            val contentRange = response.headers[HttpHeaders.ContentRange]
+                                            if (parseContentRangeStart(contentRange) != position) {
+                                                throw IOException("Range $position-$end answered with $contentRange")
+                                            }
 
-                                        while (!channel.isClosedForRead) {
-                                            val read = channel.readAvailable(buf)
-                                            if (read <= 0) continue
-                                            // Write directly at chunk offset, no global seek needed
-                                            fileChannel.write(ByteBuffer.wrap(buf, 0, read), position)
-                                            position += read
-                                            totalRead.addAndGet(read.toLong())
-                                            reportProgress()
+                                            val channel: ByteReadChannel = response.body()
+                                            val buf = ByteArray(DEFAULT_BUFFER_SIZE)
+
+                                            // Bytes past the end belong to the next chunk, which
+                                            // fetches them itself
+                                            while (position <= end && !channel.isClosedForRead) {
+                                                val wanted = minOf(buf.size.toLong(), end - position + 1).toInt()
+                                                val read = channel.readAvailable(buf, 0, wanted)
+                                                if (read <= 0) continue
+                                                // Write directly at chunk offset, no global seek needed
+                                                fileChannel.write(ByteBuffer.wrap(buf, 0, read), position)
+                                                position += read
+                                                totalRead.addAndGet(read.toLong())
+                                                reportProgress()
+                                            }
                                         }
-                                    }
 
-                                    else -> throw HttpException(response.status)
+                                        else -> throw HttpException(response.status)
+                                    }
                                 }
+                            }
+
+                            if (position == resumedAt) {
+                                throw IOException("Range $start-$end returned no bytes at $position")
                             }
                         }
                     }
@@ -388,6 +406,10 @@ class HttpService(
     /** Extracts total size from a Content-Range header value like `bytes 0-0/12345`. */
     private fun parseContentRangeTotal(contentRange: String?): Long? =
         contentRange?.substringAfter('/')?.trim()?.toLongOrNull()
+
+    /** Extracts the first byte from a Content-Range header value like `bytes 0-0/12345`. */
+    private fun parseContentRangeStart(contentRange: String?): Long? =
+        contentRange?.removePrefix("bytes")?.substringBefore('-')?.trim()?.toLongOrNull()
 
     /**
      * Copies a [ByteReadChannel] into [outputStream] using [readAvailable] (Ktor 3.x API).
@@ -578,43 +600,38 @@ class HttpService(
     suspend fun resolveRedirect(
         url: String,
         builder: HttpRequestBuilder.() -> Unit = {}
-    ): String? = runCatching {
+    ): String? = locationOf(HttpMethod.Get, url, builder)
+
+    /**
+     * Performs a HEAD request to [url] and returns where it redirects, resolved against [url]
+     * when relative, or null if the server did not redirect or any error occurred.
+     */
+    suspend fun headRedirect(
+        url: String,
+        builder: HttpRequestBuilder.() -> Unit = {}
+    ): String? =
+        locationOf(HttpMethod.Head, url, builder)?.let { location ->
+            runCatching { java.net.URI(url).resolve(location).toString() }.getOrNull()
+        }
+
+    // A client of its own, as the shared one follows redirects; closed so each call frees its engine
+    private suspend fun locationOf(
+        httpMethod: HttpMethod,
+        url: String,
+        builder: HttpRequestBuilder.() -> Unit = {}
+    ): String? = try {
         HttpClient { followRedirects = false }.use { client ->
             client.request {
-                method = HttpMethod.Get
+                method = httpMethod
                 url(url)
                 builder()
             }.headers[HttpHeaders.Location]
         }
-    }.getOrNull()
-
-    /**
-     * Performs a HEAD request to [url] and returns the value of the Location header,
-     * or null if the server did not redirect or any error occurred.
-     *
-     * Relative Location values are resolved against [url] so callers always receive
-     * an absolute URL or null.
-     */
-    suspend fun headRedirect(url: String): String? {
-        return runCatching {
-            // Ktor follows redirects by default, but we want to find the redirect.
-            val noRedirectClient = HttpClient {
-                followRedirects = false
-            }
-
-            noRedirectClient.request {
-                method = HttpMethod.Head
-                url(url)
-            }.headers[HttpHeaders.Location]?.let { location ->
-                if (location.startsWith("http://") || location.startsWith("https://")) {
-                    location
-                } else {
-                    val uri = java.net.URI(url)
-                    val prefix = "${uri.scheme}://${uri.host}"
-                    if (location.startsWith("/")) "$prefix$location" else "$prefix/$location"
-                }
-            }
-        }.getOrNull()
+    } catch (e: CancellationException) {
+        // A caller's timeout has to end the wait rather than read as "no redirect"
+        throw e
+    } catch (_: Exception) {
+        null
     }
 
     class HttpException(val status: HttpStatusCode) :

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,6 +38,7 @@ import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.diagnostics.DiagnosticCategory;
 import app.morphe.extension.shared.diagnostics.HookStatus;
+import app.morphe.extension.shared.settings.BaseSettings;
 
 /**
  * Draws Facebook's own text in a font of your choosing instead of Meta's Optimistic (issue #1):
@@ -174,6 +176,15 @@ public final class OwnFont {
             return new boolean[1];
         }
     };
+
+    /** The builders {@link #sample} logged a Bengali layout for, each once. */
+    static final Set<String> SAMPLED = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    /** Past this many builders {@link #sample} logs no more, so a long session can't fill the log. */
+    private static final int MAX_SAMPLES = 24;
+    /** The Bengali layouts {@link #sample} read a stack for, so a Bengali feed stops paying for it. */
+    static final AtomicInteger LOOKS = new AtomicInteger();
+    /** Past this many stacks {@link #sample} stops looking, even short of {@link #MAX_SAMPLES}. */
+    private static final int MAX_LOOKS = 400;
 
     /** The picked font as last read, or null before the first read and after a change. */
     @Nullable
@@ -461,7 +472,9 @@ public final class OwnFont {
         boolean before = padded[0];
         padded[0] = padsFor(builder);
         try {
-            return builder.build();
+            StaticLayout layout = builder.build();
+            sample(layout, "StaticLayout.Builder");
+            return layout;
         } finally {
             padded[0] = before;
         }
@@ -494,16 +507,92 @@ public final class OwnFont {
     /** BoringLayout.make for Facebook's own code, its one-line text, padded the same way. */
     public static BoringLayout make(CharSequence source, TextPaint paint, int outerWidth, Layout.Alignment align,
             float spacingMult, float spacingAdd, BoringLayout.Metrics metrics, boolean includePad) {
-        return BoringLayout.make(source, paint, outerWidth, align, spacingMult, spacingAdd, metrics,
+        BoringLayout layout = BoringLayout.make(source, paint, outerWidth, align, spacingMult, spacingAdd, metrics,
                 includePad || needsPad(paint));
+        sample(layout, "BoringLayout.make");
+        return layout;
     }
 
     /** BoringLayout.make with an ellipsis for Facebook's own code, padded the same way. */
     public static BoringLayout make(CharSequence source, TextPaint paint, int outerWidth, Layout.Alignment align,
             float spacingMult, float spacingAdd, BoringLayout.Metrics metrics, boolean includePad,
             TextUtils.TruncateAt ellipsize, int ellipsizedWidth) {
-        return BoringLayout.make(source, paint, outerWidth, align, spacingMult, spacingAdd, metrics,
+        BoringLayout layout = BoringLayout.make(source, paint, outerWidth, align, spacingMult, spacingAdd, metrics,
                 includePad || needsPad(paint), ellipsize, ellipsizedWidth);
+        sample(layout, "BoringLayout.make");
+        return layout;
+    }
+
+    /**
+     * With Debug logging on, one line for the first Bengali layout each of Facebook's builders makes
+     * through {@link #build} or {@link #make} (#96): the font's line box at that size, where the
+     * first line's letters really reach, and the room the layout gave them above and below the
+     * baseline. Letters reaching higher than that room are what a view clipping to the layout cuts,
+     * so a report shows which builder a cut caption came from and what it measured. The text stays
+     * out of the log, since it can be anyone's post or message. Never throws.
+     */
+    static void sample(@Nullable Layout layout, String road) {
+        if (layout == null || SAMPLED.size() >= MAX_SAMPLES || LOOKS.get() >= MAX_LOOKS) return;
+        try {
+            if (!Utils.settingsReady() || !BaseSettings.DEBUG.get()) return;
+            CharSequence text = layout.getText();
+            if (text == null || layout.getLineCount() == 0) return;
+            // Only the first line is measured, so a post that opens in English doesn't spend the slot.
+            CharSequence line = text.subSequence(layout.getLineStart(0), layout.getLineEnd(0));
+            if (!hasBengali(line) || LOOKS.incrementAndGet() > MAX_LOOKS) return;
+            String caller = caller();
+            if (!SAMPLED.add(road + " " + caller)) return;
+            TextPaint paint = layout.getPaint();
+            Paint.FontMetricsInt font = paint.getFontMetricsInt();
+            String first = line.toString();
+            Rect letters = new Rect();
+            paint.getTextBounds(first, 0, first.length(), letters);
+            int above = layout.getLineBaseline(0) - layout.getLineTop(0);
+            int below = layout.getLineBottom(0) - layout.getLineBaseline(0);
+            Typeface face = paint.getTypeface();
+            String kind = kind(face);
+            int weight = face == null ? 400 : face.getWeight();
+            boolean pads = needsPad(paint);
+            Logger.printDebug(() -> String.format(Locale.ROOT, "Bengali layout from %s by %s: %.0f px, font top %d "
+                    + "ascent %d descent %d bottom %d, letters reach %d above and %d below the baseline, "
+                    + "line room %d above and %d below, padding %d and %d, %s typeface at weight %d, "
+                    + "padded for the font %b",
+                    road, caller, paint.getTextSize(), font.top, font.ascent, font.descent, font.bottom,
+                    -letters.top, letters.bottom, above, below, layout.getTopPadding(), layout.getBottomPadding(),
+                    kind, weight, pads));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.SYSTEM_FONT, LAYOUTS, failure);
+        }
+    }
+
+    /** Whether [text] has a Bengali letter or sign. */
+    static boolean hasBengali(CharSequence text) {
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c >= 0x0980 && c <= 0x09FF) return true;
+        }
+        return false;
+    }
+
+    /** The first three frames under OwnFont's own, which name the Facebook code that built the layout. */
+    private static String caller() {
+        StringBuilder frames = new StringBuilder();
+        int kept = 0;
+        for (StackTraceElement frame : new Throwable().getStackTrace()) {
+            if (frame.getClassName().equals(OwnFont.class.getName())) continue;
+            if (kept > 0) frames.append(" < ");
+            frames.append(frame.getClassName()).append('.').append(frame.getMethodName());
+            if (++kept == 3) break;
+        }
+        return frames.toString();
+    }
+
+    /** What [face] is to the patch, for {@link #sample}. */
+    private static String kind(@Nullable Typeface face) {
+        if (isPhoneTypeface(face)) return "the phone's";
+        if (isPhoneOrPicked(face)) return "the picked file's";
+        if (HANDED_OUT.contains(face)) return "a handed-out phone";
+        return "another";
     }
 
     /**

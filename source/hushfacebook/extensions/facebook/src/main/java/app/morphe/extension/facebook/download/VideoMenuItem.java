@@ -12,6 +12,7 @@ import android.view.View;
 import java.lang.reflect.Method;
 import java.util.List;
 
+import app.morphe.extension.facebook.media.SkipSilence;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.L10n;
@@ -29,6 +30,8 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * Download video included on the posts where it offers one. With the switch off, paused, or
  * before the settings are ready, the menu is Facebook's own. While links are sent instead of saved
  * ({@link SendLink}), the item is Send to app and hands over the video's facebook.com link.
+ * While Skip silent parts is on and a video has started, the same call adds that patch's row below
+ * Facebook's ({@link SkipSilence}), so it shows only where Download any video is patched too.
  *
  * <p>Nothing here names a class or member that Facebook renames. The post and its attachment are
  * kept GraphQL model classes, and the patch finds their getters by the GraphQL field each one
@@ -71,9 +74,14 @@ public final class VideoMenuItem {
     public static void add(Menu menu, View anchor, Object item, int icon,
                            String attachmentsGetter, String mediaGetter, String attachedStoryGetter) {
         try {
-            if (!Utils.settingsReady() || !Settings.DOWNLOAD_VIDEOS.get()) return;
+            if (!Utils.settingsReady()) return;
+            boolean download = Settings.DOWNLOAD_VIDEOS.get();
+            boolean handOff = Settings.OPEN_IN_ANOTHER_APP.get();
+            boolean saving = download || handOff;
+            boolean silence = SkipSilence.offersRow();
+            if (!saving && !silence) return;
             if (menu == null) return;
-            HookStatus.invoked(FamilyNames.VIDEO_DOWNLOAD);
+            if (saving) HookStatus.invoked(FamilyNames.VIDEO_DOWNLOAD);
 
             Object media = mediaOf(item, attachmentsGetter, mediaGetter, attachedStoryGetter);
             if (media == null) return;
@@ -81,15 +89,37 @@ public final class VideoMenuItem {
             Video video = Video.of(media, postOf(item, attachedStoryGetter));
             if (!video.offered()) return;
 
-            MenuItem entry = menu.add(SendLink.sending() ? L10n.t("Send to app") : L10n.t("Download to phone"));
-            if (entry == null) return;
-            if (icon != 0) entry.setIcon(icon);
             Context context = anchor == null ? null : anchor.getContext();
-            entry.setOnMenuItemClickListener(tapped -> {
-                tap(context, video);
-                return true;
-            });
-            HookStatus.bound(FamilyNames.VIDEO_DOWNLOAD, "video menu item");
+            if (download) {
+                MenuItem entry = MenuTop.add(menu, SendLink.sending() ? L10n.t("Send to app") : L10n.t("Download to phone"));
+                if (entry != null) {
+                    if (icon != 0) entry.setIcon(icon);
+                    entry.setOnMenuItemClickListener(tapped -> {
+                        tap(context, video);
+                        return true;
+                    });
+                }
+            }
+            if (handOff) {
+                MenuItem entry = MenuTop.add(menu, L10n.t("Open in another app"));
+                if (entry != null) {
+                    entry.setOnMenuItemClickListener(tapped -> {
+                        OpenInAnotherApp.open(context, video);
+                        return true;
+                    });
+                }
+            }
+            if (saving) HookStatus.bound(FamilyNames.VIDEO_DOWNLOAD, "video menu item");
+            String quiet = silence ? SkipSilence.rowFor(video.id) : null;
+            if (quiet != null) {
+                MenuItem entry = menu.add(SkipSilence.rowTitle(quiet));
+                if (entry != null) {
+                    entry.setOnMenuItemClickListener(tapped -> {
+                        SkipSilence.flip(context, quiet);
+                        return true;
+                    });
+                }
+            }
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "video menu", t);
             Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE,
@@ -205,9 +235,21 @@ public final class VideoMenuItem {
          * save. A photo post answers neither and keeps Facebook's own menu.
          */
         boolean offered() {
-            return typed || RenditionPicker.isHttpUrl(hd) || RenditionPicker.isHttpUrl(sd)
-                || PlayerSources.byId(id) != null;
+            return offers(typed, hd, sd, id);
         }
+    }
+
+    /**
+     * Whether [media] holds a video the item is offered for, read without what the file name
+     * needs, for a check that runs each time a post's row is built.
+     */
+    static boolean holdsVideo(Object media) {
+        return media != null && offers(VIDEO_TYPE.equals(typeName(media)), cachedString(media, HD_PLAYABLE_URL),
+            cachedString(media, PLAYABLE_URL), cachedString(media, ID));
+    }
+
+    private static boolean offers(boolean typed, String hd, String sd, String id) {
+        return typed || RenditionPicker.isHttpUrl(hd) || RenditionPicker.isHttpUrl(sd) || PlayerSources.byId(id) != null;
     }
 
     // ---------------------------------------------------------------- reflection

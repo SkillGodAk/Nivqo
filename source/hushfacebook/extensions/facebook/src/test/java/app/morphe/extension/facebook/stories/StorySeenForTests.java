@@ -8,8 +8,12 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
+
+import app.morphe.extension.facebook.media.RecentlyWatchedForTests;
 
 /** Drives View stories anonymously and its Mark as seen button the way the patched sender and seen helper do. */
 public final class StorySeenForTests {
@@ -76,6 +80,34 @@ public final class StorySeenForTests {
             return counted && StorySeenButton.shown() != null;
         } finally {
             reset();
+        }
+    }
+
+    /**
+     * Stands in for Facebook's story classes: every bucket is "b1" with no cards, so View stories
+     * anonymously keeps nothing of it, and a card is its own id.
+     */
+    static final StorySeen.Stories ONE_BUCKET = new StorySeen.Stories() {
+        @Override public String bucketId(Object bucket) { return "b1"; }
+        @Override public List<?> cards(Object bucket) { return Collections.emptyList(); }
+        @Override public String storyId(Object card) { return (String) card; }
+        @Override public boolean hasUnwatched(Object bucket) { return false; }
+        @Override public void publishWatched(Object bucket, String bucketId) { }
+    };
+
+    /**
+     * For the pause probe: the seen helper queues a story card you viewed. True when it went on the
+     * Recently watched list, which a paused Hushfacebook must never do.
+     */
+    public static boolean keepsAViewedStory() {
+        RecentlyWatchedForTests.install();
+        StorySeen.useForTests(ONE_BUCKET);
+        try {
+            StorySeen.viewed(new Object(), "s1", new Object(), false);
+            return !RecentlyWatchedForTests.entries().isEmpty();
+        } finally {
+            StorySeen.useForTests(null);
+            RecentlyWatchedForTests.forget();
         }
     }
 

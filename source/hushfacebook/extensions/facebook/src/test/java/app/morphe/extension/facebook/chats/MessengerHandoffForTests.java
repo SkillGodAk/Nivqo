@@ -32,4 +32,10 @@ public final class MessengerHandoffForTests {
         MessengerCardForTests.install(true);
         return MessengerHandoff.dropChat(new NewMessageNotification());
     }
+
+    /** A message in Facebook's own Chats, as a push reaching the method that posts Facebook's pushes. */
+    public static boolean dropsAChatPush() {
+        MessengerCardForTests.install(true);
+        return MessengerHandoff.dropChatPush("MESSAGING_IN_BLUE_DIRECT_MESSAGE");
+    }
 }

@@ -6,6 +6,13 @@
         <item quantity="many">%s патчаў</item>
         <item quantity="other">%s патчаў</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s бібліятэка</item>
+        <item quantity="few">%s бібліятэкі</item>
+        <item quantity="many">%s бібліятэк</item>
+        <item quantity="other">%s бібліятэкі</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s опцыя патча</item>
         <item quantity="few">%s опцыі патчаў</item>
@@ -13,8 +20,50 @@
         <item quantity="other">%s параметраў патчаў</item>
     </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s элемент</item>
+        <item quantity="few">%s элементы</item>
+        <item quantity="many">%s элементаў</item>
+        <item quantity="other">%s элемента</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Выбраць %s файл</item>
+        <item quantity="few">Выбраць %s файлы</item>
+        <item quantity="many">Выбраць %s файлаў</item>
+        <item quantity="other">Выбраць %s файла</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Дадаць %s крыніцу</item>
+        <item quantity="few">Дадаць %s крыніцы</item>
+        <item quantity="many">Дадаць %s крыніц</item>
+        <item quantity="other">Дадаць %s крыніцы</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Крыніцы патчаў для %s дадатка</item>
+        <item quantity="few">Крыніцы патчаў для %s дадаткаў</item>
+        <item quantity="many">Крыніцы патчаў для %s дадаткаў</item>
+        <item quantity="other">Крыніцы патчаў для %s дадатка</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s крыніца схавана для гэтага дадатка. Выберыце дадатак на ўкладцы «Дадаткі» і адкрыйце «Крыніцы патчаў», каб вярнуць яе</item>
+        <item quantity="few">%s крыніцы схаваны для гэтага дадатка. Выберыце дадатак на ўкладцы «Дадаткі» і адкрыйце «Крыніцы патчаў», каб вярнуць іх</item>
+        <item quantity="many">%s крыніц схавана для гэтага дадатка. Выберыце дадатак на ўкладцы «Дадаткі» і адкрыйце «Крыніцы патчаў», каб вярнуць іх</item>
+        <item quantity="other">%s крыніцы схавана для гэтага дадатка. Выберыце дадатак на ўкладцы «Дадаткі» і адкрыйце «Крыніцы патчаў», каб вярнуць іх</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s крыніца схавана. Націсніце, каб паказаць</item>
+        <item quantity="few">%s крыніцы схаваны. Націсніце, каб паказаць</item>
+        <item quantity="many">%s крыніц схавана. Націсніце, каб паказаць</item>
+        <item quantity="other">%s крыніцы схавана. Націсніце, каб паказаць</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s патч, які адпавядае</item>
+        <item quantity="few">%s патчы, якія адпавядаюць</item>
+        <item quantity="many">%s патчаў, якія адпавядаюць</item>
+        <item quantity="other">%s патча, які адпавядае</item>
+    </plurals>
     <plurals name="source_count">
         <item quantity="one">%s крыніца</item>
         <item quantity="few">%s крыніцы</item>
@@ -45,6 +94,12 @@
         <item quantity="many">Усталявана %s праграм</item>
         <item quantity="other">Усталявана %s праграм</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Змантаваны %s дадатак</item>
+        <item quantity="few">Змантаваныя %s дадаткі</item>
+        <item quantity="many">Змантавана %s дадаткаў</item>
+        <item quantity="other">Змантавана %s дадатка</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Пераусталявана %s праграма</item>
         <item quantity="few">Пераусталявана %s праграмы</item>
@@ -69,6 +124,24 @@
         <item quantity="many">%s праграм, гатовых да патчынгу</item>
         <item quantity="other">%s праграм, гатовых да патчынгу</item>
     </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s дадатак у чарзе на патчаванне</item>
+        <item quantity="few">%s дадаткі ў чарзе на патчаванне</item>
+        <item quantity="many">%s дадаткаў у чарзе на патчаванне</item>
+        <item quantity="other">%s дадатка ў чарзе на патчаванне</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s схаванае апавяшчэнне, націсніце, каб паказаць</item>
+        <item quantity="few">%s схаваныя апавяшчэнні, націсніце, каб паказаць</item>
+        <item quantity="many">%s схаваных апавяшчэнняў, націсніце, каб паказаць</item>
+        <item quantity="other">%s схаванага апавяшчэння, націсніце, каб паказаць</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s дадатак можна перапатчыць</item>
+        <item quantity="few">%s дадаткі можна перапатчыць</item>
+        <item quantity="many">%s дадаткаў можна перапатчыць</item>
+        <item quantity="other">%s дадатка можна перапатчыць</item>
+    </plurals>
     <plurals name="batch_skipped_summary">
         <item quantity="one">Прапушчана %s праграма</item>
         <item quantity="few">Прапушчана %s праграмы</item>
@@ -87,6 +160,24 @@
         <item quantity="many">%s крыніц ўсталявана</item>
         <item quantity="other">%s крыніц ўсталявана</item>
     </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s дадатак схаваны</item>
+        <item quantity="few">%s дадаткі схаваныя</item>
+        <item quantity="many">%s дадаткаў схавана</item>
+        <item quantity="other">%s дадатка схавана</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s дадатак паказаны</item>
+        <item quantity="few">%s дадаткі паказаныя</item>
+        <item quantity="many">%s дадаткаў паказана</item>
+        <item quantity="other">%s дадатка паказана</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Паказаць %s дадатак?</item>
+        <item quantity="few">Паказаць %s дадаткі?</item>
+        <item quantity="many">Паказаць %s дадаткаў?</item>
+        <item quantity="other">Паказаць %s дадатка?</item>
+    </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s схаваная праграма</item>
         <item quantity="few">%s схаваныя праграмы</item>
@@ -99,10 +190,71 @@
         <item quantity="many">%s праграм</item>
         <item quantity="other">%s праграм</item>
     </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">Выбрана: %s</item>
+        <item quantity="few">Выбрана: %s</item>
+        <item quantity="many">Выбрана: %s</item>
+        <item quantity="other">Выбрана: %s</item>
+    </plurals>
     <plurals name="expert_mode_copy_from_bundle_done">
         <item quantity="one">Скапіяваны %s патч з абранага набору</item>
         <item quantity="few">Скапіявана %s патча з абранага набору</item>
         <item quantity="many">Скапіявана %s патчаў з абранага набору</item>
         <item quantity="other">Скапіявана %s патчаў з абранага набору</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s ядро</item>
+        <item quantity="few">%s ядры</item>
+        <item quantity="many">%s ядраў</item>
+        <item quantity="other">%s ядра</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s функцыя</item>
+        <item quantity="few">%s функцыі</item>
+        <item quantity="many">%s функцый</item>
+        <item quantity="other">%s функцыі</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s выпраўленне</item>
+        <item quantity="few">%s выпраўленні</item>
+        <item quantity="many">%s выпраўленняў</item>
+        <item quantity="other">%s выпраўлення</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s аптымізацыя</item>
+        <item quantity="few">%s аптымізацыі</item>
+        <item quantity="many">%s аптымізацый</item>
+        <item quantity="other">%s аптымізацыі</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s змена</item>
+        <item quantity="few">%s змены</item>
+        <item quantity="many">%s змен</item>
+        <item quantity="other">%s змены</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d новы</item>
+        <item quantity="few">%1$s · %2$d новыя</item>
+        <item quantity="many">%1$s · %2$d новых</item>
+        <item quantity="other">%1$s · %2$d новага</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s новы рэліз</item>
+        <item quantity="few">%s новыя рэлізы</item>
+        <item quantity="many">%s новых рэлізаў</item>
+        <item quantity="other">%s новага рэлізу</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d спасылка ўключана</item>
+        <item quantity="few">%d спасылкі ўключаны</item>
+        <item quantity="many">%d спасылак уключана</item>
+        <item quantity="other">%d спасылкі ўключана</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d неправераная спасылка</item>
+        <item quantity="few">%d неправераныя спасылкі</item>
+        <item quantity="many">%d неправераных спасылак</item>
+        <item quantity="other">%d неправеранай спасылкі</item>
     </plurals>
 </resources>

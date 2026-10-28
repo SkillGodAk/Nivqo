@@ -44,6 +44,12 @@ class UploadStoriesInHdFixtureTest {
     private fun same(a: Method, b: Method) = a.name == b.name && a.returnType == b.returnType &&
         a.parameterTypes.map(CharSequence::toString) == b.parameterTypes.map(CharSequence::toString)
 
+    /**
+     * A goto at any width. The two added instructions can push a goto past its reach, and the
+     * patcher then widens it (584's goto at 92 comes back a goto/16).
+     */
+    private fun Opcode.normal() = if (this == Opcode.GOTO_16 || this == Opcode.GOTO_32) Opcode.GOTO else this
+
     @Test
     fun `each declared build's Story upload asks the extension for its quality`() = bundles { bundle ->
         val holders = FixtureDex.classesHolding(bundle, VIDEO_UPLOAD_QUALITY)
@@ -72,7 +78,7 @@ class UploadStoriesInHdFixtureTest {
             .implementation!!.instructions.toList()
         val where = "${bundle.name}: ${publisher.definingClass}->${publisher.name}"
         assertEquals("$where: two instructions added", code.size + 2, body.size)
-        for (at in 0 until put.put) assertEquals("$where: instruction $at", code[at].opcode, body[at].opcode)
+        for (at in 0 until put.put) assertEquals("$where: instruction $at", code[at].opcode.normal(), body[at].opcode.normal())
         val ask = body[put.put]
         assertEquals("$where: the ask's form", Opcode.INVOKE_STATIC_RANGE, ask.opcode)
         assertEquals("$where: the ask", QUALITY_CALL, (ask as ReferenceInstruction).reference.toString())
@@ -87,7 +93,7 @@ class UploadStoriesInHdFixtureTest {
             listOf(original.registerC, original.registerD, original.registerE),
             listOf(handed.registerC, handed.registerD, handed.registerE))
         for (at in put.put + 1 until code.size) {
-            assertEquals("$where: instruction $at", code[at].opcode, body[at + 2].opcode)
+            assertEquals("$where: instruction $at", code[at].opcode.normal(), body[at + 2].opcode.normal())
         }
 
         val status = context.mutableClassDefBy(SETTINGS_STATUS).methods.single { it.name == "storyUploadHd" }

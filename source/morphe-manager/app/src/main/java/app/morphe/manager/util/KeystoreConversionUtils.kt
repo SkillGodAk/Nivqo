@@ -98,17 +98,18 @@ object KeystoreConversionUtils {
 
             val jksTarget = newBksKeyStore().apply { load(null, pass) }
             val cf = CertificateFactory.getInstance("X.509")
-            val kf = KeyFactory.getInstance("RSA")
 
             val filtered = if (alias.isBlank()) entries
             else entries.filter { it.alias.equals(alias, ignoreCase = true) }
                 .ifEmpty { entries }
 
             filtered.forEach { entry ->
-                val privateKey = kf.generatePrivate(PKCS8EncodedKeySpec(entry.privateKeyDer.toByteArray()))
                 val certs = entry.certificatesDer.map {
                     cf.generateCertificate(it.toByteArray().inputStream())
                 }.toTypedArray()
+                // The key is of whatever kind its certificate names, EC and DSA as well as RSA
+                val privateKey = KeyFactory.getInstance(certs.first().publicKey.algorithm)
+                    .generatePrivate(PKCS8EncodedKeySpec(entry.privateKeyDer.toByteArray()))
                 jksTarget.setKeyEntry(entry.alias, privateKey, pass, certs)
             }
 

@@ -48,6 +48,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -197,6 +198,10 @@ fun Context.pickedFolder(uri: Uri): DocumentFile? =
 fun DocumentFile.getOrCreateDir(name: String): DocumentFile? =
     findFile(name) ?: createDirectory(name)
 
+/** [getOrCreateDir] for a folder the set cannot do without, so a missing one fails it whole. */
+fun DocumentFile.requireDir(name: String): DocumentFile =
+    getOrCreateDir(name) ?: throw IOException("Could not create $name")
+
 fun DocumentFile.getOrCreateFile(mimeType: String, name: String): DocumentFile? =
     findFile(name) ?: if (uri.scheme == ContentResolver.SCHEME_FILE) {
         // A plain file keeps its name as given, where createFile would add an extension for the type
@@ -217,12 +222,15 @@ fun DocumentFile.brandingFolder(): DocumentFile? {
 
 /** Writes [bitmap] into this folder as the PNG [name], replacing an earlier one, then frees it. */
 fun DocumentFile.writePng(context: Context, name: String, bitmap: Bitmap) {
-    getOrCreateFile("image/png", name)?.let { file ->
-        context.contentResolver.openOutputStream(file.uri, "wt")?.use { out ->
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-        }
+    try {
+        // Thrown rather than skipped, or the patch is pointed at a folder missing some of its images
+        val file = getOrCreateFile("image/png", name) ?: throw IOException("Could not create $name")
+        val written = context.contentResolver.openOutputStream(file.uri, "wt")
+            ?.use { out -> bitmap.compress(Bitmap.CompressFormat.PNG, 100, out) }
+        if (written != true) throw IOException("Could not write $name")
+    } finally {
+        bitmap.recycle()
     }
-    bitmap.recycle()
 }
 
 /** Antialiased paint with bicubic filtering, for scaling pictures without jagged edges. */

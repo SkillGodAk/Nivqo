@@ -35,10 +35,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Default comment order over a stand-in request builder, params class, comment sheet and section
- * renderer: which methods count as the builder, the params' constructor, the pick handler and the
- * sort menu's header, what the patch refuses, and the calls it puts first in the constructor, the
- * handler and the header. Each rule has a control that must fail it.
+ * Default comment order over a stand-in request builder, params class, comment sheet, section
+ * renderer and post page: which methods count as the builder, the params' constructor, the pick
+ * handler and the sort menu's header, what the patch refuses, the calls it puts first in the
+ * constructor, the handler and the header, and the ask before the post page's params are built.
+ * Each rule has a control that must fail it.
  */
 class DefaultCommentOrderShapesTest {
     private val builderOwner = "Lfixture/RequestBuilder;"
@@ -219,11 +220,49 @@ class DefaultCommentOrderShapesTest {
         """,
     )
 
+    private val storyOwner = "Lfixture/StoryRequest;"
+    private val pageOwner = "Lfixture/PostPage;"
+    private val pageOrderField = "$FETCH_SINGLE_STORY_PARAMS->A0M:$string"
+
+    /** The post page's request builder (#192): the order read from the params, then its name loaded. */
+    private fun storyBuilder(): MutableMethod = method(
+        storyOwner, "build", listOf(FETCH_SINGLE_STORY_PARAMS, USER_SESSION), "Ljava/lang/Object;", 4, smali = """
+            iget-object v1, p1, $pageOrderField
+            if-eqz v1, :done
+            const-string v0, "$ORDER_VARIABLE"
+            invoke-static { v0, v1 }, $variables->put(${string}$string)V
+            :done
+            const/4 v0, 0x0
+            return-object v0
+        """,
+    )
+
+    /** The post page params' constructor: an id, then the order stored from its second parameter. */
+    private fun storyConstructor(): MutableMethod = method(
+        FETCH_SINGLE_STORY_PARAMS, "<init>", listOf(string, string), "V", 3, constructor = true, smali = """
+            invoke-direct { p0 }, Ljava/lang/Object;-><init>()V
+            iput-object p2, p0, $pageOrderField
+            return-void
+        """,
+    )
+
+    /** The link-to-page builder: it builds the params with the link's order in v2. */
+    private fun pageBuilder(): MutableMethod = method(
+        pageOwner, "open", listOf(PERMALINK_PARAMS), "Ljava/lang/Object;", 5, smali = """
+            new-instance v0, $FETCH_SINGLE_STORY_PARAMS
+            const-string v1, "id"
+            const-string v2, "RANKED_THREADED"
+            invoke-direct { v0, v1, v2 }, $FETCH_SINGLE_STORY_PARAMS-><init>(${string}$string)V
+            return-object v0
+        """,
+    )
+
     private fun build(
         builder: Method = builder(),
         constructor: Method = constructor(),
         handlers: List<Method> = listOf(handler(), refresh()),
         renders: List<Method> = listOf(render()),
+        pages: List<Method> = listOf(pageBuilder()),
     ): List<ClassDef> = listOf(
         classOf(builderOwner, builder),
         classOf(FETCH_FEEDBACK_PARAMS, constructor),
@@ -231,6 +270,9 @@ class DefaultCommentOrderShapesTest {
         classOf(renderer, *renders.toTypedArray()),
         keys(),
         classOf(header, sortHeader()),
+        classOf(storyOwner, storyBuilder()),
+        classOf(FETCH_SINGLE_STORY_PARAMS, storyConstructor()),
+        classOf(pageOwner, *pages.toTypedArray()),
         ExtensionDex.classDef(SETTINGS_STATUS),
     )
 
@@ -303,6 +345,17 @@ class DefaultCommentOrderShapesTest {
         assertEquals("the renderer is left alone", render().body().map { it.opcode },
             context.mutableClassDefBy(renderer).methods.single().body().map { it.opcode })
 
+        val page = context.mutableClassDefBy(pageOwner).methods.single().body()
+        assertEquals("the page's ask goes right before the params' constructor",
+            listOf(Opcode.NEW_INSTANCE, Opcode.CONST_STRING, Opcode.CONST_STRING, Opcode.INVOKE_STATIC_RANGE,
+                Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_DIRECT, Opcode.RETURN_OBJECT),
+            page.map { it.opcode })
+        assertEquals(PAGE_ORDER, page[3].reference)
+        assertEquals("the link's order, the constructor's second parameter", listOf(2), page[3].callRegisters())
+        assertEquals(2, (page[4] as OneRegisterInstruction).registerA)
+        assertEquals("the story request builder is left alone", storyBuilder().body().map { it.opcode },
+            context.mutableClassDefBy(storyOwner).methods.single().body().map { it.opcode })
+
         val status = context.mutableClassDefBy(SETTINGS_STATUS).methods.single { it.name == "defaultCommentOrder" }
         val answer = status.body().first { it is NarrowLiteralInstruction }
         assertEquals("the settings screen isn't told the patch is in", 1, (answer as NarrowLiteralInstruction).narrowLiteral)
@@ -327,6 +380,8 @@ class DefaultCommentOrderShapesTest {
         assertTrue(noMenu, noMenu.contains("comment sort menu header") && noMenu.contains("found 0"))
         val twoMenus = refusal(build(renders = listOf(render(), render(name = "renderAgain", built = "Lfixture/OtherHeader;"))))
         assertTrue(twoMenus, twoMenus.contains("comment sort menu header") && twoMenus.contains("found 2"))
+        val noPage = refusal(build(pages = emptyList()))
+        assertTrue(noPage, noPage.contains("taking $PERMALINK_PARAMS") && noPage.contains("found 0"))
     }
 
     @Test

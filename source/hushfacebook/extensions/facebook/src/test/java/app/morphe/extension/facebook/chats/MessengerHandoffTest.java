@@ -28,6 +28,7 @@ import org.robolectric.annotation.Config;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import app.morphe.extension.facebook.notifications.NotificationKinds;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.SettingsContextRule;
@@ -187,14 +188,32 @@ public class MessengerHandoffTest {
     }
 
     /**
-     * Only Meta's Messenger counts. A copy under another package name, HushMessenger beside Meta's
-     * apps say, may not get Meta's pushes at all, so Facebook keeps ringing beside it.
+     * A Messenger under another package name, HushMessenger installed beside Meta's apps, counts
+     * like Meta's own: it gets the same pushes, so Facebook leaves calls and chats to it too (#193,
+     * where Facebook and such a copy each notified for one message).
      */
     @Test
-    public void aMessengerUnderAnotherPackageNameDoesntCount() {
+    public void aMessengerUnderAnotherPackageNameCountsToo() {
         Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER.save(true);
         MessengerIconForTests.installLauncher(MessengerIconForTests.CLONE_HOME);
-        assertNoneDropped("only a copy of Messenger", callAndMessage());
+        assertAllDropped("only a copy of Messenger", callAndMessage());
+        assertEquals("Facebook kept registering for calls beside a copy of Messenger", 0x215L,
+                MessengerHandoff.clientCapabilities(0x217L));
+        assertEquals(PREFIX + "invoked 4, 0 found, 0 missing. Counted: "
+                + MessengerHandoff.CALL_PUSH_DROPPED + " 1, "
+                + MessengerHandoff.RING_DROPPED + " 1, "
+                + MessengerHandoff.CHAT_DROPPED + " 1, "
+                + MessengerHandoff.CALL_REGISTRATION_LEFT + " 1", statusLine());
+    }
+
+    /** Another app's launcher entry, one with no Messenger class, is no Messenger. */
+    @Test
+    public void anotherAppsLauncherEntryIsntMessenger() {
+        Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER.save(true);
+        MessengerIconForTests.installLauncher(MessengerIconForTests.OTHER_HOME);
+        assertNoneDropped("another app", callAndMessage());
+        assertEquals(PREFIX + "invoked 3, 0 found, 0 missing. Counted: "
+                + MessengerHandoff.NO_MESSENGER + " 3", statusLine());
     }
 
     /**
@@ -211,6 +230,63 @@ public class MessengerHandoffTest {
         assertTrue(MessengerHandoff.dropChat(new NewMessageNotification()));
         assertEquals(PREFIX + "invoked 4, 0 found, 0 missing. Counted: "
                 + MessengerHandoff.CHAT_DROPPED + " 1", statusLine());
+    }
+
+    /**
+     * #193: a message in Facebook's own Chats reaches Facebook as a push typed
+     * MESSAGING_IN_BLUE_DIRECT_MESSAGE, posted by the push tray and never handed to the chat
+     * dispatcher. With the switch on and a copy of Messenger there, that push and the other chat
+     * pushes post nothing, whatever follows the colon and however the type is cased, and each is
+     * counted as a chat left to Messenger.
+     */
+    @Test
+    public void facebooksOwnChatPushesAreLeftToMessengerToo() {
+        Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER.save(true);
+        MessengerIconForTests.installLauncher(MessengerIconForTests.CLONE_HOME);
+        assertTrue(MessengerHandoff.dropChatPush("MESSAGING_IN_BLUE_DIRECT_MESSAGE"));
+        assertTrue(MessengerHandoff.dropChatPush("messaging_in_blue_subsequent_message:1234"));
+        assertTrue(MessengerHandoff.dropChatPush("MSG"));
+        assertEquals(PREFIX + "invoked 3, 0 found, 0 missing. Counted: "
+                + MessengerHandoff.CHAT_DROPPED + " 3", statusLine());
+    }
+
+    /**
+     * Every other push still posts and isn't counted: a birthday, a Page inbox message, Facebook's
+     * own message reminder, a friend request, a type that only starts like a chat kind, one that
+     * isn't a constant name, an empty one and none at all.
+     */
+    @Test
+    public void onlyChatPushesAreLeftToMessenger() {
+        Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER.save(true);
+        MessengerCardForTests.install(true);
+        String[] others = {"BIRTHDAY_REMINDER", "PAGE_MESSAGE", "MESSENGER_MESSAGE_REMINDER", "FRIEND", "MSG2",
+                "MSG!", "", null};
+        for (String type : others) {
+            assertFalse(String.valueOf(type), MessengerHandoff.dropChatPush(type));
+        }
+        assertEquals(PREFIX + "invoked " + others.length + ", 0 found, 0 missing", statusLine());
+    }
+
+    /** Off, or on with no Messenger, Facebook posts its chat pushes as it always did. */
+    @Test
+    public void offOrWithoutMessengerFacebookPostsItsChatPushes() {
+        MessengerCardForTests.install(true);
+        assertFalse("off", MessengerHandoff.dropChatPush("MESSAGING_IN_BLUE_DIRECT_MESSAGE"));
+        Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER.save(true);
+        MessengerCardForTests.uninstall();
+        assertFalse("no Messenger", MessengerHandoff.dropChatPush("MESSAGING_IN_BLUE_DIRECT_MESSAGE"));
+        assertEquals(PREFIX + "invoked 2, 0 found, 0 missing. Counted: "
+                + MessengerHandoff.NO_MESSENGER + " 1", statusLine());
+    }
+
+    /** The chat push kinds are NotificationType constant names, each read as Facebook reads a type. */
+    @Test
+    public void aChatPushKindIsAConstantName() {
+        assertEquals(10, MessengerHandoff.CHAT_PUSH_KINDS.size());
+        for (String kind : MessengerHandoff.CHAT_PUSH_KINDS) {
+            assertEquals(kind, NotificationKinds.kindOf(kind));
+            assertEquals(kind, NotificationKinds.kindOf(kind.toLowerCase(java.util.Locale.ROOT) + ":tail"));
+        }
     }
 
     /** The kinds are matched by the whole class name, never by a part of it. */

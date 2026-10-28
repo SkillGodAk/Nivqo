@@ -1,7 +1,6 @@
 -dontobfuscate
 -dontoptimize
 
--keep class app.morphe.manager.patcher.runtime.process.* { *; }
 -keep class app.morphe.manager.plugin.** { *; }
 -keep class app.morphe.patcher.** { *; }
 -keep class com.android.tools.smali.** { *; }
@@ -20,4 +19,6 @@
 -dontwarn com.google.j2objc.annotations.*
 -dontwarn java.awt.**
 -dontwarn javax.**
+# Only the entry point of the embedded JVM reads it, which ART never runs
+-dontwarn java.lang.management.**
 -dontwarn org.slf4j.**

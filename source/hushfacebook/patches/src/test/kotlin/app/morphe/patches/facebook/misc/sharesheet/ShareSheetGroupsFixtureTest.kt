@@ -66,6 +66,13 @@ class ShareSheetGroupsFixtureTest {
         return direct + asked.map { owners.getValue(it.definingClass) to it }
     }
 
+    private companion object {
+        /** Per build, the footer's Send to group label and the label that takes the number of picks. */
+        val LABELS = mapOf(
+            "584.0.0.51.56" to (0x7f144857 to 0x7f144858),
+        )
+    }
+
     /** The code offset of each instruction in [code]. */
     private fun offsets(code: List<Instruction>): IntArray {
         val offsets = IntArray(code.size)
@@ -95,17 +102,18 @@ class ShareSheetGroupsFixtureTest {
                 fun Instruction.buildsButton() = called()?.startsWith("$FDS_BUTTON-><init>(") == true
                 assertEquals("$name: the footer builds two FDSButtons, Send to group then send", 2,
                     footerCode.count { it.buildsButton() })
-                if (version == "583.0.0.39.55") {
-                    // Positive control: 583 loads its "Send to group" label, string 0x7f144794, beside
-                    // the one that takes the number of picks, 0x7f144795, a few instructions before the
-                    // first FDSButton. 582's was 0x7f144406. The shift between the builds' tables is 910
-                    // by the locale packs both ship; 583's English pack is SuperPack only, so the
-                    // unpacked table is the check still owed.
+                // Positive control: 583 loads its "Send to group" label, string 0x7f144794, beside
+                // the one that takes the number of picks, 0x7f144795, a few instructions before the
+                // first FDSButton. 582's was 0x7f144406. The shift between the builds' tables is 910
+                // by the locale packs both ship; 583's English pack is SuperPack only, so the
+                // unpacked table is the check still owed. 584's footer loads the same five label ids
+                // as 583's, each 195 higher, which puts the pair at 0x7f144857 and 0x7f144858.
+                LABELS[version]?.let { (label, picks) ->
                     val built = footerCode.indexOfFirst { it.buildsButton() }
                     assertTrue("$name: the footer never loads the Send to group label",
-                        footerCode.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == 0x7f144794 })
+                        footerCode.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == label })
                     assertTrue("$name: the first FDSButton isn't the one labelled Send to group",
-                        footerCode.subList(0, built).takeLast(40).any { (it as? NarrowLiteralInstruction)?.narrowLiteral == 0x7f144795 })
+                        footerCode.subList(0, built).takeLast(40).any { (it as? NarrowLiteralInstruction)?.narrowLiteral == picks })
                 }
 
                 val bodies = renders(bundle, SHARE_BODY_ANCHOR)
@@ -142,15 +150,18 @@ class ShareSheetGroupsFixtureTest {
                     listOf(patchedFooter[at + 2].opcode, (patchedFooter[at + 2] as OneRegisterInstruction).registerA,
                         ((patchedFooter[at + 2] as ReferenceInstruction).reference as TypeReference).type))
                 assertEquals("$name: Facebook's own instruction follows", footerCode[at].opcode, patchedFooter[at + 3].opcode)
+                // Through 583 the skips branch forward onto it; 584's set the button null further
+                // down and jump back.
                 val offsets = offsets(footerCode)
-                val skips = (0 until at).filter {
+                val skips = footerCode.indices.filter {
                     val branch = footerCode[it] as? OffsetInstruction
                     branch != null && offsets[it] + branch.codeOffset == offsets[at]
                 }
                 assertTrue("$name: no branch skips the Send to group button", skips.isNotEmpty())
                 skips.forEach {
+                    val moved = if (it < at) it else it + 3
                     assertSame("$name: the branch at $it lands on the hook", patchedFooter[at],
-                        (patchedFooter[it] as BuilderOffsetInstruction).target.location.instruction)
+                        (patchedFooter[moved] as BuilderOffsetInstruction).target.location.instruction)
                 }
 
                 // The body and the search row: two instructions after each guard's boolean is set.

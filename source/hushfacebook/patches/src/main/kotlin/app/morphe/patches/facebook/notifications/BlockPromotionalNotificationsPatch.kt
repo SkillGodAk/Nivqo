@@ -6,6 +6,7 @@ package app.morphe.patches.facebook.notifications
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
+import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
@@ -18,6 +19,7 @@ import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.findMutableMethodOf
 import com.android.tools.smali.dexlib2.iface.Field
+import com.android.tools.smali.dexlib2.iface.Method
 
 internal const val BLOCK = "$EXTENSION_PACKAGE/notifications/NotificationKinds;->block(Ljava/lang/String;)Z"
 
@@ -40,37 +42,51 @@ val blockPromotionalNotificationsPatch = bytecodePatch(
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {
-        val manager = classDefByOrNull(TRAY_MANAGER)
-            ?: throw PatchException("$PATCH: $TRAY_MANAGER isn't in this build")
-        val posts = manager.methods.filter(::isPostMethod)
-        val post = posts.singleOrNull() ?: throw PatchException(
-            "$PATCH: expected one method of $TRAY_MANAGER loading \"$SHOW_START\" over (Intent, " +
-                "NotificationLogObject, NotificationsLogger\$Component, a builder, int), found ${posts.size}",
-        )
-        val builderType = post.parameterTypes[BUILDER_PARAMETER].toString()
-        val builder = classDefByOrNull(builderType)
-            ?: throw PatchException("$PATCH: the post method's builder $builderType isn't in this build")
-        val field = notificationField(builder) ?: throw PatchException(
-            "$PATCH: the builder $builderType doesn't hold the push in one field of type $TRAY_NOTIFICATION",
-        )
-        val notification = classDefByOrNull(TRAY_NOTIFICATION)
-        if (notification == null || !hasTypeField(notification)) {
-            throw PatchException("$PATCH: $TRAY_NOTIFICATION has no String field $TYPE_FIELD")
-        }
-        mutableClassDefBy(TRAY_MANAGER).findMutableMethodOf(post).postNothingWhenBlocked(field)
+        val post = trayPost(PATCH)
+        mutableClassDefBy(TRAY_MANAGER).findMutableMethodOf(post.method).postNothingWhenBlocked(post.notification)
         enableStatus("promoNotifications")
     }
 }
 
+/** The tray manager's post method and the builder's field holding the push. */
+internal class TrayPost(val method: Method, val notification: Field)
+
 /**
- * First thing in the post method: read the push's type out of the builder, ask the extension, and
- * return when it says the kind is blocked. A null builder or push skips the question, and so
+ * Finds the post method and the builder's push field (NotificationAnchors.kt), or stops [patch]
+ * naming what this build lacks. Block promotional notifications goes first in it, and so does
+ * Leave calls and chats to Messenger, for the chats Facebook posts there.
+ */
+internal fun BytecodePatchContext.trayPost(patch: String): TrayPost {
+    val manager = classDefByOrNull(TRAY_MANAGER)
+        ?: throw PatchException("$patch: $TRAY_MANAGER isn't in this build")
+    val posts = manager.methods.filter(::isPostMethod)
+    val post = posts.singleOrNull() ?: throw PatchException(
+        "$patch: expected one method of $TRAY_MANAGER loading \"$SHOW_START\" over (Intent, " +
+            "NotificationLogObject, NotificationsLogger\$Component, a builder, int), found ${posts.size}",
+    )
+    val builderType = post.parameterTypes[BUILDER_PARAMETER].toString()
+    val builder = classDefByOrNull(builderType)
+        ?: throw PatchException("$patch: the post method's builder $builderType isn't in this build")
+    val field = notificationField(builder) ?: throw PatchException(
+        "$patch: the builder $builderType doesn't hold the push in one field of type $TRAY_NOTIFICATION",
+    )
+    val notification = classDefByOrNull(TRAY_NOTIFICATION)
+    if (notification == null || !hasTypeField(notification)) {
+        throw PatchException("$patch: $TRAY_NOTIFICATION has no String field $TYPE_FIELD")
+    }
+    return TrayPost(post, field)
+}
+
+/**
+ * First thing in the post method: read the push's type out of the builder, ask the extension's
+ * [hook], and return when it says yes. A null builder or push skips the question, and so
  * Facebook's own first instruction runs whatever the answer. The one register borrowed is v0,
  * which holds nothing before the method's first instruction; the builder is copied into it with
- * the 16-bit move, since its parameter register is far past v15.
+ * the 16-bit move, since its parameter register is far past v15. Two patches can each put their
+ * question here, one ahead of the other, and both read the same untouched builder register.
  */
-internal fun MutableMethod.postNothingWhenBlocked(notification: Field) {
-    requireLocals(PATCH, 1)
+internal fun MutableMethod.postNothingWhenBlocked(notification: Field, hook: String = BLOCK, patch: String = PATCH) {
+    requireLocals(patch, 1)
     val builder = parameterRegister(BUILDER_PARAMETER)
     addInstructionsWithLabels(
         0,
@@ -80,7 +96,7 @@ internal fun MutableMethod.postNothingWhenBlocked(notification: Field) {
             iget-object v0, v0, ${notification.definingClass}->${notification.name}:${notification.type}
             if-eqz v0, :facebook
             iget-object v0, v0, $TRAY_NOTIFICATION->$TYPE_FIELD:Ljava/lang/String;
-            invoke-static { v0 }, $BLOCK
+            invoke-static { v0 }, $hook
             move-result v0
             if-eqz v0, :facebook
             return-void

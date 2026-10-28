@@ -1,0 +1,123 @@
+/*
+ * Copyright 2026 Hushfacebook contributors
+ * https://github.com/SysAdminDoc/Hushfacebook
+ */
+package app.morphe.patches.facebook.reels
+
+import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * The parts of Hide the speaker button on reels' matchers (#190) that need no Facebook build: what
+ * counts as the video controls' check in front of the speaker and as the footer's build of it, and
+ * what each refuses.
+ */
+class ReelSoundButtonShapesTest {
+    /**
+     * A viewer method: a call answering [returns], its move-result into v0, an if-eqz on v0 that jumps
+     * past the [skipped] string loads, then the [after] loads and a return.
+     */
+    private fun viewer(
+        skipped: List<String>,
+        after: List<String> = emptyList(),
+        call: Opcode = Opcode.INVOKE_STATIC,
+        returns: String = "Z",
+    ): Method {
+        val check = ImmutableMethodReference("Lfixture/Viewer;", "A0Z", emptyList(), returns)
+        val loads = { strings: List<String> -> strings.map { ImmutableInstruction21c(Opcode.CONST_STRING, 1, ImmutableStringReference(it)) } }
+        val code = listOf<Instruction>(
+            if (call == Opcode.INVOKE_STATIC) ImmutableInstruction35c(call, 0, 0, 0, 0, 0, 0, check)
+            else ImmutableInstruction35c(call, 1, 1, 0, 0, 0, 0, check),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+            // The if-eqz is two code units and each string load two more.
+            ImmutableInstruction21t(Opcode.IF_EQZ, 0, 2 + 2 * skipped.size),
+        ) + loads(skipped) + loads(after) + ImmutableInstruction10x(Opcode.RETURN_VOID)
+        return ImmutableMethod(
+            "Lfixture/Viewer;", "A1C", emptyList(), "V", AccessFlags.PUBLIC.value, null, null,
+            ImmutableMethodImplementation(2, code, null, null),
+        )
+    }
+
+    @Test
+    fun `a static check whose false skips only the speaker's key is the gate`() {
+        val gate = soundButtonGates(viewer(listOf("android.widget.Button", SOUND_BUTTON_KEY))).single()
+        assertEquals(SoundButtonGate(call = 0, branch = 2, answer = 0, target = 5), gate)
+    }
+
+    @Test
+    fun `a check that skips another component's transition key with the speaker is refused`() {
+        // Hooking it would take the play button (or the whole column) away with the speaker.
+        assertTrue(soundButtonGates(viewer(listOf("play_component_transition_key", SOUND_BUTTON_KEY))).isEmpty())
+        assertTrue(soundButtonGates(viewer(listOf(SOUND_BUTTON_KEY, "wnb_info_chip_transition_key"))).isEmpty())
+    }
+
+    @Test
+    fun `a check that lands before the key, or isn't a static Z answer, is refused`() {
+        // The branch skips something else and the key comes after where it lands.
+        assertTrue(soundButtonGates(viewer(listOf("android.widget.Button"), after = listOf(SOUND_BUTTON_KEY))).isEmpty())
+        assertTrue(soundButtonGates(viewer(listOf(SOUND_BUTTON_KEY), call = Opcode.INVOKE_VIRTUAL)).isEmpty())
+        assertTrue(soundButtonGates(viewer(listOf(SOUND_BUTTON_KEY), returns = "I")).isEmpty())
+        // A method that never loads the key has no gate for it.
+        assertTrue(soundButtonGates(viewer(listOf("android.widget.Button"))).isEmpty())
+    }
+
+    /**
+     * A footer piece's render: a call to Lfixture/Builder;->A00 answering [returns], its result moved
+     * into v0, optionally a string load, then an if-eqz on [checked] over a nop, and a return.
+     */
+    private fun piece(
+        call: Opcode = Opcode.INVOKE_STATIC,
+        returns: String = "Lfixture/Row;",
+        checked: Int = 0,
+        between: Boolean = false,
+    ): Method {
+        val build = ImmutableMethodReference("Lfixture/Builder;", "A00", emptyList(), returns)
+        val code = listOfNotNull<Instruction>(
+            if (call == Opcode.INVOKE_STATIC) ImmutableInstruction35c(call, 0, 0, 0, 0, 0, 0, build)
+            else ImmutableInstruction35c(call, 1, 1, 0, 0, 0, 0, build),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+            if (between) ImmutableInstruction21c(Opcode.CONST_STRING, 1, ImmutableStringReference("android.widget.Button")) else null,
+            // Two code units for the if-eqz and one for the nop: it lands on the return.
+            ImmutableInstruction21t(Opcode.IF_EQZ, checked, 3),
+            ImmutableInstruction10x(Opcode.NOP),
+            ImmutableInstruction10x(Opcode.RETURN_VOID),
+        )
+        return ImmutableMethod(
+            "Lfixture/Piece;", "render", emptyList(), "V", AccessFlags.PUBLIC.value, null, null,
+            ImmutableMethodImplementation(2, code, null, null),
+        )
+    }
+
+    private val anyBuilder = { _: MethodReference -> true }
+
+    @Test
+    fun `a static builder's answer moved and null-checked straight after is the footer's speaker`() {
+        assertEquals(listOf(SpeakerBuild(call = 0, register = 0, type = "Lfixture/Row;")), speakerBuilds(piece(), anyBuilder))
+        // The builder's class decides: one that doesn't news up the toggle isn't the speaker.
+        assertTrue(speakerBuilds(piece()) { it.definingClass != "Lfixture/Builder;" }.isEmpty())
+    }
+
+    @Test
+    fun `a call that isn't static, answers no object, or isn't null-checked straight after is refused`() {
+        assertTrue(speakerBuilds(piece(call = Opcode.INVOKE_VIRTUAL), anyBuilder).isEmpty())
+        assertTrue(speakerBuilds(piece(returns = "Z"), anyBuilder).isEmpty())
+        // The check reads another register, or something comes between the move and the check.
+        assertTrue(speakerBuilds(piece(checked = 1), anyBuilder).isEmpty())
+        assertTrue(speakerBuilds(piece(between = true), anyBuilder).isEmpty())
+    }
+}

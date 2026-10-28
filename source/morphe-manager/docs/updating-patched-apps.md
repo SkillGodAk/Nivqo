@@ -1,32 +1,34 @@
 # Updating a patched app
 
 Patches keep improving, and the apps they patch keep changing. Morphe tells you when your
-patched build has fallen behind by putting an **Update** badge on its home card.
+patched build has fallen behind by putting an update mark on its home card.
 
 Updating means patching again. The result installs straight over the app you already have,
 without uninstalling and without losing its data.
 
-## The Update badge
+## The update mark
 
 <p align="center">
-  <img src="images/updating/01-update-badge.jpg" width="320" alt="Home screen with an Update badge on the patched app" />
+  <img src="images/updating/01-update-badge.jpg" width="320" alt="Home screen with update marks on the patched apps and the re-patch banner" />
 </p>
 
-The badge stands for either of two things:
+The mark sits on the corner of the app icon and stands for either of two things:
 
 - **Newer patches.** The patch source has a version newer than the one this app was patched
   with, and that version actually contains changes for this app. Morphe reads the source's
-  changelog to check, so a patch release that only touches other apps does not put a badge on
+  changelog to check, so a patch release that only touches other apps does not put a mark on
   yours.
 - **A newer supported app version.** The sources now cover a release of the app itself newer
   than the one you are running, see
   [Moving to a newer app version](#moving-to-a-newer-app-version) below.
 
-When that newer version is short enough to fit on the card, the badge prints it, otherwise it
-just says **Update**. The app's info dialog spells both versions out either way.
+For a newer app version the card also prints both numbers, the installed one, an arrow, and
+the newer one, cut short when they do not fit. The app's info dialog spells both versions out
+either way. With several apps behind, a banner above the list offers to re-patch them all at
+once, see [When patches move on](batch-patching.md#when-patches-move-on).
 
-Morphe can tell you about new releases while it is closed. **Settings → System →
-Notifications** controls that:
+Morphe can tell you about new releases while it is closed. **Settings → Notifications**
+controls that:
 
 - **Background update notifications** - notifies you about new Morphe and patch releases.
   They arrive as two separate notification categories, **Morphe updates** and **Patch
@@ -35,7 +37,7 @@ Notifications** controls that:
 - **Check frequency** - hourly, daily, weekly, or monthly. Only shown on devices without
   Google Play services, where Morphe checks on a schedule instead of receiving a push.
 
-**Settings → Advanced → Updates** holds the rest:
+The **Updates** section of the settings holds the rest:
 
 - **Mobile data updates** - allows update downloads over mobile data. With this off and no
   Wi-Fi, checks are skipped, and Morphe warns you if you patch with sources it could not
@@ -63,8 +65,11 @@ time:
 
 > [!TIP]
 > Whether those copies exist is up to **Keep original APKs** and **Keep patched APKs** in
-> **Settings → System**. With the first one off, every update means downloading the APK
-> again.
+> **Settings → Storage management**, both on by default. With the first one off, every update
+> means downloading the APK again.
+
+In Simple mode, with a saved original of a version the patches support, **Patch** goes
+straight to patching without asking anything.
 
 With several apps behind at once, patch them in one queue instead of one at a time, see
 [Patching several apps at once](batch-patching.md).
@@ -77,8 +82,7 @@ settings inside the patched app survive.
 > That only holds while the keystore stays the same. Reinstalling Morphe or clearing its data
 > generates a new one, and then patched builds no longer match what is installed, Android
 > reports a signature conflict and the only way forward is uninstalling the patched app.
-> Export your keystore from **Settings → System → Import & export → Signing key** and keep it
-> somewhere safe, see
+> Export your keystore from **Settings → Signing key** and keep it somewhere safe, see
 > [Backing up Morphe and your keystore](backup-and-keystore.md).
 
 ### Root mount installs
@@ -103,20 +107,34 @@ Below the update card, the dialog shows what the current build is made of:
 | **Patch source used** | Which source and version produced this build |
 
 The chips at the top show the installer that was used and how long ago the app was patched.
-The buttons at the bottom are **Open**, **Export** (write the patched APK to storage),
-**Reinstall** (install the saved patched APK again without patching), and **Uninstall**.
+
+Under the update card there can be a second one, **Web links not verified**, when the patched
+app handles web links Android has not verified for it. **Fix links** opens the system setting
+that lets those links open in the app instead of the browser, and the **Supported web links**
+row lower down shows how many are left.
+
+The buttons at the bottom are:
+
+- **Open** - launches the patched app.
+- **Reinstall** (or **Install**, when the app is not on the device) - installs the saved
+  patched APK again without patching.
+- **Export** and **Share** - write the saved patched APK to storage, or hand it to another app.
+- **Mount**, **Remount**, **Unmount** - for apps installed through root mount.
+- **Uninstall** - removes the app from the device.
+- **Delete** - removes the app from Morphe along with its saved APKs. Your patch selection and
+  options are kept for future patching.
 
 ## Moving to a newer app version
 
 Patches target specific app versions, so a newer YouTube release is only usable once the
-patches declare support for it. When that happens the card is badged, and the info dialog
+patches declare support for it. When that happens the card is marked, and the info dialog
 opens with **App update available** and both numbers: the version you are on, and the newest
 one the sources support.
 
 Tap **Patch** to move to it. This time the run works like a first patch rather than a repatch:
 the original APK Morphe kept is of the old version, so it asks for the new one.
 
-**Ignore** turns that particular version down. The badge and the banner go, the **Newest
+**Ignore** turns that particular version down. The mark and the banner go, the **Newest
 supported** row keeps the number so you can still look it up, and the button beside it brings
 the offer back. A version after it is offered again on its own, so ignoring is about one
 release and not about the app.
@@ -136,12 +154,12 @@ and does not affect your patched apps.
 
 | Problem | What to do |
 | --- | --- |
-| No **Update** badge although the source released a new version | The release contains no changes for this app, so there is nothing to repatch for |
-| A badge for an app version you do not want | Open the app and tap **Ignore** in the update banner. The offer comes back for the version after it |
+| No update mark although the source released a new version | The release contains no changes for this app, so there is nothing to repatch for |
+| A mark for an app version you do not want | Open the app and tap **Ignore** in the update banner. The offer comes back for the version after it |
 | "Patches may be outdated" before patching | Mobile data updates are off and Morphe could not refresh its sources. Connect to Wi-Fi, or choose **Update & patch** |
 | Signature conflict when installing the update | The keystore changed since the app was patched. Uninstall the patched app, which erases its data, then install the new build |
-| The app was uninstalled outside Morphe | The card shows **App was uninstalled**. Patch it again to restore it |
-| You want the previous build back | Install the APK you exported earlier. Saved copies are listed under **Settings → System → Patched APKs** |
+| The app was uninstalled outside Morphe | The card shows **Uninstalled**, and its info dialog **App was uninstalled**. Reinstall the saved build or patch it again |
+| You want the previous build back | Install the APK you exported earlier. Saved copies are listed under **Settings → Storage management → Patched APKs** |
 
 ## Next steps
 

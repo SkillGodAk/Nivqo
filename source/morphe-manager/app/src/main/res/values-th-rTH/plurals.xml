@@ -3,6 +3,10 @@
     <plurals name="patch_count">
         <item quantity="other">%s แพตซ์</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="other">%s ไลบรารี</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="other">%s ตัวเลือกแพตซ์</item>
     </plurals>
@@ -19,7 +23,10 @@
         <item quantity="other">เพิ่ม %s แหล่งที่มา</item>
     </plurals>
     <plurals name="home_app_patch_sources_title">
-        <item quantity="other">แหล่งที่มาของแพตช์สำหรับ %s แอป</item>
+        <item quantity="other">แหล่งที่มาแพตช์สำหรับ %s แอป</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="other">แหล่งที่มา %s ถูกซ่อนไว้สำหรับแอปนี้ เลือกแอปในแท็บแอปและเปิดแหล่งที่มาแพตช์เพื่อนำกลับคืนมา</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="other">ซ่อนแหล่งที่มาไว้ %s รายการ แตะเพื่อแสดง</item>
@@ -31,7 +38,7 @@
         <item quantity="other">%s แหล่งที่มา</item>
     </plurals>
     <plurals name="package_count">
-        <item quantity="other">%s แพ็คเกจ</item>
+        <item quantity="other">%s แพ็กเกจ</item>
     </plurals>
     <plurals name="patches_executed">
         <item quantity="other">ดำเนินการแพตช์ %s รายการแล้ว</item>
@@ -41,6 +48,9 @@
     </plurals>
     <plurals name="batch_install_summary">
         <item quantity="other">ติดตั้ง %s แอปแล้ว</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="other">ติดตั้งแอป %s แอปแล้ว</item>
     </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="other">ติดตั้งใหม่ %s แอปแล้ว</item>
@@ -54,6 +64,12 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="other">%s แอปพร้อมสำหรับการแพตช์</item>
     </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="other">%s แอปอยู่ในคิวรอการแพตช์</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="other">การแจ้งเตือนที่ซ่อนอยู่ %s รายการ แตะเพื่อแสดง</item>
+    </plurals>
     <plurals name="repatch_available_count">
         <item quantity="other">%s แอปสามารถแพตช์ใหม่ได้</item>
     </plurals>
@@ -66,8 +82,14 @@
     <plurals name="sources_management_subtitle">
         <item quantity="other">ติดตั้ง %s ที่มาแล้ว</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="other">%1$s · %2$s รายการที่กรอง</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="other">%s แอปถูกซ่อน</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="other">%s แอปแสดง</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="other">แสดง %s แอป?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="other">แอปที่ซ่อนอยู่ %s แอป</item>
@@ -88,19 +110,23 @@
         <item quantity="other">คุณสมบัติ %s รายการ</item>
     </plurals>
     <plurals name="changelog_fix_count">
-        <item quantity="other">การแก้ไข %s</item>
+        <item quantity="other">การแก้ไข %s รายการ</item>
     </plurals>
     <plurals name="changelog_performance_count">
         <item quantity="other">การเพิ่มประสิทธิภาพ %s รายการ</item>
     </plurals>
     <plurals name="changelog_change_count">
-        <item quantity="other">การเปลี่ยนแปลง %s</item>
+        <item quantity="other">การเปลี่ยนแปลง %s รายการ</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="other">%1$s · %2$d ใหม่</item>
     </plurals>
     <plurals name="changelog_new_releases">
-        <item quantity="other">รุ่นใหม่ %s</item>
+        <item quantity="other">รุ่นใหม่ %s รุ่น</item>
     </plurals>
     <plurals name="app_links_count_enabled">
-        <item quantity="other">เปิดใช้งาน %d ลิงก์</item>
+        <item quantity="other">เปิดใช้งานแล้ว %d ลิงก์</item>
     </plurals>
     <plurals name="app_links_count_unverified">
         <item quantity="other">%d ลิงก์ที่ไม่ผ่านการยืนยัน</item>

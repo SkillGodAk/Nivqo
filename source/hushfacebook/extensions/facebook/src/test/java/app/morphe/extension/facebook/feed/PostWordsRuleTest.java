@@ -9,9 +9,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import com.facebook.graphql.model.GraphQLMedia;
 import com.facebook.graphql.model.GraphQLStory;
+import com.facebook.graphql.model.GraphQLStoryAttachment;
+import com.facebook.graphql.model.GraphQLTextWithEntities;
 import com.facebook.graphql.modelutil.BaseModelWithTree;
 
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -21,6 +25,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -351,6 +356,193 @@ public class PostWordsRuleTest {
         }
     }
 
+    /** A link card: an attachment with a headline, and the line under it when [description] isn't null. */
+    private static GraphQLStoryAttachment card(String title, String description) {
+        GraphQLStoryAttachment card = new GraphQLStoryAttachment((GraphQLMedia) null);
+        if (title != null) card.with("title", title);
+        if (description != null) card.withModel("description", new GraphQLTextWithEntities(description));
+        return card;
+    }
+
+    private static String words(Object story, StoryFlag.Accessor message, StoryFlag.Accessor attached,
+            StoryFlag.Accessor links) {
+        return FeedFilter.wordsReason(story, message, attached, links, PostText.ACTION_LINKS);
+    }
+
+    /** An attachment's action link, holding the headline 584 shows on a link card. */
+    private static BaseModelWithTree actionLink(String headline) {
+        return new BaseModelWithTree(0).with("link_title", headline);
+    }
+
+    /**
+     * #255 on 584: a card whose bold headline is its first action link's link_title or its
+     * title_with_entities, with no plain title, as Juan Carlos's YouTube card in a Florida
+     * gardening group read on the S22 2026-10-27, which the plain title alone kept.
+     */
+    @Test
+    public void anActionLinksHeadlineOrTheTitleTextCounts() {
+        listen("pineapple pleasure", "");
+        Answers noMessage = new Answers(null);
+        Answers noShare = new Answers(null);
+        GraphQLStory linked = new GraphQLStory();
+        GraphQLStory titled = new GraphQLStory();
+        GraphQLStoryAttachment youtube = card(null, null);
+        GraphQLStoryAttachment titleText = card(null, null);
+        titleText.withModel("title_with_entities", new GraphQLTextWithEntities("Pineapple pleasure mango taste test"));
+        Answers links = new Answers(null)
+                .with(linked, Arrays.asList(youtube))
+                .with(titled, Arrays.asList(titleText));
+        Answers actionLinks = new Answers(null)
+                .with(youtube, Arrays.asList(actionLink("Pineapple Pleasure mango taste test")));
+
+        assertEquals(FeedFilter.WORDS_REASON, FeedFilter.wordsReason(linked, noMessage, noShare, links, actionLinks));
+        assertEquals(FeedFilter.WORDS_REASON, FeedFilter.wordsReason(titled, noMessage, noShare, links, actionLinks));
+        assertNull("the control: the same card read before this fix, without the action links",
+                FeedFilter.wordsReason(linked, noMessage, noShare, links, PostText.ACTION_LINKS));
+        assertNull("an action link that isn't a tree model is skipped", FeedFilter.wordsReason(linked, noMessage, noShare,
+                links, new Answers(null).with(youtube, Arrays.asList(new Object(), null))));
+
+        listen("pineapple pleasure", "mango");
+        assertNull("a keep phrase in the action link keeps the post",
+                FeedFilter.wordsReason(linked, noMessage, noShare, links, actionLinks));
+        assertNull("an action links accessor that throws keeps the post", FeedFilter.wordsReason(linked,
+                new Answers(FeedGuardForTests.postText("pineapple pleasure")), noShare, links,
+                new Answers(new IllegalStateException())));
+        assertEquals(FeedFilter.WORDS_ROUTE + ": 6 lists, 6 items, 2 removed. Last reason: hide word. "
+                + "Removed: hide word 2. Kinds: hide word 2, no text 2, keep word 1, read failed 1", wordsLine());
+    }
+
+    /** #255: a news post whose only mention of the word is its link card's headline or description. */
+    @Test
+    public void aLinkCardsHeadlineOrDescriptionCounts() {
+        listen("us election", "");
+        Answers noMessage = new Answers(null);
+        Answers noShare = new Answers(null);
+        GraphQLStory headline = new GraphQLStory();
+        GraphQLStory description = new GraphQLStory();
+        Answers links = new Answers(null)
+                .with(headline, Arrays.asList(card("What the US election means for you", null)))
+                .with(description, Arrays.asList(card("Tonight's results", "Live updates from the US Election")));
+
+        assertEquals(FeedFilter.WORDS_REASON, words(headline, noMessage, noShare, links));
+        assertEquals(FeedFilter.WORDS_REASON, words(description, noMessage, noShare, links));
+        assertEquals(FeedFilter.WORDS_ROUTE + ": 2 lists, 2 items, 2 removed. Last reason: hide word. "
+                + "Removed: hide word 2. Kinds: hide word 2", wordsLine());
+    }
+
+    /**
+     * A Bloks-drawn card's debug string, shaped like the sagesacre.com card the S22 read 2026-10-27:
+     * an image whose spoken label sits under the same key as a Text component's string, the domain,
+     * an ellipsis, then the headline in a nested box.
+     */
+    private static String bloksCard(String headline) {
+        String text = PostText.BLOKS_TEXT_COMPONENT;
+        String box = String.valueOf((char) 0x3408);
+        String image = String.valueOf((char) 0x340B);
+        String layout = "{\"layout\":{\"bloks_payload\":{\"data\":[],\"tree\":{\"" + box + "\":{\" \":["
+                + "{\"" + image + "\":{\"$\":\"Image\",\"&\":\"Image\"}},"
+                + "{\"" + text + "\":{\"&\":\"sagesacre.com\",\"*\":\"13.00sp\"}},"
+                + "{\"" + text + "\":{\"&\":" + JSONObject.quote(String.valueOf((char) 0x2026)) + "}},"
+                + "{\"" + box + "\":{\" \":[{\"" + text + "\":{\"&\":" + JSONObject.quote(headline)
+                + ",\"*\":\"15.00sp\",\"#\":\"sans-serif-medium\"}}]}}]}}}}}";
+        return "{\"style_infos\":[{\"bundle\":{\"bloks_bundle_tree\":" + JSONObject.quote(layout) + "}}],\"title\":null}";
+    }
+
+    /**
+     * #255 on 584: a card drawn from a Bloks layout with every field above null, as Zone9Garden.com's
+     * sagesacre.com card in a Florida gardening group read on the S22 2026-10-27.
+     */
+    @Test
+    public void aBloksCardsHeadlineCounts() {
+        listen("fall & winter garden", "");
+        Answers noMessage = new Answers(null);
+        Answers noShare = new Answers(null);
+        GraphQLStory story = new GraphQLStory();
+        GraphQLStoryAttachment bloks = card(null, null);
+        bloks.debugString(bloksCard("The 10 Best Vegetables to Plant Now for a Zone 9-10 Fall & Winter Garden"));
+        Answers links = new Answers(null).with(story, Arrays.asList(bloks));
+        assertEquals(FeedFilter.WORDS_REASON, words(story, noMessage, noShare, links));
+
+        listen("image", "");
+        assertNull("an image's spoken label isn't the card's text", words(story, noMessage, noShare, links));
+        listen("fall & winter garden", "vegetables");
+        assertNull("a keep phrase in the layout keeps the post", words(story, noMessage, noShare, links));
+
+        listen("fall & winter garden", "");
+        GraphQLStory titled = new GraphQLStory();
+        GraphQLStoryAttachment plain = card("Tonight's results", null);
+        plain.debugString(bloksCard("Fall & Winter Garden"));
+        assertNull("a card with a title isn't read through its layout",
+                words(titled, noMessage, noShare, new Answers(null).with(titled, Arrays.asList(plain))));
+        assertEquals(0, plain.debugReads);
+
+        GraphQLStory gone = new GraphQLStory();
+        GraphQLStoryAttachment released = card(null, null);
+        released.debugString(bloksCard("Fall & Winter Garden"));
+        released.released();
+        assertNull("a released card's layout isn't read",
+                words(gone, noMessage, noShare, new Answers(null).with(gone, Arrays.asList(released))));
+        assertEquals(0, released.debugReads);
+        assertFalse(released.readAfterRelease);
+        assertEquals(FeedFilter.WORDS_ROUTE + ": 5 lists, 5 items, 1 removed. Last reason: hide word. "
+                + "Removed: hide word 1. Kinds: no match 2, hide word 1, keep word 1, no text 1", wordsLine());
+    }
+
+    /** Only Text components count, every layout in the string is read, and one that won't parse adds nothing. */
+    @Test
+    public void bloksTextsReadsEachTextComponent() {
+        assertEquals(Arrays.asList("sagesacre.com", "Headline"), PostText.bloksTexts(bloksCard("Headline")));
+        assertEquals(Arrays.asList("sagesacre.com", "One", "sagesacre.com", "Two"),
+                PostText.bloksTexts(bloksCard("One") + bloksCard("Two")));
+        assertEquals(Collections.emptyList(), PostText.bloksTexts("{\"bloks_bundle_tree\":\"{not json\"}"));
+        assertEquals(Collections.emptyList(), PostText.bloksTexts("{\"bloks_bundle_tree\":null}"));
+        assertEquals(Collections.emptyList(), PostText.bloksTexts("{\"bloks_bundle_tree\":"));
+        assertEquals(Collections.emptyList(), PostText.bloksTexts("no layout here"));
+    }
+
+    /** The controls: a card without the phrase, a keep phrase on the card, and a card on the shared post. */
+    @Test
+    public void aLinkCardIsJudgedLikeThePostsOwnWords() {
+        listen("us election", "my team");
+        Answers noShare = new Answers(null);
+        GraphQLStory plain = new GraphQLStory();
+        GraphQLStory kept = new GraphQLStory();
+        Answers links = new Answers(null)
+                .with(plain, Arrays.asList(card("Weather this weekend", "Sunny and 72")))
+                .with(kept, Arrays.asList(card("US election night", "What it means for my team")));
+        assertNull(words(plain, new Answers(null), noShare, links));
+        assertNull(words(kept, new Answers(null), noShare, links));
+        assertNull("the message's keep phrase still keeps a post whose card has the hidden one",
+                words(plain, new Answers(FeedGuardForTests.postText("Go my team")), noShare,
+                        new Answers(Arrays.asList(card("US election", null)))));
+
+        GraphQLStory shared = new GraphQLStory();
+        GraphQLStory share = new GraphQLStory(shared);
+        Answers sharedCard = new Answers(null).with(shared, Arrays.asList(card("US election recap", null)));
+        assertEquals("a share of a post whose card has the phrase", FeedFilter.WORDS_REASON,
+                words(share, new Answers(null), new Answers(null).with(share, shared), sharedCard));
+        assertEquals(FeedFilter.WORDS_ROUTE + ": 4 lists, 4 items, 1 removed. Last reason: hide word. "
+                + "Removed: hide word 1. Kinds: keep word 2, hide word 1, no match 1", wordsLine());
+    }
+
+    /**
+     * An attachments accessor the patch never filled in reads the message alone, as before #255,
+     * and one that throws keeps the post: a keep phrase could be on the card it couldn't read.
+     */
+    @Test
+    public void anUnreadableLinkCardKeepsTheOldRuleOrThePost() {
+        listen("spoiler", "");
+        Answers spoiler = new Answers(FeedGuardForTests.postText("a spoiler"));
+        Answers noShare = new Answers(null);
+        assertEquals(FeedFilter.WORDS_REASON, words(new GraphQLStory(), spoiler, noShare, PostSources.ATTACHMENTS));
+        assertNull(words(new GraphQLStory(), new Answers(null), noShare, PostSources.ATTACHMENTS));
+        assertNull(words(new GraphQLStory(), spoiler, noShare, new Answers(new IllegalStateException())));
+        assertNull("a list of things that aren't cards",
+                words(new GraphQLStory(), new Answers(null), noShare, new Answers(Arrays.asList(new Object(), null))));
+        assertEquals(FeedFilter.WORDS_ROUTE + ": 4 lists, 4 items, 1 removed. Last reason: hide word. "
+                + "Removed: hide word 1. Kinds: no text 2, hide word 1, read failed 1", wordsLine());
+    }
+
     /**
      * A build missing a member the reader needs keeps every post, and the Hook status row names
      * what's missing. The control, with every member there, reports three found.
@@ -365,7 +557,8 @@ public class PostWordsRuleTest {
         HookStatus.clear();
         FeedFilterCounters.clear();
         PostText.Members complete = PostText.Members.lookUp(PostText.class.getClassLoader());
-        PostText.cachedMembers = new PostText.Members(complete.story, complete.treeModel, null, complete.typeTag);
+        PostText.cachedMembers = new PostText.Members(complete.story, complete.treeModel, null, complete.typeTag,
+                complete.text, complete.cachedModel, complete.debugString);
         assertFalse(guard("spoiler"));
         String report = String.join("\n", HookStatus.report());
         assertTrue(report, report.contains(FamilyNames.POST_WORDS + ": invoked 1, 2 found, 1 missing. "

@@ -4,6 +4,11 @@
         <item quantity="one">%s fláki</item>
         <item quantity="other">%s flákir</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s safn</item>
+        <item quantity="other">%s söfn</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s fláka valmöguleiki</item>
         <item quantity="other">%s fláka valmöguleikar</item>
@@ -26,6 +31,10 @@
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Plástrauppsprettur fyrir %s app</item>
         <item quantity="other">Plástrauppsprettur fyrir %s öpp</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s uppspretta er falin fyrir þetta forrit. Veldu forritið í flipanum Forrit og opnaðu Laga uppsprettur til að færa hana aftur</item>
+        <item quantity="other">%s uppsprettur eru falnar fyrir þetta forrit. Veldu forritið í flipanum Forrit og opnaðu Laga uppsprettur til að færa þær aftur</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s uppspretta falin. Ýttu til að sýna</item>
@@ -55,6 +64,10 @@
         <item quantity="one">%s app uppsett</item>
         <item quantity="other">%s app uppsett</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">%s forrit tengt</item>
+        <item quantity="other">%s forrit tengd</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">%s app endurskipt</item>
         <item quantity="other">%s app endurskipt</item>
@@ -70,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">%s app tilbúið til að flikka</item>
         <item quantity="other">%s app tilbúið til að flikka</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">Forritið %s í biðröð fyrir viðgerð</item>
+        <item quantity="other">Forritin %s í biðröð fyrir viðgerð</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s falin tilkynning, ýttu til að sýna hana</item>
+        <item quantity="other">%s falnar tilkynningar, ýttu til að sýna þær</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">Hægt er að endurplástra %s app</item>
@@ -87,9 +108,17 @@
         <item quantity="one">%s uppspretta sett upp</item>
         <item quantity="other">%s uppsprettur settar upp</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s síað</item>
-        <item quantity="other">%1$s · %2$s síuð</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s forrit falið</item>
+        <item quantity="other">%s forrit falin</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s forrit sýnilegt</item>
+        <item quantity="other">%s forrit sýnileg</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Fela ekki %s app?</item>
+        <item quantity="other">Fela ekki %s apps?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s falinn app</item>
@@ -126,6 +155,11 @@
     <plurals name="changelog_change_count">
         <item quantity="one">%s breyting</item>
         <item quantity="other">%s breytingar</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d nýtt</item>
+        <item quantity="other">%1$s · %2$d ný</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s ný útgáfa</item>

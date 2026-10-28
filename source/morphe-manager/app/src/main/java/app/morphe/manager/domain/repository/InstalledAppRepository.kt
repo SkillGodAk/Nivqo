@@ -27,6 +27,9 @@ import java.io.File
 
 private const val TAG = "Morphe InstalledAppRepository"
 
+/** How long a patched APK no record claims yet is left alone, in case its save is still running. */
+private const val UNCLAIMED_GRACE_MS = 60 * 60 * 1000L
+
 /**
  * Package names a record keeps its retained copies under, given whether the same app is described
  * by more than one record. A rename leaves a copy under the original package name, but that path
@@ -45,7 +48,7 @@ internal fun retainedPatchedApkOwners(
 
 /**
  * The name a record keeps: the label just read from an artifact, unless it says nothing the
- * package name does not already say, in which case an earlier write's answer still stands.
+ * package name does not already say, in which case the answer of an earlier write still stands.
  */
 internal fun rememberedAppLabel(
     readLabel: String?,
@@ -61,8 +64,8 @@ internal fun outlivesRetainedPatchedApk(installType: InstallType) =
     installType != InstallType.SAVED
 
 /**
- * Deletes every retained copy in [files] and returns those still on storage afterwards.
- * Storage has the last word rather than the return value of the delete: a path something else
+ * Deletes every retained copy in [files] and returns those still on storage afterward.
+ * Storage has the last word rather than the return value of the delete call: a path something else
  * cleared in the meantime reports failure while being gone all the same.
  */
 internal fun deleteRetainedCopies(files: List<File>): List<File> = files.filter { file ->
@@ -105,6 +108,12 @@ class InstalledAppRepository(
 
     suspend fun getAppliedPatches(packageName: String): PatchSelection =
         dao.getPatchesSelection(packageName).mapValues { (_, patches) -> patches.toSet() }
+
+    /** The sources each install was patched from, keyed by its current package name. */
+    val patchedFromBundles: Flow<Map<String, Set<Int>>> =
+        dao.getAppliedBundles()
+            .map { byPackage -> byPackage.mapValues { (_, uids) -> uids.toSet() } }
+            .distinctUntilChanged()
 
     suspend fun getBundleVersionsForApp(packageName: String): Map<Int, String?> =
         dao.getBundleVersions(packageName)
@@ -153,6 +162,11 @@ class InstalledAppRepository(
                 )
             }
         }
+
+        // Nothing names the copies of the version a record moves past, so they go with the move
+        dao.get(currentPackageName)
+            ?.takeIf { it.version != version }
+            ?.let { deleteSavedPatchedApkFiles(it) }
 
         dao.upsertApp(
             InstalledApp(
@@ -204,13 +218,7 @@ class InstalledAppRepository(
         withContext(Dispatchers.IO) {
             if (app.version == newVersion) return@withContext
             dao.upsertApp(app.copy(version = newVersion))
-            savedPatchedApkFiles(app).forEach { file ->
-                if (file.exists()) {
-                    runCatching { file.delete() }.onFailure {
-                        Log.w(TAG, "Failed to delete ${file.absolutePath}", it)
-                    }
-                }
-            }
+            deleteSavedPatchedApkFiles(app)
             Log.i(TAG, "Reconciled version for ${app.currentPackageName}: ${app.version} → $newVersion")
         }
 
@@ -286,6 +294,24 @@ class InstalledAppRepository(
 
     suspend fun deleteSavedPatchedApk(installedApp: InstalledApp) =
         deleteSavedPatchedApks(listOf(installedApp))
+
+    /**
+     * Deletes patched APKs no record claims, as the listing is built from records and could never offer them.
+     * Recent files stay, since a save writes its file before the record that claims it.
+     */
+    suspend fun pruneUnclaimedPatchedApks() = withContext(Dispatchers.IO) {
+        val claimed = dao.getAll().first().flatMapTo(mutableSetOf()) { app ->
+            // Both names whatever the siblings, as readers still open a copy under the original one
+            retainedPatchedApkOwners(app.currentPackageName, app.originalPackageName, hasSiblingRecords = false)
+                .map { filesystem.getPatchedAppFile(it, app.version) }
+        }
+        val cutoff = System.currentTimeMillis() - UNCLAIMED_GRACE_MS
+        filesystem.patchedAppFiles()
+            .filter { it !in claimed && it.lastModified() < cutoff }
+            .forEach { file ->
+                if (file.delete()) Log.i(TAG, "Deleted unclaimed patched APK ${file.name}")
+            }
+    }
 
     /**
      * Deletes an installed app record together with every retained patched APK copy.

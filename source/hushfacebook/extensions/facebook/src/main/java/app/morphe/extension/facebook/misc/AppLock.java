@@ -20,7 +20,6 @@ import android.os.SystemClock;
 import android.provider.Settings.Global;
 import android.util.TypedValue;
 import android.view.Gravity;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -51,6 +50,7 @@ import java.util.WeakHashMap;
 import app.morphe.extension.facebook.download.SavedFileActions;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.facebook.settings.SettingsEntry;
+import app.morphe.extension.facebook.settings.ShimmerTitle;
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
@@ -178,6 +178,8 @@ public final class AppLock {
     /** The screen the check was asked over, so its going away ends the wait for an answer. */
     @Nullable
     private static WeakReference<Activity> askedOn;
+    private static long promptGeneration;
+    @Nullable private static CancellationSignal promptCancellation;
     /** The person called the last check off, so the next one waits for Unlock or a return. */
     private static boolean declined;
     /** Android's reason the last check ended, shown on the cover until the next one. */
@@ -508,8 +510,7 @@ public final class AppLock {
         // Android ends a check whose screen goes, and an answer that never comes mustn't stop the next one.
         WeakReference<Activity> asked = askedOn;
         if (asked != null && asked.get() == activity) {
-            asking = false;
-            askedOn = null;
+            retirePrompt();
         }
     }
 
@@ -606,25 +607,29 @@ public final class AppLock {
      * wants of an app that asks.
      */
     private static void ask(Activity activity) {
+        retirePrompt();
+        long generation = promptGeneration;
         asking = true;
         askedOn = new WeakReference<>(activity);
         Utils.runOnMainThread(() -> {
+            if (!ownsPrompt(generation, activity)) return;
             if (!locked || activity.isFinishing() || activity.isDestroyed()) {
-                asking = false;
+                retirePrompt();
                 return;
             }
             try {
                 prompter.ask(activity, new Answer() {
                     @Override
                     public void unlocked() {
-                        asking = false;
+                        if (!ownsPrompt(generation, activity)) return;
                         Logger.printInfo(() -> "App lock: unlocked");
                         release(activity);
                     }
 
                     @Override
                     public void refused(int code, @Nullable CharSequence message) {
-                        asking = false;
+                        if (!ownsPrompt(generation, activity)) return;
+                        retirePrompt();
                         // Android calling a check off, as when the screen goes, isn't the person saying no.
                         declined = code != CALLED_OFF;
                         refusal = message;
@@ -641,15 +646,36 @@ public final class AppLock {
                     }
                 });
             } catch (Throwable failure) {
-                asking = false;
+                if (!ownsPrompt(generation, activity)) return;
+                retirePrompt();
                 declined = true;
                 Logger.printException(() -> "App lock: could not ask for the screen lock", failure);
             }
         });
     }
 
+    private static boolean ownsPrompt(long generation, Activity activity) {
+        return generation == promptGeneration && askedOn != null && askedOn.get() == activity;
+    }
+
+    private static void retirePrompt() {
+        promptGeneration++;
+        asking = false;
+        askedOn = null;
+        CancellationSignal cancellation = promptCancellation;
+        promptCancellation = null;
+        if (cancellation != null) {
+            try {
+                cancellation.cancel();
+            } catch (Throwable failure) {
+                Logger.printException(() -> "App lock: could not cancel the retired screen-lock check", failure);
+            }
+        }
+    }
+
     /** Takes every cover away, after a check passed or with the lock off. */
     private static void release(@Nullable Activity unlockedOn) {
+        retirePrompt();
         locked = false;
         everUnlocked = true;
         leftAt = NEVER;
@@ -669,6 +695,7 @@ public final class AppLock {
 
     /** Back to a fresh process, covers closed. */
     static void forgetForTests() {
+        retirePrompt();
         for (Cover cover : new ArrayList<>(covers.values())) cover.close();
         covers.clear();
         keptFromRecents.clear();
@@ -1020,7 +1047,9 @@ public final class AppLock {
                         | BiometricManager.Authenticators.DEVICE_CREDENTIAL)
                 .setConfirmationRequired(false)
                 .build();
-        prompt.authenticate(new CancellationSignal(), activity.getMainExecutor(),
+        CancellationSignal cancellation = new CancellationSignal();
+        promptCancellation = cancellation;
+        prompt.authenticate(cancellation, activity.getMainExecutor(),
                 new BiometricPrompt.AuthenticationCallback() {
                     @Override
                     public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
@@ -1065,7 +1094,7 @@ public final class AppLock {
 
             TextView title = new TextView(activity);
             title.setText(L10n.t("Facebook is locked"));
-            title.setTextColor(Color.WHITE);
+            ShimmerTitle.wear(title, Color.BLACK);
             title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
             title.setGravity(Gravity.CENTER);
             title.setAccessibilityHeading(true);
@@ -1083,7 +1112,7 @@ public final class AppLock {
             reason.setPadding(0, gap / 2, 0, gap);
             column.addView(reason);
 
-            Button unlock = new Button(activity);
+            Button unlock = new Button(getContext());
             unlock.setText(L10n.t("Unlock"));
             // Asks again even while a check may still be on its way: one that never answered mustn't trap Facebook.
             unlock.setOnClickListener(view -> {
@@ -1108,12 +1137,16 @@ public final class AppLock {
                 window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
                 window.setWindowAnimations(0);
             }
-            setOnKeyListener((dialog, keyCode, event) -> {
-                if (keyCode != KeyEvent.KEYCODE_BACK) return false;
-                if (event.getAction() == KeyEvent.ACTION_UP) activity.moveTaskToBack(true);
-                return true;
-            });
             showReason();
+        }
+
+        /**
+         * Back, as a key or as the back callback. Facebook targets API 36, so on Android 16 Back
+         * never arrives as a key: the dialog's own callback calls this instead.
+         */
+        @Override
+        public void onBackPressed() {
+            activity.moveTaskToBack(true);
         }
 
         @Override

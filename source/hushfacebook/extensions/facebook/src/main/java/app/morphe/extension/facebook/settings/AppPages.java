@@ -26,11 +26,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import app.morphe.extension.facebook.menu.MenuTiles;
 import app.morphe.extension.facebook.misc.AppLock;
 import app.morphe.extension.facebook.misc.ShareSheetItems;
 import app.morphe.extension.facebook.notifications.NotificationSound;
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Utils;
+import app.morphe.extension.shared.settings.BooleanSetting;
 
 /**
  * The category pages for the rest of Facebook: Chats, Menu, Search, Marketplace, Notifications
@@ -48,7 +50,7 @@ final class AppPages {
             Set<PatchFamily> build) {
         if (build.contains(PatchFamily.MESSENGER_CARD) || build.contains(PatchFamily.CHAT_LIST)
                 || build.contains(PatchFamily.MESSENGER_ICON) || build.contains(PatchFamily.ORIGINAL_CHAT_MEDIA)) {
-            PreferenceCategory chats = category(screen, L10n.t("Chats"));
+            PreferenceCategory chats = category(screen, L10n.t("Chats and Messenger"));
             if (build.contains(PatchFamily.MESSENGER_CARD)) {
                 chats.addPreference(toggle(context, Settings.HIDE_GET_MESSENGER_CARD,
                         L10n.t("Hides the card at the top of Chats that asks you to get Messenger, once Messenger is installed. "
@@ -112,19 +114,45 @@ final class AppPages {
         });
         menu.addPreference(watched);
         // The settings entry's own, so every build has it, and a pause leaves it as it is (#146).
+        // Three ways into the settings, each with a switch. The last one still on stays on and greyed out.
+        boolean rowInBuild = build.contains(PatchFamily.MENU_SETTINGS_ROW);
+        WaysIn ways = new WaysIn(rowInBuild);
+        page.refreshWaysIn = ways::refresh;
         SwitchPreference settingsShortcut = toggle(context, Settings.SETTINGS_SHORTCUT,
-                build.contains(PatchFamily.MENU_SETTINGS_ROW)
-                ? L10n.t("Puts Hushfacebook settings in the menu you get by holding Facebook's icon. Off, it leaves "
-                        + "that menu, and you can still open these settings from the Hushfacebook settings row in "
-                        + "Settings and privacy or with a long press on the Facebook logo.")
-                : L10n.t("Puts Hushfacebook settings in the menu you get by holding Facebook's icon. Off, it leaves "
-                        + "that menu, and you can still open these settings with a long press on the Facebook logo."));
+                L10n.t("Puts Hushfacebook settings in the menu you get by holding Facebook's icon. Off, it leaves "
+                        + "that menu."));
         settingsShortcut.setOnPreferenceChangeListener((preference, value) -> {
             Settings.SETTINGS_SHORTCUT.save((Boolean) value);
             SettingsEntry.shortcutSwitchChanged(context);
+            ways.refresh();
             return true;
         });
         menu.addPreference(settingsShortcut);
+        ways.add(Settings.SETTINGS_SHORTCUT, settingsShortcut);
+        SwitchPreference logoPress = toggle(context, Settings.SETTINGS_LOGO_PRESS,
+                L10n.t("A long press on the Facebook logo at the top of the home feed opens these settings. Off, "
+                        + "the long press goes back to Facebook."));
+        logoPress.setOnPreferenceChangeListener((preference, value) -> {
+            Settings.SETTINGS_LOGO_PRESS.save((Boolean) value);
+            ways.refresh();
+            return true;
+        });
+        menu.addPreference(logoPress);
+        ways.add(Settings.SETTINGS_LOGO_PRESS, logoPress);
+        if (rowInBuild) {
+            // The Menu asks for its rows each time it builds them, so no restart is needed.
+            SwitchPreference menuRow = toggle(context, Settings.SETTINGS_MENU_ROW,
+                    L10n.t("Adds a Hushfacebook settings row at the end of Settings and privacy in Facebook's Menu. "
+                            + "Off, the row leaves the Menu."));
+            menuRow.setOnPreferenceChangeListener((preference, value) -> {
+                Settings.SETTINGS_MENU_ROW.save((Boolean) value);
+                ways.refresh();
+                return true;
+            });
+            menu.addPreference(menuRow);
+            ways.add(Settings.SETTINGS_MENU_ROW, menuRow);
+        }
+        ways.refresh();
         if (build.contains(PatchFamily.MENU_PROMOTIONS)) {
             menu.addPreference(toggle(context, Settings.HIDE_MENU_UPGRADES,
                     L10n.t("The Upgrades section and its offers leave Facebook's Menu. Settings, Help and support "
@@ -132,11 +160,17 @@ final class AppPages {
             menu.addPreference(toggle(context, Settings.HIDE_MENU_ALSO_FROM_META,
                     L10n.t("The Also from Meta section leaves Facebook's Menu, with its links to Meta's other apps "
                             + "and its ads for Meta's devices. Your own shortcuts stay.")));
+            menu.addPreference(toggle(context, Settings.HIDE_MENU_HELP,
+                    L10n.t("The Help and support section leaves Facebook's Menu, header and all. Settings and privacy "
+                            + "stays.")));
+            menu.addPreference(toggle(context, Settings.KEEP_MENU_SETTINGS_EXPANDED,
+                    L10n.t("Settings and privacy in Facebook's Menu stays open, so its rows show without a tap.")));
             menu.addPreference(toggle(context, Settings.HIDE_MENU_MUSE,
                     L10n.t("The Muse card, Meta's ad for its AI agent app, leaves the top of Facebook's Menu.")));
             menu.addPreference(toggle(context, Settings.HIDE_MENU_META_AI,
                     L10n.t("The Meta AI shortcut leaves the Menu's list with Feeds, Marketplace, Reels and Groups, "
                             + "and the next shortcut moves up into its place.")));
+            menu.addPreference(menuTilesRow(page, context));
         }
         if (build.contains(PatchFamily.GAME_ADS)) {
             menu.addPreference(toggle(context, Settings.BLOCK_GAME_ADS,
@@ -178,7 +212,8 @@ final class AppPages {
     /** Search. */
     static void search(HushfacebookPreferenceFragment page, PreferenceScreen screen, Context context,
             Set<PatchFamily> build) {
-        if (build.contains(PatchFamily.META_AI_SEARCH) || build.contains(PatchFamily.SPONSORED_SEARCH)) {
+        if (build.contains(PatchFamily.META_AI_SEARCH) || build.contains(PatchFamily.SPONSORED_SEARCH)
+                || build.contains(PatchFamily.SUGGESTED_POSTS) || build.contains(PatchFamily.SEARCH_HISTORY)) {
             PreferenceCategory search = category(screen, L10n.t("Search"));
             if (build.contains(PatchFamily.META_AI_SEARCH)) {
                 search.addPreference(toggle(context, Settings.HIDE_META_AI_IN_SEARCH,
@@ -189,13 +224,25 @@ final class AppPages {
                 search.addPreference(toggle(context, Settings.HIDE_SPONSORED_SEARCH_RESULTS,
                         L10n.t("Hides ads between your search results. The results you searched for stay.")));
             }
+            if (build.contains(PatchFamily.SUGGESTED_POSTS)) {
+                search.addPreference(toggle(context, Settings.HIDE_SEARCH_FOR_YOU,
+                        L10n.t("Hides the For you searches Facebook suggests when you open search. Your recent searches "
+                                + "and the suggestions as you type stay.")));
+                search.addPreference(toggle(context, Settings.HIDE_SEARCH_PEOPLE_YOU_MAY_KNOW,
+                        L10n.t("Hides the People you may know row Facebook shows when you open search. Your recent "
+                                + "searches and the suggestions as you type stay.")));
+            }
+            if (build.contains(PatchFamily.SEARCH_HISTORY)) {
+                search.addPreference(toggle(context, Settings.DONT_SAVE_SEARCH_HISTORY,
+                        L10n.t("What you search for, and the pages and profiles you open from a search, aren't added to "
+                                + "your Facebook search history. Searches already there stay until you delete them.")));
+            }
         }
     }
 
-    /** Marketplace. */
+    /** Marketplace. The Free stuff shortcut is the settings entry's own, so every build has the section. */
     static void marketplace(HushfacebookPreferenceFragment page, PreferenceScreen screen, Context context,
             Set<PatchFamily> build) {
-        if (!build.contains(PatchFamily.SPONSORED_MARKETPLACE) && !build.contains(PatchFamily.SELLER_VIEW_PROFILE)) return;
         PreferenceCategory marketplace = category(screen, L10n.t("Marketplace"));
         if (build.contains(PatchFamily.SPONSORED_MARKETPLACE)) {
             marketplace.addPreference(toggle(context, Settings.HIDE_SPONSORED_MARKETPLACE_LISTINGS,
@@ -207,6 +254,18 @@ final class AppPages {
                     L10n.t("Adds a View profile button to every seller's Marketplace page, opening their Facebook profile. "
                             + "Facebook only shows it to some accounts.")));
         }
+        SwitchPreference free = toggle(context, Settings.FREE_STUFF_SHORTCUT, build.contains(PatchFamily.MENU_SETTINGS_ROW)
+                ? L10n.t("Adds Free stuff, Marketplace's free listings, to the menu you get by holding "
+                        + "Facebook's icon, if there's room, and a Free stuff row in Settings and privacy. Existing "
+                        + "shortcuts stay.")
+                : L10n.t("Adds Free stuff, Marketplace's free listings, to the menu you get by holding "
+                        + "Facebook's icon, if there's room. Existing shortcuts stay."));
+        free.setOnPreferenceChangeListener((preference, value) -> {
+            Settings.FREE_STUFF_SHORTCUT.save((Boolean) value);
+            FreeStuffShortcut.changed(context);
+            return true;
+        });
+        marketplace.addPreference(free);
     }
 
     /** The row that puts Facebook's chime in the phone's notification sounds. */
@@ -308,7 +367,7 @@ final class AppPages {
             Set<PatchFamily> build) {
         // In every build: Android checks Facebook's links against Meta's signing key, which no
         // re-signed build has, whatever its patches.
-        PreferenceCategory links = category(screen, L10n.t("Links"));
+        PreferenceCategory links = category(screen, L10n.t("Links and sharing"));
         if (build.contains(PatchFamily.EXTERNAL_BROWSER)) {
             links.addPreference(toggle(context, Settings.OPEN_LINKS_EXTERNALLY,
                     L10n.t("Open web links in your browser. Facebook's own pages stay in the app.")));
@@ -326,6 +385,9 @@ final class AppPages {
             links.addPreference(toggle(context, Settings.HIDE_SHARE_GROUP_BUTTONS,
                     L10n.t("Takes away Send to group when you pick two or more people, and the share sheet's own ways to start "
                             + "a new group, so nothing you share makes a group chat by accident. Send separately stays.")));
+            links.addPreference(toggle(context, Settings.HIDE_SHARE_PEOPLE_ROW,
+                    L10n.t("Takes the row of profile pictures off the share sheet, the people Facebook suggests sending a post "
+                            + "to. The search box and the other ways to share stay.")));
         }
         links.addPreference(page.supportedLinksRow(context));
         for (Preference holder : page.linkHolderRows(context)) links.addPreference(holder);
@@ -399,6 +461,70 @@ final class AppPages {
         });
     }
 
+    /** Menu tiles' row: the tiles it keeps out of Facebook's Menu, picked from a list of checkboxes. */
+    static Preference menuTilesRow(HushfacebookPreferenceFragment page, Context context) {
+        SettingsRows.Row row = new SettingsRows.Row(context);
+        row.setKey(MENU_TILES_ROW);
+        row.setTitle(L10n.t("Menu tiles to hide"));
+        row.setPersistent(false);
+        row.setSummary(menuTilesSummary(MenuTiles.hidden()));
+        row.setOnPreferenceClickListener(p -> {
+            showMenuTiles(page, context, row);
+            return true;
+        });
+        return row;
+    }
+
+    /** The row's key, for the settings search. No setting is behind it. */
+    static final String MENU_TILES_ROW = "action_menu_tiles";
+
+    /** The row's summary: the tiles kept out, by the names the list gives them, or none. */
+    static String menuTilesSummary(Set<String> hidden) {
+        if (hidden.isEmpty()) return L10n.t("None picked yet.");
+        List<String> names = new ArrayList<>();
+        for (String key : hidden) names.add(MenuTiles.label(key));
+        return L10n.f("Hidden: %s", L10n.join(names));
+    }
+
+    /**
+     * The list: every tile it knows, ticked when it's kept out. Save keeps the ticks, or, when they
+     * need more room than the setting has or the phone doesn't keep the write, keeps the list open
+     * with its ticks, so Save can be tried again.
+     */
+    private static void showMenuTiles(HushfacebookPreferenceFragment page, Context context, Preference row) {
+        List<String> keys = MenuTiles.choices();
+        Set<String> hidden = MenuTiles.hidden();
+        String[] names = new String[keys.size()];
+        boolean[] ticked = new boolean[keys.size()];
+        for (int i = 0; i < names.length; i++) {
+            names[i] = MenuTiles.label(keys.get(i));
+            ticked[i] = hidden.contains(keys.get(i));
+        }
+        AlertDialog list = page.show(new AlertDialog.Builder(context)
+                .setTitle(L10n.t("Hide from the Menu"))
+                .setMultiChoiceItems(names, ticked, (shown, which, isTicked) -> ticked[which] = isTicked)
+                .setPositiveButton(L10n.t("Save"), null)
+                .setNegativeButton(L10n.t("Cancel"), null));
+        if (list == null) return;
+        list.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(button -> {
+            List<String> picked = new ArrayList<>();
+            for (int i = 0; i < ticked.length; i++) {
+                if (ticked[i]) picked.add(keys.get(i));
+            }
+            MenuTiles.Hidden saved = MenuTiles.hide(picked);
+            if (saved == MenuTiles.Hidden.NO_ROOM) {
+                Utils.showToastLong(L10n.t("This list needs more room than it has. Shorten it, then save again."));
+                return;
+            }
+            if (saved == MenuTiles.Hidden.NOT_STORED) {
+                Utils.showToastLong(L10n.t("Couldn't save the change. Try again."));
+                return;
+            }
+            row.setSummary(menuTilesSummary(MenuTiles.hidden()));
+            list.dismiss();
+        });
+    }
+
     /**
      * Privacy, in every build for Lock Facebook: who can open Facebook on this phone, what Facebook
      * sends home in the background, and what it shows others while you write and read. The map of
@@ -421,10 +547,11 @@ final class AppPages {
         });
         privacy.addPreference(lock);
         privacy.addPreference(lockAfterRow(context));
-        // The settings entry's own too: it's what a Facebook that won't open can still send.
-        privacy.addPreference(toggle(context, Settings.SAVE_CRASH_FILE,
-                L10n.t("When Facebook crashes, the error goes in a text file in Download/Hushfacebook, so you can send it with a "
-                        + "bug report even if Facebook won't open. Links and IDs are left out. The newest five are kept.")));
+        // The settings entry's own too: it watches Facebook's screens from the application hook.
+        privacy.addPreference(toggle(context, Settings.CLOSE_WHEN_LEFT,
+                L10n.t("A few seconds after you leave Facebook, it closes all the way and leaves your recent apps, so it "
+                        + "isn't running in the background. It waits for uploads and saves to finish first. Notifications "
+                        + "may come late, or not until you open Facebook again.")));
         if (build.contains(PatchFamily.ANALYTICS_UPLOADS)) {
             // XAnalytics resumes its uploader once, as Facebook starts.
             privacy.addPreference(toggle(context, Settings.HOLD_ANALYTICS_UPLOADS,
@@ -462,5 +589,34 @@ final class AppPages {
                             + "can stay unread on this phone.")));
         }
         AdsMap.add(page, privacy, context, build);
+    }
+
+    /**
+     * The three switches that open these settings. Whichever is the last one on stays on and is
+     * greyed out under a line saying why, so there is always a way back in (#146).
+     */
+    private static final class WaysIn {
+        private final boolean menuRowInBuild;
+        private final java.util.Map<BooleanSetting, SwitchPreference> rows = new java.util.LinkedHashMap<>();
+        private final java.util.Map<BooleanSetting, CharSequence> plain = new java.util.HashMap<>();
+
+        WaysIn(boolean menuRowInBuild) {
+            this.menuRowInBuild = menuRowInBuild;
+        }
+
+        void add(BooleanSetting setting, SwitchPreference row) {
+            rows.put(setting, row);
+            plain.put(setting, row.getSummary());
+        }
+
+        void refresh() {
+            for (java.util.Map.Entry<BooleanSetting, SwitchPreference> entry : rows.entrySet()) {
+                boolean last = SettingsEntry.isLastWayIn(entry.getKey(), menuRowInBuild);
+                entry.getValue().setEnabled(!last);
+                entry.getValue().setSummary(last
+                        ? L10n.t("The last way into these settings stays on.")
+                        : plain.get(entry.getKey()));
+            }
+        }
     }
 }

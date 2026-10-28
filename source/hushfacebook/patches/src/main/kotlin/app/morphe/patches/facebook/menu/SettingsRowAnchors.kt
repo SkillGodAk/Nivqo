@@ -20,7 +20,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 /**
- * Where a row in Facebook's Menu comes from, for the Hushfacebook row, on the 577 to 583 builds.
+ * Where a row in Facebook's Menu comes from, for the Hushfacebook row, on the 577 to 584 builds.
  *
  * The Menu's Settings and privacy group (see MenuSectionAnchors.kt for the groups) is drawn by the
  * native group section from a list of plain row items: a title, the address a tap opens, the
@@ -28,16 +28,18 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
  * list from one builder, the only call it makes that takes the user session, a list and one or
  * two flags and hands back an ImmutableList (583's is `LX/92y;->A08`, which also keeps the list it
  * built in a field and returns that on the next call). 582 had moved the Settings rows into the
- * section itself, so its one builder only made two other groups. Help group items are built the
+ * section itself, so its one builder only made two other groups. 584 inlined 583's builder into the
+ * section, which reads and writes the kept list itself (MenuRowAnchors.kt's [keptRowLists]), so the
+ * hooks go where it does. Help group items are built the
  * same way by Facebook's own code (Scam protection center passes its address first and its icon
  * resource after), which is how a row with no server behind it is made.
  *
  * A tap on a row goes to one static handler taking the view, the user session, the row's helpers
- * and the row item, which loads the `bookmarks_menu` trace (582 asks a string table for it) and
+ * and the row item, which loads the `bookmarks_menu` trace (582 and 584 ask a string table for it) and
  * picks what to open by the row's id. Two more static methods of the same class take the row item:
  * they log the row being seen, by its id (582's 32-bit build had dropped both). 583's 32-bit build
  * has no such handler: its body is inlined into a lambda ([inlinedRowTap]). The item
- * class and every member are Redex names (`9iZ` on 583, `cTt` on 582, `9KG` on 580, `8oK` on 577,
+ * class and every member are Redex names (`Lmp` on 584, `9iZ` on 583, `cTt` on 582, `9KG` on 580, `8oK` on 577,
  * which has one icon resource where 580 has two), so they're found by these shapes and by the trace.
  */
 internal const val ROW_PATCH = "Hushfacebook in the Menu"
@@ -83,7 +85,7 @@ internal fun rowListBuilds(method: Method): List<MethodReference> =
 
 /**
  * The Menu row tap handler: shaped like one ([isRowTapShape]) and naming [ROW_TAP_TRACE], loading
- * it or, as on 582, asking a string table [resolve] finds for it ([namesString]).
+ * it or, as on 582 and 584, asking a string table [resolve] finds for it ([namesString]).
  */
 internal fun isRowTap(method: Method, resolve: (MethodReference) -> Method? = { null }): Boolean =
     isRowTapShape(method) && namesString(method, ROW_TAP_TRACE, resolve)
