@@ -1,3 +1,14 @@
+## 1.0.0 (2026-10-28)
+
+### New Features
+
+* **Facebook:** 繁體中文：更新至正式 HushFacebook 0.19.0（105 個補丁），支援 Facebook 584.0.0.51.56。新增貼文按鈕自訂、Reels 雙擊快轉、留言手勢、影片預設靜音、首頁標題與徽章顏色等功能。
+* **Messenger:** 繁體中文：更新至正式 HushMessenger 0.27.0（66 個補丁、59 個控制項），支援 Messenger 584.1.0.61.98 的相容原版 APK。新增來電安靜通知、手動標記已讀、方形頭像與相簿選取等功能。
+* **General:** 繁體中文：Nivqo Patches 1.0.0 合併 Facebook 105＋Messenger 66，共 171 個補丁。更新 Morphe Patcher 2.0.1 並準備 Manager 2.2.0，保留 Nivqo 繁體中文、English、跟隨系統、Messenger 按鈕及離線雙核心。
+* **Facebook:** English: Syncs formal HushFacebook 0.19.0 (105 patches), targeting Facebook 584.0.0.51.56. Adds customizable post buttons, double-tap video skipping, comment gestures, muted feed videos and home header colors.
+* **Messenger:** English: Syncs formal HushMessenger 0.27.0 (66 patches and 59 controls), targeting compatible original Messenger 584.1.0.61.98 APKs, with quiet incoming calls, a mark-as-read button, square avatars and gallery selection.
+* **General:** English: Nivqo Patches 1.0.0 combines 171 patches on Morphe Patcher 2.0.1. Preserves Nivqo language options, Messenger button routing and bundled offline cores; prepares Manager 2.2.0.
+
 ## 0.9.0 (2026-10-17)
 
 ### New Features
