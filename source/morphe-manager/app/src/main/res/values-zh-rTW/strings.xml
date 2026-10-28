@@ -1560,7 +1560,7 @@ morphe_header_custom_dark.png
     <string name="settings_appearance_translations_info_url">morphe.software/translate</string>
     <string name="settings_appearance_app_icon_combined">%1$s · %2$s</string>
     <string name="settings_advanced_github_pat">GitHub 個人存取權杖（PAT）</string>
-    <string name="settings_system_apk_item_info">v%s • %s</string>
+    <string name="settings_system_apk_item_info">v%1$s • %2$s</string>
     <string name="settings_system_patched_apks_export_zip_name">nivqo-patched-apks.zip</string>
     <string name="settings_system_original_apks_export_zip_name">nivqo-original-apks.zip</string>
     <string name="app_name">Nivqo</string>

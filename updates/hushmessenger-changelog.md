@@ -1,3 +1,8 @@
+# 0.27.0-nivqo.1 (2026-10-28)
+
+* **Messenger:** 繁體中文：同步正式 HushMessenger 0.27.0（66 個補丁、59 個控制項），適用 Messenger 584.1.0.61.98 的相容原版 APK。新增安靜來電、手動標記已讀、系統相簿選取、方形頭像、限制裝置資料分享等功能，並整合上游繁體中文介面；Manager 中文補丁說明 66／66。使用舊版本 APK 的使用者須重新取得相容原版並修補。
+* **Messenger:** English: Formal upstream HushMessenger 0.27.0, with 66 patches and 59 controls targeting compatible stock Messenger 584.1.0.61.98 APKs. Adds quiet calls, manual mark-as-read, gallery selection, square avatars, sharing controls and upstream Traditional Chinese UI. Manager patch descriptions localized 66/66. Older APK bases require repatching.
+
 # 0.24.0-nivqo.1 (2026-10-16)
 
 * **Messenger:** 繁體中文：同步正式 HushMessenger 0.24.0，由 50 增至 57 個 Patch、51 個控制項。新增最多釘選 20 個聊天室、粗體／斜體文字、隱藏用戶／通知分頁、停止附近掃描與 MQTT 記錄，並改善訊息記錄、快速設定及重新啟動操作。新增／補齊 85 條介面文字及 14 條新控制項繁中翻譯，核心繁中涵蓋 399／399，Manager 中文補丁說明 57／57。**僅支援 Messenger 583.0.0.29.95 的六個 arm64 build；582 已移除，須使用相容的 583 APK 重新修補。**

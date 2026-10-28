@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-17T16:58:52",
-  "description": "Nivqo HushFacebook 0.14.0 正式核心（91 個 Patch），支援 Facebook 583.0.0.39.55。新增略過無聲片段、HD 限時動態上傳、頂部分頁列、保留 Reels 原始音訊、隱藏電信業者模式橫幅等，改善子母畫面與 Material You 主題。保留 Nivqo 繁體中文／English／跟隨系統語言選擇與 Messenger 圖示雙向路由，繁中 1105 條、Manager 中文補丁說明 91／91。",
+  "created_at": "2026-10-28T16:30:57",
+  "description": "HushFacebook 0.19.0 正式核心（105 個補丁），支援 Facebook 584.0.0.51.56。新增貼文按鈕與 Reels 手勢等功能，保留 Nivqo 繁中設定與 Messenger 按鈕。",
   "changelog_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook-changelog.md",
   "signature_download_url": "",
-  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/61bb525b09204b879f79ffbebaf6c927c57d4d93/updates/bundles/hushfacebook.mpp",
-  "version": "0.14.0-nivqo.1"
+  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/fb88b7615304519d5d1f9712b189b487ceccbde4/updates/bundles/hushfacebook.mpp",
+  "version": "0.19.0-nivqo.1"
 }
