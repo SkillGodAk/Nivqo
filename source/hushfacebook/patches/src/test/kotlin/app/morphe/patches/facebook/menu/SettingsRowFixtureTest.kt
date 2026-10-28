@@ -30,14 +30,18 @@ import org.junit.Test
 
 /**
  * The anchors of Hushfacebook in the Menu on every declared Facebook build: the native group
- * section builds one row list, from a builder that makes row items; one tap handler takes that row
+ * section builds one row list, from a builder that makes row items (584 inlined it, so the section
+ * makes them and reads and writes the kept list once each); one tap handler takes that row
  * item and picks by its id; two loggers take it too; the item has one full constructor storing
  * each argument, the id last, and Facebook's own rows pass their address first.
  */
 class SettingsRowFixtureTest {
-    /** How many row loggers each declared build's tap class has, by ABI. 582's 32-bit build dropped both. */
+    /**
+     * How many row loggers each declared build's tap class has, by ABI. 582's 32-bit build dropped
+     * both; 584's 32-bit build keeps them, as its arm64 build does.
+     */
     private val loggerCount = mapOf(
-        "583.0.0.39.55" to mapOf("arm64-v8a" to 2, "armeabi-v7a" to 0),
+        "584.0.0.51.56" to mapOf("arm64-v8a" to 2, "armeabi-v7a" to 2),
     )
 
     private fun Method.instructionList() = implementation?.instructions?.toList().orEmpty()
@@ -92,8 +96,16 @@ class SettingsRowFixtureTest {
                 val taps = FixtureDex.methodsWhere(bundle, tracing) { isRowTap(it, table) }
                 assertEquals("${bundle.name}: native Menu group sections", 1, natives.size)
                 val builds = rowListBuilds(natives.single())
-                assertEquals("${bundle.name}: row lists the native section builds", 1, builds.size)
-                val build = builds.single()
+                // 584 inlined the builder into the section, which keeps the Settings list itself.
+                val kept = if (builds.isEmpty()) keptRowLists(natives.single()) else null
+                assertEquals("${bundle.name}: row lists the native section builds or keeps", 1, builds.size + listOfNotNull(kept).size)
+                val build = builds.singleOrNull()
+                if (kept != null) {
+                    val sites = keptListReads(natives.single(), kept.settings)
+                    assertNotNull("${bundle.name}: another way into the code after a read or write of ${kept.settings}", sites)
+                    assertEquals("${bundle.name}: ${kept.settings} read, then written", listOf(Opcode.IGET_OBJECT, Opcode.IPUT_OBJECT),
+                        sites!!.map { natives.single().instructionList()[it.index].opcode })
+                }
                 val abi = bundle.name.substringAfter("-$version-").substringBefore(".apkm")
 
                 // 583's 32-bit build inlined the tap handler into a lambda, so that's where the row is caught.
@@ -111,11 +123,13 @@ class SettingsRowFixtureTest {
                 val tap = taps.singleOrNull()
                 val item = tap?.let(::rowItemType) ?: inlined.single().itemType
 
-                val classes = FixtureDex.classes(bundle, setOfNotNull(item, build.definingClass, tap?.definingClass))
+                val classes = FixtureDex.classes(bundle, setOfNotNull(item, build?.definingClass, tap?.definingClass))
                 val itemClass = classes.getValue(item)
-                val builder = classes.getValue(build.definingClass).methods.single {
-                    it.name == build.name && it.parameterTypes.map(Any::toString) == build.parameterTypes.map(Any::toString)
-                }
+                val builder = build?.let { call ->
+                    classes.getValue(call.definingClass).methods.single {
+                        it.name == call.name && it.parameterTypes.map(Any::toString) == call.parameterTypes.map(Any::toString)
+                    }
+                } ?: natives.single()
                 assertTrue("${bundle.name}: the row list builder makes no $item", builder.instructionList().any {
                     it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as TypeReference).type == item
                 })

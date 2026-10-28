@@ -116,7 +116,7 @@ function Invoke-AndroidVerifierTally {
         }
 
         $logResult = Invoke-HushfacebookAdbCommand -Adb $Adb -Invoker $AdbInvoker `
-            -Arguments @('-s', $Serial, 'logcat', '-d')
+            -Arguments @('-s', $Serial, 'shell', 'logcat', '-d')
         if ($logResult.ExitCode -ne 0) {
             throw (Format-HushfacebookAdbFailure `
                 -Message "Could not read logcat on $Serial after verifying $Label" `
@@ -174,5 +174,67 @@ function Invoke-AndroidVerifierTally {
                 throw "Verifier cleanup failed. $message"
             }
         }
+    }
+}
+
+# The patch build identity a patched APK carries, or null when none of its classes*.dex holds one:
+# the string the shared extension patch makes getPatchesBuildIdentity return, the same one the app
+# reports about itself and Get-BundlePatchBuild (walk-receipt.ps1) works out from a bundle. A dex
+# keeps an ASCII string as its own bytes, so it reads as written.
+function Get-ApkPatchBuild {
+    param([Parameter(Mandatory = $true)][string]$Apk)
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $identity = [regex]('sha256=[0-9a-f]{64}; source=(?:(?:clean|dirty):[0-9a-f]{40}; tree=[0-9a-f]{40}|unknown); ' +
+        'inputs=[0-9a-f]{64}')
+    $latin1 = [System.Text.Encoding]::GetEncoding(28591)
+    $found = [System.Collections.Generic.SortedSet[string]]::new([System.StringComparer]::Ordinal)
+    # ZipFile reads a relative path against the process directory, not PowerShell's.
+    $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $Apk).ProviderPath)
+    try {
+        foreach ($entry in $zip.Entries) {
+            if ($entry.FullName -cnotmatch '\Aclasses[0-9]*\.dex\z') { continue }
+            $bytes = [System.IO.MemoryStream]::new()
+            $stream = $entry.Open()
+            try { $stream.CopyTo($bytes) } finally { $stream.Dispose() }
+            foreach ($match in $identity.Matches($latin1.GetString($bytes.GetBuffer(), 0, [int]$bytes.Length))) {
+                [void]$found.Add($match.Value)
+            }
+        }
+    } finally { $zip.Dispose() }
+    # Two would mean two bundles' extensions in one APK, and neither can be told to be the one.
+    if ($found.Count -gt 1) { throw "$Apk carries $($found.Count) patch build identities, so which bundle patched it can't be told." }
+    if ($found.Count -eq 0) { return $null }
+    return $found.Min
+}
+
+# The receipt a -Serial run of verify-injected-registers.ps1 leaves, as an ordered dictionary ready
+# for ConvertTo-Json. release/release.ps1's publish stage holds it to the bundle it ships
+# (Test-VerifierReceipt in walk-receipt.ps1): a static FAIL or any verifier message the patched
+# build raises and Meta's doesn't, or the other way round, makes the run a FAIL, and the messages
+# go in it word for word, since each names the method that failed.
+function New-VerifierReceipt {
+    param(
+        [Parameter(Mandatory = $true)][string]$Serial,
+        [Parameter(Mandatory = $true)][string]$Device,
+        [AllowEmptyString()][string]$Facebook,
+        [AllowEmptyString()][string]$PatchBuild,
+        [AllowEmptyString()][string]$PatchedApkSha256,
+        [Parameter(Mandatory = $true)][bool]$StaticPassed,
+        # What Compare-VerifierTallies answered for the clean and patched tallies.
+        [Parameter(Mandatory = $true)]$Comparison,
+        [DateTimeOffset]$Finished = [DateTimeOffset]::UtcNow
+    )
+    $deltas = @($Comparison.Deltas | Where-Object { $null -ne $_ } | ForEach-Object {
+        [ordered]@{ kind = [string]$_.Kind; message = [string]$_.Message; clean = [int]$_.Clean; patched = [int]$_.Patched } })
+    $passed = $StaticPassed -and [bool]$Comparison.Valid -and $deltas.Count -eq 0
+    return [ordered]@{
+        schema = 1; result = if ($passed) { 'PASS' } else { 'FAIL' }
+        serial = $Serial; device = $Device; emulator = $Serial.StartsWith('emulator-', [StringComparison]::Ordinal)
+        facebook = $Facebook; patchBuild = $PatchBuild; patchedApkSha256 = $PatchedApkSha256
+        static = if ($StaticPassed) { 'PASS' } else { 'FAIL' }
+        cleanMessages = [int]$Comparison.CleanTotal; patchedMessages = [int]$Comparison.PatchedTotal
+        deltas = $deltas
+        finished = $Finished.UtcDateTime.ToString('yyyy-MM-ddTHH:mm:ssZ')
     }
 }

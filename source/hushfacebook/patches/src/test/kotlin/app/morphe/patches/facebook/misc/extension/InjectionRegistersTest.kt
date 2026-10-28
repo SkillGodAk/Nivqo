@@ -139,7 +139,7 @@ class InjectionRegistersTest {
     }
 
     @Test
-    fun `a parameter is never borrowed, even where nothing reads it`() {
+    fun `a parameter isn't borrowed unless the hook asks, even where nothing reads it`() {
         val method = smali(
             registers = 3, params = listOf("I"),
             body = """
@@ -151,6 +151,24 @@ class InjectionRegistersTest {
         assertThrows(PatchException::class.java) { method.freeLocalsAt("Fixture", 1, 3) }
         val refused = assertThrows(PatchException::class.java) { method.requireFreeAt("Fixture", 1, listOf(2)) }
         assertTrue(refused.message, refused.message.orEmpty().contains("keeps a parameter in v2"))
+    }
+
+    @Test
+    fun `a hook that asks takes the parameters nothing reads once the free locals run out`() {
+        val method = smali(
+            registers = 4, params = listOf("I", "I"),
+            body = """
+                const/4 v0, 0x0
+                invoke-static {p1}, Lcom/example/Log;->note(I)V
+                return-void
+            """,
+        )
+        // v0 and v1 are free locals, p0 (v2) is done with, and p1 (v3) is read at the call.
+        assertEquals(listOf(0, 1), method.freeLocalsAt("Fixture", 1, 2, parameters = true))
+        assertEquals(listOf(0, 1, 2), method.freeLocalsAt("Fixture", 1, 3, parameters = true))
+        val short = assertThrows(PatchException::class.java) { method.freeLocalsAt("Fixture", 1, 4, parameters = true) }
+        assertTrue(short.message, short.message.orEmpty().contains("has 2 local register(s) and 1 parameter(s) up to v15"))
+        assertThrows(PatchException::class.java) { method.freeLocalsAt("Fixture", 1, 3) }
     }
 
     @Test

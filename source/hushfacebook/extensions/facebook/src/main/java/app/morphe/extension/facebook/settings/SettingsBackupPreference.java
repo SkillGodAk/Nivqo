@@ -40,16 +40,19 @@ import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 import app.morphe.extension.facebook.comments.CommentOrder;
+import app.morphe.extension.facebook.reels.ReelsOrder;
 import app.morphe.extension.facebook.download.DownloadQuality;
 import app.morphe.extension.facebook.download.SaveTo;
 import app.morphe.extension.facebook.download.SendLink;
 import app.morphe.extension.facebook.feed.PostSources;
 import app.morphe.extension.facebook.feed.PostWords;
+import app.morphe.extension.facebook.menu.MenuTiles;
 import app.morphe.extension.facebook.media.PlaybackQuality;
 import app.morphe.extension.facebook.media.SurfaceQuality;
 import app.morphe.extension.facebook.notifications.QuietHour;
@@ -64,6 +67,7 @@ import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.settings.BooleanSetting;
+import app.morphe.extension.shared.settings.Setting;
 import app.morphe.extension.shared.settings.preference.AbstractPreferenceFragment;
 import app.morphe.extension.shared.settings.preference.LogBufferManager;
 
@@ -394,7 +398,14 @@ public class SettingsBackupPreference extends Preference {
                     snapshot.lockAfterChange(), snapshot.textSizeChange(), snapshot.accentChange()));
             if (snapshot.ceilingChange() != null) parts.add(ceilingSentence(snapshot.ceilingChange()));
             if (snapshot.shareItemsChange() != null) parts.add(shareItemsSentence(snapshot.shareItemsChange()));
+            if (snapshot.menuTilesChange() != null) parts.add(menuTilesSentence(snapshot.menuTilesChange()));
             if (snapshot.homeFeedChange() != null) parts.add(homeFeedSentence(snapshot.homeFeedChange()));
+            if (snapshot.reelsOrderChange() != null) parts.add(reelsOrderSentence(snapshot.reelsOrderChange()));
+            if (snapshot.backgroundChange() != null) parts.add(backgroundSentence(snapshot.backgroundChange()));
+            if (snapshot.lightBackgroundChange() != null) parts.add(lightBackgroundSentence(snapshot.lightBackgroundChange()));
+            if (snapshot.badgeChange() != null) parts.add(markColorSentence(false, snapshot.badgeChange()));
+            if (snapshot.logoChange() != null) parts.add(markColorSentence(true, snapshot.logoChange()));
+            if (snapshot.headerTextChange() != null) parts.add(headerTextSentence(snapshot.headerTextChange()));
             if (snapshot.seenKeep != null && snapshot.changes().containsKey(SettingsBackup.SEEN_KEEP)) {
                 parts.add(L10n.f("Posts you've seen will stay hidden for %1$s.",
                         HushfacebookPreferenceFragment.seenKeepLabel(snapshot.seenKeep)));
@@ -432,7 +443,7 @@ public class SettingsBackupPreference extends Preference {
         if (message == null || !(message.getParent() instanceof ViewGroup)) return;
         LinearLayout details = new LinearLayout(dialog.getContext());
         details.setOrientation(LinearLayout.VERTICAL);
-        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        ScreenColors colors = ScreenColors.current();
         for (Map.Entry<BooleanSetting, Boolean> entry : snapshot.values.entrySet()) {
             BooleanSetting setting = entry.getKey();
             boolean current = setting.savedValue();
@@ -549,6 +560,11 @@ public class SettingsBackupPreference extends Preference {
                 HushfacebookPreferenceFragment.feedsSubtabLabel(feed));
     }
 
+    /** The sentence that says what Sort loaded reels sorts by after an import. */
+    static String reelsOrderSentence(ReelsOrder order) {
+        return L10n.f("Reels order will be set to %1$s.", HushfacebookPreferenceFragment.reelsOrderLabel(order));
+    }
+
     /** The sentence that says in what order comments open after an import. */
     static String commentOrderSentence(CommentOrder order) {
         if (order == CommentOrder.FACEBOOK) return L10n.t("Comments will open in the order Facebook picks.");
@@ -559,7 +575,7 @@ public class SettingsBackupPreference extends Preference {
     /** The sentence that says what quality videos play at after an import. */
     static String playbackQualitySentence(PlaybackQuality quality) {
         if (quality == PlaybackQuality.AUTO) return L10n.t("Facebook will pick the quality videos play at.");
-        return L10n.f("Playback quality will be set to %1$s.", HushfacebookPreferenceFragment.playbackQualityLabel(quality));
+        return L10n.f("Default quality will be set to %1$s.", HushfacebookPreferenceFragment.playbackQualityLabel(quality));
     }
 
     /** The sentence that says how long Facebook may be away before the app lock asks, after an import. */
@@ -580,7 +596,45 @@ public class SettingsBackupPreference extends Preference {
     static String accentSentence(AccentColor.Preset accent) {
         if (accent == AccentColor.Preset.FACEBOOK) return L10n.t("Facebook will keep its own blue.");
         return L10n.f("If your patched Facebook includes Accent color, Facebook's blue will be %1$s.",
-                HushfacebookPreferenceFragment.accentLabel(accent));
+                HushfacebookPreferenceFragment.accentLabel(accent, false));
+    }
+
+    /** The sentence that says which color dark mode's backgrounds will take after an import, [background] blank or a code. */
+    static String backgroundSentence(String background) {
+        if (background.isEmpty()) {
+            return L10n.t("If your patched Facebook includes the AMOLED black theme, dark mode's backgrounds will be "
+                    + "the color it was patched with.");
+        }
+        return L10n.f("If your patched Facebook includes the AMOLED black theme, dark mode's backgrounds will be %1$s.",
+                L10n.isolate(background));
+    }
+
+    /** The sentence that says which color the badges, or with [logo] the logo, will take after an import, [code] blank or a code. */
+    static String markColorSentence(boolean logo, String code) {
+        if (code.isEmpty()) {
+            return logo ? L10n.t("If your patched Facebook includes Badge and logo colors, the logo will be Facebook's blue.")
+                    : L10n.t("If your patched Facebook includes Badge and logo colors, badges will be Facebook's red.");
+        }
+        return logo ? L10n.f("If your patched Facebook includes Badge and logo colors, the logo will be %1$s.",
+                L10n.isolate(code))
+                : L10n.f("If your patched Facebook includes Badge and logo colors, badges will be %1$s.", L10n.isolate(code));
+    }
+
+    /** The sentence that says which color light mode's backgrounds will take after an import, [background] blank or a code. */
+    static String lightBackgroundSentence(String background) {
+        if (background.isEmpty()) {
+            return L10n.t("If your patched Facebook includes the AMOLED black theme, light mode's backgrounds will be "
+                    + "Facebook's own white.");
+        }
+        return L10n.f("If your patched Facebook includes the AMOLED black theme, light mode's backgrounds will be %1$s.",
+                L10n.isolate(background));
+    }
+
+    /** The sentence that says what the top of Home will show after an import, [text] blank or the words. */
+    static String headerTextSentence(String text) {
+        if (text.isEmpty()) return L10n.t("The top of Home will show Facebook's own logo.");
+        return L10n.f("If your patched Facebook includes Home header text, the top of Home will say %1$s.",
+                L10n.isolate(text));
     }
 
     /** The sentence that says how large Facebook's text will be after an import. */
@@ -665,6 +719,14 @@ public class SettingsBackupPreference extends Preference {
         if (items == 0) return L10n.t("Your list of share sheet items to hide will be empty.");
         return L10n.quantity(items, "Your list of share sheet items to hide will hold %1$d item.",
                 "Your list of share sheet items to hide will hold %1$d items.", items);
+    }
+
+    /** The sentence that says how many Menu tiles will be hidden after an import. */
+    static String menuTilesSentence(String list) {
+        int tiles = MenuTiles.count(list);
+        if (tiles == 0) return L10n.t("Your list of Menu tiles to hide will be empty.");
+        return L10n.quantity(tiles, "Your list of Menu tiles to hide will hold %1$d tile.",
+                "Your list of Menu tiles to hide will hold %1$d tiles.", tiles);
     }
 
     /** A sentence for each setting that isn't a switch an import changes, with no word list among them. */
@@ -864,9 +926,10 @@ public class SettingsBackupPreference extends Preference {
         Run run = start(IMPORT, L10n.t("Importing settings"));
         if (run == null) return;
         // The page shows what the store now holds rather than reading its own switches back into it.
-        AbstractPreferenceFragment.settingImportInProgress = true;
+        Map<Setting<?>, Object> before = new LinkedHashMap<>();
         boolean accepted = false;
         try {
+            before.putAll(AbstractPreferenceFragment.beginSettingsImport(snapshot.changes().keySet()));
             // Counted before the write, which makes every change match the store.
             String done = importedMessage(snapshot.switchChanges(), snapshot.folderChange(), snapshot.qualityChange(),
                     snapshot.fileNameChange(), snapshot.startChange(), snapshot.orderChange(), snapshot.hiddenChange(),
@@ -877,7 +940,14 @@ public class SettingsBackupPreference extends Preference {
                     snapshot.lockAfterChange(), snapshot.textSizeChange(), snapshot.accentChange())
                     + (snapshot.ceilingChange() == null ? "" : " " + ceilingSentence(snapshot.ceilingChange()))
                     + (snapshot.shareItemsChange() == null ? "" : " " + shareItemsSentence(snapshot.shareItemsChange()))
-                    + (snapshot.homeFeedChange() == null ? "" : " " + homeFeedSentence(snapshot.homeFeedChange()));
+                    + (snapshot.menuTilesChange() == null ? "" : " " + menuTilesSentence(snapshot.menuTilesChange()))
+                    + (snapshot.homeFeedChange() == null ? "" : " " + homeFeedSentence(snapshot.homeFeedChange()))
+                    + (snapshot.reelsOrderChange() == null ? "" : " " + reelsOrderSentence(snapshot.reelsOrderChange()))
+                    + (snapshot.backgroundChange() == null ? "" : " " + backgroundSentence(snapshot.backgroundChange()))
+                    + (snapshot.lightBackgroundChange() == null ? "" : " " + lightBackgroundSentence(snapshot.lightBackgroundChange()))
+                    + (snapshot.badgeChange() == null ? "" : " " + markColorSentence(false, snapshot.badgeChange()))
+                    + (snapshot.logoChange() == null ? "" : " " + markColorSentence(true, snapshot.logoChange()))
+                    + (snapshot.headerTextChange() == null ? "" : " " + headerTextSentence(snapshot.headerTextChange()));
             accepted = Utils.runOnBackgroundThread(() -> {
                 try {
                     SettingsBackup.apply(snapshot);
@@ -891,10 +961,13 @@ public class SettingsBackupPreference extends Preference {
                                     + "Check the switches on this screen."));
                 } finally {
                     Utils.runOnMainThread(() -> {
-                        AbstractPreferenceFragment.settingImportInProgress = false;
-                        finish(run);
                         HushfacebookPreferenceFragment current = latestPage.get();
-                        if (current != null && current.isAdded()) current.refreshSwitches();
+                        try {
+                            AbstractPreferenceFragment.finishSettingsImport(before, current);
+                        } finally {
+                            finish(run);
+                            if (current != null && current.isAdded()) current.refreshSwitches();
+                        }
                     });
                 }
             });
@@ -903,8 +976,11 @@ public class SettingsBackupPreference extends Preference {
         } finally {
             // This path has no wait that runs out, so nothing else would give the rows back.
             if (!accepted) {
-                AbstractPreferenceFragment.settingImportInProgress = false;
-                notStarted(run);
+                try {
+                    AbstractPreferenceFragment.finishSettingsImport(before, page);
+                } finally {
+                    notStarted(run);
+                }
             }
         }
     }

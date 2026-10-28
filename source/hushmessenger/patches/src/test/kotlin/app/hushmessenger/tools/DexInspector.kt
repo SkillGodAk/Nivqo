@@ -22,7 +22,8 @@ import java.io.File
 /**
  * Batched DEX queries against a stock Messenger APK. One load, many queries, one per line in a file:
  *   -Ptarget=@queries.txt   with lines like  class:LX/Foo;  method:LX/Foo;->A01  callers:LX/Foo;->A01
- *   strings:unsent  reads:LX/Foo;->A02  writes:LX/Foo;->A02  impl:LX/Iface;
+ *   strings:unsent  reads:LX/Foo;->A02  writes:LX/Foo;->A02  impl:LX/Iface;  uses:LX/Foo;  literal:1112
+ *   sig:<init>\(\[FFZZZ\)V   (a regex over every method's full id, for classes with no strings to find them by)
  */
 object DexInspector {
 
@@ -122,7 +123,31 @@ object DexInspector {
             }
             "impl" -> classes.filter { it.superclass == arg || arg in it.interfaces }
                 .forEach { println("  ${it.type} redex=${it.redexName()}") }
-            else -> println("  unknown query kind $kind (class, method, callers, strings, reads, writes, impl)")
+            "uses" -> for (c in classes) for (m in c.methods) {
+                val sites = m.implementation?.instructions?.withIndex()?.filter { (_, insn) ->
+                    when (val r = (insn as? ReferenceInstruction)?.reference) {
+                        is TypeReference -> r.type == arg
+                        is MethodReference -> r.definingClass == arg
+                        is FieldReference -> r.definingClass == arg
+                        else -> false
+                    }
+                }?.map { (i, insn) -> "[$i] ${insn.opcode}" }.orEmpty()
+                if (sites.isNotEmpty()) println("  ${m.id()}  redex=${c.redexName()}  $sites")
+            }
+            "literal" -> {
+                val value = arg.toLong()
+                for (c in classes) for (m in c.methods) {
+                    val hit = m.implementation?.instructions?.any { insn ->
+                        (insn as? WideLiteralInstruction)?.wideLiteral == value
+                    } ?: false
+                    if (hit) println("  ${m.id()}  redex=${c.redexName()}")
+                }
+            }
+            "sig" -> {
+                val pattern = Regex(arg)
+                for (c in classes) for (m in c.methods) if (pattern.containsMatchIn(m.id())) println("  ${m.id()}  redex=${c.redexName()}")
+            }
+            else -> println("  unknown query kind $kind (class, method, callers, strings, reads, writes, impl, uses, literal, sig)")
         }
     }
 

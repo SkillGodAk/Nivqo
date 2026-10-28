@@ -57,6 +57,11 @@ internal const val STORY_MODEL = "Lcom/facebook/graphql/model/GraphQLStory;"
  * is needed, and the title builder asks it again before appending the text, so a no from the check
  * leaves the title as a header without that plugin builds it. Its answers go through the extension
  * the same way.
+ *
+ * The third switch, also off by default, takes the numbers off a post's Like, Comment and Share
+ * buttons by having their one text builder give its zero answer (PostCounts.kt, #180). The fourth,
+ * also off, leaves the reaction faces and the reactions count under a post undrawn, and blanks the
+ * count text beside the faces (ReactionPreview.kt, #158).
  */
 @Suppress("unused")
 val hidePostPromptsPatch = bytecodePatch(
@@ -64,20 +69,28 @@ val hidePostPromptsPatch = bytecodePatch(
     name = "Hide post prompts",
     description = "Removes the strip Facebook adds to some posts, like \"Are you interested in this post?\", " +
         "\"Show less\" or follow suggestions, so posts look less cluttered. No gap is left. On by default. Turn " +
-        "it off in Hushfacebook settings > News feed. A second switch there, Hide the Follow link on posts, " +
-        "starts off.",
+        "it off in Hushfacebook settings > News feed. Three more switches there, Hide the Follow link on posts, " +
+        "Hide counts on posts and Hide the reaction preview on posts, start off.",
 ) {
     category("Feed")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {
-        val check = findBumperCheck()
-        mutableClassDefBy(check.definingClass).findMutableMethodOf(check).filterBooleanReturns(PATCH, KEEP)
-        val follow = findFollowLinkCheck()
-        mutableClassDefBy(follow.definingClass).findMutableMethodOf(follow).filterBooleanReturns(PATCH, SHOW_FOLLOW_LINK)
+        hidePromptChecks()
+        hidePostCounts()
+        hideReactionPreview()
+        hideReactionCount()
         enableStatus("postPrompts")
     }
+}
+
+/** Sends every answer of the bumper check and the follow text check through the extension. */
+internal fun BytecodePatchContext.hidePromptChecks() {
+    val check = findBumperCheck()
+    mutableClassDefBy(check.definingClass).findMutableMethodOf(check).filterBooleanReturns(PATCH, KEEP)
+    val follow = findFollowLinkCheck()
+    mutableClassDefBy(follow.definingClass).findMutableMethodOf(follow).filterBooleanReturns(PATCH, SHOW_FOLLOW_LINK)
 }
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")

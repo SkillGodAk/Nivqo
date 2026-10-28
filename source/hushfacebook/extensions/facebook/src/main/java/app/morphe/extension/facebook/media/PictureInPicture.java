@@ -7,28 +7,38 @@ package app.morphe.extension.facebook.media;
 import android.app.Activity;
 import android.app.Application;
 import android.app.PictureInPictureParams;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.util.Rational;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewStub;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import java.lang.ref.WeakReference;
+import java.util.Collections;
+import java.util.Map;
+import java.util.WeakHashMap;
 
+import app.morphe.extension.facebook.navigation.FacebookTabs;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.diagnostics.HookStatus;
+import app.morphe.extension.shared.settings.Setting;
 
 /**
  * Picture-in-picture for reels, through the picture-in-picture Facebook already ships for its
@@ -56,6 +66,11 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * Native view on the main screen can already hold. The extension swaps such an id for a free one,
  * or the viewer opens hidden and the window stays black.
  *
+ * <p>That viewer hides every view of the screen as it opens, and on the way back Facebook shows
+ * them all again, whatever they were before. The spots for views Facebook builds only once they're
+ * shown are among them, so the reel viewer got Facebook Flex's switcher bar over the reel (#126).
+ * The extension keeps how each view showed and puts that back.
+ *
  * <p>Facebook's full-screen Watch viewer arms the same window for the video on screen, behind a
  * server flag of its own. With the switch on, the extension answers that flag yes, and Facebook's
  * own code arms the window; the rest here treats that arming like any other.
@@ -71,18 +86,29 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * the window and left it there. A page opening in that task while the window floats brings Facebook
  * back full screen ({@link #arrived}).
  *
+ * <p>When a reel floats from Facebook's full-screen viewer instead, the window's task has the viewer
+ * at its root, and a link opened from another app starts that same viewer for its page, so Android
+ * only brought the floating reel forward and the page never opened. A link that also builds
+ * Facebook's main screen under its page cleared the window's task and drew that screen in the
+ * window. Facebook's launch step gives such a start a task of its own, so the page opens full screen
+ * and the reel keeps floating ({@link #ownTask}).
+ *
  * <p>While the window is armed, a reel's More sheet opened on the armed screen gets a
  * Picture-in-picture row ({@link PictureInPictureRow}), whose tap opens the window right away with
  * the shape Facebook armed it with (#44). With Only from a reel's More menu on as well, leaving
  * Facebook opens no window: auto-enter goes off once Facebook has armed, Facebook's own changes of
  * it are set aside, and nothing here turns it back on, so the row is the only way in.
  *
- * <p>Off, paused, before the settings are ready, or when anything here fails, the answer is
- * Facebook's own.
+ * <p>Off, ReelsPipUtil's check says no, so the window Facebook turns on for some accounts by itself
+ * stays off as well (#252, #256). Paused, before the settings are ready, or when anything here
+ * fails, the answer is Facebook's own.
  */
 public final class PictureInPicture {
     /** Counted under the patch's name each time the check says yes where Facebook would decide. */
     static final String ALLOWED = "picture-in-picture allowed";
+
+    /** Counted each time the check says no with the switch off, where Facebook would decide. */
+    static final String REFUSED = "picture-in-picture refused";
 
     /** Counted each time the Reels viewer's gate says yes where Facebook would decide. */
     static final String SURFACE = "reels viewer allowed";
@@ -104,6 +130,9 @@ public final class PictureInPicture {
 
     /** Counted each time a player whose video is off screen plays and the window stays with the reel on screen. */
     static final String OFF_SCREEN = "off-screen player left out of the window";
+
+    /** Counted each time a player on another screen plays and the window stays with the armed screen's reel. */
+    static final String OTHER_SCREEN = "player on another screen left out of the window";
 
     /** Counted each time the window is armed again because Facebook didn't after it was opened full screen. */
     static final String REARMED_AFTER_WINDOW = "armed again after the window closed";
@@ -136,11 +165,26 @@ public final class PictureInPicture {
     /** Counted each time a page opened in the floating window's task brought Facebook back full screen. */
     static final String BROUGHT_BACK = "page opened in the window brought back full screen";
 
+    /** Counted each time a page started while a reel floats got a task of its own, so it opened full screen. */
+    static final String OWN_TASK = "page started in a task of its own";
+
+    /** The extra Facebook puts on its main screen's start when it builds that screen under a page. */
+    static final String UNDER_A_PAGE = "launched_in_background_of_activity_stack";
+
     /** Counted each time auto-enter goes off after an arming because the window opens only from the More menu. */
     static final String MENU_ONLY = "auto-enter kept off for the More menu";
 
+    /** Counted each time auto-enter goes off because the Hushfacebook settings show over the armed screen. */
+    static final String UNDER_SETTINGS = "auto-enter kept off under the settings";
+
     /** Counted each time the More sheet's Picture-in-picture row opened the window. */
     static final String FROM_MENU = "opened from the More menu";
+
+    /** Counted each time the floating button opened the window. */
+    static final String FROM_BUTTON = "opened from the button";
+
+    /** Counted each time a view back from the window shows as it did before, not as Facebook asked. */
+    static final String AS_BEFORE = "view kept as before the window";
 
     /** How many new view ids the viewer may go through for one nothing on screen holds. */
     private static final int VIEWER_ID_TRIES = 64;
@@ -150,6 +194,14 @@ public final class PictureInPicture {
      * again, so a start that didn't bring the window back can't start Facebook over and over.
      */
     static final long BRING_BACK_GAP_MS = 3000;
+
+    /**
+     * How long after a start got a task of its own while a reel floats a screen opening in the window
+     * is left alone. The page is already full screen in its own task, so starting Facebook again would
+     * only stack its launcher screen over it: on the S22 a SimpleLoginActivity opened and closed in the
+     * window right after a link's page left it, and the launcher start covered the page.
+     */
+    static final long SENT_AWAY_GAP_MS = 5000;
 
     private static final String FAMILY = FamilyNames.PICTURE_IN_PICTURE;
 
@@ -168,6 +220,12 @@ public final class PictureInPicture {
     private static boolean unfit;
 
     /**
+     * The screen the Hushfacebook settings show over while the switch is on, until they close. Its
+     * auto-enter stays off meanwhile, so leaving Facebook with the settings up doesn't float them.
+     */
+    private static WeakReference<Activity> underSettings = new WeakReference<>(null);
+
+    /**
      * The arguments ReelsPipUtil last armed the window with, kept until it disarms, as Facebook
      * keeps its own: a swipe arms again with them for the next reel's player.
      */
@@ -176,14 +234,26 @@ public final class PictureInPicture {
     /** When a page in the window last brought Facebook back, in uptime milliseconds. */
     private static long broughtBackAt = -BRING_BACK_GAP_MS;
 
+    /** When a start while a reel floats last got a task of its own, in uptime milliseconds. */
+    private static long sentAwayAt = -SENT_AWAY_GAP_MS;
+
     /** The application the page watch went on, so arming again adds no second one. */
     private static WeakReference<Application> watching = new WeakReference<>(null);
+
+    /**
+     * Set on a thread once the first start of a page's task stack got a task of its own, until that
+     * thread's next message: the starts after it follow it into its task.
+     */
+    private static final ThreadLocal<Boolean> stackGoingBy = new ThreadLocal<>();
 
     /** The armed screen while the page watch saw it in the window, until it comes back full screen. */
     private static WeakReference<Activity> floating = new WeakReference<>(null);
 
     /** Goes up with each arming and disarm, so a later look can tell whether Facebook did either. */
     private static int armings;
+
+    /** How each view the window's viewer hid showed before, until it's shown again. */
+    private static final Map<View, Integer> beforeWindow = Collections.synchronizedMap(new WeakHashMap<>());
 
     /** Reads the view a player's video is attached to. Tests stand in their own. */
     interface Views {
@@ -224,6 +294,24 @@ public final class PictureInPicture {
     }
 
     /**
+     * Whether [player]'s video is attached to a view of a screen other than the armed one. Once the
+     * reel viewer floats, Facebook opened from the launcher shows Home full screen beside it, and
+     * Home's inline videos then armed the floating window for themselves. A player with no view
+     * known, or a view whose screen can't be read, counts as the armed screen's, as before.
+     */
+    static boolean onAnotherScreen(Object player) {
+        try {
+            View view = views.of(player);
+            if (view == null) return false;
+            Activity screen = activityOf(view.getContext());
+            Activity armed = armedScreen();
+            return screen != null && armed != null && screen != armed;
+        } catch (Throwable failure) {
+            return false;
+        }
+    }
+
+    /**
      * The hook, first thing in ReelsPipUtil's check of whether [activity] may use
      * picture-in-picture. True answers yes; false leaves the answer to Facebook's own check.
      */
@@ -237,6 +325,24 @@ public final class PictureInPicture {
             HookStatus.bound(FAMILY, "picture-in-picture check");
             HookStatus.counted(FAMILY, ALLOWED);
             Logger.printDebug(() -> "Picture-in-picture: allowed for " + activity.getClass().getSimpleName());
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "picture-in-picture check", failure);
+            return false;
+        }
+    }
+
+    /**
+     * The hook, in ReelsPipUtil's check after {@link #allowed} left it to Facebook. True answers no.
+     * Facebook turns its own window on for some accounts, from a server flag or its Media settings,
+     * and every Facebook arming asks this check first, so the switch off keeps that window off too
+     * (#252, #256). Paused, Facebook decides.
+     */
+    public static boolean refused() {
+        try {
+            if (!Utils.settingsReady() || Setting.isPaused() || Settings.PICTURE_IN_PICTURE.get()) return false;
+            HookStatus.bound(FAMILY, "picture-in-picture check");
+            HookStatus.counted(FAMILY, REFUSED);
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "picture-in-picture check", failure);
@@ -269,7 +375,8 @@ public final class PictureInPicture {
             arm(activity, player, arguments);
             if (activity != null) watch(activity.getApplication());
             // Facebook turns auto-enter on right after this hook, so it goes off again once the arming is done.
-            if (activity != null && menuOnly()) Utils.runOnMainThread(() -> keepForMenu(activity));
+            if (activity != null && (menuOnly() || underSettings(activity))) Utils.runOnMainThread(() -> keepForMenu(activity));
+            PictureInPictureButton.sync();
             Logger.printDebug(() -> "Picture-in-picture: armed for player " + System.identityHashCode(player));
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "arming", failure);
@@ -278,7 +385,8 @@ public final class PictureInPicture {
 
     /**
      * Turns auto-enter off on [screen] after Facebook armed it, while the window opens only from the
-     * More menu, unless it was disarmed or armed on another screen since, or the window is open.
+     * More menu or the settings show over it, unless it was disarmed or armed on another screen
+     * since, or the window is open.
      */
     static void keepForMenu(Activity screen) {
         try {
@@ -286,13 +394,67 @@ public final class PictureInPicture {
             synchronized (PictureInPicture.class) {
                 if (armedScreen.get() != screen) return;
             }
-            if (screen.isInPictureInPictureMode() || !menuOnly()) return;
-            autoEnter(screen, false);
-            HookStatus.bound(FAMILY, "More menu only");
-            HookStatus.counted(FAMILY, MENU_ONLY);
+            if (screen.isInPictureInPictureMode()) return;
+            if (menuOnly()) {
+                autoEnter(screen, false);
+                HookStatus.bound(FAMILY, "More menu only");
+                HookStatus.counted(FAMILY, MENU_ONLY);
+            } else if (underSettings(screen)) {
+                autoEnter(screen, false);
+                HookStatus.counted(FAMILY, UNDER_SETTINGS);
+            }
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "More menu only", failure);
         }
+    }
+
+    /**
+     * The Hushfacebook settings showing over [screen]. A reel playing under them kept the window
+     * armed, so pressing Home with the settings up floated the settings page in the window. With
+     * the switch on, auto-enter goes off on the screen until they close, and an arming meanwhile
+     * is kept off too ({@link #keepForMenu}).
+     */
+    public static void settingsShown(@Nullable Activity screen) {
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || screen == null || !on()) return;
+            synchronized (PictureInPicture.class) {
+                underSettings = new WeakReference<>(screen);
+                if (armedScreen.get() != screen) return;
+            }
+            if (screen.isInPictureInPictureMode()) return;
+            autoEnter(screen, false);
+            HookStatus.counted(FAMILY, UNDER_SETTINGS);
+            Logger.printDebug(() -> "Picture-in-picture: settings shown over the armed screen, auto-enter off");
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "settings shown", failure);
+        }
+    }
+
+    /**
+     * The settings closed. Auto-enter comes back on the screen they showed over as the reel on
+     * screen has it: on, unless a pause holds it, the reel doesn't fit the window, or the window was
+     * disarmed or armed on another screen since.
+     */
+    public static void settingsClosed() {
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
+            Activity screen;
+            synchronized (PictureInPicture.class) {
+                screen = underSettings.get();
+                underSettings = new WeakReference<>(null);
+                if (screen == null || armedScreen.get() != screen || held || unfit || current.get() == null) return;
+            }
+            if (screen.isFinishing() || screen.isDestroyed() || screen.isInPictureInPictureMode()) return;
+            autoEnter(screen, true);
+            Logger.printDebug(() -> "Picture-in-picture: settings closed, auto-enter back");
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "settings closed", failure);
+        }
+    }
+
+    /** Whether the settings show over [screen]. */
+    private static synchronized boolean underSettings(Activity screen) {
+        return screen != null && underSettings.get() == screen;
     }
 
     /**
@@ -310,6 +472,25 @@ public final class PictureInPicture {
         if (screen.isFinishing() || screen.isDestroyed() || screen.isInPictureInPictureMode()) return null;
         if (!screen.getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return null;
         return screen;
+    }
+
+    /**
+     * The screen the floating button belongs on: the armed screen, under the same conditions as the
+     * More sheet's row, with the button's own switch on. Null otherwise.
+     */
+    @Nullable
+    static Activity buttonScreen() {
+        try {
+            Activity armed;
+            synchronized (PictureInPicture.class) {
+                armed = armedScreen.get();
+            }
+            Activity screen = armed == null ? null : menuScreen(armed);
+            return screen != null && Settings.PICTURE_IN_PICTURE_BUTTON.get() ? screen : null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "button", failure);
+            return null;
+        }
     }
 
     /** The activity [context] is, or wraps, or null. */
@@ -342,6 +523,24 @@ public final class PictureInPicture {
     }
 
     /**
+     * The floating button's tap: opens the window on [screen] now, with the same plain params as the
+     * More sheet's row, if the button still belongs there. True when it opened.
+     */
+    static boolean enterFromButton(@Nullable Activity screen) {
+        try {
+            if (screen == null || buttonScreen() != screen) return false;
+            boolean entered = screen.enterPictureInPictureMode(new PictureInPictureParams.Builder().build());
+            HookStatus.bound(FAMILY, "button");
+            if (entered) HookStatus.counted(FAMILY, FROM_BUTTON);
+            Logger.printDebug(() -> "Picture-in-picture: the button " + (entered ? "opened" : "didn't open") + " the window");
+            return entered;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "button", failure);
+            return false;
+        }
+    }
+
+    /**
      * Puts the page watch on [application] once. The first arming comes long after Facebook's
      * application set itself up, which its override of the registration needs.
      */
@@ -365,6 +564,7 @@ public final class PictureInPicture {
         @Override
         public void onActivityResumed(Activity activity) {
             cameBack(activity);
+            PictureInPictureButton.sync();
         }
 
         @Override
@@ -410,20 +610,26 @@ public final class PictureInPicture {
 
     /**
      * Whether [activity] opened in the armed screen's task while that screen floats in the window,
-     * with the switch on and Facebook not brought back in the last {@link #BRING_BACK_GAP_MS}, as of
-     * [now]. Answering yes starts that gap.
+     * with the switch on, Facebook not brought back in the last {@link #BRING_BACK_GAP_MS} and no start
+     * sent to a task of its own in the last {@link #SENT_AWAY_GAP_MS}, as of [now]. Answering yes
+     * starts that gap.
      */
     static synchronized boolean bringingBack(Activity activity, long now) {
         Activity screen = armedScreen.get();
         if (screen == null || screen == activity) return false;
         if (!screen.isInPictureInPictureMode() || screen.getTaskId() != activity.getTaskId() || !on()) return false;
-        if (now - broughtBackAt < BRING_BACK_GAP_MS) return false;
+        if (now - sentAwayAt < SENT_AWAY_GAP_MS || now - broughtBackAt < BRING_BACK_GAP_MS) return false;
         broughtBackAt = now;
         return true;
     }
 
     private static synchronized Activity armedScreen() {
         return armedScreen.get();
+    }
+
+    /** A start while a reel floats got a task of its own at [now]. */
+    static synchronized void sentAway(long now) {
+        sentAwayAt = now;
     }
 
     /** [activity] paused a moment ago. If it's the armed screen and it floats in the window now, that's noted. */
@@ -451,8 +657,8 @@ public final class PictureInPicture {
 
     /**
      * Facebook mostly arms the window again once it's opened full screen, but not every time, and
-     * then its last arming stays on: leaving Facebook opened the window on its whole screen, with a
-     * purple block where the reel should be (#126). Unless Facebook armed or disarmed since [seen],
+     * then its last arming stays on, for a reel that may not be the one on screen anymore (#126).
+     * Unless Facebook armed or disarmed since [seen],
      * the window is armed again for the reel on screen, as a swipe arms it, or kept closed for a
      * reel it doesn't take. A pause holding auto-enter still holds it.
      */
@@ -495,10 +701,81 @@ public final class PictureInPicture {
         }
     }
 
+    /**
+     * The hook, first thing in Facebook's launch step (583 `LX/0Oe;->A01`), which every start of a
+     * Facebook screen passes with the [context] it starts from and its [intent], before Facebook's
+     * interceptors copy it. While a reel floats from a screen other than Facebook's main one, two
+     * kinds of start would end in the window's task, so each gets FLAG_ACTIVITY_NEW_TASK and
+     * FLAG_ACTIVITY_MULTIPLE_TASK and opens full screen in a task of its own, with the reel still
+     * floating (#126):
+     * - a start of the floating screen's own class that looks for a task. The window's task has that
+     *   screen at its root, and Android counts an intent that differs only in its extras as the same
+     *   one, so it brought the floating reel forward and dropped the page.
+     * - the first start of a task stack Facebook builds with its main screen under a page, which
+     *   clears the task it finds and drew the main screen in the window. The page's own start after
+     *   it is left alone and follows it into its new task.
+     * A floating main screen, the Reels tab's window, is left to {@link #arrived}.
+     */
+    public static void ownTask(@Nullable Context context, @Nullable Intent intent) {
+        try {
+            if (intent == null || followsItsStack(intent)) return;
+            Activity screen = armedScreen();
+            if (screen == null || !screen.isInPictureInPictureMode() || screen.isFinishing() || !on()) return;
+            String floats = screen.getComponentName().getClassName();
+            ComponentName target = intent.getComponent();
+            if (FacebookTabs.MAIN_TAB_ACTIVITY.equals(floats) || target == null
+                    || !screen.getPackageName().equals(target.getPackageName())) return;
+            boolean stackFirst = (intent.getFlags() & Intent.FLAG_ACTIVITY_NEW_TASK) != 0
+                    && intent.getBooleanExtra(UNDER_A_PAGE, false);
+            if (!stackFirst && !(floats.equals(target.getClassName()) && looksForTask(context, intent, screen))) return;
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+            sentAway(SystemClock.uptimeMillis());
+            if (stackFirst) stackGoesBy();
+            HookStatus.bound(FAMILY, "start while floating");
+            HookStatus.counted(FAMILY, OWN_TASK);
+            Logger.printDebug(() -> "Picture-in-picture: " + target.getShortClassName() + " started in a task of its own while a reel floats");
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "start while floating", failure);
+        }
+    }
+
+    /**
+     * Whether Android looks for a task to start [intent] from [context] in: it asks for a new one, or
+     * comes from no activity (Facebook adds NEW_TASK after its launch step then), from a
+     * single-instance one like Facebook's link handler, or from inside the floating [screen]'s task.
+     */
+    private static boolean looksForTask(@Nullable Context context, Intent intent, Activity screen) throws PackageManager.NameNotFoundException {
+        if ((intent.getFlags() & Intent.FLAG_ACTIVITY_NEW_TASK) != 0) return true;
+        Activity source = activityOf(context);
+        if (source == null || source.getTaskId() == screen.getTaskId()) return true;
+        return source.getPackageManager().getActivityInfo(source.getComponentName(), 0).launchMode
+                == ActivityInfo.LAUNCH_SINGLE_INSTANCE;
+    }
+
+    /**
+     * Whether [intent] is a later start of a task stack whose first start got a task of its own just
+     * now on this thread: it asks for no new task, so it goes on top of that one.
+     */
+    private static boolean followsItsStack(Intent intent) {
+        if (stackGoingBy.get() == null) return false;
+        if ((intent.getFlags() & Intent.FLAG_ACTIVITY_NEW_TASK) == 0) return true;
+        stackGoingBy.remove();
+        return false;
+    }
+
+    /** Marks a task stack going by on this thread until its next message, when there is a looper to end it. */
+    private static void stackGoesBy() {
+        Looper looper = Looper.myLooper();
+        if (looper == null) return;
+        stackGoingBy.set(Boolean.TRUE);
+        new Handler(looper).post(stackGoingBy::remove);
+    }
+
     /** The hook, first thing in each of ReelsPipUtil's disarms. Nothing is armed after it. */
     public static void disarmed() {
         try {
             arm(null, null, null);
+            PictureInPictureButton.sync();
             Logger.printDebug(() -> "Picture-in-picture: disarmed");
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "disarm", failure);
@@ -569,12 +846,17 @@ public final class PictureInPicture {
      * the reel on screen from now on: a held auto-enter goes back on, switch or no switch, since it
      * was the extension that turned it off, and a reel other than the armed one gets the window
      * armed again for it. Unless that other player's video is off screen: Facebook getting the next
-     * reel ready plays it for a moment, and the window then opened on that reel, or on a purple
-     * block where its video wasn't drawn (#126).
+     * reel ready plays it for a moment, and the window then opened on that reel (#126). Or unless it
+     * plays on another screen, such as Home beside a floating viewer ({@link #onAnotherScreen}).
      */
     public static void playerPlaying(Object player) {
         try {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || player == null) return;
+            if (anotherReel(player) && onAnotherScreen(player)) {
+                HookStatus.counted(FAMILY, OTHER_SCREEN);
+                Logger.printDebug(() -> "Picture-in-picture: player " + System.identityHashCode(player) + " plays on another screen, left out");
+                return;
+            }
             if (anotherReel(player) && offScreen(player)) {
                 HookStatus.counted(FAMILY, OFF_SCREEN);
                 Logger.printDebug(() -> "Picture-in-picture: player " + System.identityHashCode(player) + " plays off screen, left out");
@@ -680,6 +962,7 @@ public final class PictureInPicture {
             unfit = true;
             held = false;
         }
+        PictureInPictureButton.sync();
         if (screen.isInPictureInPictureMode()) return;
         autoEnter(screen, false);
         HookStatus.bound(FAMILY, "arming again");
@@ -794,6 +1077,49 @@ public final class PictureInPicture {
         }
     }
 
+    /**
+     * The hook, in the opening of the window's viewer, as it hides each view of the screen but its
+     * own container: keeps how [view] showed, for {@link #shownAgain} on the way back. The viewer
+     * can open twice on the way into the window, so a hidden view keeps what was kept for it.
+     */
+    public static void hiding(View view) {
+        try {
+            if (view == null || !on()) return;
+            HookStatus.bound(FAMILY, "screen hidden");
+            int now = view.getVisibility();
+            if (now != View.GONE || !beforeWindow.containsKey(view)) beforeWindow.put(view, now);
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "screen hidden", failure);
+        }
+    }
+
+    /**
+     * The hook, in place of Facebook's call that shows each view of the screen again on the way
+     * back from the window, with the [visibility] Facebook asks for: shown, whatever the view was
+     * before. A view the viewer hid goes back to how it showed before instead. Among them are the
+     * spots for views Facebook builds only once they're shown (ViewStubs), and showing one builds
+     * it: the reel viewer got Facebook Flex's switcher bar, a purple button over the top right of
+     * the reel, and four more views it never shows (#126). A spot hidden before stays hidden, and so
+     * does a spot the viewer didn't hide.
+     */
+    public static void shownAgain(View view, int visibility) {
+        int shown = visibility;
+        try {
+            if (view != null && on()) {
+                HookStatus.bound(FAMILY, "screen shown again");
+                Integer before = beforeWindow.remove(view);
+                int kept = before != null ? before : view instanceof ViewStub ? view.getVisibility() : visibility;
+                if (kept != visibility) {
+                    HookStatus.counted(FAMILY, AS_BEFORE);
+                    shown = kept;
+                }
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "screen shown again", failure);
+        }
+        view.setVisibility(shown);
+    }
+
     /** Whether a window is armed with a reel on screen. */
     private static synchronized boolean tracking() {
         return armedScreen.get() != null && current.get() != null;
@@ -801,11 +1127,12 @@ public final class PictureInPicture {
 
     /**
      * Params with only auto-enter set change only auto-enter, as Facebook's own disarm relies on.
-     * While the window opens only from the More menu, it's always off.
+     * While the window opens only from the More menu, or the settings show over the screen, it's
+     * always off.
      */
     @RequiresApi(Build.VERSION_CODES.S)
     private static void autoEnter(Activity screen, boolean enabled) {
-        boolean answer = enabled && !menuOnly();
+        boolean answer = enabled && !menuOnly() && !underSettings(screen);
         screen.setPictureInPictureParams(new PictureInPictureParams.Builder().setAutoEnterEnabled(answer).build());
     }
 
@@ -820,12 +1147,18 @@ public final class PictureInPicture {
         return on() && Settings.PICTURE_IN_PICTURE_FROM_MENU.get();
     }
 
-    /** Forgets what was armed and when a page last brought Facebook back. Tests only. */
+    /**
+     * Forgets what was armed, when a page last brought Facebook back or a start last got a task of its
+     * own, and a task stack going by. Tests only.
+     */
     static void forget() {
         arm(null, null, null);
+        stackGoingBy.remove();
         synchronized (PictureInPicture.class) {
             broughtBackAt = -BRING_BACK_GAP_MS;
+            sentAwayAt = -SENT_AWAY_GAP_MS;
             floating = new WeakReference<>(null);
+            underSettings = new WeakReference<>(null);
         }
     }
 }

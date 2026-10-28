@@ -20,6 +20,7 @@ import android.graphics.drawable.RippleDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -48,9 +49,11 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * only has to stop hiding what's under it. Both are found by classes Redex keeps: the top bar's
  * NavigationBar and the tab bar's TabBarContainerLayout, which draws the selected tab's line in its
  * onDraw. Each bar is the highest view above one of those that is still bar sized, and every
- * background in it that spans the bar (most of its width and at least half its height) is a fill:
- * Facebook's own drawable, in the colour the theme, Material You or AMOLED gave it, with its alpha
- * scaled down. Small backgrounds, such as a badge or a round button, and a tab's touch ripple keep
+ * background in it that spans the bar (most of its width and at least half the height of its row)
+ * is a fill: Facebook's own drawable, in the colour the theme, Material You or AMOLED gave it, with
+ * its alpha scaled down. A row is the NavigationBar's or the TabBarContainerLayout's own height,
+ * since with the tab bar at the top one holder stacks both rows and neither fill is half of it
+ * (#171). Small backgrounds, such as a badge or a round button, and a tab's touch ripple keep
  * theirs, and nothing is laid out again, so the icons, the selected tab's line, the touch targets
  * and the insets stay as they were.
  *
@@ -67,7 +70,11 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * blurred in its overlay, so the blur sits between the feed and the bar's tint. RenderEffect only
  * blurs a view's own content, which is why the copy is needed. It costs one recording and one blur
  * of a bar sized area per bar per frame, and only while a frame draws anyway. The frost fades and
- * moves with the bar, so a bar sliding away takes its frost along.
+ * moves with the bar, so a bar sliding away takes its frost along. It stays inside the bar's rows,
+ * so a holder taller than its tabs can't blur a band of the feed above them, and a page showing a
+ * SurfaceView gets none: drawing one a second time moves or drops its video surface, and the reel
+ * went black (#171). Only one on screen counts. Reels' page waiting beside Home with its video
+ * kept every tab plain once Reels had been opened, which read as the frost coming and going (#188).
  *
  * <p>Any failure gives every fill back and stops the bars of that screen, which then look stock.
  */
@@ -148,12 +155,56 @@ public final class TranslucentBars {
     }
 
     /**
-     * Whether [view]'s background [drawn] fills [bar]: it spans nine tenths of the bar's width and
-     * half its height, and isn't a touch ripple, which is clear until a tab is pressed.
+     * Whether [view]'s background [drawn] fills [bar], whose rows are [row] pixels tall: it spans
+     * nine tenths of the bar's width and half a row's height, and isn't a touch ripple, which is
+     * clear until a tab is pressed.
      */
-    static boolean fills(View view, @Nullable Drawable drawn, View bar) {
+    static boolean fills(View view, @Nullable Drawable drawn, View bar, int row) {
         if (drawn == null || drawn instanceof RippleDrawable) return false;
-        return bar.getWidth() > 0 && view.getWidth() * 10 >= bar.getWidth() * 9 && view.getHeight() * 2 >= bar.getHeight();
+        return bar.getWidth() > 0 && view.getWidth() * 10 >= bar.getWidth() * 9 && view.getHeight() * 2 >= row;
+    }
+
+    /**
+     * Keeps the frost [area] inside [rows], the bar's rows on screen in a window [windowHeight]
+     * tall, on the feed's side: a bar in the lower half is frosted from its rows down, one in the
+     * upper half from its rows up. The status bar and gesture insets past the rows stay frosted.
+     */
+    static void keepInside(Rect area, Rect rows, int windowHeight) {
+        if (rows.isEmpty()) return;
+        if (rows.centerY() * 2 > windowHeight) {
+            area.top = Math.max(area.top, rows.top);
+        } else {
+            area.bottom = Math.min(area.bottom, rows.bottom);
+        }
+    }
+
+    /**
+     * Whether [host] is a SurfaceView or shows one: a visible one somewhere inside its box. One that's
+     * hidden, or laid out or scrolled outside the box, isn't on screen to be moved, the way Facebook
+     * 583 keeps each opened tab's page beside the one shown in a pager (#188). [box] is scratch space.
+     */
+    static boolean holdsSurface(View host, Rect box) {
+        if (host instanceof SurfaceView) return true;
+        box.set(0, 0, host.getWidth(), host.getHeight());
+        return surfaceInside(host, box);
+    }
+
+    /** Whether a visible child of [view] is or holds a SurfaceView inside [box], in [view]'s coordinates. */
+    private static boolean surfaceInside(View view, Rect box) {
+        if (!(view instanceof ViewGroup)) return false;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE) continue;
+            int dx = child.getLeft() + Math.round(child.getTranslationX()) - group.getScrollX();
+            int dy = child.getTop() + Math.round(child.getTranslationY()) - group.getScrollY();
+            box.offset(-dx, -dy);
+            boolean shows = box.intersects(0, 0, child.getWidth(), child.getHeight())
+                    && (child instanceof SurfaceView || surfaceInside(child, box));
+            box.offset(dx, dy);
+            if (shows) return true;
+        }
+        return false;
     }
 
     /**
@@ -255,9 +306,13 @@ public final class TranslucentBars {
         final Map<Drawable, Fill> fills = new IdentityHashMap<>();
         /** Each bar's frost, by the bar. */
         private final Map<View, Object> frosts = new IdentityHashMap<>();
-        /** The part of one bar's fills on screen this frame, in the window, and one fill's part. */
+        /**
+         * The part of one bar's fills on screen this frame, in the window, one fill's or anchor's
+         * part (also the surface check's scratch box), and the bar's rows.
+         */
         private final Rect seen = new Rect();
         private final Rect visible = new Rect();
+        private final Rect rows = new Rect();
         private long nextLook;
         private int frame;
         private boolean stopped;
@@ -302,15 +357,26 @@ public final class TranslucentBars {
             frame++;
             int height = window.getHeight();
             boolean blurs = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && window.isHardwareAccelerated();
-            for (WeakReference<View> reference : anchors) {
-                View anchor = reference.get();
-                if (anchor == null || !anchor.isShown()) continue;
+            for (int i = 0; i < anchors.size(); i++) {
+                View anchor = shown(i);
+                if (anchor == null) continue;
                 View bar = barOf(anchor, height);
-                if (bar.getWidth() <= 0 || bar.getHeight() <= 0) continue;
+                if (bar.getWidth() <= 0 || bar.getHeight() <= 0 || barBefore(bar, i, height)) continue;
+                // With the tab bar at the top, both anchors share one holder: one pass, both rows.
+                int row = bar.getHeight();
+                rows.setEmpty();
+                for (int k = i; k < anchors.size(); k++) {
+                    View other = shown(k);
+                    if (other == null || barOf(other, height) != bar) continue;
+                    if (other.getHeight() > 0) row = Math.min(row, other.getHeight());
+                    if (other.getGlobalVisibleRect(visible)) rows.union(visible);
+                }
                 View under = blurs ? under(bar) : null;
+                if (under != null && holdsSurface(under, visible)) under = null;
                 seen.setEmpty();
-                float shown = keep(bar, bar, under != null, 1f, 0);
+                float shown = keep(bar, bar, row, under != null, 1f, 0);
                 if (under != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    keepInside(seen, rows, height);
                     if (shown > 0f && !seen.isEmpty()) {
                         frost(bar, under, seen, shown);
                     } else {
@@ -322,6 +388,22 @@ public final class TranslucentBars {
             }
             forgetUnseen();
             dropStaleFrost();
+        }
+
+        /** Anchor [index], or null when it's gone or not on screen. */
+        @Nullable
+        private View shown(int index) {
+            View anchor = anchors.get(index).get();
+            return anchor == null || !anchor.isShown() ? null : anchor;
+        }
+
+        /** Whether an anchor before [index] has [bar] as its bar, so this frame already did it. */
+        private boolean barBefore(View bar, int index, int windowHeight) {
+            for (int j = 0; j < index; j++) {
+                View earlier = shown(j);
+                if (earlier != null && barOf(earlier, windowHeight) == bar) return true;
+            }
+            return false;
         }
 
         /**
@@ -374,17 +456,17 @@ public final class TranslucentBars {
 
         /**
          * Makes each fill in [view] and under it, down to {@link #MAX_DEPTH}, see-through, and adds
-         * the part of each fill on screen to {@link #seen}. [alpha] is how drawn [view]'s parents in
-         * the bar are. Answers how drawn the most drawn fill on screen is, 0 for none, which the
-         * frost takes. A bar Facebook slides or fades away moves a view inside it, so the frost
-         * follows the fills rather than the bar's top view.
+         * the part of each fill on screen to {@link #seen}. [row] is the height of the bar's rows,
+         * and [alpha] is how drawn [view]'s parents in the bar are. Answers how drawn the most drawn
+         * fill on screen is, 0 for none, which the frost takes. A bar Facebook slides or fades away
+         * moves a view inside it, so the frost follows the fills rather than the bar's top view.
          */
-        private float keep(View view, View bar, boolean frosted, float alpha, int depth) {
+        private float keep(View view, View bar, int row, boolean frosted, float alpha, int depth) {
             if (view.getVisibility() != View.VISIBLE) return 0f;
             float drawn = alpha * view.getAlpha();
             float most = 0f;
             Drawable background = view.getBackground();
-            if (fills(view, background, bar)) {
+            if (fills(view, background, bar, row)) {
                 makeSeeThrough(background, frosted);
                 if (frosted && drawn > 0f && view.getGlobalVisibleRect(visible)) {
                     seen.union(visible);
@@ -394,7 +476,7 @@ public final class TranslucentBars {
             if (depth < MAX_DEPTH && view instanceof ViewGroup) {
                 ViewGroup group = (ViewGroup) view;
                 for (int i = 0; i < group.getChildCount(); i++) {
-                    most = Math.max(most, keep(group.getChildAt(i), bar, frosted, drawn, depth + 1));
+                    most = Math.max(most, keep(group.getChildAt(i), bar, row, frosted, drawn, depth + 1));
                 }
             }
             return most;
@@ -503,18 +585,23 @@ public final class TranslucentBars {
      * A bar's frost, in the overlay of the view under it: the part of that view the bar covers,
      * recorded before each frame and drawn blurred, so it lands over the feed and under the bar.
      * The recording draws the view, overlay included, and the frost skips itself while it does.
+     * The blur sits inside [node], which clips it and fades it: a blurred node drawn at less than
+     * full alpha spreads its clamped edge a blur's reach past its own box, the strip left above a
+     * tab bar sliding away (#250).
      */
     @RequiresApi(Build.VERSION_CODES.S)
     static final class Frost extends Drawable {
         final View host;
-        private final RenderNode node = new RenderNode("Hushfacebook frost");
+        final RenderNode node = new RenderNode("Hushfacebook frost");
+        final RenderNode blur = new RenderNode("Hushfacebook frost blur");
         private final int[] origin = new int[2];
         private boolean recording;
         int frame;
 
         Frost(View host, float radius) {
             this.host = host;
-            node.setRenderEffect(RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP));
+            blur.setRenderEffect(RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP));
+            blur.setClipToBounds(true);
             node.setClipToBounds(true);
             setBounds(0, 0, host.getWidth(), host.getHeight());
             host.getOverlay().add(this);
@@ -533,15 +620,18 @@ public final class TranslucentBars {
             int height = area.height();
             node.setPosition(left, top, left + width, top + height);
             node.setAlpha(shown);
-            RecordingCanvas canvas = node.beginRecording(width, height);
+            blur.setPosition(0, 0, width, height);
+            RecordingCanvas canvas = blur.beginRecording(width, height);
             recording = true;
             try {
                 canvas.translate(-left - host.getScrollX(), -top - host.getScrollY());
                 host.draw(canvas);
             } finally {
                 recording = false;
-                node.endRecording();
+                blur.endRecording();
             }
+            node.beginRecording(width, height).drawRenderNode(blur);
+            node.endRecording();
         }
 
         /** Draws nothing this frame, for a bar out of sight. */
@@ -550,11 +640,13 @@ public final class TranslucentBars {
             node.setPosition(0, 0, 0, 0);
             node.beginRecording(0, 0);
             node.endRecording();
+            blur.discardDisplayList();
         }
 
         void remove() {
             host.getOverlay().remove(this);
             node.discardDisplayList();
+            blur.discardDisplayList();
         }
 
         @Override

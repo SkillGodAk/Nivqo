@@ -112,13 +112,16 @@ public class HookStatusTest {
                 HookStatus.report(" (paused)"));
     }
 
-    /** A family keeps sixteen names at most, so a caller that passes varying text can't grow the report. */
+    /**
+     * A family keeps twenty-four names at most, so a caller that passes varying text can't grow the
+     * report, while Picture-in-picture's eighteen fixed ones all fit.
+     */
     @Test
-    public void aFamilyCountsSixteenNamesAtMost() {
+    public void aFamilyCountsTwentyFourNamesAtMost() {
         for (int i = 0; i < 40; i++) HookStatus.counted("Reels", "kind " + i);
         String line = HookStatus.report().get(0);
-        assertTrue(line, line.contains("kind 15 1"));
-        assertTrue(line, !line.contains("kind 16"));
+        assertTrue(line, line.contains("kind 23 1"));
+        assertTrue(line, !line.contains("kind 24"));
     }
 
     @Test

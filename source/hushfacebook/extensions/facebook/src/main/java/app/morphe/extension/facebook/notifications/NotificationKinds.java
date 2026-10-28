@@ -223,10 +223,11 @@ public final class NotificationKinds {
     /**
      * The constant name [type] stands for, the way Facebook reads it: the part before the first
      * colon, in upper case. Null for no type, and for one that isn't made of a constant name's
-     * letters, digits and underscores, which no constant can match.
+     * letters, digits and underscores, which no constant can match. Leave calls and chats to
+     * Messenger reads a push's kind the same way.
      */
     @Nullable
-    static String kindOf(@Nullable String type) {
+    public static String kindOf(@Nullable String type) {
         if (type == null) return null;
         int colon = type.indexOf(':');
         String head = colon >= 0 ? type.substring(0, colon) : type;

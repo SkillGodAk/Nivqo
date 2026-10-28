@@ -257,6 +257,74 @@ class SettingsRowShapesTest {
         assertEquals(6, offsetTarget(builder, 0))
     }
 
+    private val lists = "Lfixture/Lists;"
+    private val settingsList = ImmutableFieldReference(lists, "A01", IMMUTABLE_LIST)
+    private val helpList = ImmutableFieldReference(lists, "A00", IMMUTABLE_LIST)
+
+    /**
+     * 584's native section, in short: it reads the Settings list kept in v2's holder, writes a list it
+     * built back and the Boolean of its flag right after, then reads and writes the Help list under
+     * the holder's monitor. [between] goes between the Settings list's write and its flag's, and
+     * [jumpBack] ends the code in a jump onto the instruction after the Settings list's read.
+     */
+    private fun keepingSection(between: List<Instruction> = emptyList(), monitor: Boolean = true, jumpBack: Boolean = false): Method {
+        val code = listOf(
+            ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 2, settingsList),
+            ImmutableInstruction10x(Opcode.NOP),
+            ImmutableInstruction22c(Opcode.IPUT_OBJECT, 0, 2, settingsList),
+        ) + between + listOf(
+            ImmutableInstruction22c(Opcode.IPUT_OBJECT, 1, 2, ImmutableFieldReference(lists, "A02", "Ljava/lang/Boolean;")),
+            if (monitor) ImmutableInstruction11x(Opcode.MONITOR_ENTER, 2) else ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 3),
+            ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 2, helpList),
+            ImmutableInstruction22c(Opcode.IPUT_OBJECT, 0, 2, helpList),
+            ImmutableInstruction11x(Opcode.MONITOR_EXIT, 2),
+        )
+        // The jump back goes from the end to the nop, at code address 2.
+        val end = code.sumOf { it.codeUnits }
+        val tail = if (jumpBack) listOf(ImmutableInstruction10t(Opcode.GOTO, 2 - end)) else listOf(ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0))
+        return method(helper, "A2R", listOf("Lfixture/Context;"), "Lfixture/Children;", 4, code + tail)
+    }
+
+    @Test
+    fun `584's section keeps the Settings list beside its flag and the Help list under the holder's monitor`() {
+        val kept = keptRowLists(keepingSection())
+        assertEquals("$lists->A01:$IMMUTABLE_LIST", kept?.settings?.let(::reference))
+        assertEquals("$lists->A00:$IMMUTABLE_LIST", kept?.help?.let(::reference))
+        assertEquals("each read and write of the Settings list, in order", listOf(0 to 0, 2 to 0),
+            keptListReads(keepingSection(), settingsList)?.map { it.index to it.register })
+
+        assertNull("no Help list read under a monitor", keptRowLists(keepingSection(monitor = false)))
+        assertNull("the flag written after a jump isn't the list's",
+            keptRowLists(keepingSection(between = listOf(ImmutableInstruction10t(Opcode.GOTO, 1)))))
+        assertNull("another field written first", keptRowLists(keepingSection(
+            between = listOf(ImmutableInstruction22c(Opcode.IPUT_OBJECT, 1, 2, ImmutableFieldReference(lists, "A03", STRING))))))
+        assertTrue("hooks between the list and its flag write no field", keptRowLists(keepingSection(between = listOf(
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0), ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0), ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+        ))) != null)
+        assertNull("a jump onto the code after a read", keptListReads(keepingSection(jumpBack = true), settingsList))
+    }
+
+    @Test
+    fun `584's Settings list goes through the row after the section reads it and after it writes it`() {
+        val section = MutableMethod(keepingSection())
+        section.passKeptListThroughRow(settingsList)
+        val code = section.implementation!!.instructions.toList()
+        assertEquals(keepingSection().implementation!!.instructions.count() + 10, code.size)
+        for (at in listOf(0, 7)) {
+            assertEquals("a missing list is left alone", Opcode.IF_EQZ, code[at + 1].opcode)
+            assertEquals(at + 6, offsetTarget(section, at + 1))
+            assertEquals(WITH_ROW, ((code[at + 2] as ReferenceInstruction).reference as MethodReference).let {
+                "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}"
+            })
+            assertEquals(0, (code[at + 2] as RegisterRangeInstruction).startRegister)
+        }
+        assertEquals("the kept list is written as Facebook built it", Opcode.IPUT_OBJECT, code[7].opcode)
+        assertThrows(PatchException::class.java) {
+            MutableMethod(keepingSection()).passKeptListThroughRow(ImmutableFieldReference(lists, "A09", IMMUTABLE_LIST))
+        }
+    }
+
     private fun idOf() = ImmutableFieldReference(item, "A02", "J")
 
     @Test

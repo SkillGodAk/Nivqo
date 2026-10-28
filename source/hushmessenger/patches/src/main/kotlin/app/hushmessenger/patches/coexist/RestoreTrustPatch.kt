@@ -20,9 +20,15 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PACKAGE_INFO = "Landroid/content/pm/PackageInfo;"
 
@@ -31,6 +37,13 @@ private const val ORIGINAL_SIGNERS = "Lapp/hushmessenger/extension/MessengerSign
 
 internal const val FBNS_SIGNERS = "Lapp/hushmessenger/extension/MessengerSignature;->" +
     "fbnsSigners(Landroid/content/pm/PackageInfo;[Landroid/content/pm/Signature;)[Landroid/content/pm/Signature;"
+
+internal const val FAMILY_LINK_LAUNCHED = "Lapp/hushmessenger/extension/FamilyLinks;->" +
+    "launched(ZLandroid/content/Context;Landroid/content/Intent;)V"
+
+private const val CONTEXT = "Landroid/content/Context;"
+private const val INTENT = "Landroid/content/Intent;"
+private const val URI = "Landroid/net/Uri;"
 
 /**
  * Messenger's trust checks read the signers of a package through a method that prefers the
@@ -73,10 +86,26 @@ internal object FbnsPackageCheckFingerprint : Fingerprint(
     ),
 )
 
+/**
+ * Messenger's Threads and Instagram link launchers: each takes the tapped link, builds a view intent
+ * for its app and hands it to Meta's family launcher, logging under its own tag when that throws.
+ */
+internal object ThreadsLinkLauncherFingerprint : Fingerprint(
+    returnType = "V",
+    parameters = listOf(CONTEXT, URI),
+    filters = listOf(string("com.instagram.barcelona"), string("ThreadsLinkLauncher")),
+)
+
+internal object InstagramLinkLauncherFingerprint : Fingerprint(
+    returnType = "V",
+    parameters = listOf(CONTEXT, URI),
+    filters = listOf(string("com.instagram.android"), string("InstagramLinkLauncher")),
+)
+
 @Suppress("unused")
 val restoreTrustPatch = bytecodePatch(
     name = "Restore screens on re-signed builds",
-    description = "Patching and signing Messenger yourself can break some of its screens. This makes Messenger's signature check pass again, including for a Facebook you patched with the same key. Works as soon as you patch it in, with no switch.",
+    description = "Patching and signing Messenger yourself can break some of its screens. This makes Messenger's signature check pass again, including for a Facebook you patched with the same key, and lets Threads and Instagram video links open in a Threads or Instagram you patched yourself. Works as soon as you patch it in, with no switch.",
     default = true,
 ) {
     category("Fixes")
@@ -101,8 +130,103 @@ val restoreTrustPatch = bytecodePatch(
         }
         check(constructor != null) { "$signers has no (List, boolean, boolean) constructor" }
 
+        val threads = ThreadsLinkLauncherFingerprint.method
+        val instagram = InstagramLinkLauncherFingerprint.method
+        // Both launchers are checked before either changes.
+        val sites = listOf(threads.linkLaunchSites("Threads"), instagram.linkLaunchSites("Instagram"))
+
         method.answerOriginalSigners(packageInfo, signers)
         FbnsPackageCheckFingerprint.method.routeFbnsSigners()
+        threads.reportLinkLaunches(sites[0])
+        instagram.reportLinkLaunches(sites[1])
+    }
+}
+
+/** Where a link launcher hands its intent to the family launcher, and the three registers of that call. */
+internal class LinkLaunchSite(val index: Int, val launcher: Int, val context: Int, val intent: Int)
+
+/**
+ * The calls in a Threads or Instagram link launcher that hand the view intent to Meta's family
+ * launcher: instance `(Context, Intent)Z` calls whose answer is dropped by the return-void straight
+ * after each. Since 584 Instagram's has two, one for when an Instagram is installed and one for
+ * when none is. The context is the launcher's own Context parameter and the intent is the one the
+ * method built from the link with a static `(Uri)Intent` call, not written again before a launch,
+ * and nothing after a launch jumps back to it. The launcher
+ * register is dead after the call, so it can take the answer. `invoke-static` names 4-bit
+ * registers, so all three must be v15 or lower. Anything else stops the patch before any edit.
+ */
+internal fun MutableMethod.linkLaunchSites(app: String): List<LinkLaunchSite> {
+    fun refuse(why: String): Nothing = throw PatchException("Restore screens on re-signed builds: $app's link launcher $why")
+    if (AccessFlags.STATIC.isSet(accessFlags)) refuse("is static")
+    val code = implementation!!.instructions.toList()
+    fun Instruction.method() = ((this as? ReferenceInstruction)?.reference as? MethodReference)
+    val launches = code.withIndex().filter { (_, instruction) ->
+        instruction.opcode == Opcode.INVOKE_VIRTUAL && instruction.method()?.let {
+            it.returnType == "Z" && it.parameterTypes.map(CharSequence::toString) == listOf(CONTEXT, INTENT)
+        } == true
+    }
+    if (launches.isEmpty()) refuse("has no launches")
+    val builds = code.withIndex().filter { (_, instruction) ->
+        instruction.opcode == Opcode.INVOKE_STATIC && instruction.method()?.let {
+            it.returnType == INTENT && it.parameterTypes.map(CharSequence::toString) == listOf(URI)
+        } == true
+    }
+    val build = builds.singleOrNull()?.index ?: refuse("builds ${builds.size} intents from its link, expected 1")
+    val targets = jumpTargets()
+    return launches.map { (index, launch) ->
+        if (code.getOrNull(index + 1)?.opcode != Opcode.RETURN_VOID) refuse("uses its launch's answer")
+        if (index + 1 in targets) refuse("jumps to the return after its launch")
+        val call = launch as FiveRegisterInstruction
+        val site = LinkLaunchSite(index, call.registerC, call.registerD, call.registerE)
+        if (setOf(site.launcher, site.context, site.intent).size != 3 || maxOf(site.launcher, site.context, site.intent) > 15) {
+            refuse("launches with v${site.launcher}, v${site.context} and v${site.intent}, which the call can't name")
+        }
+        if (site.context != implementation!!.registerCount - 2) refuse("launches with a Context other than its own")
+        val result = code.getOrNull(build + 1)
+        if (build > index || result?.opcode != Opcode.MOVE_RESULT_OBJECT || (result as OneRegisterInstruction).registerA != site.intent) {
+            refuse("launches an intent other than the one it built from the link")
+        }
+        // The catch block after the return reuses the register for its log message, which can't reach the launch.
+        val rewrites = (build + 2 until index).count { i ->
+            code[i].opcode.setsRegister() && (code[i] as? OneRegisterInstruction)?.registerA == site.intent
+        }
+        if (rewrites != 0) refuse("writes its intent's register again before its launch")
+        if (backJumps(code, index)) refuse("jumps back to its launch from after it")
+        site
+    }
+}
+
+/** Whether a branch or switch case after [index] lands at or before it. */
+private fun backJumps(code: List<Instruction>, index: Int): Boolean {
+    val addresses = IntArray(code.size + 1)
+    for (i in code.indices) addresses[i + 1] = addresses[i] + code[i].codeUnits
+    val indexAt = code.indices.associateBy { addresses[it] }
+    return (index + 1 until code.size).any { i ->
+        val jump = code[i] as? OffsetInstruction ?: return@any false
+        val landing = addresses[i] + jump.codeOffset
+        val cases = if (jump.opcode == Opcode.PACKED_SWITCH || jump.opcode == Opcode.SPARSE_SWITCH) {
+            // Case offsets count from the switch instruction, not from its payload.
+            (indexAt[landing]?.let(code::get) as? SwitchPayload)?.switchElements?.map { addresses[i] + it.offset }.orEmpty()
+        } else {
+            listOf(landing)
+        }
+        cases.any { it <= addresses[index] }
+    }
+}
+
+/**
+ * Hands each family launch's dropped answer, with the context and intent it got, to the extension.
+ * The last site goes first so the earlier indices still point at their launches.
+ */
+internal fun MutableMethod.reportLinkLaunches(sites: List<LinkLaunchSite>) {
+    for (site in sites.sortedByDescending { it.index }) {
+        addInstructions(
+            site.index + 1,
+            """
+                move-result v${site.launcher}
+                invoke-static { v${site.launcher}, v${site.context}, v${site.intent} }, $FAMILY_LINK_LAUNCHED
+            """,
+        )
     }
 }
 

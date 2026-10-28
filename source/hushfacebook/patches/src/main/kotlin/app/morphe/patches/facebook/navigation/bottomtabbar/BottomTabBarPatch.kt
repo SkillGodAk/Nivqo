@@ -15,6 +15,7 @@ import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
+import app.morphe.util.classDefForEachReferencing
 import app.morphe.util.findMutableMethodOf
 import app.morphe.util.literalReads
 import com.android.tools.smali.dexlib2.Opcode
@@ -57,22 +58,27 @@ internal const val OVERRIDE = "$BOTTOM_TAB_BAR->override(I)I"
  *
  * See-through bars, one more switch off by default, needs no hook: the extension finds both bars
  * by their kept classes as the main screen draws (TranslucentBars.java, started from the settings
- * entry's onApplicationCreate while this patch is in).
+ * entry's onApplicationCreate while this patch is in). Hide the status bar works the same way, and
+ * one hook closes the strip Facebook draws behind the bar once it's gone (see StatusBarStrip.kt).
  */
 @Suppress("unused")
 val bottomTabBarPatch = bytecodePatch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Tab bar at the bottom",
     description = "Moves Facebook's tab bar to the bottom of the screen on accounts that have it at the top, " +
-        "where it's easier to reach. A second switch puts it at the top instead, as older Facebook had it. Another " +
-        "lets it slide away as you scroll, and two more keep the tab bar or the top bar on screen instead. One gives " +
+        "where it's easier to reach. `Tab bar position` can also put it at the top, as older Facebook had it, or " +
+        "leave it where Facebook puts it. `Tab bar while scrolling` lets it slide away as you scroll or keeps it on " +
+        "screen, and another switch keeps the top bar on screen. One gives " +
         "tablets and unfolded phones the phone layout so the bar can move there too, and one makes the top bar and " +
-        "the tab bar see-through. Starts off. Turn it on in " +
-        "Hushfacebook settings > Appearance, then restart Facebook.",
+        "the tab bar see-through. Another hides the phone's status bar on the main screen until you swipe down " +
+        "from the top. Three more take the Messenger button, its unread count or the Facebook logo out " +
+        "of the top bar. Starts off. Pick it in " +
+        "Hushfacebook settings > Tabs and navigation, then restart Facebook. The see-through and status bar " +
+        "switches sit under Appearance.",
 ) {
     category("Navigation")
     // The other switches: Facebook's own scroll-away for both bars, in TabBarScrollAwayPatch.kt.
-    dependsOn(settingsPatch, tabBarScrollAwayPatch)
+    dependsOn(settingsPatch, tabBarScrollAwayPatch, topBarButtonsPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {
@@ -80,12 +86,18 @@ val bottomTabBarPatch = bytecodePatch(
             classDefByStrings(OVERRIDE_KEY, StringComparisonType.EQUALS).filterNot { it.type.startsWith(EXTENSION_CLASSES) },
         )
         val reads = mutableListOf<OverrideRead>()
-        classDefForEach { classDef ->
-            if (classDef.type.startsWith(EXTENSION_CLASSES)) return@classDefForEach
-            classDef.methods.forEach { method -> reads += overrideReads(method, key) }
+        val paddings = mutableListOf<Method>()
+        // A read loads the key's field, and a system bar padding answers Insets.
+        classDefForEachReferencing(types = listOf(key.definingClass, ANDROIDX_INSETS)) { classDef ->
+            if (classDef.type.startsWith(EXTENSION_CLASSES)) return@classDefForEachReferencing
+            classDef.methods.forEach { method ->
+                reads += overrideReads(method, key)
+                if (takesSystemBarPadding(method)) paddings += method
+            }
         }
         if (reads.isEmpty()) refuse("nothing reads $key from FbSharedPreferences")
         hookBigScreenLayout(reads)
+        hookStatusBarStrip(paddings)
         reads.groupBy { it.method }.forEach { (method, sites) ->
             mutableClassDefBy(method.definingClass).findMutableMethodOf(method).hookOverrideReads(sites)
         }

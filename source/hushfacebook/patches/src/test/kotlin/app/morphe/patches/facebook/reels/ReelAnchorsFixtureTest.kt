@@ -141,7 +141,7 @@ class ReelAnchorsFixtureTest {
                 assertNull("$name: ${follow.problem}", follow.problem)
                 val getter = follow.getter
                 if (getter == null) {
-                    // 583: two flag reads in a merged lambda, each a static case with a local for its hook.
+                    // 583 and 584: two flag reads in a merged lambda, each a static case with a local for its hook.
                     assertEquals("$name: ${follow.flags}", 2, follow.flags.size)
                     val lambda = FixtureDex.classes(bundle, setOf(follow.flags.first().definingClass)).values.single()
                     for (flag in follow.flags) {
@@ -193,7 +193,7 @@ class ReelAnchorsFixtureTest {
                 val follow = followButtonGetter(dumper, classesOf(bundle))
                 val getter = follow.getter
                 val author = if (getter == null) {
-                    // 583 reads the Following button's config through flags, so the row is found by its own literal.
+                    // 583 and 584 read the Following button's config through flags, so the row is found by its own literal.
                     assertTrue("$name: the dump names no Following getter or flags", follow.flags.isNotEmpty())
                     FixtureDex.classesHolding(bundle, AUTHOR_COMPONENT).flatMap { methodsHolding(it, AUTHOR_COMPONENT) }.single()
                 } else {
@@ -213,6 +213,31 @@ class ReelAnchorsFixtureTest {
         assertEquals("a declared build went unchecked: $checked", versions.toSet(), checked.keys)
     }
 
+    /**
+     * The Reels tab's audio line row (#200), found the way the patch finds it: the one `render` that
+     * picks the soundtrack model before it can return and answers null first, out of the renders
+     * holding the same name. The chip filter alone left the line there on 583.
+     */
+    @Test
+    fun `every declared build has one Reels tab audio line row, with a local for its hook`() {
+        val versions = AppCompatibilities.facebook().single().targets.mapNotNull { it.version }
+        assertTrue("the bundle declares no Facebook build", versions.isNotEmpty())
+        val checked = mutableMapOf<String, String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
+                val name = bundle.name
+                val holders = FixtureDex.classesHolding(bundle, SOUNDTRACK_CHIP)
+                val renders = holders.flatMap { classDef -> classDef.methods.filter { it.name == RENDER && holdsString(it, SOUNDTRACK_CHIP) } }
+                assertTrue("$name: only ${renders.size} renders hold \"$SOUNDTRACK_CHIP\"", renders.size >= 2)
+                val rows = holders.flatMap { classDef -> classDef.methods.filter(::isAudioLineRender) }
+                assertEquals("$name: $rows", 1, rows.size)
+                assertTrue("$name: the row has no local for the hook", locals(rows.single()) >= 1)
+                checked[version] = rows.single().definingClass
+            }
+        }
+        assertEquals("a declared build went unchecked: $checked", versions.toSet(), checked.keys)
+    }
+
     @Test
     fun `the patch requires the chips the extension hides`() {
         val declutter = File(RepoFiles.root,
@@ -221,5 +246,9 @@ class ReelAnchorsFixtureTest {
             ?: throw AssertionError("ReelDeclutter.java has no HIDDEN_CHIPS array")
         val hidden = Regex(""""([A-Za-z]+)"""").findAll(array.groupValues[1]).map { it.groupValues[1] }.toList()
         assertEquals(HIDDEN_CHIPS, hidden)
+        // #200: the audio line the extension hides under its own switch is the one the builder must name.
+        val soundtrack = Regex("""SOUNDTRACK_CHIP\s*=\s*"([A-Za-z]+)"""").find(declutter.readText())
+            ?: throw AssertionError("ReelDeclutter.java has no SOUNDTRACK_CHIP")
+        assertEquals(SOUNDTRACK_CHIP, soundtrack.groupValues[1])
     }
 }

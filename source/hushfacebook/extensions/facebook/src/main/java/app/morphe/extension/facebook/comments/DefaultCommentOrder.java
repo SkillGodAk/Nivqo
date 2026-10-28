@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import kotlin.jvm.functions.Function1;
 
@@ -44,6 +45,11 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  *   <li>a post whose order was picked in its sheet's menu since Facebook started gets that order
  *       again ({@link #picked} hears the pick first), until Facebook restarts.
  * </ul>
+ *
+ * <p>A post's own page, which a link to the post and many notifications open, gets its comments
+ * with the story in one request of its own, and that request carried only the order the link
+ * named (#192). The patch has the one builder of that request from a link ask {@link #pageOrder}
+ * right before it makes the request's params, and the chosen order fills in there the same way.
  *
  * <p>Facebook's answer names the order it used, which is what the sheet's menu then shows. Its own
  * links to a post can name an order the same way.
@@ -167,6 +173,13 @@ public final class DefaultCommentOrder {
                 }
             });
 
+    /**
+     * When a post page's request was last left for its menu, or 0 for none. The page's request has
+     * no feedback id yet, so its menu is the first one drawn after it within {@link
+     * #AWAIT_WINDOW_MS} that no sheet's request is waiting for.
+     */
+    private static final AtomicLong pageLeftAt = new AtomicLong();
+
     /** Set while a pick this class made in a menu runs, so the line it writes says so. */
     private static final ThreadLocal<Boolean> picking = new ThreadLocal<>();
 
@@ -260,6 +273,42 @@ public final class DefaultCommentOrder {
     }
 
     /**
+     * Injection point, right before the one builder of a post page's request from a link makes
+     * the request's params, with the order the link names, empty or null for none (#192). Answers
+     * the order the page asks for: a named one stays, Most relevant and Newest go out up front,
+     * and All comments is left for the page's menu, noted in {@link #pageLeftAt} for {@link
+     * #sortMenu}. A link to one comment opens a sheet, not the page, so there's no focused comment
+     * to keep here. Never throws.
+     */
+    @Nullable
+    public static String pageOrder(@Nullable String token) {
+        try {
+            if (!inBuild()) return token;
+            HookStatus.invoked(FamilyNames.DEFAULT_COMMENT_ORDER);
+            RuntimeException failure = failNextForTests;
+            if (failure != null) {
+                failNextForTests = null;
+                throw failure;
+            }
+            HookStatus.bound(FamilyNames.DEFAULT_COMMENT_ORDER, "post page request");
+            if (!isEmpty(token)) return token;
+            CommentOrder order = chosen();
+            if (order == null) return token;
+            if (deferred(order)) {
+                pageLeftAt.set(now());
+                HookStatus.counted(FamilyNames.DEFAULT_COMMENT_ORDER, LEFT_FOR_MENU);
+                log("left " + describe(order.token) + " for a post page's menu to offer.");
+                return token;
+            }
+            log("asked for " + describe(order.token) + " on a post's page.");
+            return order.token;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.DEFAULT_COMMENT_ORDER, "post page request", failure);
+            return token;
+        }
+    }
+
+    /**
      * Injection point, first thing in a comment sheet's pick handler, with the token of the order
      * picked in its menu. The request it sends comes next, on this thread, and {@link
      * #requestedOrder} keeps the order for that post. Never throws.
@@ -320,6 +369,11 @@ public final class DefaultCommentOrder {
             if (isEmpty(feedbackId)) return;
             Long asked = awaiting.remove(feedbackId);
             boolean left = asked != null && now() - asked <= AWAIT_WINDOW_MS;
+            if (!left) {
+                // A post page's request had no feedback id, so its menu is the next one drawn.
+                long page = pageLeftAt.getAndSet(0L);
+                left = page != 0L && now() - page <= AWAIT_WINDOW_MS;
+            }
             // A post that kept the order, from a tap or a pick here, can come back in another one: a
             // refetch built from the first request's params names none and leaves nothing waiting.
             boolean kept = !left && order.isNamedBy(picks.get(feedbackId));
@@ -432,11 +486,12 @@ public final class DefaultCommentOrder {
         }
     }
 
-    /** Forgets the picks, the pending one, the posts left for their menus and the line count, as a new process would. */
+    /** Forgets the picks, the pending one, the posts and page left for their menus and the line count, as a new process would. */
     static void forget() {
         picks.clear();
         pending.remove();
         awaiting.clear();
+        pageLeftAt.set(0L);
         answered.clear();
         decisions.set(0);
     }

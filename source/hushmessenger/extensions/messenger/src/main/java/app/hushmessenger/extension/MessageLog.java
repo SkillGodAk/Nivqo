@@ -85,6 +85,13 @@ public final class MessageLog {
     /** Messages captured but not yet written, oldest first. Guarded by itself. */
     private static final ArrayDeque<Entry> PENDING = new ArrayDeque<>();
     private static boolean drainScheduled;
+    /** How long after a failed write the queue is written again, doubled for each failure in a row up to RETRY_MAX_MS. */
+    static final long RETRY_MS = 30_000, RETRY_MAX_MS = 30L * 60 * 1000;
+    /** Sets up the write that follows a failed one. Tests take the delay here instead. */
+    static java.util.function.LongConsumer retryLater = delay -> WRITER.schedule(MessageLog::retry, delay, TimeUnit.MILLISECONDS);
+    /** Whether that write is set up, and how many writes failed in a row. Guarded by PENDING. */
+    private static boolean retryScheduled;
+    private static int failedWrites;
     /** When each recent capture came in, by chat and message id or a digest of its words, oldest first. Guarded by PENDING. */
     private static final LinkedHashMap<String, Long> RECENT = new LinkedHashMap<>();
     /** Sender and group name auto reply read before answering, by chat and message id. Guarded by itself. */
@@ -311,16 +318,46 @@ public final class MessageLog {
                 entries.addAll(withNames);
                 prune(entries, System.currentTimeMillis());
                 save(context, entries);
+                synchronized (PENDING) {
+                    failedWrites = 0;
+                }
                 Settings.activeAt.put(KEY, System.currentTimeMillis());
             } catch (Throwable failure) {
-                // Back in front of the queue, so the next notification's write tries them again. The cap still holds.
+                long delay = 0;
+                // Back in front of the queue, so the next write tries them again. The cap still holds.
                 synchronized (PENDING) {
                     for (int i = retry.size() - 1; i >= 0; i--) PENDING.addFirst(retry.get(i));
                     while (PENDING.size() > MAX_ENTRIES) PENDING.removeFirst();
+                    // No other message may come to write them before the process ends, so they get a write of their own.
+                    // Only the retries count toward the wait, so a burst of messages during an outage doesn't stretch it.
+                    if (!retryScheduled) {
+                        retryScheduled = true;
+                        delay = Math.min(RETRY_MAX_MS, RETRY_MS << Math.min(failedWrites, 6));
+                        failedWrites++;
+                    }
                 }
                 Settings.hookFailedPrivately(KEY, "Can't keep the message log", failure);
+                if (delay > 0) {
+                    try {
+                        retryLater.accept(delay);
+                    } catch (RuntimeException rejected) {
+                        // Otherwise no later failure would set one up either.
+                        synchronized (PENDING) {
+                            retryScheduled = false;
+                        }
+                        Settings.hookFailedPrivately(KEY, "Can't set up another try of the message log", rejected);
+                    }
+                }
             }
         }
+    }
+
+    /** The write set up after a failed one. */
+    static void retry() {
+        synchronized (PENDING) {
+            retryScheduled = false;
+        }
+        drain();
     }
 
     /**
@@ -438,10 +475,16 @@ public final class MessageLog {
 
     /** Deletes the file, anything set aside and the key, and drops messages still waiting to be written. */
     static boolean clear() {
+        return clear(null);
+    }
+
+    /** {@link #clear} that adds the messages it drops from the queue to [taken], in the same step as dropping them. */
+    private static boolean clear(List<Entry> taken) {
         Context context = Settings.appContext;
         boolean cleared = context != null;
         synchronized (LOCK) {
             synchronized (PENDING) {
+                if (taken != null) taken.addAll(PENDING);
                 PENDING.clear();
             }
             // Names Auto reply noted for messages not written yet go with them.
@@ -466,6 +509,57 @@ public final class MessageLog {
             }
         }
         return cleared;
+    }
+
+    /** A clear's outcome, with what it took, oldest first. */
+    static final class Cleared {
+        final boolean cleared;
+        final List<Entry> removed;
+        Cleared(boolean cleared, List<Entry> removed) {
+            this.cleared = cleared;
+            this.removed = removed;
+        }
+    }
+
+    /**
+     * {@link #clear} that hands back what it took, the file's messages then the ones waiting to be written, for the
+     * settings screen's Undo. The copy lives in memory only. A log that can't be read comes back with nothing to put back.
+     */
+    static Cleared clearForUndo() {
+        Context context = Settings.appContext;
+        List<Entry> removed = new ArrayList<>();
+        synchronized (LOCK) {
+            if (context != null) {
+                try {
+                    // read, not load: load sets a damaged file aside and answers with an empty log, which would put
+                    // back only the queued few here.
+                    removed.addAll(read(new File(context.getFilesDir(), FILE)));
+                } catch (Throwable unreadable) {
+                    // Putting back only the queued few would read as the whole log coming back.
+                    return new Cleared(clear(), new ArrayList<>());
+                }
+            }
+            // A message queued while the file was read is taken with the rest, never dropped unseen.
+            return new Cleared(clear(removed), removed);
+        }
+    }
+
+    /** Puts back what a clear took, ahead of anything logged since, within the usual limits and under a new key. */
+    static boolean restore(List<Entry> removed) {
+        Context context = Settings.appContext;
+        if (context == null) return false;
+        synchronized (LOCK) {
+            try {
+                List<Entry> entries = new ArrayList<>(removed);
+                entries.addAll(load(context));
+                prune(entries, System.currentTimeMillis());
+                save(context, entries);
+                return true;
+            } catch (Throwable failure) {
+                Settings.hookFailedPrivately(KEY, "Can't put the message log back", failure);
+                return false;
+            }
+        }
     }
 
     /**

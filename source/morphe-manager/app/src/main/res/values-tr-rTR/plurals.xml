@@ -4,6 +4,11 @@
         <item quantity="one">%s yama</item>
         <item quantity="other">%s yama</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s kütüphane</item>
+        <item quantity="other">%s kütüphane</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s yama seçeneği</item>
         <item quantity="other">%s yama seçeneği</item>
@@ -26,6 +31,10 @@
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">%s uygulama için yama kaynakları</item>
         <item quantity="other">%s uygulama için yama kaynakları</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s kaynağı bu uygulama için gizlenmiş. Geri getirmek için Uygulamalar sekmesindeki uygulamayı seçin ve Kaynakları Düzelt\'i açın</item>
+        <item quantity="other">%s kaynağı bu uygulama için gizlenmiş. Geri getirmek için Uygulamalar sekmesindeki uygulamayı seçin ve Kaynakları Düzelt\'i açın</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s kaynak gizlendi. Göstermek için dokunun</item>
@@ -55,6 +64,10 @@
         <item quantity="one">%s uygulama yüklendi</item>
         <item quantity="other">%s uygulama yüklendi</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">%s uygulama bağlandı</item>
+        <item quantity="other">%s uygulama bağlandı</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">%s uygulama yeniden yüklendi</item>
         <item quantity="other">%s uygulama yeniden yüklendi</item>
@@ -70,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">%s uygulama yamalanmaya hazır</item>
         <item quantity="other">%s uygulama yamalanmaya hazır</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s uygulaması yama için kuyruğa alındı</item>
+        <item quantity="other">%s uygulama yama için kuyruğa alındı</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s gizli bildirim, göstermek için dokunun</item>
+        <item quantity="other">%s gizli bildirim, göstermek için dokunun</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s uygulama yeniden yamalanabilir</item>
@@ -87,9 +108,17 @@
         <item quantity="one">%s kaynak yüklendi</item>
         <item quantity="other">%s kaynak yüklendi</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s filtrelenmiş</item>
-        <item quantity="other">%1$s · %2$s filtrelenmiş</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s uygulama gizlendi</item>
+        <item quantity="other">%s uygulama gizlendi</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s uygulama gösteriliyor</item>
+        <item quantity="other">%s uygulama gösteriliyor</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">%s uygulamasını gizlemesini kaldır?</item>
+        <item quantity="other">%s uygulamayı gizlemesini kaldır?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s gizli uygulama</item>
@@ -112,20 +141,25 @@
         <item quantity="other">%s çekirdek</item>
     </plurals>
     <plurals name="changelog_feature_count">
-        <item quantity="one">%s özelliği</item>
-        <item quantity="other">%s özellikleri</item>
+        <item quantity="one">%s özellik</item>
+        <item quantity="other">%s özellik</item>
     </plurals>
     <plurals name="changelog_fix_count">
         <item quantity="one">%s düzeltme</item>
         <item quantity="other">%s düzeltme</item>
     </plurals>
     <plurals name="changelog_performance_count">
-        <item quantity="one">%s optimizasyonu</item>
-        <item quantity="other">%s optimizasyonları</item>
+        <item quantity="one">%s optimizasyon</item>
+        <item quantity="other">%s optimizasyon</item>
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="one">%s değişiklik</item>
         <item quantity="other">%s değişiklik</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d yeni</item>
+        <item quantity="other">%1$s · %2$d yeni</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s yeni sürüm</item>

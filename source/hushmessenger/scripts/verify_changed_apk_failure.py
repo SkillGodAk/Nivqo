@@ -13,9 +13,11 @@ from pathlib import Path
 from zipfile import BadZipFile, ZipFile
 
 if __package__:
+    from . import desktop_result
     from .build_queue import queued, time_limit
     from .check_release import run_bounded
 else:
+    import desktop_result
     from build_queue import queued, time_limit
     from check_release import run_bounded
 
@@ -124,31 +126,20 @@ def check(args: argparse.Namespace) -> int:
         report = json.loads(report_path.read_text(encoding="utf-8"))
         if not isinstance(report, dict):
             raise TypeError("Desktop did not write a patch result object")
-        failed = report.get("failedPatches")
-        steps = report.get("patchingSteps")
-        if (
-            not isinstance(failed, list)
-            or any(
-                not isinstance(item, dict)
-                or not isinstance(item.get("patch"), dict)
-                or not isinstance(item.get("reason"), str)
-                for item in failed
-            )
-            or not isinstance(steps, list)
-            or any(
-                not isinstance(step, dict)
-                or not isinstance(step.get("step"), str)
-                or not isinstance(step.get("success"), bool)
-                for step in steps
-            )
+        try:
+            failed = desktop_result.failures(report)
+        except ValueError as error:
+            raise ValueError("Desktop wrote an incomplete or malformed patch result") from error
+        steps = desktop_result.steps(report)
+        if not isinstance(steps, list) or any(
+            not isinstance(step, dict)
+            or not isinstance(step.get("step"), str)
+            or not isinstance(step.get("success"), bool)
+            for step in steps
         ):
             raise ValueError("Desktop wrote an incomplete or malformed patch result")
         patch_failure = next(
-            (
-                item
-                for item in failed
-                if item.get("patch", {}).get("name") == "Install beside Meta apps"
-            ),
+            (reason for name, reason in failed if name == "Install beside Meta apps"),
             None,
         )
         if (
@@ -163,13 +154,13 @@ def check(args: argparse.Namespace) -> int:
         reason = next(
             (
                 line.strip()
-                for line in patch_failure["reason"].splitlines()
+                for line in patch_failure.splitlines()
                 if names_every_build(line)
             ),
             None,
         )
         if reason is None:
-            print(patch_failure["reason"].partition("\n")[0].rstrip("\r"))
+            print(patch_failure.partition("\n")[0].rstrip("\r"))
             raise RuntimeError(
                 "failure did not identify the changed permission DEX sites"
             )

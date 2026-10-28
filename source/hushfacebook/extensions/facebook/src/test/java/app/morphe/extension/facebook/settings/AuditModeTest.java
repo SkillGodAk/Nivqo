@@ -11,12 +11,17 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.content.res.Resources;
+import android.os.LocaleList;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 
@@ -25,8 +30,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Locale;
 
 import app.morphe.extension.shared.SettingsContextRule;
+import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.settings.BooleanSetting;
 
 /**
@@ -128,6 +137,122 @@ public class AuditModeTest {
         AuditMode.writeReport(folder);
         assertFalse(read("report.txt").isEmpty());
         assertFalse(new File(folder, "report.txt.part").exists());
+    }
+
+    @Test
+    public void theAppliedSnapshotReportsActualChoicesAndRefusedImportsCannotRefreshIt() throws Exception {
+        folder.mkdirs();
+        write(new File(folder, "settings.json"), "{\"format\":\"hushfacebook-audit\",\"profile\":\"defaults\"}");
+        AuditMode.onApplicationCreate(context);
+        String applied = read("applied.json");
+        assertEquals(SettingsBackup.create(), applied);
+        write(new File(folder, "settings.json"), "{\"format\":\"hushfacebook-audit\",\"profile\":\"invalid\"}");
+        AuditMode.onApplicationCreate(context);
+        assertEquals(applied, read("applied.json"));
+        assertTrue(read("import.txt").startsWith("refused:"));
+    }
+
+    @Test
+    public void aDisplayedPageRecordsItsCanonicalRouteAndTranslatedTitleOnlyDuringAnAudit() throws Exception {
+        AuditMode.pageShown(context, "News feed", "Actualités");
+        assertFalse(new File(folder, "page.json").exists());
+        folder.mkdirs();
+        AuditMode.pageShown(context, "News feed", "Actualités");
+        JSONObject recorded = new JSONObject(read("page.json"));
+        assertEquals("News feed", recorded.getString("route"));
+        assertEquals("Actualités", recorded.getString("title"));
+        assertEquals(2, recorded.getInt("schema"));
+        assertEquals(L10n.locale(context).toLanguageTag(), recorded.getString("locale"));
+        assertFalse(recorded.has("expandedSections"));
+        assertFalse(recorded.has("sectionRows"));
+    }
+
+    @Test
+    public void anAccordionAcknowledgmentRecordsEveryExpandedSectionAndTheRequestedRows() throws Exception {
+        AuditMode.pageShown(context, "News feed", "Actualités",
+                Arrays.asList("News feed", "Playback", "support"), 12);
+        assertFalse(new File(folder, "page.json").exists());
+        folder.mkdirs();
+        AuditMode.pageShown(context, "News feed", "Actualités",
+                Arrays.asList("News feed", "Playback", "support"), 12);
+
+        JSONObject recorded = new JSONObject(read("page.json"));
+        assertEquals(3, recorded.getInt("schema"));
+        assertEquals("News feed", recorded.getString("route"));
+        assertEquals("Actualités", recorded.getString("title"));
+        assertEquals(12, recorded.getInt("sectionRows"));
+        assertTrue(recorded.getBoolean("targetExpanded"));
+        JSONArray expanded = recorded.getJSONArray("expandedSections");
+        assertEquals(3, expanded.length());
+        assertEquals("News feed", expanded.getString(0));
+        assertEquals("Playback", expanded.getString(1));
+        assertEquals("support", expanded.getString(2));
+    }
+
+    @Test
+    public void aCollapsedSectionAndTheHomeListDoNotClaimAnExpandedTarget() throws Exception {
+        folder.mkdirs();
+        AuditMode.pageShown(context, "News feed", "News feed", Collections.singletonList("Playback"), 0);
+        JSONObject collapsed = new JSONObject(read("page.json"));
+        assertEquals(3, collapsed.getInt("schema"));
+        assertFalse(collapsed.getBoolean("targetExpanded"));
+        assertEquals(0, collapsed.getInt("sectionRows"));
+
+        AuditMode.pageShown(context, "", "Hushfacebook", Collections.singletonList("Playback"), 0);
+        JSONObject home = new JSONObject(read("page.json"));
+        assertEquals("", home.getString("route"));
+        assertEquals("Hushfacebook", home.getString("title"));
+        assertFalse(home.getBoolean("targetExpanded"));
+        assertEquals(0, home.getInt("sectionRows"));
+        assertEquals("Playback", home.getJSONArray("expandedSections").getString(0));
+    }
+
+    @Test
+    public void supportUsesItsStableIdAndASectionWithoutRowsReportsZero() throws Exception {
+        folder.mkdirs();
+        AuditMode.pageShown(context, "support", "Support", Collections.singletonList("support"), 4);
+        JSONObject support = new JSONObject(read("page.json"));
+        assertEquals("support", support.getString("route"));
+        assertEquals("Support", support.getString("title"));
+        assertTrue(support.getBoolean("targetExpanded"));
+        assertEquals(4, support.getInt("sectionRows"));
+
+        AuditMode.pageShown(context, "News feed", "News feed", Collections.singletonList("News feed"), 0);
+        JSONObject empty = new JSONObject(read("page.json"));
+        assertTrue(empty.getBoolean("targetExpanded"));
+        assertEquals(0, empty.getInt("sectionRows"));
+    }
+
+    @Test
+    public void aPageAcknowledgmentIncludesTheWholeApplicationLocaleLookupOrder() throws Exception {
+        Resources resources = context.getResources();
+        Configuration previous = new Configuration(resources.getConfiguration());
+        try {
+            Configuration requested = new Configuration(previous);
+            requested.setLocales(new LocaleList(Locale.forLanguageTag("ar-SA"), Locale.GERMANY));
+            resources.updateConfiguration(requested, resources.getDisplayMetrics());
+            folder.mkdirs();
+
+            // Arabic has no table, so the application's second language supplies the title.
+            String title = L10n.t(context, "News feed");
+            assertEquals("Newsfeed", title);
+            AuditMode.pageShown(context, "News feed", title, Collections.singletonList("News feed"), 8);
+
+            JSONObject recorded = new JSONObject(read("page.json"));
+            assertEquals(3, recorded.getInt("schema"));
+            assertEquals("News feed", recorded.getString("route"));
+            assertEquals("Newsfeed", recorded.getString("title"));
+            assertEquals("ar-SA", recorded.getString("locale"));
+            JSONArray tags = recorded.getJSONArray("localeTags");
+            assertEquals(4, tags.length());
+            assertEquals("ar-rsa", tags.getString(0));
+            assertEquals("ar", tags.getString(1));
+            assertEquals("de-rde", tags.getString(2));
+            assertEquals("de", tags.getString(3));
+        } finally {
+            resources.updateConfiguration(previous, resources.getDisplayMetrics());
+        }
+        assertEquals(previous.getLocales(), resources.getConfiguration().getLocales());
     }
 
     private static Intent pageIntent(String page) {

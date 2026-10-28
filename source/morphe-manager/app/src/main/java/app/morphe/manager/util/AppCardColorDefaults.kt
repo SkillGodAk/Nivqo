@@ -41,7 +41,23 @@ data class AppCardColorValues(
     val middleHex: String = "",
     val endHex: String = "",
     val solidHex: String = ""
-)
+) {
+    /** The stored value of [stop], blank while it was never set. */
+    operator fun get(stop: AppCardColorStop): String = when (stop) {
+        AppCardColorStop.START -> startHex
+        AppCardColorStop.MIDDLE -> middleHex
+        AppCardColorStop.END -> endHex
+        AppCardColorStop.SOLID -> solidHex
+    }
+
+    /** These values with [stop] set to [hex], the other stops left as they are. */
+    fun with(stop: AppCardColorStop, hex: String): AppCardColorValues = when (stop) {
+        AppCardColorStop.START -> copy(startHex = hex)
+        AppCardColorStop.MIDDLE -> copy(middleHex = hex)
+        AppCardColorStop.END -> copy(endHex = hex)
+        AppCardColorStop.SOLID -> copy(solidHex = hex)
+    }
+}
 
 /**
  * Resolves the palette of a single card. 'bundleColors' are the colors declared by that app's
@@ -145,13 +161,9 @@ object AppCardColorDefaults {
     ): List<Color>? = resolver(mode, accentHex, accentFallback, values)
         ?.resolve(previewBundleColors)
 
-    fun encodeColorValues(
-        startHex: String,
-        middleHex: String,
-        endHex: String,
-        solidHex: String
-    ): String = listOf(startHex, middleHex, endHex, solidHex)
-        .joinToString(COLOR_VALUES_SEPARATOR)
+    fun encodeColorValues(values: AppCardColorValues): String =
+        listOf(values.startHex, values.middleHex, values.endHex, values.solidHex)
+            .joinToString(COLOR_VALUES_SEPARATOR)
 
     fun decodeColorValues(value: String): AppCardColorValues {
         if (value.isBlank()) return AppCardColorValues()

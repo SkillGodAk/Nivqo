@@ -10,6 +10,7 @@ import app.morphe.PatchContexts
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.misc.extension.SETTINGS_STATUS
+import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -77,8 +78,10 @@ class HidePostPromptsFixtureTest {
                 val followReturns = followOriginal.withIndex().filter { it.value.opcode == Opcode.RETURN }
                 assertTrue("$name: the follow check never returns", followReturns.isNotEmpty())
 
+                // The counts and reaction preview hooks have their own fixture tests (PostCounts, ReactionPreview).
                 val context = PatchContexts.of(listOf(component, plugin, ExtensionDex.classDef(SETTINGS_STATUS)))
-                hidePostPromptsPatch.execute(context)
+                context.hidePromptChecks()
+                context.enableStatus("postPrompts")
 
                 val followPatched = context.mutableClassDefBy(FOLLOW_TEXT_PLUGIN).methods
                     .single { it.name == followCheck.name && isFollowLinkCheck(it) }.code()

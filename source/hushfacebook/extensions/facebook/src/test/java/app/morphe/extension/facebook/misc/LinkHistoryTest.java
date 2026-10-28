@@ -77,4 +77,41 @@ public class LinkHistoryTest {
         PauseForTests.resume();
         assertTrue(LinkHistory.hold());
     }
+
+    @Test
+    public void onByDefaultTheUploadIsHeldAndCountedApart() {
+        assertTrue("the upload was sent", LinkHistory.holdUpload());
+        assertTrue(LinkHistory.hold());
+        assertEquals(LinkHistory.ROUTE + ": 2 lists, 2 items, 2 removed. Last reason: " + LinkHistory.WRITERS
+                + ". Removed: " + LinkHistory.UPLOADS + " 1, " + LinkHistory.WRITERS + " 1", counterLine());
+    }
+
+    @Test
+    public void offOrPausedTheUploadIsSent() {
+        Settings.HOLD_LINK_HISTORY.save(false);
+        assertFalse(LinkHistory.holdUpload());
+        Settings.HOLD_LINK_HISTORY.resetToDefault();
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse(LinkHistory.holdUpload());
+        assertEquals(LinkHistory.ROUTE + ": 2 lists, 2 items, 0 removed", counterLine());
+    }
+
+    @Test
+    public void onByDefaultBothAutofillReportsAreHeldAndCountedApart() {
+        assertTrue("the form report was logged", LinkHistory.holdAutofillReport());
+        assertTrue("the first-party data event was logged", LinkHistory.holdAutofillReport());
+        assertTrue(LinkHistory.holdUpload());
+        assertEquals(LinkHistory.ROUTE + ": 3 lists, 3 items, 3 removed. Last reason: " + LinkHistory.UPLOADS
+                + ". Removed: " + LinkHistory.AUTOFILL_REPORTS + " 2, " + LinkHistory.UPLOADS + " 1", counterLine());
+    }
+
+    @Test
+    public void offOrPausedTheAutofillReportsAreLogged() {
+        Settings.HOLD_LINK_HISTORY.save(false);
+        assertFalse(LinkHistory.holdAutofillReport());
+        Settings.HOLD_LINK_HISTORY.resetToDefault();
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse(LinkHistory.holdAutofillReport());
+        assertEquals(LinkHistory.ROUTE + ": 2 lists, 2 items, 0 removed", counterLine());
+    }
 }

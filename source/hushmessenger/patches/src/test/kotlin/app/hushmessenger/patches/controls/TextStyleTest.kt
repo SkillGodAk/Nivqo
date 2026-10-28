@@ -118,7 +118,7 @@ class TextStyleTest {
 
     @Test fun theHookIsTheFocusChangeOfTheOneEditTextThatNamesTheRemeasure() {
         assertEquals(setOf(SYNTHETIC_TEXT_FIELD_FOCUS), found(textFieldFixture()))
-        for (profile in listOf(SYNTHETIC_PROFILE, BASE_PROFILE, PROFILE_346611351)) {
+        for (profile in listOf(SYNTHETIC_PROFILE, BASE_PROFILE)) {
             assertEquals(1, profile.hooks.getValue(TEXT_STYLE).size)
             assertTrue(profile.hooks.getValue(TEXT_STYLE).single().endsWith(";->onFocusChanged(ZILandroid/graphics/Rect;)V"))
         }

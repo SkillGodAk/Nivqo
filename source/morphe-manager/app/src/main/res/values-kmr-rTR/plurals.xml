@@ -4,13 +4,46 @@
         <item quantity="one">%s çareser</item>
         <item quantity="other">%s çareserên</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s pirtûkxane</item>
+        <item quantity="other">%s pirtûkxane</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s vebûna hevsêr</item>
         <item quantity="other">%s vebûnên hevsêr</item>
     </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s hêman</item>
+        <item quantity="other">%s hêman</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">%s pelê hilbijêre</item>
+        <item quantity="other">%s pelan hilbijêre</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">%s çavkaniyê zêde bike</item>
+        <item quantity="other">%s çavkaniyan zêde bike</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Çavkaniyên Pêçanê ji bo %s sepanê</item>
+        <item quantity="other">Çavkaniyên Pêçanê ji bo %s sepanan</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s çavkanî ji bo vê sepanê veşartî ye. Di taba Sepan de sepanê hilbijêre û Çavkaniyên Pêçanê veke da ku ew vegere.</item>
+        <item quantity="other">%s çavkanî ji bo vê sepanê veşartî ne. Di taba Sepan de sepanê hilbijêre û Çavkaniyên Pêçanê veke da ku ew dîsa werin.</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s çavkanî veşartî ye. Ji bo nîşandanê bikirtîne</item>
+        <item quantity="other">%s çavkanî veşartî ne. Ji bo nîşandana wan bikirtîne</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s pêçeka lihevhatî</item>
+        <item quantity="other">%s pêçekên lihevhatî</item>
+    </plurals>
     <plurals name="source_count">
         <item quantity="one">%s çavkanî</item>
         <item quantity="other">%s çavkanîyên</item>
@@ -31,6 +64,10 @@
         <item quantity="one">%s app saz kirin</item>
         <item quantity="other">%s appan saz kirin</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">%s sepan hatiye pêvekirin</item>
+        <item quantity="other">%s sepan hatine pêvekirin</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">%s app dîsa saz kirin</item>
         <item quantity="other">%s appan dîsa saz kirin</item>
@@ -46,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">%s app pêşniyar kirin bo paqijkirinê</item>
         <item quantity="other">%s appan pêşniyar kirin bo paqijkirinê</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s sepan di rêza pêçanê de ye</item>
+        <item quantity="other">%s sepan di rêza pêçanê de ne</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s agahdariya veşartî, bikirtîne da ku xuya bibe</item>
+        <item quantity="other">%s agahdariyên veşartî, bikirtîne da ku xuya bibin</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s app dikare ji nû ve were nûkirin</item>
@@ -63,6 +108,18 @@
         <item quantity="one">%s çavkanî hate saz kirin</item>
         <item quantity="other">%s çavkanîyên hate saz kirin</item>
     </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s sepan veşartî ye</item>
+        <item quantity="other">%s sepan veşartî ne</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s sepan xuya ye</item>
+        <item quantity="other">%s sepan xuya ne</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Rake veşartina %s sepanê?</item>
+        <item quantity="other">Rake veşartina %s sepanan?</item>
+    </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s sepanêyê veşartî</item>
         <item quantity="other">%s sepanên veşartî</item>
@@ -71,8 +128,49 @@
         <item quantity="one">%s app</item>
         <item quantity="other">%s apps</item>
     </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s hatiye hilbijartin</item>
+        <item quantity="other">%s hatine hilbijartin</item>
+    </plurals>
     <plurals name="expert_mode_copy_from_bundle_done">
         <item quantity="one">%s pelê ji pakête hilbijartî ve kopî kir</item>
         <item quantity="other">%s pelên ji pakête hilbijartî ve kopî kir</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s navik</item>
+        <item quantity="other">%s navik</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s taybetmendî</item>
+        <item quantity="other">%s taybetmendî</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s sererastkirin</item>
+        <item quantity="other">%s sererastkirin</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s çêtirkirin</item>
+        <item quantity="other">%s çêtirkirin</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s guhertin</item>
+        <item quantity="other">%s guhertin</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d nû</item>
+        <item quantity="other">%1$s · %2$d nû</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s guhertoya nû</item>
+        <item quantity="other">%s guhertoyên nû</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d girêdan çalak e</item>
+        <item quantity="other">%d girêdan çalak in</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d girêdan nerastandî ye</item>
+        <item quantity="other">%d girêdan nerastandî ne</item>
     </plurals>
 </resources>

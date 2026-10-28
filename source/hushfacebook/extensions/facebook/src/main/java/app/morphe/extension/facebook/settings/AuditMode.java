@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import app.morphe.extension.shared.Logger;
+import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.settings.BooleanSetting;
 import app.morphe.extension.shared.settings.preference.LogBufferManager;
@@ -62,14 +63,16 @@ public final class AuditMode {
 
     /**
      * Switches all-on leaves at their defaults, since each one stops a tour of the app from
-     * seeing what it should: a single kept tab, a lock over every screen, links and chats handed
-     * to other apps, whole kinds of posts gone from the feed, and the second tab bar position.
+     * seeing what it should: a single kept tab, a lock over every screen, a Facebook that closes
+     * whenever the tour opens another app, links and chats handed to other apps, whole kinds of
+     * posts gone from the feed, and the second tab bar position.
      */
     static final List<BooleanSetting> ALL_ON_EXCLUDED = Collections.unmodifiableList(Arrays.asList(
             Settings.MARKETPLACE_ONLY,
             Settings.EVENTS_ONLY,
             Settings.TOP_TAB_BAR,
             Settings.APP_LOCK,
+            Settings.CLOSE_WHEN_LEFT,
             Settings.OPEN_LINKS_EXTERNALLY,
             Settings.OPEN_MESSENGER_APP,
             Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER,
@@ -78,6 +81,7 @@ public final class AuditMode {
             Settings.HIDE_LINK_POSTS,
             Settings.HIDE_BACKGROUND_POSTS,
             Settings.HIDE_REPOSTS,
+            Settings.HIDE_PAGE_POSTS,
             Settings.HIDE_SEEN_POSTS));
 
     private AuditMode() {
@@ -103,6 +107,7 @@ public final class AuditMode {
             File request = new File(folder, "settings.json");
             if (!request.isFile()) return;
             String outcome = importFile(read(request));
+            if (outcome.startsWith("applied ")) write(new File(folder, "applied.json"), SettingsBackup.create());
             File done = new File(folder, "settings.done.json");
             if (done.exists() && !done.delete()) outcome += "\nCould not remove the last settings.done.json";
             if (!request.renameTo(done) && !request.delete()) outcome += "\nCould not move settings.json aside";
@@ -130,6 +135,37 @@ public final class AuditMode {
             return "failed: " + failed.getMessage();
         } catch (JSONException ex) {
             return "refused: " + ex.getMessage();
+        }
+    }
+
+    /** Keeps acknowledgments from older callers readable without claiming accordion proof. */
+    static void pageShown(Context context, String route, CharSequence title) {
+        recordPage(context, route, title, null, 0);
+    }
+
+    /** Records the revealed section and its actual child rows after navigation has laid it out. */
+    static void pageShown(Context context, String route, CharSequence title,
+                          List<String> expandedSections, int sectionRows) {
+        recordPage(context, route, title, expandedSections, sectionRows);
+    }
+
+    private static void recordPage(Context context, String route, CharSequence title,
+                                   @Nullable List<String> expandedSections, int sectionRows) {
+        File folder = folder(context);
+        if (folder == null) return;
+        try {
+            JSONObject record = new JSONObject().put("schema", expandedSections == null ? 2 : 3)
+                    .put("route", route).put("title", title.toString())
+                    .put("locale", L10n.locale(context).toLanguageTag())
+                    .put("localeTags", new JSONArray(L10n.tags(context)));
+            if (expandedSections != null) {
+                record.put("expandedSections", new JSONArray(expandedSections))
+                        .put("sectionRows", sectionRows)
+                        .put("targetExpanded", !route.isEmpty() && expandedSections.contains(route));
+            }
+            write(new File(folder, "page.json"), record.toString());
+        } catch (Throwable failure) {
+            Logger.printException(() -> "Audit: could not record the displayed page", failure);
         }
     }
 

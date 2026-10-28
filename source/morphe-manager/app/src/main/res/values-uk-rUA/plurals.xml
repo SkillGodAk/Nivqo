@@ -6,6 +6,13 @@
         <item quantity="many">%s патчів</item>
         <item quantity="other">%s патчів</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s бібліотека</item>
+        <item quantity="few">%s бібліотеки</item>
+        <item quantity="many">%s бібліотек</item>
+        <item quantity="other">%s бібліотек</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s параметр патча</item>
         <item quantity="few">%s параметри патча</item>
@@ -38,6 +45,12 @@
         <item quantity="few">Джерела патчів для %s застосунків</item>
         <item quantity="many">Джерела патчів для %s застосунків</item>
         <item quantity="other">Джерела патчів для %s застосунків</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s джерело приховано для цього застосунку. Виберіть застосунок на вкладці \"Застосунки\" та відкрийте \"Джерела патчів\", щоб повернути його</item>
+        <item quantity="few">%s джерела приховано для цього застосунку. Виберіть застосунок на вкладці \"Застосунки\" та відкрийте \"Джерела патчів\", щоб повернути їх</item>
+        <item quantity="many">%s джерел приховано для цього застосунку. Виберіть застосунок на вкладці \"Застосунки\" та відкрийте \"Джерела патчів\", щоб повернути їх</item>
+        <item quantity="other">%s джерел приховано для цього застосунку. Виберіть застосунок на вкладці \"Застосунки\" та відкрийте \"Джерела патчів\", щоб повернути їх</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s джерело приховано. Натисніть, щоб показати</item>
@@ -81,6 +94,12 @@
         <item quantity="many">Встановлено %s застосунків</item>
         <item quantity="other">Встановлено %s застосунків</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Змонтовано %s застосунок</item>
+        <item quantity="few">Змонтовано %s застосунки</item>
+        <item quantity="many">Змонтовано %s застосунків</item>
+        <item quantity="other">Змонтовано %s застосунків</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Перевстановлено %s застосунок</item>
         <item quantity="few">Перевстановлено %s застосунки</item>
@@ -104,6 +123,18 @@
         <item quantity="few">%s застосунки готові до патчингу</item>
         <item quantity="many">%s застосунків готові до патчингу</item>
         <item quantity="other">%s застосунків готові до патчингу</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s застосунок у черзі на патчинг</item>
+        <item quantity="few">%s застосунки в черзі на патчинг</item>
+        <item quantity="many">%s застосунків у черзі на патчинг</item>
+        <item quantity="other">%s застосунків у черзі на патчинг</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s приховане сповіщення, натисніть, щоб показати його</item>
+        <item quantity="few">%s приховані сповіщення, натисніть, щоб показати їх</item>
+        <item quantity="many">%s прихованих сповіщень, натисніть, щоб показати їх</item>
+        <item quantity="other">%s прихованих сповіщень, натисніть, щоб показати їх</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s застосунок можна перепатчити</item>
@@ -129,11 +160,23 @@
         <item quantity="many">%s джерел встановлено</item>
         <item quantity="other">%s джерел встановлено</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s відфільтровано</item>
-        <item quantity="few">%1$s · %2$s відфільтровано</item>
-        <item quantity="many">%1$s · %2$s відфільтровано</item>
-        <item quantity="other">%1$s · %2$s відфільтровано</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s застосунок приховано</item>
+        <item quantity="few">%s застосунки приховано</item>
+        <item quantity="many">%s застосунків приховано</item>
+        <item quantity="other">%s застосунків приховано</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s застосунок показано</item>
+        <item quantity="few">%s застосунки показано</item>
+        <item quantity="many">%s застосунків показано</item>
+        <item quantity="other">%s застосунків показано</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Показати %s застосунок?</item>
+        <item quantity="few">Показати %s застосунки?</item>
+        <item quantity="many">Показати %s застосунків?</item>
+        <item quantity="other">Показати %s застосунків?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s прихований застосунок</item>
@@ -188,6 +231,13 @@
         <item quantity="few">%s зміни</item>
         <item quantity="many">%s змін</item>
         <item quantity="other">%s змін</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d новий</item>
+        <item quantity="few">%1$s · %2$d нових</item>
+        <item quantity="many">%1$s · %2$d нових</item>
+        <item quantity="other">%1$s · %2$d нових</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s новий реліз</item>

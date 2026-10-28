@@ -6,6 +6,8 @@ package app.morphe.patches.facebook.misc.extension
 
 import app.morphe.Fixtures
 import app.morphe.patches.facebook.ads.audiencenetwork.AUDIENCE_NETWORK_COMPONENTS
+import app.morphe.patches.facebook.ads.audiencenetwork.REMOTE_APIS_SETUP
+import app.morphe.patches.facebook.ads.audiencenetwork.componentStateCalls
 import app.morphe.patches.facebook.ads.prefetch.AD_PREFETCH_SCHEDULERS
 import app.morphe.patches.facebook.ads.telemetry.AD_TELEMETRY
 import app.morphe.patches.facebook.feed.FixtureDex
@@ -41,7 +43,10 @@ class PartialTargetsFixtureTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
-                val classes = FixtureDex.classes(bundle, (AD_PREFETCH_SCHEDULERS + AD_TELEMETRY + SUGGESTED_FEED_UNITS).toSet())
+                val classes = FixtureDex.classes(bundle, (AD_PREFETCH_SCHEDULERS + AD_TELEMETRY + SUGGESTED_FEED_UNITS + REMOTE_APIS_SETUP).toSet())
+                // Disable Audience Network stops on a build whose startup task doesn't turn the ipc components on (#168).
+                val setupCalls = classes[REMOTE_APIS_SETUP]?.methods?.sumOf { componentStateCalls(it).size } ?: 0
+                assertEquals("${bundle.name}: $REMOTE_APIS_SETUP component state calls", 3, setupCalls)
                 val missing = mutableSetOf<String>()
                 // A neutered class counts only when it still has a void method to stop.
                 (AD_PREFETCH_SCHEDULERS + AD_TELEMETRY).filterTo(missing) { type ->

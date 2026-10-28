@@ -11,15 +11,18 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.facebook.downloads.reel.moreSheet
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
+import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import app.morphe.util.RegisterLiveness
+import app.morphe.util.classDefForEachReferencing
 import app.morphe.util.writersReaching
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -52,6 +55,10 @@ internal const val SILENCE_CHANGED = "onSkipSilenceEnabledChanged"
  * and the next apply asks again. The chain counts what it cuts, and the sink's clock moves on by
  * it, so the picture keeps up.
  *
+ * A reel's More sheet gets a row that keeps the silent parts in that one reel ([addSkipSilenceRow]),
+ * and Download any video's post menu hook adds the same row to a video post's menu. Both learn the
+ * playing video from Resume long videos' player start hook, so without that patch neither shows.
+ *
  * In the default selection with its switch off: it changes how long a video takes to play, and
  * nobody expects that from Facebook.
  */
@@ -60,7 +67,8 @@ val skipSilentPartsPatch = bytecodePatch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Skip silent parts",
     description = "Plays videos, reels and stories past the silent stretches in their sound, so talks and how-tos " +
-        "get to the point sooner. Starts off. Turn it on in Hushfacebook settings > Playback.",
+        "get to the point sooner. Starts off. Turn it on in Hushfacebook settings > Video and audio. With Resume long " +
+        "videos patched too, a video's menu can keep the silent parts in that one video.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, facebookExtensionPatch)
@@ -72,6 +80,13 @@ val skipSilentPartsPatch = bytecodePatch(
         val applies = silenceApplies()
         applies.forEach { apply ->
             mutableClassDefBy(apply.method.definingClass).methods.single { same(it, apply.method) }.askBeforeApplying(apply)
+        }
+        // The reel More sheet's row for one video (#144). The fixture tests hold it on every declared
+        // build; on another one, silent parts are still skipped, so a miss here is a warning.
+        try {
+            addSkipSilenceRow(PATCH, moreSheet(PATCH))
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so reels get no Skip silent parts row in their More sheet.")
         }
         enableStatus("skipSilentParts")
     }
@@ -153,8 +168,9 @@ internal fun silenceApply(method: Method): SilenceApply? {
  */
 internal fun BytecodePatchContext.silenceApplies(): List<SilenceApply> {
     val applies = mutableListOf<SilenceApply>()
-    classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_CLASSES)) return@classDefForEach
+    // A hand-off calls the listener's SILENCE_CHANGED.
+    classDefForEachReferencing(names = listOf(SILENCE_CHANGED)) { classDef ->
+        if (classDef.type.startsWith(EXTENSION_CLASSES)) return@classDefForEachReferencing
         classDef.methods.forEach { method -> silenceApply(method)?.let(applies::add) }
     }
     if (applies.isEmpty()) throw PatchException("$PATCH: found no audio sink that hands its processor chain a skip-silence flag")

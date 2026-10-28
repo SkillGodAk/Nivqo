@@ -14,10 +14,12 @@ from pathlib import Path
 from zipfile import BadZipFile, ZipFile
 
 if __package__:
+    from . import desktop_result
     from .build_queue import queued, time_limit
     from .check_release import mutable_output, run_bounded, verify_development
     from .verify_changed_apk_failure import recorded_builds
 else:
+    import desktop_result
     from build_queue import queued, time_limit
     from check_release import mutable_output, run_bounded, verify_development
     from verify_changed_apk_failure import recorded_builds
@@ -116,8 +118,8 @@ def check_build(args, code, expected_hash, names):
                 f"{log[-4000:]}"
             )
         report = json.loads(report_path.read_text(encoding="utf-8"))
-        applied = [patch["name"] for patch in report["appliedPatches"]]
-        steps = report["patchingSteps"]
+        applied = desktop_result.applied_names(report)
+        steps = desktop_result.steps(report) or []
         if (
             len(applied) != len(names)
             or set(applied) != names

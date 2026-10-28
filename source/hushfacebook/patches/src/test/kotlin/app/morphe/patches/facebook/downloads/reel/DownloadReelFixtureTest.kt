@@ -35,9 +35,10 @@ import org.junit.Test
 
 /**
  * Download any reel run whole on each declared build's own sidebar and the classes it reaches: the
- * block goes in at most three instructions before the assembly call, borrowing v0 to v2, and a
- * fourth local for the story when its argument register is above v15, each proved free there by the
- * liveness of the whole builder, and each register it reads unchanged up to the call. The build's
+ * block goes in before the assembly call where v0 to v2 are free and the parked player is still in
+ * its register, borrowing v0 to v2, and a fourth local for the story when its register is outside
+ * v3 to v15, each proved free there by the liveness of the whole builder, and each register it
+ * reads followed back from the call's own arguments. The build's
  * one FbShortsSideBarComponent render, which the button can't go in, gets a counter as its first
  * instruction and nothing else (#18). And the More sheet's builder asks for a Download row first
  * thing, through a helper on its class, with the handler made to take the row's click interface
@@ -59,15 +60,20 @@ class DownloadReelFixtureTest {
     private data class Pin(val before: Int, val story: Int)
 
     /**
-     * Each declared bundle's pick, by the end of its file name. 583 keeps the builder in the
-     * sidebar's spec and copies three lambdas out of v0 to v2 just before the call's last boolean,
-     * so the block goes in one instruction before the call. The story, the call's second argument
-     * (v43 on arm64, v35 on armeabi-v7a), is copied to the lowest local from v3 that nothing reads
-     * after: v4 on arm64, which reads v3 once the sidebar is assembled, and v3 on armeabi-v7a.
+     * Each declared bundle's pick, by the end of its file name. 584's render (LX/AF0;->A0l) parks
+     * the scoped context over the player in v29 at instruction 549, so the block goes in at 532,
+     * where the button loop ends and the call's straight run starts, 38 instructions before the
+     * call. The story, the call's second argument, is still in v14 there, which the helper call
+     * names as it is.
+     *
+     * The armeabi-v7a build is a separate rebuild of the same render, and lays the call out the
+     * same way: its button loop ends and the call's straight run starts at 532, so the block goes
+     * in there, 38 instructions before the call at 570. v0 to v2 are free at 532, so the block
+     * keeps its own three locals, and the story resolves to v14 as on arm64.
      */
     private val pins = mapOf(
-        "${AppCompatibilities.FACEBOOK_TARGET_VERSION}-arm64-v8a.apkm" to Pin(before = 1, story = 4),
-        "${AppCompatibilities.FACEBOOK_TARGET_VERSION}-armeabi-v7a.apkm" to Pin(before = 1, story = 3),
+        "${AppCompatibilities.FACEBOOK_TARGET_VERSION}-arm64-v8a.apkm" to Pin(before = 38, story = 14),
+        "${AppCompatibilities.FACEBOOK_TARGET_VERSION}-armeabi-v7a.apkm" to Pin(before = 38, story = 14),
     )
 
     private fun callsButtonFactory(method: Method) = method.implementation?.instructions?.any { instruction ->
@@ -75,6 +81,20 @@ class DownloadReelFixtureTest {
             types.count { it.toString() == function1 } == 4 && types.firstOrNull()?.toString() == session
         } == true
     } == true
+
+    /**
+     * Where [method] gets its buttons made: itself when it calls the factory, as up to 583, or the
+     * one static of [owner], its class, that it calls and that calls the factory, as on 584.
+     */
+    private fun factoryCaller(method: Method, owner: ClassDef): Method? = if (callsButtonFactory(method)) method else {
+        val called = (method.implementation?.instructions ?: emptyList()).mapNotNull {
+            ((it as? ReferenceInstruction)?.reference as? MethodReference)?.takeIf { call -> call.definingClass == owner.type }
+        }.map { "${it.name}${it.parameterTypes.joinToString("", "(", ")")}${it.returnType}" }.toSet()
+        owner.methods.singleOrNull { sibling ->
+            "${sibling.name}${sibling.parameterTypes.joinToString("", "(", ")")}${sibling.returnType}" in called &&
+                callsButtonFactory(sibling)
+        }
+    }
 
     /** Every class the builder names: the owners of what it calls and reads, and the types it makes or casts to. */
     private fun namedBy(method: Method): Set<String> = method.implementation!!.instructions.mapNotNull { instruction ->
@@ -103,16 +123,17 @@ class DownloadReelFixtureTest {
                     ?: throw AssertionError("${bundle.name} has no pin")
                 val holders = FixtureDex.classesHolding(bundle, sidebarName)
                 val (builderClass, builder) = holders.flatMap { classDef ->
-                    classDef.methods.filter { holdsString(it, sidebarName) && callsButtonFactory(it) }.map { classDef to it }
+                    classDef.methods.filter { holdsString(it, sidebarName) && factoryCaller(it, classDef) != null }.map { classDef to it }
                 }.single()
+                val buttonMaker = factoryCaller(builder, builderClass)!!
                 // The component's render: the builder itself up to 582, the one handing it the
                 // scoped context on 583. The component declares itself by name, so it's a holder too.
                 val (component, render) = if (builder.parameterTypes.size == 1) builderClass to builder else {
                     holders.flatMap { classDef -> classDef.methods.filter { rendersThrough(it, builder) }.map { classDef to it } }.single()
                 }
 
-                val types = namedBy(builder) + component.fields.map { it.type } + builder.parameterTypes.map { it.toString() } +
-                    setOf(function1, "Lcom/facebook/video/engine/api/VideoDataSource;")
+                val types = namedBy(builder) + namedBy(buttonMaker) + component.fields.map { it.type } +
+                    builder.parameterTypes.map { it.toString() } + setOf(function1, "Lcom/facebook/video/engine/api/VideoDataSource;")
                 val classes = mutableMapOf<String, ClassDef>()
                 FixtureDex.classes(bundle, types).forEach { (type, classDef) -> classes[type] = classDef }
                 FixtureDex.classesHolding(bundle, "fds_control_download_video").forEach { classes.putIfAbsent(it.type, it) }

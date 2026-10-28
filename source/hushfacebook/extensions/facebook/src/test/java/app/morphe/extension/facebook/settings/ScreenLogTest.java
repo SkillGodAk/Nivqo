@@ -13,6 +13,8 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.SystemClock;
 
+import com.facebook.voltron.ui.impl.AppModuleDownloadActivity2;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -132,5 +134,60 @@ public class ScreenLogTest {
         assertEquals(ScreenLog.LIMIT, lines.size());
         assertEquals("0 s before this report: screen 7", lines.get(0));
         assertEquals("0 s before this report: screen " + (ScreenLog.LIMIT + 6), lines.get(lines.size() - 1));
+    }
+
+    /** Shaped like Facebook 583's module download screen: its error text, module names and other fields. */
+    @SuppressWarnings("unused")
+    static final class DownloadScreen {
+        static String shared = "a static field isn't the screen's";
+        String A02 = "java.lang.IllegalStateException: VoltronDownloadManagerImpl: No downloader available."
+                + " isAppLastInstalledByGP: true";
+        String[] A05 = {"ludo_club", ""};
+        String A03 = "";
+        int A00 = 3;
+    }
+
+    @SuppressWarnings("unused")
+    static final class EmptyDownloadScreen {
+        String A02;
+        String[] A05;
+    }
+
+    @Test
+    public void aClosingModuleDownloadSaysWhatItFetchedAndItsError() throws Exception {
+        assertEquals("module download closed for ludo_club, error: java.lang.IllegalStateException:"
+                        + " VoltronDownloadManagerImpl: No downloader available. isAppLastInstalledByGP: true",
+                ScreenLog.moduleDownload(new DownloadScreen()));
+        assertEquals("module download closed, modules unknown, no error kept",
+                ScreenLog.moduleDownload(new EmptyDownloadScreen()));
+    }
+
+    @Test
+    public void aLongModuleDownloadErrorIsCut() throws Exception {
+        DownloadScreen screen = new DownloadScreen();
+        screen.A02 = new String(new char[ScreenLog.ERROR_LIMIT + 50]).replace('\0', 'x');
+        String line = ScreenLog.moduleDownload(screen);
+        assertTrue(line, line.endsWith(", error: " + new String(new char[ScreenLog.ERROR_LIMIT]).replace('\0', 'x') + "..."));
+    }
+
+    @Test
+    public void theModuleDownloadScreenClosingIsWrittenWithDebugOn() {
+        Activity screen = Robolectric.buildActivity(AppModuleDownloadActivity2.class).setup().get();
+        screen.finish();
+        ScreenLog.paused(screen);
+        assertTrue("written with Debug logging off", ScreenLog.report(0).isEmpty());
+        BaseSettings.DEBUG.save(true);
+        ScreenLog.paused(screen);
+        assertEquals(List.of("0 s before this report: module download closed for ludo_club,"
+                + " error: java.lang.IllegalStateException: No downloader available."), ScreenLog.report(0));
+    }
+
+    @Test
+    public void anotherScreenClosingWritesNothing() {
+        BaseSettings.DEBUG.save(true);
+        Activity screen = resumedWith(new Intent());
+        screen.finish();
+        ScreenLog.paused(screen);
+        assertTrue(ScreenLog.report(0).isEmpty());
     }
 }

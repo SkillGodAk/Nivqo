@@ -77,22 +77,23 @@ private fun readRequire(condition: Boolean, detail: String = "identity flow") {
 }
 
 internal fun MutableMethod.validateChatSeen() {
-    readRequire(isChatSeenBroadcast() && readReceiptThreadFields.containsKey(hookId()) && parameterRegister(1) <= 15)
+    readRequire(isChatSeenBroadcast() && readReceiptThreadFields.containsKey(hookId()) && parameterRegister(2) <= 15)
     validateSwitch()
 }
 
+/** The handler and message id go along, so a Seen held back can be sent later by the Mark as read button. */
 internal fun MutableMethod.injectChatSeen() {
     validateChatSeen()
     addInstructionsWithLabels(0, """
         iget-object v0, p1, ${readReceiptThreadFields.getValue(hookId())}
-        invoke-static {p0, v0}, $SETTINGS->hideChatSeen(Ljava/lang/Object;Ljava/lang/Object;)Z
+        invoke-static {p0, v0, p1, p2}, $SETTINGS->hideChatSeen(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;)Z
         move-result v0
         if-eqz v0, :stock_read
         return-void
     """.trimIndent(), ExternalLabel("stock_read", getInstruction(0)))
 }
 
-private fun Instruction.readWrites(register: Int) = opcode.setsRegister() && this is OneRegisterInstruction &&
+internal fun Instruction.readWrites(register: Int) = opcode.setsRegister() && this is OneRegisterInstruction &&
     (registerA == register || (opcode.setsWideRegister() && registerA + 1 == register))
 
 private fun Instruction.readReads(register: Int): Boolean {
@@ -108,7 +109,7 @@ private fun Instruction.readReads(register: Int): Boolean {
 }
 
 /** Include catch and switch edges when checking dominance and scratch liveness. */
-private class ReadFlow(method: Method) {
+internal class ReadFlow(method: Method) {
     val code = method.readCode()
     private val addresses = IntArray(code.size + 1).also { a -> for (i in code.indices) a[i + 1] = a[i] + code[i].codeUnits }
     private val indexAt = code.indices.associateBy { addresses[it] }
@@ -184,25 +185,31 @@ private class ReadFlow(method: Method) {
  * Where the dispatcher's pieces sit in the supported body: the composer and account copies, the thread's null default
  * (its if-eqz, getter and result follow it), the null path's copy and the dispatch.
  */
-internal class ReplyReadShape(val size: Int, val composer: Int, val session: Int, val nullThread: Int, val absent: Int, val dispatch: Int)
+internal class ReplyReadShape(
+    val size: Int, val composer: Int, val session: Int, val nullThread: Int, val absent: Int, val dispatch: Int,
+    /** The register the composer copy lives in, and how many instructions before the dispatch the thread is staged into v12. */
+    val composerReg: Int = 20, val stage: Int = 2,
+)
 
-/** Messenger 583's 398-instruction dispatcher. */
-internal val REPLY_READ_SHAPE = ReplyReadShape(size = 398, composer = 10, session = 21, nullThread = 27, absent = 69, dispatch = 235)
+/** Messenger 584's 392-instruction dispatcher. The composer is copied to v19 and the staging sits four before the dispatch. */
+internal val REPLY_READ_SHAPE = ReplyReadShape(size = 392, composer = 10, session = 20, nullThread = 26, absent = 71, dispatch = 233, composerReg = 19, stage = 4)
 
-/** The exact 583 staging seam. The thread survives in v12 until the account is staged there for dispatch. */
+/** The exact 584 staging seam. The thread survives in v12 until the account is staged there for dispatch. */
 internal fun MutableMethod.validateReplyRead(): Int {
-    readRequire(isReplyReadDispatch() && implementation!!.registerCount == 36)
+    readRequire(isReplyReadDispatch() && implementation!!.registerCount == 35)
     val flow = ReadFlow(this)
     val c = flow.code
     val shape = REPLY_READ_SHAPE
     readRequire(shape.size == c.size)
     val d = shape.dispatch
+    val s = d - shape.stage
+    val cr = shape.composerReg
     val n = shape.nullThread
     val absent = shape.absent
     // Insertion can extend a try ending at the old next instruction over the new throwing callback.
-    readRequire((d - 5..d + 1).none { flow.protected(it) }, "unprotected send seam")
+    readRequire((s - 3..d + 1).none { flow.protected(it) }, "unprotected send seam")
     fun move(i: Int, a: Int, b: Int, op: Opcode) = c[i].opcode == op && (c[i] as? TwoRegisterInstruction)?.let { it.registerA == a && it.registerB == b } == true
-    readRequire(move(4, 7, parameterRegister(11), Opcode.MOVE_OBJECT_FROM16) && move(shape.composer, 20, parameterRegister(4), Opcode.MOVE_OBJECT_FROM16))
+    readRequire(move(4, 7, parameterRegister(11), Opcode.MOVE_OBJECT_FROM16) && move(shape.composer, cr, parameterRegister(4), Opcode.MOVE_OBJECT_FROM16))
     readRequire(move(shape.session, 10, parameterRegister(0), Opcode.MOVE_OBJECT_FROM16))
     val getter = c[n + 2].readRef() as? MethodReference
     readRequire(c[n + 2].opcode == Opcode.INVOKE_INTERFACE_RANGE && c[n + 2].readArgs() == listOf(parameterRegister(7)), "thread provider argument")
@@ -210,21 +217,21 @@ internal fun MutableMethod.validateReplyRead(): Int {
     readRequire(c[n + 3].opcode == Opcode.MOVE_RESULT_OBJECT && (c[n + 3] as OneRegisterInstruction).registerA == 12, "thread result")
     readRequire(flow.definitionsAt(shape.session, parameterRegister(0)) == setOf(-1) && flow.definitionsAt(4, parameterRegister(11)) == setOf(-1) &&
         flow.definitionsAt(shape.composer, parameterRegister(4)) == setOf(-1) && flow.definitionsAt(n + 2, parameterRegister(7)) == setOf(-1) &&
-        flow.definitionsAt(d, 10) == setOf(shape.session) && flow.definitionsAt(d, 20) == setOf(shape.composer) && flow.definitionsAt(d, 7) == setOf(4))
-    readRequire(flow.definitionsAt(d - 2, 12) == setOf(n + 3, absent) && flow.definitionsAt(absent, 5) == setOf(n) && move(absent, 12, 5, Opcode.MOVE_OBJECT) &&
+        flow.definitionsAt(d, 10) == setOf(shape.session) && flow.definitionsAt(d, cr) == setOf(shape.composer) && flow.definitionsAt(d, 7) == setOf(4))
+    readRequire(flow.definitionsAt(s, 12) == setOf(n + 3, absent) && flow.definitionsAt(absent, 5) == setOf(n) && move(absent, 12, 5, Opcode.MOVE_OBJECT) &&
         c[n].opcode == Opcode.CONST_4 && (c[n] as OneRegisterInstruction).registerA == 5 && (c[n] as NarrowLiteralInstruction).narrowLiteral == 0 &&
         c[n + 1].opcode == Opcode.IF_EQZ && (c[n + 1] as OneRegisterInstruction).registerA == parameterRegister(7) && c.branchTarget(n + 1) == absent)
     readRequire(c.indices.none { i -> i != n + 1 && flow.successors(i).contains(absent) } && jumpTargets().none { it in n..n + 3 } &&
         !flow.reaches(0, absent, setOf(n)))
-    readRequire(move(d - 3, 11, 20, Opcode.MOVE_OBJECT_FROM16))
-    readRequire(move(d - 2, 12, 10, Opcode.MOVE_OBJECT) && move(d - 1, 15, 0, Opcode.MOVE_OBJECT))
+    readRequire(move(s - 1, 11, cr, Opcode.MOVE_OBJECT_FROM16))
+    readRequire(move(s, 12, 10, Opcode.MOVE_OBJECT) && (s + 1 until d).count { move(it, 15, 0, Opcode.MOVE_OBJECT) } == 1)
     val dispatch = c[d].readRef() as? MethodReference
     readRequire(c[d].opcode == Opcode.INVOKE_INTERFACE_RANGE && c[d].readArgs() == (11..16).toList() &&
         dispatch?.definingClass == parameterTypes[4].toString() && dispatch.returnType == "V" && dispatch.parameterTypes.size == 5 &&
         dispatch.parameterTypes[0] == FB_USER_SESSION && dispatch.parameterTypes.takeLast(2) == listOf("Ljava/lang/String;", "Ljava/lang/String;"))
-    readRequire(jumpTargets().none { it in d - 2..d + 1 } && listOf(4, shape.composer, shape.session).none { flow.reaches(0, d, setOf(it)) } &&
-        !flow.reaches(0, d - 2, setOf(n + 3, absent)))
-    flow.deadFrom(d - 2, parameterRegister(13))
+    readRequire(jumpTargets().none { it in s..d + 1 } && listOf(4, shape.composer, shape.session).none { flow.reaches(0, d, setOf(it)) } &&
+        !flow.reaches(0, s, setOf(n + 3, absent)))
+    flow.deadFrom(s, parameterRegister(13))
     flow.deadFrom(d + 1, 0)
     flow.deadFrom(d + 1, 1)
     return d
@@ -238,5 +245,5 @@ internal fun MutableMethod.injectReplyRead() {
         move-object/from16 v1, p13
         invoke-static {v0, v1}, $SETTINGS->noteMessageSent(Ljava/lang/Object;Ljava/lang/Object;)V
     """.trimIndent())
-    addInstructions(dispatch - 2, "move-object/16 p13, v12")
+    addInstructions(dispatch - REPLY_READ_SHAPE.stage, "move-object/16 p13, v12")
 }

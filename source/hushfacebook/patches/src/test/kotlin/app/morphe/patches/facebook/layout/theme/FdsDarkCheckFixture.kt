@@ -29,6 +29,13 @@ internal fun darkCheckWrappers(bundle: File, readers: List<Method>, darkCheck: S
     }
 }
 
+/** FDSColors in [bundle], found by the shape the patch finds it by ([fdsColourSource]). */
+internal fun fdsColorsOf(bundle: File): ClassDef {
+    val found = mutableListOf<ClassDef>()
+    FixtureDex.forEach(bundle) { dex -> dex.classes.filterTo(found) { fdsColourSource(it) != null } }
+    return found.singleOrNull() ?: error("${bundle.name}: expected one FDSColors, found ${found.map { it.type }}")
+}
+
 /** FDS's dark check in [bundle], found the way the patch finds it: on the class of the view resolver FdsColorScheme asks. */
 internal fun fdsDarkCheckOf(bundle: File): String {
     val scheme = FixtureDex.classes(bundle, setOf(FDS_COLOR_SCHEME)).values

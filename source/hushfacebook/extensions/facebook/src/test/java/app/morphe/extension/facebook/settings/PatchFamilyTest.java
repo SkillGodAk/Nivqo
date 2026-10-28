@@ -108,16 +108,18 @@ public class PatchFamilyTest {
             List<String> lines = PatchFamily.reportLines(EnumSet.of(PatchFamily.STORY_DOWNLOAD), false);
             assertEquals("Download any story: on (hushfacebook_download_stories=on, hushfacebook_save_story_photos=off)",
                     lines.get(0));
-            assertEquals("Every download patch: hushfacebook_download_compatible=off, hushfacebook_download_quiet=off",
+            assertEquals("Every download patch: hushfacebook_download_compatible=off, hushfacebook_download_convert=off, "
+                            + "hushfacebook_download_quiet=off",
                     lines.get(1));
             assertTrue(lines.get(2), lines.get(2).startsWith("not in this build: "));
 
             Settings.DOWNLOAD_COMPATIBLE.save(true);
             Settings.DOWNLOAD_QUIET.save(true);
-            assertEquals("Every download patch: hushfacebook_download_compatible=on, hushfacebook_download_quiet=on",
+            assertEquals("Every download patch: hushfacebook_download_compatible=on, hushfacebook_download_convert=off, "
+                            + "hushfacebook_download_quiet=on",
                     PatchFamily.reportLines(EnumSet.of(PatchFamily.VIDEO_DOWNLOAD), false).get(1));
             assertEquals("Every download patch: off while paused (saved hushfacebook_download_compatible=on, "
-                            + "hushfacebook_download_quiet=on)",
+                            + "hushfacebook_download_convert=off, hushfacebook_download_quiet=on)",
                     PatchFamily.reportLines(EnumSet.of(PatchFamily.REEL_DOWNLOAD), true).get(1));
 
             for (String line : PatchFamily.reportLines(EnumSet.of(PatchFamily.SPONSORED_POSTS), false)) {
@@ -273,15 +275,17 @@ public class PatchFamilyTest {
         Set<PatchFamily> joined = EnumSet.of(PatchFamily.STORIES_TRAY, PatchFamily.FEED_REELS,
                 PatchFamily.RETURN_REFRESH, PatchFamily.SEEN_POSTS, PatchFamily.STORY_AUTO_ADVANCE,
                 PatchFamily.STORY_SEEN, PatchFamily.REEL_DECLUTTER, PatchFamily.REEL_WATCH_HISTORY,
-                PatchFamily.DOUBLE_TAP_LIKE, PatchFamily.REEL_HOLD, PatchFamily.DEFAULT_COMMENT_ORDER,
-                PatchFamily.COMMENT_SHEET_OPTIONS, PatchFamily.TAG_SUGGESTIONS, PatchFamily.TAP_TO_PLAY,
+                PatchFamily.DOUBLE_TAP_LIKE, PatchFamily.REEL_GESTURES, PatchFamily.REEL_HOLD,
+                PatchFamily.DEFAULT_COMMENT_ORDER,
+                PatchFamily.COMMENT_SHEET_OPTIONS, PatchFamily.FULL_HEIGHT_COMMENTS, PatchFamily.TAG_SUGGESTIONS,
+                PatchFamily.TAP_TO_PLAY,
                 PatchFamily.PLAYBACK_QUALITY, PatchFamily.PICTURE_IN_PICTURE, PatchFamily.HDR_BRIGHTNESS,
                 PatchFamily.SYSTEM_FONT, PatchFamily.SYSTEM_EMOJI, PatchFamily.HAPTICS,
                 PatchFamily.SCREEN_TRANSITIONS, PatchFamily.VIDEO_DOWNLOAD, PatchFamily.START_TAB,
                 PatchFamily.REELS_TAB, PatchFamily.META_UPSELLS, PatchFamily.SHARE_SHEET_ITEMS,
-                PatchFamily.ANALYTICS_UPLOADS, PatchFamily.SCREENSHOTS, PatchFamily.SCREENSHOT_DETECTION,
+                PatchFamily.SEARCH_HISTORY, PatchFamily.ANALYTICS_UPLOADS, PatchFamily.SCREENSHOTS, PatchFamily.SCREENSHOT_DETECTION,
                 PatchFamily.TYPING_INDICATOR, PatchFamily.READ_RECEIPTS, PatchFamily.ACCENT_COLOR);
-        assertEquals(32, joined.size());
+        assertEquals(35, joined.size());
         for (PatchFamily family : joined) {
             assertTrue(family.patchName + " isn't in the default selection",
                     PatchFamily.DEFAULT_SELECTION.contains(family));
@@ -422,90 +426,123 @@ public class PatchFamilyTest {
                 "Block background ad prefetch: no switch, stays in while paused: No ads downloaded in advance",
                 "not in this build: Hide suggested and promoted posts, Hide Stories tray, Hide Reels in the feed, "
                         + "Block background-return feed refresh, Hide AI-detected posts, Hide posts by words, Hide "
-                        + "post prompts, Hide seen posts, Hide Meta AI questions under posts, Keep post dates, Turn "
+                        + "post prompts, Hide seen posts, Hide Meta AI questions under posts, Keep post dates, Show full post text, Turn "
                         + "off auto-translation, Hide the Feeds header, Hide sponsored stories, Hide suggested "
-                        + "stories, Stop Story auto-advance, View stories anonymously, Upload Stories in HD, Hide sponsored search results, "
-                        + "Hide sponsored profile posts, Hide sponsored Marketplace listings, Block Instant Games "
+                        + "stories, Stop Story auto-advance, View stories anonymously, Upload Stories in HD, Longer music on photo stories, Pinch to zoom, Hide sponsored search results, "
+                        + "Hide sponsored profile posts, Hide profile notes, Post action buttons, Hide sponsored Marketplace listings, Block Instant Games "
                         + "ads, Hide affiliate product links, Clean up Reels, Hide reel interest prompts, Don't send "
-                        + "reel watch history, Turn off double tap to like, Keep the reel speed, Hold a reel for 2x, "
-                        + "Default comment order, Hide Meta AI comment summaries, Comment sheet options, Tag "
-                        + "suggestions only after @, Tap to play, Resume long videos, Frame step, Default playback quality, "
-                        + "Picture-in-picture, Turn off HDR brightness, Skip silent parts, Keep the progress bar, Use the system font, "
-                        + "Use the phone's emoji, Turn off haptics, Hide carrier data banners, Turn off screen transitions, Unlock app icons, Open links in "
+                        + "reel watch history, Newest reels first, Turn off double tap to like, Double tap to skip, Tap shows the controls, Open comments with a gesture, Keep the reel speed, Hold a reel for 2x, "
+                        + "Default comment order, Hide Meta AI comment summaries, Comment sheet options, Open comments "
+                        + "at full height, Tag suggestions only after @, Tap to play, Resume long videos, Frame step, Default playback quality, "
+                        + "Picture-in-picture, Turn off HDR brightness, Skip silent parts, Keep feed videos muted, Keep the progress bar, Use the system font, "
+                        + "Use the phone's emoji, Turn off haptics, Hide carrier data banners, Turn off screen transitions, Unlock app icons, Home header text, Open links in "
                         + "external browser, Sanitize sharing links, Stop update prompts, Download any story, "
                         + "Download any reel, Download any video, Download any photo, Open on a chosen tab, Following "
                         + "feed on Home, Marketplace only, Show View profile on Marketplace sellers, Hide the Reels "
                         + "tab, Hide the Reels tab dot, Hide tab badges, Hide tabs, Tab bar at the bottom, Force dark "
                         + "mode, Hide the Get Messenger card, Clean up Facebook's chat list, Open Messenger from the "
                         + "top bar, Hide Menu promotions, Hide Meta upsells, Share sheet items, Hide Meta AI in search, "
-                        + "Hold back analytics uploads, Allow screenshots, Block screenshot detection, Hide typing indicator, "
+                        + "Don't save search history, Hold back analytics uploads, Allow screenshots, Block screenshot detection, Hide typing indicator, "
                         + "Hide read receipts, Send chat photos and videos at original quality, Block promotional "
                         + "notifications, Block ad telemetry, Disable Audience Network, AMOLED black theme, Material "
-                        + "You theme, Accent color, Restore screens on re-signed builds, Start on x86 devices, "
+                        + "You theme, Accent color, Badge and logo colors, Restore screens on re-signed builds, Start on x86 devices, "
                         + "Install beside Meta's apps, Disable Play Store updates, Hushfacebook in the Menu",
                 "left out of Manager's default selection: Hide suggested and promoted posts, Hide Stories tray, Hide "
                         + "Reels in the feed, Block background-return feed refresh, Hide AI-detected posts, Hide "
                         + "posts by words, Hide post prompts, Hide seen posts, Hide Meta AI questions under posts, "
-                        + "Keep post dates, Turn off auto-translation, Hide the Feeds header, Hide sponsored stories, "
-                        + "Hide suggested stories, Stop Story auto-advance, View stories anonymously, Upload Stories in HD, Hide sponsored "
-                        + "search results, Hide sponsored profile posts, Hide sponsored Marketplace listings, Block "
+                        + "Keep post dates, Show full post text, Turn off auto-translation, Hide the Feeds header, Hide sponsored stories, "
+                        + "Hide suggested stories, Stop Story auto-advance, View stories anonymously, Upload Stories in HD, Longer music on photo stories, Pinch to zoom, Hide sponsored "
+                        + "search results, Hide sponsored profile posts, Hide profile notes, Post action buttons, Hide sponsored Marketplace listings, Block "
                         + "Instant Games ads, Hide affiliate product links, Clean up Reels, Hide reel interest "
-                        + "prompts, Don't send reel watch history, Turn off double tap to like, Keep the reel speed, "
+                        + "prompts, Don't send reel watch history, Newest reels first, Turn off double tap to like, Double tap to skip, Tap shows the controls, Open comments with a gesture, Keep the reel speed, "
                         + "Hold a reel for 2x, Default comment order, Hide Meta AI comment summaries, Comment sheet "
-                        + "options, Tag suggestions only after @, Tap to play, Resume long videos, Frame step, Default playback "
-                        + "quality, Picture-in-picture, Turn off HDR brightness, Skip silent parts, Keep the progress bar, Use the "
-                        + "system font, Use the phone's emoji, Turn off haptics, Hide carrier data banners, Turn off screen transitions, Unlock app icons, Open "
+                        + "options, Open comments at full height, Tag suggestions only after @, Tap to play, Resume long videos, Frame step, Default playback "
+                        + "quality, Picture-in-picture, Turn off HDR brightness, Skip silent parts, Keep feed videos muted, Keep the progress bar, Use the "
+                        + "system font, Use the phone's emoji, Turn off haptics, Hide carrier data banners, Turn off screen transitions, Unlock app icons, Home header text, Open "
                         + "links in external browser, Sanitize sharing links, Stop update prompts, Download any "
                         + "story, Download any reel, Download any video, Download any photo, Open on a chosen tab, "
                         + "Following feed on Home, Marketplace only, Show View profile on Marketplace sellers, Hide "
                         + "the Reels tab, Hide the Reels tab dot, Hide tab badges, Hide tabs, Tab bar at the bottom, "
                         + "Force dark mode, Hide the Get Messenger card, Clean up Facebook's chat list, Open "
                         + "Messenger from the top bar, Hide Menu promotions, Hide Meta upsells, Share sheet items, Hide "
-                        + "Meta AI in search, Hold back analytics uploads, Allow screenshots, Block screenshot detection, Hide "
+                        + "Meta AI in search, Don't save search history, Hold back analytics uploads, Allow screenshots, Block screenshot detection, Hide "
                         + "typing indicator, Hide read receipts, Send chat photos and videos at original quality, "
                         + "Block promotional notifications, Block ad telemetry, Disable Audience Network, Accent "
-                        + "color, Restore screens on re-signed builds, Start on x86 devices, Install beside Meta's "
+                        + "color, Badge and logo colors, Restore screens on re-signed builds, Start on x86 devices, Install beside Meta's "
                         + "apps, Hushfacebook in the Menu"),
                 running);
-        // Clean up Reels has seven switches, all off to start, and the report names each one.
+        // Clean up Reels' switches all start off, and the report names each one.
         Settings.HIDE_REEL_FOLLOW_BUTTON.save(true);
         assertEquals("Clean up Reels: on (hushfacebook_hide_reel_chips=off, hushfacebook_hide_reel_follow_button=on, "
                         + "hushfacebook_hide_reel_social_footer=off, hushfacebook_hide_reel_threads_cards=off, "
                         + "hushfacebook_reel_clean_mode=off, hushfacebook_play_reels_once=off, "
-                        + "hushfacebook_original_audio=off)",
+                        + "hushfacebook_original_audio=off, hushfacebook_hide_reel_search_pill=off, "
+                        + "hushfacebook_hide_reel_counts=off, hushfacebook_hide_reel_save_button=off, "
+                        + "hushfacebook_hide_reel_whatsapp_button=off, hushfacebook_hide_reel_like_button=off, "
+                        + "hushfacebook_hide_reel_comment_button=off, hushfacebook_hide_reel_share_button=off, "
+                        + "hushfacebook_hide_reel_sound_button=off, hushfacebook_hide_reel_audio_line=off, "
+                        + "hushfacebook_hide_slow_connection_message=off, hushfacebook_feed_videos_alone=off, "
+                        + "hushfacebook_play_feed_reels_whole=off)",
                 PatchFamily.reportLines(EnumSet.of(PatchFamily.REEL_DECLUTTER), false).get(0));
         // Share sheet items is set by its list, and its group switch is saved beside it.
         Settings.HIDE_SHARE_GROUP_BUTTONS.save(true);
         assertEquals("Share sheet items: set by its list (hushfacebook_hidden_share_items=, "
-                        + "hushfacebook_hide_share_group_buttons=on)",
+                        + "hushfacebook_hide_share_group_buttons=on, hushfacebook_hide_share_people_row=off)",
                 PatchFamily.reportLines(EnumSet.of(PatchFamily.SHARE_SHEET_ITEMS), false).get(0));
         assertEquals("Share sheet items: disabled while paused (saved hushfacebook_hidden_share_items=, "
-                        + "hushfacebook_hide_share_group_buttons=on)",
+                        + "hushfacebook_hide_share_group_buttons=on, hushfacebook_hide_share_people_row=off)",
                 PatchFamily.reportLines(EnumSet.of(PatchFamily.SHARE_SHEET_ITEMS), true).get(0));
         Settings.HIDE_SHARE_GROUP_BUTTONS.resetToDefault();
+        // The theme runs with its switches off, and paused: only Black cards and the lines step back.
+        assertEquals("AMOLED black theme: on (hushfacebook_amoled_flat_cards=off, hushfacebook_amoled_feed_gaps=off); "
+                        + "stays in while paused: AMOLED black theme",
+                PatchFamily.reportLines(EnumSet.of(PatchFamily.AMOLED_THEME), false).get(0));
+        Settings.AMOLED_FLAT_CARDS.save(true);
+        assertEquals("AMOLED black theme: on, its switches off while paused (saved hushfacebook_amoled_flat_cards=on, "
+                        + "hushfacebook_amoled_feed_gaps=off); stays in while paused: AMOLED black theme",
+                PatchFamily.reportLines(EnumSet.of(PatchFamily.AMOLED_THEME), true).get(0));
+        Settings.AMOLED_FLAT_CARDS.resetToDefault();
         // The reel button has a switch now, so the report says what it's set to.
-        assertEquals("Download any reel: on (hushfacebook_download_reels=on)",
+        assertEquals("Download any reel: on (hushfacebook_download_reels=on, hushfacebook_show_reel_download_button=on, "
+                        + "hushfacebook_copy_reel_caption=on)",
                 PatchFamily.reportLines(EnumSet.of(PatchFamily.REEL_DOWNLOAD), false).get(0));
+        Settings.SHOW_REEL_DOWNLOAD_BUTTON.save(false);
+        assertEquals("Download any reel: on (hushfacebook_download_reels=on, hushfacebook_show_reel_download_button=off, "
+                        + "hushfacebook_copy_reel_caption=on)",
+                PatchFamily.reportLines(EnumSet.of(PatchFamily.REEL_DOWNLOAD), false).get(0));
+        Settings.SHOW_REEL_DOWNLOAD_BUTTON.resetToDefault();
+        // Copy caption saves nothing, so with downloads off it still keeps the patch on (#240).
+        Settings.DOWNLOAD_REELS.save(false);
+        assertEquals("Download any reel: on (hushfacebook_download_reels=off, hushfacebook_show_reel_download_button=on, "
+                        + "hushfacebook_copy_reel_caption=on)",
+                PatchFamily.reportLines(EnumSet.of(PatchFamily.REEL_DOWNLOAD), false).get(0));
+        Settings.COPY_REEL_CAPTION.save(false);
+        assertEquals("Download any reel: disabled by its switch (hushfacebook_download_reels=off, "
+                        + "hushfacebook_show_reel_download_button=on, hushfacebook_copy_reel_caption=off)",
+                PatchFamily.reportLines(EnumSet.of(PatchFamily.REEL_DOWNLOAD), false).get(0));
+        Settings.COPY_REEL_CAPTION.resetToDefault();
+        Settings.DOWNLOAD_REELS.resetToDefault();
         // So has the video menu's item, and a pause takes it out whole.
         // Its copied-link offer is an option of that item: on alone, it doesn't turn the patch on.
         Settings.DOWNLOAD_VIDEOS.save(true);
-        assertEquals("Download any video: on (hushfacebook_download_videos=on, hushfacebook_clipboard_download=off)",
+        assertEquals("Download any video: on (hushfacebook_download_videos=on, hushfacebook_clipboard_download=off, hushfacebook_post_menu_download_first=off, hushfacebook_open_in_another_app=off)",
                 PatchFamily.reportLines(EnumSet.of(PatchFamily.VIDEO_DOWNLOAD), false).get(0));
         assertEquals("Download any video: disabled while paused (saved hushfacebook_download_videos=on, "
-                        + "hushfacebook_clipboard_download=off)",
+                        + "hushfacebook_clipboard_download=off, hushfacebook_post_menu_download_first=off, hushfacebook_open_in_another_app=off)",
                 PatchFamily.reportLines(EnumSet.of(PatchFamily.VIDEO_DOWNLOAD), true).get(0));
         Settings.DOWNLOAD_VIDEOS.save(false);
         Settings.CLIPBOARD_DOWNLOAD.save(true);
         assertEquals("Download any video: disabled by its switch (hushfacebook_download_videos=off, "
-                        + "hushfacebook_clipboard_download=on)",
+                        + "hushfacebook_clipboard_download=on, hushfacebook_post_menu_download_first=off, hushfacebook_open_in_another_app=off)",
                 PatchFamily.reportLines(EnumSet.of(PatchFamily.VIDEO_DOWNLOAD), false).get(0));
         Settings.DOWNLOAD_VIDEOS.resetToDefault();
         Settings.CLIPBOARD_DOWNLOAD.resetToDefault();
-        // The Menu's two groups, its Muse card and its Meta AI shortcut have a switch each, and the
-        // report names all four.
+        // The Menu's three groups, Settings and privacy's fold, its Muse card and its Meta AI shortcut
+        // have a switch each, and the report names all six.
         Settings.HIDE_MENU_ALSO_FROM_META.save(false);
         assertEquals("Hide Menu promotions: on (hushfacebook_hide_menu_upgrades=on, "
-                        + "hushfacebook_hide_menu_also_from_meta=off, hushfacebook_hide_menu_muse=on, "
+                        + "hushfacebook_hide_menu_also_from_meta=off, hushfacebook_hide_menu_help=off, "
+                        + "hushfacebook_keep_menu_settings_expanded=off, hushfacebook_hide_menu_muse=on, "
                         + "hushfacebook_hide_menu_meta_ai=off)",
                 PatchFamily.reportLines(EnumSet.of(PatchFamily.MENU_PROMOTIONS), false).get(0));
         // Every notification switch starts off, so the patch reads off until one of them is turned on.

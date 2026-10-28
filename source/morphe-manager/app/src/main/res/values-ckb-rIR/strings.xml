@@ -2,37 +2,80 @@
 <resources>
     <!-- Home Screen -->
     <string name="home_other_apps">ئەپەکانی تر</string>
+    <string name="home_other_apps_action">ئەپی تریش هەڵبژێرە</string>
     <string name="home_not_patched_yet">پینە نەکراوە هێشتا</string>
+    <string name="home_unpatched_version_installed">ڤێرژنێکی بێپاتچکراو دابەزێندراوە</string>
+    <string name="home_unpatched_badge">پاتچ نەکراوە</string>
     <string name="home_no_patches_available">هیچ پینەیەک بەردەست نیە</string>
     <string name="home_app_hide_title">شاردنەوەی ئەم ئەپە ؟</string>
     <string name="home_app_hide_message">ئەم ئەپە لە شاشەی سەرەکی دەشاردرێتەوە.  دەتوانیت دواتر لە ئەپە شاراوەکانەوە بیگەڕێنیتەوە بە بەکارهێنانی دوگمەی خوارەوەی لیستەکە</string>
     <string name="home_app_will_be_hidden">ئەم ئەپە دەبێتە شاراوە</string>
+    <string name="home_app_hidden_named">%s شاردراوەتەوە</string>
+    <string name="home_app_shown_named">%s پشاندراوە</string>
     <string name="home_app_no_hidden">ئەپی شاراوە نیە</string>
     <string name="home_app_hidden_apps_title">ئەپە شاراوەکان</string>
     <string name="home_app_hidden_apps_hint">دەست لێبدە بۆ دەرخستنەوە</string>
+    <string name="home_apps_unhide_message">ئەپە نەشاردراوەکان دەچنەوە هۆم سکرین</string>
+    <string name="home_app_patch_sources_description">ئەو سەرچاوانەی کە بەبێ تیک ماونەتەوە بەکارنایەن کاتێک ئەم ئەپانە پاتچ دەکرێن، وە پاچەکانیشیان نایەنە ناو هەڵبژاردەکە. هەر سەرچاوەیەک بە پێکراوی دەمێنێتەوە بۆ هەر ئەپێکی تر</string>
+    <string name="home_app_patch_sources_mixed">ئۆفەرکراوە بۆ %1$s ی %2$s</string>
+    <string name="home_app_patch_sources_covers"> پاتچی هەیە بۆ  %1$s ی %2$s</string>
+    <string name="home_app_patch_sources_last">هەر ئەپێک پێویستی بە یەک سەرچاوەیە بۆ ئەوەی لێی پاتچ بکرێت</string>
     <string name="android_11_bug_dialog_title">کەلێنی ئەندرۆید ١١ </string>
     <string name="android_11_bug_dialog_description">پێویستە پێشوەختە مۆڵەتی دامەزراندنی ئەپەکە بدرێت بۆ ئەوەی هەڵەیەک لە سیستەمی ئەندرۆید ١١ ڕوونەدات کە کاریگەری نەرێنی لەسەر ئەزموونی بەکارهێنەر دەبێت</string>
     <string name="deep_link_add_source_title">زیادکردنی سەرچاوە</string>
     <string name="deep_link_add_source_message">دەتەوێت ئەم سەرچاوەی پاچە زیاد بکەیت بۆ Nivqo؟</string>
-<string name="deep_link_add_source_warning">تەنها ئەو سەرچاوانە زیاد بکە کە متمانەت پێیانە</string>
-<!-- Home Screen - Update Notifications -->
+    <string name="deep_link_add_source_warning">تەنها ئەو سەرچاوانە زیاد بکە کە متمانەت پێیانە</string>
+    <!-- Shown under the app a link was opened for -->
+    <string name="deep_link_add_source_only_app">تەنیا ئەم ئەپە زیادکراوە. دەتوانیت ئەپی تریش زیادبکەیت لە لیستی ئەپەکانی سەرچاوە</string>
+    <!-- Shown when the link was opened for the universal patches of a source, which no app is added with -->
+    <string name="deep_link_add_source_only_universal">تەنیا پاتچە جیهانیەکان زیادکراون. دەتوانیت ئەپەکان زیادبکەیت لە لیستی ئەپەکانی سەرچاوە</string>
+    <!-- Asked when the link names an app of a source that is already added -->
+    <string name="deep_link_add_source_app_back">ئەم سەرچاوەیە زیادکراوە. ئەم ئەپە لە سەرچاوەیەک زیاد بکە کە هەبێت؟</string>
+    <!-- Asked when a .mpp file opened from a file manager is another version of a local source, %s being its name -->
+    <!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Nivqo نوێکردنەوە بەردەستە</string>
-<string name="home_update_available_subtitle">وەشانی نوێ ئامادەیە بۆ دابەزاندن</string>
-<string name="home_update_error">نوێکردنەوە شکستس هێنا</string>
+    <string name="home_update_available_subtitle">وەشانی نوێ ئامادەیە بۆ دابەزاندن</string>
+    <string name="home_blocked_source_title">سەرچاوەی پاتچ بلۆککراو دۆزراوەتەوە</string>
+    <string name="home_blocked_source_subtitle">دایبگرە بۆ پێداچوونەوە و سڕینەوە</string>
+    <string name="home_metadata_errors_title">هەندێک سەرچاوەی پاتچ دەردەست نین</string>
+    <string name="home_metadata_errors_subtitle">دایبگرە بۆ پێداچوونەوەی سەرچاوەکان</string>
+    <string name="home_outdated_manager_title">Morphe کاتی نەماوە</string>
+    <string name="home_outdated_manager_subtitle">هەندێک سەرچاوەی پاتچ پێویستان بە ڤێرژنی نوێیە</string>
+    <string name="home_held_back_title">سەرچاوەیەکی پاتچ morphe تێکدا</string>
+    <string name="home_held_back_subtitle">فەرامۆشکرا تا ئەپەکە بتوانێت دەستپێبکات. پەنجە بنێ بۆ پێداچوونەوە</string>
+    <string name="home_metered_skipped_title">ئەپدەیتەکان ڕاگیراون لە ئینتەرنێتی مۆبایل</string>
+    <string name="home_metered_skipped_subtitle">دایبگرە تا ڕێگەبدەی ئەپدەیتەکان لەڕێگەی ئینتەرنێتی مۆبایلەوە بێت</string>
+    <string name="home_repatch_available_subtitle">پەنجە بنێ تا هەموویان لە سڕە دابنێیت</string>
+    <string name="home_update_error">نوێکردنەوە شکستس هێنا</string>
+    <string name="home_update_error_subtitle">لەکاتی ئەپدەیتکردنەوەی سەرچاوەکان هەڵەیەک ڕویدا</string>
     <string name="home_update_skipped_metered">نوێکردنەوەکان پەڕێندرا</string>
-<string name="home_update_skipped_metered_subtitle">داتای مۆبایل چاڵاکە</string>
+    <string name="home_update_skipped_metered_subtitle">داتای مۆبایل چاڵاکە</string>
     <string name="home_updating_sources">نوێکردنەوەی سەرچاوەکان...</string>
-<string name="home_update_success">نوێکردنەوەی سەرچاوە تەواوبوو</string>
+    <string name="home_update_success">نوێکردنەوەی سەرچاوە تەواوبوو</string>
     <string name="home_update_success_subtitle">سەرچاوەکانت نوێن</string>
-<string name="home_sources_are_loading">سەرچاوەکان باردەکرێن، تکایە چاوەڕوان بە...</string>
+    <string name="home_sources_are_loading">سەرچاوەکان باردەکرێن، تکایە چاوەڕوان بە...</string>
     <string name="home_search_apps">گەڕانی ئەپەکان</string>
-<string name="home_no_apps_title">هیچ ئەپێک بەردەست نیە</string>
+    <string name="list_options_title">ڕیز و فلتەر</string>
+    <string name="list_options_state_description">ڕیزکراوە بە %1$s, فلتەرکراوە بە %2$s</string>
+    <string name="home_app_filter_all_description">هەر ئەپیک لە هۆمسکرین</string>
+    <string name="home_app_filter_patched_description">ئەو ئەپانەی کە پاتچ یان خەزنت کردووە لەگەڵ Morphe</string>
+    <string name="home_app_filter_not_patched_description">ئەو ئەپانەی هێشتا پاتچ نەکردووە لە morphe</string>
+    <string name="home_app_filter_installed_description">ئەو ئەپانەی لە ئێستادا دابەزێنراون لەم ئامێرەدا</string>
+    <string name="home_app_filter_uninstalled_description">ئەو ئەپانەی پاتچکراون بە morphe کە لەناو موبایلەکەتدا نەماون</string>
+    <string name="home_app_filter_clones">دوانەکان</string>
+    <string name="home_app_filter_clones_description">ئەو ئەپانەی کە لە ژێر ناوی پاکێجێکی تایبەت بە خۆیان دروستکراون، شانبەشانی ئەسڵی دابەزێندراون</string>
+    <string name="home_app_grouping_none">هیچ</string>
+    <string name="home_app_grouping_all_apps_description">یەک لیست لەگەر هەر ئەپێک</string>
+    <string name="home_app_grouping_sources_description">ئەو ئەپانەی کە سەرچاوەی پاتچ لەخۆیان دەگرێت</string>
+    <string name="home_app_grouping_custom_description">ئەپەکان لەو پۆلانەی کە دروستی دەکەیت</string>
+    <string name="home_app_sort_manual_description">داگرتنی درێژ لە ئەپێک بکە، پاشان دوگمەی دووبارە ڕێکخستنەوە دابگە</string>
+    <string name="home_no_apps_title">هیچ ئەپێک بەردەست نیە</string>
     <string name="home_no_apps_subtitle">سەرچاوەی پاچ زیاد بکە یان سەرچاوەیەکی هەبوو لە %s چالاک بکە</string>
-<string name="home_no_apps_search_subtitle">هیچ ئەپێک ناگونجێ لەگەڵ \"%s\"</string>
+    <string name="home_no_apps_search_subtitle">هیچ ئەپێک ناگونجێ لەگەڵ \"%s\"</string>
     <string name="home_all_apps_hidden_title">هەموو ئەپەکان شاراوەن</string>
-<string name="home_all_apps_hidden_subtitle">هەموو ئەپەکانت لە شاشەی سەرەکی شاردووەتەوە</string>
+    <string name="home_all_apps_hidden_subtitle">هەموو ئەپەکانت لە شاشەی سەرەکی شاردووەتەوە</string>
     <string name="home_category_custom">باو</string>
-<!-- Home Screen - Home Greetings -->
+    <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">دەتەوێت چی ئەپێک پینە بکەیت؟</string>
     <!-- Humorous hype message with light nostalgia -->
     <string name="home_greeting_2">ئامادەیت بۆ ئەوەی جارێکی تر ئەپەکان بکەیتەوە ئەفسانەیی؟</string>
@@ -67,8 +110,13 @@
     <!-- Pun on the saying "Out with the old, in with the new" -->
     <!-- Home Screen - Sources Management -->
     <string name="sources_management_title">سەرچاوەکانی پینە</string>
+    <!-- Which sources the sources page lists, each with what it keeps -->
     <string name="sources_management_open_in_browser">کردنەوە لە وێبگەڕ</string>
     <string name="sources_management_failed_to_open_url">شکستی هێنا لەکردنەوەی بەستەر</string>
+    <!-- Under an app left out of a source that keeps its home screen card because the user has patched it -->
+    <!-- Marks an app (not a patch) the source started supporting since its app list was last opened -->
+    <string name="sources_apps_new">نوێ</string>
+    <!-- Under the Bring new apps switch in a source's app list, whichever way it is set. "It" is the patch source -->
     <string name="sources_management_already_exists">ئەم سەرچاوەیە پێشتر زیاد کراوە</string>
     <string name="sources_management_invalid_url">بەستەری سەرچاوەی نادروستە. تکایە ناونیشانەکە بپشکنە و دووبارە هەوڵدەوە</string>
     <string name="sources_management_metadata_unavailable">مێتاداتا N/A</string>
@@ -121,7 +169,7 @@
     <string name="home_download_instructions_step3_mount">چاوەڕێی تەواوبوونی داگرتنەکە بکە، پاشان
 &lt;b&gt;  APK دابەزێنە &lt;/b&gt;</string>
     <string name="home_download_instructions_step4">دوای تەواوبوونی داگرتنەکە بگەڕێوە بۆ Nivqo</string>
-<string name="home_download_instructions_step4_mount">دوای دامەزراندنی APK ی بنەڕەتی، بگەڕێوە بۆ Morphe</string>
+    <string name="home_download_instructions_step4_mount">دوای دامەزراندنی APK ی بنەڕەتی، بگەڕێوە بۆ Morphe</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
     <string name="home_file_picker_prompt_title">APKی دابەزێندراو دیاری بکە</string>
     <string name="home_file_picker_prompt_description">&lt;b&gt;%s&lt;/b&gt; APK دیاری بکە کە داتبەزاندووە</string>
@@ -184,7 +232,6 @@
     <string name="home_simple_bundle_select_title">سەرچاوەی پینە دیاریبکە</string>
     <!-- Color picker -->
     <string name="custom_color">ڕەنگی باو</string>
-    <string name="hex_color">ڕەنگی هێکس</string>
     <!-- Patch Options -->
     <string name="patch_option_instructions">ڕێنماییەکان</string>
     <string name="patch_option_enter_value">بەها بنووسە</string>
@@ -217,7 +264,7 @@
     <string name="header_creator_failed">شکستی هێنا لە دروستکردنی سەرپەڕە</string>
     <!-- Batch patching -->
     <string name="batch_patch_action">پینە دیاریکراوە</string>
-    <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_start">دەستپێکردن</string>
     <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="shortcut_check_updates_short">پشکنینی نوێکردنەوەکان</string>
@@ -253,7 +300,7 @@
     <!-- Free and total RAM of the device, never its storage -->
     <!-- Size of the patched APK, once patching finished -->
     <!-- How long patching took -->
-    <!-- Average and peak memory the patcher process held while it ran -->
+    <!-- Average and peak heap the patcher held while it ran -->
     <!-- Fastest read or write rate reached while patching, in data per second -->
     <!-- Value of "Libraries": the libraries this device cannot use were dropped from the patched APK -->
     <!-- Value of "Libraries": every library was left in the patched APK -->
@@ -269,20 +316,20 @@
     <string name="patcher_installed_conflict_body">"Morphe ئەپە پینەکراوەکان بە بڕوانامەی تایبەت بە خۆی واژۆ دەکات، کە جیاوازە لە بنەڕەتی. ئەندرۆید پێویستی بە دامەزراندنی وەشانی ئێستا هەیە پێش ئەوەی کاربەرنامە پینەکراوەکە دابمەزرێنێت.
 
 هەڵوەشاندنەوەی داتای ئەپ بە هەمیشەیی دەسڕێتەوە"</string>
-<string name="patcher_install_error_title">هەڵەی دامەزراندن</string>
-<string name="patcher_install_error_subtitle">هەوڵی سڕینەوە و دووبارە دامەزراندن بدە</string>
+    <string name="patcher_install_error_title">هەڵەی دامەزراندن</string>
+    <string name="patcher_install_error_subtitle">هەوڵی سڕینەوە و دووبارە دامەزراندن بدە</string>
     <string name="patcher_ready_to_mount_subtitle">دوگمەی خوارەوە دابگرە بۆ جێگیرکردن</string>
     <string name="patcher_storage_permission_dialog_title">ناتوانیت بچیتە ناو ڕێڕەوی هەمارگە</string>
     <string name="patcher_incompatible_patcher_title">نوێکردنەوە پێویستە</string>
     <string name="patcher_storage_permission_description_api30">یەکێک یان زیاتر لە هەڵبژاردنەکانی پینەکردن ئاماژە بۆ ئەو ڕێچکانە دەکات کە Morphe ناتوانێت بیخوێنێتەوە. پێدانی دەستگەیشتنی هەمارگە و کرتە لە دوگمەکە، پاشان پینەکردن بە شێوەیەکی خۆکەرانە دەست پێدەکات</string>
-<string name="patcher_storage_permission_description_legacy">یەکێک یان زیاتر لە هەڵبژاردنەکانی پینەکردن ئاماژە بە ڕێڕەوەکان دەکەن کە ناتوانن بگەنە ژورەوە. نوێکردنەوەی ڕێڕەوەکان لە بەربژارەکانی پینەکردن و دووبارە هەوڵدەوە</string>
-<string name="patcher_storage_permission_grant">پێدانی مۆڵەتی کۆگا</string>
+    <string name="patcher_storage_permission_description_legacy">یەکێک یان زیاتر لە هەڵبژاردنەکانی پینەکردن ئاماژە بە ڕێڕەوەکان دەکەن کە ناتوانن بگەنە ژورەوە. نوێکردنەوەی ڕێڕەوەکان لە بەربژارەکانی پینەکردن و دووبارە هەوڵدەوە</string>
+    <string name="patcher_storage_permission_grant">پێدانی مۆڵەتی کۆگا</string>
     <string name="patcher_storage_permission_denied_warning">مۆڵەتی کۆگا ڕەتکرایەوە. پێدانی مۆڵەت بۆ بەکارهێنانی ئەم ڕێگایە، یان گواستنەوەی فایلەکان بۆ ڕێبەری تایبەتی ئەپەکە</string>
     <string name="patcher_storage_permission_open_settings">کردنەوەی ڕێکخستنەکانی کۆگا</string>
     <string name="patcher_storage_badge_denied">مۆڵەت ڕەتکرایەوە</string>
     <string name="patcher_storage_badge_missing">نەدۆزرایەوە</string>
-    <string name="patcher_storage_permission_hint">ئامۆژگاری: فایلەکان بگوازەوە بۆ /Android/data/app.nivqo.manager/files/ - پێویست بە مۆڵەتی زیادە ناکات</string>
-<!-- Patcher Screen - Patcher Steps -->
+    <string name="patcher_storage_permission_hint">ئامۆژگاری: فایلەکان بگوازەوە بۆ /Android/data/app.morphe.manager/files/ - پێویست بە مۆڵەتی زیادە ناکات</string>
+    <!-- Patcher Screen - Patcher Steps -->
     <string name="patcher_step_group_preparing">ئامادەکردن</string>
     <string name="patcher_step_load_patches">بارکردنی پینەکان</string>
     <string name="patcher_step_prepare_split_apk">ئاوێتەکردنی APKی دابەشکراو</string>
@@ -293,8 +340,7 @@
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">پاراستن لە پینەکردنی پاشخان</string>
     <string name="battery_optimization_dialog_description">هەندێک ئامێر لەوانەیە پینەکەرەکە بوەستێنن کاتێک ئەپەکە بچووک دەکرێتەوە. ڕێگە بە Morphe بدە بە کارکردن بەبێ سنووردارکردنی پاتری بۆ دڵنیابوون لە تەواوبوونی پینەکردن بە شێوەیەکی باوەڕپێکراو</string>
-<string name="battery_optimization_not_now">ئێستا نا</string>
-<!-- Memory limit dialog, shown after the patcher process was killed -->
+    <string name="battery_optimization_not_now">ئێستا نا</string>
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">پینەکردن بەردەوامە…</string>
     <string name="patcher_notification_text">کرتە بکە بۆ گەڕانەوە بۆ پینەکەرەکە</string>
@@ -328,13 +374,12 @@
     <!-- Expert patcher Screen -->
     <string name="patching_app">پینەکردنی ئەپ</string>
     <string name="memory_usage">بەکارهێنانی بیرگە</string>
-    <!-- "%1$s" is the share of the memory limit the patcher is using, already formatted as a percentage. "%2$s" is that limit in megabytes. -->
     <!-- Patcher Screen - Other hidden strings -->
     <string name="applying_patches">جێگیرکردنی پینەکان</string>
     <string name="failed_to_execute_patch">شکستی هێنا لە جێگیرکردنی %s</string>
     <string name="patched_app_save_failed_toast">شکستی هێنا لە پاشەکەوت کردنی ئەپی پینەکراو</string>
     <string name="plugin_activity_dialog_body">کارلێکردنی بەکارهێنەر پێویستە بۆ ئەوەی بەردەوام بیت لەگەڵ ئەم پێوەکراوە</string>
-    <string name="patcher_process_exit_message">پرۆسەی پینەکەر دەرچوو بە کۆدی %s</string>
+    <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <string name="install_app_success">بە سەرکەوتوویی دامەزرا</string>
     <string name="install_app_fail">دامەزراندنی ئەپەکە سەرکەوتوو نەبوو: %s</string>
     <string name="save_apk_success">APK هەڵگیرا</string>
@@ -348,7 +393,6 @@
     <string name="mini_game_resume">بەردەوامبوون</string>
     <!-- Settings -->
     <string name="appearance">دەرکەوتن</string>
-    <string name="advanced">پێشکەوتوو</string>
     <string name="system">سیستەم</string>
     <!-- Settings - Appearance Tab - Background animation -->
     <string name="settings_appearance_background">ئەنیمەیشتی پاشخان</string>
@@ -385,7 +429,6 @@
     <!-- Settings - Appearance Tab - Home Screen Section -->
     <string name="settings_appearance_home_screen">شاشەی ماڵەوە</string>
     <string name="settings_appearance_greeting_phrases">دەستەواژەی بەخێرهاتن</string>
-    <string name="settings_appearance_greeting_phrases_subtitle">پەیامێکی بەخێرهاتن پیشان بدە لەسەر شاشەی سەرەکی</string>
     <string name="settings_appearance_app_card_colors_default">بنەڕەت</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">وێنۆچکەی ئەپ</string>
@@ -399,27 +442,20 @@
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">گۆڕینی وێنۆچکە</string>
     <!-- Settings - Advanced Tab - Updates Section -->
-    <string name="settings_advanced_updates">نوێکردنەوەکان</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
     <string name="settings_advanced_updates_background_notifications">ئاگانامەکانی نوێکردنەوەی پاشخان</string>
     <string name="settings_advanced_updates_background_notifications_description">بە خوولی پشکنین بۆ نوێکردنەوەکان لە باکگراوند و ئاگادارکردنەوە بکە کاتێک بەردەست بوو</string>
     <string name="settings_advanced_update_interval">پشکنینی فریکوێنس</string>
-    <string name="settings_advanced_update_interval_dialog_title">بپشکنە بۆ نوێکردنەوەکان</string>
-    <string name="settings_advanced_update_interval_hourly">کاتژمێرێک جارێک</string>
-    <string name="settings_advanced_update_interval_daily">ڕۆژی جارێک</string>
-    <string name="settings_advanced_update_interval_weekly">هەفتەی جارێک</string>
-    <string name="settings_advanced_update_interval_monthly">مانگی جارێک</string>
-    <string name="settings_advanced_update_interval_chip_subtitle">فریکوێنسی پشکنینی پاشخان</string>
-    <string name="settings_advanced_update_interval_battery_warning">لەوانەیە پشکنینی پاشبنەما بە شێوەیەکی باوەڕپێکراو کار نەکات لەسەر هەندێک ئامێر. بەرهەمهێنەرانی وەک شیاومی، هواوی، سامسۆنگ و وەن پڵەس زۆرجار پرۆسەکانی پاشخان سنووردار دەکەن بۆ پاشەکەوت کردنی پاتری.</string>
+    <string name="settings_advanced_update_interval_daily">ڕۆژانە</string>
     <!-- Notification content -->
-<string name="notification_bundle_update_title">پینەی نوێ بەردەستە</string>
-<string name="notification_update_text">وەشانی %s ئامادەیە بۆ دابەزاندن</string>
+    <string name="notification_bundle_update_title">پینەی نوێ بەردەستە</string>
+    <string name="notification_update_text">وەشانی %s ئامادەیە بۆ دابەزاندن</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert_mode">مۆدی شارەزا</string>
     <!-- Settings - Advanced Tab - GitHub PAT Settings -->
-    <!-- "%s" is "GitHub Personal Access Token", kept in English because GitHub has no localized UI -->
-    <!-- "%3$s" is "GitHub Personal Access Token", "%2$s" is the GitHub scope name and "%1$s" is the GitHub website. "PAT" is its abbreviation, keep it in English -->
+    <!-- "%s" is the GitHub scope name, keep it as is -->
+    <!-- "%s" is the GitHub account name -->
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <!-- Settings - Advanced Tab - Patch Options Section -->
@@ -469,6 +505,7 @@ morphe_adaptive_monochrome_custom.xml
     <!-- Settings - System Tab - Import and Export Section -->
     <!-- Settings - System Tab - Files & Storage Section -->
     <!-- Settings - System Tab - Storage Management screen -->
+    <!-- Shown under how much Morphe takes up. "%1$s" is the space still available on the device, already formatted with its unit. "Free" as in unused, not as in free of charge. -->
     <!-- Settings - System Tab - Storage Management - Patched APKs Management -->
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
@@ -484,6 +521,10 @@ morphe_adaptive_monochrome_custom.xml
     <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="patches">پینەکان</string>
     <string name="settings">ڕێکخستنەکان</string>
+    <!-- Sections the settings page lists, each opening a page of its own. A summary names what the section holds -->
+    <string name="settings_section_updates">نوێکردنەوەکان</string>
+    <string name="settings_section_patching">پینەکردن</string>
+    <string name="settings_section_general">گشتی</string>
     <string name="skip">لەوەشدا بجە</string>
     <string name="remove">سڕینەوە</string>
     <string name="disable">خۆراکە</string>
@@ -493,6 +534,8 @@ morphe_adaptive_monochrome_custom.xml
     <string name="copy">وێنەلەمەر</string>
     <string name="download">دابەزاندن</string>
     <string name="continue_">بەردەوامبوون</string>
+    <!-- Who made a patch source, as a field label -->
+    <!-- A file a patch source is added from, as a field label -->
     <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patching">پینەکردن</string>
     <string name="patched">پینەکراو</string>
@@ -510,5 +553,18 @@ morphe_adaptive_monochrome_custom.xml
     <!-- Translate "System" the same way as the System settings tab -->
     <!-- Tour prompt dialog shown after first successful patch install -->
     <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
+
+    <!-- Nivqo additions preserved from the previously signed Manager -->
+    <string name="hex_color">ڕەنگی هێکس</string>
+    <string name="patcher_process_exit_message">پرۆسەی پینەکەر دەرچوو بە کۆدی %s</string>
+    <string name="advanced">پێشکەوتوو</string>
+    <string name="settings_appearance_greeting_phrases_subtitle">پەیامێکی بەخێرهاتن پیشان بدە لەسەر شاشەی سەرەکی</string>
+    <string name="settings_advanced_updates">نوێکردنەوەکان</string>
+    <string name="settings_advanced_update_interval_dialog_title">بپشکنە بۆ نوێکردنەوەکان</string>
+    <string name="settings_advanced_update_interval_hourly">کاتژمێرێک جارێک</string>
+    <string name="settings_advanced_update_interval_weekly">هەفتەی جارێک</string>
+    <string name="settings_advanced_update_interval_monthly">مانگی جارێک</string>
+    <string name="settings_advanced_update_interval_chip_subtitle">فریکوێنسی پشکنینی پاشخان</string>
+    <string name="settings_advanced_update_interval_battery_warning">لەوانەیە پشکنینی پاشبنەما بە شێوەیەکی باوەڕپێکراو کار نەکات لەسەر هەندێک ئامێر. بەرهەمهێنەرانی وەک شیاومی، هواوی، سامسۆنگ و وەن پڵەس زۆرجار پرۆسەکانی پاشخان سنووردار دەکەن بۆ پاشەکەوت کردنی پاتری.</string>
     <string name="notification_channel_patcher">پینەکردن</string>
 </resources>

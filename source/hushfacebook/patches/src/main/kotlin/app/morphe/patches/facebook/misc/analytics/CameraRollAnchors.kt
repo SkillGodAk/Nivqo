@@ -11,6 +11,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.feed.namesString
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.reels.watchhistory.callRegisters
@@ -73,10 +74,11 @@ internal fun sessionChecks(method: Method): List<MethodReference> =
 
 /**
  * The processing check: the one static `(FbUserSession)Z` the pipeline's run calls, in the
- * invokeSuspend of [runPipeline] that loads [PROCESSING_OFF]. Null when that isn't exactly one.
+ * invokeSuspend of [runPipeline] that names [PROCESSING_OFF]. 584 asks a Redex string table for it
+ * (`LX/l2E;->A00`), which [resolve] finds. Null when that isn't exactly one.
  */
-internal fun processingCheck(runPipeline: ClassDef): MethodReference? {
-    val runs = runPipeline.methods.filter { it.name == "invokeSuspend" && holdsString(it, PROCESSING_OFF) }
+internal fun processingCheck(runPipeline: ClassDef, resolve: (MethodReference) -> Method? = { null }): MethodReference? {
+    val runs = runPipeline.methods.filter { it.name == "invokeSuspend" && namesString(it, PROCESSING_OFF, resolve) }
     val checks = runs.singleOrNull()?.let(::sessionChecks)?.distinctBy { "${it.definingClass}->${it.name}" }
     return checks?.singleOrNull()
 }

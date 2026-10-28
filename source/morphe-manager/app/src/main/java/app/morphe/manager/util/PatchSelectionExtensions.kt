@@ -7,6 +7,7 @@ package app.morphe.manager.util
 
 import app.morphe.manager.data.room.apps.installed.SelectionPayload
 import app.morphe.manager.domain.bundles.PatchBundleSource
+import app.morphe.manager.patcher.patch.PatchBundleInfo
 import app.morphe.manager.patcher.patch.PatchInfo
 import app.morphe.manager.patcher.patch.PatchLockState
 import app.morphe.patcher.patch.ApkArchitecture
@@ -56,6 +57,30 @@ fun SelectionPayload.remapAndExtractSelection(
 }
 
 object PatchSelectionUtils {
+
+    /**
+     * Every patch of these bundles with whether [selection] holds it, as the expert dialog lists
+     * them: each bundle's patches by name, and the bundles that name the APK's version themselves
+     * first, as the version was found through one of them, then those with the most patches for it.
+     * The [leadingBundleUid] the user chose goes ahead of all of them. A bundle without a patch for
+     * the app is left out.
+     */
+    fun List<PatchBundleInfo.Scoped>.listedWith(
+        selection: PatchSelection,
+        leadingBundleUid: Int? = null
+    ): List<Pair<PatchBundleInfo.Scoped, List<Pair<PatchInfo, Boolean>>>> =
+        mapNotNull { bundle ->
+            val selected = selection[bundle.uid].orEmpty()
+            val patches = bundle.patchSequence(true)
+                .map { patch -> patch to (patch.name in selected) }
+                .sortedBy { (patch, _) -> patch.name }
+                .toList()
+            patches.takeIf { it.isNotEmpty() }?.let { bundle to it }
+        }.sortedWith(
+            compareByDescending<Pair<PatchBundleInfo.Scoped, *>> { (bundle, _) -> bundle.uid == leadingBundleUid }
+                .thenByDescending { (bundle, _) -> bundle.targetsVersion }
+                .thenByDescending { (bundle, _) -> bundle.compatible.size }
+        )
 
     /**
      * Puts [patches] under [bundleUid], dropping the entry when nothing is left selected.

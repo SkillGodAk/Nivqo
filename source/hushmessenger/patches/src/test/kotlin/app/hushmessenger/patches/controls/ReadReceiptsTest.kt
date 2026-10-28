@@ -8,6 +8,7 @@ import com.android.tools.smali.dexlib2.DexFileFactory
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.Opcodes
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
@@ -33,19 +34,20 @@ private val FINAL = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
 private val SEEN_BODY = "const-string v0, \"$CHAT_SEEN_JOB\"\nconst-string v1, \"$CHAT_SEEN_TRACE\"\nreturn-void"
 private const val DISPATCH = "LX/Dispatch;->send(${FB_USER_SESSION}LX/Enum;LX/Message;Ljava/lang/String;Ljava/lang/String;)V"
 
-/** Keep the native instruction positions while omitting unrelated composer logic. The default is 583's body. */
+/** Keep the native instruction positions while omitting unrelated composer logic. The default is 584's body. */
 private fun sendBody(changes: Map<Int, String> = emptyMap(), shape: ReplyReadShape = REPLY_READ_SHAPE): String {
     val c = MutableList(shape.size) { "nop" }
     val n = shape.nullThread
     val d = shape.dispatch
+    val s = d - shape.stage
     mapOf(
         1 to "const-string v0, \"AdapterSender\"", 2 to "const-string v0, \"meta_ai_invocation\"",
-        4 to "move-object/from16 v7, p11", shape.composer to "move-object/from16 v20, p4", shape.session to "move-object/from16 v10, p0",
+        4 to "move-object/from16 v7, p11", shape.composer to "move-object/from16 v${shape.composerReg}, p4", shape.session to "move-object/from16 v10, p0",
         n to "const/4 v5, 0x0", n + 1 to "if-eqz p7, :null_thread",
         n + 2 to "invoke-interface/range {p7 .. p7}, LX/ThreadProvider;->thread()$THREAD_KEY_TYPE", n + 3 to "move-result-object v12",
         n + 4 to ":thread_ready\nnop", n + 5 to "goto/16 :send_stage", shape.absent - 1 to "goto :thread_ready",
         shape.absent to ":null_thread\nmove-object v12, v5", shape.absent + 1 to "goto :thread_ready",
-        d - 5 to ":send_stage\nnop", d - 3 to "move-object/from16 v11, v20", d - 2 to "move-object v12, v10", d - 1 to "move-object v15, v0",
+        s - 3 to ":send_stage\nnop", s - 1 to "move-object/from16 v11, v${shape.composerReg}", s to "move-object v12, v10", d - 2 to "move-object v15, v0",
         d to "invoke-interface/range {v11 .. v16}, $DISPATCH", d + 1 to "const/4 v0, 0x0", d + 2 to "const/4 v1, 0x0", d + 33 to "return-void",
         shape.size - 1 to "return-void",
     ).plus(changes).forEach { (i, value) -> c[i] = value }
@@ -53,7 +55,7 @@ private fun sendBody(changes: Map<Int, String> = emptyMap(), shape: ReplyReadSha
 }
 private fun seen(body: String = SEEN_BODY, registers: Int = 9) = fixtureMethod(SYNTHETIC_CHAT_SEEN, body, registers, STATIC)
 private fun send(changes: Map<Int, String> = emptyMap(), shape: ReplyReadShape = REPLY_READ_SHAPE) =
-    fixtureMethod(SYNTHETIC_SEND_EVENT, sendBody(changes, shape), 36, STATIC)
+    fixtureMethod(SYNTHETIC_SEND_EVENT, sendBody(changes, shape), 35, STATIC)
 private fun Method.code() = implementation!!.instructions.map { ImmutableInstruction.of(it) }
 private fun assertStockCode(before: List<Instruction>, after: List<Instruction>, inserted: Set<Int>, label: String) {
     val positions = after.indices.filter { it !in inserted }
@@ -102,7 +104,10 @@ class ReadReceiptsTest {
         method.injectChatSeen()
         val c = method.code()
         assertEquals("$SEEN_HANDLER->A04:$THREAD_KEY_TYPE", (c[0] as ReferenceInstruction).reference.toString())
-        assertEquals("$SETTINGS->hideChatSeen(Ljava/lang/Object;Ljava/lang/Object;)Z", (c[1] as ReferenceInstruction).reference.toString())
+        assertEquals("$SETTINGS->hideChatSeen(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;)Z", (c[1] as ReferenceInstruction).reference.toString())
+        // The account, the chat, then the handler and message id the Mark as read button replays.
+        assertEquals(listOf(method.parameterRegister(0), 0, method.parameterRegister(1), method.parameterRegister(2)),
+            (c[1] as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF) })
         assertEquals(5, c.branchTarget(3))
         assertStockCode(before, c, (0..4).toSet(), "seen handler")
     }
@@ -110,6 +115,7 @@ class ReadReceiptsTest {
     @Test fun replyIsRecordedOnlyAfterDispatchWithThePreservedThread() {
         val n = REPLY_READ_SHAPE.nullThread
         val d = REPLY_READ_SHAPE.dispatch
+        val s = d - REPLY_READ_SHAPE.stage
         val method = send()
         val before = method.code()
         assertEquals(Opcode.INVOKE_INTERFACE_RANGE, before[n + 2].opcode)
@@ -124,10 +130,10 @@ class ReadReceiptsTest {
         assertEquals(d, method.validateReplyRead())
         method.injectReplyRead()
         val c = method.code()
-        assertEquals(Opcode.MOVE_OBJECT_16, c[d - 2].opcode)
+        assertEquals(Opcode.MOVE_OBJECT_16, c[s].opcode)
         assertEquals(DISPATCH, (c[d + 1] as ReferenceInstruction).reference.toString())
         assertEquals("$SETTINGS->noteMessageSent(Ljava/lang/Object;Ljava/lang/Object;)V", (c[d + 4] as ReferenceInstruction).reference.toString())
-        assertStockCode(before, c, setOf(d - 2, d + 2, d + 3, d + 4), "send dispatcher")
+        assertStockCode(before, c, setOf(s, d + 2, d + 3, d + 4), "send dispatcher")
     }
 
     /** Messenger 582's dispatcher had one more parameter check, so the same seam sat four instructions later. It's refused. */
@@ -135,7 +141,7 @@ class ReadReceiptsTest {
         val shape582 = ReplyReadShape(size = 402, composer = 13, session = 25, nullThread = 31, absent = 73, dispatch = 239)
         for ((label, method) in listOf(
             "582 send dispatcher" to send(shape = shape582),
-            "one more instruction" to fixtureMethod(SYNTHETIC_SEND_EVENT, sendBody() + "\nnop", 36, STATIC),
+            "one more instruction" to fixtureMethod(SYNTHETIC_SEND_EVENT, sendBody() + "\nnop", 35, STATIC),
         )) {
             val before = method.code()
             assertFailsWith<PatchException>(label) { method.injectReplyRead() }
@@ -150,8 +156,8 @@ class ReadReceiptsTest {
             "wrong account" to mapOf(REPLY_READ_SHAPE.session to "move-object/from16 v10, p1"),
             "changed provider" to mapOf(n + 2 to "invoke-interface/range {p7 .. p7}, LX/Other;->thread()$THREAD_KEY_TYPE"),
             "wrong thread type" to mapOf(n + 2 to "invoke-interface/range {p7 .. p7}, LX/ThreadProvider;->thread()Ljava/lang/Object;"),
-            "thread overwritten" to mapOf(d - 4 to "move-object v12, v10"),
-            "branch into send" to mapOf(d - 4 to "goto :bad_send", d to ":bad_send\ninvoke-interface/range {v11 .. v16}, $DISPATCH"),
+            "thread overwritten" to mapOf(d - REPLY_READ_SHAPE.stage - 2 to "move-object v12, v10"),
+            "branch into send" to mapOf(d - REPLY_READ_SHAPE.stage - 2 to "goto :bad_send", d to ":bad_send\ninvoke-interface/range {v11 .. v16}, $DISPATCH"),
             "saved parameter still used" to mapOf(d + 11 to "invoke-virtual/range {p13 .. p13}, LX/H;->use()V"),
             "scratch read on alternate path" to mapOf(d + 1 to "if-eqz v5, :scratch_use", d + 11 to ":scratch_use\ninvoke-static {v1}, LX/H;->use(Ljava/lang/Object;)V"),
         )
@@ -223,7 +229,7 @@ class ReadReceiptsTest {
             val sendBefore = send.code()
             val d = send.validateReplyRead()
             send.injectReplyRead()
-            assertStockCode(sendBefore, send.code(), setOf(d - 2, d + 2, d + 3, d + 4), code)
+            assertStockCode(sendBefore, send.code(), setOf(d - REPLY_READ_SHAPE.stage, d + 2, d + 3, d + 4), code)
             assertTrue(lifecycleDex(listOf(fixtureClass(seen.definingClass, listOf(seen)), fixtureClass(send.definingClass, listOf(send)))).isNotEmpty(), code)
         }
     }

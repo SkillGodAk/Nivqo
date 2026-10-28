@@ -102,8 +102,9 @@ class StorySeenFixtureTest {
                 val viewerMutations = FixtureDex.classesHolding(bundle, "surface=story_viewer")
                 assertEquals("$name: classes building story viewer mutations", 2, viewerMutations.size)
                 val replies = viewerMutations.single { it.type != owner.type }
+                // 584 reads "reply_target_users" out of a string table, but still names the reply type.
                 assertTrue("$name: the other story viewer mutation isn't the reply one",
-                    replies.methods.any { holdsString(it, "reply_target_users") })
+                    replies.methods.any { holdsString(it, "You need to handle all cases returned from getStoryReplyType") })
                 checked += version
             }
         }

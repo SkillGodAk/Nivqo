@@ -39,6 +39,13 @@ internal const val LOGO_CLICK_CALL = "Landroid/view/View;->setOnClickListener($O
  */
 internal const val LOGO_TOUCH_STAND_IN = "$ENTRY->setLogoTouchListener(Landroid/view/View;$ON_TOUCH_LISTENER)V"
 
+/**
+ * SettingsEntry's stand-in for the call that hides the logo from accessibility on the builder's
+ * path that gives it no tap: the logo, then Facebook's importance. 583 takes that path in Arabic,
+ * jumping past the tap, the touch listener and the description, so the long press goes in here.
+ */
+internal const val LOGO_WITHOUT_TAP_STAND_IN = "$ENTRY->setLogoWithoutTap(Landroid/view/View;I)V"
+
 /** Whether this is a framework View call named [name] that takes one [listener] and answers nothing. */
 private fun Instruction.setsListener(name: String, listener: String): Boolean {
     if (opcode != Opcode.INVOKE_VIRTUAL && opcode != Opcode.INVOKE_VIRTUAL_RANGE) return false
@@ -85,11 +92,41 @@ internal fun logoTouchListenerIndex(builder: Method): Int {
 }
 
 /**
+ * Where [builder] hides the logo from accessibility on its path that gives the logo no tap, or
+ * null when it has no such path. 583 has one: when none of its three ways to read the logo's tap
+ * is on (seen in Arabic), it makes the logo unimportant for accessibility and jumps past its tap,
+ * its touch listener and its description, so the logo stays disabled with no listener. It's the
+ * one `setImportantForAccessibility` call on the logo ahead of the logo's tap.
+ */
+internal fun logoWithoutTapIndex(builder: Method): Int? {
+    val where = "${builder.definingClass}->${builder.name}"
+    val click = logoTouchListenerIndex(builder) - 1
+    val instructions = builder.implementation!!.instructions.toList()
+    val logo = instructions[click].receiver()
+    val hides = (0 until click).filter { index ->
+        val instruction = instructions[index]
+        if (instruction.opcode != Opcode.INVOKE_VIRTUAL && instruction.opcode != Opcode.INVOKE_VIRTUAL_RANGE) return@filter false
+        val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return@filter false
+        call.name == "setImportantForAccessibility" && call.definingClass.startsWith("Landroid/") &&
+            call.parameterTypes.map { it.toString() } == listOf("I") && call.returnType == "V" &&
+            instruction.receiver() == logo
+    }
+    if (hides.size > 1) {
+        throw PatchException(
+            "Expected $where to hide the Facebook logo from accessibility at most once before its tap; it does ${hides.size} times",
+        )
+    }
+    return hides.singleOrNull()
+}
+
+/**
  * Sends Facebook's call that gives the Facebook logo its touch listener to SettingsEntry, which
  * makes the call with a listener that opens the Hushfacebook screen on a long press, or with
- * Facebook's own when Facebook passes one. Every name used is kept: the bar's class, the trace
- * section its logo builder opens and the framework's listener calls. Stops the patch, naming what
- * it missed, when the evidence isn't there.
+ * Facebook's own when Facebook passes one. On a build whose builder has a path giving the logo no
+ * tap, it sends that path's accessibility call to SettingsEntry too, which puts the long press on
+ * the logo there. Every name used is kept: the bar's class, the trace section its logo builder
+ * opens and the framework's view calls. Stops the patch, naming what it missed, when the evidence
+ * isn't there.
  */
 internal fun BytecodePatchContext.hookLogoLongPress() {
     val bar = mutableClassDefByOrNull(WORDMARK_NAVIGATION_BAR)
@@ -98,5 +135,8 @@ internal fun BytecodePatchContext.hookLogoLongPress() {
     val builder = builders.singleOrNull() ?: throw PatchException(
         "Expected one method of $WORDMARK_NAVIGATION_BAR holding \"$CREATE_WORDMARK_VIEW\", found ${builders.size}",
     )
-    builder.sendToStandIn(logoTouchListenerIndex(builder), LOGO_TOUCH_STAND_IN)
+    val touch = logoTouchListenerIndex(builder)
+    val withoutTap = logoWithoutTapIndex(builder)
+    builder.sendToStandIn(touch, LOGO_TOUCH_STAND_IN)
+    withoutTap?.let { builder.sendToStandIn(it, LOGO_WITHOUT_TAP_STAND_IN) }
 }

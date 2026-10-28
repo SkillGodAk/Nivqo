@@ -8,6 +8,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
+import app.morphe.patches.facebook.misc.extension.liveAcrossInjection
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
@@ -63,6 +64,31 @@ class KeepProgressBarFixtureTest {
         parameterTypes.map(CharSequence::toString) == other.parameterTypes.map(CharSequence::toString)
 
     private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference?.toString()
+
+    /**
+     * Whether a hook at [at] in [method] that borrows [count] registers may write [register]: one
+     * nothing reads from there on, v15 or below, and a parameter only once the free locals ran out.
+     */
+    private fun borrowable(method: Method, at: Int, count: Int, register: Int): Boolean {
+        val live = method.liveAcrossInjection(at)
+        val locals = method.localRegisterCount()
+        val freeLocals = (0 until minOf(locals, 16)).count { it !in live }
+        return register <= 15 && register !in live && (register < locals || freeLocals < count)
+    }
+
+    /**
+     * The chapter reset on [bundle]'s build, found as the patch finds it, through the classes
+     * extending [scrubber] and the classes of their fields, and the class it's a method of.
+     */
+    private fun chapters(bundle: File, scrubber: ClassDef, looks: ScrubberLooks): Pair<ChapterReset, ClassDef> {
+        val subclasses = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            dex.classes.filter { it.superclass == scrubber.type }.mapTo(subclasses) { ImmutableClassDef.of(it) }
+        }
+        val held = FixtureDex.classes(bundle, subclasses.flatMap { it.fields.map { field -> field.type } }.toSet())
+        val reset = chapterReset(scrubber, looks, subclasses) { held[it] }
+        return reset to (held[reset.method.definingClass] ?: scrubber)
+    }
 
     /**
      * The scrubber's light mount on [bundle]'s build, found as the patch finds it, and the class it's
@@ -128,7 +154,7 @@ class KeepProgressBarFixtureTest {
         assertTrue("$name: ${looks.type}->${looks.passive.name} has no two local registers for the hook", registers - 1 >= 2)
         // The active look runs Facebook's time writer, which moves the bar: why the hook puts it back (#120).
         val scrubber = holders.single { it.type == looks.type }
-        val base = FixtureDex.classes(bundle, setOf(scrubber.superclass!!)).values.single()
+        val base = FixtureDex.classes(bundle, setOf(scrubberBase(looks))).values.single()
         val writers = looks.active.code().mapNotNull {
             (it as? ReferenceInstruction)?.takeIf { call -> call.opcode == Opcode.INVOKE_STATIC }?.reference as? MethodReference
         }.filter { it.definingClass == base.type }
@@ -209,15 +235,15 @@ class KeepProgressBarFixtureTest {
         val looks = vddScrubber(holders)
         val scrubber = holders.single { it.type == looks.type }
         val graph = graphHide(looks) { type -> FixtureDex.classes(bundle, setOf(type))[type] }
-        val chapters = chapterReset(scrubber, looks)
+        val (chapters, resets) = chapters(bundle, scrubber, looks)
         // Facebook runs the reset itself from its chapter callback, for a reel with no marks.
-        assertTrue("$name: nothing of ${looks.type} runs ${chapters.name}", scrubber.methods.any { method ->
-            method.name != chapters.name && method.implementation?.instructions?.any {
-                it.opcode == Opcode.INVOKE_STATIC && it.reference() == "${looks.type}->${chapters.name}(${looks.type})V"
+        assertTrue("$name: nothing of ${resets.type} runs ${chapters.call}", resets.methods.any { method ->
+            method.name != chapters.method.name && method.implementation?.instructions?.any {
+                it.opcode == Opcode.INVOKE_STATIC && it.reference() == chapters.call
             } == true
         })
-        val base = FixtureDex.classes(bundle, setOf(scrubber.superclass!!)).values.single()
-        val info = barInfo(base, minimumLengthCheck(scrubber))
+        val base = FixtureDex.classes(bundle, setOf(scrubberBase(looks))).values.single()
+        val info = barInfo(base, scrubberLengthChecks(scrubber)?.minimum)
         val (another, owner) = lightMount(bundle, base, info.builder.returnType)
         val mountCode = another.mount.code()
         // A match skips the reset of the bar's state, and both videos get the bar info's rebuild: 582 runs
@@ -233,39 +259,48 @@ class KeepProgressBarFixtureTest {
         mount.clearsLastReel(looks, graph, chapters, another)
         val patched = mount.code()
         val where = "$name: ${owner.type}->${another.mount.name}"
-        val local = mount.localRegisterCount()
-        assertEquals("$where gains fifteen instructions", original.size + 15, patched.size)
+        // 584 reads the reset's helper off the scrubber and skips a missing one: two more instructions.
+        val extra = if (chapters.field == null) 0 else 2
+        val end = at + 15 + extra
+        assertEquals("$where gains ${15 + extra} instructions", original.size + 15 + extra, patched.size)
         assertEquals("$where: nothing before the branch moves", original.take(at).map { it.opcode }, patched.take(at).map { it.opcode })
         assertEquals("$where: the extension is asked first", CLEARS_LAST_REEL, patched[at].reference())
         val register = (patched[at + 1] as OneRegisterInstruction).registerA
-        assertTrue("$where: the hook writes v$register, which isn't a local", register < local)
+        assertTrue("$where: the hook writes v$register, which isn't free there", borrowable(another.mount, at, 2, register))
         val flow = ControlFlow.of(mount)
-        assertEquals("$where: a no goes straight on to Facebook", setOf(at + 3, at + 15), flow.normal[at + 2].toSet())
-        for (move in listOf(at + 3, at + 8)) {
+        assertEquals("$where: a no goes straight on to Facebook", setOf(at + 3, end), flow.normal[at + 2].toSet())
+        for (move in listOf(at + 3, at + 8 + extra)) {
             assertEquals("$where: the scrubber moves into the local ($move)", listOf(register, another.scrubber),
                 (patched[move] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
         }
-        assertEquals("$where: only a scrubber of ${looks.type}", Opcode.INSTANCE_OF, patched[at + 4].opcode)
-        assertEquals("$where: the class checked", looks.type, patched[at + 4].reference())
+        assertEquals("$where: only a scrubber of ${chapters.owner}", Opcode.INSTANCE_OF, patched[at + 4].opcode)
+        assertEquals("$where: the class checked", chapters.owner, patched[at + 4].reference())
         val flag = (patched[at + 4] as TwoRegisterInstruction).registerA
-        assertTrue("$where: the check goes in v$flag, a local apart from the instance", flag < local && flag != register)
-        assertEquals("$where: another class goes on to Facebook", setOf(at + 6, at + 15), flow.normal[at + 5].toSet())
-        assertEquals("$where: cast for the reset", looks.type, patched[at + 6].reference())
-        assertEquals("$where: a yes runs Facebook's reset of the marks", "${looks.type}->${chapters.name}(${looks.type})V",
-            patched[at + 7].reference())
-        assertEquals("$where: on this scrubber", listOf(1, register),
-            (patched[at + 7] as FiveRegisterInstruction).let { listOf(it.registerCount, it.registerC) })
-        assertEquals("$where: the views holder", looks.viewsField, patched[at + 9].reference())
-        assertEquals("$where: then the graph", graph.graphField, patched[at + 10].reference())
-        assertEquals("$where: a missing graph goes on to Facebook", setOf(at + 12, at + 15), flow.normal[at + 11].toSet())
-        assertEquals("$where: the flag's value is a true", 1L, (patched[at + 12] as WideLiteralInstruction).wideLiteral)
-        assertEquals("$where: in the check's local", flag, (patched[at + 12] as OneRegisterInstruction).registerA)
-        assertEquals("$where: stored in the graph's hidden flag", graph.hiddenField, patched[at + 13].reference())
+        assertTrue("$where: the check goes in v$flag, a free register apart from the instance",
+            borrowable(another.mount, at, 2, flag) && flag != register)
+        assertEquals("$where: another class goes on to Facebook", setOf(at + 6, end), flow.normal[at + 5].toSet())
+        assertEquals("$where: cast for the reset", chapters.owner, patched[at + 6].reference())
+        if (chapters.field != null) {
+            assertEquals("$where: the helper the scrubber holds", chapters.field, patched[at + 7].reference())
+            assertEquals("$where: read into the local", listOf(register, register),
+                (patched[at + 7] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+            assertEquals("$where: a missing helper goes on to Facebook", setOf(at + 9, end), flow.normal[at + 8].toSet())
+        }
+        val reset = at + 7 + extra
+        assertEquals("$where: a yes runs Facebook's reset of the marks", chapters.call, patched[reset].reference())
+        assertEquals("$where: on this scrubber's marks", listOf(1, register),
+            (patched[reset] as FiveRegisterInstruction).let { listOf(it.registerCount, it.registerC) })
+        assertEquals("$where: the views holder", looks.viewsField, patched[reset + 2].reference())
+        assertEquals("$where: then the graph", graph.graphField, patched[reset + 3].reference())
+        assertEquals("$where: a missing graph goes on to Facebook", setOf(reset + 5, end), flow.normal[reset + 4].toSet())
+        assertEquals("$where: the flag's value is a true", 1L, (patched[reset + 5] as WideLiteralInstruction).wideLiteral)
+        assertEquals("$where: in the check's local", flag, (patched[reset + 5] as OneRegisterInstruction).registerA)
+        assertEquals("$where: stored in the graph's hidden flag", graph.hiddenField, patched[reset + 6].reference())
         assertEquals("$where: the true, on the graph", listOf(flag, register),
-            (patched[at + 13] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
-        assertEquals("$where: then the graph is redrawn", INVALIDATE, patched[at + 14].reference())
-        assertEquals("$where: and the bar is reset as always", setOf(at + 15), flow.normal[at + 14].toSet())
-        assertEquals("$where: Facebook's code stays", original.drop(at).map { it.opcode }, patched.drop(at + 15).map { it.opcode })
+            (patched[reset + 6] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+        assertEquals("$where: then the graph is redrawn", INVALIDATE, patched[reset + 7].reference())
+        assertEquals("$where: and the bar is reset as always", setOf(end), flow.normal[reset + 7].toSet())
+        assertEquals("$where: Facebook's code stays", original.drop(at).map { it.opcode }, patched.drop(end).map { it.opcode })
     }
 
     @Test
@@ -275,9 +310,9 @@ class KeepProgressBarFixtureTest {
         val looks = vddScrubber(holders)
         val scrubber = holders.single { it.type == looks.type }
         val graph = graphHide(looks) { type -> FixtureDex.classes(bundle, setOf(type))[type] }
-        val chapters = chapterReset(scrubber, looks)
-        val base = FixtureDex.classes(bundle, setOf(scrubber.superclass!!)).values.single()
-        val (another, owner) = lightMount(bundle, base, barInfo(base, minimumLengthCheck(scrubber)).builder.returnType)
+        val (chapters, _) = chapters(bundle, scrubber, looks)
+        val base = FixtureDex.classes(bundle, setOf(scrubberBase(looks))).values.single()
+        val (another, owner) = lightMount(bundle, base, barInfo(base, scrubberLengthChecks(scrubber)?.minimum).builder.returnType)
         assertTrue("$name: the views holder isn't ${base.type}'s, so the base can't read it", looks.viewsField.startsWith("${base.type}->"))
 
         val context = PatchContexts.of(listOf(owner))
@@ -289,27 +324,29 @@ class KeepProgressBarFixtureTest {
         mount.clearsLastReel(looks, graph, chapters, another)
         val patched = mount.code()
         val where = "$name: ${owner.type}->${another.mount.name}"
-        val local = mount.localRegisterCount()
-        val start = at + 15
-        assertEquals("$where gains six instructions after the clear's fifteen", original.size + 21, patched.size)
+        val extra = if (chapters.field == null) 0 else 2
+        val start = at + 15 + extra
+        assertEquals("$where gains six instructions after the clear's", original.size + 21 + extra, patched.size)
         assertEquals("$where: the clear comes first", CLEARS_LAST_REEL, patched[at].reference())
         val flow = ControlFlow.of(mount)
         assertEquals("$where: a no to the clear still starts the reel over", setOf(at + 3, start), flow.normal[at + 2].toSet())
         assertEquals("$where: another scrubber class still starts the reel over", setOf(at + 6, start), flow.normal[at + 5].toSet())
-        assertEquals("$where: a missing graph still starts the reel over", setOf(at + 12, start), flow.normal[at + 11].toSet())
-        assertEquals("$where: a cleared reel goes on to start over", setOf(start), flow.normal[at + 14].toSet())
+        if (extra > 0) assertEquals("$where: a missing helper still starts the reel over", setOf(at + 9, start), flow.normal[at + 8].toSet())
+        assertEquals("$where: a missing graph still starts the reel over", setOf(at + 12 + extra, start), flow.normal[at + 11 + extra].toSet())
+        assertEquals("$where: a cleared reel goes on to start over", setOf(start), flow.normal[at + 14 + extra].toSet())
 
         val holder = (patched[start] as TwoRegisterInstruction).let {
             assertEquals("$where: the scrubber moves into a local", another.scrubber, it.registerB)
             it.registerA
         }
-        assertTrue("$where: the start over writes v$holder, which isn't a local", holder < local)
+        assertTrue("$where: the start over writes v$holder, which isn't free there", borrowable(another.mount, at, 2, holder))
         assertEquals("$where: the views holder", looks.viewsField, patched[start + 1].reference())
         assertEquals("$where: a views holder not there yet goes on to Facebook", setOf(start + 3, start + 6),
             flow.normal[start + 2].toSet())
         assertEquals("$where: the bar", looks.barField, patched[start + 3].reference())
         val bar = (patched[start + 3] as TwoRegisterInstruction).registerA
-        assertTrue("$where: the bar goes in v$bar, a local apart from the holder", bar < local && bar != holder)
+        assertTrue("$where: the bar goes in v$bar, a free register apart from the holder",
+            borrowable(another.mount, at, 2, bar) && bar != holder)
         assertEquals("$where: the time label", looks.labelField, patched[start + 4].reference())
         assertEquals("$where: the extension takes both", NEXT_REEL, patched[start + 5].reference())
         assertEquals("$where: the label, then the bar", listOf(2, holder, bar),

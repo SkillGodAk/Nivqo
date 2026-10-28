@@ -40,6 +40,8 @@ public final class AutoReply {
     static final long WAIT_MS = 1_500;
     static final long RETRY_MS = 3_000;
     static final long COOLDOWN_MS = 5L * 60 * 1000;
+    /** A reply's picture follows its text after this long, so the text shows first in the chat. */
+    static final long PICTURE_DELAY_MS = 2_000;
     static final int MAX_RULES = 20;
     static final int MAX_WHEN_CHARS = 200;
     static final int MAX_REPLY_CHARS = 1_000;
@@ -54,11 +56,18 @@ public final class AutoReply {
     static final class Rule {
         final String when;
         final String reply;
+        /** A picture AutoReplyPicture saved, sent after the text, or null. Any other name is dropped. */
+        final String picture;
         /** One whole-word pattern per phrase in [when], compiled on first use. */
         private volatile List<Pattern> terms;
         Rule(String when, String reply) {
+            this(when, reply, null);
+        }
+
+        Rule(String when, String reply, String picture) {
             this.when = when == null ? "" : when.trim();
             this.reply = reply == null ? "" : reply.trim();
+            this.picture = AutoReplyPicture.validName(picture) ? picture : null;
         }
 
         List<Pattern> terms() {
@@ -269,10 +278,32 @@ public final class AutoReply {
                 return Outcome.SKIPPED;
             }
             Settings.enabled(KEY);
+            if (rule.picture != null) queuePicture(context, thread, rule.picture, generation);
             return Outcome.SENT;
         } catch (Throwable failure) {
             Settings.hookFailedPrivately(KEY, "Can't send the auto reply", failure);
             return Outcome.SKIPPED;
+        }
+    }
+
+    /** The text already went, so a picture that can't be queued only costs the picture. */
+    private static void queuePicture(Context context, String thread, String picture, long generation) {
+        try {
+            scheduler.schedule(() -> sendPicture(context, thread, picture, generation), PICTURE_DELAY_MS);
+        } catch (RuntimeException rejected) {
+            Settings.hookFailedPrivately(KEY, "Can't queue the auto reply picture", rejected);
+        }
+    }
+
+    /** Sends a reply's picture once, after its text. Dropped when the switch, Pause or the replies changed since. */
+    private static void sendPicture(Context context, String thread, String picture, long generation) {
+        try {
+            java.util.function.BooleanSupplier wanted = () -> generation == GENERATION.get() && Settings.wouldUse(KEY);
+            if (!wanted.getAsBoolean()) return;
+            String why = AutoReplyPicture.send(context, thread, picture, wanted);
+            if (why != null) android.util.Log.w("HushMessenger", "auto_reply: sent the text without the picture, " + why);
+        } catch (Throwable failure) {
+            Settings.hookFailedPrivately(KEY, "Can't send the auto reply picture", failure);
         }
     }
 
@@ -310,7 +341,7 @@ public final class AutoReply {
             for (int i = 0; i < array.length() && rules.size() < MAX_RULES; i++) {
                 JSONObject item = array.optJSONObject(i);
                 if (item == null) continue;
-                Rule rule = new Rule(item.optString("when", ""), item.optString("reply", ""));
+                Rule rule = new Rule(item.optString("when", ""), item.optString("reply", ""), item.optString("picture", null));
                 if (!rule.reply.isEmpty()) rules.add(rule);
             }
         } catch (JSONException damaged) {
@@ -328,8 +359,10 @@ public final class AutoReply {
             for (Rule rule : rules) {
                 if (rule.reply.isEmpty()) continue;
                 if (array.length() >= MAX_RULES) break;
-                array.put(new JSONObject().put("when", MessageLog.clip(rule.when, MAX_WHEN_CHARS))
-                    .put("reply", MessageLog.clip(rule.reply, MAX_REPLY_CHARS)));
+                JSONObject entry = new JSONObject().put("when", MessageLog.clip(rule.when, MAX_WHEN_CHARS))
+                    .put("reply", MessageLog.clip(rule.reply, MAX_REPLY_CHARS));
+                if (rule.picture != null) entry.put("picture", rule.picture);
+                array.put(entry);
             }
         } catch (JSONException impossible) {
             throw new IllegalStateException(impossible);

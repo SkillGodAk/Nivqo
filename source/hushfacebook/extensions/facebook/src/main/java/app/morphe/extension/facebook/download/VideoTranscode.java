@@ -62,6 +62,12 @@ final class VideoTranscode {
      */
     static final double MIN_FRAMES_KEPT = 0.9;
 
+    /** The least room a converted picture is given, as before it was worked out from the picture's length. */
+    static final long LEAST_ROOM = 32L << 20;
+
+    /** The most frames a second the tables are counted for, whatever a file states. */
+    private static final int MOST_FRAMES_A_SECOND = 240;
+
     private VideoTranscode() {
     }
 
@@ -101,6 +107,55 @@ final class VideoTranscode {
         long forSize = (long) width * height * Math.max(1, frameRate) / 25;
         long wanted = Math.max(sourceBitRate * 3, forSize);
         return (int) Math.max(MIN_BIT_RATE, Math.min(MAX_BIT_RATE, wanted));
+    }
+
+    /**
+     * The room the converted picture needs ({@link DashSave#reserve}): as long as [in]'s picture
+     * runs, at {@link #MAX_BIT_RATE} and a quarter again, with the tables and boxes on top. Phone
+     * encoders hold a quality floor rather than the rate they're asked for: the S22's made about
+     * 8 Mbps of 1080p asked for 3 to 3.8, and a four minute 1080p reel asked for 2.5 outgrew both
+     * six times its 467 kbps file and half again over 2.5 Mbps, so the save fell back to
+     * Facebook's 720p file. The ceiling is the most any of them made.
+     */
+    static long room(File in, long sourceBitRate) {
+        long durationUs = -1;
+        int width = 0;
+        int height = 0;
+        int frameRate = DEFAULT_FRAME_RATE;
+        MediaExtractor source = null;
+        try {
+            source = new MediaExtractor();
+            source.setDataSource(in.getPath());
+            MediaFormat format = pictureTrack(source);
+            if (format != null) {
+                if (format.containsKey(MediaFormat.KEY_DURATION)) durationUs = format.getLong(MediaFormat.KEY_DURATION);
+                width = format.getInteger(MediaFormat.KEY_WIDTH);
+                height = format.getInteger(MediaFormat.KEY_HEIGHT);
+                if (format.containsKey(MediaFormat.KEY_FRAME_RATE)) {
+                    frameRate = Math.max(1, format.getInteger(MediaFormat.KEY_FRAME_RATE));
+                }
+            }
+        } catch (Throwable unreadable) {
+            // The file's size stands in for the length and size it doesn't give.
+        } finally {
+            if (source != null) attempt(null, source::release);
+        }
+        return roomFor(durationUs, width, height, frameRate, sourceBitRate, in.length());
+    }
+
+    /**
+     * {@link #room} from what the picture says: it runs [durationUs] at [width] by [height] and
+     * [frameRate], from a source at [sourceBitRate]. Never below six times [bytes] or
+     * {@link #LEAST_ROOM}, the room every picture got before, which is all a picture that doesn't
+     * say how long it runs or how large it is gets.
+     */
+    static long roomFor(long durationUs, int width, int height, int frameRate, long sourceBitRate, long bytes) {
+        long floor = Math.max(LEAST_ROOM, Math.max(0L, bytes) * 6);
+        if (durationUs <= 0 || width <= 0 || height <= 0) return floor;
+        long ms = durationUs / 1000;
+        long picture = ms * (MAX_BIT_RATE / 8) / 1000 * 5 / 4;
+        long frames = ms * Math.max(1, Math.min(frameRate, MOST_FRAMES_A_SECOND)) / 1000 + 1;
+        return Math.max(floor, OutputAllowance.BOXES + picture + frames * OutputAllowance.PER_SAMPLE);
     }
 
     /** The color description a source can state, carried to the encoder by {@link #keepColors}. */
@@ -290,7 +345,13 @@ final class VideoTranscode {
                     if (encoded != null && info.size > 0 && !config) {
                         if (!muxing) throw new IOException("the encoder gave a frame before its format");
                         // Counted before the muxer has it, so a frame that won't fit is never written.
-                        allowance.take(info.size);
+                        try {
+                            allowance.take(info.size);
+                        } catch (OutputAllowance.Exceeded over) {
+                            // How far in it got says how far the encoder ran over.
+                            throw new OutputAllowance.Exceeded(over.getMessage() + ", " + info.presentationTimeUs / 1000
+                                + " ms into the picture");
+                        }
                         encoded.position(info.offset);
                         encoded.limit(info.offset + info.size);
                         muxer.writeSampleData(track, encoded, info);

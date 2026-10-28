@@ -19,6 +19,7 @@ import androidx.annotation.Nullable;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
+import app.morphe.extension.shared.settings.BooleanSetting;
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.diagnostics.FeedFilterCounters;
@@ -141,12 +142,15 @@ public final class AppIcons {
     }
 
     /**
-     * Replaces the home header's stock wordmark with the enabled alternate launcher icon. Facebook
-     * has already loaded its wordmark when this runs, so the default icon, the switch off, Pause,
-     * and every failure leave that wordmark alone. Never throws.
+     * Replaces the home header's stock wordmark with the enabled alternate launcher icon, when both
+     * Unlock app icons and Use the icon at the top of Home are on (#172). Facebook has already loaded
+     * its wordmark when this runs, so the default icon, either switch off, Pause, and every failure
+     * leave that wordmark alone. Home header text takes the header first when it has words. Never
+     * throws.
      */
     public static void dressLogo(@Nullable View logo) {
-        if (!unlock("header logo")) return;
+        if (HeaderText.replacesLogo()) return;
+        if (!unlock("header logo", Settings.USE_APP_ICON_IN_HEADER)) return;
         try {
             if (!(logo instanceof ImageView)) return;
             Context context = logo.getContext();
@@ -223,10 +227,16 @@ public final class AppIcons {
 
     /** True while the switch unlocks the icons, counted under [hook]. Never throws. */
     private static boolean unlock(String hook) {
+        return unlock(hook, null);
+    }
+
+    /** Same, and the hook also needs [also] on when one is given. */
+    private static boolean unlock(String hook, @Nullable BooleanSetting also) {
         try {
             HookStatus.invoked(FamilyNames.APP_ICONS);
             FeedFilterCounters.sawList(ROUTE, 1);
             if (!Utils.settingsReady() || !Settings.UNLOCK_APP_ICONS.get()) return false;
+            if (also != null && !also.get()) return false;
             FeedFilterCounters.removed(ROUTE, 1, hook);
             Logger.printDebug(() -> "App icons: unlocked for the " + hook);
             return true;

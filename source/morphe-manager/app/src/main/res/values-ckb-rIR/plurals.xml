@@ -4,6 +4,7 @@
         <item quantity="one">%s پینە</item>
         <item quantity="other">%s پینەکان</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
     <plurals name="option_count">
         <item quantity="one">%s هەڵبژاردەی پینە</item>
         <item quantity="other">%s هەڵبژاردەکانی پینە</item>
@@ -51,4 +52,5 @@
         <item quantity="one">پینە %s لە باندڵی هەڵبژێردراوەوە کۆپی کراوە</item>
         <item quantity="other">پینەکان %s لە باندڵی هەڵبژێردراوەوە کۆپی کراون</item>
     </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
 </resources>

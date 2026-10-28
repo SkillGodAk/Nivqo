@@ -31,8 +31,8 @@ import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.PauseForTests;
 
 /**
- * The four hooks of Clean up Facebook's chat list: with a switch on, the notes tiles go, a
- * promotion banner answers no, the search row's Meta AI button is handed back as none or the search
+ * The five hooks of Clean up Facebook's chat list: with a switch on, the notes tiles and the row
+ * drawing them go, a promotion banner answers no, the search row's Meta AI button is handed back as none or the search
  * screen's row is told not to show its button, and with it off, paused, not ready or failing,
  * Facebook gets what it would have built.
  */
@@ -93,6 +93,41 @@ public class ChatListTest {
         assertEquals(FamilyNames.CHAT_LIST + ": invoked 1, 0 found, 0 missing", statusLine());
         // The other switch is its own: promotions stay while only notes are on.
         assertFalse(ChatList.hidesPromotion());
+    }
+
+    @Test
+    public void withTheNotesSwitchOnTheWholeRowGoes() {
+        assertFalse("off, Chats draws its own row", ChatList.hidesNotesRow());
+        assertEquals(ChatList.NOTES_ROW_ROUTE + ": 1 lists, 1 items, 0 removed", counterLine(ChatList.NOTES_ROW_ROUTE));
+
+        Settings.HIDE_CHAT_NOTES_TRAY.save(true);
+        assertTrue("on, the section hands back its own empty result", ChatList.hidesNotesRow());
+        assertEquals(ChatList.NOTES_ROW_ROUTE + ": 2 lists, 2 items, 1 removed. Last reason: " + ChatList.NOTES_HIDDEN
+                + ". Removed: " + ChatList.NOTES_HIDDEN + " 1", counterLine(ChatList.NOTES_ROW_ROUTE));
+        // The tiles' own count is separate from the row's.
+        assertNull(counterLine(ChatList.NOTES_ROUTE));
+
+        // The other switches don't hide the row.
+        Settings.HIDE_CHAT_NOTES_TRAY.save(false);
+        Settings.HIDE_CHAT_PROMOTIONS.save(true);
+        Settings.HIDE_CHAT_META_AI_BUTTON.save(true);
+        assertFalse(ChatList.hidesNotesRow());
+    }
+
+    @Test
+    public void pausedOrNotReadyTheNotesRowIsFacebooks() {
+        Settings.HIDE_CHAT_NOTES_TRAY.save(true);
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse(ChatList.hidesNotesRow());
+        PauseForTests.pause(HushfacebookPause.Reason.CRASH_LOOP);
+        assertFalse(ChatList.hidesNotesRow());
+        PauseForTests.resume();
+        boolean[] hidden = {true, true};
+        SettingsContextRule.withoutContext(() -> hidden[0] = ChatList.hidesNotesRow());
+        SettingsContextRule.beforeThePauseIsDecided(() -> hidden[1] = ChatList.hidesNotesRow());
+        assertFalse(hidden[0]);
+        assertFalse(hidden[1]);
+        assertTrue(ChatList.hidesNotesRow());
     }
 
     @Test

@@ -11,16 +11,12 @@
 package app.morphe.manager.domain.manager
 
 import android.content.Context
-import android.os.Build
 import android.util.Log
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import app.morphe.manager.BuildConfig
 import app.morphe.manager.domain.manager.base.BasePreferencesManager
 import app.morphe.manager.domain.repository.PatchBundleRepository.Companion.DEFAULT_SOURCE_UID
-import app.morphe.manager.patcher.runtime.PROCESS_RUNTIME_MEMORY_NOT_SET
-import app.morphe.manager.patcher.runtime.coerceMemoryLimit
-import app.morphe.manager.patcher.runtime.initialMemoryLimit
 import app.morphe.manager.ui.screen.shared.BackgroundType
 import app.morphe.manager.ui.theme.SeasonalEvent
 import app.morphe.manager.ui.theme.Theme
@@ -31,7 +27,6 @@ import app.morphe.manager.ui.viewmodel.BundleSnapshot
 import app.morphe.manager.ui.viewmodel.RandomInterval
 import app.morphe.manager.util.ApkDownloadHelperContract
 import app.morphe.manager.util.AppCardColorMode
-import app.morphe.manager.util.isArmV7
 import app.morphe.manager.util.tag
 import app.morphe.manager.worker.UpdateCheckInterval
 import kotlinx.coroutines.flow.first
@@ -78,10 +73,16 @@ class PreferencesManager(
 
     /** Whether cards, panels and buttons draw the hairline edge around them. */
     val outlines = booleanPreference("outlines", true)
+
+    /** Whether headers, bars and panels blur what scrolls under them, or stand solid over it. */
+    val blur = booleanPreference("blur", true)
     val showGreetingPhrases = booleanPreference("show_greeting_phrases", true)
 
     /** The per-app badges carry the same news, so the banner is worth turning off. */
     val showRepatchNotice = booleanPreference("show_repatch_notice", true)
+
+    /** Whether the apps list ends on a card leading to the community patches for more apps. */
+    val showMoreAppsCard = booleanPreference("show_more_apps_card", true)
     val customAccentColor = stringPreference("custom_accent_color", "")
     val customThemeColor = stringPreference("custom_theme_color", "")
     val appCardColorMode = enumPreference("app_card_color_mode", AppCardColorMode.DEFAULT)
@@ -129,6 +130,8 @@ class PreferencesManager(
     // System tab
     val installerPrimary = stringPreference("installer_primary", InstallerPreferenceTokens.INTERNAL)
     val promptInstallerOnInstall = booleanPreference("prompt_installer_on_install", false)
+    /** Lets an expert run on a rooted device pick patches regardless of what its install target requires or rules out. */
+    val ignoreInstallTargetRules = booleanPreference("ignore_install_target_rules", false)
     val installerCustomComponents = stringSetPreference("installer_custom_components", emptySet())
     val installerHiddenComponents = stringSetPreference("installer_hidden_components", emptySet())
 
@@ -139,16 +142,11 @@ class PreferencesManager(
     )
     val autoUninstallWithShizuku = booleanPreference("auto_uninstall_with_shizuku", false)
 
-    val useProcessRuntime = booleanPreference(
-        "process_runtime", // Old key was 'use_process_runtime' and may have the wrong default for some devices.
-        // Process runtime fails for Android 10 and lower.
-        // ARMv7 silently fails and nobody has researched why.
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !isArmV7()
-    )
-    val patcherProcessMemoryLimit = intPreference("use_process_runtime_memory_limit", PROCESS_RUNTIME_MEMORY_NOT_SET)
-
-    /** Whether the last patcher process came up without the heap limit it asked for. Tied to the device, so never exported. */
-    val patcherHeapLimitIgnored = booleanPreference("patcher_heap_limit_ignored", false)
+    /**
+     * Whether patching runs in the embedded JVM where the device has one. A key of its own, as
+     * the process runtime it replaced was turned off for reasons that do not apply to it.
+     */
+    val useJvmRuntime = booleanPreference("patcher_jvm", true)
 
     /**
      * Whether changelogs and patch descriptions show in the app language. Needs the translation
@@ -178,8 +176,11 @@ class PreferencesManager(
     /** Packages of the third-party APK download helpers the user trusts to be offered. */
     val trustedApkDownloadHelpers = stringSetPreference("trusted_apk_download_helpers", emptySet())
 
+    /** Whether asking for an APK starts the helper flow at once, over the download instructions. */
+    val openApkDownloadHelperDirectly = booleanPreference("open_apk_download_helper_directly", false)
+
     val lastFilePickerPath = stringPreference("last_file_picker_path", "")
-    val filePickerSortMode = stringPreference("file_picker_sort_mode", "NAME_ASC")
+    val filePickerSortMode = stringPreference("file_picker_sort_mode", "DATE_DESC")
     val filePickerShowHiddenFiles = booleanPreference("file_picker_show_hidden_files", false)
 
     /** Persist the pre-patch APK so it can be reused for repatching without asking the user to reselect it. */
@@ -188,8 +189,8 @@ class PreferencesManager(
     /** Persist the post-patch APK so it can be exported or reinstalled after the patcher screen is closed. */
     val savePatchedApks = booleanPreference("save_patched_apks", true)
 
-    /** Play a distinct notification sound when patching finishes. */
-    val patcherCompletionSound = booleanPreference("patcher_completion_sound", true)
+    /** Play a distinct notification sound when patching finishes. Off until asked for, as a sound can startle. */
+    val patcherCompletionSound = booleanPreference("patcher_completion_sound", false)
 
     /** URI of a user-picked success tone. Empty falls back to the bundled `R.raw.success`. */
     val patcherSuccessSoundUri = stringPreference("patcher_success_sound_uri", "")
@@ -202,6 +203,9 @@ class PreferencesManager(
 
     /** On-disk cache of the remote source blocklist (JSON), so offline launches still enforce it. */
     val blocklistCache = stringPreference("blocklist_cache", "")
+
+    /** Batch queue prepared but not started yet (JSON), empty when there is none. */
+    val batchQueue = stringPreference("batch_queue", "")
 
     /** Tracks whether the user has explicitly toggled the custom file picker preference. */
     val customFilePickerUserConfigured = booleanPreference("custom_file_picker_user_configured", false)
@@ -228,13 +232,6 @@ class PreferencesManager(
                 val now = System.currentTimeMillis()
                 installationTime.update(now)
                 Log.d(tag, "Installation time set to $now")
-            }
-
-            // Initialize process memory limit adaptively on first launch
-            if (patcherProcessMemoryLimit.get() == PROCESS_RUNTIME_MEMORY_NOT_SET) {
-                val adaptive = initialMemoryLimit(context)
-                Log.d(tag, "Initializing process memory limit to $adaptive MB (device RAM-based)")
-                patcherProcessMemoryLimit.update(adaptive)
             }
 
             // Existing installs stored their Material You preference in `dynamic_color`;
@@ -273,6 +270,7 @@ class PreferencesManager(
         val pureBlackTheme: Boolean? = null,
         val colorAccents: Boolean? = null,
         val outlines: Boolean? = null,
+        val blur: Boolean? = null,
         val customAccentColor: String? = null,
         val customThemeColor: String? = null,
         val appCardColorMode: AppCardColorMode? = null,
@@ -284,8 +282,7 @@ class PreferencesManager(
         val appLanguage: String? = null,
         val gitHubPat: String? = null,
         val includeGitHubPatInExports: Boolean? = null,
-        val useProcessRuntime: Boolean? = null,
-        val patcherProcessMemoryLimit: Int? = null,
+        val useJvmRuntime: Boolean? = null,
         val allowMeteredUpdates: Boolean? = null,
         val installerPrimary: String? = null,
         val installerCustomComponents: Set<String>? = null,
@@ -318,6 +315,7 @@ class PreferencesManager(
         /** Legacy all-or-nothing helper switch, read only from older exports. */
         val useApkDownloadHelper: Boolean? = null,
         val trustedApkDownloadHelpers: Set<String>? = null,
+        val openApkDownloadHelperDirectly: Boolean? = null,
         val sourceBundleSortMode: String? = null,
         val saveOriginalApks: Boolean? = null,
         val savePatchedApks: Boolean? = null,
@@ -342,6 +340,7 @@ class PreferencesManager(
                 pureBlackTheme = pureBlackTheme.takeIf { appearance },
                 colorAccents = colorAccents.takeIf { appearance },
                 outlines = outlines.takeIf { appearance },
+                blur = blur.takeIf { appearance },
                 customAccentColor = customAccentColor.takeIf { appearance },
                 customThemeColor = customThemeColor.takeIf { appearance },
                 appCardColorMode = appCardColorMode.takeIf { appearance },
@@ -353,8 +352,7 @@ class PreferencesManager(
                 appLanguage = appLanguage.takeIf { appearance },
                 gitHubPat = gitHubPat.takeIf { sources },
                 includeGitHubPatInExports = includeGitHubPatInExports.takeIf { sources },
-                useProcessRuntime = useProcessRuntime.takeIf { patching },
-                patcherProcessMemoryLimit = patcherProcessMemoryLimit.takeIf { patching },
+                useJvmRuntime = useJvmRuntime.takeIf { patching },
                 allowMeteredUpdates = allowMeteredUpdates.takeIf { updates },
                 installerPrimary = installerPrimary.takeIf { patching },
                 installerCustomComponents = installerCustomComponents.takeIf { patching },
@@ -386,6 +384,7 @@ class PreferencesManager(
                 customFilePickerUserConfigured = customFilePickerUserConfigured.takeIf { patching },
                 useApkDownloadHelper = useApkDownloadHelper.takeIf { patching },
                 trustedApkDownloadHelpers = trustedApkDownloadHelpers.takeIf { patching },
+                openApkDownloadHelperDirectly = openApkDownloadHelperDirectly.takeIf { patching },
                 sourceBundleSortMode = sourceBundleSortMode.takeIf { sources },
                 saveOriginalApks = saveOriginalApks.takeIf { patching },
                 savePatchedApks = savePatchedApks.takeIf { patching },
@@ -402,6 +401,7 @@ class PreferencesManager(
         pureBlackTheme = pureBlackTheme.get(),
         colorAccents = colorAccents.get(),
         outlines = outlines.get(),
+        blur = blur.get(),
         customAccentColor = customAccentColor.get(),
         customThemeColor = customThemeColor.get(),
         appCardColorMode = appCardColorMode.get(),
@@ -412,8 +412,7 @@ class PreferencesManager(
         uiScale = uiScale.get(),
         gitHubPat = gitHubPat.get().takeIf { includeGitHubPatInExports.get() },
         includeGitHubPatInExports = includeGitHubPatInExports.get(),
-        useProcessRuntime = useProcessRuntime.get(),
-        patcherProcessMemoryLimit = patcherProcessMemoryLimit.get(),
+        useJvmRuntime = useJvmRuntime.get(),
         allowMeteredUpdates = allowMeteredUpdates.get(),
         installerPrimary = installerPrimary.get(),
         installerCustomComponents = installerCustomComponents.get(),
@@ -441,6 +440,7 @@ class PreferencesManager(
         useCustomFilePicker = useCustomFilePicker.get(),
         customFilePickerUserConfigured = customFilePickerUserConfigured.get(),
         trustedApkDownloadHelpers = trustedApkDownloadHelpers.get(),
+        openApkDownloadHelperDirectly = openApkDownloadHelperDirectly.get(),
         sourceBundleSortMode = sourceBundleSortMode.get(),
         saveOriginalApks = saveOriginalApks.get(),
         savePatchedApks = savePatchedApks.get(),
@@ -453,6 +453,7 @@ class PreferencesManager(
         snapshot.pureBlackTheme?.let { pureBlackTheme.value = it }
         snapshot.colorAccents?.let { colorAccents.value = it }
         snapshot.outlines?.let { outlines.value = it }
+        snapshot.blur?.let { blur.value = it }
         snapshot.customAccentColor?.let { customAccentColor.value = it }
         snapshot.customThemeColor?.let { customThemeColor.value = it }
         snapshot.appCardColorMode?.let { appCardColorMode.value = it }
@@ -468,11 +469,7 @@ class PreferencesManager(
         snapshot.uiScale?.let { uiScale.value = it.coerceToUiScale() }
         snapshot.gitHubPat?.let { gitHubPat.value = it }
         snapshot.includeGitHubPatInExports?.let { includeGitHubPatInExports.value = it }
-        snapshot.useProcessRuntime?.let { useProcessRuntime.value = it }
-        // Clamped rather than taken as-is, so a limit exported from a roomier device still fits
-        snapshot.patcherProcessMemoryLimit?.let {
-            patcherProcessMemoryLimit.value = coerceMemoryLimit(context, it)
-        }
+        snapshot.useJvmRuntime?.let { useJvmRuntime.value = it }
         snapshot.allowMeteredUpdates?.let { allowMeteredUpdates.value = it }
         snapshot.installerPrimary?.let { installerPrimary.value = it }
         snapshot.installerCustomComponents?.let { installerCustomComponents.value = it }
@@ -520,6 +517,7 @@ class PreferencesManager(
                     trustedApkDownloadHelpers.value = installedApkDownloadHelpers()
                 }
             }
+        snapshot.openApkDownloadHelperDirectly?.let { openApkDownloadHelperDirectly.value = it }
         snapshot.sourceBundleSortMode?.let { sourceBundleSortMode.value = it }
         snapshot.saveOriginalApks?.let { saveOriginalApks.value = it }
         snapshot.savePatchedApks?.let { savePatchedApks.value = it }

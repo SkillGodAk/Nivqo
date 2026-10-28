@@ -7,6 +7,7 @@ package app.morphe.patches.facebook.misc.analytics
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.facebook.feed.FixtureDex
+import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.search.branchTarget
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.findMutableMethodOf
@@ -52,7 +53,10 @@ class CameraRollFixtureTest {
         assertNotNull("$name: no $MEDIA_COUNT_JOB", mediaCountJob)
         assertNotNull("$name: no $SCHEDULING_JOB", scheduling)
 
-        val call = processingCheck(runPipeline!!)
+        // 584 asks a string table for the reason, so the run names it through one.
+        val call = processingCheck(runPipeline!!) { asked ->
+            FixtureDex.classes(bundle, setOf(asked.definingClass))[asked.definingClass]?.let { resolveStatic(it, asked) }
+        }
         assertNotNull("$name: the pipeline's run doesn't call one (FbUserSession)Z check", call)
         val checkClass = FixtureDex.classes(bundle, setOf(call!!.definingClass))[call.definingClass]
         val checks = checkClass?.methods?.filter { isProcessingCheck(it, call) }.orEmpty()

@@ -13,11 +13,13 @@ import app.morphe.patches.facebook.shared.redexOriginalName
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.RegisterLiveness
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -25,10 +27,11 @@ import org.junit.Test
 /**
  * The swap guard on every Facebook build the bundle declares: exactly one class holding the swap
  * runnable's log line answers the guard's rule, it's the runnable Redex names
- * FeedUnitCollectionManager$onEdgeSwapped$1, and the feed guard's patch, run on it with the edge and
- * the funnel's class, asks the extension right after the cast, on registers nothing reads, before
- * the swap, leaving the rest of run() as it was. Reads the fixture bundles from
- * HUSHFACEBOOK_FIXTURE_DIR and skips without it.
+ * FeedUnitCollectionManager$onEdgeSwapped$1 (on 584 the Function0 capturing the new edge and the old
+ * key), and the feed guard's patch, run on it with the edge and the funnel's class, asks the
+ * extension right after the cast, on registers nothing reads, before the swap, leaving the rest of
+ * run() or invoke() as it was. Reads the fixture bundles from HUSHFACEBOOK_FIXTURE_DIR and skips
+ * without it.
  */
 class EdgeSwapFixtureTest {
     /** The fingerprint keeps its last match, and each build brings a context of its own. */
@@ -53,7 +56,12 @@ class EdgeSwapFixtureTest {
                 assertEquals("$name: swap runnables among ${owners.map { it.type }}", 1, guards.size)
                 val guard = guards.single()
                 val owner = owners.single { it.type == guard.method.definingClass }
-                assertEquals("$name: the Redex name", "FeedUnitCollectionManager\$onEdgeSwapped\$1", redexOriginalName(owner))
+                // Through 583 the runnable keeps its Redex name; 584's Function0 has none, but keeps
+                // the names of what it captures.
+                val captures = owner.fields.map { it.name }.toSet()
+                assertTrue("$name: the Redex name or the swap's captures, $captures",
+                    redexOriginalName(owner) == "FeedUnitCollectionManager\$onEdgeSwapped\$1" ||
+                        captures.containsAll(setOf("\$newEdge", "\$oldPrimaryKey")))
 
                 val funnel = FixtureDex.classesHolding(bundle, "Edge not added to FUC")
                 val edge = FixtureDex.classes(bundle, setOf(FEED_UNIT_EDGE)).values
@@ -61,21 +69,36 @@ class EdgeSwapFixtureTest {
                 feedFilterHookPatch.execute(context)
 
                 val before = guard.method.body()
-                val run = context.mutableClassDefBy(owner.type).methods.single { it.name == "run" && it.parameterTypes.isEmpty() }
+                val run = context.mutableClassDefBy(owner.type).methods.single {
+                    it.name == guard.method.name && it.parameterTypes.isEmpty() && it.returnType == guard.method.returnType
+                }
                 val after = run.body()
-                val added = after.subList(guard.index, guard.index + 8)
+                // run() gets eight instructions, ending in its own return-void; invoke() seven, ending
+                // in a jump to the Unit load its one return reads.
+                val size = if (guard.unit == null) 8 else 7
+                val added = after.subList(guard.index, guard.index + size)
                 assertEquals("$name: the guard", HIDE_SWAPPED_EDGE, added[4].call())
-                assertEquals("$name: what it returns", Opcode.RETURN_VOID, added[7].opcode)
+                if (guard.unit == null) {
+                    assertEquals("$name: what it returns", Opcode.RETURN_VOID, added[7].opcode)
+                } else {
+                    assertEquals("$name: the way out", Opcode.IF_NEZ, added[6].opcode)
+                    val unit = after[guard.unit!! + size]
+                    assertEquals("$name: the jump's target", listOf(Opcode.SGET_OBJECT, Opcode.RETURN_OBJECT),
+                        listOf(unit.opcode, after[guard.unit!! + size + 1].opcode))
+                    assertSame("$name: the jump lands on the Unit load", unit,
+                        (added[6] as BuilderOffsetInstruction).target.location.instruction)
+                }
                 assertEquals("$name: one guard", 1, after.count { it.call() == HIDE_SWAPPED_EDGE })
                 val asked = (added[4] as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD) }
                 val live = RegisterLiveness.of(guard.method).liveInto(guard.index)
-                assertTrue("$name: the guard borrows $asked, which run() still reads: $live", asked.none { it in live } && asked.all { it <= 15 })
-                assertEquals("$name: the rest of run()", before.map { it.opcode },
-                    after.filterIndexed { index, _ -> index !in guard.index until guard.index + 8 }.map { it.opcode })
+                assertTrue("$name: the guard borrows $asked, which the runnable still reads: $live", asked.none { it in live } && asked.all { it <= 15 })
+                assertEquals("$name: the rest of the runnable", before.map { it.opcode },
+                    after.filterIndexed { index, _ -> index !in guard.index until guard.index + size }.map { it.opcode })
                 val swap = after.indexOfFirst {
-                    it.opcode.name.startsWith("invoke-interface") && it.call()?.endsWith("(${FEED_UNIT_EDGE}Ljava/lang/String;)V") == true
+                    it.opcode in setOf(Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE) &&
+                        it.call()?.endsWith("(${FEED_UNIT_EDGE}Ljava/lang/String;)V") == true
                 }
-                assertTrue("$name: the guard comes before the swap at $swap", swap > guard.index + 7)
+                assertTrue("$name: the guard comes before the swap at $swap", swap > guard.index + size - 1)
                 checked += version
             }
         }

@@ -17,6 +17,8 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.file.Path
 import java.security.MessageDigest
+import java.util.Properties
+import java.util.jar.JarOutputStream
 import java.util.zip.Adler32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
@@ -216,11 +218,15 @@ class CatalogToolTest {
             "Bold and italic text"
         assertTrue("people" in CatalogTool.validateDefinitions(patch, ui, manifest, names))
         assertFailsWith<IllegalArgumentException> { CatalogTool.validateDefinitions(patch.replace("controlPatch(\"people\"", "controlPatch(\"changed\""), ui, manifest, names) }
+        val constantKey = assertFailsWith<IllegalArgumentException> {
+            CatalogTool.validateDefinitions(patch.replace("controlPatch(\"people\"", "controlPatch(PEOPLE"), ui, manifest, names)
+        }
+        assertContains(constantKey.message!!, "string literal")
         assertFailsWith<IllegalArgumentException> { CatalogTool.validateDefinitions(patch, ui.replace("{\"people\",", "{\"changed\","), manifest, names) }
         assertFailsWith<IllegalArgumentException> { CatalogTool.validateDefinitions(patch, ui, manifest.replace("hush.feature.people", "hush.feature.changed"), names) }
-        assertFailsWith<IllegalArgumentException> { CatalogTool.validateDefinitions(patch, ui, manifest.replace("hush.feature.people", "hush.feature.ads"), names) }
+        assertFailsWith<IllegalArgumentException> { CatalogTool.validateDefinitions(patch, ui, manifest.replace("hush.feature.people", "hush.feature.growth"), names) }
         assertFailsWith<IllegalArgumentException> { CatalogTool.validateDefinitions(patch, ui, manifest.replace("android:value=\"true\"", "android:value=\"false\""), names) }
-        assertFailsWith<IllegalArgumentException> { CatalogTool.validateDefinitions(patch, ui, manifest, names - "Hide inbox ads") }
+        assertFailsWith<IllegalArgumentException> { CatalogTool.validateDefinitions(patch, ui, manifest, names - "Hide Meta AI") }
         assertFailsWith<IllegalArgumentException> { CatalogTool.validateDefinitions(patch, ui, manifest, names - "Clone install under another package name") }
     }
 
@@ -316,6 +322,86 @@ class CatalogToolTest {
             CatalogTool.validatePatcherClasses(listOf("app/hushmessenger/patches/Fixture.class", "app/hushmessenger/patches/Newer.class"), patcher)
         }
         assertFailsWith<IllegalArgumentException> { CatalogTool.validatePatcherClasses(emptyList(), patcher) }
+    }
+
+    /** Missing on both sides is no match, so the catalog check can't call a bundle fresh by comparing nothing. */
+    @Test fun aBundleAndSourceBothWithoutATimestampAreRefused() {
+        CatalogTool.requireBundleTimestamp("1790552148000", "1790552148000")
+        val missing = assertFailsWith<IllegalArgumentException> { CatalogTool.requireBundleTimestamp(null, null) }
+        assertEquals("Source has no bundle timestamp", missing.message)
+        val differs = assertFailsWith<IllegalArgumentException> { CatalogTool.requireBundleTimestamp(null, "1790552148000") }
+        assertEquals("Bundle timestamp differs from source", differs.message)
+        assertFailsWith<IllegalArgumentException> { CatalogTool.requireBundleTimestamp("", "") }
+    }
+
+    /** The manifest has to carry this source's timestamp and version, and a bundle and source that both lack a timestamp don't match. */
+    @Test fun theBundleManifestMustMatchTheSource() {
+        fun manifest(vararg pairs: Pair<String, String>) = java.util.jar.Manifest().apply {
+            for ((name, value) in pairs) mainAttributes.putValue(name, value)
+        }
+        fun source(vararg pairs: Pair<String, String>) = java.util.Properties().apply { for ((name, value) in pairs) setProperty(name, value) }
+        val fresh = manifest("Version" to "0.25.0", "Timestamp" to "1790552148000")
+        assertEquals("0.25.0", CatalogTool.requireBundleMatchesSource(fresh,
+            source("version" to "0.25.0", "bundleTimestampMillis" to "1790552148000")))
+        val neither = assertFailsWith<IllegalArgumentException> {
+            CatalogTool.requireBundleMatchesSource(manifest("Version" to "0.25.0"), source("version" to "0.25.0"))
+        }
+        assertEquals("Source has no bundle timestamp", neither.message)
+        val stale = assertFailsWith<IllegalArgumentException> {
+            CatalogTool.requireBundleMatchesSource(manifest("Version" to "0.25.0"),
+                source("version" to "0.25.0", "bundleTimestampMillis" to "1790552148000"))
+        }
+        assertEquals("Bundle timestamp differs from source", stale.message)
+        val older = assertFailsWith<IllegalArgumentException> {
+            CatalogTool.requireBundleMatchesSource(fresh, source("version" to "0.26.0", "bundleTimestampMillis" to "1790552148000"))
+        }
+        assertEquals("Bundle version differs from source", older.message)
+        assertFailsWith<IllegalArgumentException> {
+            CatalogTool.requireBundleMatchesSource(manifest("Timestamp" to "1790552148000"), source("bundleTimestampMillis" to "1790552148000"))
+        }
+    }
+
+    /** The check reads its bundle through readBundle, so a stale, unstamped, older or manifest-less bundle is refused there. */
+    @Test fun theCatalogCheckReadsOnlyABundleBuiltFromThisSource(@TempDir temporary: Path) {
+        val patcher = patcherDex("people")
+        val extension = extensionDex("logoLongPressed", "people")
+        fun bundle(name: String, vararg attributes: Pair<String, String>): File {
+            val file = temporary.resolve(name).toFile()
+            file.outputStream().use { out ->
+                val zip = if (attributes.isEmpty()) ZipOutputStream(out) else JarOutputStream(out, java.util.jar.Manifest().apply {
+                    mainAttributes.putValue("Manifest-Version", "1.0")
+                    for ((key, value) in attributes) mainAttributes.putValue(key, value)
+                })
+                zip.use {
+                    for ((entry, data) in listOf("classes.dex" to patcher, "extensions/messenger.mpe" to extension,
+                        "app/hushmessenger/patches/Fixture.class" to ByteArray(4))) {
+                        it.putNextEntry(ZipEntry(entry))
+                        it.write(data)
+                        it.closeEntry()
+                    }
+                }
+            }
+            return file
+        }
+        val source = Properties().apply { setProperty("version", "0.25.0"); setProperty("bundleTimestampMillis", "1790552148000") }
+        val read = CatalogTool.readBundle(bundle("fresh.mpp", "Version" to "0.25.0", "Timestamp" to "1790552148000"), source)
+        assertEquals("0.25.0", read.version)
+        assertEquals(listOf("app/hushmessenger/patches/Fixture.class"), read.patchClasses)
+        assertContentEquals(patcher, read.patcherDex)
+        assertContentEquals(extension, read.extensionDex)
+        for ((name, attributes, message) in listOf(
+            Triple("stale.mpp", arrayOf("Version" to "0.25.0", "Timestamp" to "1790000000000"), "Bundle timestamp differs from source"),
+            Triple("unstamped.mpp", arrayOf("Version" to "0.25.0"), "Bundle timestamp differs from source"),
+            Triple("older.mpp", arrayOf("Version" to "0.24.0", "Timestamp" to "1790552148000"), "Bundle version differs from source"),
+            Triple("bare.mpp", emptyArray<Pair<String, String>>(), "Bundle has no manifest"),
+        )) {
+            val refused = assertFailsWith<IllegalArgumentException>(name) { CatalogTool.readBundle(bundle(name, *attributes), source) }
+            assertEquals(message, refused.message, name)
+        }
+        // A source without its own stamp matches nothing, not even a bundle that also has none.
+        val unstamped = Properties().apply { setProperty("version", "0.25.0") }
+        val neither = assertFailsWith<IllegalArgumentException> { CatalogTool.readBundle(bundle("neither.mpp", "Version" to "0.25.0"), unstamped) }
+        assertEquals("Source has no bundle timestamp", neither.message)
     }
 
     /** A run that refuses its bundle, however early, leaves no success receipt from an earlier run behind. */

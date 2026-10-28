@@ -10,9 +10,11 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -107,16 +109,16 @@ private fun writes(instruction: Instruction, register: Int): Boolean {
 }
 
 /**
- * The params' String field whose value the builder holds when it loads the variable's name at
+ * The String field of [owner] whose value the builder holds when it loads the variable's name at
  * [literal]: the nearest read of such a field in the few instructions above it, with nothing in
  * between writing the register it went to. Null when there's none.
  */
-private fun fieldReadAbove(code: List<Instruction>, literal: Int): String? {
+private fun fieldReadAbove(code: List<Instruction>, literal: Int, owner: String = FETCH_FEEDBACK_PARAMS): String? {
     for (index in literal - 1 downTo maxOf(0, literal - READ_WINDOW)) {
         val read = code[index]
         if (read.opcode != Opcode.IGET_OBJECT) continue
         val field = read.field ?: continue
-        if (field.definingClass != FETCH_FEEDBACK_PARAMS || field.type != STRING) continue
+        if (field.definingClass != owner || field.type != STRING) continue
         val register = (read as OneRegisterInstruction).registerA
         if (code.subList(index + 1, literal).any { writes(it, register) }) return null
         return field.key()
@@ -145,9 +147,12 @@ internal fun requestFields(method: Method): RequestFields? {
     return RequestFields(order, feedbackId, focusedComment)
 }
 
+/** How many registers a parameter of this type takes. */
+private fun CharSequence.width(): Int = if (toString() == "J" || toString() == "D") 2 else 1
+
 /** The register past the locals, which holds `this` in an instance method. */
 private fun Method.thisRegister(): Int {
-    val parameters = parameterTypes.sumOf { if (it.toString() == "J" || it.toString() == "D") 2 else 1 }
+    val parameters = parameterTypes.sumOf { it.width() }
     return implementation!!.registerCount - parameters - 1
 }
 
@@ -161,13 +166,7 @@ internal fun requestRegisters(constructor: Method, fields: RequestFields): Reque
     if (AccessFlags.STATIC.isSet(constructor.accessFlags)) return null
     val code = constructor.implementation?.instructions?.toList() ?: return null
     val self = constructor.thisRegister()
-    // The v number of each String parameter.
-    val stringParameters = mutableSetOf<Int>()
-    var next = self + 1
-    for (type in constructor.parameterTypes) {
-        if (type.toString() == STRING) stringParameters += next
-        next += if (type.toString() == "J" || type.toString() == "D") 2 else 1
-    }
+    val stringParameters = constructor.stringParameterRegisters().keys
     fun storedFrom(field: String): Int? {
         val stores = code.indices.filter { code[it].opcode == Opcode.IPUT_OBJECT && code[it].field?.key() == field }
         val store = stores.singleOrNull() ?: return null
@@ -183,6 +182,17 @@ internal fun requestRegisters(constructor: Method, fields: RequestFields): Reque
     val focusedComment = storedFrom(fields.focusedComment) ?: return null
     if (setOf(order, feedbackId, focusedComment).size != 3) return null
     return RequestRegisters(order, feedbackId, focusedComment)
+}
+
+/** The v number of each of this instance method's String parameters, to the parameter's index from 0. */
+private fun Method.stringParameterRegisters(): Map<Int, Int> {
+    val registers = mutableMapOf<Int, Int>()
+    var next = thisRegister() + 1
+    parameterTypes.forEachIndexed { index, type ->
+        if (type.toString() == STRING) registers[next] = index
+        next += type.width()
+    }
+    return registers
 }
 
 /**
@@ -255,4 +265,106 @@ internal fun sortHeaderIn(render: Method, keyMaps: Set<String>): MethodReference
         }
         if (keyRead) reference else null
     }.distinctBy { "${it.definingClass}->${it.name}${it.parameterTypes}" }.singleOrNull()
+}
+
+/*
+ * A post's own page, on the 583 build (#192). A link to a post, and many notifications, open the
+ * post's page rather than a sheet, and its comments come with the story in one request, built from
+ * a FetchSingleStoryParams (kept) by the method that takes it and the FbUserSession. That builder
+ * writes `comment_rendering_intent_token` too, from one String field of those params and only
+ * when it isn't empty, so a page opened from a link that names no order gets Facebook's choice,
+ * whatever the sheets ask for. The params' long constructor stores that field from one of its many
+ * String parameters, through one move on 583. The one method that turns a PermalinkParams (kept)
+ * into the request builds the params with that constructor, the order the link names in that
+ * parameter's place. The hook goes right before the call: the extension sees the order the page
+ * would ask for and answers the one to send. A link to one comment opens a sheet, not the page, so
+ * the page's request has no focused comment to keep.
+ */
+
+/** The params of a post page's request. Redex keeps the name. */
+internal const val FETCH_SINGLE_STORY_PARAMS = "Lcom/facebook/api/story/FetchSingleStoryParams;"
+
+/** What a link to a post carries. Redex keeps the name. */
+internal const val PERMALINK_PARAMS = "Lcom/facebook/permalink/params/PermalinkParams;"
+
+/** The extension's answer to the order a post page's request would carry. */
+internal const val PAGE_ORDER = "$EXTENSION_PACKAGE/comments/DefaultCommentOrder;->pageOrder(Ljava/lang/String;)Ljava/lang/String;"
+
+/** Where a post page's request is built from a link: the constructor call's index and the register the order is in. */
+internal data class PageBuild(val method: Method, val index: Int, val order: Int)
+
+/**
+ * The field of the post page's params that [method] turns into the order, when it's that page's
+ * request builder: it takes FetchSingleStoryParams, and each load of the variable's name (583 has
+ * four, one per request shape) follows a read of the same String field of the params. Null for any
+ * other method.
+ */
+internal fun storyOrderField(method: Method): String? {
+    if (method.parameterTypes.none { it.toString() == FETCH_SINGLE_STORY_PARAMS }) return null
+    val code = method.implementation?.instructions?.toList() ?: return null
+    val loads = code.indices.filter { code[it].string == ORDER_VARIABLE }
+    if (loads.isEmpty()) return null
+    val fields = loads.map { fieldReadAbove(code, it, FETCH_SINGLE_STORY_PARAMS) ?: return null }
+    return fields.toSet().singleOrNull()
+}
+
+private val MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+
+/**
+ * Which of [constructor]'s parameters, counting from 0, it stores into [field]: when it's one of
+ * the post page params' own, stores the field once, into `this`, from a String parameter straight
+ * or through one move, and nothing before that writes the parameter's register. Null for any other
+ * method.
+ */
+internal fun storyOrderParameter(constructor: Method, field: String): Int? {
+    if (constructor.name != "<init>" || constructor.definingClass != FETCH_SINGLE_STORY_PARAMS) return null
+    if (AccessFlags.STATIC.isSet(constructor.accessFlags)) return null
+    val code = constructor.implementation?.instructions?.toList() ?: return null
+    val parameters = constructor.stringParameterRegisters()
+    val stores = code.indices.filter { code[it].opcode == Opcode.IPUT_OBJECT && code[it].field?.key() == field }
+    val store = stores.singleOrNull() ?: return null
+    val instruction = code[store] as TwoRegisterInstruction
+    if (instruction.registerB != constructor.thisRegister()) return null
+    var register = instruction.registerA
+    var at = store
+    if (register !in parameters) {
+        val write = (at - 1 downTo 0).firstOrNull { writes(code[it], register) } ?: return null
+        val move = code[write]
+        if (move.opcode !in MOVES) return null
+        register = (move as TwoRegisterInstruction).registerB
+        at = write
+    }
+    val index = parameters[register] ?: return null
+    if (code.subList(0, at).any { writes(it, register) }) return null
+    return index
+}
+
+private fun MethodReference.sameAs(method: Method): Boolean =
+    definingClass == method.definingClass && name == method.name &&
+        parameterTypes.map { it.toString() } == method.parameterTypes.map { it.toString() }
+
+/**
+ * Where [method] builds the post page's params from a link, when it's the method taking
+ * PermalinkParams that calls [constructor] once, the params' constructor whose parameter
+ * [parameter] is the order: that call's index and the register holding the order there. Null for
+ * any other method.
+ */
+internal fun pageBuildIn(method: Method, constructor: Method, parameter: Int): PageBuild? {
+    if (method.parameterTypes.none { it.toString() == PERMALINK_PARAMS }) return null
+    val code = method.implementation?.instructions?.toList() ?: return null
+    val calls = code.withIndex().filter { (_, instruction) ->
+        (instruction.opcode == Opcode.INVOKE_DIRECT || instruction.opcode == Opcode.INVOKE_DIRECT_RANGE) &&
+            ((instruction as ReferenceInstruction).reference as? MethodReference)?.sameAs(constructor) == true
+    }
+    val (index, call) = calls.singleOrNull() ?: return null
+    // Past `this`, then past the parameters before it.
+    val offset = 1 + constructor.parameterTypes.take(parameter).sumOf { it.width() }
+    val register = when (call) {
+        is RegisterRangeInstruction -> call.startRegister + offset
+        is FiveRegisterInstruction ->
+            listOf(call.registerC, call.registerD, call.registerE, call.registerF, call.registerG).getOrNull(offset)
+                ?: return null
+        else -> return null
+    }
+    return PageBuild(method, index, register)
 }

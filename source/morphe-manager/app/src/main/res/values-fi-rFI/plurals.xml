@@ -4,6 +4,11 @@
         <item quantity="one">%s lisäosa</item>
         <item quantity="other">%s lisäosaa</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s kirjasto</item>
+        <item quantity="other">%s kirjastoa</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s lisäosa-asetus</item>
         <item quantity="other">%s lisäosa-asetusta</item>
@@ -26,6 +31,10 @@
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Paikkauslähteet %s sovellukselle</item>
         <item quantity="other">Paikkauslähteet %s sovellukselle</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s-lähdekoodi on piilotettu tälle sovellukselle. Valitse sovellus Sovellukset-välilehdeltä ja avaa Korjaa lähteet palauttaaksesi sen</item>
+        <item quantity="other">%s-lähteet on piilotettu tälle sovellukselle. Valitse sovellus Sovellukset-välilehdeltä ja avaa Korjaa lähteet palauttaaksesi ne</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s lähde piilotettu. Napauta näyttääksesi</item>
@@ -55,6 +64,10 @@
         <item quantity="one">Asennettu %s sovellus</item>
         <item quantity="other">Asennettu %s sovellusta</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Liitetty %s sovellus</item>
+        <item quantity="other">Liitetty %s sovellusta</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Asennettu uudelleen %s sovellus</item>
         <item quantity="other">Asennettu uudelleen %s sovellusta</item>
@@ -70,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">%s sovellus valmis päivitykseen</item>
         <item quantity="other">%s sovellusta valmis päivitykseen</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s sovellus jonoon paikkaukselle</item>
+        <item quantity="other">%s sovellusta jonossa paikkaukselle</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s piilotettu ilmoitus, napauta nähdäksesi sen</item>
+        <item quantity="other">%s piilotettua ilmoitusta, napauta nähdäksesi ne</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s sovellus voidaan paikata uudelleen</item>
@@ -87,9 +108,17 @@
         <item quantity="one">%s asennettu lähde</item>
         <item quantity="other">%s asennettua lähdettä</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s suodatettu</item>
-        <item quantity="other">%1$s · %2$s suodatettua</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s sovellus piilotettu</item>
+        <item quantity="other">%s sovellusta piilotettu</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s sovellus näkyvillä</item>
+        <item quantity="other">%s sovellusta näkyvillä</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Piilota sovellus %s esiin?</item>
+        <item quantity="other">Piilota sovellukset %s esiin?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s piilotettu sovellus</item>
@@ -126,6 +155,11 @@
     <plurals name="changelog_change_count">
         <item quantity="one">%s muutos</item>
         <item quantity="other">%s muutosta</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d uusi</item>
+        <item quantity="other">%1$s · %2$d uutta</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s uusi julkaisu</item>

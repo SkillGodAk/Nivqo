@@ -195,7 +195,7 @@ class PosterAnchorsFixtureTest {
                 val name = bundle.name
                 val holders = FixtureDex.classesHolding(bundle, SIDEBAR)
                 val builders = holders.flatMap { classDef ->
-                    classDef.methods.filter(::isSidebarBuilder)
+                    classDef.methods.filter { isSidebarBuilder(it, classDef.methods) }
                         .map { classDef to it }
                 }
                 assertEquals("$name: sidebar builders ${builders.map { "${it.first.type}->${it.second.name}" }}", 1, builders.size)

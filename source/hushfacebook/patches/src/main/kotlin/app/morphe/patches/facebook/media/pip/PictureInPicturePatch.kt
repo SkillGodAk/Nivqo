@@ -9,6 +9,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
+import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
@@ -17,6 +18,7 @@ import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.downloads.reel.moreSheet
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.media.framestep.VIEW
 import app.morphe.patches.facebook.media.framestep.VIEW_GROUP
 import app.morphe.patches.facebook.media.framestep.grootAttaches
 import app.morphe.patches.facebook.media.framestep.playerViewFields
@@ -39,6 +41,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -67,6 +70,8 @@ internal const val PIP_PARAMS_BUILDER = "Landroid/app/PictureInPictureParams\$Bu
 internal const val PICTURE_IN_PICTURE = "Lapp/morphe/extension/facebook/media/PictureInPicture;"
 
 internal const val ALLOWED = "$PICTURE_IN_PICTURE->allowed($ACTIVITY)Z"
+
+internal const val REFUSED = "$PICTURE_IN_PICTURE->refused()Z"
 
 internal const val SURFACE_ALLOWED = "$PICTURE_IN_PICTURE->surfaceAllowed()Z"
 
@@ -115,6 +120,10 @@ internal const val HOME_GATE_ALLOWED = "$PICTURE_IN_PICTURE->homeGateAllowed(Z)Z
 
 internal const val HOME_FLAG_ALLOWED = "$PICTURE_IN_PICTURE->homeFlagAllowed(Z)Z"
 
+internal const val HIDING = "$PICTURE_IN_PICTURE->hiding($VIEW)V"
+
+internal const val SHOWN_AGAIN = "$PICTURE_IN_PICTURE->shownAgain(${VIEW}I)V"
+
 /**
  * A playing reel keeps going in a small window when you leave Facebook. Facebook ships
  * picture-in-picture for its Reels viewer (ReelsPipUtil: 581 `LX/BB6;`) behind server flags, at two
@@ -123,7 +132,9 @@ internal const val HOME_FLAG_ALLOWED = "$PICTURE_IN_PICTURE->homeFlagAllowed(Z)Z
  * it: Android 12 or later, a server flag or a preference of Facebook's, the phone's feature and a
  * memory check. The patch puts the extension first in both; its yes returns true, and Facebook's
  * own code then sets the window's shape and Android's auto-enter. The activities the viewer plays
- * in already declare picture-in-picture in Facebook's manifest.
+ * in already declare picture-in-picture in Facebook's manifest. With the switch off the check says
+ * no: Facebook turns the window on by itself for some accounts, from a server flag or a switch in
+ * its own Media settings, and every arming asks the check first (#252, #256).
  *
  * Facebook arms the window once as the viewer opens, and turns auto-enter off and on as that one
  * player pauses and plays, through a runnable ReelsPipUtil posts (581 `LX/Ciq;`). A swipe pauses
@@ -171,6 +182,21 @@ internal const val HOME_FLAG_ALLOWED = "$PICTURE_IN_PICTURE->homeFlagAllowed(Z)Z
  * Facebook's own code then arms the window for the video on screen, and the rest here treats that
  * arming like any other: a paused video is held by the pause hook.
  *
+ * The window's viewer hides every view of the screen but its own container as it opens, and back
+ * from the window Facebook's picture-in-picture handler (583 `LX/kNn;->A09`) shows every one of
+ * them again, whatever it was before. Among them are the spots for views Facebook builds only once
+ * shown (ViewStubs), and showing one builds it: the reel viewer got Facebook Flex's switcher bar,
+ * a purple button over the top right of the reel, and four more views it never shows (#126). The
+ * extension hears each view hidden and keeps how it showed, and the handler's call that shows it
+ * again goes through the extension, which puts that back.
+ *
+ * A reel floating from the full-screen viewer has the viewer at the root of the window's task, and a
+ * link opened from another app starts that viewer for its page: Android only brought the reel back.
+ * A link that builds Facebook's main screen under its page cleared the window's task instead. The
+ * extension looks at each start first thing in Facebook's launch step (583 `LX/0Oe;->A01`), the
+ * static method every start passes with its context and intent, and gives those two kinds a task of
+ * their own (#126).
+ *
  * A reel's More sheet gets a Picture-in-picture row while the window is armed on its screen, and
  * its tap opens the window at once (#44). A second switch, Only from a reel's More menu, keeps
  * auto-enter off so that row is the only way in; the extension does that part.
@@ -183,7 +209,7 @@ val pictureInPicturePatch = bytecodePatch(
     name = "Picture-in-picture",
     description = "Keeps reels and videos from the Reels and Video tabs, or full screen, playing in a small " +
         "window when you leave Facebook, so you can watch while using another app. Needs Android 12 or later. " +
-        "Starts off. Turn it on in Hushfacebook settings > Playback.",
+        "Starts off. Turn it on in Hushfacebook settings > Video and audio.",
 ) {
     category("Playback")
     dependsOn(settingsPatch)
@@ -217,6 +243,18 @@ val pictureInPicturePatch = bytecodePatch(
         applyViewerId(opening)
         applyTopicFlag(topic)
         applyHome(home)
+        // Showing the screen back from the window as it was (#126); the window works without it.
+        try {
+            applyScreenRestore(findScreenRestore(opening))
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so a reel back from the window may show Facebook's switcher button.")
+        }
+        // A page started while a reel floats gets a task of its own (#126); the window works without it.
+        try {
+            applyOwnTask(findLaunchStep())
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so a link opened while a reel floats may bring the reel back instead of its page.")
+        }
         // The More sheet row (#44). The fixture tests hold it on every declared build; on another
         // one, leaving Facebook still opens the window, so a miss here is a warning.
         try {
@@ -294,8 +332,10 @@ internal fun BytecodePatchContext.findSurfaceGate(arming: Method): Method {
 
 /**
  * The extension goes first in the check, handed the activity through the range form, which names
- * any register. Its yes returns true from v0, free at the method's start; anything else runs
- * Facebook's check as it was.
+ * any register. Its yes returns true from v0, free at the method's start. Otherwise it's asked
+ * again, and with the switch off its yes returns false: Facebook turns this window on by itself for
+ * some accounts, and every one of its armings asks this check first (#252, #256). Anything else
+ * runs Facebook's check as it was.
  */
 internal fun BytecodePatchContext.applyPipCheck(check: Method) {
     val method = mutableClassDefBy(check.definingClass).findMutableMethodOf(check)
@@ -306,8 +346,14 @@ internal fun BytecodePatchContext.applyPipCheck(check: Method) {
         """
             invoke-static/range { $activity .. $activity }, $ALLOWED
             move-result v0
-            if-eqz v0, :facebook
+            if-eqz v0, :refused
             const/4 v0, 0x1
+            return v0
+            :refused
+            invoke-static { }, $REFUSED
+            move-result v0
+            if-eqz v0, :facebook
+            const/4 v0, 0x0
             return v0
         """,
         ExternalLabel("facebook", method.getInstruction(0)),
@@ -869,4 +915,122 @@ internal fun BytecodePatchContext.applyHome(home: Home) {
             """,
         )
     }
+}
+
+private const val GET_CHILD_AT = "Landroid/view/ViewGroup;->getChildAt(I)$VIEW"
+private const val SET_VISIBILITY = "$VIEW->setVisibility(I)V"
+
+/** The method [instruction] calls, or null when it calls none. */
+private fun called(instruction: Instruction): MethodReference? =
+    if (instruction.opcode.name.startsWith("invoke")) (instruction as? ReferenceInstruction)?.reference as? MethodReference else null
+
+/**
+ * Whether [register] holds a child of a view group at [at] in [code]: the last write to it before
+ * there is the move-result-object of a getChildAt call.
+ */
+internal fun holdsChild(code: List<Instruction>, at: Int, register: Int): Boolean {
+    val write = (at - 1 downTo 0).firstOrNull {
+        code[it].opcode.setsRegister() && (code[it] as? OneRegisterInstruction)?.registerA == register
+    } ?: return false
+    return code[write].opcode == Opcode.MOVE_RESULT_OBJECT && code.getOrNull(write - 1)?.let(::called)?.toString() == GET_CHILD_AT
+}
+
+/**
+ * Where the window's viewer opening [code] hides a view of the screen: its first call that takes a
+ * child of a view group alone and returns nothing (583 `LX/4Ap;->A19`, which sets it gone), or a
+ * setVisibility of one. -1 without one.
+ */
+internal fun hideAt(code: List<Instruction>): Int = code.indices.firstOrNull { at ->
+    val call = called(code[at])
+    val registers = code[at] as? FiveRegisterInstruction
+    val hides = call != null && registers != null && when {
+        call.toString() == SET_VISIBILITY -> registers.registerCount == 2
+        code[at].opcode == Opcode.INVOKE_STATIC -> registers.registerCount == 1 && call.parameterList() == listOf(VIEW) && call.returnType == "V"
+        else -> false
+    }
+    hides && holdsChild(code, at, registers!!.registerC)
+} ?: -1
+
+/** Where [code] shows a view of the screen again: its one setVisibility of a child of a view group. -1 unless there's exactly one. */
+internal fun showAt(code: List<Instruction>): Int = code.indices.filter { at ->
+    val registers = code[at] as? FiveRegisterInstruction
+    called(code[at])?.toString() == SET_VISIBILITY && registers != null && holdsChild(code, at, registers.registerC)
+}.singleOrNull() ?: -1
+
+/** The window's viewer opening, which hides the screen, and the method that shows it again. */
+internal class ScreenRestore(val opening: Method, val shower: Method)
+
+/**
+ * The viewer [opening]'s hide, and the one method in a class loading [VIEWER_CONTAINER] that shows
+ * the screen again (583 `LX/kNn;->A09`, Facebook's picture-in-picture handler). Changes nothing.
+ */
+internal fun BytecodePatchContext.findScreenRestore(opening: Method): ScreenRestore {
+    if (hideAt(opening.implementation?.instructions?.toList().orEmpty()) < 0) {
+        refuse("${opening.definingClass}->${opening.name} hides no view of the screen")
+    }
+    val showers = classDefByStrings(VIEWER_CONTAINER, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_CLASSES) }
+        .flatMap { holder -> holder.methods.filter { !isViewerOpening(it) && showAt(it.implementation?.instructions?.toList().orEmpty()) >= 0 } }
+    val shower = showers.singleOrNull()
+        ?: refuse("expected one method loading \"$VIEWER_CONTAINER\" that shows the screen again, found ${showers.size}")
+    return ScreenRestore(opening, shower)
+}
+
+/**
+ * The extension hears each view the viewer hides before it's hidden, and the call that shows it
+ * again goes to the extension with the same view and visibility. The opening already took its
+ * view id hook, so its hide is found again in the code as it is now.
+ */
+internal fun BytecodePatchContext.applyScreenRestore(restore: ScreenRestore) {
+    val opening = mutableClassDefBy(restore.opening.definingClass).findMutableMethodOf(restore.opening)
+    val hide = hideAt(opening.implementation!!.instructions.toList())
+    val child = (opening.getInstruction(hide) as FiveRegisterInstruction).registerC
+    opening.addInstructions(hide, "invoke-static/range { v$child .. v$child }, $HIDING")
+
+    val shower = mutableClassDefBy(restore.shower.definingClass).findMutableMethodOf(restore.shower)
+    val show = showAt(shower.implementation!!.instructions.toList())
+    val registers = shower.getInstruction(show) as FiveRegisterInstruction
+    if (registers.registerC > 15 || registers.registerD > 15) {
+        refuse("${shower.definingClass}->${shower.name} shows a view from past v15")
+    }
+    shower.replaceInstruction(show, "invoke-static { v${registers.registerC}, v${registers.registerD} }, $SHOWN_AGAIN")
+}
+
+private const val ANDROID_CONTEXT = "Landroid/content/Context;"
+private const val ANDROID_INTENT = "Landroid/content/Intent;"
+
+/**
+ * What Facebook logs when it adds FLAG_ACTIVITY_NEW_TASK to a start from no activity, in its
+ * launcher class's starts (583 `LX/0Oe;`) and the link handler's task stack (583 `LX/7y4;->A0A`).
+ */
+internal const val LAUNCH_WARNING = "Warning: launching intent with a non-Activity Context requires FLAG_ACTIVITY_NEW_TASK, " +
+    "or the Android Runtime will throw a AndroidRuntimeException. Adding the flag to prevent a crash. This might lead to " +
+    "unexpected behavior with the back button. Please pass in an Activity Context."
+
+/** The extension's look at each start's context and intent. */
+internal const val OWN_TASK = "$PICTURE_IN_PICTURE->ownTask($ANDROID_CONTEXT$ANDROID_INTENT)V"
+
+/** Whether [method] is a static (Context, Intent, its own class, Integer) -> Intent method with code. */
+internal fun isLaunchStep(method: Method): Boolean =
+    AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == ANDROID_INTENT && method.implementation != null &&
+        method.parameterTypes.map(CharSequence::toString) ==
+        listOf(ANDROID_CONTEXT, ANDROID_INTENT, method.definingClass, "Ljava/lang/Integer;")
+
+/**
+ * Facebook's launch step (583 `LX/0Oe;->A01`), the one launch step in a class logging
+ * [LAUNCH_WARNING]. Every start of a Facebook screen passes it with the context it starts from and
+ * the intent: startActivity, the starts for a result, startActivities and the link handler's task
+ * stack. It runs Facebook's interceptors on the intent and returns the one to start. Changes nothing.
+ */
+internal fun BytecodePatchContext.findLaunchStep(): Method {
+    val steps = classDefByStrings(LAUNCH_WARNING, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_CLASSES) }
+        .flatMap { holder -> holder.methods.filter(::isLaunchStep) }
+    return steps.singleOrNull()
+        ?: refuse("expected one launch step in a class logging Facebook's NEW_TASK warning, found ${steps.size}")
+}
+
+/** The extension sees each start's context and intent first, and may give the intent a task of its own (#126). */
+internal fun BytecodePatchContext.applyOwnTask(step: Method) {
+    mutableClassDefBy(step.definingClass).findMutableMethodOf(step).addInstructions(0, "invoke-static { p0, p1 }, $OWN_TASK")
 }

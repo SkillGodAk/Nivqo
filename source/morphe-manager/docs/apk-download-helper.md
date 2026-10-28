@@ -9,18 +9,19 @@ contract: any app can implement it.
 
 ## Turning it on
 
-**Settings → System → Files & storage → APK download helper**. The entry only appears once
-an app implementing the contract is installed. It opens a list of every installed helper with
-its version, package name and the app that installed it, and each helper has its own switch.
-No helper is trusted by default.
+**Settings → APK download helper**, in the **Files** section. The entry only appears once an
+app implementing the contract is installed, and its subtitle counts the trusted ones. It opens
+a list of every installed helper with its version, package name and the app that installed it,
+and each helper has its own switch. No helper is trusted by default, and turning one on asks
+you to confirm with **Trust**.
 
 <p align="center">
   <img src="images/apk-download-helper/01-trusted-helpers.jpg" width="320" alt="APK download helper list with one trusted helper" />
 </p>
 
-Once at least one helper is trusted, the download instructions dialog gains a
-**Use a helper app** button next to the usual **Continue** button. Only trusted helpers are
-offered there.
+Once at least one helper is trusted, the download instructions gain a **Use a helper app**
+button next to the usual **Continue to APKMirror.com**. Only trusted helpers are offered
+there.
 
 ## What happens when you use it
 
@@ -69,7 +70,7 @@ just for claiming the action.
 | --- | --- |
 | The entry is missing in Settings | No installed app implements the contract |
 | The button is missing in the dialog | No helper is trusted, or the trusted one was uninstalled since Morphe last looked |
-| "The helper app did not return an APK" | The helper finished without handing back a file. Use **Continue** to download it manually |
+| "The helper app did not return an APK" | The helper finished without handing back a file. Use **Continue to APKMirror.com** to download it manually |
 | "The helper app did not grant access to the APK it returned" | The helper answered without `FLAG_GRANT_READ_URI_PERMISSION` |
 | A wrong package or version warning | The helper returned a different app or version than the one requested |
 

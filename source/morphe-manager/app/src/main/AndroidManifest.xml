@@ -46,6 +46,9 @@
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="29" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
 
     <!-- Notifications: Required on Android 13+ (API 33) to post update notifications.
          On older versions the permission is granted automatically. -->
@@ -59,9 +62,12 @@
         android:name="android.hardware.touchscreen"
         android:required="false" />
 
+    <!-- The embedded JVM keeps flags in the top bits of native pointers, which a tagged heap rejects
+         on free. Tagging is set when the process starts, and Android 11 cannot turn it off later -->
     <application
         android:name="app.morphe.manager.ManagerApplication"
         android:allowBackup="true"
+        android:allowNativeHeapPointerTagging="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:enableOnBackInvokedCallback="true"
         android:fullBackupContent="@xml/backup_rules"
@@ -149,6 +155,12 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="patching" />
         </service>
+
+        <!-- Hosts the run, in a process of its own that ends with it -->
+        <service
+            android:name="app.morphe.manager.patcher.runtime.PatcherService"
+            android:exported="false"
+            android:process=":patcher" />
 
         <provider
             android:name="app.morphe.manager.domain.installer.InstallerFileProvider"

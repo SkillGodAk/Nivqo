@@ -8,6 +8,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.ContentProvider;
@@ -45,6 +46,7 @@ import java.io.OutputStream;
 import java.lang.reflect.Proxy;
 import java.net.InetAddress;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -374,6 +376,14 @@ public class MediaSaveTest {
      * as the sound's address is checked. Both exist by then, and the join hasn't started.
      */
     private Downloader.Result saveAndJoin(byte[] pictureSample, byte[] soundSample) {
+        return saveAndJoin(pictureSample, soundSample, Downloader.SILENT);
+    }
+
+    private Downloader.Result saveAndJoin(byte[] pictureSample, byte[] soundSample, Downloader.Progress progress) {
+        return saveAndJoin(pictureSample, soundSample, progress, 10_000);
+    }
+
+    private Downloader.Result saveAndJoin(byte[] pictureSample, byte[] soundSample, Downloader.Progress progress, long cap) {
         byte[] picture = mp4(1_000);
         serve("/v.mp4", "video/mp4", picture, picture.length);
         byte[] sound = mp4(1_000);
@@ -391,8 +401,116 @@ public class MediaSaveTest {
             }
         };
         MediaDownload.policyForTests = describing;
-        MediaDownload.capForTests = 10_000;
-        return saveDash(video, audio);
+        MediaDownload.capForTests = cap;
+        return saveDash(video, audio, progress);
+    }
+
+    private Downloader.Progress watchJoinedSize(long[] largest) {
+        return new Downloader.Progress() {
+            @Override public void transferred(long done, long total) { }
+            @Override public void reading(Runnable close) { }
+            @Override public boolean cancelled() {
+                File[] files = DashSave.workFolder(context).listFiles((folder, name) -> name.startsWith("joined"));
+                if (files != null) for (File file : files) largest[0] = Math.max(largest[0], file.length());
+                return false;
+            }
+        };
+    }
+
+    /** Sixteen valid runs share one media payload instead of storing sixteen copies in the input. */
+    private static byte[] repeatedVp9Payload() {
+        int sampleBytes = 128 * 1024;
+        FragmentedMp4ForTests picture = FragmentedMp4ForTests.picture("vp09", 160, 90, 15_360);
+        FragmentedMp4ForTests.Fragment fragment = picture.fragment(0L);
+        fragment.runs = 16;
+        fragment.separateMdats = true;
+        for (int i = 0; i < fragment.runs; i++) fragment.add(sampleBytes, 512, FragmentedMp4ForTests.SYNC, 0);
+        byte[] body = picture.build();
+        String boxes = new String(body, StandardCharsets.ISO_8859_1);
+        int media = boxes.indexOf("mdat");
+        int firstRun = boxes.indexOf("trun");
+        ByteBuffer fields = ByteBuffer.wrap(body);
+        int offset = fields.getInt(firstRun + 12);
+        for (int run = firstRun; run >= 0 && run < media; run = boxes.indexOf("trun", run + 4)) {
+            fields.putInt(run + 12, offset);
+        }
+        return Arrays.copyOf(body, media + 4 + sampleBytes);
+    }
+
+    @Test
+    public void sharedPayloadFixtureJoinsEverySample() throws Exception {
+        File input = new File(context.getCacheDir(), "shared-payload-control.mp4");
+        File output = new File(context.getCacheDir(), "shared-payload-joined.mp4");
+        try {
+            byte[] body = repeatedVp9Payload();
+            java.nio.file.Files.write(input.toPath(), body);
+            assertTrue(Mp4Join.join(input, null, output, Downloader.SILENT));
+            PlainMp4ForTests.Movie movie = PlainMp4ForTests.read(java.nio.file.Files.readAllBytes(output.toPath()));
+            assertEquals(16, movie.tracks.get(0).count());
+            assertTrue("the control did not write all samples", output.length() > body.length * 8L);
+        } finally {
+            input.delete();
+            output.delete();
+        }
+    }
+
+    @Test
+    public void ownJoinStopsBeforeExpandedSamplesExceedTheSaveCap() {
+        byte[] body = repeatedVp9Payload();
+        serve("/shared.mp4", "video/mp4", body, body.length);
+        long cap = 256 * 1024;
+        assertTrue("the fixture must fit before it is expanded", body.length < cap);
+        long[] largest = {0};
+        DashManifest.Track video = new DashManifest.Track("video/mp4", "vp09.00.40.08", 160, 90, 500_000,
+                origin + "/shared.mp4");
+
+        Downloader.Result result = DashSave.save(context, video, null, new MediaStoreWriter(context, true),
+                policy, cap, watchJoinedSize(largest));
+
+        assertTrue("the join wrote " + largest[0] + " bytes under a " + cap + " byte cap", largest[0] <= cap);
+        assertNothingWasCreated("an expanded join over the cap", result);
+    }
+
+    @Test
+    public void ownJoinStopsBeforeExpandedSamplesSpendUnreservedSpace() {
+        byte[] body = repeatedVp9Payload();
+        serve("/shared.mp4", "video/mp4", body, body.length);
+        long room = 1536 * 1024;
+        DashSave.usableForTests = () -> DashSave.KEEP_FREE + room;
+        long[] largest = {0};
+        DashManifest.Track video = new DashManifest.Track("video/mp4", "vp09.00.40.08", 160, 90, 500_000,
+                origin + "/shared.mp4");
+
+        Downloader.Result result = DashSave.save(context, video, null, new MediaStoreWriter(context, true),
+                policy, 4 * 1024 * 1024, watchJoinedSize(largest));
+
+        assertTrue("the join spent space that was never available: " + largest[0], largest[0] <= room);
+        assertNothingWasCreated("an expanded join without enough reserved space", result);
+    }
+
+    @Test
+    public void nativeJoinStopsBeforeAnExpandedSampleExceedsTheSaveCap() {
+        long[] largest = {0};
+
+        Downloader.Result result = saveAndJoin(sample(10_001, 'v'), sample(1, 'a'), watchJoinedSize(largest));
+
+        assertTrue("the muxer wrote an over-cap sample before rejecting it: " + largest[0], largest[0] <= 10_000);
+        assertNothingWasCreated("an expanded native join over the cap", result);
+    }
+
+    @Test
+    public void nativeJoinStopsBeforeSamplesSpendUnreservedSpace() {
+        long[] largest = {0};
+        long room = 1536 * 1024;
+        DashSave.usableForTests = () -> DashSave.KEEP_FREE + room;
+
+        Downloader.Result result = saveAndJoin(sample(2 * 1024 * 1024, 'v'), sample(1, 'a'),
+                watchJoinedSize(largest), 4 * 1024 * 1024);
+
+        assertEquals(result.toString(), Downloader.Status.WRITE_ERROR, result.status);
+        assertEquals(Downloader.Cause.NO_SPACE, result.cause);
+        assertTrue("the muxer spent space it didn't reserve", largest[0] <= room);
+        assertNothingWasCreated("an expanded native join without reserved space", result);
     }
 
     /** Each work file, found by the name DashSave starts it with, gets its one sample. */
@@ -450,7 +568,7 @@ public class MediaSaveTest {
     public void aDashPairWhoseJoinedFileRunsPastTheCapIsRefused() {
         Downloader.Result result = saveAndJoin(sample(6_000, 'v'), sample(6_000, 'a'));
 
-        assertEquals("TOO_LARGE (the joined file is 12000 bytes, more than 10000)", result.toString());
+        assertEquals(result.toString(), Downloader.Status.TOO_LARGE, result.status);
         assertNothingWasCreated("a pair whose joined file ran past the cap", result);
     }
 
@@ -471,7 +589,7 @@ public class MediaSaveTest {
     public void aJoinedFileOneByteOverTheCapIsRefused() {
         Downloader.Result result = saveAndJoin(sample(5_001, 'v'), sample(5_000, 'a'));
 
-        assertEquals("TOO_LARGE (the joined file is 10001 bytes, more than 10000)", result.toString());
+        assertEquals(result.toString(), Downloader.Status.TOO_LARGE, result.status);
         assertNothingWasCreated("a joined file one byte over the cap", result);
     }
 
@@ -625,6 +743,77 @@ public class MediaSaveTest {
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         toast = String.valueOf(ShadowToast.getTextOfLatestToast());
         assertTrue(toast, toast.startsWith("Saved to ") && !toast.contains("lower quality"));
+    }
+
+    /**
+     * A two-hour reel's 720p file was announced at 645 MB and the save ended with nothing, though a
+     * 480p file was on offer. Now each file announced over the cap hands over to the next smaller
+     * one, the report says which, and the toast names the quality saved. Files that state no
+     * quality, and the smaller ones past the first that fits, are never fetched.
+     */
+    @Test
+    public void aSingleFileOverTheCapSavesTheNextSmallerOne() throws InterruptedException {
+        byte[] big = mp4(150_000);
+        serve("/clip_720p.mp4", "video/mp4", big, big.length);
+        byte[] alsoBig = mp4(120_000);
+        serve("/clip_540p.mp4", "video/mp4", alsoBig, alsoBig.length);
+        byte[] fits = mp4(60_000);
+        serve("/clip_480p.mp4", "video/mp4", fits, fits.length);
+        byte[] small = mp4(20_000);
+        serve("/clip_360p.mp4", "video/mp4", small, small.length);
+        serve("/clip.mp4", "video/mp4", small, small.length);
+        MediaDownload.capForTests = 100_000;
+        List<String> candidates = Arrays.asList(origin + "/clip.mp4", origin + "/clip_360p.mp4",
+                origin + "/clip_480p.mp4", origin + "/clip_540p.mp4", origin + "/clip_720p.mp4");
+
+        Thread worker = MediaDownload.start(context, true,
+                MediaDownload.fileJob(context, origin + "/clip_720p.mp4", candidates));
+        worker.join(30_000);
+        assertFalse("the save never finished", worker.isAlive());
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+        assertEquals(1, gallery.inserts.size());
+        assertArrayEquals("the gallery didn't get the 480p file", fits, published.toByteArray());
+        assertEquals("a smaller file than the first that fits was fetched", 0, server.hits("/clip_360p.mp4"));
+        assertEquals("a file stating no quality was fetched", 0, server.hits("/clip.mp4"));
+        String toast = String.valueOf(ShadowToast.getTextOfLatestToast());
+        assertTrue(toast, toast.startsWith("Saved to ") && toast.endsWith(" at 480p, since the bigger file is over 512 MB"));
+        String report = LogBufferManager.buildExportText();
+        assertTrue(report, report.contains("the mp4 (720p) file is over the cap (TOO_LARGE (the server announced 150000 "
+                + "bytes"));
+        assertTrue(report, report.contains("saving the smaller mp4 (540p) instead"));
+        assertTrue(report, report.contains("the mp4 (540p) file is over the cap (TOO_LARGE (the server announced 120000 "
+                + "bytes"));
+        assertTrue(report, report.contains("saving the smaller mp4 (480p) instead"));
+        assertEquals("the quality saved goes ahead of the lower-quality note",
+                "Saved to the gallery at 480p, since the bigger file is over 512 MB",
+                MediaDownload.message(context, Downloader.Status.OK, null, null, true, 480));
+    }
+
+    /**
+     * With no smaller file that states its quality, a file over the cap ends as it always did, and
+     * a picked file that states none hands over to nothing, since nothing says another is smaller.
+     */
+    @Test
+    public void aFileOverTheCapWithNothingSmallerIsStillNotSaved() {
+        byte[] big = mp4(150_000);
+        serve("/clip_720p.mp4", "video/mp4", big, big.length);
+        serve("/clip_1080p.mp4", "video/mp4", big, big.length);
+        byte[] small = mp4(20_000);
+        serve("/clip.mp4", "video/mp4", small, small.length);
+        MediaDownload.capForTests = 100_000;
+
+        Downloader.Result result = MediaDownload.fileJob(context, origin + "/clip_720p.mp4",
+                Arrays.asList(origin + "/clip.mp4", origin + "/clip_1080p.mp4", origin + "/clip_720p.mp4"))
+            .run(new MediaStoreWriter(context, true), Downloader.SILENT);
+
+        assertEquals(result.toString(), Downloader.Status.TOO_LARGE, result.status);
+        assertEquals(0, result.smaller);
+        assertEquals(0, server.hits("/clip.mp4"));
+        assertEquals(0, server.hits("/clip_1080p.mp4"));
+        assertNothingWasCreated("a file over the cap with nothing smaller", result);
+        assertNull(MediaDownload.smallerVideo(Arrays.asList(origin + "/clip_360p.mp4"), origin + "/clip.mp4",
+                DownloadQuality.BEST));
     }
 
     /**

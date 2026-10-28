@@ -11,6 +11,7 @@ import app.morphe.patches.facebook.feed.BASE_MODEL_WITH_TREE
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.GRAPHQL_STORY
 import app.morphe.patches.facebook.feed.TREE_JNI
+import app.morphe.patches.facebook.feed.aidetected.GRAPHQL_STORY_ATTACHMENT
 import app.morphe.patches.facebook.feed.aidetected.attachmentsAccessors
 import app.morphe.patches.facebook.feed.hasPublicTypeTag
 import app.morphe.patches.facebook.feed.resolveStatic
@@ -37,7 +38,7 @@ import org.junit.Test
  * and skips without it.
  */
 class PostTextFixtureTest {
-    private val kept = setOf(GRAPHQL_STORY, GRAPHQL_TEXT_WITH_ENTITIES, BASE_MODEL_WITH_TREE, TREE_JNI)
+    private val kept = setOf(GRAPHQL_STORY, GRAPHQL_STORY_ATTACHMENT, GRAPHQL_TEXT_WITH_ENTITIES, BASE_MODEL_WITH_TREE, TREE_JNI)
 
     /** The static `(BaseModelWithTree)String` helpers [toString] calls, by reference. */
     private fun staticStringReaders(toString: Method): List<MethodReference> =
@@ -69,18 +70,24 @@ class PostTextFixtureTest {
 
                 val toString = storyToString(story) ?: throw AssertionError("${bundle.name}: GraphQLStory has no toString()")
                 val readers = messageTextReaders(toString, message)
-                assertEquals("${bundle.name}: the readers toString hands the message to", 1, readers.size)
                 val helpers = staticStringReaders(toString)
                 val owners = FixtureDex.classes(bundle, helpers.map { it.definingClass }.toSet())
                 fun resolved(call: MethodReference) = owners[call.definingClass]?.let { resolveStatic(it, call) }
                     ?: throw AssertionError("${bundle.name}: $call is not a static method in the APK")
-                assertTrue("${bundle.name}: toString doesn't read the $TEXT_FIELD of the message",
-                    readsTextField(resolved(readers.single())))
+                // Up to 583 toString hands the message to one static reader; 584 reads it inline.
+                if (readers.isEmpty()) {
+                    assertTrue("${bundle.name}: toString doesn't read the $TEXT_FIELD of the message",
+                        readsMessageTextInline(toString, message))
+                } else {
+                    assertEquals("${bundle.name}: the readers toString hands the message to", 1, readers.size)
+                    assertTrue("${bundle.name}: toString doesn't read the $TEXT_FIELD of the message",
+                        readsTextField(resolved(readers.single())))
+                }
 
                 // The controls: toString's other string helpers (the id, the cache id, an actor's
                 // name) read other fields, and no other TextWithEntities accessor of the story is the
                 // one toString calls "message.text".
-                val others = helpers.filter { it != readers.single() }
+                val others = helpers.filter { it !in readers }
                 assertTrue("${bundle.name}: toString has no other string helper to hold this against", others.size >= 2)
                 for (other in others) {
                     assertFalse("${bundle.name}: $other reads $TEXT_FIELD too", readsTextField(resolved(other)))
@@ -91,7 +98,7 @@ class PostTextFixtureTest {
                 assertTrue("${bundle.name}: no other accessor of TextWithEntities to hold this against", siblings.size >= 3)
                 for (sibling in siblings) {
                     assertTrue("${bundle.name}: toString calls ${sibling.name}() message text too",
-                        messageTextReaders(toString, sibling).isEmpty())
+                        messageTextReaders(toString, sibling).isEmpty() && !readsMessageTextInline(toString, sibling))
                 }
 
                 val attached = attachedStoryAccessors(story)
@@ -107,6 +114,9 @@ class PostTextFixtureTest {
                 assertEquals("${bundle.name}: ${actors.map { it.name }}", 1, actors.size)
                 val attachments = attachmentsAccessors(story)
                 assertEquals("${bundle.name}: ${attachments.map { it.name }}", 1, attachments.size)
+                // A link card's headline (#255): the attachment's one accessor of its action links.
+                val actionLinks = actionLinksAccessors(kept(GRAPHQL_STORY_ATTACHMENT))
+                assertEquals("${bundle.name}: ${actionLinks.map { it.name }}", 1, actionLinks.size)
 
                 val context = PatchContexts.of(classes.values + owners.values + ExtensionDex.classDef(POST_TEXT) +
                     ExtensionDex.classDef(POST_SOURCES) + ExtensionDex.classDef(SETTINGS_STATUS))
@@ -114,6 +124,7 @@ class PostTextFixtureTest {
                 val stubs = listOf(
                     Triple(POST_TEXT, MESSAGE_STUB, message),
                     Triple(POST_TEXT, ATTACHED_STORY_STUB, attached.single()),
+                    Triple(POST_TEXT, ACTION_LINKS_STUB, actionLinks.single()),
                     Triple(POST_SOURCES, ACTORS_STUB, actors.single()),
                     Triple(POST_SOURCES, SOURCE_ATTACHMENTS_STUB, attachments.single()),
                 )
@@ -122,7 +133,7 @@ class PostTextFixtureTest {
                         .implementation!!.instructions.toList()
                     assertEquals("${bundle.name}: $stub's first instruction", Opcode.CHECK_CAST, body[0].opcode)
                     val call = (body[1] as ReferenceInstruction).reference as MethodReference
-                    assertEquals("${bundle.name}: what $stub calls", "$GRAPHQL_STORY->${accessor.name}()${accessor.returnType}",
+                    assertEquals("${bundle.name}: what $stub calls", "${accessor.definingClass}->${accessor.name}()${accessor.returnType}",
                         "${call.definingClass}->${call.name}(${call.parameterTypes.joinToString("")})${call.returnType}")
                     assertEquals(Opcode.RETURN_OBJECT, body[3].opcode)
                 }
@@ -131,8 +142,8 @@ class PostTextFixtureTest {
                 assertEquals("${bundle.name}: postWords() answers true", listOf(Opcode.CONST_4, 1),
                     listOf(answer.opcode, (answer as NarrowLiteralInstruction).narrowLiteral))
 
-                checked[version] = "${message.name}(), ${attached.single().name}(), ${actors.single().name}() and " +
-                    "${attachments.single().name}()"
+                checked[version] = "${message.name}(), ${attached.single().name}(), ${actors.single().name}(), " +
+                    "${attachments.single().name}() and ${actionLinks.single().name}()"
             }
         }
         assertEquals("a declared build went unchecked: $checked", versions, checked.keys)

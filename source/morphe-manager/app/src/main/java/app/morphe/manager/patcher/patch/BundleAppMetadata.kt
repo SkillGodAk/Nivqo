@@ -47,6 +47,18 @@ data class BundleAppMetadata(
 
     companion object {
         /**
+         * What the sources call each app: the name an [enabled] source gives it, or else the one
+         * any of [all] still knows, as a source switched off goes on naming the apps it patched.
+         */
+        fun displayNames(
+            enabled: Map<String, BundleAppMetadata>,
+            all: Map<String, BundleAppMetadata>
+        ): Map<String, String> = buildMap {
+            all.forEach { (packageName, metadata) -> metadata.displayName?.let { put(packageName, it) } }
+            enabled.forEach { (packageName, metadata) -> metadata.displayName?.let { put(packageName, it) } }
+        }
+
+        /**
          * Build a [Map] of packageName → [BundleAppMetadata] from every [PatchBundleInfo.Global] given.
          * Which bundles count is the caller's choice, so a disabled one still names its apps.
          */

@@ -11,6 +11,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.IOException
+import java.io.OutputStream
 import java.util.UUID
 
 /**
@@ -67,3 +69,31 @@ fun File.purgeDirectoryAsync(
         }
     }
 }
+
+/** Total size of the files under this one, or of this file itself. */
+fun File.totalBytes(): Long =
+    if (!exists()) 0L else walkBottomUp().filter { it.isFile }.sumOf { it.length() }
+
+/** Deletes everything inside this directory, keeping the directory itself. */
+fun File.wipeContents() {
+    if (!exists()) return
+    listFiles()?.forEach { it.deleteRecursively() }
+}
+
+/**
+ * Writes this file through a sibling that is moved over it once complete, so a process killed
+ * midway leaves the previous file whole rather than a half written one.
+ */
+fun File.writeAtomically(write: (OutputStream) -> Unit) {
+    parentFile?.mkdirs()
+    val partial = resolveSibling("$name.partial")
+    try {
+        partial.outputStream().use(write)
+        if (!partial.renameTo(this)) throw IOException("Could not replace $this")
+    } catch (e: Exception) {
+        partial.delete()
+        throw e
+    }
+}
+
+fun File.writeTextAtomically(text: String) = writeAtomically { it.write(text.toByteArray()) }

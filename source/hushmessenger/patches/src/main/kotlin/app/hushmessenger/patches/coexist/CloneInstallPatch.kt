@@ -7,7 +7,10 @@ package app.hushmessenger.patches.coexist
 
 import app.hushmessenger.patches.MessengerTarget
 import app.hushmessenger.patches.controls.BASE_PROFILE
-import app.hushmessenger.patches.controls.PROFILE_346611351
+import app.hushmessenger.patches.controls.PROFILE_346816951
+import app.hushmessenger.patches.controls.PROFILE_346816966
+import app.hushmessenger.patches.controls.PROFILE_346816973
+import app.hushmessenger.patches.controls.SHORTCUTS_DIRECTORIES
 import app.hushmessenger.patches.controls.controlProfileFor
 import app.hushmessenger.patches.controls.hookId
 import app.hushmessenger.patches.controls.resolveShortcutsPath
@@ -54,6 +57,13 @@ internal const val FACEBOOK_BACKUP_PREFS = "fbautobackupprefs"
 internal const val TAM_AUTHORITY = "$ORIGINAL.tam-attachment"
 internal const val TAM_SUFFIX = ".tam-attachment"
 internal const val FACEBOOK_TAM_AUTHORITY = "com.facebook.katana.tam-attachment"
+/**
+ * Messenger's push dedup provider. Messenger writes its mute list and friendships there through hard-coded URIs and
+ * matches them against this authority, so a clone wrote to the original's provider and crashed on its permission.
+ */
+internal const val DEDUP_AUTHORITY = "$ORIGINAL.ClientMessagePushDedupInfoProvider"
+internal const val DEDUP_PROVIDER = "Lcom/facebook/messaging/push/dedup/provider/ClientMessagePushDedupInfoProvider\$Impl;"
+internal val DEDUP_URIS = listOf("content://$DEDUP_AUTHORITY/mutestatus", "content://$DEDUP_AUTHORITY/userfriendship")
 /** Install beside Meta apps' names for the two permissions every patched Meta app declares. */
 private const val SHARED_PREFIX = "app.hushfacebook."
 private const val SETTINGS_SCREENS = "app.hushmessenger.extension.Settings"
@@ -303,10 +313,15 @@ private const val CLICK = "->onClick(Landroid/view/View;)V"
 internal fun expectedCloneSitesFor(versionCode: String): Set<String> {
     validateVersionCode(versionCode)
     return when (controlProfileFor(versionCode)) {
-        BASE_PROFILE -> setOf("LX/EIF;-><init>()V", "LX/4K8;$ATTACHMENT_CHECK", "LX/38o;$BROADCAST@1", "LX/T9J;${NOTIFICATION}LX/Uh6;@227",
-            "LX/T9J;${NOTIFICATION}LX/Uh6;@321", "LX/CBZ;$CLICK@79", "LX/JpW;$CLICK@176")
-        PROFILE_346611351 -> setOf("LX/EEi;-><init>()V", "LX/4HM;$ATTACHMENT_CHECK", "LX/38n;$BROADCAST@1", "LX/KRb;${NOTIFICATION}LX/Lpm;@231",
-            "LX/KRb;${NOTIFICATION}LX/Lpm;@328", "LX/C7O;$CLICK@79", "LX/JmU;$CLICK@108")
+        BASE_PROFILE -> setOf("LX/FQg;-><init>()V", "LX/4Tx;$ATTACHMENT_CHECK", "LX/38k;$BROADCAST@1", "LX/8bJ;${NOTIFICATION}LX/B1g;@228",
+            "LX/8bJ;${NOTIFICATION}LX/B1g;@328", "LX/IDE;$CLICK@63", "LX/DFf;$CLICK@160")
+        PROFILE_346816951 -> setOf("LX/FCX;-><init>()V", "LX/4Qs;$ATTACHMENT_CHECK", "LX/39s;$BROADCAST@1", "LX/8Y0;${NOTIFICATION}LX/Az4;@229",
+            "LX/8Y0;${NOTIFICATION}LX/Az4;@329", "LX/I4D;$CLICK@83", "LX/NmZ;$CLICK@159")
+        PROFILE_346816973 -> setOf("LX/FQh;-><init>()V", "LX/4Su;$ATTACHMENT_CHECK", "LX/3A1;$BROADCAST@1", "LX/8Zt;${NOTIFICATION}LX/B10;@229",
+            "LX/8Zt;${NOTIFICATION}LX/B10;@329", "LX/BIM;$CLICK@81", "LX/NZV;$CLICK@168")
+        PROFILE_346816966 -> setOf("LX/NTU;-><init>()V", "LX/4RW;$ATTACHMENT_CHECK", "LX/G9e;$BROADCAST@1",
+            "LX/8XP;->A05(Landroid/os/Bundle;)LX/AyH;@188", "LX/8XP;->A05(Landroid/os/Bundle;)LX/AyH;@288",
+            "LX/Nia;$CLICK@81", "LX/Kwz;$CLICK@158")
         else -> fail("version code $versionCode has no checked clone sites")
     }
 }
@@ -335,6 +350,37 @@ internal fun Method.attachmentSite(): Pair<Int, Int> {
     }
     if (at < 0) fail("the attachment check loads Messenger's authority some other way")
     return at to register(at, "the authority")
+}
+
+/** The push dedup provider's authority or one of its URIs, when [this] loads one. */
+private fun Instruction.dedupString(): String? {
+    if (opcode != Opcode.CONST_STRING && opcode != Opcode.CONST_STRING_JUMBO) return null
+    val string = ((this as ReferenceInstruction).reference as StringReference).string
+    return string.takeIf { it == DEDUP_AUTHORITY || it in DEDUP_URIS }
+}
+
+/** Every load of the push dedup provider's authority or URIs, by method and index. */
+internal fun findDedupSites(classes: Iterable<ClassDef>): Set<String> = classes.flatMap { it.methods }.flatMap { method ->
+    val code = method.implementation?.instructions?.toList() ?: return@flatMap emptyList()
+    code.indices.filter { code[it].dedupString() != null }.map { "${method.hookId()}@$it" }
+}.toSet()
+
+/**
+ * Where each dedup site loads its string, the register it lands in and the string. The provider registers the authority
+ * once in its constructor, and one static initializer builds both URIs. Anything else stops the patch.
+ */
+internal fun dedupLoads(sites: List<Pair<MutableMethod, Int>>): List<Triple<Int, Int, String>> {
+    val loads = sites.map { (method, at) ->
+        val string = method.implementation?.instructions?.elementAtOrNull(at)?.dedupString()
+            ?: fail("${method.hookId()}@$at no longer loads the push dedup provider")
+        Triple(at, method.register(at, "the push dedup provider"), string)
+    }
+    if (loads.map { it.third }.sorted() != (DEDUP_URIS + DEDUP_AUTHORITY).sorted()) fail("Messenger names its push dedup provider somewhere new")
+    val owner = sites.zip(loads).associate { (site, load) -> load.third to site.first.hookId() }
+    if (!owner.getValue(DEDUP_AUTHORITY).startsWith("$DEDUP_PROVIDER-><init>(") ||
+        DEDUP_URIS.map { owner.getValue(it) }.toSet().singleOrNull()?.endsWith("-><clinit>()V") != true
+    ) fail("Messenger names its push dedup provider somewhere new")
+    return loads
 }
 
 /**
@@ -408,6 +454,7 @@ internal fun Method.selfIntentSite(call: Int, pools: Set<String>): Pair<Int, Int
  * Ported from the auto-restore crash fix: the lookup sees Messenger's name and keeps Messenger's backup preferences,
  * and the attachment check accepts the clone's own provider in place of Messenger's. Each setPackage call that sends
  * Messenger to itself sends to the clone instead, so the clone's own receivers and screens get its broadcasts and links.
+ * The push dedup URIs and the provider's own match for them name the clone's provider, which it's allowed to write.
  */
 internal fun applyCloneSites(
     lookup: MutableMethod,
@@ -415,6 +462,7 @@ internal fun applyCloneSites(
     newPackage: String,
     selfIntents: List<Pair<MutableMethod, Int>> = emptyList(),
     pools: Set<String> = emptySet(),
+    dedup: List<Pair<MutableMethod, Int>> = emptyList(),
 ) {
     if (!isClonePackage(newPackage)) fail("$newPackage can't be used as a package name")
     if (selfIntents.map { (method, call) -> method.hookId() to call }.toSet().size != selfIntents.size) fail("an intent site is listed twice")
@@ -422,12 +470,17 @@ internal fun applyCloneSites(
     val (lookupAt, lookupRegister) = lookup.backupLookupSite(pools)
     val (checkAt, checkRegister) = check.attachmentSite()
     val loads = selfIntents.map { (method, call) -> method to method.selfIntentSite(call, pools) }
+    val dedupLoads = if (dedup.isEmpty()) emptyList() else dedup.map { it.first }.zip(dedupLoads(dedup))
     lookup.addInstruction(lookupAt, "const-string/jumbo v$lookupRegister, \"$ORIGINAL\"")
     check.replaceInstruction(checkAt, "const-string/jumbo v$checkRegister, \"$newPackage$TAM_SUFFIX\"")
     // In place of the constant, or of the pool lookup's result, so labels stay put. Last first, as a longer instruction
     // can move the padding before a switch table.
     for ((method, site) in loads.sortedByDescending { it.second.first }) {
         method.replaceInstruction(site.first, "const-string/jumbo v${site.second}, \"$newPackage\"")
+    }
+    val cloneAuthority = cloneName(DEDUP_AUTHORITY, newPackage)!!
+    for ((method, site) in dedupLoads.sortedByDescending { it.second.first }) {
+        method.replaceInstruction(site.first, "const-string/jumbo v${site.second}, \"${site.third.replace(DEDUP_AUTHORITY, cloneAuthority)}\"")
     }
 }
 
@@ -450,7 +503,7 @@ internal val cloneResources = resourcePatch(description = "Move Messenger's mani
     finalize {
         val request = cloneRequest ?: return@finalize
         cloneRequest = null
-        val shortcutsPath = resolveShortcutsPath(listApkEntries("res/")) { path -> document(path).use { it } }
+        val shortcutsPath = resolveShortcutsPath(decode(SHORTCUTS_DIRECTORIES)) { path -> document(path).use { it } }
         document("AndroidManifest.xml").use { it.renameForClone(request.packageName, request.label) }
         document(shortcutsPath).use { it.retargetShortcuts(request.packageName) }
     }
@@ -495,8 +548,13 @@ val cloneInstallPatch = bytecodePatch(
         val methods = expected.map { it.substringBefore('@') }.distinct()
             .associateWith { id -> mutableClassDefBy(id.substringBefore("->")).methods.single { it.hookId() == id } }
         val (calls, checks) = expected.partition { '@' in it }
+        val dedup = findDedupSites(classes).map { site ->
+            val id = site.substringBefore('@')
+            mutableClassDefBy(id.substringBefore("->")).methods.single { it.hookId() == id } to site.substringAfter('@').toInt()
+        }
+        if (dedup.isEmpty()) fail("Messenger no longer names its push dedup provider")
         applyCloneSites(methods.getValue(checks.single { it.endsWith("-><init>()V") }), methods.getValue(checks.single { it.endsWith(ATTACHMENT_CHECK) }),
-            target, calls.map { methods.getValue(it.substringBefore('@')) to it.substringAfter('@').toInt() }, pools)
+            target, calls.map { methods.getValue(it.substringBefore('@')) to it.substringAfter('@').toInt() }, pools, dedup)
         requestClone(target, label)
     }
 }

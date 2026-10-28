@@ -8,6 +8,15 @@
         <item quantity="many">%s تعديلًا</item>
         <item quantity="other">%s تعديلًا</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="zero">%s مكتبة</item>
+        <item quantity="one">%s مكتبة</item>
+        <item quantity="two">%s مكتبتان</item>
+        <item quantity="few">%s مكتبات</item>
+        <item quantity="many">%s مكتبة</item>
+        <item quantity="other">%s مكتبة</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="zero">%s خيارات التعديل</item>
         <item quantity="one">%s خيارات التعديل</item>
@@ -50,6 +59,14 @@
         <item quantity="few">مصدر تعديل لـ %s تطبيق</item>
         <item quantity="many">مصدر تعديل لـ %s تطبيق</item>
         <item quantity="other">مصدر تعديل لـ %s تطبيق</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="zero">%s مصدر مخفي لهذا التطبيق. اختر التطبيق على تبويب التطبيقات وافتح مصادر التعديل لإعادته</item>
+        <item quantity="one">%s مصدر مخفي لهذا التطبيق. اختر التطبيق على تبويب التطبيقات وافتح مصادر التعديل لإعادته</item>
+        <item quantity="two">%s مصدران مخفيان لهذا التطبيق. اختر التطبيق على تبويب التطبيقات وافتح مصادر التعديل لإعادتها</item>
+        <item quantity="few">%s مصادر مخفية لهذا التطبيق. اختر التطبيق على تبويب التطبيقات وافتح مصادر التعديل لإعادتها</item>
+        <item quantity="many">%s مصدر مخفي لهذا التطبيق. اختر التطبيق على تبويب التطبيقات وافتح مصادر التعديل لإعادتها</item>
+        <item quantity="other">%s مصدر مخفي لهذا التطبيق. اختر التطبيق على تبويب التطبيقات وافتح مصادر التعديل لإعادتها</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="zero">%s مصدر مخفي. انقر لإظهاره</item>
@@ -107,6 +124,14 @@
         <item quantity="many">تم تثبيت %s تطبيق</item>
         <item quantity="other">تم تثبيت %s تطبيق</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="zero">تم تركيب %s تطبيقات</item>
+        <item quantity="one">تم تركيب %s تطبيق</item>
+        <item quantity="two">تم تركيب %s تطبيقين</item>
+        <item quantity="few">تم تركيب %s تطبيقات</item>
+        <item quantity="many">تم تركيب %s تطبيقًا</item>
+        <item quantity="other">تم تركيب %s تطبيق</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="zero">تم إعادة تثبيت %s تطبيق</item>
         <item quantity="one">تم إعادة تثبيت %s تطبيق</item>
@@ -138,6 +163,22 @@
         <item quantity="few">%s تطبيق جاهز للتعديل</item>
         <item quantity="many">%s تطبيق جاهز للتعديل</item>
         <item quantity="other">%s تطبيق جاهز للتعديل</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="zero">%s تطبيق في قائمة الانتظار للتعديل</item>
+        <item quantity="one">%s تطبيق جاهز للتعديل</item>
+        <item quantity="two">%s تطبيقين جاهزين للتعديل</item>
+        <item quantity="few">%s تطبيقات جاهزة للتعديل</item>
+        <item quantity="many">%s تطبيق جاهز للتعديل</item>
+        <item quantity="other">%s تطبيقًا جاهزًا للتعديل</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="zero">%s إشعارات مخفية، انقر لعرضها</item>
+        <item quantity="one">%s إشعار مخفي، انقر لعرضه</item>
+        <item quantity="two">%s إشعارين مخفيين، انقر لعرضهما</item>
+        <item quantity="few">%s إشعارات مخفية، انقر لعرضها</item>
+        <item quantity="many">%s إشعارًا مخفيًا، انقر لعرضه</item>
+        <item quantity="other">%s إشعارات مخفية، انقر لعرضها</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="zero">%s تطبيق يمكن إعادة تعديله</item>
@@ -171,13 +212,29 @@
         <item quantity="many">%s مصادر تم تثبيتها</item>
         <item quantity="other">%s مصادر تم تثبيتها</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="zero">%1$s · لا توجد تطبيقات مفلترة (%2$s)</item>
-        <item quantity="one">%1$s · تطبيق واحد مفلتر (%2$s)</item>
-        <item quantity="two">%1$s · تطبيقان مفلتران (%2$s)</item>
-        <item quantity="few">%1$s · %2$s تطبيقات مفلترة</item>
-        <item quantity="many">%1$s · %2$s تطبيقًا مفلترًا</item>
-        <item quantity="other">%1$s · %2$s تطبيق مفلتر</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="zero">%s تطبيق مخفي</item>
+        <item quantity="one">%s تطبيق مخفي</item>
+        <item quantity="two">%s تطبيقين مخفيين</item>
+        <item quantity="few">%s تطبيقات مخفية</item>
+        <item quantity="many">%s تطبيقًا مخفيًا</item>
+        <item quantity="other">%s تطبيقات مخفية</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="zero">%s تطبيق معروض</item>
+        <item quantity="one">%s تطبيق معروض</item>
+        <item quantity="two">%s تطبيقين معروضين</item>
+        <item quantity="few">%s تطبيقات معروضة</item>
+        <item quantity="many">%s تطبيقًا معروضًا</item>
+        <item quantity="other">%s تطبيقات معروضة</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="zero">إلغاء إخفاء %s تطبيق؟</item>
+        <item quantity="one">إلغاء إخفاء %s تطبيق؟</item>
+        <item quantity="two">إلغاء إخفاء %s تطبيقين؟</item>
+        <item quantity="few">إلغاء إخفاء %s تطبيق؟</item>
+        <item quantity="many">إلغاء إخفاء %s تطبيق؟</item>
+        <item quantity="other">إلغاء إخفاء %s تطبيق؟</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="zero">%s تطبيق مخفي</item>
@@ -250,6 +307,15 @@
         <item quantity="few">%s تغييرات</item>
         <item quantity="many">%s تغييرًا</item>
         <item quantity="other">%s تغيير</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="zero">%1$s · %2$d جديد</item>
+        <item quantity="one">%1$s · %2$d جديد</item>
+        <item quantity="two">%1$s · %2$d جديد</item>
+        <item quantity="few">%1$s · %2$d جديدة</item>
+        <item quantity="many">%1$s · %2$d جديدًا</item>
+        <item quantity="other">%1$s · %2$d جديد</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="zero">%s إصدار جديد</item>

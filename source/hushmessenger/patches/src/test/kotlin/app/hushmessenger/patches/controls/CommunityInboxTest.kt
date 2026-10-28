@@ -264,7 +264,7 @@ class CommunityInboxTest {
                 "helper_return" -> scope.replaceInstruction(1, "return v1")
                 "private_helper" -> scope.accessFlags = AccessFlags.PRIVATE.value or AccessFlags.STATIC.value
                 "renderer" -> render.replaceInstruction(render.communityReadSite(contract.capturedScope) + 11, "move-object/from16 v17, v0")
-                "profile" -> activeProfile = PROFILE_346611351
+                "profile" -> activeProfile = BASE_PROFILE
             }
             val before = listOf(render, joined, scope).map { body(it).map(::structural) }
             assertFailsWith<PatchException> { injectCommunityInbox(contract, render, joined, scope) }
@@ -287,10 +287,14 @@ class CommunityInboxTest {
             val host = classes.single { it.type == HOST_SCREENS }
             val joined = host.methods.single { it.hookId() == JOINED_COMMUNITY_ROW }
             val scope = host.methods.single { it.hookId() == MAIN_INBOX_SCOPE }
-            for (profile in controlProfiles.values.toSet()) {
+            val profiles = controlProfiles.values.toSet()
+            assertTrue(profiles.isNotEmpty())
+            for (profile in profiles) {
                 activeProfile = profile
                 val contract = assertNotNull(findCommunityInbox(communityInboxFixture()))
                 val helpers = injectCommunityInbox(contract, contract.render as MutableMethod, MutableMethod(joined), MutableMethod(scope))
+                // all {} holds for an empty list too.
+                assertTrue(helpers.isNotEmpty())
                 assertTrue(helpers.all { AccessFlags.STATIC.isSet(it.accessFlags) && !AccessFlags.PRIVATE.isSet(it.accessFlags) })
             }
         } finally { Files.deleteIfExists(extension) }

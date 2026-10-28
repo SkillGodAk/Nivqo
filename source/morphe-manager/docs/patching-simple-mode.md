@@ -61,7 +61,9 @@ when it is not.
 
 Morphe explains what to do on the download site. Read the four steps, then tap
 **Continue to APKMirror.com**. Morphe opens the correct download page for the required
-version in your browser.
+version in your browser. **Copy link** puts the same address on your clipboard instead, and
+with a trusted [download helper](apk-download-helper.md) a **Use a helper app** button is
+offered as well.
 
 <p align="center">
   <img src="images/patching-simple-mode/03-download-instructions.jpg" width="320" alt="Instructions for downloading the original APK" />
@@ -107,20 +109,6 @@ signing certificate does not match what the patches expect.
 
 ## 6. Wait for patching to finish
 
-### Allow background patching
-
-Before the very first patch, Morphe asks to be excluded from battery optimization. Some
-devices stop the patcher when the app is minimized, and this prevents that.
-
-<p align="center">
-  <img src="images/common/background-protection.jpg" width="320" alt="Background patching protection dialog" />
-</p>
-
-**Allow** opens the Android system dialog. **Not now** skips it, in which case keep Morphe in
-the foreground while patching. The prompt is shown once, in whichever mode you patch in.
-
-### Patching
-
 Patching starts automatically. The progress ring shows how many patches have been applied.
 
 <p align="center">
@@ -130,6 +118,11 @@ Patching starts automatically. The progress ring shows how many patches have bee
 This usually takes a few minutes and depends on your device. You can leave Morphe in the
 background, a notification arrives the moment patching finishes. The red button cancels
 the process.
+
+> [!TIP]
+> Some devices stop the patcher when the app is minimized. If that happens to you, allow
+> Morphe to run without battery restrictions in **Settings → Patcher → Battery optimization**,
+> or keep it in the foreground while patching.
 
 ## 7. Install the patched app
 
@@ -143,22 +136,27 @@ there.
 Android takes over from here. If it asks to allow installs from unknown sources, follow the
 prompt and grant it, this is required for any app that does not come from the Play Store.
 
-The buttons at the bottom of this screen are **Home**, which returns to the app list, and
-**Save**, which exports the patched APK.
+Once the app is installed the screen says so and **Install** turns into **Open**. If the
+patched app handles web links that Android has not verified for it, a card offers **Fix
+links**, which opens the system setting that lets those links open in the app instead of the
+browser.
 
-### Exporting the patched APK
+### Saving and sharing the patched APK
 
-**Save** opens the system file picker and writes the finished APK wherever you choose, so
-you can keep it, move it to another device, or reinstall it later without patching again.
-Export it before you close Morphe, the patched file itself sits in temporary storage that
-is cleared the next time the app starts.
+Next to **Install** are two buttons: **Save** writes the finished APK wherever you choose,
+and **Share** hands it to another app, so you can keep it, move it to another device, or
+reinstall it later without patching again. **Home** returns to the app list.
+
+Morphe also keeps a copy itself while **Keep patched APKs** is on, which it is by default,
+see [Storage and saved data](storage-and-saved-data.md#saved-apks).
 
 > [!IMPORTANT]
-> The patched app keeps the original package name, and it is signed with a different
-> certificate. If the unpatched app is still installed, Morphe reports an **Uninstall
-> required** conflict and you have to uninstall it before the patched build can be
-> installed. Uninstalling permanently erases that app's data, including downloads and
-> local settings.
+> The patched app is signed with a different certificate than the original. Whether that
+> matters depends on the patches. YouTube and YouTube Music get a package name of their own,
+> `app.morphe.android.youtube` for example, and install next to the stock app. A patched app
+> that keeps the original package name conflicts with the unpatched one: Morphe reports
+> **Uninstall required**, and you have to uninstall the original first, which permanently
+> erases its data, including downloads and local settings.
 
 ## 8. Two questions after the first install
 
@@ -181,17 +179,18 @@ Morphe.
   <img src="images/common/feature-tour.jpg" width="320" alt="Quick feature tour prompt" />
 </p>
 
-**Show me around** starts a short guided tour that points out the home screen, the app
-sheet, and the settings. **Skip** dismisses it.
+**Show me around** starts a short guided tour that points out the home screen, the patch
+sources, and the main settings. **Skip** dismisses it.
 
 Neither prompt appears again. If you skipped the tour and want it later, start it from
-**Feature tour** in the About section of **Settings → System**.
+**Feature tour** in **Settings → Help & info**.
 
 ## After your first patch
 
-- The home card for the app now shows the patched version and offers quick actions.
-- Patch options such as a custom app name, header logo, or theme colors are available in
-  **Settings → Advanced** while in Simple mode, see
+- The home card for the app now shows the patched version, and tapping it opens the app's
+  info dialog, see [Updating a patched app](updating-patched-apps.md).
+- Patch options such as a custom app name, icon, or header logo are available in
+  **Settings → Patch options** while in Simple mode, see
   [Creating a custom app icon](custom-app-icon.md).
 
 ## Troubleshooting
@@ -199,10 +198,11 @@ Neither prompt appears again. If you skipped the tour and want it later, start i
 | Problem | What to do |
 | --- | --- |
 | The APK cannot be selected from Downloads | Move it to the root of your internal storage, or enable the [built-in file picker](file-picker.md) |
-| "Unsupported version" warning | You downloaded a different version than the one Morphe asked for. Download the exact version shown in step 2 |
+| "Unsupported Version" warning | You downloaded a different version than the one Morphe asked for. Download the exact version shown in step 2 |
 | "Split APK detected" warning | You downloaded a bundle (APKM / APKS / XAPK). A full APK gives the best results, pick another download on the website |
 | "Unverified APK" warning | The file does not match the expected signing certificate. Download it again from a trusted source |
-| Patching fails or the app crashes | Update your patch sources and try again. Export debug logs from **Settings → System → About** when reporting the issue |
+| Patching stops when you leave the app | Allow Morphe to run without battery restrictions in **Settings → Patcher → Battery optimization** |
+| Patching fails or the app crashes | Update your patch sources and try again. Export debug logs from **Settings → Help & info** when reporting the issue |
 
 ## Next steps
 

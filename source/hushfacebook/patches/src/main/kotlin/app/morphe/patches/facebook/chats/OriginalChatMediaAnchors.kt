@@ -14,6 +14,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.layout.theme.branchTargets
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.util.findMutableMethodOf
@@ -22,7 +23,6 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
-import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ThreeRegisterInstruction
@@ -103,16 +103,6 @@ internal fun isVideoSkipCheck(method: Method): Boolean {
 private fun Instruction.wide() = (this as? WideLiteralInstruction)?.wideLiteral
 private fun Instruction.field() = (this as? ReferenceInstruction)?.reference as? FieldReference
 
-/** The indexes some branch in [code] lands on. */
-internal fun jumpTargets(code: List<Instruction>): Set<Int> {
-    var address = 0
-    val addresses = code.map { val at = address; address += it.codeUnits; at }
-    return code.indices.mapNotNull { at ->
-        val branch = code[at] as? OffsetInstruction ?: return@mapNotNull null
-        addresses.indexOf(addresses[at] + branch.codeOffset).takeIf { it >= 0 }
-    }.toSet()
-}
-
 /**
  * The index of the size check, or a refusal naming what moved:
  *
@@ -178,7 +168,7 @@ internal fun Method.videoSizeCheck(): Int {
         if (written == size || written == size + 1 || written + 1 == size) refuse("$name reuses the size register")
     }
     if ((code[c + 1] as OneRegisterInstruction).registerA != result) refuse("the branch in $name reads another register")
-    if (c + 1 in jumpTargets(code)) refuse("the branch in $name is a jump target")
+    if (c + 1 in branchTargets(code)) refuse("the branch in $name is a jump target")
     if (result > 15 || size + 1 > 15 || result == size || result == size + 1) {
         refuse("the registers in $name are out of range")
     }

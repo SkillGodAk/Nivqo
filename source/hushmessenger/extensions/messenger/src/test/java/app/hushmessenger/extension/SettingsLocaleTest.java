@@ -25,6 +25,7 @@ public class SettingsLocaleTest {
     @Before public void reset() {
         Settings.initialize(RuntimeEnvironment.getApplication());
         Settings.preferences.edit().clear().commit();
+        OpenSections.all();
     }
 
     @Test public void englishFallbackUsesWholeSingularAndPluralMessages() {
@@ -58,6 +59,29 @@ public class SettingsLocaleTest {
         }
     }
 
+    @Test public void englishOnARightToLeftPhoneStaysLeftToRightUntilTheLanguageIsTranslated() {
+        Locale arabic = Locale.forLanguageTag("ar-EG");
+        assertEquals(View.LAYOUT_DIRECTION_LTR, new SettingsText(arabic).layoutDirection());
+        assertEquals(View.LAYOUT_DIRECTION_RTL, new SettingsText(Locale.forLanguageTag("ar-XB")).layoutDirection());
+        RuntimeEnvironment.setQualifiers("ar-rEG-ldrtl-w400dp-h800dp-mdpi");
+        RuntimeEnvironment.getApplication().getApplicationInfo().flags |= android.content.pm.ApplicationInfo.FLAG_SUPPORTS_RTL;
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View root = layout(screen.get(), 400, 800);
+            assertEquals(View.LAYOUT_DIRECTION_LTR, root.findViewWithTag("controls_page").getLayoutDirection());
+            // English sentences keep their periods and counts where they belong.
+            assertNotEquals(View.TEXT_DIRECTION_RTL, ((TextView) root.findViewWithTag("search_status")).getTextDirection());
+        }
+        SettingsTranslations.LOCALES.put("ar", java.util.Map.of("tab_controls", "Controls in Arabic"));
+        try {
+            assertEquals(View.LAYOUT_DIRECTION_RTL, new SettingsText(arabic).layoutDirection());
+            try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+                View root = layout(screen.get(), 400, 800);
+                assertEquals(View.LAYOUT_DIRECTION_RTL, root.findViewWithTag("controls_page").getLayoutDirection());
+                assertEquals(View.TEXT_DIRECTION_RTL, ((TextView) root.findViewWithTag("search_status")).getTextDirection());
+            }
+        } finally { SettingsTranslations.LOCALES.remove("ar"); }
+    }
+
     @Test @Config(sdk = 36) public void requestedAppLocaleWinsWhenResourceSelectionFallsBackToEnglish() {
         RuntimeEnvironment.setQualifiers("en-rUS-w400dp-h800dp-mdpi");
         android.app.LocaleManager manager = RuntimeEnvironment.getApplication().getSystemService(android.app.LocaleManager.class);
@@ -79,6 +103,7 @@ public class SettingsLocaleTest {
     @Test public void legacyAndStableStateSurviveLocaleChangesWithoutChangingPreferenceKeys() {
         Bundle state = new Bundle();
         state.putString("page", "App");
+        // Saved by an older build, from before the category chips went: ignored, never a crash.
         state.putString("category", "Inbox");
         state.putString("query", "People You May");
         Settings.preferences.edit().putBoolean("people", true).commit();
@@ -92,7 +117,6 @@ public class SettingsLocaleTest {
                 ((TextView) root.findViewWithTag("tab_controls")).setText("Different visible label");
                 root.findViewWithTag("tab_controls").performClick();
                 assertTrue(root.findViewWithTag("tab_controls").isSelected());
-                assertTrue(root.findViewWithTag("category_inbox").isSelected());
                 assertEquals("People You May", ((EditText) root.findViewWithTag("find_control")).getText().toString());
                 assertEquals(1, visibleControls(root));
                 assertTrue(((Switch) root.findViewWithTag("people")).isChecked());
@@ -100,7 +124,6 @@ public class SettingsLocaleTest {
                 root.findViewWithTag("tab_app").performClick();
                 screen.get().onSaveInstanceState(state);
                 assertEquals("app", state.getString("page"));
-                assertEquals("inbox", state.getString("category"));
             }
         }
         assertEquals(1, Settings.preferences.getAll().size());
@@ -136,18 +159,18 @@ public class SettingsLocaleTest {
                 assertEquals(1, visibleControls(root));
                 search.setText("People You May");
                 assertEquals(1, visibleControls(root));
-                root.findViewWithTag("category_chats").performClick();
+                search.setText("no matching control");
                 assertEquals(0, visibleControls(root));
                 root.findViewWithTag("clear_filters").performClick();
                 assertEquals(ExpectedTotals.CONTROLS, visibleControls(root));
-                assertTrue(root.findViewWithTag("category_all").isSelected());
                 assertNotEquals(ExpectedTotals.shown(ExpectedTotals.CONTROLS), ((TextView) root.findViewWithTag("search_status")).getText().toString());
             }
         }
     }
 
     @Test public void pseudoTextKeepsShortWindowsAndKeyboardNavigationReachable() {
-        for (String locale : new String[] {"en-rXA", "ar-rXB"}) for (int width : new int[] {320, 640})
+        // zh-rTW is the shipped Traditional Chinese table, so its real text gets the same short-window check.
+        for (String locale : new String[] {"en-rXA", "ar-rXB", "zh-rTW"}) for (int width : new int[] {320, 640})
                 for (boolean light : new boolean[] {false, true}) {
             RuntimeEnvironment.setQualifiers(locale + "-w" + width + "dp-h360dp-mdpi");
             RuntimeEnvironment.setFontScale(2f);

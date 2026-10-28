@@ -16,8 +16,9 @@ import app.morphe.util.findMutableMethodOf
 
 /**
  * Answers every ad an Instant Game asks Facebook for with no ad, through the game bridge's own
- * rejected promise. See GameAdAnchors.kt for where the hook goes, and the extension's GameAds for
- * which messages it answers and with what code.
+ * rejected promise, or through GameBridge for a game that brings its own bridge. See
+ * GameAdAnchors.kt for where the hooks go, and the extension's GameAds for which messages it
+ * answers and with what code.
  */
 @Suppress("unused")
 val blockInstantGamesAdsPatch = bytecodePatch(
@@ -51,6 +52,18 @@ val blockInstantGamesAdsPatch = bytecodePatch(
         )
         mutableClassDefBy(bridge.type).findMutableMethodOf(bridge.methods.single(::isPostMessage))
             .answerAdsWithNoAd(reject, resolve)
+
+        // Games run from Facebook's downloaded code bring their own bridge, so wrap every game
+        // bridge where it's registered on the game WebView (#168).
+        val view = gameViewOf(bridge) ?: throw PatchException(
+            "$PATCH: expected ${bridge.type} to have one constructor holding \"$BRIDGE_NAME\" that takes the game WebView",
+        )
+        val chain = webViewChain(view) { classDefByOrNull(it) }
+            ?: throw PatchException("$PATCH: expected the game WebView $view to extend $WEB_VIEW")
+        chain.firstOrNull(::declaresAddJavascriptInterface)?.let {
+            throw PatchException("$PATCH: ${it.type} already has its own $ADD_JAVASCRIPT_INTERFACE")
+        }
+        mutableClassDefBy(chain.last().type).wrapGameBridges()
         enableStatus("gameAds")
     }
 }

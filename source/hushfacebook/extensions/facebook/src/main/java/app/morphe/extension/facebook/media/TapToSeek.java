@@ -6,6 +6,7 @@ package app.morphe.extension.facebook.media;
 
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.os.SystemClock;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 import android.widget.SeekBar;
@@ -34,12 +35,19 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * so the thumb follows the finger. A vertical swipe is left alone: the reel pager takes it from
  * the bar as it always did. A press on the thumb, a bar that's off or has no length yet, or the
  * switch off, paused or not ready all leave every touch to Facebook.
+ *
+ * <p>The played drag's lift waits {@link #LIFT_DELAY_MS}. On 583 the scrubber's listener
+ * ({@code LX/9JU;}) can post its start of a scrub to a Handler as the drag starts, and a lift
+ * played at once seeked before that start ran, which then put the video back (#120). A press that
+ * comes before the lift finishes the drag first.
  */
 public final class TapToSeek {
     /** Counted each time a tap is played to the bar as a drag from its thumb. */
     static final String TAPPED = "Seek bar tap played as a drag";
     /** Counted each time a drag that started off the thumb is handed to the bar. */
     static final String DRAGGED = "Seek bar drag started off the thumb";
+    /** How long a played drag holds before it lifts, so work Facebook posts as it starts runs first. */
+    static final long LIFT_DELAY_MS = 100;
 
     private static final String FAMILY = FamilyNames.PROGRESS_BAR;
 
@@ -51,6 +59,8 @@ public final class TapToSeek {
     private static boolean leftAlone;
     /** Set while a touch made here runs through the bar's handler, so the hook stands aside. */
     private static boolean playing;
+    /** The lift of the last played drag, until it's played. */
+    @Nullable private static Lift lift;
 
     private static float downX;
     private static float downY;
@@ -101,6 +111,7 @@ public final class TapToSeek {
 
     /** A press: held when it misses the thumb of a bar that can seek, and the switch is on. */
     private static boolean holdsPress(SeekBar bar, MotionEvent event) {
+        finishLift();
         release();
         if (!Utils.settingsReady() || !Settings.TAP_TO_SEEK.get()) return false;
         if (!bar.isEnabled() || bar.getMax() <= 0) return false;
@@ -140,7 +151,7 @@ public final class TapToSeek {
         return false;
     }
 
-    /** The held press lifted where it went down: a drag from the thumb to there. */
+    /** The held press lifted where it went down: a drag from the thumb to there, lifting a little later. */
     private static void seeksTo(SeekBar bar, MotionEvent event) {
         Rect thumb = thumbBounds(bar);
         float x = event.getX();
@@ -149,8 +160,39 @@ public final class TapToSeek {
         if (thumb == null) return;
         play(bar, MotionEvent.ACTION_DOWN, thumb.exactCenterX(), at);
         play(bar, MotionEvent.ACTION_MOVE, x, at);
-        play(bar, MotionEvent.ACTION_UP, x, at);
+        lift = new Lift(bar, x);
+        Utils.runOnMainThreadDelayed(lift, LIFT_DELAY_MS);
         HookStatus.counted(FAMILY, TAPPED);
+    }
+
+    /** Plays the waiting lift now, if there is one. */
+    private static void finishLift() {
+        Lift waiting = lift;
+        if (waiting == null) return;
+        lift = null;
+        SeekBar bar = waiting.bar.get();
+        if (bar != null) play(bar, MotionEvent.ACTION_UP, waiting.x, SystemClock.uptimeMillis());
+    }
+
+    /** A played drag's lift, at [x] on its bar. Runs once, unless a press finished it first. */
+    private static final class Lift implements Runnable {
+        final WeakReference<SeekBar> bar;
+        final float x;
+
+        Lift(SeekBar bar, float x) {
+            this.bar = new WeakReference<>(bar);
+            this.x = x;
+        }
+
+        @Override
+        public void run() {
+            if (lift != this) return;
+            try {
+                finishLift();
+            } catch (Throwable failure) {
+                HookStatus.threw(FAMILY, "seek bar lift", failure);
+            }
+        }
     }
 
     /**

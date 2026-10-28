@@ -54,8 +54,10 @@ private const val COPY_OF = "$IMMUTABLE_LIST->copyOf(Ljava/util/Collection;)$IMM
 val hushfacebookInTheMenuPatch = bytecodePatch(
     name = "Hushfacebook in the Menu",
     description = "Adds a Hushfacebook settings row to Facebook's Menu, at the end of Settings and privacy, so " +
-        "the settings are easy to find. A Saved row joins it while the Saved shortcut switch is on, and a Watch " +
-        "history row while the Watch history shortcut switch is. Works as soon as you patch it in, with no switch.",
+        "the settings are easy to find. A Saved row joins it while the Saved shortcut switch is on, a Watch " +
+        "history row while the Watch history shortcut switch is, and a Free stuff row, Marketplace's free listings, " +
+        "while the Free stuff shortcut switch under Marketplace is. On by default. Turn it off with Settings row in Menu in Hushfacebook settings > Menu, unless it's the last " +
+        "way into the settings still on.",
     default = true,
 ) {
     category("Settings")
@@ -69,9 +71,14 @@ val hushfacebookInTheMenuPatch = bytecodePatch(
         val native = natives.singleOrNull()
             ?: throw PatchException("$ROW_PATCH: expected one native Menu group section, found ${natives.size}")
         val builds = rowListBuilds(native)
-        val build = builds.singleOrNull() ?: throw PatchException(
-            "$ROW_PATCH: expected ${native.definingClass}->${native.name} to build one row list, found ${builds.size}",
-        )
+        // 584 inlined the builder into the section, which keeps the list itself.
+        val kept = if (builds.isEmpty()) keptRowLists(native)?.settings else null
+        if (kept == null && builds.size != 1) {
+            throw PatchException(
+                "$ROW_PATCH: expected ${native.definingClass}->${native.name} to build one row list or keep one itself, " +
+                    "found ${builds.size} builds",
+            )
+        }
 
         val taps = methodsNaming(ROW_TAP_TRACE, ::isRowTapShape)
         // 583's 32-bit build inlines the handler into a lambda, so with no handler the tap is found there.
@@ -99,13 +106,21 @@ val hushfacebookInTheMenuPatch = bytecodePatch(
             throw PatchException("$ROW_PATCH: $item's constructor stores its id in ${fields.last().name}, not ${id.name}")
         }
 
-        val builder = mutableClassDefBy(build.definingClass).methods.single {
-            it.name == build.name && it.parameterTypes.map(Any::toString) == build.parameterTypes.map(Any::toString)
+        if (kept != null) {
+            if (!constructs(native, item)) {
+                throw PatchException("$ROW_PATCH: ${native.definingClass}->${native.name} builds no $item, so its list isn't rows")
+            }
+            mutableClassDefBy(native.definingClass).findMutableMethodOf(native).passKeptListThroughRow(kept)
+        } else {
+            val build = builds.single()
+            val builder = mutableClassDefBy(build.definingClass).methods.single {
+                it.name == build.name && it.parameterTypes.map(Any::toString) == build.parameterTypes.map(Any::toString)
+            }
+            if (!constructs(builder, item)) {
+                throw PatchException("$ROW_PATCH: ${build.definingClass}->${build.name} builds no $item, so its list isn't rows")
+            }
+            builder.passListThroughRow()
         }
-        if (!constructs(builder, item)) {
-            throw PatchException("$ROW_PATCH: ${build.definingClass}->${build.name} builds no $item, so its list isn't rows")
-        }
-        builder.passListThroughRow()
 
         addRowHelpers(item, constructor, fields, id)
 
@@ -162,6 +177,22 @@ internal fun MutableMethod.passListThroughRow() {
             """.trimIndent(),
         )
     }
+}
+
+/**
+ * 584's native section keeps the Settings list in [field] itself, so its copy goes through the
+ * extension where 583's builder returns did: right after the section reads the kept list and right
+ * after it writes a list it just built ([keptListReads]), a list that's there goes through
+ * [WITH_ROW] and back into an ImmutableList. The kept list stays Facebook's own, as on 583.
+ */
+internal fun MutableMethod.passKeptListThroughRow(field: FieldReference) {
+    val reads = keptListReads(this, field) ?: throw PatchException(
+        "$ROW_PATCH: $definingClass->$name has another way into the code after it reads or writes ${reference(field)}",
+    )
+    if (reads.size != 2) {
+        throw PatchException("$ROW_PATCH: expected $definingClass->$name to read ${reference(field)} once and write it once, found ${reads.size}")
+    }
+    reads.asReversed().forEach { passListThrough(it.index, it.register, WITH_ROW) }
 }
 
 /** Adds the row factory and the id reader to the row item class. */

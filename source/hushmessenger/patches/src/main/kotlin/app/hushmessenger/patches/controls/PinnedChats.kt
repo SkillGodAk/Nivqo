@@ -21,7 +21,7 @@ internal const val PINNED_CHATS = "pinned_chats"
  * pin, the recount after one, the chat list's fetch of pinned chats and the thread details' Pin state all compare the
  * pinned count with that getter's answer.
  */
-internal const val PINNED_CHAT_LIMIT_CONFIG = 0x8205c10002107bL
+internal const val PINNED_CHAT_LIMIT_CONFIG = 0x8205b900021070L
 
 internal const val PINNED_CHAT_LIMIT_GATE = "$SETTINGS->pinnedChatLimit(I)I"
 

@@ -3,7 +3,7 @@ package app.hushmessenger.patches
 import app.hushmessenger.patches.coexist.expectedDexSitesFor
 import app.hushmessenger.patches.controls.BASE_PROFILE
 import app.hushmessenger.patches.controls.ControlProfile
-import app.hushmessenger.patches.controls.PROFILE_346611351
+import app.hushmessenger.patches.controls.PROFILE_346816935
 import app.hushmessenger.patches.controls.controlProfileFor
 import com.android.tools.smali.dexlib2.Opcode
 import java.io.File
@@ -45,8 +45,6 @@ class CompatProfileTest {
         "subtabsSupplier $subtabsSupplier",
         "browserPreferenceKey $browserPreferenceKey",
         "browserPreferenceIndex $browserPreferenceIndex",
-        "adFilterSize $adFilterSize",
-        "adFilterExits ${adFilterExits.joinToString(" ")}",
         "bubbleCapabilityGetter $bubbleCapabilityGetter",
         "bubbleRolloutGetter $bubbleRolloutGetter",
         "nativeBubbleRoutes $nativeBubbleRoutes",
@@ -83,21 +81,21 @@ class CompatProfileTest {
         }
     }
 
-    @Test fun record346611351GeneratesItsProfileAndSitesExactlyAsInTheSource(@TempDir dir: Path) {
-        assertSame(PROFILE_346611351, controlProfileFor("346611351"))
+    @Test fun record346816935GeneratesItsProfileAndSitesExactlyAsInTheSource(@TempDir dir: Path) {
+        assertSame(PROFILE_346816935, controlProfileFor("346816935"))
         // A copy of the script that knows only this record prints the blocks.
         Files.copy(Path.of("../scripts/CompatReport.java"), dir.resolve("CompatReport.java"))
         dir.resolve("profiles").createDirectories()
-        Files.copy(profiles.resolve("346611351.txt"), dir.resolve("profiles/346611351.txt"))
+        Files.copy(profiles.resolve("346816935.txt"), dir.resolve("profiles/346816935.txt"))
         val (exit, output) = compatReport(
-            "--kotlin", dir.resolve("profiles/346611351.txt").toString(), script = dir.resolve("CompatReport.java").toString(),
+            "--kotlin", dir.resolve("profiles/346816935.txt").toString(), script = dir.resolve("CompatReport.java").toString(),
         )
         assertEquals(0, exit, output)
         val blocks = output.split("\n\n").filter { it.startsWith("internal val ") }.map { it.trimEnd() + "\n" }
         assertEquals(2, blocks.size, output)
-        assertTrue(blocks[0].startsWith("internal val PROFILE_346611351 = ControlProfile("), blocks[0])
+        assertTrue(blocks[0].startsWith("internal val PROFILE_346816935 = ControlProfile("), blocks[0])
         assertContains(source("controls/ControlProfiles.kt"), blocks[0])
-        assertTrue(blocks[1].startsWith("internal val expectedDexSites346611351 = mapOf("), blocks[1])
+        assertTrue(blocks[1].startsWith("internal val expectedDexSites346816935 = mapOf("), blocks[1])
         assertContains(source("coexist/InstallBesideMetaAppsPatch.kt"), blocks[1])
     }
 
@@ -110,26 +108,29 @@ class CompatProfileTest {
         }
     }
 
-    @Test fun record346611369MapsToTheBaseProfile() {
-        assertEquals(BASE_PROFILE.lines(), controlLines(346611369))
-        val (exit, output) = compatReport("--kotlin", "../scripts/profiles/346611369.txt")
+    @Test fun aRecordLikeAnotherBuildsReusesItsProfileAndSites(@TempDir dir: Path) {
+        assertEquals(BASE_PROFILE.lines(), controlLines(346816935))
+        Files.copy(Path.of("../scripts/CompatReport.java"), dir.resolve("CompatReport.java"))
+        dir.resolve("profiles").createDirectories()
+        Files.copy(profiles.resolve("346816935.txt"), dir.resolve("profiles/346816935.txt"))
+        val twin = dir.resolve("profiles/346816936.txt")
+        twin.writeLines(record(346816935).map { if (it == "code 346816935") "code 346816936" else it })
+        val (exit, output) = compatReport("--kotlin", twin.toString(), script = dir.resolve("CompatReport.java").toString())
         assertEquals(0, exit, output)
         assertFalse("internal val" in output, output)
-        val base = "346611423, 346611438, 346611439, 346611440"
-        assertContains(output, "the controls match build $base.")
-        assertContains(output, "the permission loads match build $base.")
-        for (code in base.split(", ") + "346611369") assertSame(BASE_PROFILE, controlProfileFor(code))
+        assertContains(output, "the controls match build 346816935.")
+        assertContains(output, "the permission loads match build 346816935.")
     }
 
     @Test fun aRecordWithUnresolvedControlsListsThemAndGeneratesNothing(@TempDir dir: Path) {
         val broken = dir.resolve("346999999.txt")
-        broken.writeLines(profiles.resolve("346611351.txt").readLines()
-            .filterNot { it.startsWith("hook ads ") || it.startsWith("browserPreferenceIndex ") }
-            .map { if (it == "code 346611351") "code 346999999" else it } + "hook people LX/Extra;->A00()Z")
+        broken.writeLines(profiles.resolve("346816935.txt").readLines()
+            .filterNot { it.startsWith("hook ai_fab ") || it.startsWith("browserPreferenceIndex ") }
+            .map { if (it == "code 346816935") "code 346999999" else it } + "hook people LX/Extra;->A00()Z")
         val (exit, output) = compatReport("--kotlin", broken.toString())
         assertEquals(1, exit, output)
         assertContains(output, "No profile generated. These controls did not resolve:")
-        assertContains(output, "ads: expected 1 hooks, found 0")
+        assertContains(output, "ai_fab: expected 1 hooks, found 0")
         assertContains(output, "people: expected 2 hooks, found 3")
         assertContains(output, "browser: browserPreferenceIndex not found")
         assertFalse("internal val" in output, output)
@@ -142,8 +143,21 @@ class CompatProfileTest {
         val (exit, output) = compatReport(apk.toString(), "--save", saved.toString())
         assertEquals(1, exit, output)
         assertContains(output, "PROFILE: not written. These controls did not resolve:")
-        for (key in listOf("ads", "stories", "menu_settings")) assertContains(output, "       $key: expected")
+        for (key in listOf("ai_fab", "stories", "menu_settings")) assertContains(output, "       $key: expected")
         assertContains(output, "Install beside Meta apps: expected 6 permission loads, found 0")
         assertEquals(emptyList(), saved.listDirectoryEntries())
+    }
+
+    @Test fun saveRefusesAnApkWhoseSignerIsntProvenStock(@TempDir dir: Path) {
+        val apk = dir.resolve("unsigned.apk")
+        ZipOutputStream(Files.newOutputStream(apk)).use { it.putNextEntry(ZipEntry("resources.arsc")); it.closeEntry() }
+        val saved = dir.resolve("saved").createDirectories()
+        val (exit, output) = compatReport(apk.toString(), "--save", saved.toString())
+        assertEquals(1, exit, output)
+        assertContains(output, "[FAIL] Signer: apksigner couldn't read it, and --save records only an APK signed by Facebook or Meta")
+        assertEquals(emptyList(), saved.listDirectoryEntries())
+        // Without --save the report only reads the APK, so the signer stays a warning there.
+        val (_, report) = compatReport(apk.toString())
+        assertFalse("[FAIL] Signer" in report, report)
     }
 }

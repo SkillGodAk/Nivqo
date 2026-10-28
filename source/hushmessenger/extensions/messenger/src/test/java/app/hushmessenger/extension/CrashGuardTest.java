@@ -500,7 +500,7 @@ public class CrashGuardTest {
                 assertTrue(CrashGuard.isSafeMode());
                 assertTrue(prefs.getBoolean("paused", false));
                 assertEquals(android.view.View.VISIBLE, action.getVisibility());
-                assertEquals("Couldn't save safe mode. Changes stay paused. Try again.",
+                assertEquals("Couldn't leave safe mode. Changes stay paused.",
                     org.robolectric.shadows.ShadowToast.getTextOfLatestToast());
                 var pause = (android.widget.Switch) root.findViewWithTag("paused");
                 assertNotNull(pause);

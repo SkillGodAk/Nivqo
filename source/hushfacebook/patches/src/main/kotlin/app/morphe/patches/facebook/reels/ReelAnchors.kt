@@ -43,8 +43,8 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
  *   followable as the row's state was made: the state keeps whether the owner's subscribe status
  *   was CAN_SUBSCRIBE (580 LX/AyD;->A0H), and the getter is skipped when it was. So it takes the
  *   Following button off an author you already follow and never runs for one you can follow,
- *   which is why 0.1.7 left the Follow button on the S22's Reels tab. 583's arm64 build has no
- *   such getter: the value is one of two MobileConfig flags read in cases of a merged lambda,
+ *   which is why 0.1.7 left the Follow button on the S22's Reels tab. 583's arm64 build and 584
+ *   have no such getter: the value is one of two MobileConfig flags read in cases of a merged lambda,
  *   picked by whether the viewer is Shorts in the Watch tab, so both flag reads are hooked
  *   ([followFlagsAt]) and the author row is the one method holding its literal.
  * - The Follow button: the same renderer builds it through the method holding
@@ -81,6 +81,38 @@ internal val HIDDEN_CHIPS = listOf(
     "XFBFBShortsPartnerAppAttribution",
     "XFBFBShortsExternalLinkAttribution",
 )
+
+/**
+ * The line naming a reel's sound, "Original audio" or a song, which the extension's
+ * `ReelDeclutter.SOUNDTRACK_CHIP` hides under its own switch (#200). The builder has to name it
+ * too, and ReelAnchorsFixtureTest holds the two together.
+ */
+internal const val SOUNDTRACK_CHIP = "XFBFBShortsSoundtrackTitle"
+
+/*
+ * The Reels tab draws the audio line in a component of its own (#200; arm64 LX/8MN; on 583, read
+ * 2026-10-20). Its render gets the reel's attribution models from a general getter (LX/88g;->A02),
+ * walks them for the SOUNDTRACK_CHIP type and returns null when none is there, all before anything
+ * else, then builds "<artist> · <title>" from that model. The chip list builder never sees that list,
+ * so the chip filter alone left the line on the Reels tab. Three other renders hold the name
+ * (LX/9FP;, LX/WvP;, LX/Wuq;), and each either returns before it names the type or first returns a
+ * component it built.
+ */
+
+/**
+ * Whether [method] is the Reels tab's audio line row: a Litho `render` that reads a model's
+ * `getTypeName()` and loads [SOUNDTRACK_CHIP] before its first `return-object`, and whose first
+ * answer is the null constant, Facebook's own answer for a reel with no sound line.
+ */
+internal fun isAudioLineRender(method: Method): Boolean {
+    if (method.name != RENDER || AccessFlags.STATIC.isSet(method.accessFlags) || !method.returnType.startsWith("L")) return false
+    val body = method.body()
+    val named = body.indexOfFirst { it.string == SOUNDTRACK_CHIP }
+    val firstReturn = body.indexOfFirst { it.opcode == Opcode.RETURN_OBJECT }
+    if (named < 0 || firstReturn < named) return false
+    if (body.subList(0, named).none { it.methodReference?.name == "getTypeName" }) return false
+    return constantAt(body, firstReturn, (body[firstReturn] as OneRegisterInstruction).registerA) == 0
+}
 
 /** The chip the patch looks the builder up by. Two dozen methods hold it; one builds the list. */
 internal const val CHIP_ANCHOR = "XFBFBShortsRemixAttribution"
@@ -136,14 +168,14 @@ internal fun calls(method: Method, callee: MethodReference): Boolean =
 
 /**
  * Whether [method] is the chip list builder: static, an ImmutableList in and out, every hidden chip
- * named (loaded, or asked of a string table [resolve] finds), each item read by `getTypeName()`, and
+ * and the audio line named (loaded, or asked of a string table [resolve] finds), each item read by `getTypeName()`, and
  * the answer built by `ImmutableList$Builder.build()`.
  */
 internal fun isChipListBuilder(method: Method, resolve: (MethodReference) -> Method?): Boolean {
     if (!AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != IMMUTABLE_LIST) return false
     if (method.parameterTypes.none { it.toString() == IMMUTABLE_LIST }) return false
     val body = method.body()
-    if (body.isEmpty() || !namesEvery(method, HIDDEN_CHIPS, resolve)) return false
+    if (body.isEmpty() || !namesEvery(method, HIDDEN_CHIPS + SOUNDTRACK_CHIP, resolve)) return false
     val calls = body.mapNotNull { it.methodReference }
     return calls.any { it.definingClass == IMMUTABLE_LIST_BUILDER && it.name == "build" && it.returnType == IMMUTABLE_LIST } &&
         calls.any { it.name == "getTypeName" && it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/String;" }
@@ -263,7 +295,7 @@ private fun isBooleanGetterCall(instruction: Instruction): Boolean {
 }
 
 /**
- * What the dump says about the Follow button: the getter, or on 583 the [flags] it's read from
+ * What the dump says about the Follow button: the getter, or from 583 on the [flags] it's read from
  * instead, or why neither was found.
  */
 internal class FollowGetter(
@@ -275,7 +307,7 @@ internal class FollowGetter(
 
 /**
  * The getter every "…removeFollowingButton" value in [dumper] comes from. Each literal has to trace
- * to one getter, and all of them to the same one. On 583 no getter is called: each value comes from
+ * to one getter, and all of them to the same one. From 583 on no getter is called: each value comes from
  * two flag reads in a merged lambda ([followFlagsAt]), and then all of them have to trace to the
  * same pair. [classOf] finds the classes that trace goes through.
  */
@@ -323,8 +355,9 @@ private fun constantAt(body: List<Instruction>, before: Int, register: Int, dept
  * 2026-10-16). The dump writes the answer of a static `(config, Function0, I)String` helper (A02),
  * which makes a second lambda of the first one's class from its int and has the config pick one of
  * the two (`A0f`, by whether the viewer is Shorts in the Watch tab). The first lambda is the answer
- * of the static call that also wrote the previous value (A05), keyed by its last int. Each key is a
- * case of the merged lambda ([lambdaCase]) that reads one MobileConfig flag and boxes it.
+ * of the static call that also wrote the previous value (A05), keyed by its last int; 584 (LX/9BZ;,
+ * helper A03) makes it in the dump with `new-instance` and keys it by its constructor's int. Each key
+ * is a case of the merged lambda ([lambdaCase]) that reads one MobileConfig flag and boxes it.
  */
 internal fun followFlagsAt(body: List<Instruction>, literal: Int, classOf: (String) -> ClassDef?): List<MethodReference>? {
     val name = (body[literal] as? OneRegisterInstruction)?.registerA ?: return null
@@ -340,11 +373,28 @@ internal fun followFlagsAt(body: List<Instruction>, literal: Int, classOf: (Stri
     if (pick.returnType != "Ljava/lang/String;" || pick.parameterTypes.size != 3 ||
         pick.parameterTypes.drop(1).map { it.toString() } != listOf(FUNCTION0, "I")) return null
     val (_, first, secondKeyRegister) = invokeRegisters(body[picker])
-    val made = lastWrite(body, picker, first)?.takeIf { body[it].opcode == Opcode.MOVE_RESULT_OBJECT } ?: return null
-    val maker = body.getOrNull(made - 1)?.takeIf { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
-        ?: return null
-    val lambdaType = maker.methodReference?.takeIf { it.parameterTypes.lastOrNull()?.toString() == "I" }?.returnType ?: return null
-    val firstKey = constantAt(body, made - 1, invokeRegisters(maker).last()) ?: return null
+    val made = lastWrite(body, picker, first) ?: return null
+    val (lambdaType, firstKey) = when (body[made].opcode) {
+        // 583: a static maker answers the first lambda, keyed by its last int.
+        Opcode.MOVE_RESULT_OBJECT -> {
+            val maker = body.getOrNull(made - 1)?.takeIf { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+                ?: return null
+            val type = maker.methodReference?.takeIf { it.parameterTypes.lastOrNull()?.toString() == "I" }?.returnType ?: return null
+            type to (constantAt(body, made - 1, invokeRegisters(maker).last()) ?: return null)
+        }
+        // 584: the dump makes the first lambda itself, keyed by its constructor's int.
+        Opcode.NEW_INSTANCE -> {
+            val type = (body[made] as ReferenceInstruction).reference.toString()
+            val init = (made + 1 until picker).firstOrNull {
+                body[it].opcode == Opcode.INVOKE_DIRECT && invokeRegisters(body[it]).firstOrNull() == first
+            } ?: return null
+            val constructor = body[init].methodReference ?: return null
+            if (constructor.definingClass != type || constructor.name != "<init>" ||
+                constructor.parameterTypes.map { it.toString() } != listOf("Ljava/lang/Object;", "I")) return null
+            type to (constantAt(body, init, invokeRegisters(body[init]).last()) ?: return null)
+        }
+        else -> return null
+    }
     val secondKey = constantAt(body, picker, secondKeyRegister) ?: return null
 
     // The helper makes its lambda of the same class, so both keys name cases of one lambda.
@@ -361,15 +411,17 @@ private const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
 /**
  * The static method a Redex-merged Kotlin lambda of class [lambda] runs for [key]: `invoke()`
  * switches on the key the lambda was made with, and its case either calls that method or hands the
- * key on to a second static switch of the class whose case calls it (583's `A1J(L, I)`).
+ * key on to another static switch of the class whose case calls it (583's `A1J(L, I)`). On 584 a key
+ * with no case falls through the switch's default to the next one, twice for the Follow flags
+ * (`A1D`, then `A1B`).
  */
 internal fun lambdaCase(lambda: ClassDef, key: Int): MethodReference? {
     var method: Method = lambda.methods.singleOrNull {
         it.name == "invoke" && it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/Object;" && it.implementation != null
     } ?: return null
-    repeat(2) {
+    repeat(LAMBDA_SWITCHES) {
         val byAddress = addressed(method)
-        val target = switchTarget(byAddress, key) ?: return null
+        val target = caseOrDefault(byAddress, key) ?: return null
         val call = byAddress[target]?.takeIf { it.opcode == Opcode.INVOKE_STATIC }?.methodReference ?: return null
         val parameters = call.parameterTypes.map { it.toString() }
         if (call.definingClass != lambda.type) return null
@@ -378,6 +430,18 @@ internal fun lambdaCase(lambda: ClassDef, key: Int): MethodReference? {
         method = lambda.methods.singleOrNull { it.sameAs(call) && it.implementation != null } ?: return null
     }
     return null
+}
+
+/** How many switches [lambdaCase] follows a key through before it gives up. */
+private const val LAMBDA_SWITCHES = 4
+
+/** Where the method's first switch sends [key]: its case, or the instruction after the switch when it has none. */
+private fun caseOrDefault(byAddress: Map<Int, Instruction>, key: Int): Int? {
+    switchTarget(byAddress, key)?.let { return it }
+    val (address, switch) = byAddress.entries.firstOrNull {
+        it.value.opcode == Opcode.SPARSE_SWITCH || it.value.opcode == Opcode.PACKED_SWITCH
+    } ?: return null
+    return address + switch.codeUnits
 }
 
 /** Whether [flag], a case of [lambda], answers one boxed boolean read from a MobileConfig flag. */

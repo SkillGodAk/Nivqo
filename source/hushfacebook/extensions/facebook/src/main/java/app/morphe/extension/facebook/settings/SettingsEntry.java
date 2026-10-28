@@ -37,13 +37,17 @@ import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
+import app.morphe.extension.shared.settings.BooleanSetting;
 import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.preference.ReopenSettingsAfterRestart;
+import app.morphe.extension.facebook.ads.AudienceNetwork;
 import app.morphe.extension.facebook.download.ClipboardLink;
 import app.morphe.extension.facebook.download.SaveLeftovers;
 import app.morphe.extension.facebook.download.SavedFileActions;
@@ -53,13 +57,17 @@ import app.morphe.extension.facebook.menu.MenuLayoutDump;
 import app.morphe.extension.facebook.media.TapToPlay;
 import app.morphe.extension.facebook.misc.AppIcons;
 import app.morphe.extension.facebook.misc.AppLock;
+import app.morphe.extension.facebook.misc.CloseWhenLeft;
 import app.morphe.extension.facebook.misc.ScreenTransitions;
 import app.morphe.extension.facebook.misc.TextSize;
+import app.morphe.extension.facebook.navigation.HiddenStatusBar;
 import app.morphe.extension.facebook.navigation.ReelsTab;
 import app.morphe.extension.facebook.navigation.TranslucentBars;
 import app.morphe.extension.facebook.notifications.PushDiagnostics;
+import app.morphe.extension.facebook.reels.FeedVideoAlone;
 import app.morphe.extension.facebook.stories.StorySeenButton;
 import app.morphe.extension.facebook.theme.AccentResources;
+import app.morphe.extension.facebook.theme.AmoledResources;
 import app.morphe.extension.facebook.theme.MaterialYouTheme;
 
 /**
@@ -75,7 +83,8 @@ import app.morphe.extension.facebook.theme.MaterialYouTheme;
  * has to be rebuilt to get here. The shortcut is kept first among Facebook's own, because a
  * launcher shows only the first few, and some launchers have no shortcut menu at all (#2). Its
  * switch ({@link Settings#SETTINGS_SHORTCUT}) takes it out of that menu for someone who opens the
- * screen from Facebook's Menu instead (#146).
+ * screen from Facebook's Menu instead. The logo's long press and the Menu row have switches too, and
+ * the last of the three still on can't be turned off, so there is always a way in (#146).
  */
 @SuppressWarnings("unused")
 public final class SettingsEntry {
@@ -101,6 +110,7 @@ public final class SettingsEntry {
     private static volatile boolean callbacksRegistered;
     /** The activity the screen was last shown over, while the person hasn't closed it. */
     private static WeakReference<Activity> host;
+    private static final Map<Activity, WeakReference<SettingsDialog>> opening = new WeakHashMap<>();
     private static volatile boolean closedByUser;
     /** The long label last pushed, or found already on the shortcut, in this process. */
     private static volatile String publishedLabel;
@@ -122,7 +132,8 @@ public final class SettingsEntry {
      * check, when it's on, asks at most once a day, on a worker, and where what a save cut short
      * by Android left behind is removed, on a worker too. Every process starts private push
      * observations. Other processes also start Lock Facebook's watch ({@link AppLock#watch}). The
-     * report's network count starts here too ({@link NetworkUsage}). A start that the settings
+     * report's network count starts here too ({@link NetworkUsage}), and any Audience Network
+     * component that's on goes back off ({@link AudienceNetwork#keepOff}). A start that the settings
      * screen's restart row asked for opens the screen again, on the page it was on.
      */
     public static void onApplicationCreate(Context context) {
@@ -146,6 +157,8 @@ public final class SettingsEntry {
             // waits for a post, and covering() holds it back. A window Facebook opens later lands
             // above the cover, which then goes back on top (AppLock.Cover).
             AppLock.watch(context);
+            // Close Facebook when you leave it (#202): when the last screen goes to the background.
+            CloseWhenLeft.watch(context);
             ReturnRefresh.register(context);
             watchLauncherChanges(context);
             TextSize.application(context);
@@ -153,8 +166,17 @@ public final class SettingsEntry {
             if (SettingsStatus.materialYouTheme()) MaterialYouTheme.watchWindows(context);
             // Accent color's route five, for the colours views inflated from XML read themselves.
             if (SettingsStatus.accentColor()) AccentResources.watchActivities(context);
+            // AMOLED's Background color row, for the colours views inflated from XML read themselves (#214).
+            if (SettingsStatus.amoledTheme()) AmoledResources.watchActivities(context);
             // See-through bars, a switch of the tab bar patch: each main screen as it resumes.
-            if (SettingsStatus.bottomTabBar()) TranslucentBars.watch(context);
+            if (SettingsStatus.bottomTabBar()) {
+                TranslucentBars.watch(context);
+                HiddenStatusBar.watch(context);
+            }
+            // Open feed videos on their own, a Clean up Reels switch: which screen is in front.
+            if (SettingsStatus.reelDeclutter()) FeedVideoAlone.watch(context);
+            // An Audience Network component an earlier install turned on goes back off (#168).
+            if (SettingsStatus.audienceNetwork()) AudienceNetwork.keepOff(context);
             // Last, so nothing above waits on it. The open itself waits for the first screen to resume.
             ReopenSettingsAfterRestart.reopenIfPending(SettingsEntry::reopenOn);
         } catch (Throwable ex) {
@@ -180,6 +202,7 @@ public final class SettingsEntry {
             publishShortcutNow(app);
             SavedShortcut.refreshNow(app);
             WatchHistoryShortcut.refreshNow(app);
+            FreeStuffShortcut.refreshNow(app);
         });
     }
 
@@ -427,6 +450,7 @@ public final class SettingsEntry {
                 keepFirstNow(app);
                 SavedShortcut.refreshNow(app);
                 WatchHistoryShortcut.refreshNow(app);
+                FreeStuffShortcut.refreshNow(app);
             });
             if (!queued) keepFirstQueued.set(false);
         } catch (Throwable t) {
@@ -469,8 +493,10 @@ public final class SettingsEntry {
      * itself (its World Cup mode takes a double tap there, and a long press that opens its game),
      * so its listener goes on as it was and the long press stays Facebook's.
      *
-     * <p>No switch reads this, so Pause leaves it working: it's the way back to the switch that
-     * resumes Hushfacebook. Anything that goes wrong leaves the logo with Facebook's listener.
+     * <p>The logo press has a switch ({@link Settings#SETTINGS_LOGO_PRESS}) that a pause leaves as it
+     * is, since this is a way back to the switch that resumes Hushfacebook. The listener reads it on
+     * every touch, and off, every touch is Facebook's. Anything that goes wrong leaves the logo with
+     * Facebook's listener.
      */
     public static void setLogoTouchListener(View logo, View.OnTouchListener facebooks) {
         View.OnTouchListener listener = facebooks;
@@ -489,10 +515,70 @@ public final class SettingsEntry {
     }
 
     /**
+     * Facebook's call that hides the Facebook logo from accessibility, on the path of the logo's
+     * builder that gives the logo no tap, comes here instead (#12). 583 takes that path when none of
+     * its ways to read the logo's tap is on, as in Arabic, and jumps past the tap, the touch listener
+     * that {@link #setLogoTouchListener} stands in for and the description, so the logo stays
+     * disabled with nothing listening and the long press never opened the settings.
+     *
+     * <p>After Facebook's own call, the logo is enabled, since a disabled view never hands a touch
+     * to its listener, and gets a press that takes the whole touch while the switch is on, since a
+     * logo with no tap wouldn't hear the rest of it otherwise. A tap there did nothing before, and
+     * still does nothing. Off, every touch goes past the logo as it did.
+     */
+    public static void setLogoWithoutTap(View logo, int importance) {
+        // Facebook's own call.
+        logo.setImportantForAccessibility(importance);
+        try {
+            logo.setEnabled(true);
+            logo.setOnTouchListener(new LogoPress(true));
+            Logger.printInfo(() -> "Settings entry: Facebook gave the logo no tap here, so a long press on it opens the settings");
+        } catch (Throwable failure) {
+            Logger.printException(() -> "Settings entry: could not watch the Facebook logo, which has no tap here", failure);
+        }
+    }
+
+    /**
+     * Whether a long press on the Facebook logo opens the settings. Its switch, except that when
+     * every one of the three ways in is stored off (a backup imported that way, say) the press
+     * stays on, so there is always a way back in. The Menu row only counts as a way in on a build
+     * that carries it. Until the settings are read, the press is Facebook's.
+     */
+    public static boolean logoPressOn() {
+        if (!Utils.settingsReady()) return false;
+        if (Settings.SETTINGS_LOGO_PRESS.get()) return true;
+        return !(Settings.SETTINGS_SHORTCUT.get()
+                || (Settings.SETTINGS_MENU_ROW.get() && PatchFamily.MENU_SETTINGS_ROW.inBuild()));
+    }
+
+    /**
+     * Whether the Hushfacebook row goes in the Menu: its switch, or on when the shortcut and the
+     * logo press are both stored off, for the same reason as {@link #logoPressOn}.
+     */
+    public static boolean menuRowOn() {
+        if (!Utils.settingsReady()) return false;
+        return Settings.SETTINGS_MENU_ROW.get() || !(Settings.SETTINGS_SHORTCUT.get() || Settings.SETTINGS_LOGO_PRESS.get());
+    }
+
+    /**
+     * Whether [way], one of the three switches that open the settings, is on and the only one that
+     * is, so the screen shows it on and greyed out. [menuRowInBuild] is whether this build has the
+     * Menu row, which counts as a way in only when it does.
+     */
+    static boolean isLastWayIn(BooleanSetting way, boolean menuRowInBuild) {
+        if (!way.savedValue()) return false;
+        int on = (Settings.SETTINGS_SHORTCUT.savedValue() ? 1 : 0)
+                + (Settings.SETTINGS_LOGO_PRESS.savedValue() ? 1 : 0)
+                + (menuRowInBuild && Settings.SETTINGS_MENU_ROW.savedValue() ? 1 : 0);
+        return on <= 1;
+    }
+
+    /**
      * Times a press on the Facebook logo. Every touch still reaches the logo as it did, so a tap
      * is Facebook's. A press held for the phone's long-press time opens this screen, with the
      * same vibration a long press gives, and the rest of that touch is kept from the logo, so
-     * letting go isn't also a tap.
+     * letting go isn't also a tap. On a logo Facebook gave no tap, a timed press takes the whole
+     * touch from the start ({@link #setLogoWithoutTap}).
      *
      * <p>It doesn't use the logo's own long-press handling. Facebook gives the logo an
      * accessibility delegate that puts back the long-press state it saw before the logo had any
@@ -501,12 +587,30 @@ public final class SettingsEntry {
      */
     static final class LogoPress implements View.OnTouchListener {
         private final Runnable fire = this::fire;
+        /**
+         * Whether a timed press takes the whole touch, for a logo Facebook gave no tap, which
+         * wouldn't hear past the finger going down otherwise.
+         */
+        private final boolean claims;
         /** The logo while a press on it is being timed. */
         private View pressed;
         private float downX;
         private float downY;
         /** This touch opened the screen, so the rest of it isn't the logo's. */
         private boolean opened;
+
+        LogoPress() {
+            this(false);
+        }
+
+        LogoPress(boolean claims) {
+            this.claims = claims;
+        }
+
+        /** Whether a press on the logo is being timed for a long press. Package-visible for tests. */
+        boolean timing() {
+            return pressed != null;
+        }
 
         @Override
         public boolean onTouch(View logo, MotionEvent event) {
@@ -515,13 +619,15 @@ public final class SettingsEntry {
                     case MotionEvent.ACTION_DOWN:
                         stop();
                         opened = false;
+                        // Switched off, the press is Facebook's, and nothing here times it.
+                        if (!logoPressOn()) return false;
                         // A long press Facebook gave the logo itself stays Facebook's.
                         if (logo.isLongClickable()) return false;
                         pressed = logo;
                         downX = event.getX();
                         downY = event.getY();
                         logo.postDelayed(fire, ViewConfiguration.getLongPressTimeout());
-                        return false;
+                        return claims;
                     case MotionEvent.ACTION_MOVE:
                         // The same leeway the logo gives its own press before it lets go.
                         if (pressed != null && !within(logo, event)) stop();
@@ -559,6 +665,8 @@ public final class SettingsEntry {
             pressed = null;
             if (logo == null || !logo.isAttachedToWindow()) return;
             try {
+                // Switched off while the finger was down: still Facebook's.
+                if (!logoPressOn()) return;
                 // Not asked for, and letting go is Facebook's tap, as it is on a Facebook without this.
                 if (!requestFromLogo(logo)) return;
                 opened = true;
@@ -624,6 +732,7 @@ public final class SettingsEntry {
             relabelIfStale(activity);
             SavedShortcut.refresh(activity);
             WatchHistoryShortcut.refresh(activity);
+            FreeStuffShortcut.refresh(activity);
         }
 
         @Override
@@ -632,6 +741,7 @@ public final class SettingsEntry {
             ClipboardLink.onPaused(activity);
             StorySeenButton.activityPaused(activity);
             ScreenTransitions.activityPaused(activity);
+            ScreenLog.paused(activity);
             if (resumed != null && resumed.get() == activity) resumed = null;
             LastScreen.read(activity);
         }
@@ -658,6 +768,7 @@ public final class SettingsEntry {
         @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
         @Override
         public void onActivityDestroyed(Activity activity) {
+            opening.remove(activity);
             TextSize.destroyed(activity);
             SavedFileActions.onPaused(activity);
             if (SettingsStatus.storySeen()) StorySeenButton.activityDestroyed(activity);
@@ -720,20 +831,30 @@ public final class SettingsEntry {
             FragmentManager fragments = activity.getFragmentManager();
             Fragment shown = fragments.findFragmentByTag(DIALOG_TAG);
             if (shown != null) {
+                opening.remove(activity);
                 // Already up: a notification's button still takes it to the row it names.
                 if (shown instanceof SettingsDialog) ((SettingsDialog) shown).showRequestedSetting();
                 return true;
             }
+            WeakReference<SettingsDialog> pending = opening.get(activity);
+            if (pending != null && pending.get() != null) return true;
             if (fragments.isStateSaved()) {
                 Logger.printInfo(() -> "Settings wait: " + name + " has saved its state");
                 return false;
             }
             closedByUser = false;
-            SettingsDialog.onPage(requestedPage).show(fragments, DIALOG_TAG);
+            SettingsDialog dialog = SettingsDialog.onPage(requestedPage);
+            opening.put(activity, new WeakReference<>(dialog));
+            dialog.show(fragments, DIALOG_TAG);
+            Utils.runOnMainThread(() -> {
+                WeakReference<SettingsDialog> queued = opening.get(activity);
+                if (queued != null && queued.get() == dialog) opening.remove(activity);
+            });
             host = new WeakReference<>(activity);
             Logger.printInfo(() -> "Settings opened over " + name);
             return true;
         } catch (Exception ex) {
+            opening.remove(activity);
             Logger.printException(() -> "Could not open the Hushfacebook settings over " + name, ex);
             return false;
         }

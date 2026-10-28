@@ -8,6 +8,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Field
 import com.android.tools.smali.dexlib2.iface.Method
@@ -21,6 +22,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction12x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
@@ -32,6 +34,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -42,7 +45,8 @@ import org.junit.Test
 /**
  * The parts of marking watched buckets on the phone (#61) that need no Facebook build: which
  * methods the anchors take as Facebook's way of publishing a bucket's seen flag and StoryBucket's
- * members, which they turn down, and the code the two hooks put in. The seen helper's per-card
+ * members, which they turn down, and the code the two hooks put in, then the same for the check
+ * that picks where a bucket opens (#218). The seen helper's per-card
  * method is cardSeen's, which StorySeenShapesTest and MarkAsSeenFixtureTest cover.
  */
 class StorySeenMarkingShapesTest {
@@ -239,5 +243,89 @@ class StorySeenMarkingShapesTest {
         val overwrites = MutableMethod(constructor(ImmutableInstruction12x(Opcode.MOVE_OBJECT, 1, 2)))
         assertTrue(assertThrows(PatchException::class.java) { overwrites.hearBucketMade() }.message!!.contains(PATCH))
         assertEquals(4, overwrites.implementation!!.instructions.count())
+    }
+
+    private val starterType = "Lfixture/BucketStarter;"
+    private val getMedia = ImmutableMethodReference(STORY_CARD, "getMedia", emptyList(), "Lfixture/Media;")
+    private val seenFlag = ImmutableMethodReference(STORY_CARD, "A1d", emptyList(), "Z")
+
+    /** 584's start check (LX/B6N;->Cfw): the card cast, then getMedia() and the seen flag, with [extra] calls after. */
+    private fun check(
+        cast: String = STORY_CARD,
+        flags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value,
+        extra: List<Instruction> = emptyList(),
+        lead: List<Instruction> = emptyList(),
+    ) = method(
+        starterType, "Cfw", listOf("Ljava/lang/Object;"), "Z", 3,
+        lead + listOf(
+            ImmutableInstruction21c(Opcode.CHECK_CAST, 2, ImmutableTypeReference(cast)),
+            ImmutableInstruction11n(Opcode.CONST_4, 1, 0),
+            // Offsets in code units, each to the return (unit 18 without extra calls).
+            ImmutableInstruction21t(Opcode.IF_EQZ, 2, 15 + 3 * extra.size),
+            invoke(Opcode.INVOKE_VIRTUAL, getMedia, 2),
+            result(0),
+            ImmutableInstruction21t(Opcode.IF_EQZ, 0, 9 + 3 * extra.size),
+            invoke(Opcode.INVOKE_VIRTUAL, seenFlag, 2),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+        ) + extra + listOf(
+            ImmutableInstruction21t(Opcode.IF_NEZ, 0, 3),
+            ImmutableInstruction11n(Opcode.CONST_4, 1, 1),
+            ImmutableInstruction11x(Opcode.RETURN, 1),
+        ),
+        flags,
+    )
+
+    /** The interface's (Object, int)I method beside it, casting its bucket to [cast]. */
+    private fun bucketIndex(cast: String = STORY_BUCKET) = method(
+        starterType, "AAa", listOf("Ljava/lang/Object;", "I"), "I", 6,
+        listOf(ImmutableInstruction21c(Opcode.CHECK_CAST, 4, ImmutableTypeReference(cast)), ImmutableInstruction11x(Opcode.RETURN, 5)),
+    )
+
+    private fun starter(vararg methods: Method): ClassDef =
+        ImmutableClassDef(starterType, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, methods.toList())
+
+    @Test
+    fun `the start check is the card check beside the bucket index method`() {
+        assertEquals("Cfw", startCheck(starter(check(), bucketIndex()))?.name)
+        // The null check Kotlin puts first in the methods beside it (584 LX/0eX;->A0H) is let by.
+        val nullCheck = invoke(Opcode.INVOKE_STATIC, ImmutableMethodReference("Lfixture/Checks;", "A0H", listOf("Ljava/lang/Object;", "I"), "V"), 2, 1)
+        assertEquals("Cfw", startCheck(starter(check(lead = listOf(nullCheck)), bucketIndex()))?.name)
+    }
+
+    @Test
+    fun `a card check that isn't the start check is turned down`() {
+        // Negative controls: the other implementer (584 LX/B6O;) casts its bucket to another type,
+        // a check of another card type, a static one, one making a third virtual call, one calling a
+        // constructor, and no index method.
+        assertNull(startCheck(starter(check(), bucketIndex(cast = "Lfixture/OtherBucket;"))))
+        assertNull(startCheck(starter(check(cast = "Lfixture/OtherCard;"), bucketIndex())))
+        assertNull(startCheck(starter(check(flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value), bucketIndex())))
+        val third = invoke(Opcode.INVOKE_VIRTUAL, ImmutableMethodReference(STORY_CARD, "A1e", emptyList(), "Z"), 2)
+        assertNull(startCheck(starter(check(extra = listOf(third)), bucketIndex())))
+        val made = invoke(Opcode.INVOKE_DIRECT, ImmutableMethodReference("Lfixture/Media;", "<init>", emptyList(), "V"), 0)
+        assertNull(startCheck(starter(check(lead = listOf(made)), bucketIndex())))
+        assertNull(startCheck(starter(check())))
+    }
+
+    @Test
+    fun `a card watched here answers no and every other card gets Facebook's own check`() {
+        val start = MutableMethod(check())
+        start.skipWatchedCards()
+        assertEquals(16, start.implementation!!.instructions.count())
+        val hook = start.at(0)
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, hook.opcode)
+        assertEquals(WATCHED_HERE, ((hook as ReferenceInstruction).reference as MethodReference).let {
+            "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}"
+        })
+        // Three registers, one local: the card is v2.
+        assertEquals(2, (hook as RegisterRangeInstruction).startRegister)
+        assertEquals(1, hook.registerCount)
+        assertEquals(Opcode.MOVE_RESULT, start.at(1).opcode)
+        val branch = start.at(2) as BuilderOffsetInstruction
+        assertEquals(Opcode.IF_EQZ, branch.opcode)
+        assertEquals("the branch doesn't go on to Facebook's check", 5, branch.target.location.index)
+        assertEquals(Opcode.CONST_4, start.at(3).opcode)
+        assertEquals(Opcode.RETURN, start.at(4).opcode)
+        assertEquals(Opcode.CHECK_CAST, start.at(5).opcode)
     }
 }

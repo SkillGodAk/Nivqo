@@ -28,6 +28,8 @@ class DefaultSelectionPolicyTest {
             "means uninstalling, and every later build has to carry it too or it won't install over this one.",
         "Custom new-message sound" to "It replaces Messenger's sound file when you patch, with no switch, and it " +
             "needs a file picked in its option, which Manager only shows in Expert mode.",
+        "Custom launcher icon" to "It redraws Messenger's home screen icon when you patch, with no switch, so " +
+            "only people who want the new look should get it. Its style option shows in Expert mode.",
     )
 
     private fun namedPatches(): List<JsonObject> {
@@ -92,5 +94,31 @@ class DefaultSelectionPolicyTest {
         assertEquals(emptyList(), missing, "patches shipped with no category")
         val sizes = patches.groupingBy { it.getValue("category").jsonPrimitive.content }.eachCount()
         assertEquals(emptyMap(), sizes.filterValues { it > 15 }, "split a group people have to scroll through")
+    }
+
+    /** Morphe's patch list and the Controls tab show a control in the same group, so the two lists read alike. */
+    @Test fun everyControlSitsInTheSameGroupOnTheSettingsPage() {
+        val extension = File("../extensions/messenger/src/main/java/app/hushmessenger/extension")
+            .takeIf { it.isDirectory } ?: File("extensions/messenger/src/main/java/app/hushmessenger/extension")
+        assertTrue(extension.isDirectory, "could not find the extension sources from ${File(".").absolutePath}")
+        val quoted = """"((?:[^"\\]|\\.)*)""""
+        val rows = Regex("""^\s*\{$quoted, $quoted, $quoted, $quoted\},""", RegexOption.MULTILINE)
+            .findAll(extension.resolve("SettingsActivity.java").readText()).map { it.groupValues }.toList()
+        val headings = Regex("""ENGLISH\.put\("([a-z_]+)", "([^"]+)"\)""")
+            .findAll(extension.resolve("SettingsText.java").readText()).associate { it.groupValues[1] to it.groupValues[2] }
+        val groups = namedPatches().associate { it.name() to it.getValue("category").jsonPrimitive.content }
+        assertTrue(rows.size > 40, "read only ${rows.size} controls from SettingsActivity.CONTROLS")
+        val differ = rows.mapNotNull { row ->
+            val shown = headings[row[4]] ?: "no heading for ${row[4]}"
+            val group = groups[row[2]] ?: "not in the patch list"
+            if (shown == group) null else "${row[1]}: settings shows $shown, Morphe shows $group"
+        }
+        assertEquals(emptyList(), differ)
+        // The page starts a heading wherever the group changes, so a group split by another one would show twice.
+        val runs = rows.map { it[4] }.fold(mutableListOf<String>()) { seen, group ->
+            if (seen.lastOrNull() != group) seen += group
+            seen
+        }
+        assertEquals(runs.distinct(), runs, "a group's controls should sit together in CONTROLS")
     }
 }

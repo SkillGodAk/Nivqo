@@ -12,6 +12,8 @@ public final class SettingsProvider extends ContentProvider {
         HostScreens.start(getContext());
         // Brings the icon back after a repatch without the Menu row or a lost preference.
         SettingsActivity.syncDrawerIcon(getContext());
+        // Android keeps the launcher shortcuts between runs, so each start checks them against Hide the icon shortcuts.
+        if (HostScreens.started) HostScreens.refreshShortcuts(getContext());
         return true;
     }
     @Override public Cursor query(Uri uri, String[] projection, String selection, String[] args, String order) { return null; }

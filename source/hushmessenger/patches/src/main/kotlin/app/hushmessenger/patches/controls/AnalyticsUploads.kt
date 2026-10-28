@@ -13,6 +13,9 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -35,6 +38,9 @@ internal const val RUN = "run()V"
 
 /** GooglePlayUploadService's own task code logs this when a task carries no build ID, in every build family. */
 internal const val BOUND_UPLOAD_MARK = "Job with no build ID, cancelling job"
+
+/** And this when its build ID is stale. 584 moved the first message into a string table, so either one marks it. */
+internal const val OLD_BUILD_UPLOAD_MARK = "Job with old build ID: %d, cancelling job, expected: %d"
 
 /**
  * The components Messenger's analytics logger uploads through, and the methods Android calls to start each one. They
@@ -78,7 +84,9 @@ internal fun findAnalyticsUploads(classes: Iterable<ClassDef>): List<Method> {
 private fun Method.references() =
     implementation?.instructions?.mapNotNull { (it as? ReferenceInstruction)?.reference }.orEmpty()
 
-private fun Method.holdsBoundUploadMark() = references().any { (it as? StringReference)?.string == BOUND_UPLOAD_MARK }
+private fun Method.holdsBoundUploadMark() = references().any {
+    (it as? StringReference)?.string.let { mark -> mark == BOUND_UPLOAD_MARK || mark == OLD_BUILD_UPLOAD_MARK }
+}
 
 private fun Method.typeChecks(opcode: Opcode) = implementation?.instructions
     ?.filter { it.opcode == opcode }?.map { (it as ReferenceInstruction).reference.toString() }.orEmpty()
@@ -113,7 +121,7 @@ internal fun Method.isInlinedUploadTask() =
 /**
  * Google Play can also bind GooglePlayUploadService and hand it a task through the binder its obfuscated GcmTaskService
  * base returns from onBind, so the task never passes onStartCommand. The base runs each task on a Runnable that reports
- * the result and frees the tag. Every 583 build inlines the upload into that Runnable's run(), which is the hook.
+ * the result and frees the tag. 584 inlines the upload into that Runnable's run(), which is the hook.
  * Unrelated GcmTaskServiceCompat tasks share the Runnable and stay stock.
  */
 internal fun findBoundUploadTasks(classes: Iterable<ClassDef>): List<Method> {
@@ -154,11 +162,62 @@ internal fun findXAnalyticsUploadTimers(classes: Iterable<ClassDef>): List<Metho
     .flatMap { it.methods }.filter { it.isXAnalyticsUploadTimer() }
     .let { if (it.size == 1) it else emptyList() }
 
+/** The logger's two upload actions, and the error its uploader throws for any other. */
+internal const val UPLOAD_NOW_ACTION = "com.facebook.analytics2.logger.UPLOAD_NOW"
+internal const val USER_LOGOUT_ACTION = "com.facebook.analytics2.logger.USER_LOGOUT"
+internal const val UNKNOWN_UPLOAD_ACTION = "Unknown action="
+
+/** The uploader's action dispatcher, (params, callback, action)V: it starts the upload job for either action. */
+private fun Method.isUploadActionDispatcher() =
+    returnType == "V" && !AccessFlags.STATIC.isSet(accessFlags) && parameterTypes.size == 3 &&
+        parameterTypes[2].toString() == "Ljava/lang/String;" &&
+        references().mapNotNull { (it as? StringReference)?.string }
+            .containsAll(listOf(UPLOAD_NOW_ACTION, USER_LOGOUT_ACTION, UNKNOWN_UPLOAD_ACTION))
+
+/**
+ * What an in-process upload start hands its action to: a method of its own class taking (params, callback, action),
+ * called with this, its params, a null callback and its action, and nothing else.
+ */
+private fun Method.inProcessUploadTarget(): MethodReference? {
+    if (returnType != "V" || AccessFlags.STATIC.isSet(accessFlags) || parameterTypes.size != 2 ||
+        parameterTypes[1].toString() != "Ljava/lang/String;") return null
+    val body = implementation ?: return null
+    val code = body.instructions.toList()
+    if (code.size != 3 || code[0].opcode != Opcode.CONST_4 || (code[0] as NarrowLiteralInstruction).narrowLiteral != 0 ||
+        code[1].opcode != Opcode.INVOKE_DIRECT || code[2].opcode != Opcode.RETURN_VOID) return null
+    val target = (code[1] as ReferenceInstruction).reference as? MethodReference ?: return null
+    if (target.definingClass != definingClass || target.returnType != "V" || target.parameterTypes.size != 3 ||
+        target.parameterTypes[0].toString() != parameterTypes[0].toString() ||
+        target.parameterTypes[2].toString() != "Ljava/lang/String;") return null
+    val call = code[1] as FiveRegisterInstruction
+    val self = body.registerCount - 3
+    val callback = (code[0] as OneRegisterInstruction).registerA
+    val passed = listOf(call.registerC, call.registerD, call.registerE, call.registerF)
+    return target.takeIf { callback < self && call.registerCount == 4 && passed == listOf(self, self + 1, callback, self + 2) }
+}
+
+internal fun Method.isInProcessUploadStart() = inProcessUploadTarget() != null
+
+/**
+ * Where the logger's schedulers start an upload themselves. When the upload service runs in Messenger's own process,
+ * as 584's manifest has it, an UPLOAD_NOW or USER_LOGOUT goes straight to this method instead of starting the service,
+ * so none of the service entry points runs. It's taken only beside the one dispatcher, and only when it's the one.
+ */
+internal fun findInProcessUploadStarts(classes: Iterable<ClassDef>): List<Method> {
+    val dispatcher = classes.flatMap { cls -> cls.methods.filter { it.isUploadActionDispatcher() } }.singleOrNull()
+        ?: return emptyList()
+    val starts = classes.filter { it.type == dispatcher.definingClass }.flatMap { it.methods }.filter { method ->
+        method.inProcessUploadTarget()
+            ?.let { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" } == dispatcher.hookId()
+    }
+    return if (starts.size == 1) starts else emptyList()
+}
+
 /** Each entry point starts with a free register, and a service start keeps this and its start ID in invoke range. */
 internal fun MutableMethod.validateAnalyticsUpload() {
     val entry = entryPoint()
     val inlined = isInlinedUploadTask()
-    if (!inlined && !isXAnalyticsUploadTimer() &&
+    if (!inlined && !isXAnalyticsUploadTimer() && !isInProcessUploadStart() &&
         (AccessFlags.STATIC.isSet(accessFlags) || entry !in setOf(START_COMMAND, START_JOB, RECEIVE))) {
         throw PatchException("Messenger controls: ${hookId()} isn't an analytics upload entry point")
     }
@@ -176,7 +235,8 @@ internal fun MutableMethod.validateAnalyticsUpload() {
  * released right away as Messenger's own service would (#37), then stops that start and asks Android not to restart
  * it. A job reports it has no work and the retry receiver does nothing. A bound task reports success to Google Play
  * (0, so it isn't retried) and frees its tag through Messenger's own reporter, once. The XAnalytics timer skips that
- * run's flush and upload. Off, Pause and safe mode run Messenger's own code.
+ * run's flush and upload, and an in-process upload start returns before the upload job exists. Off, Pause and safe mode
+ * run Messenger's own code.
  */
 internal fun MutableMethod.injectAnalyticsUpload() {
     validateAnalyticsUpload()

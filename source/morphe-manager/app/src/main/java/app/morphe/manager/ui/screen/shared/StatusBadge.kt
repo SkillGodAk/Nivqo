@@ -8,12 +8,10 @@ package app.morphe.manager.ui.screen.shared
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -77,10 +75,10 @@ enum class SemanticTone {
 
 /** Sizing shared by every badge, so badges line up wherever they end up side by side. */
 private object BadgeDefaults {
-    val HorizontalPadding = 10.dp
-    val VerticalPadding = 4.dp
+    val HorizontalPadding = Defaults.SpaceSmall
+    val VerticalPadding = Defaults.SpaceExtraSmall
     val IconSize = 14.dp
-    val ItemSpacing = 5.dp
+    val ItemSpacing = Defaults.SpaceExtraSmall
 }
 
 /**
@@ -155,13 +153,13 @@ fun StatusBadge(
                 enabled = onClick != null,
                 label = "status_badge_press_scale"
             )
-            .clip(RoundedCornerShape(percent = 50))
+            .clip(Defaults.PillShape)
             .background(fill)
             .then(
                 if (onClick != null) {
                     Modifier.clickable(
                         interactionSource = interactionSource,
-                        indication = LocalIndication.current,
+                        indication = shapedIndication(Defaults.PillShape),
                         onClick = onClick
                     )
                 } else {

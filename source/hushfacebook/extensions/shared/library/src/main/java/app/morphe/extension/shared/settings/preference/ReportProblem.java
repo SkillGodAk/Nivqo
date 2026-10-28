@@ -111,7 +111,7 @@ public final class ReportProblem {
                 Build.VERSION.SDK_INT, switchesOn);
     }
 
-    /** "Hushfacebook 0.11.1 on Facebook 583.0.0.39.55 (475614366)". */
+    /** "Hushfacebook 0.11.1 on Facebook 584.0.0.51.56 (475817393)". */
     public static String versionsLine(Facts facts) {
         String code = facts.appVersionCode > 0 ? " (" + facts.appVersionCode + ")" : "";
         return facts.hushName + " " + orUnknown(facts.hushVersion) + " on " + facts.appName + " "

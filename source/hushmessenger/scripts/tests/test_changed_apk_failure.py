@@ -27,8 +27,8 @@ WRAPPED_REASON = (
     'app.morphe.patcher.patch.PatchException: The patch "ResourcePatch@1179093020" '
     'depends on "BytecodePatch@1727420902", which raised an exception:\r\n'
     "app.morphe.patcher.patch.PatchException: Install beside Meta apps: "
-    "expected 6 permission loads, found 4. Use an unmodified arm64 Messenger "
-    f"583.0.0.29.95 APK (version code {SUPPORTED}).\r\r\n"
+    "expected 6 permission loads, found 4. Use an unmodified Messenger "
+    f"584.1.0.61.98 APK (version code {SUPPORTED}).\r\r\n"
     "\tat app.hushmessenger.patches.coexist.InstallBesideMetaAppsPatchKt.validateDexSites(InstallBesideMetaAppsPatch.kt:203)\r\n"
 )
 
@@ -87,6 +87,12 @@ class ChangedApkChecks(unittest.TestCase):
         cases = [
             "valid",
             "wrapped-reason",
+            "step-results",
+            "step-results-rebuild",
+            "step-results-missing",
+            "desktop-1.19",
+            "desktop-1.19-no-error",
+            "desktop-1.19-other-patch",
             "output",
             "exit-zero",
             "rebuild",
@@ -136,6 +142,31 @@ class ChangedApkChecks(unittest.TestCase):
                         Path(
                             next(arg[3:] for arg in command if arg.startswith("-o="))
                         ).write_bytes(b"unexpected")
+                    if case == "step-results-rebuild":
+                        outcome["patchingSteps"].append(
+                            {"step": "REBUILDING", "success": False}
+                        )
+                    # Desktop 1.19.0 renamed patchingSteps to stepResults.
+                    if case in {"step-results", "step-results-rebuild"}:
+                        outcome["stepResults"] = outcome.pop("patchingSteps")
+                    if case == "step-results-missing":
+                        outcome.pop("patchingSteps")
+                    # Desktop 1.19.0 writes PatchEngine.Result: {name, error} failures and stepResults.
+                    if case.startswith("desktop-1.19"):
+                        outcome = {
+                            "success": False,
+                            "appliedPatches": [],
+                            "failedPatches": [
+                                {"name": "Install beside Meta apps", "error": WRAPPED_REASON}
+                            ],
+                            "stepResults": [
+                                {"step": "PATCHING", "success": False, "error": "1 patch failed"}
+                            ],
+                        }
+                    if case == "desktop-1.19-no-error":
+                        outcome["failedPatches"][0]["error"] = None
+                    if case == "desktop-1.19-other-patch":
+                        outcome["failedPatches"][0]["name"] = "Material You theme"
                     if case == "rebuild":
                         outcome["patchingSteps"].append(
                             {"step": "REBUILDING", "success": False}
@@ -182,7 +213,7 @@ class ChangedApkChecks(unittest.TestCase):
                     patch.object(checker, "run_bounded", side_effect=desktop),
                     redirect_stdout(io.StringIO()),
                 ):
-                    if case in {"valid", "wrapped-reason"}:
+                    if case in {"valid", "wrapped-reason", "step-results", "desktop-1.19"}:
                         self.assertEqual(checker.check(args), 0)
                     elif case == "missing-report":
                         # Desktop that never started must say so, not point at a deleted temp file.

@@ -135,7 +135,30 @@ private fun timerRun(owner: String = TIMER, body: String = timerBody(owner)) =
 private fun timerClass(owner: String = TIMER, run: MutableMethod = timerRun(owner), interfaces: List<String> = listOf(RUNNABLE)) =
     fixtureClass(owner, listOf(run), interfaces = interfaces)
 
-/** The six upload components as the synthetic mapping has them, with its bound task route and XAnalytics timer. */
+/** The synthetic mapping's upload logic (584's UploadServiceLogic), its job params and its job callback. */
+private const val UPLOAD_LOGIC = "LX/2Hd;"
+private const val UPLOAD_PARAMS = "LX/3Pq;"
+private const val UPLOAD_CALLBACK = "LX/2Zk;"
+private const val UPLOAD_DISPATCH = "$UPLOAD_LOGIC->A01($UPLOAD_PARAMS${UPLOAD_CALLBACK}Ljava/lang/String;)V"
+private const val IN_PROCESS_START = "$UPLOAD_LOGIC->A05(${UPLOAD_PARAMS}Ljava/lang/String;)V"
+
+/** The action dispatcher cut down to the strings it's known by. Ten registers, as shipped. */
+private fun uploadDispatcher(id: String = UPLOAD_DISPATCH,
+                             actions: List<String> = listOf(UPLOAD_NOW_ACTION, USER_LOGOUT_ACTION, UNKNOWN_UPLOAD_ACTION)) =
+    fixtureMethod(id, actions.joinToString("") { "const-string v0, \"$it\"\n" } + "return-void", 10)
+
+private const val IN_PROCESS_START_BODY = "const/4 v0, 0x0\ninvoke-direct {p0, p1, v0, p2}, $UPLOAD_DISPATCH\nreturn-void"
+
+/** The in-process start as 584 ships it: a null callback, the dispatcher, nothing else. Four registers. */
+private fun inProcessStart(id: String = IN_PROCESS_START, body: String = IN_PROCESS_START_BODY, registers: Int = 4,
+                           flags: Int = AccessFlags.PUBLIC.value) = fixtureMethod(id, body, registers, flags)
+
+private fun uploadLogic(owner: String = UPLOAD_LOGIC, methods: List<MutableMethod> = listOf(
+    uploadDispatcher(UPLOAD_DISPATCH.replace(UPLOAD_LOGIC, owner)),
+    inProcessStart(IN_PROCESS_START.replace(UPLOAD_LOGIC, owner), IN_PROCESS_START_BODY.replace(UPLOAD_LOGIC, owner)),
+)) = fixtureClass(owner, methods, flags = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value)
+
+/** The six upload components as the synthetic mapping has them, with its bound task route, XAnalytics timer and upload logic. */
 internal fun analyticsUploadFixture(
     base: MutableClass = uploadClass(BASE, START_COMMAND, START_JOB, superclass = JOBS,
         flags = AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value),
@@ -143,6 +166,7 @@ internal fun analyticsUploadFixture(
     play: MutableClass = uploadClass(PLAY, START_COMMAND, superclass = TASK_BASE),
     tasks: List<MutableClass> = inlinedTaskFixture(),
     timers: List<MutableClass> = listOf(timerClass()),
+    logic: List<MutableClass> = listOf(uploadLogic()),
 ): List<MutableClass> = listOf(
     uploadClass(ALARM, START_COMMAND),
     uploadClass(LOLLIPOP, START_COMMAND, START_JOB, superclass = JOBS),
@@ -150,7 +174,7 @@ internal fun analyticsUploadFixture(
     play,
     uploadClass(RETRY, RECEIVE, superclass = "Landroid/content/BroadcastReceiver;"),
     base, uploader,
-) + tasks + timers
+) + tasks + timers + logic
 
 private fun Method.code() = implementation!!.instructions.toList()
 private fun reference(at: Int, code: List<com.android.tools.smali.dexlib2.iface.instruction.Instruction>) =
@@ -166,14 +190,16 @@ class AnalyticsUploadsTest {
     @Test fun everyUploadEntryPointIsFoundByItsManifestName() {
         assertEquals(activeProfile.hooks.getValue(ANALYTICS_UPLOADS), found(analyticsUploadFixture()))
         validateControls(mirroredControls(analyticsUploadFixture()), setOf(ANALYTICS_UPLOADS))
-        assertEquals(11, found(analyticsUploadFixture()).size)
-        // The inherited base and the timer are found under any obfuscated name.
+        assertEquals(12, found(analyticsUploadFixture()).size)
+        // The inherited base, the timer and the upload logic are found under any obfuscated name.
         val renamed = analyticsUploadFixture(
             uploadClass("LX/0bU;", START_COMMAND, START_JOB, superclass = JOBS, flags = AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value),
-            fixtureClass(ANALYTICS2_UPLOAD_SERVICE, superclass = "LX/0bU;"), timers = listOf(timerClass("LX/YjU;")))
+            fixtureClass(ANALYTICS2_UPLOAD_SERVICE, superclass = "LX/0bU;"), timers = listOf(timerClass("LX/YjU;")),
+            logic = listOf(uploadLogic("LX/4qk;")))
         assertTrue("LX/0bU;->$START_JOB" in found(renamed))
         assertTrue("LX/YjU;->run()V" in found(renamed))
-        assertEquals(11, found(renamed).size)
+        assertTrue("LX/4qk;->A05(${UPLOAD_PARAMS}Ljava/lang/String;)V" in found(renamed))
+        assertEquals(12, found(renamed).size)
     }
 
     @Test fun theXAnalyticsTimerIsTakenOnlyInItsOwnShape() {
@@ -229,10 +255,67 @@ class AnalyticsUploadsTest {
         )
         for ((case, classes) in cases) {
             val hooks = found(classes)
-            assertEquals(10, hooks.size, case)
+            assertEquals(11, hooks.size, case)
             assertTrue(inlined !in hooks && delegated !in hooks, case)
             assertFailsWith<PatchException>(case) { validateControls(mirroredControls(classes), setOf(ANALYTICS_UPLOADS)) }
         }
+    }
+
+    @Test fun a584TaskIsFoundByItsStaleBuildMessage() {
+        // 584 reads the no build ID message from a string table, which leaves the stale build ID one as the mark.
+        val classes = analyticsUploadFixture(tasks = listOf(taskBase(), taskRunner(run = inlinedTask(mark = OLD_BUILD_UPLOAD_MARK))))
+        assertTrue("$TASK_RUNNER->run()V" in found(classes))
+        assertEquals(12, found(classes).size)
+    }
+
+    @Test fun anInProcessUploadStartIsFoundOnlyBesideTheOneDispatcher() {
+        val withoutLogic = found(analyticsUploadFixture(logic = emptyList()))
+        assertEquals(setOf(IN_PROCESS_START), found(analyticsUploadFixture()) - withoutLogic)
+        val callback = "const/4 v0, 0x1\ninvoke-direct {p0, p1, v0, p2}, $UPLOAD_DISPATCH\nreturn-void"
+        val cases = mapOf(
+            "a dispatcher that never names USER_LOGOUT" to listOf(uploadLogic(methods = listOf(
+                uploadDispatcher(actions = listOf(UPLOAD_NOW_ACTION, UNKNOWN_UPLOAD_ACTION)), inProcessStart()))),
+            "a dispatcher that returns a value" to listOf(uploadLogic(methods = listOf(
+                fixtureMethod(UPLOAD_DISPATCH.replace(")V", ")I"), "const-string v0, \"$UPLOAD_NOW_ACTION\"\n" +
+                    "const-string v0, \"$USER_LOGOUT_ACTION\"\nconst-string v0, \"$UNKNOWN_UPLOAD_ACTION\"\nconst/4 v0, 0x0\nreturn v0", 10),
+                inProcessStart()))),
+            "two dispatchers" to listOf(uploadLogic(), uploadLogic("LX/4qk;")),
+            "a start that hands over a callback" to listOf(uploadLogic(methods = listOf(uploadDispatcher(), inProcessStart(body = callback)))),
+            "a start that does more" to listOf(uploadLogic(methods = listOf(uploadDispatcher(), inProcessStart(
+                body = "const/4 v0, 0x0\ninvoke-direct {p0, p1, v0, p2}, $UPLOAD_DISPATCH\ninvoke-virtual {p0}, Ljava/lang/Object;->hashCode()I\nreturn-void")))),
+            "a start that swaps the action and the params" to listOf(uploadLogic(methods = listOf(uploadDispatcher(), inProcessStart(
+                body = "const/4 v0, 0x0\ninvoke-direct {p0, p2, v0, p1}, $UPLOAD_DISPATCH\nreturn-void")))),
+            // Registers laid out so only the static flag tells it apart.
+            "a static start" to listOf(uploadLogic(methods = listOf(uploadDispatcher(), inProcessStart(
+                body = "const/4 v0, 0x0\ninvoke-direct {v1, p0, v0, p1}, $UPLOAD_DISPATCH\nreturn-void",
+                flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)))),
+            "a start that takes other params" to listOf(uploadLogic(methods = listOf(uploadDispatcher(),
+                inProcessStart(IN_PROCESS_START.replace(UPLOAD_PARAMS, "LX/9zz;"))))),
+            "two starts" to listOf(uploadLogic(methods = listOf(uploadDispatcher(), inProcessStart(),
+                inProcessStart(IN_PROCESS_START.replace("A05", "A06"))))),
+            "a start in another class" to listOf(uploadLogic(methods = listOf(uploadDispatcher())),
+                fixtureClass("LX/4qk;", listOf(inProcessStart(IN_PROCESS_START.replace(UPLOAD_LOGIC, "LX/4qk;"))))),
+        )
+        for ((case, logic) in cases) {
+            val classes = analyticsUploadFixture(logic = logic)
+            assertEquals(withoutLogic, found(classes), case)
+            assertFailsWith<PatchException>(case) { validateControls(mirroredControls(classes), setOf(ANALYTICS_UPLOADS)) }
+        }
+    }
+
+    @Test fun anInProcessUploadStartReturnsBeforeTheUploadJobExists() {
+        val method = inProcessStart()
+        val before = method.code()
+        injectControl(ANALYTICS_UPLOADS, mapOf(ANALYTICS_UPLOADS to listOf(method)))
+        val code = method.code()
+        assertEquals("$SETTINGS->stopAnalyticsUploads()Z", reference(0, code))
+        assertEquals(0, (code[1] as OneRegisterInstruction).registerA)
+        assertEquals(Opcode.IF_EQZ, code[2].opcode)
+        assertEquals(Opcode.RETURN_VOID, code[3].opcode)
+        assertEquals(4, code.branchTarget(2))
+        // Off, the dispatcher gets this start's own params and action with Messenger's null callback.
+        assertEquals(before, code.drop(4))
+        assertEquals(UPLOAD_DISPATCH, reference(5, code))
     }
 
     @Test fun anInlinedTaskReportsSuccessOnceAndLeavesCompatTasksStock() {
@@ -279,7 +362,7 @@ class AnalyticsUploadsTest {
         )
         for ((case, classes) in cases) {
             val hooks = found(classes)
-            assertEquals(9, hooks.size, case)
+            assertEquals(10, hooks.size, case)
             assertTrue(hooks.none { it.startsWith(BASE) }, case)
             assertFailsWith<PatchException>(case) { validateControls(mirroredControls(classes), setOf(ANALYTICS_UPLOADS)) }
         }
@@ -288,7 +371,7 @@ class AnalyticsUploadsTest {
             if (it.type != ALARM) it else fixtureClass(ALARM, listOf(entry(ALARM, START_COMMAND,
                 flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)), superclass = SERVICE)
         }
-        assertEquals(10, found(static).size)
+        assertEquals(11, found(static).size)
     }
 
     @Test fun aServiceStartStopsItselfWithoutAskingForARestart() {

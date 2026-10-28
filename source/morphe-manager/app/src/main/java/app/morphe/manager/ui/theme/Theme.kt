@@ -65,6 +65,13 @@ private val DarkColorScheme = darkColorScheme(
     surfaceTint = theme_dark_surfaceTint,
     outlineVariant = theme_dark_outlineVariant,
     scrim = theme_dark_scrim,
+    surfaceContainerLowest = theme_dark_surfaceContainerLowest,
+    surfaceContainerLow = theme_dark_surfaceContainerLow,
+    surfaceContainer = theme_dark_surfaceContainer,
+    surfaceContainerHigh = theme_dark_surfaceContainerHigh,
+    surfaceContainerHighest = theme_dark_surfaceContainerHighest,
+    surfaceBright = theme_dark_surfaceBright,
+    surfaceDim = theme_dark_surfaceDim,
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -97,6 +104,13 @@ private val LightColorScheme = lightColorScheme(
     surfaceTint = theme_light_surfaceTint,
     outlineVariant = theme_light_outlineVariant,
     scrim = theme_light_scrim,
+    surfaceContainerLowest = theme_light_surfaceContainerLowest,
+    surfaceContainerLow = theme_light_surfaceContainerLow,
+    surfaceContainer = theme_light_surfaceContainer,
+    surfaceContainerHigh = theme_light_surfaceContainerHigh,
+    surfaceContainerHighest = theme_light_surfaceContainerHighest,
+    surfaceBright = theme_light_surfaceBright,
+    surfaceDim = theme_light_surfaceDim,
 )
 
 private fun monochromeColorScheme(darkTheme: Boolean): ColorScheme =
@@ -259,11 +273,20 @@ fun ManagerTheme(
         LocalThemeTraits provides traits,
         LocalAppCardColorResolver provides appCardColorResolver
     ) {
-        MaterialTheme(
+        // Expressive, so Material's own components move on its springs and pick their expressive
+        // variants, in step with the app's own controls
+        MaterialExpressiveTheme(
             colorScheme = finalScheme,
-            typography = Typography,
-            content = content
-        )
+            motionScheme = MotionScheme.expressive(),
+            typography = Typography
+        ) {
+            // A ring rather than a tint marks the focused control, which a remote or a keyboard
+            // has nothing else to go by, and a tint barely shows through the translucent surfaces
+            CompositionLocalProvider(
+                LocalRippleThemeConfiguration provides RippleDefaults.InsetFocusRingThemeConfiguration,
+                content = content
+            )
+        }
     }
 }
 

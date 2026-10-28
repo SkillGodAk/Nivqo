@@ -67,6 +67,8 @@ class TurnOffScreenTransitionsFixtureTest {
     fun forgetTheLastMatches() {
         ShowTabFingerprint.clearMatch()
         SnapToPanelFingerprint.clearMatch()
+        PhotoOpenFingerprint.clearMatch()
+        BackStackDumpFingerprint.clearMatch()
     }
 
     private fun declaredBundles(): Map<String, List<File>> {
@@ -170,7 +172,7 @@ class TurnOffScreenTransitionsFixtureTest {
 
     @Test
     fun `the extension has the hooks the patch calls`() {
-        for (hook in listOf(TAB_STYLE, PANEL_SLIDES)) {
+        for (hook in listOf(TAB_STYLE, PANEL_SLIDES, PHOTO_ZOOMS, FRAGMENT_ANIMATION, PHOTO_PAGE_ZOOM, PHOTO_PAGE_LENGTH, PHOTO_VIEWER_LENGTH)) {
             val type = hook.substringBefore("->")
             val hooks = ExtensionDex.classDef(type).methods.filter { method ->
                 "$type->${method.name}${method.parameterTypes.joinToString("", "(", ")")}${method.returnType}" == hook

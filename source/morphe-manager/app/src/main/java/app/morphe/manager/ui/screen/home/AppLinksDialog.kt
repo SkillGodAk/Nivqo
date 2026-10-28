@@ -9,11 +9,6 @@ import android.content.pm.PackageInfo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Launch
-import androidx.compose.material.icons.outlined.AutoFixHigh
-import androidx.compose.material.icons.outlined.CheckCircleOutline
-import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -33,7 +28,8 @@ import app.morphe.manager.domain.links.AppLinksStatus
 import app.morphe.manager.domain.links.RepairCapability
 import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.util.openAppOpenByDefaultSettings
-import app.morphe.manager.util.toast
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -43,7 +39,7 @@ import org.koin.compose.koinInject
  * user changes it.
  */
 @Composable
-fun AppLinksDialog(
+fun DialogHostScope.AppLinksDialog(
     appLabel: String,
     appInfo: PackageInfo?,
     accentColor: Color?,
@@ -52,54 +48,8 @@ fun AppLinksDialog(
     onRefresh: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val context = LocalContext.current
-    val resources = LocalResources.current
-    val scope = rememberCoroutineScope()
-    val appLinksManager: AppLinksManager = koinInject()
-    val repairCapability by produceState(RepairCapability.NONE) {
-        value = appLinksManager.getRepairCapability()
-    }
-    var isRepairing by remember { mutableStateOf(false) }
-
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         onRefresh()
-    }
-
-    val dialogActions = buildList {
-        if (repairCapability != RepairCapability.NONE && status.needsAttention) {
-            add(
-                DialogAction(
-                    text = stringResource(
-                        if (isRepairing) R.string.app_links_enable_auto_in_progress
-                        else R.string.app_links_enable_auto
-                    ),
-                    icon = Icons.Outlined.AutoFixHigh,
-                    onClick = {
-                        scope.launch {
-                            isRepairing = true
-                            val success = appLinksManager.repairAppLinks(packageName)
-                            isRepairing = false
-                            onRefresh()
-                            context.toast(
-                                resources.getString(
-                                    if (success) R.string.app_links_repair_success
-                                    else R.string.app_links_repair_failed
-                                )
-                            )
-                        }
-                    },
-                    enabled = !isRepairing,
-                    emphasis = DialogActionEmphasis.Filled
-                )
-            )
-        }
-        add(
-            DialogAction(
-                text = stringResource(R.string.app_links_open_settings),
-                icon = Icons.AutoMirrored.Outlined.Launch,
-                onClick = { context.openAppOpenByDefaultSettings(packageName) }
-            )
-        )
     }
 
     DetailsDialog(
@@ -110,34 +60,101 @@ fun AppLinksDialog(
         title = appLabel,
         subtitle = stringResource(R.string.app_links_title),
         accentColor = accentColor,
-        actions = dialogActions
+        actions = rememberAppLinksActions(packageName, status, onRefresh)
     ) {
-        if (status.needsAttention) {
-            Notice(
-                text = stringResource(R.string.app_links_description),
-                tone = SemanticTone.Warning,
-                icon = Icons.Outlined.LinkOff
-            )
-        } else {
-            Notice(
-                text = stringResource(R.string.app_links_all_verified),
-                tone = SemanticTone.Success,
-                icon = Icons.Outlined.CheckCircleOutline
+        AppLinksContent(status = status, accentColor = accentColor)
+    }
+}
+
+/**
+ * What can be done about [packageName]'s web links: turning them on where the device lets the
+ * manager do it, and opening the system screen where the user picks them.
+ */
+@Composable
+fun rememberAppLinksActions(
+    packageName: String,
+    status: AppLinksStatus,
+    onRefresh: () -> Unit
+): List<DialogAction> {
+    val context = LocalContext.current
+    val messages = koinInject<UserMessages>()
+    val resources = LocalResources.current
+    val scope = rememberCoroutineScope()
+    val appLinksManager: AppLinksManager = koinInject()
+    val repairCapability by produceState(RepairCapability.NONE) {
+        value = appLinksManager.getRepairCapability()
+    }
+    var isRepairing by remember { mutableStateOf(false) }
+
+    return buildList {
+        if (repairCapability != RepairCapability.NONE && status.needsAttention) {
+            add(
+                DialogAction(
+                    text = stringResource(
+                        if (isRepairing) R.string.app_links_enable_auto_in_progress
+                        else R.string.app_links_enable_auto
+                    ),
+                    icon = MaterialSymbols.Rounded.Auto_fix_high,
+                    onClick = {
+                        // Set before launching, so a second tap in the same frame starts nothing
+                        if (!isRepairing) {
+                            isRepairing = true
+                            scope.launch {
+                                val success = appLinksManager.repairAppLinks(packageName)
+                                isRepairing = false
+                                onRefresh()
+                                messages.show(
+                                    resources.getString(
+                                        if (success) R.string.app_links_repair_success
+                                        else R.string.app_links_repair_failed
+                                    )
+                                )
+                            }
+                        }
+                    },
+                    enabled = !isRepairing,
+                    emphasis = DialogActionEmphasis.Filled
+                )
             )
         }
+        add(
+            DialogAction(
+                text = stringResource(R.string.app_links_open_settings),
+                icon = MaterialSymbols.Rounded.Open_in_new.autoMirrored,
+                onClick = { context.openAppOpenByDefaultSettings(packageName) }
+            )
+        )
+    }
+}
 
-        SurfaceCard(
-            cornerRadius = Defaults.CardCornerRadius,
-            showBorder = true,
-            borderColor = appAccentBorder(accentColor),
-            color = cardFill(),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column {
-                status.domains.forEachIndexed { index, domain ->
-                    if (index > 0) SettingsDivider()
-                    DomainRow(domain = domain, isEnabled = domain !in status.unhandledDomains)
-                }
+/** Whether the app's web links open in it, then each link and whether it does. */
+@Composable
+fun AppLinksContent(status: AppLinksStatus, accentColor: Color?) {
+    if (status.needsAttention) {
+        Notice(
+            text = stringResource(R.string.app_links_description),
+            tone = SemanticTone.Warning,
+            icon = MaterialSymbols.Rounded.Link_off
+        )
+    } else {
+        Notice(
+            text = stringResource(R.string.app_links_all_verified),
+            tone = SemanticTone.Success,
+            icon = MaterialSymbols.Rounded.Check_circle
+        )
+    }
+
+    SurfaceCard(
+        cornerRadius = Defaults.CornerLarge,
+        showBorder = true,
+        borderColor = appAccentBorder(accentColor),
+        color = cardFill(),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column {
+            status.domains.forEachIndexed { index, domain ->
+                if (index > 0) SettingsDivider()
+                DomainRow(domain = domain, isEnabled = domain !in status.unhandledDomains)
             }
         }
     }
@@ -148,8 +165,8 @@ private fun DomainRow(domain: String, isEnabled: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Defaults.ContentPadding, vertical = Defaults.ItemSpacing),
-        horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
+            .padding(horizontal = Defaults.SpaceLarge, vertical = Defaults.SpaceMedium),
+        horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -165,11 +182,11 @@ private fun DomainRow(domain: String, isEnabled: Boolean) {
             style = MaterialTheme.typography.labelSmall,
             color = if (isEnabled) SemanticTone.Success.content else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
-                .clip(RoundedCornerShape(Defaults.CompactCornerRadius))
+                .clip(RoundedCornerShape(Defaults.CornerMedium))
                 .background(
                     if (isEnabled) SemanticTone.Success.container else MaterialTheme.colorScheme.surfaceVariant
                 )
-                .padding(horizontal = 8.dp, vertical = 2.dp)
+                .padding(horizontal = Defaults.SpaceSmall, vertical = 2.dp)
         )
     }
 }

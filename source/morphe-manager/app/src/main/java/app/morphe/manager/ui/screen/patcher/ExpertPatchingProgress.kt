@@ -5,7 +5,6 @@
 
 package app.morphe.manager.ui.screen.patcher
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -15,9 +14,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.SportsEsports
-import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -28,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -47,8 +44,7 @@ import app.morphe.manager.patcher.runtime.ResourceMonitor.LOG_MEMORY_FIELD_MAX
 import app.morphe.manager.patcher.runtime.ResourceMonitor.LOG_MEMORY_PREFIX_DONE
 import app.morphe.manager.patcher.runtime.ResourceMonitor.LOG_USAGE_FIELD_IO_PEAK
 import app.morphe.manager.patcher.runtime.ResourceMonitor.LOG_USAGE_PREFIX_DONE
-import app.morphe.manager.patcher.runtime.process.PatcherProcess.Companion.LOG_PROCESS_PREFIX_PROCESS_HEAP
-import app.morphe.manager.patcher.worker.PatcherWorker.Companion.LOG_PROCESS_PREFIX_COROUTINE_HEAP
+import app.morphe.manager.patcher.runtime.ResourceMonitor.LOG_HEAP_LIMIT_PREFIX
 import app.morphe.manager.patcher.worker.PatcherWorker.Companion.LOG_WORKER_FIELD_ANDROID
 import app.morphe.manager.patcher.worker.PatcherWorker.Companion.LOG_WORKER_FIELD_API
 import app.morphe.manager.patcher.worker.PatcherWorker.Companion.LOG_WORKER_FIELD_DEVICE
@@ -74,6 +70,8 @@ import app.morphe.manager.patcher.worker.PatcherWorker.Companion.LOG_WORKER_PREF
 import app.morphe.manager.patcher.worker.PatcherWorker.Companion.LOG_WORKER_PREFIX_SOURCE
 import app.morphe.manager.patcher.worker.PatcherWorker.Companion.LOG_WORKER_PREFIX_STARTED
 import app.morphe.manager.patcher.worker.PatcherWorker.Companion.LOG_WORKER_PREFIX_SUCCEEDED
+import app.morphe.manager.patcher.worker.PatcherWorker.Companion.RUNTIME_ART
+import app.morphe.manager.patcher.worker.PatcherWorker.Companion.RUNTIME_JVM
 import app.morphe.manager.ui.model.PatchProgressSource
 import app.morphe.manager.ui.model.State
 import app.morphe.manager.ui.screen.patcher.game.MiniGameContent
@@ -82,11 +80,14 @@ import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.ui.screen.shared.Animations
 import app.morphe.manager.ui.theme.MorpheBrandTeal
 import app.morphe.manager.util.formatBytesForReport
+import app.morphe.manager.util.formatKibibytesPerSecond
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
 /** Inset every element inside a patcher card keeps from the edge of the card carrying it. */
-internal val PatcherCardPadding = 10.dp
+internal val PatcherCardPadding = Defaults.SpaceMedium
 
 /** What a card's own margin and the surrounding list each contribute to that same inset. */
 internal val PatcherCardMargin = PatcherCardPadding / 2
@@ -98,8 +99,7 @@ private const val SCROLL_THROTTLE_MS = 150L
 sealed interface LogItem {
     /**
      * Structured card shown at the start of patching.
-     * Aggregates data from "Patching started at …", "Runtime: …", "Process heap memory limit: …"
-     * and "Device: …" log lines.
+     * Aggregates data from "Patching started at …", "Runtime: …" and "Device: …" log lines.
      */
     data class StartBanner(
         val packageName: String,
@@ -111,7 +111,8 @@ sealed interface LogItem {
         val apkSize: String,
         val patchCount: Int,
         val isSplit: Boolean,
-        // null when using CoroutineRuntime
+        // null until the runtime line arrives
+        val runtimeName: String?,
         val runtimeMemoryLimitMb: String?,
         // device environment
         val androidVersion: String?,
@@ -125,16 +126,16 @@ sealed interface LogItem {
 
     /**
      * Structured card shown after patching succeeds.
-     * Aggregates data from "Patching succeeded: …" and "Process heap after patching: …" log lines.
+     * Aggregates data from "Patching succeeded: …" and "Heap after patching: …" log lines.
      */
     data class SuccessSummary(
         val outputSize: String,
         val elapsedSec: String,
-        // null when using CoroutineRuntime (no separate process)
+        // null when the run reported no heap
         val processHeapAverageMb: String?,
         val processHeapMaxMb: String?,
         // null on devices that expose no I/O counters to sample
-        val ioPeakRate: String?,
+        val ioPeakKbPerSec: Int?,
     ) : LogItem
 
     /** Standard single-line log entry. */
@@ -151,6 +152,13 @@ private fun formatElapsed(ms: Long?): String {
     val minutes = totalSec / 60
     val seconds = totalSec % 60
     return if (minutes > 0) "${minutes}m ${seconds}s" else "${seconds}s"
+}
+
+/** What the banner calls the runtime a log line names. */
+private fun runtimeLabel(name: String) = when (name) {
+    RUNTIME_JVM -> "JVM"
+    RUNTIME_ART -> "ART"
+    else -> name
 }
 
 /**
@@ -173,6 +181,7 @@ internal class LogItemAccumulator(
     private var patcherVersion: String? = null
     private var stripsNativeLibs: Boolean? = null
     private val sources = mutableListOf<PatchSourceRef>()
+    private var runtimeName: String? = null
     private var runtimeMemoryLimitMb: String? = null
     private var androidVersion: String? = null
     private var ramAvailable: String? = null
@@ -212,6 +221,7 @@ internal class LogItemAccumulator(
                 }
             }
             message.startsWith(LOG_WORKER_PREFIX_RUNTIME) -> {
+                runtimeName = message.logField(LOG_WORKER_FIELD_NAME)
                 runtimeMemoryLimitMb = message.logField(LOG_WORKER_FIELD_MEMORY_LIMIT)?.let { "${it}MB" }
                 updateStartBanner()
             }
@@ -234,8 +244,7 @@ internal class LogItemAccumulator(
                 ioPeakKbPerSec = message.logField(LOG_USAGE_FIELD_IO_PEAK)?.toIntOrNull()
                 updateSuccessSummary()
             }
-            message.startsWith(LOG_PROCESS_PREFIX_PROCESS_HEAP) ||
-                message.startsWith(LOG_PROCESS_PREFIX_COROUTINE_HEAP) -> {
+            message.startsWith(LOG_HEAP_LIMIT_PREFIX) -> {
                 // Auxiliary lines consumed without emitting a LogItem
             }
             message.startsWith(LOG_WORKER_PREFIX_STARTED) -> {
@@ -284,6 +293,7 @@ internal class LogItemAccumulator(
         patcherVersion = null
         stripsNativeLibs = null
         sources.clear()
+        runtimeName = null
         runtimeMemoryLimitMb = null
         androidVersion = null
         ramAvailable = null
@@ -333,6 +343,7 @@ internal class LogItemAccumulator(
         apkSize = startApkSize.orEmpty(),
         patchCount = startPatchCount,
         isSplit = startIsSplit,
+        runtimeName = runtimeName,
         runtimeMemoryLimitMb = runtimeMemoryLimitMb,
         androidVersion = androidVersion,
         ramAvailable = ramAvailable,
@@ -354,7 +365,7 @@ internal class LogItemAccumulator(
         elapsedSec = successElapsedSec ?: "?",
         processHeapAverageMb = processHeapAverageMb,
         processHeapMaxMb = processHeapMaxMb,
-        ioPeakRate = ioPeakKbPerSec?.let(::formatRate),
+        ioPeakKbPerSec = ioPeakKbPerSec,
     )
 }
 
@@ -470,11 +481,12 @@ fun ExpertPatchingInProgress(
     ) {
         // Content area
         if (landscape) {
-            // Landscape: header + action bar left, log right
+            // Landscape: header + action bar left, log right, together as wide as a dialog's two panes
             Row(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
+                    .align(Alignment.CenterHorizontally)
+                    .contentColumn(Defaults.SplitContentMaxWidth)
                     .padding(horizontal = windowSize.contentPadding),
                 horizontalArrangement = Arrangement.spacedBy(windowSize.contentPadding),
                 verticalAlignment = Alignment.Top
@@ -498,7 +510,7 @@ fun ExpertPatchingInProgress(
 
                         header()
 
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(Defaults.SpaceMedium))
                     }
 
                     // Action bar inside left column
@@ -521,7 +533,7 @@ fun ExpertPatchingInProgress(
                     .padding(horizontal = windowSize.contentPadding)
                     // Only enough to clear the status bar: the screen starts at the very top and
                     // a queue header brings padding of its own
-                    .padding(top = Defaults.ContentPaddingSmall),
+                    .padding(top = Defaults.SpaceSmall),
                 verticalArrangement = Arrangement.spacedBy(windowSize.itemSpacing)
             ) {
                 queueHeader?.invoke()
@@ -538,9 +550,9 @@ fun ExpertPatchingInProgress(
 
         // Portrait-only: action bar below content
         if (!landscape) {
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(Defaults.SpaceMedium))
 
-            actionBar(Defaults.ContentPadding)
+            actionBar(Defaults.SpaceLarge)
         }
     }
 }
@@ -574,8 +586,8 @@ private fun ExpertProgressHeader(
         verticalArrangement = Arrangement.spacedBy(rememberWindowSize().itemSpacing)
     ) {
         // Screen name, live step and both counters read as one block, with the bar closing it
-        Column(verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraSmall)) {
                 if (showScreenLabel) {
                     // Names what is being patched, and falls back to the screen's own name for a
                     // package no source can put a label to
@@ -591,24 +603,20 @@ private fun ExpertProgressHeader(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
+                    horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    AnimatedContent(
-                        targetState = currentStep?.name,
+                    CrossfadeText(
+                        text = currentStep?.name ?: stringResource(R.string.patcher_success_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = usableAppAccent(accentColor) ?: MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
                         transitionSpec = Animations.fadeCrossfade(300),
-                        label = "expert_step_name",
-                        modifier = Modifier.weight(1f)
-                    ) { stepName ->
-                        Text(
-                            text = stepName ?: stringResource(R.string.patcher_success_title),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = usableAppAccent(accentColor) ?: MaterialTheme.colorScheme.primary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                        label = "expert_step_name"
+                    )
 
                     if (total > 0) {
                         // A finished run wears the same success tone as the success card
@@ -679,7 +687,7 @@ private fun ExpertLogPanel(
 
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(Defaults.CardCornerRadius),
+        shape = RoundedCornerShape(Defaults.CornerLarge),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp,
         border = CardBorder.of(appAccentBorder(appAccent))
@@ -690,12 +698,12 @@ private fun ExpertLogPanel(
                 options = listOf(
                     SegmentedTab(
                         label = stringResource(R.string.patcher_tab_logs),
-                        icon = Icons.Outlined.Terminal,
+                        icon = MaterialSymbols.Rounded.Terminal,
                         badge = activeTab != LOG_PANEL_TAB_LOGS && totalLogs > seenLogCount
                     ),
                     SegmentedTab(
                         label = stringResource(R.string.patcher_tab_game),
-                        icon = Icons.Outlined.SportsEsports
+                        icon = MaterialSymbols.Rounded.Sports_esports
                     )
                 ),
                 selectedIndex = activeTab,
@@ -733,7 +741,7 @@ private fun ExpertLogPanel(
                                     ) {
                                         Column(
                                             horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
                                         ) {
                                             // Nothing is going to arrive for a run whose log died
                                             // with its process, so the live dot would be a lie
@@ -808,7 +816,7 @@ private fun PatcherInfoCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = PatcherCardPadding, vertical = PatcherCardMargin),
-        shape = RoundedCornerShape(Defaults.CompactCornerRadius),
+        shape = RoundedCornerShape(Defaults.CornerMedium),
         color = bgColor,
         tonalElevation = 0.dp,
         border = CardBorder.tinted(accentColor)
@@ -818,7 +826,7 @@ private fun PatcherInfoCard(
                 .fillMaxWidth()
                 .padding(PatcherCardPadding),
             // Tight, because these cards carry a lot of short fields and are read at a glance
-            verticalArrangement = Arrangement.spacedBy(7.dp)
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
         ) {
             // Header row: title + optional badge
             Row(
@@ -834,7 +842,7 @@ private fun PatcherInfoCard(
                 )
                 if (badge != null) {
                     Surface(
-                        shape = RoundedCornerShape(4.dp),
+                        shape = RoundedCornerShape(Defaults.CornerExtraSmall),
                         color = accentColor.copy(alpha = 0.18f)
                     ) {
                         Text(
@@ -842,7 +850,7 @@ private fun PatcherInfoCard(
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = accentColor,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = Defaults.SpaceSmall, vertical = 2.dp)
                         )
                     }
                 }
@@ -929,19 +937,18 @@ private fun StartBannerCard(item: LogItem.StartBanner) {
                 value = item.managerVersion ?: "?",
                 modifier = Modifier.weight(1f))
             BannerFieldCell(
-                label = stringResource(R.string.settings_advanced_patcher),
+                label = stringResource(R.string.settings_section_patcher),
                 value = item.patcherVersion ?: "?",
                 modifier = Modifier.weight(1f))
         }
 
         BannerFieldRow {
-            // The heap limit only exists for the process runtime, so it rides along with the
-            // runtime name rather than taking a cell that is empty half the time
+            // The heap limit rides along with the runtime name rather than taking a cell of its own
             BannerFieldCell(
                 label = stringResource(R.string.patcher_field_runtime),
-                value = item.runtimeMemoryLimitMb
-                    ?.let { "Process $it" }
-                    ?: "Coroutine",
+                value = listOfNotNull(item.runtimeName?.let(::runtimeLabel), item.runtimeMemoryLimitMb)
+                    .joinToString(" ")
+                    .ifEmpty { "?" },
                 modifier = Modifier.weight(1f),
                 valueColor = item.runtimeMemoryLimitMb?.let { LocalAccent.current ?: MaterialTheme.colorScheme.primary }
             )
@@ -1032,11 +1039,11 @@ private fun SuccessSummaryCard(item: LogItem.SuccessSummary) {
             }
         }
 
-        if (item.ioPeakRate != null) {
+        if (item.ioPeakKbPerSec != null) {
             BannerFieldRow {
                 BannerFieldCell(
                     label = stringResource(R.string.patcher_field_io_peak),
-                    value = item.ioPeakRate,
+                    value = LocalContext.current.formatKibibytesPerSecond(item.ioPeakKbPerSec),
                     modifier = Modifier.weight(1f))
             }
         }
@@ -1051,7 +1058,7 @@ private fun SuccessSummaryCard(item: LogItem.SuccessSummary) {
 private fun BannerFieldRow(content: @Composable RowScope.() -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium),
         content = content
     )
 }
@@ -1100,17 +1107,17 @@ private fun LogEntryRow(level: LogLevel, message: String) {
             .fillMaxWidth()
             .then(if (colors.rowBg != Color.Unspecified) Modifier.background(colors.rowBg) else Modifier)
             .padding(horizontal = PatcherCardPadding, vertical = PatcherCardMargin),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
         verticalAlignment = Alignment.Top
     ) {
-        Surface(shape = RoundedCornerShape(4.dp), color = colors.badgeBg) {
+        Surface(shape = RoundedCornerShape(Defaults.CornerExtraSmall), color = colors.badgeBg) {
             Text(
                 text = level.logBadge,
                 style = MaterialTheme.typography.labelSmall,
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
                 color = colors.text,
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                modifier = Modifier.padding(horizontal = Defaults.SpaceExtraSmall, vertical = 2.dp),
                 fontSize = 10.sp
             )
         }

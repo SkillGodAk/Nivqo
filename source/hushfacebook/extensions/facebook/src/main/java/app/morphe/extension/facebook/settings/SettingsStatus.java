@@ -66,6 +66,14 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean storyMusicLength() {
+        return false;
+    }
+
+    public static boolean pinchToZoom() {
+        return false;
+    }
+
     public static boolean sponsoredReels() {
         return false;
     }
@@ -75,6 +83,14 @@ public final class SettingsStatus {
     }
 
     public static boolean sponsoredProfilePosts() {
+        return false;
+    }
+
+    public static boolean profileNotes() {
+        return false;
+    }
+
+    public static boolean postActionButtons() {
         return false;
     }
 
@@ -98,7 +114,23 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean newestReelsFirst() {
+        return false;
+    }
+
     public static boolean doubleTapLike() {
+        return false;
+    }
+
+    public static boolean doubleTapSkip() {
+        return false;
+    }
+
+    public static boolean tapShowsControls() {
+        return false;
+    }
+
+    public static boolean reelGestures() {
         return false;
     }
 
@@ -119,6 +151,10 @@ public final class SettingsStatus {
     }
 
     public static boolean commentSheetOptions() {
+        return false;
+    }
+
+    public static boolean fullHeightComments() {
         return false;
     }
 
@@ -147,6 +183,10 @@ public final class SettingsStatus {
     }
 
     public static boolean skipSilentParts() {
+        return false;
+    }
+
+    public static boolean keepFeedVideosMuted() {
         return false;
     }
 
@@ -187,6 +227,10 @@ public final class SettingsStatus {
     }
 
     public static boolean unlockAppIcons() {
+        return false;
+    }
+
+    public static boolean headerText() {
         return false;
     }
 
@@ -251,6 +295,10 @@ public final class SettingsStatus {
     }
 
     public static boolean accentColor() {
+        return false;
+    }
+
+    public static boolean markColors() {
         return false;
     }
 
@@ -326,6 +374,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean fullPostText() {
+        return false;
+    }
+
     public static boolean autoTranslation() {
         return false;
     }
@@ -363,6 +415,10 @@ public final class SettingsStatus {
     }
 
     public static boolean metaAiSearch() {
+        return false;
+    }
+
+    public static boolean searchHistory() {
         return false;
     }
 

@@ -14,8 +14,8 @@ import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,8 +23,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -61,9 +59,13 @@ import app.morphe.manager.R
 import app.morphe.manager.ui.screen.shared.colorpicker.ColorPresetGrid
 import app.morphe.manager.ui.screen.shared.colorpicker.THEME_PRESET_COLORS
 import app.morphe.manager.util.*
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.compose.koinInject
 
 /**
  * Configuration constants for adaptive icon creation.
@@ -183,13 +185,14 @@ private fun PickedImage.maxIconScale(): Float =
  * transparency where it has any.
  */
 @Composable
-fun AdaptiveIconCreatorDialog(
+fun DialogHostScope.AdaptiveIconCreatorDialog(
     packageName: String,
     onDismiss: () -> Unit,
     onIconCreated: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val messages = koinInject<UserMessages>()
 
     val foreground = remember { mutableStateOf<PickedImage?>(null) }
     val initialBackground = MaterialTheme.colorScheme.primaryContainer
@@ -233,11 +236,11 @@ fun AdaptiveIconCreatorDialog(
             )
             isCreating.value = false
             if (result != null) {
-                context.toast(successMessage)
+                messages.show(successMessage)
                 onIconCreated(result)
                 onDismiss()
             } else {
-                context.toast(failureMessage)
+                messages.show(failureMessage)
             }
         }
     }
@@ -293,21 +296,16 @@ fun AdaptiveIconCreatorDialog(
                 AppDialogOutlinedButton(
                     text = stringResource(R.string.adaptive_icon_change_image),
                     onClick = { openForegroundPicker() },
-                    icon = Icons.Outlined.Image,
+                    icon = MaterialSymbols.Rounded.Image,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
 
             // Transparency warning shown when the selected image has no transparent pixels
-            AnimatedVisibility(
-                visible = foreground.value?.isOpaque == true,
-                enter = Animations.expandFadeEnter,
-                exit = Animations.shrinkFadeExit
-            ) {
-                Notice(
+            FoldingVisibility(visible = foreground.value?.isOpaque == true) {
+                Footnote(
                     text = stringResource(R.string.adaptive_icon_no_transparency_warning),
-                    tone = SemanticTone.Warning,
-                    density = NoticeDensity.Compact
+                    tone = SemanticTone.Warning
                 )
             }
         }
@@ -362,7 +360,7 @@ fun AdaptiveIconCreatorDialog(
     }
 
     // Color picker dialog
-    if (showColorPicker.value) {
+    DialogHost(visible = showColorPicker.value) {
         // The presets are already on the card behind the dialog, so repeating them inside it
         // would only push the panel down
         ColorPickerDialog(
@@ -427,6 +425,7 @@ private fun IconEditor(
         label = "editor_guides"
     )
     val selectImage = stringResource(R.string.adaptive_icon_select_image)
+    val shape = RoundedCornerShape(Defaults.CornerLargeIncreased)
 
     val input = if (foreground != null) {
         Modifier.imageTransformGestures(
@@ -436,7 +435,12 @@ private fun IconEditor(
             onGestureChange = { isGesturing.value = it }
         )
     } else {
-        Modifier.clickable(onClickLabel = selectImage, onClick = onSelectImage)
+        Modifier.clickable(
+            interactionSource = null,
+            indication = shapedIndication(shape),
+            onClickLabel = selectImage,
+            onClick = onSelectImage
+        )
     }
 
     Box(
@@ -444,7 +448,7 @@ private fun IconEditor(
             .widthIn(max = AdaptiveIconConfig.EDITOR_MAX_WIDTH)
             .fillMaxWidth()
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(Defaults.SectionCornerRadius))
+            .clip(shape)
             .then(input)
             .drawWithCache {
                 val side = size.width
@@ -469,10 +473,10 @@ private fun IconEditor(
         if (foreground == null) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Image,
+                    imageVector = MaterialSymbols.Rounded.Image,
                     contentDescription = null,
                     tint = guideColor,
                     modifier = Modifier.size(36.dp)
@@ -537,7 +541,7 @@ private fun HomeScreenPreview(
         modifier = Modifier
             .fillMaxWidth()
             .height(168.dp)
-            .clip(RoundedCornerShape(Defaults.CardCornerRadius))
+            .clip(RoundedCornerShape(Defaults.CornerLarge))
             .background(backdrop.base)
             .drawBehind {
                 // Kept to the corner, since labels are colored for the base and lose contrast on it
@@ -545,7 +549,7 @@ private fun HomeScreenPreview(
             },
         contentAlignment = Alignment.Center
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraExtraLarge)) {
             LauncherIcon(
                 label = appName,
                 caption = stringResource(R.string.adaptive_icon_standard),
@@ -578,7 +582,7 @@ private fun LauncherIcon(
     Column(
         modifier = Modifier.width(88.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraSmall)
     ) {
         Box(
             modifier = Modifier
@@ -616,7 +620,7 @@ private fun StatusBarPreview(
     fallback: Painter?
 ) {
     val contentColor = MaterialTheme.colorScheme.onSurface
-    val shape = RoundedCornerShape(Defaults.CompactCornerRadius)
+    val shape = RoundedCornerShape(Defaults.CornerMedium)
 
     Box(
         modifier = Modifier
@@ -625,12 +629,12 @@ private fun StatusBarPreview(
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = Defaults.SpaceLarge),
     ) {
         // Left side: clock + notification icon
         Row(
             modifier = Modifier.align(Alignment.CenterStart),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraSmall),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Simulated clock
@@ -660,23 +664,23 @@ private fun StatusBarPreview(
         // Right side: system status icons
         Row(
             modifier = Modifier.align(Alignment.CenterEnd),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Outlined.SignalCellular4Bar,
+                imageVector = MaterialSymbols.Rounded.Signal_cellular_4_bar,
                 contentDescription = null,
                 modifier = Modifier.size(Defaults.IconSizeSmall),
                 tint = contentColor
             )
             Icon(
-                imageVector = Icons.Outlined.Wifi,
+                imageVector = MaterialSymbols.Rounded.Wifi,
                 contentDescription = null,
                 modifier = Modifier.size(Defaults.IconSizeSmall),
                 tint = contentColor
             )
             Icon(
-                imageVector = Icons.Outlined.BatteryFull,
+                imageVector = MaterialSymbols.Rounded.Battery_full,
                 contentDescription = null,
                 modifier = Modifier.size(Defaults.IconSizeSmall),
                 tint = contentColor
@@ -714,7 +718,7 @@ private suspend fun createAdaptiveIcons(
 
         // Generate adaptive icon PNGs (foreground + background) for all densities
         AdaptiveIconConfig.DENSITY_CONFIGS.forEach { densityConfig ->
-            val mipmapDocDir = iconsDocDir.getOrCreateDir(densityConfig.folderName) ?: return@forEach
+            val mipmapDocDir = iconsDocDir.requireDir(densityConfig.folderName)
             val size = densityConfig.size
 
             val backgroundBitmap = createBitmap(size, size).apply { eraseColor(backgroundColor) }
@@ -735,7 +739,7 @@ private suspend fun createAdaptiveIcons(
                 colorFilter = PorterDuffColorFilter(android.graphics.Color.WHITE, PorterDuff.Mode.SRC_IN)
             }
             AdaptiveIconConfig.NOTIFICATION_DENSITY_CONFIGS.forEach { densityConfig ->
-                val drawableDocDir = iconsDocDir.getOrCreateDir(densityConfig.folderName) ?: return@forEach
+                val drawableDocDir = iconsDocDir.requireDir(densityConfig.folderName)
                 val size = densityConfig.size
                 val bounds = notificationBounds(size.toFloat(), picture.size, picture.content, notificationScale)
                 val notificationBitmap = renderPicture(picture.bitmap, size, size, bounds, whitePaint)
@@ -771,8 +775,10 @@ private suspend fun createAdaptiveIcons(
 
         // Convert back to a real path so the patcher can reference it as a patch option value
         iconsDocDir.uri.toFilePath()
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
-        e.printStackTrace()
+        Log.e(tag, "Failed to create adaptive icons", e)
         null
     }
 }

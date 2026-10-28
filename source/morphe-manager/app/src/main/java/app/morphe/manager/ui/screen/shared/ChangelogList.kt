@@ -9,30 +9,24 @@ import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.OpenInNew
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import app.morphe.manager.R
 import app.morphe.manager.util.ChangelogEntry
 import app.morphe.manager.util.isGitLabUrl
 import app.morphe.manager.util.isPrerelease
 import app.morphe.manager.util.normalizeVersion
-import compose.icons.FontAwesomeIcons
-import compose.icons.fontawesomeicons.Brands
-import compose.icons.fontawesomeicons.brands.Github
-import compose.icons.fontawesomeicons.brands.Gitlab
+import com.composables.icons.fontawesome.FontAwesome
+import com.composables.icons.fontawesome.brands.*
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 import kotlinx.coroutines.flow.filter
 
 /** How close to the end of the list, in items, older releases start loading. */
@@ -65,8 +59,6 @@ data class OlderReleases(
  *   on the device, the patches a source holds, or the ones an app on the device was patched with.
  * @param olderLabel Heads the [older] releases, which are the earlier ones unless it says otherwise.
  * @param header Content above the timeline that scrolls along with it.
- * @param contentPadding Around the releases inside the list, so they scroll through it up to the
- *   list's edge rather than stopping short of it.
  */
 @Composable
 fun ChangelogList(
@@ -74,8 +66,7 @@ fun ChangelogList(
     older: OlderReleases? = null,
     badges: Map<String, ChangelogBadge> = emptyMap(),
     olderLabel: String? = null,
-    header: (@Composable () -> Unit)? = null,
-    contentPadding: PaddingValues = PaddingValues()
+    header: (@Composable () -> Unit)? = null
 ) {
     val listState = rememberLazyListState()
     val expansion = remember { ChangelogExpansion() }
@@ -93,12 +84,11 @@ fun ChangelogList(
 
     DialogLazyList(
         modifier = Modifier.fillMaxWidth(),
-        state = listState,
-        contentPadding = contentPadding
+        state = listState
     ) {
         if (header != null) {
             item("changelog_header") {
-                Box(modifier = Modifier.padding(bottom = Defaults.ContentPaddingMedium)) {
+                Box(modifier = Modifier.padding(bottom = Defaults.SpaceExtraLarge)) {
                     header()
                 }
             }
@@ -127,13 +117,10 @@ fun ChangelogList(
             }
 
             olderEntries.isEmpty() -> item("changelog_older_empty") {
-                Text(
-                    text = stringResource(R.string.changelog_older_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = Defaults.ContentPaddingMedium)
+                EmptyState(
+                    message = stringResource(R.string.changelog_older_empty),
+                    icon = MaterialSymbols.Rounded.History,
+                    modifier = Modifier.padding(top = Defaults.SpaceExtraLarge)
                 )
             }
 
@@ -185,7 +172,7 @@ fun ChangelogFooter(
         ) { shown ->
             AppDialogActions(
                 actions = shown,
-                modifier = Modifier.padding(bottom = Defaults.ContentPadding / 2)
+                modifier = Modifier.padding(bottom = Defaults.SpaceLarge / 2)
             )
         }
 
@@ -196,12 +183,12 @@ fun ChangelogFooter(
 /** Opens [pageUrl], named after the forge that hosts it, or null when there is no page. */
 @Composable
 private fun releasePageAction(pageUrl: String?): DialogAction? {
-    val uriHandler = LocalUriHandler.current
+    val openUrl = rememberOpenUrl()
     val host = pageUrl?.let(ReleaseHost::of) ?: return null
 
     return DialogAction(
         text = host.label?.let { stringResource(it) } ?: stringResource(R.string.changelog_release_page),
-        onClick = { uriHandler.openUri(pageUrl) },
+        onClick = { openUrl(pageUrl) },
         icon = host.icon,
         emphasis = DialogActionEmphasis.Outlined
     )
@@ -209,11 +196,11 @@ private fun releasePageAction(pageUrl: String?): DialogAction? {
 
 /** Forge a release page lives on, named by the button that opens it. */
 private enum class ReleaseHost(@param:StringRes val label: Int?, val icon: ImageVector) {
-    GITHUB(R.string.changelog_host_github, FontAwesomeIcons.Brands.Github),
-    GITLAB(R.string.changelog_host_gitlab, FontAwesomeIcons.Brands.Gitlab),
+    GITHUB(R.string.changelog_host_github, FontAwesome.Brands.Github),
+    GITLAB(R.string.changelog_host_gitlab, FontAwesome.Brands.Gitlab),
 
     /** Any other host, which the button names generically. */
-    OTHER(null, Icons.AutoMirrored.Outlined.OpenInNew);
+    OTHER(null, MaterialSymbols.Rounded.Open_in_new.autoMirrored);
 
     companion object {
         fun of(url: String): ReleaseHost = when {

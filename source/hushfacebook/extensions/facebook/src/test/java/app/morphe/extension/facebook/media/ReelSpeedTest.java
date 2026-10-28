@@ -9,6 +9,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.SystemClock;
 
 import org.junit.After;
@@ -17,6 +19,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
@@ -151,6 +154,11 @@ public class ReelSpeedTest {
         public boolean live(Object params) {
             return video(params).live;
         }
+
+        @Override
+        public float currentSpeed(Object player) {
+            return (float) speed(player);
+        }
     }
 
     private FakePlayers players;
@@ -267,6 +275,36 @@ public class ReelSpeedTest {
         play(players.player(VIDEO_TAB));
         assertEquals("normal speed in the gear sheet didn't go back to Facebook's reset",
                 List.of(VIDEO_TAB + " 1.5"), players.set);
+    }
+
+    /**
+     * On some accounts the gear sheet can't find a reel's player, so it checks Normal, and the checked
+     * row can't be picked: a kept speed couldn't be undone there (#199). It checks the speed the reel
+     * on screen plays at instead, so Normal can be picked, and that forgets the kept speed. A speed
+     * the sheet found itself stays, and so does Normal with the switch off or nothing started yet.
+     */
+    @Test
+    public void theGearSheetChecksTheSpeedTheReelOnScreenPlaysAt() {
+        assertEquals("nothing started yet, and the sheet's normal speed changed", 1f, ReelSpeed.gearSheetSpeed(1f), 0f);
+        Object reel = players.player(REELS);
+        play(reel);
+        players.setSpeed(reel, 1.5f);
+        ReelSpeed.gearPicked(1.5f);
+        assertEquals(1.5f, ReelSpeed.kept(REELS), 0f);
+        Object next = players.player(REELS);
+        play(next);
+        assertEquals("the sheet didn't check the kept speed the reel on screen plays at", 1.5f, ReelSpeed.gearSheetSpeed(1f), 0f);
+        assertEquals("a speed the sheet found was changed", 2f, ReelSpeed.gearSheetSpeed(2f), 0f);
+        Settings.KEEP_REEL_SPEED.save(false);
+        assertEquals("with the switch off, the sheet's normal speed changed", 1f, ReelSpeed.gearSheetSpeed(1f), 0f);
+        Settings.KEEP_REEL_SPEED.save(true);
+
+        players.setSpeed(next, 1f);
+        ReelSpeed.gearPicked(1f);
+        assertEquals("normal speed picked in the sheet didn't forget the kept speed", 1f, ReelSpeed.kept(REELS), 0f);
+        assertEquals(1f, ReelSpeed.gearSheetSpeed(1f), 0f);
+        play(players.player(REELS));
+        assertEquals(List.of(REELS + " 1.5", REELS + " 1.5", REELS + " 1.0"), players.set);
     }
 
     /** A Watch video's gear menu has the same sheet; a speed picked there stays with that video. */
@@ -548,6 +586,73 @@ public class ReelSpeedTest {
         assertEquals(List.of(FEED + " 1.5", VIDEO_TAB + "::watch_feed 1.5", VIDEO_TAB + " 1.5"), players.set);
         assertEquals(FamilyNames.KEEP_REEL_SPEED + ": invoked 13, 2 found, 0 missing. Counted: "
                 + ReelSpeed.VIDEO_APPLIED + " 3", statusLine());
+    }
+
+    // ------------------------------------------------------------------ through a restart
+
+    /**
+     * The kept speeds are saved, so after Facebook restarts the next reel and the next feed video
+     * start at them with no new pick (#199). The file holds each viewer's origin and speed, nothing
+     * about a video, and normal speed takes a viewer's speed back out of it.
+     */
+    @Test
+    public void keptSpeedsLastThroughARestart() {
+        Settings.KEEP_VIDEO_SPEED.save(true);
+        Object reel = players.player(REELS);
+        play(reel);
+        pick(reel, 1.5f);
+        Object video = players.player(FEED, NOT_A_REEL);
+        play(video);
+        gearPick(video, 1.25f);
+        Object tab = players.player(VIDEO_TAB);
+        play(tab);
+        pick(tab, 2f);
+        assertEquals(Map.of("reel:" + REELS, 1.5f, "reel:" + VIDEO_TAB, 2f, "video", 1.25f), savedFile().getAll());
+
+        ReelSpeed.restart();
+        players.set.clear();
+        play(players.player(REELS));
+        play(players.player(FEED, NOT_A_REEL));
+        Object tabAgain = players.player(VIDEO_TAB);
+        play(tabAgain);
+        assertEquals(List.of(REELS + " 1.5", FEED + " 1.25", VIDEO_TAB + " 2.0"), players.set);
+
+        pick(tabAgain, 1f);
+        ReelSpeed.restart();
+        players.set.clear();
+        play(players.player(VIDEO_TAB));
+        play(players.player(REELS));
+        assertEquals(List.of(REELS + " 1.5"), players.set);
+        assertEquals(Map.of("reel:" + REELS, 1.5f, "video", 1.25f), savedFile().getAll());
+    }
+
+    /**
+     * After a restart the saved speeds stay put while the switches are off, and a saved value no
+     * menu could have picked is skipped.
+     */
+    @Test
+    public void savedSpeedsWaitForTheirSwitchAndSkipOddValues() {
+        savedFile().edit()
+                .putFloat("reel:" + REELS, 1.5f)
+                .putFloat("reel:" + IN_FEED, 9f)
+                .putFloat("reel:" + VIDEO_TAB, Float.NaN)
+                .putString("video", "1.5")
+                .commit();
+        Settings.KEEP_REEL_SPEED.save(false);
+        play(players.player(REELS));
+        assertEquals(List.of(), players.set);
+
+        Settings.KEEP_REEL_SPEED.save(true);
+        Settings.KEEP_VIDEO_SPEED.save(true);
+        play(players.player(REELS));
+        play(players.player(IN_FEED));
+        play(players.player(VIDEO_TAB));
+        play(players.player(FEED, NOT_A_REEL));
+        assertEquals(List.of(REELS + " 1.5"), players.set);
+    }
+
+    private static SharedPreferences savedFile() {
+        return RuntimeEnvironment.getApplication().getSharedPreferences(ReelSpeed.FILE, Context.MODE_PRIVATE);
     }
 
     /** Keep the video speed starts off, and off, a gear pick on a video stays with that video. */

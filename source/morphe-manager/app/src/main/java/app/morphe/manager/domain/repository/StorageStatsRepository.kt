@@ -10,6 +10,8 @@ import android.content.Context
 import android.os.StatFs
 import app.morphe.manager.data.platform.Filesystem
 import app.morphe.manager.domain.installer.InstallerFileProvider
+import app.morphe.manager.util.totalBytes
+import app.morphe.manager.util.wipeContents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -108,9 +110,9 @@ class StorageStatsRepository(
     }
 
     /**
-     * Deletes patcher runtime files under `cacheDir`: the persistent `framework/` and `patcher/`
-     * subdirectories plus any orphaned scratch files at `cacheDir` root left behind by aborted
-     * bundle imports, keystore imports, or process-runtime merges.
+     * Deletes patcher runtime files under `cacheDir`: the persistent `patcher/` subdirectory plus
+     * any orphaned scratch files at `cacheDir` root left behind by aborted bundle imports, keystore
+     * imports, or process-runtime merges.
      */
     suspend fun clearPatcherWorkspace(): Long = withContext(Dispatchers.IO) {
         val entries = collectPatcherWorkspaceEntries()
@@ -171,7 +173,8 @@ class StorageStatsRepository(
         return cacheDir.listFiles()?.filter { entry ->
             entry.name != HTTP_CACHE_DIR &&
                 entry.name != InstallerFileProvider.SHARE_DIR &&
-                entry != filesystem.homeCardCacheDir
+                entry != filesystem.homeCardCacheDir &&
+                entry != filesystem.avatarCacheDir
         } ?: emptyList()
     }
 
@@ -182,12 +185,4 @@ class StorageStatsRepository(
         private const val SIGNING_DIR = "signing"
         private const val KEYSTORE_FILE = "morphe.keystore"
     }
-}
-
-private fun File.totalBytes(): Long =
-    if (!exists()) 0L else walkBottomUp().filter { it.isFile }.sumOf { it.length() }
-
-private fun File.wipeContents() {
-    if (!exists()) return
-    listFiles()?.forEach { it.deleteRecursively() }
 }

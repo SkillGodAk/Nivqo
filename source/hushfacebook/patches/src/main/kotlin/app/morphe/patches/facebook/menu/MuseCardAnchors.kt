@@ -4,8 +4,8 @@
  */
 package app.morphe.patches.facebook.menu
 
-import app.morphe.patches.facebook.chats.jumpTargets
 import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.layout.theme.branchTargets
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -69,7 +69,7 @@ internal fun dismissalRead(component: ClassDef, render: Method): DismissalRead? 
     val bookmark = (code[call] as FiveRegisterInstruction).registerE
     if (answer != compare.registerA && answer != compare.registerB) return null
     if (answer == bookmark || answer > 15 || bookmark > 15) return null
-    if (call + 2 in jumpTargets(code)) return null
+    if (call + 2 in branchTargets(code)) return null
     return DismissalRead(call + 1, answer, bookmark)
 }
 

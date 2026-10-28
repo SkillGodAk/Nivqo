@@ -121,6 +121,8 @@ internal fun appLabelPatch(appName: () -> String?) = resourcePatch {
     execute {
         val name = pickedAppName(appName()) ?: return@execute
         // Checked before the manifest changes, so a build without it is refused untouched.
+        // Patcher 2.0 decodes only the files a patch asks for: an undecoded file does not exist yet.
+        decode(STRINGS)
         if (!get(STRINGS, false).exists()) throw PatchException("$OPTION: Facebook has no $STRINGS to hold the name.")
         val relabeled = document("AndroidManifest.xml").use { it.labelWith("@string/$APP_NAME_STRING") }
         document(STRINGS).use { it.putAppName(name) }

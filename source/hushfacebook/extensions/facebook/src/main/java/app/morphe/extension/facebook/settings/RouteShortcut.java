@@ -8,6 +8,9 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.pm.ShortcutInfo;
 import android.content.pm.ShortcutManager;
 import android.graphics.Bitmap;
@@ -29,12 +32,15 @@ import app.morphe.extension.shared.settings.BooleanSetting;
 
 /**
  * An optional launcher entry for one of Facebook's own routes, and whether its Menu row is wanted:
- * {@link SavedShortcut} and {@link WatchHistoryShortcut}. Each publishes only while its switch is
- * on and this build opens the route itself, and never evicts another shortcut. The shortcuts hand
- * in their text through calls of their own, so every string stays a literal the translation check
- * can see.
+ * {@link SavedShortcut}, {@link WatchHistoryShortcut} and {@link FreeStuffShortcut}. Each publishes
+ * only while its switch is on and this build opens the route itself, and never evicts another
+ * shortcut. The shortcuts hand in their text through calls of their own, so every string stays a
+ * literal the translation check can see.
  */
 final class RouteShortcut {
+    /** The id prefix of every Hushfacebook launcher entry, the settings one included. */
+    private static final String OURS = "hushfacebook_";
+
     final String id;
     private final String name;
     private final String uri;
@@ -84,10 +90,24 @@ final class RouteShortcut {
         }
     }
 
-    /** The activity of this package that takes the route, or null. */
+    /**
+     * The activity of this package that takes the route, or null. Facebook takes a facebook.com link
+     * in two places once it turns on its catch-all alias (to SilentAppActivity) next to
+     * IntentUriHandler, and then resolveActivity answers Android's chooser, not either of them
+     * (Discussion #52). So this asks for every taker and prefers an activity of its own over an alias.
+     */
     private ComponentName destination(Context context) {
-        ComponentName destination = intent(context).resolveActivity(context.getPackageManager());
-        return destination != null && context.getPackageName().equals(destination.getPackageName()) ? destination : null;
+        List<ResolveInfo> takers = context.getPackageManager()
+                .queryIntentActivities(intent(context), PackageManager.MATCH_DEFAULT_ONLY);
+        ComponentName alias = null;
+        for (ResolveInfo taker : takers) {
+            ActivityInfo activity = taker.activityInfo;
+            if (activity == null || !context.getPackageName().equals(activity.packageName)) continue;
+            ComponentName component = new ComponentName(activity.packageName, activity.name);
+            if (activity.targetActivity == null) return component;
+            if (alias == null) alias = component;
+        }
+        return alias;
     }
 
     void refresh(Context context) {
@@ -147,20 +167,28 @@ final class RouteShortcut {
             route.setComponent(destination);
             List<ShortcutInfo> shortcuts = manager.getDynamicShortcuts();
             ShortcutInfo existing = null;
-            int rank = 0;
+            int afterOurs = 0;
+            int facebooks = Integer.MAX_VALUE;
             for (ShortcutInfo shortcut : shortcuts) {
                 if (id.equals(shortcut.getId())) existing = shortcut;
-                else rank = Math.max(rank, shortcut.getRank() + 1);
+                else if (shortcut.getId().startsWith(OURS)) afterOurs = Math.max(afterOurs, shortcut.getRank() + 1);
+                else facebooks = Math.min(facebooks, shortcut.getRank());
             }
+            // One UI shows the first four entries, and Facebook's three plus the settings entry fill
+            // them, so an entry behind Facebook's is published but never seen (#52). It takes the
+            // first rank Facebook holds: ShortcutManager puts an entry given a taken rank ahead of
+            // the one holding it, so Facebook's move down one and none is removed.
+            boolean inFront = existing != null && existing.getRank() < facebooks;
+            int rank = inFront ? existing.getRank() : facebooks == Integer.MAX_VALUE ? afterOurs : facebooks;
             String text = label.apply(context);
-            if (existing != null && text.contentEquals(existing.getShortLabel())
+            if (inFront && text.contentEquals(existing.getShortLabel())
                     && route.filterEquals(existing.getIntent())) return SavedShortcut.Result.PUBLISHED;
             if (existing == null && shortcuts.size() + manager.getManifestShortcuts().size()
                     >= manager.getMaxShortcutCountPerActivity()) return SavedShortcut.Result.NO_ROOM;
             ShortcutInfo shortcut = new ShortcutInfo.Builder(context, id)
                     .setShortLabel(text).setLongLabel(text)
                     .setIcon(icon(context))
-                    .setIntent(route).setRank(existing == null ? rank : existing.getRank()).build();
+                    .setIntent(route).setRank(rank).build();
             // addDynamicShortcuts refuses a full activity. pushDynamicShortcut would evict its last entry.
             boolean published = existing == null
                     ? manager.addDynamicShortcuts(Collections.singletonList(shortcut))

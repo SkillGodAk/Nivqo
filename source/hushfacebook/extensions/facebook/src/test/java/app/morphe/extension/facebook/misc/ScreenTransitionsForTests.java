@@ -9,12 +9,17 @@ public final class ScreenTransitionsForTests {
     private ScreenTransitionsForTests() {
     }
 
-    /** Whether a tab, a panel and a tab strip's page asked for with their slide still slide in. */
+    /**
+     * Whether a tab, a panel, a tab strip's page, an inner screen, a post's photo page and the photo
+     * viewer asked for with their slide or zoom still slide in.
+     */
     public static boolean slides() {
         ScreenTransitions.inBuildForTests = true;
         try {
             return ScreenTransitions.tabStyle(1, 1) == 1 && ScreenTransitions.panelSlides(true)
-                    && ScreenTransitions.pageSlides(true);
+                    && ScreenTransitions.pageSlides(true) && ScreenTransitions.fragmentAnimation(0x7f01006e) == 0x7f01006e
+                    && ScreenTransitions.photoPageLength(250) == 250 && ScreenTransitions.photoPageZoom(null) == null
+                    && ScreenTransitions.photoViewerLength(250) == 250;
         } finally {
             ScreenTransitions.inBuildForTests = null;
         }

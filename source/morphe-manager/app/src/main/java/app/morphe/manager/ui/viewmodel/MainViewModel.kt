@@ -15,6 +15,7 @@ import app.morphe.manager.domain.batch.BatchPatchCoordinator
 import app.morphe.manager.domain.batch.BatchPlanResolver
 import app.morphe.manager.domain.batch.BatchTarget
 import app.morphe.manager.domain.manager.PreferencesManager
+import app.morphe.manager.ui.model.SourceScope
 import kotlinx.coroutines.launch
 
 class MainViewModel(
@@ -164,7 +165,12 @@ class MainViewModel(
         approvedBatchPatch = null
     }
 
-    data class DeepLinkSource(val url: String, val name: String?)
+    /** A source a link asks to add, as much of it as [scope] says. */
+    data class DeepLinkSource(
+        val url: String,
+        val name: String?,
+        val scope: SourceScope = SourceScope.Whole
+    )
 
     /**
      * A batch patch run requested through [app.morphe.manager.MainActivity.ACTION_BATCH_PATCH].

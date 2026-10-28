@@ -38,8 +38,8 @@ class ColorContrastTest {
         val readable = label.readableOn(fill, PureBlack)
 
         assertEquals(Color.White, readable)
-        assertTrue(label.contrastAgainst(fill.compositeOver(PureBlack)) < MinRatio)
-        assertTrue(readable.contrastAgainst(fill.compositeOver(PureBlack)) >= MinRatio)
+        assertTrue(label.contrastAgainst(fill.compositeOpaqueOver(PureBlack)) < MinRatio)
+        assertTrue(readable.contrastAgainst(fill.compositeOpaqueOver(PureBlack)) >= MinRatio)
     }
 
     @Test
@@ -60,7 +60,7 @@ class ColorContrastTest {
         // underneath it, which contrast alone lets through
         val fill = Color(0xFFFEE27F).copy(alpha = 0.55f)
         val label = Color.Black
-        val drawn = fill.compositeOver(PureBlack)
+        val drawn = fill.compositeOpaqueOver(PureBlack)
 
         assertTrue(label.contrastAgainst(drawn) >= MinRatio)
         assertEquals(Color.White, label.readableOn(fill, PureBlack))
@@ -70,7 +70,7 @@ class ColorContrastTest {
     fun `a flipped label is replaced even where it also reads worse`() {
         // Same shape in orange, where the palette's own pick is the weaker of the two as well
         val fill = Color(0xFFFFAF70).copy(alpha = 0.55f)
-        val drawn = fill.compositeOver(PureBlack)
+        val drawn = fill.compositeOpaqueOver(PureBlack)
 
         val replaced = Color.Black.readableOn(fill, PureBlack)
 

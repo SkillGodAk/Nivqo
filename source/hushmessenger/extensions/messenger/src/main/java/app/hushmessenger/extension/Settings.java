@@ -2,6 +2,11 @@ package app.hushmessenger.extension;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.RectF;
+import android.graphics.Region;
 import android.net.Uri;
 import android.os.Build;
 import android.os.SystemClock;
@@ -160,6 +165,12 @@ public final class Settings {
 
     public static boolean hideStories() { return enabled("stories"); }
     public static boolean hideFacebook() { return enabled("facebook"); }
+
+    /** Under Hide Facebook shortcuts: leaves the Profile button on a chat's details page while the rest stays hidden. */
+    static final String KEEP_FACEBOOK_PROFILE = "facebook_keep_profile";
+
+    /** Asked by the gates that create only the chat details Profile button. */
+    public static boolean hideFacebookProfile() { return hideFacebook() && !preferences.getBoolean(KEEP_FACEBOOK_PROFILE, false); }
     public static boolean hideMetaAi() { return enabled("meta_ai"); }
 
     /**
@@ -177,8 +188,9 @@ public final class Settings {
     }
 
     /**
-     * The inbox search bar reads "Ask Meta AI or search" when Messenger's Meta AI search check is true. With the switch on
-     * the check reads false, the answer accounts without Meta AI in search get, so the bar shows the plain hint.
+     * The inbox search bar, and the search screen it opens, read "Ask Meta AI or search" when Messenger's Meta AI search
+     * check is true. With the switch on the check reads false, the answer accounts without Meta AI in search get, so both
+     * boxes show the plain hint.
      */
     public static boolean metaAiSearchHint(boolean original) {
         if (!original) return false;
@@ -234,6 +246,123 @@ public final class Settings {
         return hidden;
     }
 
+    /**
+     * Messenger's tab list for the bottom bar as it's built. The bar draws only the tabs whose gate let them in, but it
+     * marks the open tab by its place in this full list, so a hidden tab ahead of it lit up its neighbor (with People
+     * hidden, opening Notifications showed Menu as open). Dropping the hidden tabs here keeps the two in step; every other
+     * tab and its order stay as Messenger built them.
+     */
+    public static <T> List<T> visibleTabs(List<T> tabs) {
+        try {
+            List<T> kept = new ArrayList<>(tabs.size());
+            for (T tab : tabs) {
+                String key = tab instanceof Enum ? barTabKey(((Enum<?>) tab).name()) : null;
+                if (key == null || !("meta_ai".equals(key) ? hideMetaAiTab() : hideBottomTab(key))) kept.add(tab);
+            }
+            return kept.size() == tabs.size() ? tabs : kept;
+        } catch (RuntimeException error) {
+            // The one list serves every tab switch, so the failure goes on each switch that's on, never on one that's off.
+            boolean blamed = false;
+            for (String control : TAB_CONTROLS) {
+                if (wouldUse(control)) { hookFailed(control, "Can't line up the tab bar", error); blamed = true; }
+            }
+            if (!blamed) android.util.Log.e("HushMessenger", "Can't line up the tab bar", error);
+            return tabs;
+        }
+    }
+
+    /** Every switch that takes a tab off the bottom bar, so each one's list goes through {@link #visibleTabs}. */
+    static final List<String> TAB_CONTROLS = Collections.unmodifiableList(Arrays.asList("tab_people", "tab_notifications", "meta_ai"));
+
+    /**
+     * The switch that hides a bottom tab, by the tab's constant in Messenger's tab enum, or null for a tab with none. MUSE
+     * is the AI agent tab some accounts get in Meta AI's place, so Hide Meta AI takes it too.
+     */
+    static String barTabKey(String name) {
+        switch (name) {
+            case "PEOPLE": return "tab_people";
+            case "JEWEL": return "tab_notifications";
+            case "AI":
+            case "MUSE": return "meta_ai";
+            default: return null;
+        }
+    }
+
+    static final String TAB_BADGES = "tab_badges";
+    /**
+     * Under Hide tab badges: each badge's Keep switch, by the tab id Messenger's bottom bar asks its badge for. The
+     * Facebook button at the top of Chats goes by "facebook". Menu is the "more" tab; "me_setting" never has a badge.
+     */
+    static final Map<String, String> KEEP_BADGES;
+    static {
+        Map<String, String> keep = new LinkedHashMap<>();
+        keep.put("inbox", "tab_badges_keep_chats");
+        keep.put("people", "tab_badges_keep_people");
+        keep.put("jewel", "tab_badges_keep_notifications");
+        keep.put("more", "tab_badges_keep_menu");
+        keep.put("facebook", "tab_badges_keep_facebook");
+        KEEP_BADGES = Collections.unmodifiableMap(keep);
+    }
+
+    /** Switches shown under a control's row, by the control that has to be in the bundle for them to mean anything. */
+    static final Map<String, String> SUB_SWITCHES;
+    static {
+        Map<String, String> owners = new LinkedHashMap<>();
+        owners.put(BUBBLE_CHAT_HEADS, "bubbles");
+        owners.put(KEEP_FACEBOOK_PROFILE, "facebook");
+        owners.put(Settings.AVATAR_ROUNDED, Settings.AVATAR_SHAPE);
+        for (String keep : KEEP_BADGES.values()) owners.put(keep, TAB_BADGES);
+        SUB_SWITCHES = Collections.unmodifiableMap(owners);
+    }
+
+    /** The badges hidden this run, by the tab ids KEEP_BADGES lists, or null before Messenger asked for one. */
+    static volatile Set<String> hiddenBadges;
+    private static final Object HIDDEN_BADGES = new Object();
+
+    /** The badges the saved switches, Pause and safe mode hide now. */
+    static Set<String> badgesToHide() {
+        if (!wouldUse(TAB_BADGES)) return Collections.emptySet();
+        SharedPreferences prefs = preferences;
+        Set<String> hidden = new HashSet<>();
+        for (Map.Entry<String, String> badge : KEEP_BADGES.entrySet())
+            if (!prefs.getBoolean(badge.getValue(), false)) hidden.add(badge.getKey());
+        return Collections.unmodifiableSet(hidden);
+    }
+
+    /**
+     * Messenger's bottom bar and the Facebook button take a badge controller as they're built and keep listening to it,
+     * so a badge doesn't come back or go away mid-run. Every asker gets the first answer until a restart, like the tabs.
+     */
+    private static Set<String> hiddenBadges() {
+        Set<String> held = hiddenBadges;
+        if (held != null) return held;
+        if (!HostScreens.started) HostScreens.initializeLate();
+        synchronized (HIDDEN_BADGES) {
+            if (hiddenBadges == null) hiddenBadges = badgesToHide();
+            return hiddenBadges;
+        }
+    }
+
+    /**
+     * Asked by the bottom bar for each tab's badge controller. True hands the tab the controller Messenger itself uses for
+     * a tab whose badge is turned off, so the tab shows no dot or count and opens as usual.
+     */
+    public static boolean hideTabBadge(String tab) {
+        try {
+            if (tab == null || !hiddenBadges().contains(tab)) return false;
+            activeAt.put(TAB_BADGES, System.currentTimeMillis());
+            return true;
+        } catch (RuntimeException error) {
+            hookFailed(TAB_BADGES, "Can't hide a tab badge", error);
+            return false;
+        }
+    }
+
+    /** Whether the Facebook button at the top of Chats gets its badge. Without one Messenger draws the plain button. */
+    public static boolean facebookButtonBadge(boolean original) {
+        return original && !hideTabBadge("facebook");
+    }
+
     /** First answer this process gave for the emoji drawer, or null before Messenger asked. */
     static volatile Boolean oldEmojiDrawer;
     private static final Object EMOJI_DRAWER = new Object();
@@ -264,6 +393,18 @@ public final class Settings {
      * safe mode now says otherwise. Null when the control doesn't hold one, Messenger hasn't asked yet, or they agree.
      */
     static Boolean heldUntilRestart(String key) {
+        if (TAB_BADGES.equals(key)) {
+            Set<String> badges = hiddenBadges;
+            if (badges == null) return null;
+            Set<String> now = badgesToHide();
+            // Still hiding what a restart would show again reads as held on; any other change is waiting to take effect.
+            return badges.equals(now) ? null : !badges.isEmpty() && now.isEmpty();
+        }
+        if (AVATAR_SHAPE.equals(key)) {
+            int shape = avatarShape, now = avatarShapeNow();
+            // Square to rounded and back takes effect after a restart; only going back to circles stays in effect.
+            return shape < 0 || shape == now ? null : now == AVATAR_CIRCLE;
+        }
         Boolean held = "meta_ai".equals(key) ? metaAiTab : "emoji_drawer".equals(key) ? oldEmojiDrawer
             : OwnFont.KEY.equals(key) ? customFont : bottomTabs.get(key);
         return held == null || held == wouldUse(key) ? null : held;
@@ -349,6 +490,24 @@ public final class Settings {
      */
     public static boolean stopNearbyScans() { return enabled("nearby_scans"); }
 
+    /**
+     * Asked when Messenger is about to list the installed apps to find other Meta apps, and when it's about to ask them
+     * for their family device ID. True gives it an empty list and skips the request.
+     */
+    public static boolean stopPhoneIdSync() { return enabled("phone_id_sync"); }
+
+    /**
+     * Asked when a story card ends on its own, from its timer, its video or a failed load, just before Messenger moves to
+     * the next card. True keeps the card on screen. Taps and swipes never ask.
+     */
+    public static boolean holdStoryAtEnd() { return enabled("story_hold"); }
+
+    /**
+     * Asked when a call starts ringing, before Messenger decides to ring and vibrate, and again for the call's
+     * notification. True takes Messenger's own ringtone-off path and posts the notification without the pop-up.
+     */
+    public static boolean quietIncomingCalls() { return enabled("quiet_calls"); }
+
     /** What Android tells an app that can't see the phone's location about the Wi-Fi network it's on. */
     static final String HIDDEN_WIFI_NAME = "<unknown ssid>";
     static final String HIDDEN_WIFI_BSSID = "02:00:00:00:00:00";
@@ -389,6 +548,162 @@ public final class Settings {
     }
     /** Asked each time a chat's swipe up for disappearing messages could start; true keeps the gesture from starting. */
     public static boolean blockDisappearingSwipe() { return enabled("disappearing_swipe"); }
+    /** Asked each time a chat looks for a photo or video taken just before it opened; true shows no card for it. */
+    public static boolean hideRecentMedia() { return enabled("recent_media"); }
+    static final String SHARE_STORY = "share_story";
+    /** The Send to list's more-ways-to-share loader asks whether to add Your story; false leaves it out. */
+    public static boolean keepShareStory(boolean shown) { return shown && !enabled(SHARE_STORY); }
+    /**
+     * The Send to list's story-only section compares its run state with its skip marker. Handing the marker back skips
+     * the section, the same path Messenger takes when it turns the section off. Off, Pause and safe mode keep the state.
+     */
+    public static Object shareStorySection(Object state, Object skip) {
+        return state != skip && enabled(SHARE_STORY) ? skip : state;
+    }
+    static final String AVATAR_SHAPE = "avatar_shape";
+    /** Under Square profile pictures: rounds the square's corners. */
+    static final String AVATAR_ROUNDED = "avatar_shape_rounded";
+    /** Neither hook knows how big the picture is, so every size gets the same corners. */
+    static final float AVATAR_CORNER_DP = 8f;
+    static final int AVATAR_CIRCLE = 0, AVATAR_SQUARE = 1, AVATAR_ROUNDED_SQUARE = 2;
+    /** First shape this process gave, or -1 before Messenger built a rounded picture. */
+    static volatile int avatarShape = -1;
+    private static final Object AVATAR_SHAPE_LOCK = new Object();
+
+    /** The shape the saved switches, Pause and safe mode ask for now. */
+    static int avatarShapeNow() {
+        if (!wouldUse(AVATAR_SHAPE)) return AVATAR_CIRCLE;
+        SharedPreferences prefs = preferences;
+        return prefs != null && prefs.getBoolean(AVATAR_ROUNDED, false) ? AVATAR_ROUNDED_SQUARE : AVATAR_SQUARE;
+    }
+
+    /**
+     * Held for the run: Vito builds its two circle presets once, in a static initializer, so a shape that followed the
+     * switch would leave those on the old shape and everything else on the new one until a restart anyway.
+     */
+    static int avatarShape() {
+        int held = avatarShape;
+        if (held < 0) {
+            // Started before the lock below, so nothing waits on HostScreens' startup lock while holding it.
+            if (!HostScreens.started) HostScreens.initializeLate();
+            synchronized (AVATAR_SHAPE_LOCK) {
+                if (avatarShape < 0) avatarShape = avatarShapeNow();
+                held = avatarShape;
+            }
+        }
+        if (held != AVATAR_CIRCLE) activeAt.put(AVATAR_SHAPE, System.currentTimeMillis());
+        return held;
+    }
+
+    static float avatarCornerPx() {
+        return AVATAR_CORNER_DP * android.content.res.Resources.getSystem().getDisplayMetrics().density;
+    }
+
+    /** Asked as each Vito picture's rounding and each legacy rounded layer is set up; false makes a circle a rectangle. */
+    public static boolean avatarCircle(boolean circle) {
+        if (!circle) return false;
+        try {
+            return avatarShape() == AVATAR_CIRCLE;
+        } catch (RuntimeException error) {
+            hookFailed(AVATAR_SHAPE, "Can't change the profile picture shape", error);
+            return true;
+        }
+    }
+
+    /** Vito's corner radius: 0 for a square, the fixed corner for a rounded one, Messenger's own for anything else. */
+    public static float avatarRadius(boolean circle, float radius) {
+        if (!circle) return radius;
+        try {
+            int shape = avatarShape();
+            return shape == AVATAR_CIRCLE ? radius : shape == AVATAR_SQUARE ? 0f : avatarCornerPx();
+        } catch (RuntimeException error) {
+            hookFailed(AVATAR_SHAPE, "Can't change the profile picture shape", error);
+            return radius;
+        }
+    }
+
+    /** Vito's corner radii, which win over the radius, so a former circle drops them and the radius decides. */
+    public static float[] avatarVitoRadii(boolean circle, float[] radii) {
+        if (!circle) return radii;
+        try {
+            return avatarShape() == AVATAR_CIRCLE ? radii : null;
+        } catch (RuntimeException error) {
+            hookFailed(AVATAR_SHAPE, "Can't change the profile picture shape", error);
+            return radii;
+        }
+    }
+
+    /** The legacy layer's corner radii, top left to bottom left, two per corner. */
+    public static float[] avatarRadii(float[] radii, boolean circle) {
+        if (!circle) return radii;
+        try {
+            int shape = avatarShape();
+            if (shape == AVATAR_CIRCLE) return radii;
+            float[] corners = new float[8];
+            if (shape == AVATAR_ROUNDED_SQUARE) Arrays.fill(corners, avatarCornerPx());
+            return corners;
+        } catch (RuntimeException error) {
+            hookFailed(AVATAR_SHAPE, "Can't change the profile picture shape", error);
+            return radii;
+        }
+    }
+
+    /**
+     * A user tile's clip path, an oval cut away where a badge sits: a square (or rounded square) of the same bounds
+     * instead, so the photo and the placeholder letters fill it. The badge then sits on the picture's corner.
+     */
+    public static Path avatarPath(Path path) {
+        if (path == null) return null;
+        try {
+            int shape = avatarShape();
+            if (shape == AVATAR_CIRCLE) return path;
+            RectF bounds = coveredBounds(path);
+            Path square = new Path();
+            if (shape == AVATAR_SQUARE) {
+                square.addRect(bounds, Path.Direction.CW);
+            } else {
+                float corner = Math.min(avatarCornerPx(), Math.min(bounds.width(), bounds.height()) / 2f);
+                square.addRoundRect(bounds, corner, corner, Path.Direction.CW);
+            }
+            return square;
+        } catch (RuntimeException error) {
+            hookFailed(AVATAR_SHAPE, "Can't change the profile picture shape", error);
+            return path;
+        }
+    }
+
+    /**
+     * The area a clip path covers. computeBounds measures curve control points, which for a plain oval is the oval's box,
+     * but the arcs around a badge cutout (online people in the story tray) push it about a fifth past the tile on each side.
+     */
+    static RectF coveredBounds(Path path) {
+        RectF bounds = new RectF();
+        path.computeBounds(bounds, true);
+        if (path.isConvex()) return bounds;
+        Region clip = new Region((int) Math.floor(bounds.left), (int) Math.floor(bounds.top),
+                (int) Math.ceil(bounds.right), (int) Math.ceil(bounds.bottom));
+        Region covered = new Region();
+        return covered.setPath(path, clip) ? new RectF(covered.getBounds()) : bounds;
+    }
+
+    /** The placeholder tile's background and outline, which Messenger draws as an oval behind the initials. */
+    public static void avatarOval(Canvas canvas, RectF oval, Paint paint) {
+        int shape;
+        try {
+            shape = avatarShape();
+        } catch (RuntimeException error) {
+            hookFailed(AVATAR_SHAPE, "Can't change the profile picture shape", error);
+            shape = AVATAR_CIRCLE;
+        }
+        if (shape == AVATAR_CIRCLE) {
+            canvas.drawOval(oval, paint);
+        } else if (shape == AVATAR_SQUARE) {
+            canvas.drawRect(oval, paint);
+        } else {
+            float corner = Math.min(avatarCornerPx(), Math.min(oval.width(), oval.height()) / 2f);
+            canvas.drawRoundRect(oval, corner, corner, paint);
+        }
+    }
     /** Messenger's own original-upload check allows 25 MB, so a bigger video keeps its re-encode. */
     static final long ORIGINAL_VIDEO_MAX_BYTES = 25L * 1024 * 1024;
     /**
@@ -443,10 +758,13 @@ public final class Settings {
     }
     /** The chat reads a photo from another app back under its own request code, so the capture screen starts with that one. */
     public static int cameraRequestCode(android.content.Intent intent, int requestCode) {
-        return CameraActivity.isCapture(appContext, intent) ? CameraActivity.EXTERNAL_MEDIA_REQUEST : requestCode;
+        return GalleryPicker.isPick(appContext, intent) || CameraActivity.isCapture(appContext, intent)
+            ? CameraActivity.EXTERNAL_MEDIA_REQUEST : requestCode;
     }
-    /** Set on the extras Messenger 582's chat screen copies into its camera launcher, so that one launch can be told apart. */
+    /** Set on the extras the chat screen copies into its camera launcher. Edit opens its editor through that launcher too. */
     static final String CHAT_CAMERA_MARK = "app.hushmessenger.chat_camera";
+    /** Set on one launch's own extras when the chat's camera button opens the camera, so Edit's launches go without it. */
+    static final String CHAT_CAPTURE_MARK = "app.hushmessenger.chat_capture";
     /**
      * The chat camera's launcher factory hands over its copy of the camera screen's extras. Story and note replies build
      * the same kind of launcher for the same screen, and their extras never get the mark.
@@ -454,19 +772,94 @@ public final class Settings {
     public static void markChatCamera(android.os.Bundle extras) {
         if (extras != null) extras.putBoolean(CHAT_CAMERA_MARK, true);
     }
+    /** The camera button's ActivateCameraEvent handler hands over the extras of the launch it's about to make. */
+    public static void markChatCapture(android.os.Bundle extras) {
+        if (extras != null) extras.putBoolean(CHAT_CAPTURE_MARK, true);
+    }
     /**
-     * Every intent Messenger's activity launcher starts for a result comes past here. Only the chat camera's carries the
-     * mark, which comes off again so Messenger's camera gets its extras as they were, and that one goes to systemCamera.
+     * Every intent Messenger's activity launcher starts for a result comes past here. Only a capture from the chat's
+     * camera button carries both marks, and that one goes to systemCamera. The marks come off either way, so Messenger's
+     * camera and editor get their extras as they were.
      */
     public static android.content.Intent chatCamera(android.content.Intent intent) {
         try {
-            if (intent == null || !intent.hasExtra(CHAT_CAMERA_MARK)) return intent;
+            if (intent == null) return null;
+            boolean gallery = intent.getBooleanExtra(CHAT_GALLERY_MARK, false);
+            boolean capture = intent.getBooleanExtra(CHAT_CAMERA_MARK, false)
+                && intent.getBooleanExtra(CHAT_CAPTURE_MARK, false);
+            intent.removeExtra(CHAT_GALLERY_MARK);
             intent.removeExtra(CHAT_CAMERA_MARK);
+            intent.removeExtra(CHAT_CAPTURE_MARK);
+            if (gallery) {
+                android.content.Intent pick = GalleryPicker.screenIntent(appContext);
+                if (pick != null) return pick;
+            }
+            if (!capture) return intent;
         } catch (RuntimeException error) {
             hookFailed(CameraActivity.KEY, "Couldn't read the chat camera's launch", error);
             return intent;
         }
         return systemCamera(intent);
+    }
+    /** Set on the extras the gallery button hands the chat camera's launcher, so its start opens the phone's gallery app. */
+    static final String CHAT_GALLERY_MARK = "app.hushmessenger.chat_gallery";
+    /**
+     * The chat's gallery button asks this first. With the switch on and a gallery app on the phone, the button hands these
+     * extras to the chat camera's launcher, whose start then opens that app. Null leaves the button to Messenger.
+     */
+    public static android.os.Bundle chatGallery() {
+        try {
+            Context context = appContext;
+            if (context == null || !wouldUse(GalleryPicker.KEY) || GalleryPicker.screenIntent(context) == null ||
+                !enabled(GalleryPicker.KEY)) return null;
+            android.os.Bundle extras = new android.os.Bundle();
+            extras.putBoolean(CHAT_GALLERY_MARK, true);
+            return extras;
+        } catch (RuntimeException error) {
+            hookFailed(GalleryPicker.KEY, "Can't open your gallery app", error);
+            return null;
+        }
+    }
+    /**
+     * The chat hands every result here before it reads one. A photo from another app comes back under 1112, and the chat
+     * takes its type from the result and sends one without a type as a plain file. Gallery apps often hand back only the
+     * picked item, so with the switch on a missing type comes from the item itself.
+     */
+    public static void externalMediaResult(int requestCode, int resultCode, android.content.Intent data) {
+        try {
+            if (requestCode != CameraActivity.EXTERNAL_MEDIA_REQUEST || resultCode != android.app.Activity.RESULT_OK || data == null ||
+                data.getType() != null || data.getBooleanExtra(GalleryPicker.RESULT_PREPARED, false)) return;
+            android.net.Uri picked = data.getData();
+            Context context = appContext;
+            if (picked == null || context == null || !"content".equals(picked.getScheme()) || !wouldUse(GalleryPicker.KEY) ||
+                !enabled(GalleryPicker.KEY)) return;
+            String type = context.getContentResolver().getType(picked);
+            if (type != null) data.setDataAndType(picked, type);
+        } catch (RuntimeException error) {
+            hookFailed(GalleryPicker.KEY, "Couldn't read what your gallery app picked", error);
+        }
+    }
+    /**
+     * The chat's handler for a photo from another app asks this first, with the chat's thread and the result. It opens
+     * only one item in the editor, so a pick of several from the pick screen goes to Messenger's Send to sheet with that
+     * chat on top, and true tells the handler it's taken. False leaves the first item to the editor: one item, Off, Pause,
+     * or a sheet that didn't open.
+     */
+    public static boolean galleryItems(Object thread, android.content.Intent data) {
+        try {
+            Context context = appContext;
+            android.content.ClipData clip = data == null ? null : data.getClipData();
+            if (context == null || clip == null || clip.getItemCount() < 2 || !data.getBooleanExtra(GalleryPicker.ITEMS_MARK, false) ||
+                !enabled(GalleryPicker.KEY)) return false;
+            // Two callers hand the handler the same result, so the second only takes it and opens no second sheet.
+            if (data.getBooleanExtra(GalleryPicker.ITEMS_SENT, false)) return true;
+            context.startActivity(GalleryPicker.sendIntent(context, thread, clip));
+            data.putExtra(GalleryPicker.ITEMS_SENT, true);
+            return true;
+        } catch (RuntimeException error) {
+            hookFailedPrivately(GalleryPicker.KEY, "Couldn't send everything you picked", error);
+            return false;
+        }
     }
     /**
      * Messenger 582's chat asks this before it copies a picked photo, and only copies from apps outside Meta's. The capture
@@ -499,11 +892,17 @@ public final class Settings {
             Context context = appContext;
             return context == null || CameraActivity.captureIntent(context) != null;
         }
+        // A Root Mount install keeps the stock manifest, with no pick screen and maybe no gallery app Messenger can see.
+        if (GalleryPicker.KEY.equals(key)) {
+            Context context = appContext;
+            return context == null || GalleryPicker.screenIntent(context) != null;
+        }
         if (TextStyleActivity.KEY.equals(key)) {
             Context context = appContext;
             return context == null || TextStyleActivity.present(context);
         }
         if ("hide_menu_row".equals(key)) return menuRowCanHide();
+        if (HIDE_ICON_SHORTCUTS.equals(key) || HIDE_LOGO_PRESS.equals(key)) return anotherWayIn(key);
         if (!"bubbles".equals(key)) return true;
         if (Build.VERSION.SDK_INT < 30) return false;
         if (!HostScreens.started) HostScreens.initializeLate();
@@ -560,6 +959,21 @@ public final class Settings {
             if (sentThread != null && since >= 0 && since < REPLY_READ_MS && sentThread.equals(thread)) return false;
         }
         return enabled("hide_read_receipts");
+    }
+
+    /**
+     * The read receipt hook's entry, with Messenger's read handler and the message it's marking. A Seen held back is kept
+     * for the Mark as read button, and the button's own tap goes through.
+     */
+    public static boolean hideChatSeen(Object session, Object thread, Object handler, String messageId) {
+        if (MarkReadButton.replaying()) return false;
+        if (!hideChatSeen(session, thread)) return false;
+        try {
+            MarkReadButton.hold(session, thread, handler, messageId);
+        } catch (RuntimeException error) {
+            hookFailed(MarkReadButton.KEY, "Can't keep the chat's Seen for Mark as read", error);
+        }
+        return true;
     }
 
     /** Record the account and thread only after the native composer dispatch returns. */
@@ -716,12 +1130,53 @@ public final class Settings {
     }
 
     /**
-     * The Menu row can stay out only once the long-press shortcut has opened settings here and is still published. If
-     * the shortcut goes missing, as after a Root Mount start that couldn't publish it, the row comes back.
+     * The patched build a long press on the logo last opened settings on, the same proof for that way in. It holds for
+     * that build only: after an update or a repatch the patch can still find the logo's handler while Messenger never
+     * calls it, so one press has to work again.
+     */
+    static final String LOGO_USED = "logo_used_build";
+
+    static boolean logoPressProven(Context context) {
+        SharedPreferences prefs = preferences;
+        String build = patchedBuild(context);
+        return prefs != null && build != null && build.equals(prefs.getString(LOGO_USED, null));
+    }
+
+    /**
+     * This Messenger install and the HushMessenger version patched into it. A Root Mount repatch keeps Messenger's
+     * install time, so the version is what tells a new patch apart. Null when the install time is unknown.
+     */
+    static String patchedBuild(Context context) {
+        Long install = installedAt(context);
+        return install == null ? null : install + "/" + BuildConfig.VERSION_NAME;
+    }
+
+    private static volatile Long installedAt;
+
+    /** When this Messenger install went in, read once: an update or a repatch ends the process. Null when unknown. */
+    static Long installedAt(Context context) {
+        Long known = installedAt;
+        if (known != null || context == null) return known;
+        try {
+            known = context.getPackageManager().getPackageInfo(context.getPackageName(), 0).lastUpdateTime;
+        } catch (android.content.pm.PackageManager.NameNotFoundException | RuntimeException error) {
+            return null;
+        }
+        installedAt = known;
+        return known;
+    }
+
+    /**
+     * The Menu row can stay out only once another way in has opened settings here and is still on: the logo long press,
+     * or the long-press shortcut while it's published. If neither is left, as after a Root Mount start that couldn't
+     * publish the shortcut, the row comes back.
      */
     static boolean menuRowCanHide() {
         SharedPreferences prefs = preferences;
-        return prefs != null && prefs.getBoolean(SHORTCUT_USED, false) && HostScreens.controlsShortcutPresent(appContext);
+        if (prefs == null) return false;
+        if (logoPressOn() && logoPressProven(appContext)) return true;
+        return !prefs.getBoolean(HIDE_ICON_SHORTCUTS, false) && prefs.getBoolean(SHORTCUT_USED, false)
+            && HostScreens.controlsShortcutPresent(appContext);
     }
 
     static boolean menuRowHidden() {
@@ -734,6 +1189,57 @@ public final class Settings {
 
     static boolean logoOpensSettings() {
         return installed.contains(LOGO_LONG_PRESS);
+    }
+
+    /**
+     * The ways back into settings each have a switch (HushFacebook#146): these two, Hide the Menu row and Hide app
+     * drawer icon. They aren't controls, so Pause and safe mode leave them as they are, since each is a way back in to
+     * undo either.
+     */
+    static final String HIDE_ICON_SHORTCUTS = "hide_icon_shortcuts";
+    static final String HIDE_LOGO_PRESS = "hide_logo_press";
+
+    /** Whether a long press on the Messenger logo opens settings: patched in and not switched off. */
+    static boolean logoPressOn() {
+        SharedPreferences prefs = preferences;
+        return logoOpensSettings() && (prefs == null || !prefs.getBoolean(HIDE_LOGO_PRESS, false));
+    }
+
+    /** Whether the settings icon in the app drawer is there to tap, which a Root Mount install never has. */
+    static boolean drawerIconShown(Context context) {
+        if (context == null || drawerIconHidden()) return false;
+        try {
+            android.content.pm.PackageManager packages = context.getPackageManager();
+            android.content.ComponentName alias = new android.content.ComponentName(context, SettingsActivity.DRAWER_ALIAS);
+            packages.getActivityInfo(alias, android.content.pm.PackageManager.MATCH_DISABLED_COMPONENTS);
+            return !HostScreens.hosted(context);
+        } catch (android.content.pm.PackageManager.NameNotFoundException | RuntimeException missing) {
+            return false;
+        }
+    }
+
+    /**
+     * Whether Patch controls and Restart Messenger belong on the app icon's long-press menu: their switch, or on anyway
+     * when no other way back in is left. The Menu row counts whenever it's patched in, since it comes back by itself
+     * once the shortcut and the logo press are both gone.
+     */
+    static boolean iconShortcutsShown(Context context) {
+        SharedPreferences prefs = preferences;
+        if (prefs == null || !prefs.getBoolean(HIDE_ICON_SHORTCUTS, false)) return true;
+        return !(logoPressOn() || installed.contains("menu_row") || drawerIconShown(context));
+    }
+
+    /**
+     * Whether [key], one of the hide switches for a way back in, can be turned on: only while another way stays. One
+     * already on can always be turned off.
+     */
+    private static boolean anotherWayIn(String key) {
+        SharedPreferences prefs = preferences;
+        if (prefs == null || prefs.getBoolean(key, false)) return true;
+        Context context = appContext;
+        boolean menuRow = installed.contains("menu_row") && !menuRowHidden();
+        if (HIDE_ICON_SHORTCUTS.equals(key)) return logoPressOn() || menuRow || drawerIconShown(context);
+        return iconShortcutsShown(context) || menuRow || drawerIconShown(context);
     }
 
     private static final String KEPT_UNSENT_KEY = "kept_unsent_ids";
@@ -781,31 +1287,40 @@ public final class Settings {
     /** Android's standard color emoji font, used when the phone can't say which font it draws emoji with. */
     static final String NOTO_EMOJI_FONT = "/system/fonts/NotoColorEmoji.ttf";
     /** Null asks Android which font it draws emoji with. Tests point this at a missing file. */
-    static String systemEmojiFont;
-    static android.graphics.Typeface systemEmoji;
-    static boolean systemEmojiMissing;
+    static volatile String systemEmojiFont;
+    /** Read without a lock by every hook thread that draws emoji, and loaded once under Settings.class. */
+    static volatile android.graphics.Typeface systemEmoji;
+    static volatile boolean systemEmojiMissing;
     /** Which font the emoji typeface came from, for diagnostics and tests. */
-    static String systemEmojiSource;
+    static volatile String systemEmojiSource;
     public static android.graphics.Typeface systemEmojiTypeface() {
         // Checked before enabled(), so a font that failed to load doesn't count as a use.
         if (systemEmojiMissing || !enabled("use_system_emoji")) return null;
-        if (systemEmoji != null) return systemEmoji;
-        try {
-            // Samsung, many other phones and emoji modules draw emoji with a font other than NotoColorEmoji.ttf (#25).
-            android.graphics.Typeface shaped = systemEmojiFont == null ? shapedEmojiTypeface() : null;
-            if (shaped != null) {
-                systemEmoji = shaped;
-            } else {
-                String path = systemEmojiFont != null ? systemEmojiFont : NOTO_EMOJI_FONT;
-                systemEmoji = android.graphics.Typeface.createFromFile(path);
-                systemEmojiSource = path;
+        android.graphics.Typeface loaded = systemEmoji;
+        if (loaded != null) return loaded;
+        synchronized (Settings.class) {
+            // Another thread may have loaded it, or failed to, while this one waited.
+            if (systemEmojiMissing) return null;
+            if (systemEmoji != null) return systemEmoji;
+            try {
+                // Samsung, many other phones and emoji modules draw emoji with a font other than NotoColorEmoji.ttf (#25).
+                String font = systemEmojiFont;
+                android.graphics.Typeface shaped = font == null ? shapedEmojiTypeface() : null;
+                if (shaped != null) {
+                    systemEmoji = shaped;
+                } else {
+                    String path = font != null ? font : NOTO_EMOJI_FONT;
+                    android.graphics.Typeface typeface = android.graphics.Typeface.createFromFile(path);
+                    systemEmojiSource = path;
+                    systemEmoji = typeface;
+                }
+            } catch (Exception error) {
+                // The font file won't appear later, so Messenger's own emoji stay without retrying on every draw.
+                systemEmojiMissing = true;
+                hookFailed("use_system_emoji", "Can't load the system emoji font", error);
             }
-        } catch (Exception error) {
-            // The font file won't appear later, so Messenger's own emoji stay without retrying on every draw.
-            systemEmojiMissing = true;
-            hookFailed("use_system_emoji", "Can't load the system emoji font", error);
+            return systemEmoji;
         }
-        return systemEmoji;
     }
 
     /** Default emoji presentation, so Android picks its emoji font rather than a text symbol font. */
@@ -842,7 +1357,7 @@ public final class Settings {
     }
 
     /** The android.graphics.fonts.Font Android shaped the emoji probe with; Object so Android 9 never resolves the type. */
-    static Object systemEmojiShaped;
+    static volatile Object systemEmojiShaped;
     /** Messenger's downloaded FacebookEmoji.ttf, recorded as Messenger loads it. */
     static volatile java.io.File messengerEmojiFile;
     static java.io.File mergedEmojiFile;
@@ -1065,22 +1580,6 @@ public final class Settings {
         view.setTypeface(chosen, style);
     }
 
-    /** Null means return the exact original list. Only typed ad rows are removed. */
-    public static List<?> filterInboxAds(List<?> items) {
-        if (!enabled("ads") || items == null || items.isEmpty()) return null;
-        List<Object> filtered = null;
-        for (int index = 0; index < items.size(); index++) {
-            Object item = items.get(index);
-            boolean ad = false;
-            for (Class<?> type = item == null ? null : item.getClass(); type != null; type = type.getSuperclass()) {
-                if ("com.facebook.messaging.business.inboxads.common.InboxAdsItem".equals(type.getName())) { ad = true; break; }
-            }
-            if (ad && filtered == null) filtered = new ArrayList<>(items.subList(0, index));
-            if (!ad && filtered != null) filtered.add(item);
-        }
-        return filtered;
-    }
-
     /** Only the section renderer receives a copy. The captured native snapshot is never changed. */
     public static List<?> filterJoinedCommunityInboxRows(List<?> items, Object callback, Object filter) {
         return filterJoinedCommunityInboxRows(items, () -> isAllChatsFilter(filter) && HostScreens.isMainInboxScope(callback, filter),
@@ -1160,6 +1659,25 @@ public final class Settings {
     /** Replaced by the menu patch with constructors from the validated host build. */
     public static Object legacyDrawerSection(Context context) {
         return null;
+    }
+
+    /**
+     * Replaced by the auto reply patch when this Messenger's media send matched: builds the photo messages for [picture]
+     * in the chat [thread] (a thread key string) and returns Messenger's future of them. Null means the build has no
+     * bridge, so a reply goes out as text only.
+     */
+    public static Object autoReplyPictureMessages(Context context, String thread, Uri picture) {
+        return null;
+    }
+
+    /** Replaced with the notification reply service's own send for one built message. Returns its future, or null. */
+    public static Object autoReplySendMessage(Object message) {
+        return null;
+    }
+
+    /** Replaced to return true when the two methods above were filled in. */
+    public static boolean autoReplyPictures() {
+        return false;
     }
 
     /** Only the independent folder identity survives refreshes, never a context or a row. */
@@ -1326,8 +1844,7 @@ public final class Settings {
         } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             hookFailedPrivately("menu_row", "Opening the drawer entry failed", error);
             if (recognized) try {
-                android.widget.Toast.makeText(context, new SettingsText(context).get("settings_open_failed"),
-                        android.widget.Toast.LENGTH_LONG).show();
+                showOpenFailed(context);
             } catch (RuntimeException | LinkageError feedbackError) {
                 hookFailedPrivately("menu_row", "Drawer entry feedback unavailable", feedbackError);
             }
@@ -1431,21 +1948,36 @@ public final class Settings {
      * handling of that press. The patch calls this just before each title's long press handler returns, with the
      * toolbar's context. Messenger hands the press to a title shortcut plugin that only its internal builds have, so for
      * everyone else it did nothing but vibrate. Like the Menu rows, this doesn't ask Pause or safe mode first: it's a way back into settings to undo
-     * either. A launch Android refuses gets the same toast as the side menu row, pointing at the launcher shortcut.
+     * either. A launch Android refuses gets the same toasts as the side menu row, pointing at the launcher shortcut.
+     * Ignore the logo long press leaves the press to Messenger.
      */
     public static void logoLongPressed(Context context) {
-        if (context == null) return;
+        // Only the switch counts here: a press can come before settings have read what the patch put in.
+        SharedPreferences prefs = preferences;
+        if (context == null || prefs != null && prefs.getBoolean(HIDE_LOGO_PRESS, false)) return;
         try {
             HostScreens.open(context, HostScreens.SETTINGS);
+            String build = patchedBuild(context);
+            if (prefs != null && build != null && !logoPressProven(context)) prefs.edit().putString(LOGO_USED, build).apply();
         } catch (RuntimeException | LinkageError error) {
             hookFailed("menu_row", "Opening settings from a tab title failed", error);
             try {
-                android.widget.Toast.makeText(context, new SettingsText(context).get("settings_open_failed"),
-                        android.widget.Toast.LENGTH_LONG).show();
+                showOpenFailed(context);
             } catch (RuntimeException | LinkageError feedbackError) {
                 hookFailedPrivately("menu_row", "Tab title feedback unavailable", feedbackError);
             }
         }
+    }
+
+    /**
+     * Android 12 and later show two lines of a toast, so one says settings didn't open and the next names the way in,
+     * unless Hide the icon shortcuts took that way away.
+     */
+    private static void showOpenFailed(Context context) {
+        SettingsText words = new SettingsText(context);
+        android.widget.Toast.makeText(context, words.get("settings_open_failed"), android.widget.Toast.LENGTH_SHORT).show();
+        if (iconShortcutsShown(context))
+            android.widget.Toast.makeText(context, words.get("settings_open_instead"), android.widget.Toast.LENGTH_LONG).show();
     }
 
     private static final java.util.concurrent.atomic.AtomicBoolean MENU_LISTENER_LOGGED = new java.util.concurrent.atomic.AtomicBoolean();

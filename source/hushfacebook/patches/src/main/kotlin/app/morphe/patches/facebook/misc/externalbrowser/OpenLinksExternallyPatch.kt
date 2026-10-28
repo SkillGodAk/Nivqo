@@ -57,7 +57,7 @@ val openLinksExternallyPatch = bytecodePatch(
     name = "Open links in external browser",
     description = "Opens web links in your own browser instead of Facebook's built-in one, without Facebook " +
         "tracking the click. Facebook pages still open in the app. On by default. Turn it off in Hushfacebook " +
-        "settings > Links. A second switch, on by default under Privacy, stops Facebook's browser keeping a " +
+        "settings > Links and sharing. A second switch, on by default under Privacy, stops Facebook's browser keeping a " +
         "history of the links you open in it.",
     default = true,
 ) {
@@ -90,8 +90,12 @@ val openLinksExternallyPatch = bytecodePatch(
         }
 
         // A link that stays in Facebook's browser still feeds its link history. The second switch
-        // stops both writers before they exist (see LinkHistoryWriters.kt).
+        // stops both writers before they exist, the upload of what they recorded, which other
+        // parts of the browser reach too, and the two autofill reports that name the page a form
+        // was filled on (see LinkHistoryWriters.kt).
         linkHistoryFactories().forEach { mutableFactory(it).holdLinkHistory() }
+        mutableFactory(linkHistoryUpload()).holdLinkHistoryUpload()
+        autofillReports().forEach { mutableFactory(it).holdAutofillReport() }
 
         enableStatus("externalBrowser")
     }

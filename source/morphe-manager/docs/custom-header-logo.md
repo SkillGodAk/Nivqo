@@ -12,8 +12,8 @@ differs.
 
 ## Where to find it
 
-- **Simple mode** - **Settings → Advanced → Patch options**, then the app, then **Custom
-  header logo**.
+- **Simple mode** - **Settings → Patch options**, then **Custom header logo** under the
+  app.
 - **Expert mode** - on the patch selection screen, find the header patch, make sure it is
   enabled, and tap the settings icon on its card.
 
@@ -23,8 +23,9 @@ Both open a dialog with a folder field, a **Create custom header** button, and e
 ## Preparing your images
 
 - **Any PNG or JPEG works.** A PNG with a transparent background blends naturally with the
-  app's own theme.
-- **Use a wide image.** Roughly a 2.7:1 aspect ratio matches the space the header occupies.
+  app bar.
+- **Margins do not matter.** Empty space around the logo in the file is ignored, so the image
+  starts at the size and place of the stock logo.
 - **You usually need two.** Most apps use a separate logo for the light and the dark theme.
   Apps that only have a dark theme, such as YouTube Music, show a single section.
 
@@ -36,11 +37,13 @@ Tap **Create custom header**.
   <img src="images/custom-header/01-header-creator.jpg" width="320" alt="Create custom header dialog with light and dark previews" />
 </p>
 
-Each theme has its own **Change image** button, a live preview, and a scale slider:
+Each theme has its own section with an editor, a **Preview** of the app bar with your logo in
+it, and a scale slider:
 
-1. Pick the image for **Light theme header**.
-2. Drag it inside the preview to position it, pinch to zoom, or use the slider. Dashed snap
-   guides appear when the image is near the center.
+1. Tap **Select image** under **Light theme header** and pick the image.
+2. Drag it inside the editor to position it, pinch to zoom, or use the slider. The dashed box
+   marks where the stock logo sits, and guides appear when the image lines up with it.
+   **Change image** swaps the image later.
 3. Repeat for **Dark theme header**.
 4. Tap **Create custom header** and choose a folder to save into.
 
@@ -67,7 +70,7 @@ authoritative list, the short version is:
 
 | Problem | What to do |
 | --- | --- |
-| The logo looks stretched or cropped | The source image is not wide enough. Use something close to 2.7:1 |
+| The logo looks too small or too large | Resize it in the editor until it fills the dashed box the way you want |
 | The logo has a visible box around it | Use a PNG with a transparent background instead of a JPEG |
 | Only one theme section is shown | That app only uses a single header, which is expected for YouTube Music |
 | The header did not change after installing | Patch options only apply when the app is patched again |

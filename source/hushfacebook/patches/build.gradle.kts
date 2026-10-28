@@ -1118,7 +1118,9 @@ val fixtureTest = tasks.register<Test>("fixtureTest") {
     failOnNoDiscoveredTests.set(provider { patchTestSelection().isEmpty() })
     var startedWith = emptyMap<String, String>()
     doFirst {
-        val selected = patchTestSelection()
+        // setTestNameIncludePatterns replaces the --tests given to fixtureTest itself, so those join
+        // :patches:test's. Dropped, a filter named after fixtureTest ran no fixture test at all.
+        val selected = patchTestSelection() + (filter as DefaultTestFilter).commandLineIncludePatterns
         if (selected.isNotEmpty()) {
             setTestNameIncludePatterns(selected.toList())
             filter.isFailOnNoMatchingTests = false

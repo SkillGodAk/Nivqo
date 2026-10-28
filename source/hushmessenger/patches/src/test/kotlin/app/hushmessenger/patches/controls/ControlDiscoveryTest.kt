@@ -5,6 +5,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.util.proxy.mutableTypes.MutableClass
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -30,7 +31,7 @@ class ControlDiscoveryTest {
     )
 
     private fun completeFixture(): List<MutableClass> {
-        val methods = syntheticHooks.filter { it.key !in setOf("unsent_indicator", "delta_unsent", "ai_sticker_cell", "screenshot_viewers", COMMUNITY_INBOX, EMOJI_DRAWER, EMOJI_SEARCH, AI_MENTIONS, AI_COMMANDS, AI_SEARCH_HINT, AI_MENTION_ROWS, XHE_AUDIO, DISAPPEARING_SWIPE, ANALYTICS_UPLOADS, ATTRIBUTION_UPLOADS, AD_EVENTS, MQTT_TELEMETRY, PINNED_CHATS, NEARBY_SCANS, WIFI_IDENTITY, TEXT_STYLE, MESSAGE_LOG, AUTO_REPLY, SYSTEM_CAMERA, HIDE_READ_RECEIPTS, REPLY_READ) + CUSTOM_FONT_HOOKS }.flatMap { (key, ids) ->
+        val methods = syntheticHooks.filter { it.key !in setOf("unsent_indicator", "delta_unsent", "ai_sticker_cell", "ai_sticker_grid", "screenshot_viewers", COMMUNITY_INBOX, EMOJI_DRAWER, EMOJI_SEARCH, TAB_BADGES, FACEBOOK_BADGE, TAB_CONFIG, AI_MENTIONS, AI_COMMANDS, AI_SEARCH_HINT, AI_SEARCH_SCREEN_HINT, AI_MENTION_ROWS, XHE_AUDIO, XHE_TRANSCODE, DISAPPEARING_SWIPE, RECENT_MEDIA, ANALYTICS_UPLOADS, ATTRIBUTION_UPLOADS, AD_EVENTS, MQTT_TELEMETRY, PINNED_CHATS, NEARBY_SCANS, WIFI_IDENTITY, PHONE_ID_SYNC, STORY_HOLD, SHARE_STORY, AVATAR_SHAPE, QUIET_CALL_RING, QUIET_CALL_NOTIFICATION, MARK_READ_BAR, MARK_READ_CLICK, TEXT_STYLE, MESSAGE_LOG, AUTO_REPLY, SYSTEM_CAMERA, EXTERNAL_GALLERY, HIDE_READ_RECEIPTS, REPLY_READ) + CUSTOM_FONT_HOOKS }.flatMap { (key, ids) ->
             ids.map { id ->
                 if (key == "people_jewel") return@map peopleJewelMethod()
                 if (key == "people_tab") return@map peopleTabMethod()
@@ -52,6 +53,7 @@ class ControlDiscoveryTest {
                         const/4 v0, 0x1
                         return v0
                     """.trimIndent()
+                    FACEBOOK_PROFILE -> "new-instance v0, $FACEBOOK_PROFILE_BUTTON\nconst/4 v0, 0x1\nreturn v0"
                     "ai_menu" -> """
                         const-string v0, "com.facebook.messaging.navigation.plugins.aihomefolder.folderitem.AiHomeFolderItem"
                         const/4 v0, 0x1
@@ -62,15 +64,21 @@ class ControlDiscoveryTest {
                     "allow_screenshot" -> if (id.contains("(Landroid/view/Window;)")) SECURE_WINDOW_BODY else "return-void"
                     "keep_unsent" -> "const-string v0, \"com.facebook.stella.ipc.messenger.ACTION_REVOKE_MESSAGE\"\nreturn-void"
                     "ai_search" -> "const-string v0, \"com.facebook.messaging.search.aiagent.plugins.implementations.SearchAiagentImplementationsKillSwitch\"\nconst/4 v0, 0x1\nreturn v0"
-                    "original_photo" -> if (id.endsWith(")[B")) "const/4 v0, 0x0\nreturn-object v0" else "return-void"
-                    ORIGINAL_VIDEO -> VIDEO_TRANSCODE_BODY
+                    "original_photo" -> when {
+                        id == TRANSCODE_CONFIG -> TRANSCODE_CONFIG_BODY
+                        id == DECODE_BITMAP -> DECODE_BITMAP_BODY
+                        id.endsWith(")[B") -> "const/4 v0, 0x0\nreturn-object v0"
+                        else -> "return-void"
+                    }
+                    ORIGINAL_VIDEO -> VIDEO_TRANSCODE_BODY.replaceFirst("\n", "\n$TRANSCODE_SOURCE_PARSE\n")
                     "emoji_typeface" -> "const-string v0, \"FacebookEmojiTypefaceProviderImpl\"\nconst/4 v0, 0x0\nreturn-object v0"
                     "avatar_tabs" -> """
                         sget-object v0, $AVATAR_TAB_EVENT->A03:$AVATAR_TAB_EVENT
                         new-instance v1, Ljava/util/ArrayList;
                         invoke-static {}, $IMMUTABLE_LIST->builder()$LIST_BUILDER
                         move-result-object v2
-                        invoke-static {v2, v1}, LX/34B;->A0l(${LIST_BUILDER}Ljava/lang/Iterable;)$IMMUTABLE_LIST
+                        invoke-virtual {v2, v1}, $LIST_BUILDER->addAll(Ljava/lang/Iterable;)$LIST_BUILDER
+                        invoke-static {v2}, LX/32c;->A00($LIST_BUILDER)$IMMUTABLE_LIST
                         move-result-object v3
                         return-void
                     """.trimIndent()
@@ -93,16 +101,9 @@ class ControlDiscoveryTest {
                         else -> "const-string v0, \"Unknown ViewHolder\"\nreturn-void"
                     }
                     "browser" -> "const/4 v0, 0x0\nreturn v0"
-                    "ads" -> """
-                        const-string v0, "messaging.inbox.itemlistprocessor.ItemListProcessorInterfaceSpec"
-                        const-string v0, "processItems"
-                        const-string v0, "new_friend_bump_threads"
-                        const/4 v0, 0x0
-                        return-object v0
-                    """.trimIndent()
                     else -> error("Missing synthetic resolver fixture for $key")
                 }
-                val staticGate = (key in pluginGates || key == "ai_search" || key == "growth_story_card" || key == APP_ICONS || key == "keep_unsent") &&
+                val staticGate = (key in pluginGates || key == "ai_search" || key == "growth_story_card" || key == APP_ICONS) &&
                     !id.substringAfter('(').startsWith(')')
                 fixtureMethod(id, body, registers = when (key) { "original_photo" -> 22; ORIGINAL_VIDEO -> 24;"chat_animation", "chat_legacy" -> 5; else -> 8 }, flags = AccessFlags.PUBLIC.value or
                     if (staticGate) AccessFlags.STATIC.value else 0)
@@ -118,11 +119,11 @@ class ControlDiscoveryTest {
             }
             fixtureClass(type, grouped + extra, originals[type],
                 if (type == "LX/8xp;") listOf(SCREEN_CAPTURE_CALLBACK) else emptyList())
-        } + listOf(fixtureClass(AD_ITEM), fixtureClass(IMMUTABLE_LIST, listOf(
+        } + listOf(fixtureClass(IMMUTABLE_LIST, listOf(
             fixtureMethod("$IMMUTABLE_LIST->copyOf(Ljava/util/Collection;)$IMMUTABLE_LIST",
                 "const/4 v0, 0x0\nreturn-object v0", flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value),
         )), peopleJewelKeyHolder(), storyCardKeyHolder(), debugDumperFixture(), messageWrapperFixture(type = "LX/K1Y;"), searchFieldFixture()) +
-            aiStickerCellFixture() + communityInboxFixture().filter { it.type != IMMUTABLE_LIST } + emojiDrawerFixture() + emojiSearchFixture() + aiMentionsFixture() + searchBarFixture() + aiMentionRowsFixture() + shareCopyFixture() + disappearingSwipeFixture() + analyticsUploadFixture() + attributionUploadFixture() + adEventsFixture() + mqttClientFixture() + pinnedChatLimitFixture() + nearbyScansFixture() + textFieldFixture() + messageLogFixture() + readReceiptsFixture() + systemCameraFixture() + customFontFixture() +
+            aiStickerCellFixture(grid = true) + communityInboxFixture().filter { it.type != IMMUTABLE_LIST } + emojiDrawerFixture() + emojiSearchFixture() + tabBadgesFixture() + tabConfigFixture() + aiMentionsFixture() + searchBarFixture() + searchScreenFixture() + aiMentionRowsFixture() + shareCopyFixture() + disappearingSwipeFixture() + recentMediaFixture() + analyticsUploadFixture() + attributionUploadFixture() + adEventsFixture() + mqttClientFixture() + pinnedChatLimitFixture() + nearbyScansFixture() + phoneIdFixture() + storyHoldFixture() + shareStoryFixture() + avatarShapeFixture() + quietCallsFixture() + markReadFixture(immutableList = false) + textFieldFixture() + messageLogFixture() + readReceiptsFixture() + systemCameraFixture() + externalGalleryFixture() + customFontFixture() +
             syntheticHooks.getValue("screenshot_viewers").map { screenshotViewerFixture(it) }
                 .groupBy { it.definingClass }.map { (type, group) -> fixtureClass(type, group) })
         .let { classes ->
@@ -231,9 +232,9 @@ class ControlDiscoveryTest {
 
     @Test fun photoHooksAreOnlyTheTranscodersOwnEntryPoints() {
         val fixture = completeFixture()
-        assertEquals(setOf(TRANSCODE_IMAGE, TRANSCODE_IMAGE_ASYNC), mirroredControls(fixture).getValue("original_photo").map { it.hookId() }.toSet())
-        // The same entry points on some other class aren't the encrypted-chat photo path.
-        val lookalike = fixtureClass("LX/Fixture;", listOf(TRANSCODE_IMAGE, TRANSCODE_IMAGE_ASYNC).map {
+        assertEquals(ORIGINAL_PHOTO_HOOKS, mirroredControls(fixture).getValue("original_photo").map { it.hookId() }.toSet())
+        // The same methods on some other class aren't the encrypted-chat photo path.
+        val lookalike = fixtureClass("LX/Fixture;", ORIGINAL_PHOTO_HOOKS.map {
             fixtureMethod(it.replace(MEDIA_TRANSCODER, "LX/Fixture;"), "return-void", registers = 22)
         })
         validateControls(mirroredControls(fixture + lookalike), setOf("original_photo"))
@@ -263,17 +264,6 @@ class ControlDiscoveryTest {
         val missing = mirroredControls(fixture.filter { it !== peopleClass })
         assertFailsWith<PatchException> { validateControls(missing, setOf("people")) }
         validateControls(missing, setOf("moments"))
-    }
-
-    @Test fun adResolutionRequiresTheHostTypeAndThePublicStaticCopyMethod() {
-        for (missing in listOf(AD_ITEM, IMMUTABLE_LIST)) {
-            val found = mirroredControls(completeFixture().filter { it.type != missing })
-            assertFailsWith<PatchException> { validateControls(found, setOf("ads")) }
-            validateControls(found, setOf("people"))
-        }
-        val fixture = completeFixture()
-        fixture.single { it.type == IMMUTABLE_LIST }.methods.single().setAccessFlags(AccessFlags.PUBLIC.value)
-        assertTrue(mirroredControls(fixture).getValue("ads").isEmpty())
     }
 
     @Test fun misleadingPluginSignaturesAndChangedRunnableNamesDoNotMatch() {
@@ -319,6 +309,21 @@ class ControlDiscoveryTest {
         validateControls(found, setOf(TAB_PEOPLE, TAB_NOTIFICATIONS, "ai_tab"))
     }
 
+    // Some accounts get MUSE, an AI agent tab, where the Meta AI tab goes. The bar builds it behind a gate of its own,
+    // so Hide Meta AI takes that gate too, with the same held answer as the Meta AI tab.
+    @Test fun hideMetaAiTakesTheMuseTabsGateAsWellAsTheMetaAiTabs() {
+        val found = mirroredControls(completeFixture())
+        assertEquals(listOf("LX/1iN;->A01(LX/1iN;)Z"), found.getValue(AI_MUSE_TAB).map { it.hookId() })
+        assertEquals(listOf("LX/1iN;->A02(LX/1iN;)Z"), found.getValue("ai_tab").map { it.hookId() })
+        validateControls(found, setOf("ai_tab", AI_MUSE_TAB))
+        assertTrue(listOf("ai_tab", AI_MUSE_TAB, TAB_CONFIG).all { it in controlHooks.getValue("meta_ai") })
+        val gate = fixtureMethod("LX/1iN;->A01(LX/1iN;)Z", pluginBody(pluginGates.getValue(AI_MUSE_TAB).anchors.single()),
+            flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)
+        injectControl("meta_ai", mapOf(AI_MUSE_TAB to listOf(gate)))
+        val first = gate.implementation!!.instructions.first() as ReferenceInstruction
+        assertEquals("$SETTINGS->hideMetaAiTab()Z", first.reference.toString())
+    }
+
     // Messenger's Menu tab gives Meta's subscriptions (Facebook Plus, Meta Verified, Meta One) a section of their own next to
     // Also from Meta. Both are Facebook shortcuts. The tab's own sections, built by the same class, aren't.
     @Test fun theMenuTabsMetaSectionsAreFacebookShortcutGates() {
@@ -336,6 +341,22 @@ class ControlDiscoveryTest {
         ))
         val found = mirroredControls(listOf(drawer))
         assertEquals(setOf("LX/WRg;->A02()Z", "LX/WRg;->A05()Z"), found.getValue("facebook").map { it.hookId() }.toSet())
+    }
+
+    // Keep the Profile button (#51) spares only the gates that build nothing but the chat details Profile button.
+    // A gate that also builds another Facebook shortcut stays with Hide Facebook shortcuts.
+    @Test fun theProfileButtonGateIsItsOwnHookAndAMixedGateIsNot() {
+        val gate = { name: String, body: String -> fixtureMethod("LX/Pf1;->$name()Z", "$body\nconst/4 v0, 0x1\nreturn v0") }
+        val share = "Lcom/facebook/messaging/communitymessaging/plugins/channelinvite/sharetofacebookbutton/ShareToFacebookButtonImplementation;"
+        val details = fixtureClass("LX/Pf1;", listOf(
+            gate("A01", "new-instance v0, $FACEBOOK_PROFILE_BUTTON"),
+            gate("A02", "new-instance v0, $FACEBOOK_PROFILE_BUTTON\nnew-instance v0, $FACEBOOK_PROFILE_BUTTON"),
+            gate("A03", "new-instance v0, $FACEBOOK_PROFILE_BUTTON\nnew-instance v0, $share"),
+            gate("A04", "new-instance v0, Lcom/facebook/messaging/profile/plugins/core/threadsettingsactionbutton/mute/ThreadSettingsMuteActionButton;"),
+        ))
+        val found = mirroredControls(listOf(details))
+        assertEquals(setOf("LX/Pf1;->A01()Z", "LX/Pf1;->A02()Z"), found.getValue(FACEBOOK_PROFILE).map { it.hookId() }.toSet())
+        assertEquals(listOf("LX/Pf1;->A03()Z"), found.getValue("facebook").map { it.hookId() })
     }
 
     // Both chat menu builders gate Mark as read by its plugin name. Mark as unread has the same shape and its own name.

@@ -99,6 +99,52 @@ public final class TranslucentBarsForTests {
     }
 
     /**
+     * The main screen with the tab bar at the top, the way Facebook 583 stacks it: one header holder
+     * over the page's top with the top bar's 88 pixel row, the tab bar's 88 pixel row and a 2 pixel
+     * line under them, so neither row's fill is half the holder (#171).
+     */
+    public static final class TabBarOnTop {
+        public final FrameLayout window;
+        public final FrameLayout page;
+        public final LinearLayout header;
+        public final FrameLayout topRow;
+        public final TopBar topBar;
+        public final TabBar tabBar;
+        public final View line;
+        public final TranslucentBars.Bars bars;
+
+        public TabBarOnTop() {
+            Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+            window = new FrameLayout(activity);
+            page = new FrameLayout(activity);
+            page.setBackground(new ColorDrawable(0xFF000000));
+            window.addView(page, new FrameLayout.LayoutParams(720, 1600));
+
+            header = new LinearLayout(activity);
+            header.setOrientation(LinearLayout.VERTICAL);
+            topRow = new FrameLayout(activity);
+            topRow.setBackground(new ColorDrawable(TOP_COLOUR));
+            topBar = new TopBar(activity);
+            topRow.addView(topBar, new FrameLayout.LayoutParams(720, 88));
+            header.addView(topRow, new LinearLayout.LayoutParams(720, 88));
+            tabBar = new TabBar(activity);
+            tabBar.setBackground(new ColorDrawable(TAB_COLOUR));
+            header.addView(tabBar, new LinearLayout.LayoutParams(720, 88));
+            line = new View(activity);
+            line.setBackground(new ColorDrawable(0xFF3E4042));
+            header.addView(line, new LinearLayout.LayoutParams(720, 2));
+            window.addView(header, new FrameLayout.LayoutParams(720, 178, Gravity.TOP));
+
+            activity.setContentView(window, new FrameLayout.LayoutParams(720, 1600));
+            ShadowLooper.idleMainLooper();
+            window.measure(View.MeasureSpec.makeMeasureSpec(720, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(1600, View.MeasureSpec.EXACTLY));
+            window.layout(0, 0, 720, 1600);
+            bars = new TranslucentBars.Bars(window, TopBar.class.getName(), TabBar.class.getName());
+        }
+    }
+
+    /**
      * One frame of a fresh screen. True when it made the top bar's background see-through, which is
      * the switch changing what Facebook draws.
      */

@@ -107,6 +107,20 @@ public class PictureInPictureBringBackTest {
         assertTrue("after the gap", decides(page, 10_000 + 2 * PictureInPicture.BRING_BACK_GAP_MS));
     }
 
+    /**
+     * Right after a start got a task of its own, a screen passing through the window doesn't start
+     * Facebook again over the page: on the S22 a link's page left the window and a SimpleLoginActivity
+     * opened and closed there, and the launcher start covered the page.
+     */
+    @Test
+    public void aScreenInTheWindowRightAfterAPageGotItsOwnTaskIsLeftAlone() {
+        PictureInPicture.armed(screen, new Object(), null);
+        screen.floating = true;
+        PictureInPicture.sentAway(10_000);
+        assertFalse("inside the gap", decides(page, 10_000 + PictureInPicture.SENT_AWAY_GAP_MS - 1));
+        assertTrue("after the gap", decides(page, 10_000 + PictureInPicture.SENT_AWAY_GAP_MS));
+    }
+
     @Test
     public void aScreenNotInTheWindowIsLeftAlone() {
         PictureInPicture.armed(screen, new Object(), null);

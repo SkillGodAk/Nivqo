@@ -5,12 +5,10 @@
 
 package app.morphe.manager.ui.screen.home
 
-import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -18,7 +16,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -29,14 +26,12 @@ import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.domain.manager.HomeAppCategoryState
 import app.morphe.manager.ui.model.HomeAppItem
-import app.morphe.manager.ui.screen.shared.CardBorder
-import app.morphe.manager.ui.screen.shared.GlassButtonDefaults
-import app.morphe.manager.ui.screen.shared.MorpheLauncherLogo
-import app.morphe.manager.ui.screen.shared.appAccentBorder
-import app.morphe.manager.ui.screen.shared.appAccentCardFill
+import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.ui.viewmodel.HomeAppSourceGroup
 import app.morphe.manager.util.RemoteAvatar
 import app.morphe.manager.util.rememberSourceAccent
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 
 internal const val SOURCE_CATEGORY_ID_PREFIX = "source_"
 
@@ -182,7 +177,9 @@ private fun List<HomeAppItem>.orderedByPackageOrder(packageOrder: List<String>):
  * on a non-tappable row.
  *
  * A non-null [color] replaces the frosted fill, for rows that belong to something already
- * carrying a color of its own. [below] goes under the row inside the same card.
+ * carrying a color of its own. [below] goes under the title, in its column, as a list item's
+ * supporting line does. A [shape] given outright, as a segment of a block takes from its place,
+ * is taken over [cornerRadius] and eased into as it changes.
  */
 @Composable
 internal fun HomeGlassCategoryRow(
@@ -192,51 +189,59 @@ internal fun HomeGlassCategoryRow(
     onLongClick: (() -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
     count: String? = null,
-    cornerRadius: Dp = 20.dp,
+    cornerRadius: Dp = Defaults.CornerLargeIncreased,
+    shape: CornerBasedShape? = null,
     color: Color? = null,
     borderColor: Color? = null,
     below: (@Composable () -> Unit)? = null,
     trailing: @Composable RowScope.() -> Unit = {}
 ) {
-    val shape = RoundedCornerShape(cornerRadius)
+    val shape = shape?.let { animateCornersAsState(it) } ?: RoundedCornerShape(cornerRadius)
     val containerColor = color ?: GlassButtonDefaults.containerColor()
     val borderColor = borderColor ?: GlassButtonDefaults.borderColor()
     val contentColor = MaterialTheme.colorScheme.onSurface
     val mutedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     val interactionModifier = when {
-        onLongClick != null -> Modifier.combinedClickable(
-            onClick = onClick ?: {},
-            onLongClick = onLongClick
+        onLongClick != null -> Modifier.shapedCombinedClickable(
+            shape = shape,
+            onLongClick = onLongClick,
+            onClick = onClick ?: {}
         )
-        onClick != null -> Modifier.clickable(onClick = onClick)
+        onClick != null -> Modifier.shapedClickable(shape, onClick = onClick)
         else -> Modifier
     }
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clip(shape)
             .then(interactionModifier),
         color = containerColor,
         contentColor = contentColor,
         shape = shape,
         border = CardBorder.of(borderColor)
     ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                // A supporting line makes it a two-line item, which keeps more room around it
+                .padding(
+                    // Inset as the cards it heads, so a block keeps one edge
+                    horizontal = Defaults.SpaceLarge,
+                    vertical = if (below != null) Defaults.SpaceMedium else Defaults.SpaceSmall
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
+        ) {
+            leading?.invoke()
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
             ) {
-                leading?.invoke()
                 Row(
-                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
                 ) {
                     Text(
                         text = title,
@@ -255,11 +260,9 @@ internal fun HomeGlassCategoryRow(
                         )
                     }
                 }
-                trailing()
+                below?.invoke()
             }
-            if (below != null) {
-                Box(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) { below() }
-            }
+            trailing()
         }
     }
 }
@@ -282,7 +285,7 @@ internal fun HomeCategoryHeader(
     )
     val mutedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
     val isSourceGroup = group.sourceUid != null
-    val leadingIcon = if (group.collapsed) Icons.Outlined.Folder else Icons.Outlined.FolderOpen
+    val leadingIcon = if (group.collapsed) MaterialSymbols.Rounded.Folder else MaterialSymbols.Rounded.Folder_open
     // Surface pending updates on the header so collapsed groups still hint at work to do
     val hasPendingUpdate = group.items.any { it.showsRebuildBadge }
     val folderTint = if (hasPendingUpdate) MaterialTheme.colorScheme.primary else mutedContentColor
@@ -310,7 +313,7 @@ internal fun HomeCategoryHeader(
             dragHandle?.invoke()
             if (group.collapsible) {
                 Icon(
-                    imageVector = if (group.collapsed) Icons.Outlined.ExpandMore else Icons.Outlined.ExpandLess,
+                    imageVector = if (group.collapsed) MaterialSymbols.Rounded.Expand_more else MaterialSymbols.Rounded.Expand_less,
                     contentDescription = if (group.collapsed)
                         stringResource(R.string.expand)
                     else
@@ -347,7 +350,7 @@ private fun SourceCategoryIcon(
         when {
             group.sourceIsDefault -> {
                 Icon(
-                    imageVector = Icons.Outlined.Source,
+                    imageVector = MaterialSymbols.Rounded.Layers,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(4.dp)
@@ -364,32 +367,12 @@ private fun SourceCategoryIcon(
 
             else -> {
                 Icon(
-                    imageVector = Icons.Outlined.Source,
+                    imageVector = MaterialSymbols.Rounded.Folder_code,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(4.dp)
+                    modifier = Modifier.padding(Defaults.SpaceExtraSmall)
                 )
             }
         }
-    }
-}
-
-/**
- * Drag-handle affordance for [HomeCategoryHeader]. Passed as the slot content so the caller
- * can attach a `draggableHandle` from the reorderable library without leaking that state
- * into the header.
- */
-@Composable
-internal fun CategoryHeaderDragHandle(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.size(32.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.DragHandle,
-            contentDescription = stringResource(R.string.reorder_list),
-            modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }

@@ -8,9 +8,6 @@ package app.morphe.manager.ui.screen.shared
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Done
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,6 +20,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import app.morphe.manager.R
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 
 /**
  * Filter chip for the sheets that narrow a list down.
@@ -39,7 +38,7 @@ fun AppFilterChip(
     onClick: () -> Unit,
     label: String,
     modifier: Modifier = Modifier,
-    selectedIcon: ImageVector = Icons.Outlined.Done
+    selectedIcon: ImageVector = MaterialSymbols.Rounded.Done
 ) {
     val scheme = MaterialTheme.colorScheme
 
@@ -129,7 +128,7 @@ fun AppInputChip(
         onClick = onRemove,
         label = { Text(label) },
         modifier = modifier.semantics { onClick(label = removeLabel) { onRemove(); true } },
-        trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = null, Modifier.size(16.dp)) },
+        trailingIcon = { Icon(MaterialSymbols.Rounded.Close, contentDescription = null, Modifier.size(16.dp)) },
         colors = InputChipDefaults.inputChipColors(
             containerColor = scheme.surfaceContainerLowest,
             labelColor = scheme.onSurface,

@@ -24,7 +24,11 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31i
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction3rc
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutablePackedSwitchPayload
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableSwitchElement
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
@@ -181,11 +185,14 @@ class ClonedPackageLiteralsTest {
             context.mutableClassDefBy(extension).methods.single().instructions().size)
     }
 
-    private fun call(definingClass: String, name: String, parameters: List<String>, returns: String, vararg registers: Int) =
-        ImmutableInstruction35c(
-            Opcode.INVOKE_VIRTUAL, registers.size, registers[0], registers[1], registers.getOrElse(2) { 0 }, 0, 0,
-            ImmutableMethodReference(definingClass, name, parameters, returns),
-        )
+    private fun call(
+        definingClass: String, name: String, parameters: List<String>, returns: String, vararg registers: Int,
+        opcode: Opcode = Opcode.INVOKE_VIRTUAL,
+    ) = ImmutableInstruction35c(
+        opcode, registers.size, registers[0], registers.getOrElse(1) { 0 }, registers.getOrElse(2) { 0 },
+        registers.getOrElse(3) { 0 }, registers.getOrElse(4) { 0 },
+        ImmutableMethodReference(definingClass, name, parameters, returns),
+    )
 
     private fun setPackage(intent: Int, packageName: Int) =
         call("Landroid/content/Intent;", "setPackage", listOf("Ljava/lang/String;"), "Landroid/content/Intent;", intent, packageName)
@@ -199,11 +206,33 @@ class ClonedPackageLiteralsTest {
     private fun packageInfo(manager: Int, packageName: Int, flags: Int) = call("Landroid/content/pm/PackageManager;",
         "getPackageInfo", listOf("Ljava/lang/String;", "I"), "Landroid/content/pm/PackageInfo;", manager, packageName, flags)
 
+    private fun applicationIcon(manager: Int, packageName: Int) = call("Landroid/content/pm/PackageManager;",
+        "getApplicationIcon", listOf("Ljava/lang/String;"), "Landroid/graphics/drawable/Drawable;", manager, packageName)
+
+    private fun setClassName(intent: Int, packageName: Int, className: Int) = call("Landroid/content/Intent;",
+        "setClassName", listOf("Ljava/lang/String;", "Ljava/lang/String;"), "Landroid/content/Intent;", intent, packageName, className)
+
+    private fun providerCall(resolver: Int, uri: Int, name: Int, argument: Int, extras: Int) = call(
+        "Landroid/content/ContentResolver;", "call",
+        listOf("Landroid/net/Uri;", "Ljava/lang/String;", "Ljava/lang/String;", "Landroid/os/Bundle;"), "Landroid/os/Bundle;",
+        resolver, uri, name, argument, extras,
+    )
+
+    private fun resourceId(resources: Int, name: Int, type: Int, packageName: Int) = call("Landroid/content/res/Resources;",
+        "getIdentifier", listOf("Ljava/lang/String;", "Ljava/lang/String;", "Ljava/lang/String;"), "I",
+        resources, name, type, packageName)
+
+    private fun redexResourceId(resources: Int, name: Int, type: Int, packageName: Int) = call(
+        "Lcom/facebook/resources/compat/RedexResourcesCompat;", "getIdentifier",
+        listOf("Landroid/content/res/Resources;", "Ljava/lang/String;", "Ljava/lang/String;", "Ljava/lang/String;"), "I",
+        resources, name, type, packageName, opcode = Opcode.INVOKE_STATIC,
+    )
+
     /**
      * #36 leftovers: where Facebook names itself to Android, a clone names itself. An intent's
-     * setPackage anywhere, and in Firebase's notification code the launch intent and the meta-data
-     * read too, take the running package. Elsewhere a launch of Facebook, a read of its version and
-     * a comparison with its name mean Meta's app and keep the literal.
+     * setPackage anywhere, and in Firebase's notification code the launch intent too, take the
+     * running package. Elsewhere a launch of Facebook, a read of its version and a comparison with
+     * its name mean Meta's app and keep the literal.
      */
     @Test
     fun facebooksNameWhereItMeansThisAppGoesThroughTheExtension() {
@@ -220,7 +249,6 @@ class ClonedPackageLiteralsTest {
                 classDef(chats, method(chats, 10,
                     load(0, facebook), setPackage(1, 0),
                     load(0, facebook), launchIntent(2, 0),
-                    load(0, facebook), applicationInfo(2, 0, 3),
                     load(0, facebook), packageInfo(2, 0, 3),
                     load(0, facebook), ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 4, 0, 0, 0, 0, equals),
                     load(0, facebook), setPackage(0, 1),
@@ -238,11 +266,118 @@ class ClonedPackageLiteralsTest {
             assertEquals(Opcode.MOVE_RESULT_OBJECT, inFirebase[index + 2].opcode)
         }
         val inChats = context.mutableClassDefBy(chats).methods.single().instructions()
-        assertEquals("only the setPackage load was routed", 15, inChats.size)
+        assertEquals("only the setPackage load was routed", 13, inChats.size)
         assertEquals(PACKAGE_CALL, (inChats[1] as ReferenceInstruction).reference.toString())
         assertEquals(facebook, inChats[4].literal())
         assertEquals("a launch of Facebook outside Firebase", Opcode.INVOKE_VIRTUAL, inChats[5].opcode)
-        assertEquals("an intent whose own register holds the name", Opcode.INVOKE_VIRTUAL, inChats[13].opcode)
+        assertEquals("an intent whose own register holds the name", Opcode.INVOKE_VIRTUAL, inChats[11].opcode)
+    }
+
+    /**
+     * The other places the bare name can only mean the running app take a clone's own: an
+     * ApplicationInfo or icon of it anywhere, the package of an explicit intent to one of its
+     * activities, the argument of a provider call (Xiaomi's launcher badge), and a resource lookup,
+     * whose load goes over whole since Morphe renames a clone's resource table and whatever else
+     * reads that name builds on the same table. Its version, a launch of it outside Firebase, an
+     * intent whose class is the literal, a load one call reads twice and a load that's also compared
+     * keep the literal.
+     */
+    @Test
+    fun whereTheNameCanOnlyMeanThisAppAndItsResourcesItGoesThroughTheExtension() {
+        val owner = "Lcom/example/AppInfoCore;"
+        val append = ImmutableMethodReference(
+            "Ljava/lang/StringBuilder;", "append", listOf("Ljava/lang/String;"), "Ljava/lang/StringBuilder;")
+        val equals = ImmutableMethodReference("Ljava/lang/String;", "equals", listOf("Ljava/lang/Object;"), "Z")
+        val context = PatchContexts.of(
+            listOf(
+                classDef(owner, method(owner, 10,
+                    load(0, facebook), applicationInfo(2, 0, 3),
+                    load(0, facebook), applicationIcon(2, 0),
+                    load(0, facebook), setClassName(1, 0, 4),
+                    load(0, facebook), setClassName(1, 4, 0),
+                    load(0, facebook), providerCall(5, 6, 7, 0, 8),
+                    load(0, facebook), resourceId(5, 6, 7, 0),
+                    ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 9, 0, 0, 0, 0, append),
+                    load(0, facebook), redexResourceId(5, 6, 7, 0),
+                    load(0, facebook), packageInfo(2, 0, 3),
+                    load(0, facebook), launchIntent(2, 0),
+                    load(0, facebook), setClassName(1, 0, 0),
+                    load(0, facebook), applicationInfo(2, 0, 3),
+                    ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 4, 0, 0, 0, 0, equals),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID))),
+            ),
+        )
+
+        assertEquals(6, context.routeOwnPackageCalls(facebook))
+
+        val routed = context.mutableClassDefBy(owner).methods.single().instructions()
+        assertEquals(37, routed.size)
+        val handedOver = routed.indices.filter { routed[it].literal() == facebook }
+            .associateWith { (routed[it + 1] as? ReferenceInstruction)?.reference?.toString() == PACKAGE_CALL }
+        assertEquals(
+            listOf(true, true, true, false, true, true, true, false, false, false, false),
+            handedOver.values.toList(),
+        )
+        for (at in handedOver.filterValues { it }.keys) {
+            val call = routed[at + 1] as RegisterRangeInstruction
+            assertEquals(0 to 1, call.startRegister to call.registerCount)
+            assertEquals(Opcode.MOVE_RESULT_OBJECT, routed[at + 2].opcode)
+            assertEquals(0, (routed[at + 2] as OneRegisterInstruction).registerA)
+        }
+    }
+
+    /** A call whose arguments sit above v15 comes as a range, and is read by the same slots. */
+    @Test
+    fun aRangeCallThatNamesThisAppIsReadLikeAnyOther() {
+        val owner = "Lcom/example/ProxyAuthLink;"
+        val setClassName = ImmutableMethodReference("Landroid/content/Intent;", "setClassName",
+            listOf("Ljava/lang/String;", "Ljava/lang/String;"), "Landroid/content/Intent;")
+        val context = PatchContexts.of(
+            listOf(
+                classDef(owner, method(owner, 20,
+                    load(16, facebook), ImmutableInstruction3rc(Opcode.INVOKE_VIRTUAL_RANGE, 15, 3, setClassName),
+                    load(16, facebook), ImmutableInstruction3rc(Opcode.INVOKE_VIRTUAL_RANGE, 16, 3, setClassName),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID))),
+            ),
+        )
+
+        assertEquals(1, context.routeOwnPackageCalls(facebook))
+
+        val routed = context.mutableClassDefBy(owner).methods.single().instructions()
+        assertEquals(7, routed.size)
+        assertEquals(PACKAGE_CALL, (routed[1] as ReferenceInstruction).reference.toString())
+        assertEquals(16 to 1, (routed[1] as RegisterRangeInstruction).let { it.startRegister to it.registerCount })
+        assertEquals(facebook, routed[4].literal())
+        assertEquals("the name as the intent itself", Opcode.INVOKE_VIRTUAL_RANGE, routed[5].opcode)
+    }
+
+    /**
+     * A switch case that lands right after a load would pass the call that goes there, so that load
+     * keeps the literal, the same as one a branch lands after. The case is read from the payload, not
+     * the switch's jump to it.
+     */
+    @Test
+    fun aLoadASwitchCaseLandsRightAfterKeepsTheLiteral() {
+        val owner = "Lcom/example/BadgeSwitch;"
+        // Addresses: switch 0, load 3, setPackage 5, load 8, setPackage 10, return 13, payload 14.
+        val context = PatchContexts.of(
+            listOf(
+                classDef(owner, method(owner, 10,
+                    ImmutableInstruction31t(Opcode.PACKED_SWITCH, 9, 14),
+                    load(0, facebook), setPackage(1, 0),
+                    load(0, facebook), setPackage(1, 0),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID),
+                    ImmutablePackedSwitchPayload(listOf(ImmutableSwitchElement(0, 5))))),
+            ),
+        )
+
+        assertEquals(1, context.routeOwnPackageCalls(facebook))
+
+        val routed = context.mutableClassDefBy(owner).methods.single().instructions()
+        assertEquals(facebook, routed[1].literal())
+        assertEquals("the case's own setPackage keeps the literal", Opcode.INVOKE_VIRTUAL, routed[2].opcode)
+        assertEquals(facebook, routed[3].literal())
+        assertEquals(PACKAGE_CALL, (routed[4] as ReferenceInstruction).reference.toString())
     }
 
     /**

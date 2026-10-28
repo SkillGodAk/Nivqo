@@ -18,7 +18,9 @@
     through a copy, a wide move of a conflict, a long and a lone upper half tested against zero,
     an int and an object tested for equality in either order, a move-result the patch separated
     from its invoke or left behind when Morphe's inline compiler dropped a plain invoke of a
-    parameter past v15 (Hide tab badges in an 18-register writer), bad try ranges and handlers (a handler at a switch or array payload among
+    parameter past v15 (Hide tab badges in an 18-register writer), an extension's Object answer
+    returned uncast from a method declared to return a class (Comment sheet options in 0.16.0),
+    bad try ranges and handlers (a handler at a switch or array payload among
     them), a move-exception the method's entry reaches, the one feed guard doubled, moved or
     missing, the reels hook deleted from the pre-EOF injector or put after a branch, the showcase
     stub left unfilled, calling another class, or calling a class that isn't the only one
@@ -142,7 +144,7 @@ function Get-Findings {
     param($Result)
     $fails = @($Result.Output | Where-Object { $_ -like '`[diff`] FAIL*' })
     $categories = @($fails | ForEach-Object {
-        if ($_ -match '^\[diff\] FAIL: (register|branch|invoke|parameter|width|try|result|contract): ') { $Matches[1] } else { '?' }
+        if ($_ -match '^\[diff\] FAIL: (register|branch|invoke|parameter|width|try|result|type|contract): ') { $Matches[1] } else { '?' }
     })
     [pscustomobject]@{ Fails = $fails; Categories = $categories }
 }
@@ -520,8 +522,70 @@ function Write-StandIn {
         [System.Text.Encoding]::ASCII)
 }
 
+Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+$standInIdentity = 'sha256=' + ('a' * 64) + '; source=clean:' + ('b' * 40) + '; tree=' + ('c' * 40) +
+    '; inputs=' + ('d' * 64)
+
+# A phone for the device half: it remembers what was pushed and the log mark, answers dex2oat with
+# the pushed size, and with -DeviceMode extra logs one verifier error for the patched build only;
+# with dex2oat-fails dex2oat exits 1.
+$adbStandIn = @'
+$argv = @($args)
+$state = Join-Path $PSScriptRoot 'adb-state'
+New-Item -ItemType Directory -Path $state -Force | Out-Null
+$log = Join-Path $state 'log.txt'
+$mode = [System.IO.File]::ReadAllText((Join-Path $PSScriptRoot 'device-mode.txt')).Trim()
+switch ([string]$argv[2]) {
+    'push' {
+        $size = (Get-Item -LiteralPath ([string]$argv[3])).Length
+        [System.IO.File]::WriteAllText((Join-Path $state ([System.IO.Path]::GetFileName([string]$argv[4]) + '.size')), [string]$size)
+        exit 0
+    }
+    'logcat' { 'Host logcat would wait for a disconnected transport.'; exit 88 }
+    'shell' {
+        $command = [string]$argv[3]
+        if ($command -ceq 'logcat') {
+            if ($argv.Count -ne 5 -or $argv[4] -cne '-d') { exit 89 }
+            if ($mode -eq 'offline-log') {
+                [IO.File]::WriteAllText((Join-Path $state 'offline-log.txt'), 'offline')
+                'error: device offline'
+                exit 1
+            }
+            if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log }
+            exit 0
+        }
+        if ($command -eq 'getprop ro.product.model') { 'SM-S908U1'; exit 0 }
+        if ($command.StartsWith('log -t HushfacebookVerify ')) {
+            Add-Content -LiteralPath $log -Value "10-22 01:00:00.000  100  100 I HushfacebookVerify: $($command.Substring(26))"
+            exit 0
+        }
+        if ($command.StartsWith('dex2oat64 ')) {
+            $remote = [regex]::Match($command, '--dex-file=(\S+)').Groups[1].Value
+            if ($mode -eq 'extra' -and $remote -like '*patched*') {
+                Add-Content -LiteralPath $log -Value '10-22 01:00:01.000  200  200 W dex2oat64: Verification error in X.BZ3 X.BZ1.A0G'
+            }
+            "exit=$(if ($mode -eq 'dex2oat-fails') { 1 } else { 0 })"
+            "size=$([System.IO.File]::ReadAllText((Join-Path $state ([System.IO.Path]::GetFileName($remote) + '.size'))))"
+            exit 0
+        }
+        if ($command -cmatch '\Arm -rf /data/local/tmp/hushfacebook-verify-(clean|patched) && mkdir -p /data/local/tmp/hushfacebook-verify-\1\z') { exit 0 }
+        if ($command.StartsWith('rm -rf ')) {
+            Add-Content -LiteralPath (Join-Path $state 'cleanup.txt') -Value $command
+            if ($mode -eq 'offline-log' -and (Test-Path -LiteralPath (Join-Path $state 'offline-log.txt'))) {
+                'error: device offline'
+                exit 1
+            }
+            exit 0
+        }
+        exit 1
+    }
+}
+exit 1
+'@
+
 function Invoke-VerifierWithStandIns {
-    param([string]$Name, [int]$DexDiffExit, [switch]$JavaGone)
+    param([string]$Name, [int]$DexDiffExit, [switch]$JavaGone, [string]$ReceiptPath, [string]$Serial,
+        [string]$DeviceMode = 'clean')
     $case = Join-Path $standIns $Name
     New-Item -ItemType Directory -Path $case -Force | Out-Null
     $javaStandIn = Join-Path $case 'java.cmd'
@@ -552,12 +616,25 @@ exit /b 0
     foreach ($file in 'clean.apk', 'patched.apk', 'desktop.jar') {
         [System.IO.File]::WriteAllText((Join-Path $case $file), 'stand-in')
     }
+    $receiptArguments = if ($ReceiptPath) { @('-ReceiptPath', $ReceiptPath) } else { @() }
+    if ($Serial) {
+        # The receipt reads the patch build out of the patched APK's dex, so here it's a real zip.
+        Remove-Item -LiteralPath (Join-Path $case 'patched.apk') -Force
+        $zip = [System.IO.Compression.ZipFile]::Open((Join-Path $case 'patched.apk'), [System.IO.Compression.ZipArchiveMode]::Create)
+        try {
+            $writer = [System.IO.StreamWriter]::new($zip.CreateEntry('classes.dex').Open(), [System.Text.Encoding]::ASCII)
+            try { $writer.Write("dex`n035`0$standInIdentity`0") } finally { $writer.Dispose() }
+        } finally { $zip.Dispose() }
+        [System.IO.File]::WriteAllText((Join-Path $case 'adb.ps1'), $adbStandIn)
+        [System.IO.File]::WriteAllText((Join-Path $case 'device-mode.txt'), $DeviceMode)
+        $receiptArguments += @('-Serial', $Serial, '-Adb', (Join-Path $case 'adb.ps1'))
+    }
     $ErrorActionPreference = 'Continue'
     $global:LASTEXITCODE = 0
     $output = @(& (Get-Process -Id $PID).Path -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $verifier `
         -CleanApk (Join-Path $case 'clean.apk') -PatchedApk (Join-Path $case 'patched.apk') `
         -ReportPath (Join-Path $case 'report.txt') -Java $javaStandIn -DesktopJar (Join-Path $case 'desktop.jar') `
-        -Aapt2 (Join-Path $case 'aapt2.cmd') 2>&1 | ForEach-Object { "$_" })
+        -Aapt2 (Join-Path $case 'aapt2.cmd') @receiptArguments 2>&1 | ForEach-Object { "$_" })
     [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $output; Text = $output -join "`n" }
 }
 
@@ -578,6 +655,65 @@ try {
     Assert-True ($gone.ExitCode -ne 0 -and $gone.Text -match $reached -and
         $gone.Output -notcontains '[registers] success.' -and $gone.Text -notmatch '\[registers\] static: ') `
         "The verifier passed a run whose java could not start for DexDiff (exit $($gone.ExitCode)).`n$($gone.Text)"
+    # A receipt is the device half's word, so a run without -Serial refuses to write one before it
+    # compares anything or touches the path it was given.
+    $staleReceipt = Join-Path $standIns 'stale-receipt.json'
+    [System.IO.File]::WriteAllText($staleReceipt, '{"schema":1,"result":"PASS"}')
+    $noDevice = Invoke-VerifierWithStandIns -Name 'receipt-without-serial' -DexDiffExit 0 -ReceiptPath $staleReceipt
+    Assert-True ($noDevice.ExitCode -ne 0 -and $noDevice.Text -match '-ReceiptPath needs -Serial' -and
+        $noDevice.Text -notmatch $reached -and $noDevice.Output -notcontains '[registers] success.') `
+        "The verifier ran a receipt run without a device (exit $($noDevice.ExitCode)).`n$($noDevice.Text)"
+    Assert-True (Test-Path -LiteralPath $staleReceipt -PathType Leaf) 'A refused receipt run removed a file before refusing.'
+
+    # With a device, the run writes what it saw: the stale file goes first, the identity comes out
+    # of the patched dex, and each half's result is the one this run got.
+    $deviceReached = '(?m)^\[registers\] running the device verifier on TESTPHONE01'
+    $passReceipt = Join-Path $standIns 'device-pass.json'
+    [System.IO.File]::WriteAllText($passReceipt, '{"schema":1,"result":"stale"}')
+    $devicePass = Invoke-VerifierWithStandIns -Name 'device-pass' -DexDiffExit 0 -Serial 'TESTPHONE01' -ReceiptPath $passReceipt
+    $written = if (Test-Path -LiteralPath $passReceipt) { Get-Content -LiteralPath $passReceipt -Raw | ConvertFrom-Json }
+    Assert-True ($devicePass.ExitCode -eq 0 -and $devicePass.Text -match $deviceReached -and $null -ne $written -and
+        $written.result -ceq 'PASS' -and $written.static -ceq 'PASS' -and $written.device -ceq 'SM-S908U1' -and
+        $written.serial -ceq 'TESTPHONE01' -and $written.patchBuild -ceq $standInIdentity -and
+        $written.cleanMessages -eq 0 -and $written.patchedMessages -eq 0 -and @($written.deltas).Count -eq 0 -and
+        $written.patchedApkSha256 -ceq (Get-FileHash -LiteralPath (Join-Path $standIns 'device-pass\patched.apk') -Algorithm SHA256).Hash.ToLowerInvariant()) `
+        "A clean device run didn't write a PASS receipt for the patched APK's own build (exit $($devicePass.ExitCode)).`n$($devicePass.Text)"
+
+    $extraReceipt = Join-Path $standIns 'device-extra.json'
+    $deviceExtra = Invoke-VerifierWithStandIns -Name 'device-extra' -DexDiffExit 0 -Serial 'TESTPHONE01' -ReceiptPath $extraReceipt -DeviceMode 'extra'
+    $written = if (Test-Path -LiteralPath $extraReceipt) { Get-Content -LiteralPath $extraReceipt -Raw | ConvertFrom-Json }
+    Assert-True ($deviceExtra.ExitCode -ne 0 -and $null -ne $written -and $written.result -ceq 'FAIL' -and
+        $written.static -ceq 'PASS' -and $written.patchedMessages -eq 1 -and @($written.deltas).Count -eq 1 -and
+        $written.deltas[0].kind -ceq 'extra' -and $written.deltas[0].message -ceq 'Verification error in X.BZ3 X.BZ1.A0G') `
+        "A device run whose patched build raised a verifier error didn't write it as a FAIL (exit $($deviceExtra.ExitCode)).`n$($deviceExtra.Text)"
+
+    $staticReceipt = Join-Path $standIns 'device-static.json'
+    $deviceStatic = Invoke-VerifierWithStandIns -Name 'device-static' -DexDiffExit 1 -Serial 'TESTPHONE01' -ReceiptPath $staticReceipt
+    $written = if (Test-Path -LiteralPath $staticReceipt) { Get-Content -LiteralPath $staticReceipt -Raw | ConvertFrom-Json }
+    Assert-True ($deviceStatic.ExitCode -ne 0 -and $null -ne $written -and $written.result -ceq 'FAIL' -and
+        $written.static -ceq 'FAIL' -and @($written.deltas).Count -eq 0) `
+        "A device run whose dex comparison failed didn't write the static half as FAIL (exit $($deviceStatic.ExitCode)).`n$($deviceStatic.Text)"
+
+    $brokenReceipt = Join-Path $standIns 'device-broken.json'
+    [System.IO.File]::WriteAllText($brokenReceipt, '{"schema":1,"result":"PASS"}')
+    $deviceBroken = Invoke-VerifierWithStandIns -Name 'device-broken' -DexDiffExit 0 -Serial 'TESTPHONE01' -ReceiptPath $brokenReceipt -DeviceMode 'dex2oat-fails'
+    Assert-True ($deviceBroken.ExitCode -ne 0 -and $deviceBroken.Text -match $deviceReached -and
+        $deviceBroken.Text -match 'dex2oat on clean exited 1' -and -not (Test-Path -LiteralPath $brokenReceipt)) `
+        "A device run that broke left an earlier receipt behind (exit $($deviceBroken.ExitCode)).`n$($deviceBroken.Text)"
+
+    $offlineReceipt = Join-Path $standIns 'device-offline-log.json'
+    [System.IO.File]::WriteAllText($offlineReceipt, '{"schema":1,"result":"PASS"}')
+    $deviceOffline = Invoke-VerifierWithStandIns -Name 'device-offline-log' -DexDiffExit 0 `
+        -Serial 'TESTPHONE01' -ReceiptPath $offlineReceipt -DeviceMode 'offline-log'
+    Assert-True ($deviceOffline.ExitCode -ne 0 -and $deviceOffline.Text -match $deviceReached -and
+        $deviceOffline.Text -match 'Could not read logcat on TESTPHONE01 after verifying clean \(ADB exit 1\)' -and
+        $deviceOffline.Output -notcontains '[registers] success.' -and -not (Test-Path -LiteralPath $offlineReceipt)) `
+        "An offline log read passed or left an earlier PASS receipt (exit $($deviceOffline.ExitCode)).`n$($deviceOffline.Text)"
+    $offlineCleanup = @(Get-Content -LiteralPath (Join-Path $standIns 'device-offline-log/adb-state/cleanup.txt'))
+    Assert-True ($offlineCleanup.Count -eq 2 -and
+        $offlineCleanup -ccontains 'rm -rf /data/local/tmp/hushfacebook-verify-clean' -and
+        $offlineCleanup -ccontains 'rm -rf /data/local/tmp/hushfacebook-verify-clean.apk') `
+        "The CLI did not attempt both remote removals after its offline log read ($($offlineCleanup.Count)): $($offlineCleanup -join ' | ')"
 } finally {
     Remove-Item -LiteralPath $standIns -Recurse -Force -ErrorAction SilentlyContinue
 }
@@ -780,8 +916,8 @@ try {
         'Lcom/facebook/graphql/model/GraphQLFeedUnitEdge;)Z holding eof_edge_added_to_ui FeedEdgeAddedToUi'
     $swapHook = 'Lapp/morphe/extension/facebook/feed/FeedFilter;->hideSwappedEdge(Ljava/lang/Object;Ljava/lang/Object;)Z'
     $swapRun = 'Lfixture/EdgeSwap;->run()V'
-    $swapHeld = '"sizeBefore" and "sizeAfter" with the shape instance ()V'
-    $swapRule = "once-call $swapHook in instance ()V holding sizeBefore sizeAfter"
+    $swapHeld = '"sizeBefore" and "sizeAfter" with the shape instance ()*'
+    $swapRule = "once-call $swapHook in instance ()* holding sizeBefore sizeAfter"
     $readHook = 'Lapp/morphe/extension/facebook/chats/ReadReceipts;->holdsChatRead()Z'
     $readSite = 'Lfixture/Mailbox;->markRead()V'
     $readRule = "once-call $readHook holding markAsReadThreadWithThreadIdentifier"
@@ -920,6 +1056,7 @@ try {
         'bad-tab-links-launch-hook-missing' = 'contract'
         'bad-tab-links-friends-hook-missing' = 'contract'
         'bad-tab-links-check-hook-missing' = 'contract'
+        'bad-uncast-return' = 'type'
         'bad-post-message-stub-not-filled' = 'contract'
         'bad-post-attached-stub-not-filled' = 'contract'
         'bad-post-actors-stub-not-filled' = 'contract'
@@ -942,6 +1079,7 @@ try {
         'bad-watch-execute-left' = 'contract'
         'bad-watch-hook-other-registers' = 'contract'
         'bad-watch-two-flushes' = 'contract'
+        'bad-watch-input-unnamed' = 'contract'
         'bad-swap-hook-missing' = 'contract'
         'bad-swap-hook-decoy' = 'contract'
         'bad-swap-hook-also-elsewhere' = 'contract'
@@ -1031,7 +1169,8 @@ try {
 
     # Each watch-history build fails on the sole-call rule alone, for its own reason: no stand-in,
     # one in another method holding the mutation's name, one there as well as in the flush, two,
-    # Facebook's call left beside it, one on the registers the wrong way round, or a second flush.
+    # Facebook's call left beside it, one on the registers the wrong way round, a second flush, or a
+    # flush whose input's constructor no longer loads the input field (584 loads it there).
     $watchDescribe = 'Lfixture/SeenStateBatcher;->describe()V'
     $watchFails = [ordered]@{
         'bad-watch-hook-missing' = "[diff] FAIL: contract: $watchSend is not called in $watchFlush, the one method holding $watchHeld"
@@ -1045,6 +1184,8 @@ try {
             "clean build calls $watchExecute there on v2, v1"
         'bad-watch-two-flushes' = "[diff] FAIL: contract: 2 methods hold $watchHeld, and exactly one must, so the rule " +
             "can't say which one calls ${watchSend}: $watchFlush, Lfixture/SeenStateBatcher;->flushAgain()V"
+        'bad-watch-input-unnamed' = "[diff] FAIL: contract: 0 methods hold $watchHeld, and exactly one must, so the rule " +
+            "can't say which one calls $watchSend"
     }
     foreach ($case in $watchFails.GetEnumerator()) {
         $fails = @((Get-Findings $badResults[$case.Key]).Fails)
@@ -1183,6 +1324,10 @@ try {
         # of 18 registers: the lone move-result is named, with the class and method it opens.
         'bad-dropped-invoke' = @(('*result: move-result at 0 does not follow an invoke or filled-new-array; it opens the ' +
             'method  in Lfixture/IconBadger;->write(Landroid/content/Context;I)V'))
+        # The positive control for 0.16.0's comment sheet crash: the hook's Object answer returned
+        # without its cast, named with the hook and the type the method declares.
+        'bad-uncast-return' = @(("*type: return-object at 7 returns v1, the Object $tabFilter->launchedTab(Ljava/lang/Object;)" +
+            "Ljava/lang/Object; answered, uncast, where the method returns $tabTag  in Lfixture/TabLinks;->launchTab(*"))
     }
     foreach ($case in $wrongPlace.GetEnumerator()) {
         $fails = @((Get-Findings $badResults[$case.Key]).Fails)

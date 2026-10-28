@@ -17,13 +17,11 @@ import app.morphe.manager.data.room.options.OptionGroup
 import app.morphe.manager.patcher.patch.PatchInfo
 import app.morphe.manager.util.Options
 import app.morphe.manager.util.tag
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 class PatchOptionsRepository(db: AppDatabase) {
     private val dao = db.optionDao()
-    private val _resetEventsFlow = MutableSharedFlow<ResetEvent>(extraBufferCapacity = 4)
 
     private suspend fun getOrCreateGroup(bundleUid: Int, packageName: String) =
         dao.getGroupId(bundleUid, packageName) ?: OptionGroup(
@@ -134,7 +132,6 @@ class PatchOptionsRepository(db: AppDatabase) {
      */
     suspend fun resetOptionsForPackage(packageName: String) {
         dao.resetOptionsForPackage(packageName)
-        _resetEventsFlow.emit(ResetEvent.Package(packageName))
     }
 
     /**
@@ -142,7 +139,6 @@ class PatchOptionsRepository(db: AppDatabase) {
      */
     suspend fun resetOptionsForPackageAndBundle(packageName: String, bundleUid: Int) {
         dao.resetOptionsForPackageAndBundle(packageName, bundleUid)
-        _resetEventsFlow.emit(ResetEvent.PackageBundle(packageName, bundleUid))
     }
 
     /**
@@ -150,7 +146,6 @@ class PatchOptionsRepository(db: AppDatabase) {
      */
     suspend fun resetOptionsForPatchBundle(uid: Int) {
         dao.resetOptionsForPatchBundle(uid)
-        _resetEventsFlow.emit(ResetEvent.Bundle(uid))
     }
 
     /**
@@ -158,7 +153,6 @@ class PatchOptionsRepository(db: AppDatabase) {
      */
     suspend fun reset() {
         dao.reset()
-        _resetEventsFlow.emit(ResetEvent.All)
     }
 
     /**
@@ -179,14 +173,6 @@ class PatchOptionsRepository(db: AppDatabase) {
         options: Map<String, Map<String, String>>
     ) {
         dao.importOptionsForBundle(packageName, bundleUid, options)
-        _resetEventsFlow.emit(ResetEvent.PackageBundle(packageName, bundleUid))
-    }
-
-    sealed interface ResetEvent {
-        data object All : ResetEvent
-        data class Package(val packageName: String) : ResetEvent
-        data class Bundle(val bundleUid: Int) : ResetEvent
-        data class PackageBundle(val packageName: String, val bundleUid: Int) : ResetEvent
     }
 
     /**

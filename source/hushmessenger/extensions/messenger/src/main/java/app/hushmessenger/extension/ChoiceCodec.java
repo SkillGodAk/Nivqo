@@ -23,8 +23,10 @@ final class ChoiceCodec {
             if (installed.contains(key)) result.append(key).append('=')
                 .append(preferences.getBoolean(key, false)).append('\n');
         }
-        if (installed.contains("bubbles")) result.append(Settings.BUBBLE_CHAT_HEADS).append('=')
-            .append(preferences.getBoolean(Settings.BUBBLE_CHAT_HEADS, false)).append('\n');
+        for (Map.Entry<String, String> sub : Settings.SUB_SWITCHES.entrySet()) {
+            if (installed.contains(sub.getValue())) result.append(sub.getKey()).append('=')
+                .append(preferences.getBoolean(sub.getKey(), false)).append('\n');
+        }
         return result.toString();
     }
 

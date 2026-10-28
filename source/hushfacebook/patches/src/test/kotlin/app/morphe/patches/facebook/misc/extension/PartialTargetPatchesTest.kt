@@ -162,6 +162,14 @@ class PartialTargetPatchesTest {
         return null
     }
 
+    /** The values of [name]'s default-state meta-data, which keeps Facebook from turning it back on (#168). */
+    private fun Document.defaultStates(name: String): List<String> {
+        val nodes = getElementsByTagName("meta-data")
+        return (0 until nodes.length).map { nodes.item(it) as Element }
+            .filter { (it.parentNode as Element).getAttribute("android:name") == name && it.getAttribute("android:name") == "default-state" }
+            .map { it.getAttribute("android:value") }
+    }
+
     @Test
     fun `Disable Audience Network shuts the components a manifest has and names the rest`() {
         val service = AUDIENCE_NETWORK_COMPONENTS[0]
@@ -173,6 +181,9 @@ class PartialTargetPatchesTest {
         assertEquals("false", document.enabled(service))
         assertEquals("false", document.enabled(activity))
         assertEquals("Facebook's own activity keeps its state", "", document.enabled("com.facebook.katana.LoginActivity"))
+        assertEquals(listOf("false"), document.defaultStates(service))
+        assertEquals(listOf("false"), document.defaultStates(activity))
+        assertEquals(emptyList<String>(), document.defaultStates("com.facebook.katana.LoginActivity"))
         assertEquals(
             listOf(1, 2, 4).map {
                 missingLine(
@@ -186,6 +197,8 @@ class PartialTargetPatchesTest {
         val all = manifest(*AUDIENCE_NETWORK_COMPONENTS.map { (if (it.endsWith("Service")) "service" else "activity") to it }.toTypedArray())
         assertEquals("the positive control logs nothing", emptyList<String>(), PatchLogCapture.warnings { disableAudienceNetwork(all) })
         AUDIENCE_NETWORK_COMPONENTS.forEach { assertEquals(it, "false", all.enabled(it)) }
+        disableAudienceNetwork(all)
+        AUDIENCE_NETWORK_COMPONENTS.forEach { assertEquals("$it, patched twice", listOf("false"), all.defaultStates(it)) }
 
         val refused = assertThrows(PatchException::class.java) { disableAudienceNetwork(manifest()) }
         AUDIENCE_NETWORK_COMPONENTS.forEach { assertTrue(refused.message, refused.message.orEmpty().contains("$it isn't in the manifest")) }

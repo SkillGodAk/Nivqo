@@ -175,6 +175,9 @@ public final class SeenPosts {
         try {
             HookStatus.invoked(FAMILY);
             if (unit == null || !Utils.settingsReady()) return;
+            // The row by the short id the feed guard's own line gives it, so a log can tell a row
+            // this run's request brought from one Facebook drew without the guard seeing it.
+            Logger.printDebug(() -> "Feed row seen: " + FeedFilter.typeName(unit) + " id=" + shortId(unit));
             if (!Settings.HIDE_SEEN_POSTS.savedValue()) {
                 forgetWhileOff();
                 return;
@@ -245,6 +248,16 @@ public final class SeenPosts {
         } catch (ReflectiveOperationException | RuntimeException ignored) {
             return null;
         }
+    }
+
+    /**
+     * The first six characters of the unit's hashed cache id, for debug lines that pair a unit the
+     * feed guard judged with the row Facebook later counted as seen. Null when it has none.
+     */
+    @Nullable
+    static String shortId(@Nullable Object unit) {
+        String id = unit == null ? null : idOf(unit);
+        return id == null ? null : id.substring(0, 6);
     }
 
     private static String hash(String id) {

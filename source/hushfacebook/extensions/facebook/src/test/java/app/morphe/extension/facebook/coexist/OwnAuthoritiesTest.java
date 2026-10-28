@@ -6,6 +6,7 @@ package app.morphe.extension.facebook.coexist;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 
 import org.junit.After;
 import org.junit.Test;
@@ -61,8 +62,9 @@ public class OwnAuthoritiesTest {
      */
     @Test
     public void aNotificationsViewsNameTheRunningApp() {
-        OwnAuthorities.runningPackage = "com.facebook.katana";
-        assertEquals("com.facebook.katana", OwnAuthorities.packageName("com.facebook.katana"));
+        OwnAuthorities.runningPackage = new String("com.facebook.katana");
+        String literal = "com.facebook.katana";
+        assertSame("Facebook gets its own literal back", literal, OwnAuthorities.packageName(literal));
 
         OwnAuthorities.runningPackage = "com.facebook.katana.morphe";
         assertEquals("com.facebook.katana.morphe", OwnAuthorities.packageName("com.facebook.katana"));

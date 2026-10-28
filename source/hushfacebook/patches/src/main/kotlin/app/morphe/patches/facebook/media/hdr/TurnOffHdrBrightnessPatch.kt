@@ -19,6 +19,7 @@ import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.classDefForEachReferencing
 import app.morphe.util.findMutableMethodOf
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -73,7 +74,9 @@ internal const val OWN_CODEC_CONFIGURE = "$HDR_BRIGHTNESS->configure($MEDIA_CODE
  * setting it up, and counts whether the phone's decoder said yes. An HLG video is also handed over
  * naming the usual transfer, its BT.2020 colours kept: HLG shows as it is on an ordinary screen,
  * and a VP9 stream, which names no transfer itself, then skips the decoder maker's tone map that
- * left #93's reels bright and yellow.
+ * left #93's reels bright and yellow. A Qualcomm Codec2 decoder (c2.qti.) only gets the HLG
+ * relabel: on a Snapdragon Samsung phone the request starts a vendor tone-map filter that aborts
+ * the media codec service on HDR reels.
  *
  * A second switch, Play SDR versions of HDR videos (#66), goes one step earlier: each DASH manifest
  * string Facebook parses goes to the extension's SdrRenditions first, which takes out an HDR
@@ -88,7 +91,7 @@ val turnOffHdrBrightnessPatch = bytecodePatch(
     name = "Turn off HDR brightness",
     description = "Stops HDR videos and photos from turning your screen up to full brightness, which can be " +
         "harsh in the dark. They keep their resolution. Starts off. Turn it on in Hushfacebook settings > " +
-        "Playback.",
+        "Video and audio.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, facebookExtensionPatch)
@@ -178,10 +181,12 @@ internal fun ownWindowCall(instruction: Instruction): String? {
 internal fun BytecodePatchContext.windowCallers(): Set<String> {
     val owners = mutableSetOf<String>()
     var colourModes = 0
-    classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_CLASSES)) return@classDefForEach
+    val names = listOf(SET_COLOR_MODE, SET_HDR_HEADROOM, IS_HDR, MODE_HDR_TYPES, CAPABILITY_HDR_TYPES, CODEC_CONFIGURE)
+        .map { it.substringAfter("->").substringBefore('(') }
+    classDefForEachReferencing(names = names) { classDef ->
+        if (classDef.type.startsWith(EXTENSION_CLASSES)) return@classDefForEachReferencing
         val calls = classDef.methods.flatMap { method -> method.implementation?.instructions?.mapNotNull(::ownWindowCall).orEmpty() }
-        if (calls.isEmpty()) return@classDefForEach
+        if (calls.isEmpty()) return@classDefForEachReferencing
         owners += classDef.type
         colourModes += calls.count { it == OWN_SET_COLOR_MODE }
     }
@@ -240,8 +245,8 @@ internal fun builtSurfaceView(instruction: Instruction): Int? {
  */
 internal fun BytecodePatchContext.surfaceViewBuilders(): Set<String> {
     val owners = mutableSetOf<String>()
-    classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_CLASSES)) return@classDefForEach
+    classDefForEachReferencing(types = listOf(SURFACE_VIEW)) { classDef ->
+        if (classDef.type.startsWith(EXTENSION_CLASSES)) return@classDefForEachReferencing
         if (classDef.methods.any { method -> method.implementation?.instructions?.any { builtSurfaceView(it) != null } == true }) {
             owners += classDef.type
         }

@@ -162,6 +162,27 @@ public final class FeedGuardForTests {
                 ShowcaseType.PATCHED, true, unit -> null, unit -> ((GraphQLStory) unit).A04());
     }
 
+    /** Stands in for Facebook's group join state enum, whose constants keep their names. */
+    public enum JoinState {
+        UNSET_OR_UNRECOGNIZED_ENUM_VALUE, CANNOT_JOIN_OR_REQUEST, CAN_JOIN, CAN_REQUEST, MEMBER, REQUESTED
+    }
+
+    /** A story's target that answers Group, as the {@code to} of a post in a group does. */
+    public static BaseModelWithTree group() {
+        return new BaseModelWithTree(GroupPosts.GROUP_TYPE) { };
+    }
+
+    /**
+     * The guard for a story posted to [target] whose join state is [state], through stand-ins for
+     * the two stubs Hide suggested and promoted posts fills for Hide posts from groups you're not in.
+     */
+    public static boolean hidesGroupPost(Object category, Object target, Object state) {
+        GroupPosts.Readers readers = new GroupPosts.Readers(story -> target, profile -> state);
+        return FeedFilter.hideEdge(category, new GraphQLStory(), true, true, unit -> null, false, GenAiLabel.PATCHED,
+                false, ShowcaseType.PATCHED, false, PostText.MESSAGE, PostText.ATTACHED, unit -> null, null, null, null,
+                readers);
+    }
+
     /** A story's message, of the type Facebook's posts carry, holding [text]. */
     public static BaseModelWithTree postText(String text) {
         return new BaseModelWithTree(PostText.TEXT_TYPE_TAG).with(PostText.TEXT_FIELD, text);

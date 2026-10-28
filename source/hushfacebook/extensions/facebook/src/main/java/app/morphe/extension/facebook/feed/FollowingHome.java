@@ -77,7 +77,7 @@ public final class FollowingHome {
     private static final String ANOTHER_TYPE = "another type";
 
     /**
-     * Feed types counted by name after {@link #LEFT_ALONE}. A family's report keeps 16 named counts,
+     * Feed types counted by name after {@link #LEFT_ALONE}. A family's report keeps 24 named counts,
      * and Home's own, one per filter and the most recent feed, have to fit after these.
      */
     private static final int LEFT_ALONE_NAMES = 8;

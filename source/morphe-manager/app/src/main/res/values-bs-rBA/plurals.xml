@@ -1,6 +1,218 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s zakrpa</item>
+        <item quantity="few">%s zakrpe</item>
+        <item quantity="other">%s zakrpa</item>
+    </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s biblioteka</item>
+        <item quantity="few">%s biblioteke</item>
+        <item quantity="other">%s biblioteka</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s opcija zakrpe</item>
+        <item quantity="few">%s opcije zakrpe</item>
+        <item quantity="other">%s opcija zakrpe</item>
+    </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s stavka</item>
+        <item quantity="few">%s stavke</item>
+        <item quantity="other">%s stavki</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Odaberite %s datoteku</item>
+        <item quantity="few">Odaberite %s datoteke</item>
+        <item quantity="other">Odaberite %s datoteka</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Dodaj %s izvor</item>
+        <item quantity="few">Dodaj %s izvora</item>
+        <item quantity="other">Dodaj %s izvora</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Izvori zakrpa za %s aplikaciju</item>
+        <item quantity="few">Izvori zakrpa za %s aplikacije</item>
+        <item quantity="other">Izvori zakrpa za %s aplikacija</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s izvor je skriven za ovu aplikaciju. Odaberite aplikaciju na kartici Aplikacije i otvorite Izvore zakrpa da biste ga vratili</item>
+        <item quantity="few">%s izvora su skrivena za ovu aplikaciju. Odaberite aplikaciju na kartici Aplikacije i otvorite Izvore zakrpa da biste ih vratili</item>
+        <item quantity="other">%s izvora je skriveno za ovu aplikaciju. Odaberite aplikaciju na kartici Aplikacije i otvorite Izvore zakrpa da biste ih vratili</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s izvor skriven. Dodirnite za prikaz</item>
+        <item quantity="few">%s izvora skrivena. Dodirnite za prikaz</item>
+        <item quantity="other">%s izvora skriveno. Dodirnite za prikaz</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s odgovarajuća zakrpa</item>
+        <item quantity="few">%s odgovarajuće zakrpe</item>
+        <item quantity="other">%s odgovarajućih zakrpa</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s izvor</item>
+        <item quantity="few">%s izvora</item>
+        <item quantity="other">%s izvora</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s paket</item>
+        <item quantity="few">%s paketa</item>
+        <item quantity="other">%s paketa</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">Izvršena %s zakrpa</item>
+        <item quantity="few">Izvršene %s zakrpe</item>
+        <item quantity="other">Izvršeno %s zakrpa</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK datoteka</item>
+        <item quantity="few">%s APK datoteke</item>
+        <item quantity="other">%s APK datoteka</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">Instalirana %s aplikacija</item>
+        <item quantity="few">Instalirane %s aplikacije</item>
+        <item quantity="other">Instalirano %s aplikacija</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Montirana %s aplikacija</item>
+        <item quantity="few">Montirane %s aplikacije</item>
+        <item quantity="other">Montirano %s aplikacija</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">Ponovo instalirana %s aplikacija</item>
+        <item quantity="few">Ponovo instalirane %s aplikacije</item>
+        <item quantity="other">Ponovo instalirano %s aplikacija</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">Deinstalirana %s aplikacija</item>
+        <item quantity="few">Deinstalirane %s aplikacije</item>
+        <item quantity="other">Deinstalirano %s aplikacija</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Deinstalirati %s aplikaciju?</item>
+        <item quantity="few">Deinstalirati %s aplikacije?</item>
+        <item quantity="other">Deinstalirati %s aplikacija?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s aplikacija spremna za zakrpanje</item>
+        <item quantity="few">%s aplikacije spremne za zakrpanje</item>
+        <item quantity="other">%s aplikacija spremnih za zakrpanje</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s aplikacija u redu za zakrpanje</item>
+        <item quantity="few">%s aplikacije u redu za zakrpanje</item>
+        <item quantity="other">%s aplikacija u redu za zakrpanje</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s skrivena obavijest, dodirnite za prikaz</item>
+        <item quantity="few">%s skrivene obavijesti, dodirnite za prikaz</item>
+        <item quantity="other">%s skrivenih obavijesti, dodirnite za prikaz</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s aplikacija se može ponovo zakrpati</item>
+        <item quantity="few">%s aplikacije se mogu ponovo zakrpati</item>
+        <item quantity="other">%s aplikacija se može ponovo zakrpati</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">Preskočena %s aplikacija</item>
+        <item quantity="few">Preskočene %s aplikacije</item>
+        <item quantity="other">Preskočeno %s aplikacija</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Uklonjena %s zastarjela zakrpa iz sačuvane selekcije</item>
+        <item quantity="few">Uklonjene %s zastarjele zakrpe iz sačuvane selekcije</item>
+        <item quantity="other">Uklonjeno %s zastarjelih zakrpa iz sačuvane selekcije</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">Instaliran %s izvor</item>
+        <item quantity="few">Instalirana %s izvora</item>
+        <item quantity="other">Instalirano %s izvora</item>
+    </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s skrivena aplikacija</item>
+        <item quantity="few">%s skrivene aplikacije</item>
+        <item quantity="other">%s skrivenih aplikacija</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s prikazana aplikacija</item>
+        <item quantity="few">%s prikazane aplikacije</item>
+        <item quantity="other">%s prikazanih aplikacija</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Ponovo prikaži %s aplikaciju?</item>
+        <item quantity="few">Ponovo prikaži %s aplikacije?</item>
+        <item quantity="other">Ponovo prikaži %s aplikacija?</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s skrivena aplikacija</item>
+        <item quantity="few">%s skrivene aplikacije</item>
+        <item quantity="other">%s skrivenih aplikacija</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s aplikacija</item>
+        <item quantity="few">%s aplikacije</item>
+        <item quantity="other">%s aplikacija</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s odabrano</item>
+        <item quantity="few">%s odabrana</item>
+        <item quantity="other">%s odabranih</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Kopirana %s zakrpa iz odabranog paketa</item>
+        <item quantity="few">Kopirane %s zakrpe iz odabranog paketa</item>
+        <item quantity="other">Kopirano %s zakrpa iz odabranog paketa</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s jezgro</item>
+        <item quantity="few">%s jezgra</item>
+        <item quantity="other">%s jezgara</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s funkcija</item>
+        <item quantity="few">%s funkcije</item>
+        <item quantity="other">%s funkcija</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s ispravka</item>
+        <item quantity="few">%s ispravke</item>
+        <item quantity="other">%s ispravki</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s optimizacija</item>
+        <item quantity="few">%s optimizacije</item>
+        <item quantity="other">%s optimizacija</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s promjena</item>
+        <item quantity="few">%s promjene</item>
+        <item quantity="other">%s promjena</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d nova</item>
+        <item quantity="few">%1$s · %2$d nove</item>
+        <item quantity="other">%1$s · %2$d novih</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s novo izdanje</item>
+        <item quantity="few">%s nova izdanja</item>
+        <item quantity="other">%s novih izdanja</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d link omogućen</item>
+        <item quantity="few">%d linka omogućena</item>
+        <item quantity="other">%d linkova omogućeno</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d neprovjeren link</item>
+        <item quantity="few">%d neprovjerena linka</item>
+        <item quantity="other">%d neprovjerenih linkova</item>
+    </plurals>
 </resources>

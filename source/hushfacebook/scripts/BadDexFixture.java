@@ -241,6 +241,8 @@ public class BadDexFixture {
     private static final ImmutableMethodReference WATCH_SEND = method(REEL_WATCH_HISTORY, "send", "V", EXECUTOR, RUNNABLE);
     /** The mutation's name and its input field, which the watch-history rule picks the flush by. */
     private static final List<String> SEEN_STATE = Arrays.asList("FbShortsSeenStateMutation", "video_ids");
+    /** The mutation's input, a class Redex renames, whose constructor loads the input field's name on 584. */
+    private static final String SEEN_INPUT = "Lfixture/SeenStateInput;";
 
     /** FeedUnitCollectionManager's swap runnable, a class Redex renames, and the feed collection it swaps into. */
     private static final String EDGE_SWAP = "Lfixture/EdgeSwap;";
@@ -1141,26 +1143,35 @@ public class BadDexFixture {
      * flag says so, as the tab links patch does.
      */
     private static ClassDef tabLinks(boolean launched, boolean friends, boolean configured) {
+        return tabLinks(launched, friends, configured, true);
+    }
+
+    /** The same, with the launch lookup handing back the extension's Object answer uncast unless [castBack]. */
+    private static ClassDef tabLinks(boolean launched, boolean friends, boolean configured, boolean castBack) {
         return new ImmutableClassDef(TAB_LINKS, AccessFlags.PUBLIC.getValue(), OBJECT, null, null, null, null,
                 Arrays.asList(
                         define(TAB_LINKS, "launchTab", TAB_TAG, false,
-                                tabLinkBody("extra_launch_uri", launched ? LAUNCHED_TAB : null, 5, 1), INTENT, FB_USER_SESSION),
+                                tabLinkBody("extra_launch_uri", launched ? LAUNCHED_TAB : null, 5, 1, castBack),
+                                INTENT, FB_USER_SESSION),
                         define(TAB_LINKS, "friendsLink", INTENT, false,
-                                tabLinkBody("DEEPLINK", friends ? FRIENDS_TAB : null, 6, 4), CONTEXT, INTENT, FB_USER_SESSION),
+                                tabLinkBody("DEEPLINK", friends ? FRIENDS_TAB : null, 6, 4, true), CONTEXT, INTENT, FB_USER_SESSION),
                         define(TAB_LINKS, "targetTabLink", INTENT, false, configuredTabBody(configured),
                                 CONTEXT, INTENT, FB_USER_SESSION)));
     }
 
-    /** [string] in v0 and no tab in v1, [hook] asked about the tab with its answer cast back, then v[returned] returned. */
+    /**
+     * [string] in v0 and no tab in v1, [hook] asked about the tab with its answer cast back when
+     * [castBack], then v[returned] returned.
+     */
     private static ImmutableMethodImplementation tabLinkBody(String string, ImmutableMethodReference hook, int registers,
-            int returned) {
+            int returned, boolean castBack) {
         List<Instruction> instructions = new ArrayList<>();
         instructions.add(new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference(string)));
         instructions.add(new ImmutableInstruction11n(Opcode.CONST_4, 1, 0));
         if (hook != null) {
             instructions.add(new ImmutableInstruction3rc(Opcode.INVOKE_STATIC_RANGE, 1, 1, hook));
             instructions.add(op(Opcode.MOVE_RESULT_OBJECT, 1));
-            instructions.add(new ImmutableInstruction21c(Opcode.CHECK_CAST, 1, new ImmutableTypeReference(TAB_TAG)));
+            if (castBack) instructions.add(new ImmutableInstruction21c(Opcode.CHECK_CAST, 1, new ImmutableTypeReference(TAB_TAG)));
         }
         instructions.add(op(Opcode.RETURN_OBJECT, returned));
         return new ImmutableMethodImplementation(registers, instructions, null, null);
@@ -1457,14 +1468,18 @@ public class BadDexFixture {
     }
 
     /**
-     * An instance method of the batcher taking nothing, this in v3: it loads [names] into v0, reads
-     * the send it built into v1 and its executor into v2, then makes [handOver], the calls handing
-     * the send over.
+     * An instance method of the batcher taking nothing, this in v3: it loads [names] into v0, builds
+     * an [input] there with its constructor taking nothing, unless [input] is null, reads the send it
+     * built into v1 and its executor into v2, then makes [handOver], the calls handing the send over.
      */
-    private static Method batcherMethod(String name, List<String> names, List<Instruction> handOver) {
+    private static Method batcherMethod(String name, List<String> names, String input, List<Instruction> handOver) {
         List<Instruction> instructions = new ArrayList<>();
         for (String held : names) {
             instructions.add(new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference(held)));
+        }
+        if (input != null) {
+            instructions.add(new ImmutableInstruction21c(Opcode.NEW_INSTANCE, 0, new ImmutableTypeReference(input)));
+            instructions.add(new ImmutableInstruction35c(Opcode.INVOKE_DIRECT, 1, 0, 0, 0, 0, 0, method(input, "<init>", "V")));
         }
         instructions.add(new ImmutableInstruction22c(Opcode.IGET_OBJECT, 1, 3, new ImmutableFieldReference(BATCHER, "send", RUNNABLE)));
         instructions.add(new ImmutableInstruction22c(Opcode.IGET_OBJECT, 2, 3, new ImmutableFieldReference(BATCHER, "executor", EXECUTOR)));
@@ -1483,24 +1498,40 @@ public class BadDexFixture {
         return Collections.singletonList(watchSend(2, 1));
     }
 
+    private static ClassDef batcher(List<Instruction> handOver, boolean describeSent, boolean secondFlush) {
+        return batcher(SEEN_INPUT, handOver, describeSent, secondFlush);
+    }
+
     /**
      * Facebook's batcher of watched reels. Its flush, an instance method taking nothing, holds the
-     * mutation's name and its input field and hands the send over with [handOver]. Facebook's
-     * batcher has nothing else holding either, but beside the flush here sit three methods holding
-     * part of what the watch-history rule picks it by, so a rule naming less would pass a hook in
-     * one of them: one taking nothing that holds the mutation's name alone and, with [describeSent],
-     * hands the send to the stand-in too, one holding both that is static, and one holding both
-     * that takes an int. With [secondFlush] a second method answers the rule, making Facebook's call.
+     * mutation's name, builds an [input], whose constructor holds the input field as on 584, and
+     * hands the send over with [handOver]. Facebook's batcher has nothing else holding either, but
+     * beside the flush here sit three methods holding part of what the watch-history rule picks it
+     * by, so a rule naming less would pass a hook in one of them: one taking nothing that holds the
+     * mutation's name alone and, with [describeSent], hands the send to the stand-in too, one holding
+     * both that is static, and one holding both that takes an int. With [secondFlush] a second
+     * method answers the rule, holding both itself as 583 did, and making Facebook's call.
      */
-    private static ClassDef batcher(List<Instruction> handOver, boolean describeSent, boolean secondFlush) {
+    private static ClassDef batcher(String input, List<Instruction> handOver, boolean describeSent, boolean secondFlush) {
         List<Method> methods = new ArrayList<>();
-        methods.add(batcherMethod("flush", SEEN_STATE, handOver));
-        methods.add(batcherMethod("describe", SEEN_STATE.subList(0, 1),
+        methods.add(batcherMethod("flush", SEEN_STATE.subList(0, 1), input, handOver));
+        methods.add(batcherMethod("describe", SEEN_STATE.subList(0, 1), null,
                 describeSent ? heldBack() : Collections.<Instruction>emptyList()));
         methods.add(holding(BATCHER, "flushAll", true, SEEN_STATE));
         methods.add(holding(BATCHER, "flushSome", false, SEEN_STATE, "I"));
-        if (secondFlush) methods.add(batcherMethod("flushAgain", SEEN_STATE, handedOver()));
+        if (secondFlush) methods.add(batcherMethod("flushAgain", SEEN_STATE, null, handedOver()));
         return new ImmutableClassDef(BATCHER, AccessFlags.PUBLIC.getValue(), OBJECT, null, null, null, null, methods);
+    }
+
+    /** The mutation's input: its one constructor, taking nothing, loads the input field's name. */
+    private static ClassDef seenStateInput() {
+        Method constructor = new ImmutableMethod(SEEN_INPUT, "<init>", Collections.<ImmutableMethodParameter>emptyList(),
+                "V", AccessFlags.PUBLIC.getValue() | AccessFlags.CONSTRUCTOR.getValue(), null, null,
+                body(2, new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference(SEEN_STATE.get(1))),
+                        new ImmutableInstruction35c(Opcode.INVOKE_DIRECT, 1, 1, 0, 0, 0, 0, method(OBJECT, "<init>", "V")),
+                        op(Opcode.RETURN_VOID)));
+        return new ImmutableClassDef(SEEN_INPUT, AccessFlags.PUBLIC.getValue() | AccessFlags.FINAL.getValue(), OBJECT,
+                null, null, null, null, Collections.singletonList(constructor));
     }
 
     /** The extension's stand-in, static, v0 the executor and v1 the send: it makes the real call. */
@@ -1730,7 +1761,7 @@ public class BadDexFixture {
                 stub(REEL_MID_CARDS, "midCardType", FILLED_MID_CARD_STUB),
                 emojiProvider(emojiHook(), Collections.<Instruction>emptyList()), systemEmoji(),
                 emojiPictures(emojiPicturesHook(), Collections.<Instruction>emptyList()),
-                batcher(heldBack(), false, false), reelWatchHistory(), edgeSwap(swapGuard(), false, false),
+                batcher(heldBack(), false, false), seenStateInput(), reelWatchHistory(), edgeSwap(swapGuard(), false, false),
                 messengerBar(messengerHook(), Collections.<Instruction>emptyList(), buttonHook(),
                         Collections.<Instruction>emptyList()), messengerIcon(),
                 reelLikeHelper(likeHook(), Collections.<Instruction>emptyList()),
@@ -1752,7 +1783,7 @@ public class BadDexFixture {
                 topBar(false, false, 1),
                 emojiProvider(Collections.<Instruction>emptyList(), Collections.<Instruction>emptyList()),
                 emojiPictures(Collections.<Instruction>emptyList(), Collections.<Instruction>emptyList()),
-                batcher(handOver, false, false), edgeSwap(Collections.<Instruction>emptyList(), false, false),
+                batcher(handOver, false, false), seenStateInput(), edgeSwap(Collections.<Instruction>emptyList(), false, false),
                 messengerBar(Collections.<Instruction>emptyList(), Collections.<Instruction>emptyList(),
                         Collections.<Instruction>emptyList(), Collections.<Instruction>emptyList()),
                 reelLikeHelper(Collections.<Instruction>emptyList(), Collections.<Instruction>emptyList()),
@@ -2316,6 +2347,9 @@ public class BadDexFixture {
         dexes.put("bad-tab-links-launch-hook-missing", replaced(good(), tabLinks(false, true, true)));
         dexes.put("bad-tab-links-friends-hook-missing", replaced(good(), tabLinks(true, false, true)));
         dexes.put("bad-tab-links-check-hook-missing", replaced(good(), tabLinks(true, true, false)));
+        // type: the launch lookup returns the extension's Object answer without casting it back to
+        // the TabTag it's declared to return, the shape that failed Comment sheet options in 0.16.0.
+        dexes.put("bad-uncast-return", replaced(good(), tabLinks(true, true, true, false)));
 
         // contract: each of the sources filter's story stubs left as the extension ships it.
         dexes.put("bad-post-message-stub-not-filled", replaced(good(), postText(UNFILLED_STUB, FILLED_STUB)));
@@ -2393,6 +2427,9 @@ public class BadDexFixture {
         // contract: a second method answering the watch-history rule, so it can't say which one
         // the hook belongs in, although the hook is where it was.
         dexes.put("bad-watch-two-flushes", replaced(good(), batcher(heldBack(), false, true)));
+        // contract: the flush building something whose constructor loads no input field, so no
+        // method holds the rule's strings and the hook in the flush stands for nothing.
+        dexes.put("bad-watch-input-unnamed", replaced(good(), batcher(OBJECT, heldBack(), false, false)));
 
         // contract: the swap runnable with no feed guard, so every edge it swaps in goes in unchecked.
         dexes.put("bad-swap-hook-missing", replaced(good(), edgeSwap(Collections.<Instruction>emptyList(), false, false)));

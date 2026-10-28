@@ -42,6 +42,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import app.morphe.extension.facebook.media.ResumePlaybackForTests;
+import app.morphe.extension.facebook.media.SkipSilenceForTests;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.diagnostics.HookStatus;
@@ -96,7 +98,10 @@ public class VideoMenuItemTest {
         MediaDownload.policyForTests = null;
         MediaDownload.detailsForTests = null;
         PauseForTests.resume();
+        SkipSilenceForTests.forget();
+        Settings.SKIP_SILENT_PARTS.resetToDefault();
         Settings.DOWNLOAD_VIDEOS.resetToDefault();
+        Settings.POST_MENU_DOWNLOAD_FIRST.resetToDefault();
         LogBufferManager.clearLogBuffer();
         HookStatus.clear();
     }
@@ -155,6 +160,52 @@ public class VideoMenuItemTest {
                 HookStatus.report().contains("Download any video: invoked 1, 1 found, 0 missing"));
     }
 
+    /** Download first (#151): the item rides above Facebook's rows, which keep their order and ids. */
+    @Test
+    public void downloadFirstPutsTheItemOnTop() {
+        Settings.POST_MENU_DOWNLOAD_FIRST.save(true);
+        Menu menu = filled(VideoMenuItemForTests.videoPost());
+
+        assertEquals(3, menu.size());
+        assertEquals("Download to phone", String.valueOf(menu.getItem(0).getTitle()));
+        assertEquals("Save video", String.valueOf(menu.getItem(1).getTitle()));
+        assertEquals("Download video", String.valueOf(menu.getItem(2).getTitle()));
+
+        Settings.POST_MENU_DOWNLOAD_FIRST.save(false);
+        assertEquals("Download to phone", String.valueOf(filled(VideoMenuItemForTests.videoPost()).getItem(2).getTitle()));
+    }
+
+    /**
+     * Facebook's own post menu sorts rows by their plain order number, where Android's top category
+     * is a big number that sinks the row to the bottom (S22, 583, 2026-10-18). The row still goes on
+     * top there, and below Facebook's rows with the switch off.
+     */
+    @Test
+    public void downloadFirstTopsFacebooksOwnSortedMenu() {
+        Settings.POST_MENU_DOWNLOAD_FIRST.save(true);
+        Menu menu = VideoMenuItemForTests.facebooksSortedMenu();
+        VideoMenuItem.add(menu, new View(context), VideoMenuItemForTests.videoPost(), ICON, ATTACHMENTS, MEDIA, ATTACHED_STORY);
+
+        assertEquals(3, menu.size());
+        assertEquals("Download to phone", String.valueOf(menu.getItem(0).getTitle()));
+        assertEquals("Save video", String.valueOf(menu.getItem(1).getTitle()));
+        assertEquals("Download video", String.valueOf(menu.getItem(2).getTitle()));
+
+        Settings.POST_MENU_DOWNLOAD_FIRST.save(false);
+        Menu below = VideoMenuItemForTests.facebooksSortedMenu();
+        VideoMenuItem.add(below, new View(context), VideoMenuItemForTests.videoPost(), ICON, ATTACHMENTS, MEDIA, ATTACHED_STORY);
+        assertEquals("Download to phone", String.valueOf(below.getItem(2).getTitle()));
+    }
+
+    /** A post with nothing to save gets no row on top either, and a pause keeps the menu Facebook's. */
+    @Test
+    public void downloadFirstAddsNothingWithNothingToSaveOrWhenPaused() {
+        Settings.POST_MENU_DOWNLOAD_FIRST.save(true);
+        assertEquals(2, filled(new GraphQLStory(null)).size());
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertEquals(2, filled(VideoMenuItemForTests.videoPost()).size());
+    }
+
     @Test
     public void offOrPausedTheMenuIsFacebooksOwn() {
         Settings.DOWNLOAD_VIDEOS.save(false);
@@ -168,6 +219,44 @@ public class VideoMenuItemTest {
         }
         PauseForTests.resume();
         assertEquals("running again", 3, filled(VideoMenuItemForTests.videoPost()).size());
+    }
+
+    /** Skip silent parts (#144): its row goes below Facebook's, and a tap keeps that video's silent parts. */
+    @Test
+    public void skipSilentPartsAddsItsRowBelowTheDownloadItem() {
+        Settings.SKIP_SILENT_PARTS.save(true);
+        SkipSilenceForTests.playing("1234567890123456");
+        Menu menu = filled(VideoMenuItemForTests.videoPost());
+
+        assertEquals(4, menu.size());
+        assertEquals("Download to phone", String.valueOf(menu.getItem(2).getTitle()));
+        assertEquals("Skip silent parts: on", String.valueOf(menu.getItem(3).getTitle()));
+    }
+
+    /** Alone, the row is the menu's only one without an id, so a tap by id reaches it. */
+    @Test
+    public void skipSilentPartsAloneGetsItsRowAndNoDownloadCount() {
+        Settings.DOWNLOAD_VIDEOS.save(false);
+        Settings.SKIP_SILENT_PARTS.save(true);
+        assertEquals("a row before any video started", 2, filled(VideoMenuItemForTests.videoPost()).size());
+
+        ResumePlaybackForTests.Player player = SkipSilenceForTests.playing("1234567890123456");
+        Menu menu = filled(VideoMenuItemForTests.videoPost());
+        assertEquals(3, menu.size());
+        MenuItem row = menu.getItem(2);
+        assertEquals("Skip silent parts: on", String.valueOf(row.getTitle()));
+        assertTrue("the tap wasn't taken", menu.performIdentifierAction(row.getItemId(), 0));
+        assertEquals("the playing video wasn't sought in place", Collections.singletonList("BY_PLAYER@12000"), player.seeks);
+        assertEquals("Skip silent parts: off for this video",
+                String.valueOf(filled(VideoMenuItemForTests.videoPost()).getItem(2).getTitle()));
+        assertEquals("a post without a video got the row", 2, filled(new GraphQLStory(null)).size());
+        for (String line : HookStatus.report()) {
+            assertFalse("Download any video counted a menu it added nothing to: " + line,
+                    line.startsWith("Download any video:"));
+        }
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertEquals("paused, the menu got the row", 2, filled(VideoMenuItemForTests.videoPost()).size());
     }
 
     @Test

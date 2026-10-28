@@ -6,6 +6,13 @@
         <item quantity="many">%s záplat</item>
         <item quantity="other">%s záplat</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s knihovna</item>
+        <item quantity="few">%s knihovny</item>
+        <item quantity="many">%s knihoven</item>
+        <item quantity="other">%s knihoven</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s možnost záplaty</item>
         <item quantity="few">%s možnosti záplaty</item>
@@ -38,6 +45,12 @@
         <item quantity="few">Zdroje záplat pro %s aplikace</item>
         <item quantity="many">Zdroje záplat pro %s aplikací</item>
         <item quantity="other">Zdroje záplat pro %s aplikací</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">Zdroj %s je pro tuto aplikaci skrytý. Vyberte aplikaci na kartě Aplikace a otevřete Opravit zdroje, abyste ho znovu viděli</item>
+        <item quantity="few">Zdroje %s jsou pro tuto aplikaci skryté. Vyberte aplikaci na kartě Aplikace a otevřete Opravit zdroje, abyste je znovu viděli</item>
+        <item quantity="many">Zdroje %s jsou pro tuto aplikaci skryté. Vyberte aplikaci na kartě Aplikace a otevřete Opravit zdroje, abyste je znovu viděli</item>
+        <item quantity="other">Zdroje %s jsou pro tuto aplikaci skryté. Vyberte aplikaci na kartě Aplikace a otevřete Opravit zdroje, abyste je znovu viděli</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s skrytý zdroj. Klepnutím zobrazíte</item>
@@ -81,6 +94,12 @@
         <item quantity="many">Nainstalovány %s aplikace</item>
         <item quantity="other">Nainstalovány %s aplikace</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Připojena %s aplikace</item>
+        <item quantity="few">Připojeny %s aplikace</item>
+        <item quantity="many">Připojeno %s aplikace</item>
+        <item quantity="other">Připojeno %s aplikací</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Přeinstalována %s aplikace</item>
         <item quantity="few">Přeinstalovány %s aplikace</item>
@@ -104,6 +123,18 @@
         <item quantity="few">%s aplikace připraveny k opravě</item>
         <item quantity="many">%s aplikace připraveny k opravě</item>
         <item quantity="other">%s aplikace připraveny k opravě</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">Aplikace %s čeká na aktualizaci</item>
+        <item quantity="few">Aplikace %s čekají na aktualizaci</item>
+        <item quantity="many">Aplikace %s čekají na aktualizaci</item>
+        <item quantity="other">Aplikace %s čeká na aktualizaci</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s skryté upozornění, klepnutím zobrazit</item>
+        <item quantity="few">%s skrytá upozornění, klepnutím zobrazit</item>
+        <item quantity="many">%s skrytých upozornění, klepnutím zobrazit</item>
+        <item quantity="other">%s skrytých upozornění, klepnutím zobrazit</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s aplikace může být znovu opravena</item>
@@ -129,11 +160,23 @@
         <item quantity="many">%s zdrojů nainstalováno</item>
         <item quantity="other">%s zdrojů nainstalováno</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s filtrováno</item>
-        <item quantity="few">%1$s · %2$s filtrováno</item>
-        <item quantity="many">%1$s · %2$s filtrováno</item>
-        <item quantity="other">%1$s · %2$s filtrováno</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">Aplikace %s skryté</item>
+        <item quantity="few">%s aplikace skryty</item>
+        <item quantity="many">%s aplikací skryto</item>
+        <item quantity="other">%s aplikací skryto</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">Aplikace %s zobrazena</item>
+        <item quantity="few">%s aplikace zobrazeny</item>
+        <item quantity="many">%s aplikací zobrazeno</item>
+        <item quantity="other">%s aplikací zobrazeno</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Zobrazit aplikaci %s?</item>
+        <item quantity="few">Zobrazit aplikace %s?</item>
+        <item quantity="many">Zobrazit aplikací %s?</item>
+        <item quantity="other">Zobrazit aplikací %s?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s skrytá aplikace</item>
@@ -188,6 +231,13 @@
         <item quantity="few">%s změny</item>
         <item quantity="many">%s změn</item>
         <item quantity="other">%s změn</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d nový</item>
+        <item quantity="few">%1$s · %2$d nové</item>
+        <item quantity="many">%1$s · %2$d nových</item>
+        <item quantity="other">%1$s · %2$d nových</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s nová verze</item>

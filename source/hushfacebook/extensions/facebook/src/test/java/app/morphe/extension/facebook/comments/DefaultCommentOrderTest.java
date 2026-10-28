@@ -568,6 +568,72 @@ public class DefaultCommentOrderTest {
         assertEquals(RELEVANT, DefaultCommentOrder.requestedOrder(null, "post-2", null));
     }
 
+    /**
+     * #192: a post's own page, the one a link or a notification opens, builds its request another
+     * way than the sheet, and that request asks for the chosen order too. A named order, Facebook's
+     * own choice, the switch off, a pause, a failure and a build without the patch all leave it.
+     */
+    @Test
+    public void aPostsOwnPageAsksForTheChosenOrderToo() {
+        Settings.COMMENT_ORDER.save(CommentOrder.NEWEST);
+        assertEquals(NEWEST, DefaultCommentOrder.pageOrder(null));
+        assertEquals(NEWEST, DefaultCommentOrder.pageOrder(""));
+        assertEquals("a named order stays", RELEVANT, DefaultCommentOrder.pageOrder(RELEVANT));
+        Settings.COMMENT_ORDER.save(CommentOrder.MOST_RELEVANT);
+        assertEquals(RELEVANT, DefaultCommentOrder.pageOrder(null));
+        Settings.COMMENT_ORDER.save(CommentOrder.FACEBOOK);
+        assertNull(DefaultCommentOrder.pageOrder(null));
+
+        Settings.COMMENT_ORDER.save(CommentOrder.NEWEST);
+        Settings.DEFAULT_COMMENT_ORDER.save(false);
+        assertNull(DefaultCommentOrder.pageOrder(null));
+        Settings.DEFAULT_COMMENT_ORDER.save(true);
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertNull(DefaultCommentOrder.pageOrder(null));
+        PauseForTests.resume();
+
+        DefaultCommentOrder.failNextForTests = new IllegalStateException("for this test");
+        assertNull(DefaultCommentOrder.pageOrder(null));
+        String line = statusLine();
+        assertNotNull(line);
+        assertTrue(line, line.contains("'post page request' hook (it threw java.lang.IllegalStateException)"));
+        assertEquals(NEWEST, DefaultCommentOrder.pageOrder(null));
+
+        HookStatus.clear();
+        DefaultCommentOrderForTests.inBuild(Boolean.FALSE);
+        assertNull(DefaultCommentOrder.pageOrder(null));
+        assertNull("a build without the patch reports nothing", statusLine());
+        DefaultCommentOrderForTests.inBuild(Boolean.TRUE);
+    }
+
+    /**
+     * All comments on a post's page goes out with Facebook's order, like the sheet's, and the next
+     * menu drawn within the window picks it, whichever post it belongs to, once.
+     */
+    @Test
+    public void allCommentsOnAPostsPageIsPickedInTheMenuDrawnNext() {
+        Settings.COMMENT_ORDER.save(CommentOrder.ALL_COMMENTS);
+        DefaultCommentOrder.mainForTests = Runnable::run;
+        assertNull(DefaultCommentOrder.pageOrder(null));
+        assertEquals(Collections.singletonList(ALL), openMenu(POST, RELEVANT, RELEVANT, NEWEST, ALL));
+        assertTrue("picked once", openMenu(OTHER_POST, RELEVANT, RELEVANT, NEWEST, ALL).isEmpty());
+
+        // A sheet's own request keeps its menu, and the page's wait is still there for another.
+        assertNull(DefaultCommentOrder.pageOrder(null));
+        assertNull(DefaultCommentOrder.requestedOrder(null, "post-3", null));
+        assertEquals(Collections.singletonList(ALL), openMenu("post-3", RELEVANT, RELEVANT, ALL));
+        assertEquals(Collections.singletonList(ALL), openMenu("post-4", RELEVANT, RELEVANT, ALL));
+
+        assertNull(DefaultCommentOrder.pageOrder(null));
+        DefaultCommentOrder.nowForTests = 1_000L + DefaultCommentOrder.AWAIT_WINDOW_MS + 1;
+        assertTrue("too late", openMenu("post-5", RELEVANT, RELEVANT, ALL).isEmpty());
+
+        String line = statusLine();
+        assertNotNull(line);
+        assertTrue(line, line.contains("All comments left for the menu 4"));
+        assertTrue(line, line.contains("All comments picked in the menu 3"));
+    }
+
     /** A failure in the hook leaves the request as it was and says so in Hook status. */
     @Test
     public void aFailureLeavesTheRequestAlone() {

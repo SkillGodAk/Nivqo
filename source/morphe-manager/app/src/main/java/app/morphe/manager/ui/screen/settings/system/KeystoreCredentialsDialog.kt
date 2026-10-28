@@ -9,10 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.FolderZip
-import androidx.compose.material.icons.outlined.Key
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -24,20 +20,22 @@ import app.morphe.manager.R
 import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.util.KeystoreInputFormat
 import app.morphe.manager.util.enumByNameOrNull
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 
 /**
  * Keystore Credentials Dialog.
  * Allows entering alias and password for keystore import.
  */
 @Composable
-fun KeystoreCredentialsDialog(
+fun DialogHostScope.KeystoreCredentialsDialog(
     onDismiss: () -> Unit,
     initialFormat: KeystoreInputFormat = KeystoreInputFormat.KEYSTORE,
-    onSubmit: (alias: String, keyPassword: String, storePassword: String, format: KeystoreInputFormat) -> Unit
+    onSubmit: (alias: String, keyPassword: String, format: KeystoreInputFormat) -> Unit
 ) {
-    var alias by rememberSaveable { mutableStateOf("") }
-    var pass by rememberSaveable { mutableStateOf("") }
-    var format by rememberSaveable(initialFormat) { mutableStateOf(initialFormat) }
+    val alias = rememberSaveable { mutableStateOf("") }
+    val pass = rememberSaveable { mutableStateOf("") }
+    val format = rememberSaveable(initialFormat) { mutableStateOf(initialFormat) }
 
     AppDialog(
         onDismissRequest = onDismiss,
@@ -46,7 +44,7 @@ fun KeystoreCredentialsDialog(
         footer = {
             AppDialogButtonRow(
                 primaryText = stringResource(R.string.import_),
-                onPrimaryClick = { onSubmit(alias, pass, "", format) },
+                onPrimaryClick = { onSubmit(alias.value, pass.value, format.value) },
                 secondaryText = stringResource(android.R.string.cancel),
                 onSecondaryClick = onDismiss
             )
@@ -54,23 +52,23 @@ fun KeystoreCredentialsDialog(
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)
         ) {
             // Format selector
             val formatItems = remember {
                 KeystoreInputFormat.entries.associate { it.displayName to it.name }
             }
             AppDialogDropdownTextField(
-                value = format.name,
+                value = format.value.name,
                 onValueChange = { name ->
-                    format = enumByNameOrNull<KeystoreInputFormat>(name) ?: format
+                    format.value = enumByNameOrNull<KeystoreInputFormat>(name) ?: format.value
                 },
                 dropdownItems = formatItems,
                 allowCustomValue = false,
                 label = { Text(stringResource(R.string.settings_system_import_keystore_dialog_format_field)) },
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Outlined.FolderZip,
+                        imageVector = MaterialSymbols.Rounded.Folder_zip,
                         contentDescription = null
                     )
                 }
@@ -78,14 +76,14 @@ fun KeystoreCredentialsDialog(
 
             // Alias Input
             AppDialogTextField(
-                value = alias,
-                onValueChange = { alias = it },
+                value = alias.value,
+                onValueChange = { alias.value = it },
                 label = {
                     Text(stringResource(R.string.settings_system_import_keystore_dialog_alias_field))
                 },
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Outlined.Person,
+                        imageVector = MaterialSymbols.Rounded.Person,
                         contentDescription = null
                     )
                 },
@@ -94,14 +92,14 @@ fun KeystoreCredentialsDialog(
 
             // Password Input
             AppDialogTextField(
-                value = pass,
-                onValueChange = { pass = it },
+                value = pass.value,
+                onValueChange = { pass.value = it },
                 label = {
                     Text(stringResource(R.string.settings_system_import_keystore_dialog_password_field))
                 },
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Outlined.Key,
+                        imageVector = MaterialSymbols.Rounded.Key,
                         contentDescription = null
                     )
                 },

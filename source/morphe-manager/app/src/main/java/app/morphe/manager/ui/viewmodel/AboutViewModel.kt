@@ -5,15 +5,13 @@
 
 package app.morphe.manager.ui.viewmodel
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Article
-import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.NewReleases
 import androidx.lifecycle.ViewModel
-import compose.icons.FontAwesomeIcons
-import compose.icons.fontawesomeicons.Brands
-import compose.icons.fontawesomeicons.brands.Github
+import app.morphe.manager.ui.screen.shared.autoMirrored
+import app.morphe.manager.util.MORPHE_WEBSITE_URL
+import com.composables.icons.fontawesome.FontAwesome
+import com.composables.icons.fontawesome.brands.*
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 
 data class SocialLink(
     val name: String,
@@ -46,12 +44,13 @@ class AboutViewModel : ViewModel() {
         )
 
         private val socialIcons = mapOf(
-            "GitHub" to FontAwesomeIcons.Brands.Github,
-            "Releases" to Icons.Outlined.NewReleases,
-            "Changelog" to Icons.AutoMirrored.Outlined.Article,
-            "Issues" to Icons.Outlined.BugReport,
+            "Website" to MaterialSymbols.Rounded.Public,
+            "GitHub" to FontAwesome.Brands.Github,
+            "Changelog" to MaterialSymbols.Rounded.Article.autoMirrored,
+            "Reddit" to FontAwesome.Brands.Reddit,
+            "Crowdin" to MaterialSymbols.Rounded.Translate,
         )
 
-        fun getSocialIcon(name: String) = socialIcons[name] ?: Icons.Outlined.Language
+        fun getSocialIcon(name: String) = socialIcons[name] ?: MaterialSymbols.Rounded.Language
     }
 }

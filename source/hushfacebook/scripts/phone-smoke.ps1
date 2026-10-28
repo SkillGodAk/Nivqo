@@ -41,7 +41,9 @@ param(
 )
 
 $Package = 'com.facebook.katana'
-$Entry = "$Package/.LoginActivity"
+$LauncherClass = 'com.facebook.katana.LoginActivity'
+# Resolved from the phone before anything starts: an alternate app icon turns .LoginActivity off.
+$Entry = $null
 # Reports go next to the crash files; builds before that saved them in Download/Morphe.
 $ReportGlob = '/sdcard/Download/Hushfacebook/morphe-diagnostics-*.txt /sdcard/Download/Morphe/morphe-diagnostics-*.txt'
 
@@ -201,6 +203,8 @@ if ($Apk) {
     if ($install -notmatch 'Success') { throw "adb install failed: $install" }
 }
 
+$Entry = "$Package/$(Select-AndroidLauncher -Lines @(Invoke-Adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER $Package) -PackageName $Package -LauncherClass $LauncherClass)"
+
 Invoke-Adb shell input keyevent KEYCODE_WAKEUP | Out-Null
 $keyguard = (Invoke-Adb shell dumpsys window) -join "`n"
 if ($keyguard -match 'mDreamingLockscreen=true|isKeyguardShowing=true|mShowingLockscreen=true') {
@@ -231,7 +235,9 @@ foreach ($uri in $Visit) {
 }
 
 Write-Host '[smoke] saving the diagnostic report'
-Invoke-Adb shell am start -W -n $Entry --ez app.morphe.extension.facebook.OPEN_SETTINGS true `
+# Clear to the launcher: with the walk's last page on top, Android would drop an intent that
+# matches the task's root and differs only by extras.
+Invoke-Adb shell am start -W --activity-clear-top -n $Entry --ez app.morphe.extension.facebook.OPEN_SETTINGS true `
     --es app.morphe.extension.facebook.SHOW_SETTING action_export_diagnostic_report | Out-Null
 Start-Sleep -Seconds $SettleSeconds
 Invoke-TapLabel $ExportLabel
@@ -256,10 +262,10 @@ foreach ($problem in $result.Problems) { $problems.Add($problem) }
 
 # Facebook's own crashes during the walk, from the crash buffer, which outlives the report's
 # single latest-crash slot.
-$crashes = @(Invoke-Adb logcat -b crash -d -v epoch) | Where-Object {
+$crashes = @(Invoke-Adb shell logcat -b crash -d -v epoch) | Where-Object {
     $_ -match '^\s*(\d+)\.\d+\s' -and [long]$Matches[1] -ge $startedEpoch
 }
-$fatal = @($crashes | Where-Object { $_ -match "Process: $([regex]::Escape($Package))\b" })
+$fatal = @($crashes | Where-Object { $_ -match "Process: $([regex]::Escape($Package))(?=[:,\s]|$)" })
 if ($fatal.Count -gt 0) { $problems.Add("Facebook crashed during the walk: $($fatal[0].Trim())") }
 if ($crashes.Count -gt 0) { [IO.File]::WriteAllLines((Join-Path $OutDir 'crash-buffer.txt'), [string[]]$crashes) }
 

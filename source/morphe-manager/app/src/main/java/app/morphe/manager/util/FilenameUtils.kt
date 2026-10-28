@@ -23,14 +23,16 @@ object FilenameUtils {
         DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss").withZone(ZoneId.systemDefault())
 
     /**
-     * Sanitize a string so it can safely be used as part of a filename.
+     * Sanitize a string so it can safely be used as part of a filename. [keepScripts] keeps
+     * letters and digits of any script, for names a person reads rather than paths the app rebuilds.
      */
-    fun sanitize(segment: String): String {
+    fun sanitize(segment: String, keepScripts: Boolean = false): String {
         if (segment.isEmpty()) return ""
         val raw = buildString(segment.length) {
             segment.forEach { char ->
                 val sanitized = when {
                     char in '0'..'9' || char in 'a'..'z' || char in 'A'..'Z' -> char
+                    keepScripts && char.isLetterOrDigit() -> char
                     char == '-' || char == '_' || char == '.' -> char
                     char.isWhitespace() -> '_'
                     char == '\'' || char == '"' || char == '`' -> null

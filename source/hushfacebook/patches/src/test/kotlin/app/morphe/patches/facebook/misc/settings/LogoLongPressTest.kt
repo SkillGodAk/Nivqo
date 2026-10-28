@@ -24,6 +24,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -84,6 +85,36 @@ class LogoLongPressTest {
             after.map { it.call() }.filterIndexed { index, _ -> index != 3 })
     }
 
+    /**
+     * 583's builder has a path that gives the logo no tap (#12, taken in Arabic): it hides the logo
+     * from accessibility and jumps past the tap and the touch listener. That call on the logo goes
+     * to its own stand-in on Facebook's registers; the same call on another view stays Facebook's.
+     */
+    @Test
+    fun theLogosPathWithNoTapGoesToItsStandIn() {
+        val hides = SettingsPatchHosts.viewCall("setImportantForAccessibility", "I")
+        val bar = SettingsPatchHosts.bar(
+            loads(0, CREATE_WORDMARK_VIEW),
+            on(2, 4, hides),
+            on(1, 4, hides),
+            on(1, 2, setOnClickListener),
+            on(1, 3, setOnTouchListener),
+            on(1, 0, setContentDescription),
+            ImmutableInstruction10x(Opcode.RETURN_VOID),
+        )
+
+        val after = patched(listOf(bar)) { hookLogoLongPress() }
+
+        assertEquals("instruction count", 7, after.size)
+        assertEquals(Opcode.INVOKE_STATIC, after[2].opcode)
+        assertEquals(LOGO_WITHOUT_TAP_STAND_IN, after[2].call())
+        assertEquals("the logo, then Facebook's importance", listOf(1, 4), after[2].registers())
+        assertEquals("another view's importance is Facebook's", Opcode.INVOKE_VIRTUAL, after[1].opcode)
+        assertEquals(hides.toString(), after[1].call())
+        assertEquals("the logo's tap is Facebook's, as it was", LOGO_CLICK_CALL, after[3].call())
+        assertEquals(LOGO_TOUCH_STAND_IN, after[4].call())
+    }
+
     @Test
     fun aRangeCallStaysARangeCall() {
         val bar = SettingsPatchHosts.barWith(builder("initContents", ImmutableMethodImplementation(20, listOf(
@@ -120,6 +151,9 @@ class LogoLongPressTest {
             .contains("no longer followed by its touch listener"))
         assertTrue(refusal(bar(loaded, on(1, 2, setOnClickListener), on(2, 3, setOnTouchListener)))
             .contains("goes to another view (v2, not v1)"))
+        val hides = SettingsPatchHosts.viewCall("setImportantForAccessibility", "I")
+        assertTrue(refusal(bar(loaded, on(1, 4, hides), on(1, 4, hides), on(1, 2, setOnClickListener), on(1, 3, setOnTouchListener)))
+            .contains("at most once before its tap; it does 2 times"))
     }
 
     /**
@@ -134,6 +168,7 @@ class LogoLongPressTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "$ENTRY->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("SettingsEntry declares no public static $LOGO_TOUCH_STAND_IN: $declared", LOGO_TOUCH_STAND_IN in declared)
+        assertTrue("SettingsEntry declares no public static $LOGO_WITHOUT_TAP_STAND_IN: $declared", LOGO_WITHOUT_TAP_STAND_IN in declared)
     }
 
     /**
@@ -162,21 +197,33 @@ class LogoLongPressTest {
     /** The builder's other trace section, which only it holds. */
     private val initContents = "WordmarkNavigationBar.initContents"
 
-    /** Where each declared bundle gives its logo the touch listener, and the registers it uses. */
-    private data class Pin(val index: Int, val registers: List<Int>)
+    /**
+     * Where each declared bundle gives its logo the touch listener, and the registers it uses, then
+     * where its path with no tap hides the logo from accessibility, and that call's registers.
+     */
+    private data class Pin(val index: Int, val registers: List<Int>, val withoutTap: Int, val withoutTapRegisters: List<Int>)
 
     /**
      * By build, then by the bundle's ABI. 581's two builds put the call at the same index; 582's
      * armeabi-v7a build had nine more instructions ahead of it, and 583's two put it at the same
      * index again (the builder is `A0J` on arm64 and `A0I` on armeabi-v7a, the click listener one
-     * instruction before).
+     * instruction before). 583's two hide the logo at 157 on the path with no tap, then jump past
+     * the description. 584's two builds both have the builder at `A0G`, the touch listener at 123
+     * and the logo hidden at 114, on the same registers.
      */
     private val pins = mapOf(
-        "583.0.0.39.55" to mapOf(
-            "arm64-v8a" to Pin(170, listOf(11, 1)),
-            "armeabi-v7a" to Pin(170, listOf(11, 1)),
+        "584.0.0.51.56" to mapOf(
+            "arm64-v8a" to Pin(123, listOf(6, 3), 114, listOf(6, 10)),
+            "armeabi-v7a" to Pin(123, listOf(6, 3), 114, listOf(6, 10)),
         ),
     )
+
+    /** The index the goto at [index] of [instructions] jumps to. */
+    private fun gotoTarget(instructions: List<Instruction>, index: Int): Int {
+        val addresses = instructions.runningFold(0) { address, it -> address + it.codeUnits }
+        val target = addresses[index] + (instructions[index] as OffsetInstruction).codeOffset
+        return addresses.indexOf(target)
+    }
 
     /**
      * Both declared builds keep the top bar's class name and give the logo its tap, its touch
@@ -214,6 +261,13 @@ class LogoLongPressTest {
                 assertEquals("${bundle.name}: the logo's description comes next",
                     SettingsPatchHosts.setContentDescription.toString(), was[index + 1].call())
                 assertEquals("${bundle.name}: the description goes to the logo", logo, was[index + 1].registers().first())
+                val withoutTap = logoWithoutTapIndex(builder)
+                assertEquals("${bundle.name}: where the path with no tap hides the logo", pin.withoutTap, withoutTap)
+                assertEquals("${bundle.name}: the logo hidden there", logo, was[pin.withoutTap].registers().first())
+                assertTrue("${bundle.name}: no goto follows the logo being hidden",
+                    was[pin.withoutTap + 1].opcode in setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32))
+                assertTrue("${bundle.name}: the path with no tap doesn't jump past the logo's description",
+                    gotoTarget(was, pin.withoutTap + 1) > index + 1)
 
                 val context = PatchContexts.of(SettingsPatchHosts.appAndMainTab() + bar)
                 settingsPatch.execute(context)
@@ -224,7 +278,10 @@ class LogoLongPressTest {
                 assertEquals("${bundle.name}: the stand-in", LOGO_TOUCH_STAND_IN, now[index].call())
                 assertEquals("${bundle.name}: the static form", Opcode.INVOKE_STATIC, now[index].opcode)
                 assertEquals("${bundle.name}: Facebook's registers", pin.registers, now[index].registers())
-                was.indices.filter { it != index }.forEach { i ->
+                assertEquals("${bundle.name}: the stand-in with no tap", LOGO_WITHOUT_TAP_STAND_IN, now[pin.withoutTap].call())
+                assertEquals("${bundle.name}: its static form", Opcode.INVOKE_STATIC, now[pin.withoutTap].opcode)
+                assertEquals("${bundle.name}: its registers", pin.withoutTapRegisters, now[pin.withoutTap].registers())
+                was.indices.filter { it != index && it != pin.withoutTap }.forEach { i ->
                     assertEquals("${bundle.name} at $i", was[i].opcode, now[i].opcode)
                     assertEquals("${bundle.name} at $i", was[i].call(), now[i].call())
                     assertEquals("${bundle.name} at $i", was[i].registers(), now[i].registers())

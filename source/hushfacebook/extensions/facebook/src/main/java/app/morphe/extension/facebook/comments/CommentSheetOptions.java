@@ -32,14 +32,17 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * full-screen viewer builds its sticker and GIF buttons itself, and the patch asks
  * {@link #holdsViewerButtons} once they're built; a yes drops both. What comes after a post's comments is drawn
  * through another socket of the same kind, and the patch asks {@link #holdsBottomContent} first in
- * its check. A long press on Like opens the reaction
+ * its check. The few comments under a feed post's buttons come through a third, and the patch asks
+ * {@link #holdsPostComments} first in its check. The buttons under each comment come through a
+ * fourth, and the patch asks {@link #holdsCommentButton} first in its check. A long press on Like opens the reaction
  * picker through one method, and the patch asks {@link #skipReactionPicker} first there; a yes
  * returns before anything opens. A comment keeps whether its reply thread is open in its state,
  * which starts closed until a tap on View replies opens it. The patch hands
  * {@link #openReplyThreads} that flag as the state is first set up and writes back the answer.
  * Once an open thread's replies are fetched, it builds a list over them that either pages on by
  * itself or draws View more replies; the patch asks {@link #loadWholeReplyThreads} which, just
- * before Facebook sets it. Each comment is drawn by a section that the patch asks {@link #hidesComment} first, with the
+ * before Facebook sets it. A View more replies row reads a flag that makes only its words take a
+ * tap, and the patch hands {@link #viewMoreRepliesTextOnly} that flag right after. Each comment is drawn by a section that the patch asks {@link #hidesComment} first, with the
  * comment it draws; a yes draws nothing for it.
  *
  * <p>Off, paused, before the settings are ready, or when anything here fails, the answers are
@@ -58,6 +61,34 @@ public final class CommentSheetOptions {
     public static final String RELATED_GROUPS =
             "com.facebook.feedback.comments.plugins.bottomcontent.impl.relatedgroups.RelatedGroupsPlugin";
 
+    /** The few comments a feed post shows under its buttons, as that socket's name table gives them (#253). */
+    public static final String INLINE_COMMENTS =
+            "com.facebook.feed.plugins.belowufifooter.impl.inlinecommentwithreactivex.InlineCommentWithReactiveXPlugin";
+
+    /** The same inline comments picked by how long the post stayed on screen. */
+    public static final String INLINE_COMMENTS_DWELL_TIME =
+            "com.facebook.feed.plugins.belowufifooter.impl.inlinecommentwithdwelltime.InlineCommentWithDwellTimePlugin";
+
+    /** The same inline comments ranked on the phone. */
+    public static final String INLINE_COMMENTS_CLIENT_RANKING =
+            "com.facebook.feed.plugins.belowufifooter.impl.inlinecommentwithclientranking.InlineCommentWithClientRankingPlugin";
+
+    /** The Dislike button under a comment, next to Like, as the comment buttons' name table gives it (#241). */
+    public static final String DOWNVOTE =
+            "com.facebook.feedback.comments.plugins.commentufi.commentsdownvote.CommentsUFIInlineDownvotePlugin";
+
+    /** Counted each time a comment's Dislike button is kept out. */
+    static final String DOWNVOTE_HIDDEN = "Comment Dislike button kept out";
+
+    /** The member the report names once the socket of a comment's buttons has asked about Dislike. */
+    static final String COMMENT_BUTTONS = "comment buttons";
+
+    /** Counted each time a feed post's inline comments are kept out from under its buttons. */
+    static final String POST_COMMENTS_HIDDEN = "Comments under a post kept out";
+
+    /** The member the report names once the socket under a post's buttons has asked about its inline comments. */
+    static final String POST_COMMENTS = "comments under posts";
+
     /** Counted under the patch's name each time the GIF or sticker button is kept out of a comment box. */
     static final String BUTTON_HIDDEN = "Comment box button kept out";
 
@@ -73,11 +104,26 @@ public final class CommentSheetOptions {
     /** Counted each time an open reply thread's list is set to load the rest of its replies as it's scrolled. */
     static final String THREAD_LOADS_IN_FULL = "Reply thread loads in full";
 
+    /** Counted each time a View more replies row is built to take a tap anywhere on it. */
+    static final String WHOLE_ROW_TAPS = "View more replies row takes a tap anywhere";
+
     /** Counted each time a comment is left out for a link to a shop. */
     static final String SHOP_LINK_HIDDEN = "Comment with a shop link left out";
 
     /** Counted each time a comment is left out for a phrase from Words to hide. */
     static final String WORDS_HIDDEN = "Comment with your words left out";
+
+    /** Counted each time a count of people typing is answered as nobody. */
+    static final String TYPING_HIDDEN = "Incoming typing kept out";
+
+    /** The member the report names once a count of people typing has been through the hook. */
+    static final String TYPING = "incoming typing";
+
+    /** Counted each time the "new comments" pill's text is answered empty, so the pill never shows. */
+    static final String PILL_HIDDEN = "New comments pill kept out";
+
+    /** The member the report names once the "new comments" pill's text has been through the hook. */
+    static final String PILL = "new comments pill";
 
     /** The member the report names once a comment has been drawn through the hook. */
     static final String COMMENTS = "comments";
@@ -87,6 +133,9 @@ public final class CommentSheetOptions {
 
     /** The member the report names once the video viewer's comment bar has built its GIF and sticker buttons. */
     static final String VIEWER_BUTTONS = "video viewer comment buttons";
+
+    static final String VIEWER_COMPOSER = "video viewer comment composer";
+    static final String COMPOSER_HIDDEN = "Video comment composer hidden";
 
     /** The member the report names once the socket under a post's comments has asked about Related groups. */
     static final String BOTTOM = "related groups under comments";
@@ -100,6 +149,9 @@ public final class CommentSheetOptions {
     /** The member the report names once an open reply thread has built the list of its replies. */
     static final String REPLY_LISTS = "reply lists";
 
+    /** The member the report names once a View more replies row has been drawn through the hook. */
+    static final String REPLY_ROWS = "View more replies rows";
+
     /**
      * Facebook's own settings, a route its links table carries on 577, 580 and 581. Reaction
      * preferences sits under Preferences there.
@@ -109,6 +161,63 @@ public final class CommentSheetOptions {
     private static final String FAMILY = FamilyNames.COMMENT_SHEET_OPTIONS;
 
     private CommentSheetOptions() {
+    }
+
+    /**
+     * The hook, right after Facebook reads how many people are typing a comment on a post. With the
+     * switch on it answers zero, so the comment box only hears that nobody is typing; otherwise,
+     * and for a count of zero or a throw, it hands back what Facebook read.
+     */
+    public static int incomingTypers(int typers) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, TYPING);
+            if (typers <= 0 || !Utils.settingsReady() || !Settings.HIDE_INCOMING_COMMENT_TYPING.get()) return typers;
+            HookStatus.counted(FAMILY, TYPING_HIDDEN);
+            return 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "incoming comment typing", failure);
+            return typers;
+        }
+    }
+
+    /**
+     * The hook, right after Facebook writes the "3 new comments" text for the pill that shows while
+     * a comment list is open. With the switch on it answers an empty text, and Facebook's own check
+     * skips the pill when its text is empty; otherwise, and for a throw, it hands back what
+     * Facebook wrote.
+     */
+    public static String newCommentsPill(String text) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, PILL);
+            if (text == null || text.isEmpty() || !Utils.settingsReady() || !Settings.HIDE_NEW_COMMENTS_PILL.get()) return text;
+            HookStatus.counted(FAMILY, PILL_HIDDEN);
+            return "";
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "new comments pill", failure);
+            return text;
+        }
+    }
+
+    /**
+     * The hook on the newer pill (#185), right before its builder returns the pill's data. That
+     * comment list draws its pill from the data and draws none for a null, which is what the
+     * builder's caller already answers when no comment came in. With the switch on it answers
+     * null; otherwise, for a null, and for a throw, it hands back what Facebook built.
+     */
+    @Nullable
+    public static Object newCommentsPillData(@Nullable Object data) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, PILL);
+            if (data == null || !Utils.settingsReady() || !Settings.HIDE_NEW_COMMENTS_PILL.get()) return data;
+            HookStatus.counted(FAMILY, PILL_HIDDEN);
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "new comments pill", failure);
+            return data;
+        }
     }
 
     /**
@@ -150,6 +259,24 @@ public final class CommentSheetOptions {
     }
 
     /**
+     * The hook immediately before the full-screen video's comment bar returns its rendered object.
+     * True replaces that object with null while Hide the video comment box is on; false preserves
+     * Facebook's original render result.
+     */
+    public static boolean hidesVideoCommentComposer() {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, VIEWER_COMPOSER);
+            if (!Utils.settingsReady() || !Settings.HIDE_VIDEO_COMMENT_COMPOSER.get()) return false;
+            HookStatus.counted(FAMILY, COMPOSER_HIDDEN);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "video viewer comment composer", failure);
+            return false;
+        }
+    }
+
+    /**
      * The hook, first thing in the check of what shows under a post's comments, handed the
      * plugin's name. True answers no for the Related groups list while Hide related groups is on;
      * false leaves the check to Facebook, for every other plugin and otherwise.
@@ -164,6 +291,46 @@ public final class CommentSheetOptions {
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "under comments check", failure);
+            return false;
+        }
+    }
+
+    /**
+     * The hook, first thing in the check of what shows under a feed post's buttons, handed the
+     * plugin's name. True answers no for the post's inline comments while Hide comments under posts
+     * is on; false leaves the check to Facebook, for the comment box, Meta AI's summary and every
+     * other plugin, and otherwise.
+     */
+    public static boolean holdsPostComments(@Nullable String plugin) {
+        try {
+            HookStatus.invoked(FAMILY);
+            if (!INLINE_COMMENTS.equals(plugin) && !INLINE_COMMENTS_DWELL_TIME.equals(plugin)
+                    && !INLINE_COMMENTS_CLIENT_RANKING.equals(plugin)) return false;
+            HookStatus.bound(FAMILY, POST_COMMENTS);
+            if (!Utils.settingsReady() || !Settings.HIDE_POST_COMMENT_PREVIEWS.get()) return false;
+            HookStatus.counted(FAMILY, POST_COMMENTS_HIDDEN);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "under post buttons check", failure);
+            return false;
+        }
+    }
+
+    /**
+     * The hook, first thing in the check of which buttons a comment gets under it, handed the
+     * plugin's name. True answers no for the Dislike button while Hide Dislike on comments is on;
+     * false leaves the check to Facebook, for Like, Reply and every other button, and otherwise.
+     */
+    public static boolean holdsCommentButton(@Nullable String plugin) {
+        try {
+            HookStatus.invoked(FAMILY);
+            if (!DOWNVOTE.equals(plugin)) return false;
+            HookStatus.bound(FAMILY, COMMENT_BUTTONS);
+            if (!Utils.settingsReady() || !Settings.HIDE_COMMENT_DOWNVOTE_BUTTON.get()) return false;
+            HookStatus.counted(FAMILY, DOWNVOTE_HIDDEN);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "comment buttons check", failure);
             return false;
         }
     }
@@ -222,6 +389,26 @@ public final class CommentSheetOptions {
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "reply list", failure);
             return pagesOnScroll;
+        }
+    }
+
+    /**
+     * The hook, as a View more replies row is drawn, handed Facebook's answer to whether only the
+     * row's icon and words take a tap (#219). That's a server flag: true for some accounts, which
+     * then get a row where a tap past the words does nothing. False, Facebook builds the row with
+     * all of it taking the tap. While Tap anywhere on View more replies is on, the answer is false;
+     * otherwise, and for a throw, Facebook's own answer comes back.
+     */
+    public static boolean viewMoreRepliesTextOnly(boolean textOnly) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, REPLY_ROWS);
+            if (!textOnly || !Utils.settingsReady() || !Settings.TAP_ANYWHERE_ON_VIEW_MORE_REPLIES.get()) return textOnly;
+            HookStatus.counted(FAMILY, WHOLE_ROW_TAPS);
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "View more replies row", failure);
+            return textOnly;
         }
     }
 

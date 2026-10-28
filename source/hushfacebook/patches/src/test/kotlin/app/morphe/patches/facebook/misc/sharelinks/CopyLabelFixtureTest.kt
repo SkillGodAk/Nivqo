@@ -9,7 +9,10 @@ import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -22,9 +25,14 @@ import org.junit.Test
 class CopyLabelFixtureTest {
     private fun Method.returnsSite(site: Int): Boolean {
         val code = implementation!!.instructions.toList()
-        val next = code.getOrNull(site + 1) ?: return false
-        return next.opcode == Opcode.RETURN_OBJECT &&
-            (next as OneRegisterInstruction).registerA == (code[site] as OneRegisterInstruction).registerA
+        val register = (code[site] as OneRegisterInstruction).registerA
+        // 584 hands the link to a static check that answers nothing on its way out.
+        val check = code.getOrNull(site + 1)
+        val checked = check?.opcode == Opcode.INVOKE_STATIC &&
+            ((check as ReferenceInstruction).reference as MethodReference).returnType == "V" &&
+            (check as FiveRegisterInstruction).let { it.registerCount == 1 && it.registerC == register }
+        val next = code.getOrNull(site + if (checked) 2 else 1) ?: return false
+        return next.opcode == Opcode.RETURN_OBJECT && (next as OneRegisterInstruction).registerA == register
     }
 
     @Test

@@ -107,12 +107,57 @@ class DefaultCommentOrderFixtureTest {
                     it.name == "<init>" && it.parameters() == headers.single().parameterTypes.map { type -> type.toString() }
                 }
 
+                // #192: the post page's request builder among the same string's holders, its
+                // params' constructor, and the one link-to-page builder calling that constructor.
+                val storyBuilders = builderOwners.flatMap { owner ->
+                    owner.methods.mapNotNull { method -> storyOrderField(method)?.let { method to it } }
+                }
+                assertEquals("$name: post page request builders reading the order", 1, storyBuilders.size)
+                val (storyBuilder, orderField) = storyBuilders.single()
+                assertTrue("$name: the page's builder takes the session", USER_SESSION in storyBuilder.parameters())
+                assertTrue("$name: the page's builder reads the order from its params, not $orderField",
+                    orderField.startsWith("$FETCH_SINGLE_STORY_PARAMS->"))
+                val storyParams = FixtureDex.classes(bundle, setOf(FETCH_SINGLE_STORY_PARAMS))[FETCH_SINGLE_STORY_PARAMS]
+                    ?: throw AssertionError("$name: no $FETCH_SINGLE_STORY_PARAMS")
+                val storyConstructors = storyParams.methods.mapNotNull { method ->
+                    storyOrderParameter(method, orderField)?.let { method to it }
+                }
+                assertEquals("$name: page params constructors storing the order from a parameter", 1, storyConstructors.size)
+                val (storyConstructor, orderParameter) = storyConstructors.single()
+                assertEquals("$name: the order is a String parameter", "Ljava/lang/String;",
+                    storyConstructor.parameterTypes[orderParameter].toString())
+                val pageBuilds = FixtureDex.methodsWhere(
+                    bundle,
+                    { dex -> dex.methodSection.any { it.definingClass == FETCH_SINGLE_STORY_PARAMS && it.name == "<init>" } },
+                ) { method -> pageBuildIn(method, storyConstructor, orderParameter) != null }
+                assertEquals("$name: link-to-page builders", 1, pageBuilds.size)
+                val pageBuilder = pageBuilds.single()
+                val pageBuild = pageBuildIn(pageBuilder, storyConstructor, orderParameter)!!
+                assertTrue("$name: the order's register past v255: v${pageBuild.order}", pageBuild.order <= 255)
+                val pageOwner = FixtureDex.classes(bundle, setOf(pageBuilder.definingClass)).getValue(pageBuilder.definingClass)
+
                 val owners = mutableMapOf<String, ClassDef>()
                 owners[params.type] = params
+                owners[storyParams.type] = storyParams
                 (builderOwners + handlerOwners + keyOwners + renderers).forEach { owners[it.type] = it }
                 owners[headerClass.type] = headerClass
+                owners[pageOwner.type] = pageOwner
                 val context = PatchContexts.of(owners.values + ExtensionDex.classDef(SETTINGS_STATUS))
                 defaultCommentOrderPatch.execute(context)
+
+                val patchedPage = context.mutableClassDefBy(pageOwner.type).methods.single {
+                    it.name == pageBuilder.name && it.parameters() == pageBuilder.parameters()
+                }.body()
+                val pageAsks = patchedPage[pageBuild.index]
+                assertEquals(Opcode.INVOKE_STATIC_RANGE, pageAsks.opcode)
+                assertEquals("$name: the page builder's call", PAGE_ORDER, (pageAsks as ReferenceInstruction).reference.toString())
+                assertEquals("$name: it hands over the link's order", listOf(pageBuild.order), pageAsks.callRegisters())
+                assertEquals(Opcode.MOVE_RESULT_OBJECT, patchedPage[pageBuild.index + 1].opcode)
+                assertEquals("$name: where the page's answer goes", pageBuild.order,
+                    (patchedPage[pageBuild.index + 1] as OneRegisterInstruction).registerA)
+                assertEquals("$name: the constructor call follows", Opcode.INVOKE_DIRECT_RANGE, patchedPage[pageBuild.index + 2].opcode)
+                assertEquals("$name: the page builder around the call", pageBuilder.body().map { it.opcode },
+                    patchedPage.take(pageBuild.index).map { it.opcode } + patchedPage.drop(pageBuild.index + 2).map { it.opcode })
 
                 val patchedConstructor = context.mutableClassDefBy(FETCH_FEEDBACK_PARAMS).methods.single {
                     it.name == "<init>" && it.parameters() == constructor.parameters()

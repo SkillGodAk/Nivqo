@@ -9,7 +9,6 @@ import app.morphe.PatchContexts
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.shared.compat.AppCompatibilities
-import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -54,10 +53,7 @@ class ComposerRowColourFixtureTest {
         for (version in versions) {
             for (bundle in bundles(version)) {
                 val name = bundle.name
-                val source = FixtureDex.classes(bundle, setOf(FDS_COLORS)).getValue(FDS_COLORS).methods.single { method ->
-                    AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Ljava/lang/Integer;" &&
-                        method.parameterTypes.size == 3 && method.parameterTypes[0].toString() == "Landroid/content/Context;"
-                }
+                val source = fdsColourSource(fdsColorsOf(bundle))!!
                 val tokenType = source.parameterTypes[1].toString()
                 val tokenClass = FixtureDex.classes(bundle, setOf(tokenType)).getValue(tokenType)
                 val surface = tokenConstants(tokenClass.methods.single { it.name == "<clinit>" }, tokenType)

@@ -8,11 +8,14 @@ package app.morphe.manager.util
 import app.morphe.manager.data.room.apps.installed.SelectionPayload
 import app.morphe.manager.domain.bundles.LocalPatchBundle
 import app.morphe.manager.domain.bundles.PatchBundleSource
+import app.morphe.manager.patcher.patch.CompatiblePackage
 import app.morphe.manager.patcher.patch.Option
+import app.morphe.manager.patcher.patch.PatchBundleInfo
 import app.morphe.manager.patcher.patch.PatchInfo
 import app.morphe.manager.util.PatchSelectionUtils.applyAvailability
 import app.morphe.manager.util.PatchSelectionUtils.hasCustomizedOptions
 import app.morphe.manager.util.PatchSelectionUtils.hasMissingRequiredOptions
+import app.morphe.manager.util.PatchSelectionUtils.listedWith
 import app.morphe.manager.util.PatchSelectionUtils.resetOptionsForPatch
 import app.morphe.manager.util.PatchSelectionUtils.sanitizeForPatcher
 import app.morphe.manager.util.PatchSelectionUtils.togglePatch
@@ -24,7 +27,9 @@ import app.morphe.patcher.patch.ApkArchitecture
 import app.morphe.patcher.patch.AvailabilityResolver
 import app.morphe.patcher.patch.InstallerType
 import app.morphe.patcher.patch.PatchAvailability
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableSet
 import java.io.File
 import kotlin.reflect.typeOf
 import kotlin.test.Test
@@ -437,5 +442,42 @@ class PatchSelectionExtensionsTest {
         val patch = patch("Patch A", listOf(option("key")))
 
         assertFalse(patch.hasMissingRequiredOptions(null))
+    }
+
+    private fun bundleFor(uid: Int, vararg patches: PatchInfo) =
+        PatchBundleInfo.Global("bundle-$uid", null, uid, true, patches.toList())
+            .forPackage(LISTED_PACKAGE, LISTED_VERSION)
+
+    private fun patchFor(name: String, versions: Set<String>?) = patch(name).copy(
+        compatiblePackages = persistentListOf(CompatiblePackage(LISTED_PACKAGE, versions?.toImmutableSet()))
+    )
+
+    @Test
+    fun `a bundle naming the APK's version is listed ahead of one with more patches that name none`() {
+        val anyVersion = bundleFor(1, patchFor("A", null), patchFor("B", null), patchFor("C", null))
+        val pinned = bundleFor(2, patchFor("D", setOf(LISTED_VERSION)))
+        val otherVersion = bundleFor(3, patchFor("E", setOf("0.9")), patchFor("F", setOf("0.9")))
+
+        val listed = listOf(otherVersion, anyVersion, pinned).listedWith(emptyMap())
+
+        assertEquals(listOf(2, 1, 3), listed.map { (bundle, _) -> bundle.uid })
+    }
+
+    @Test
+    fun `the listing marks what the selection holds and drops bundles with nothing for the app`() {
+        val bundle = bundleFor(1, patchFor("B", null), patchFor("A", null))
+        val empty = bundleFor(2)
+
+        val listed = listOf(bundle, empty).listedWith(mapOf(1 to setOf("B")))
+
+        assertEquals(
+            listOf(1 to listOf("A" to false, "B" to true)),
+            listed.map { (bundle, patches) -> bundle.uid to patches.map { (patch, on) -> patch.name to on } }
+        )
+    }
+
+    private companion object {
+        const val LISTED_PACKAGE = "com.example.app"
+        const val LISTED_VERSION = "1.0"
     }
 }

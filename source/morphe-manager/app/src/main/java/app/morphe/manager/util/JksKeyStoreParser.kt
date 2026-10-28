@@ -53,8 +53,8 @@ object JksKeyStoreParser {
 
         repeat(count) {
             when (dis.readInt()) {
-                TAG_PRIVATE_KEY -> entries.add(readPrivateKeyEntry(dis, password))
-                TAG_TRUSTED_CERT -> skipTrustedCertEntry(dis)
+                TAG_PRIVATE_KEY -> entries.add(readPrivateKeyEntry(dis, password, version))
+                TAG_TRUSTED_CERT -> skipTrustedCertEntry(dis, version)
                 else -> error("Unknown JKS entry tag")
             }
         }
@@ -62,7 +62,7 @@ object JksKeyStoreParser {
         return entries
     }
 
-    private fun readPrivateKeyEntry(dis: DataInputStream, password: String): JksEntry {
+    private fun readPrivateKeyEntry(dis: DataInputStream, password: String, version: Int): JksEntry {
         val alias = dis.readUTF()
         dis.readLong() // timestamp - unused
 
@@ -72,7 +72,7 @@ object JksKeyStoreParser {
 
         val chainCount = dis.readInt()
         val certs = (0 until chainCount).map {
-            dis.readUTF()
+            if (version == 2) dis.readUTF() // cert type, absent from version 1
             val certLen = dis.readInt()
             ByteArray(certLen).also { dis.readFully(it) }.toList()
         }
@@ -80,10 +80,10 @@ object JksKeyStoreParser {
         return JksEntry(alias, privateKeyDer, certs)
     }
 
-    private fun skipTrustedCertEntry(dis: DataInputStream) {
+    private fun skipTrustedCertEntry(dis: DataInputStream, version: Int) {
         dis.readUTF() // alias
         dis.readLong() // timestamp
-        dis.readUTF() // cert type
+        if (version == 2) dis.readUTF() // cert type
         val len = dis.readInt()
         dis.skipBytes(len)
     }
@@ -96,22 +96,12 @@ object JksKeyStoreParser {
      * Verify:      SHA1(pwd_utf16be || plaintext) == sha1_check
      */
     private fun decryptKey(protectedKey: ByteArray, password: String): ByteArray {
-        // The EncryptedPrivateKeyInfo DER wraps the actual protected blob.
-        // Structure: SEQUENCE { AlgorithmIdentifier(16 bytes from offset 4), OCTET STRING { blob } }
-        // AlgorithmIdentifier is always 16 bytes for OID 1.3.6.1.4.1.42.2.17.1.1 with NULL params.
-        val algoIdLen = 16
-        val outerHeaderLen = 4  // 30 82 xx xx
-        var pos = outerHeaderLen + algoIdLen
-
-        // OCTET STRING tag + length (may be 2 or 4 bytes depending on size)
-        pos++ // skip 0x04 tag
-        val lenByte = protectedKey[pos++].toInt() and 0xff
-        if (lenByte and 0x80 != 0) {
-            val n = lenByte and 0x7f
-            pos += n  // skip multi-byte length
-        }
-
-        val blob = protectedKey.copyOfRange(pos, protectedKey.size)
+        // SEQUENCE { AlgorithmIdentifier, OCTET STRING { blob } }, read by length: a small EC
+        // key fits its outer length in one byte, which a fixed offset would misread
+        val outer = protectedKey.derContent(0)
+        val algorithm = protectedKey.derContent(outer.first)
+        val blobRange = protectedKey.derContent(algorithm.last + 1)
+        val blob = protectedKey.copyOfRange(blobRange.first, blobRange.last + 1)
         val salt = blob.copyOfRange(0, 20)
         val ciphertext = blob.copyOfRange(20, blob.size - 20)
         val check = blob.copyOfRange(blob.size - 20, blob.size)
@@ -131,6 +121,18 @@ object JksKeyStoreParser {
         }
 
         return plaintext
+    }
+
+    /** The content of the DER element starting at [start], past its tag and length. */
+    private fun ByteArray.derContent(start: Int): IntRange {
+        var pos = start + 1
+        val first = this[pos++].toInt() and 0xff
+        val length = if (first and 0x80 == 0) {
+            first
+        } else {
+            (0 until (first and 0x7f)).fold(0) { acc, _ -> (acc shl 8) or (this[pos++].toInt() and 0xff) }
+        }
+        return pos until pos + length
     }
 
     private fun generateKeystream(pwdUtf16: ByteArray, salt: ByteArray, length: Int): ByteArray {

@@ -9,8 +9,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,6 +24,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.ui.screen.shared.Defaults
+import app.morphe.manager.ui.screen.shared.shapedIndication
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 import kotlin.random.Random
 
 private const val MINE_GRID = 9
@@ -197,23 +198,23 @@ fun MinerGame(state: MinerGameState) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(Defaults.CompactCornerRadius))
+            .clip(RoundedCornerShape(Defaults.CornerMedium))
             .background(MineBg)
-            .padding(6.dp),
+            .padding(Defaults.SpaceExtraSmall),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Defaults.SpaceExtraSmall, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = Icons.Outlined.Flag,
+                imageVector = MaterialSymbols.Rounded.Flag,
                 contentDescription = null,
                 tint = MineFlag,
                 modifier = Modifier.size(16.dp)
             )
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(Defaults.SpaceSmall))
             Text(
                 text = stringResource(R.string.mini_game_miner_flags, state.flagsPlaced, state.mineCount),
                 style = MaterialTheme.typography.labelLarge,
@@ -242,12 +243,13 @@ private fun MineCell(state: MinerGameState, index: Int, size: Dp) {
     val flagged = state.isFlagged(index)
     val mine = state.isMine(index)
     val count = state.neighborMines(index)
+    val cellShape = RoundedCornerShape(size * 0.14f)
 
     Box(
         modifier = Modifier
             .size(size)
             .padding(1.dp)
-            .clip(RoundedCornerShape(size * 0.14f))
+            .clip(cellShape)
             .background(
                 when {
                     revealed && mine -> MineExploded
@@ -256,6 +258,8 @@ private fun MineCell(state: MinerGameState, index: Int, size: Dp) {
                 }
             )
             .combinedClickable(
+                interactionSource = null,
+                indication = shapedIndication(cellShape),
                 onClick = { state.reveal(index) },
                 onLongClick = { state.toggleFlag(index) }
             ),
@@ -265,7 +269,7 @@ private fun MineCell(state: MinerGameState, index: Int, size: Dp) {
             revealed && mine -> Box(
                 modifier = Modifier
                     .size(size * 0.42f)
-                    .clip(RoundedCornerShape(50))
+                    .clip(Defaults.PillShape)
                     .background(Color.Black)
             )
             revealed && count > 0 -> Text(
@@ -276,7 +280,7 @@ private fun MineCell(state: MinerGameState, index: Int, size: Dp) {
                 fontSize = with(LocalDensity.current) { (size * 0.52f).toSp() }
             )
             !revealed && flagged -> Icon(
-                imageVector = Icons.Outlined.Flag,
+                imageVector = MaterialSymbols.Rounded.Flag,
                 contentDescription = null,
                 tint = MineFlag,
                 modifier = Modifier.size(size * 0.56f)

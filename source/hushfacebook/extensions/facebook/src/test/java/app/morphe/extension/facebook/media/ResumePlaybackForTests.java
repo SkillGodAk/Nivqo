@@ -107,6 +107,10 @@ public final class ResumePlaybackForTests {
         LATER.clear();
         ResumePlayback.access = ACCESS;
         ResumePlayback.later = task -> LATER.add(task);
+        // Recently watched shares the start hook. Its checks would land on the real looper, after
+        // the test, so they're dropped unless RecentlyWatchedForTests installs its own.
+        RecentlyWatched.forget();
+        RecentlyWatched.timer = (delayMs, task) -> false;
     }
 
     /** Runs every resume posted so far. */
@@ -119,6 +123,7 @@ public final class ResumePlaybackForTests {
     public static void forget() {
         LATER.clear();
         ResumePlayback.forget();
+        RecentlyWatched.forget();
     }
 
     /**

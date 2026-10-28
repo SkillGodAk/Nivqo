@@ -9,6 +9,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.graphics.drawable.ShapeDrawable;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -21,7 +23,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
@@ -52,6 +60,7 @@ public class TapToSeekTest {
 
     @After
     public void restore() {
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(TapToSeek.LIFT_DELAY_MS));
         PauseForTests.resume();
         Settings.TAP_TO_SEEK.resetToDefault();
         HookStatus.clear();
@@ -115,6 +124,74 @@ public class TapToSeekTest {
         assertNear("a tap back behind the thumb didn't seek there", progressAt(200), bar.getProgress());
         String line = statusLine();
         assertTrue(line, line != null && line.contains(TapToSeek.TAPPED + " 2"));
+    }
+
+    /**
+     * 583's listener can post its start of a scrub as the drag starts, and a lift played before
+     * that ran seeked first, then the start put the video back (#120). The lift waits for it.
+     */
+    @Test
+    public void theLiftWaitsForWhatFacebookPostsAsTheDragStarts() {
+        Settings.TAP_TO_SEEK.save(true);
+        SeekBar bar = bar(1000, 100);
+        List<String> steps = new ArrayList<>();
+        int[] seekedTo = {-1};
+        Handler main = new Handler(Looper.getMainLooper());
+        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                steps.add("drag");
+                main.post(() -> steps.add("scrub started"));
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                steps.add("seek");
+                seekedTo[0] = seekBar.getProgress();
+            }
+        });
+        assertTrue(touch(bar, MotionEvent.ACTION_DOWN, 800, Y));
+        assertTrue(touch(bar, MotionEvent.ACTION_UP, 800, Y));
+        assertEquals("the drag lifted before Facebook's start ran", Arrays.asList("drag"), steps);
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(TapToSeek.LIFT_DELAY_MS));
+        assertEquals(Arrays.asList("drag", "scrub started", "seek"), steps);
+        assertNear("the lift didn't seek where the tap was", progressAt(800), seekedTo[0]);
+    }
+
+    /** A press that comes before the last tap's lift finishes that drag first, where it was going. */
+    @Test
+    public void aPressBeforeTheLiftFinishesTheDragFirst() {
+        Settings.TAP_TO_SEEK.save(true);
+        SeekBar bar = bar(1000, 100);
+        List<Integer> seeks = new ArrayList<>();
+        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                seeks.add(seekBar.getProgress());
+            }
+        });
+        assertTrue(touch(bar, MotionEvent.ACTION_DOWN, 800, Y));
+        assertTrue(touch(bar, MotionEvent.ACTION_UP, 800, Y));
+        assertTrue("the drag finished before its lift", seeks.isEmpty());
+        assertTrue(touch(bar, MotionEvent.ACTION_DOWN, 200, Y));
+        assertEquals("the next press didn't finish the last drag", 1, seeks.size());
+        assertNear("the finished drag didn't seek where its tap was", progressAt(800), seeks.get(0));
+        assertTrue(touch(bar, MotionEvent.ACTION_UP, 200, Y));
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(TapToSeek.LIFT_DELAY_MS));
+        assertEquals("each drag lifted once", 2, seeks.size());
+        assertNear("the second tap didn't seek there", progressAt(200), seeks.get(1));
     }
 
     @Test

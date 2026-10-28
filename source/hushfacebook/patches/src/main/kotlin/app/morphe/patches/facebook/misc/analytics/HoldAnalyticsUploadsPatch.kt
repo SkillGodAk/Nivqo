@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
 import app.morphe.patches.facebook.misc.extension.patchLog
@@ -62,7 +63,9 @@ val holdAnalyticsUploadsPatch = bytecodePatch(
         val resume = one("XAnalytics' uploader resume", classDefByOrNull(LOW_PRIORITY_INIT)?.let(::resumeUploads).orEmpty())
         val processing = one(
             "the camera roll processing check",
-            classDefByOrNull(RUN_PIPELINE)?.let(::processingCheck)?.let { call ->
+            classDefByOrNull(RUN_PIPELINE)?.let { run ->
+                processingCheck(run) { call -> classDefByOrNull(call.definingClass)?.let { resolveStatic(it, call) } }
+            }?.let { call ->
                 classDefByOrNull(call.definingClass)?.methods?.filter { isProcessingCheck(it, call) }
             }.orEmpty(),
         )

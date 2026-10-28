@@ -6,23 +6,21 @@
 package app.morphe.manager.ui.screen.settings.system
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import app.morphe.manager.BuildConfig
 import app.morphe.manager.R
 import app.morphe.manager.ui.screen.shared.*
-import compose.icons.FontAwesomeIcons
-import compose.icons.fontawesomeicons.Brands
-import compose.icons.fontawesomeicons.brands.Github
+import app.morphe.manager.util.isolateLtr
+import app.morphe.manager.util.withVersionPrefix
+import com.composables.icons.fontawesome.FontAwesome
+import com.composables.icons.fontawesome.brands.*
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 
 private data class Contributor(
     val name: String,
@@ -57,21 +55,30 @@ private val priorContributors = listOf(
 )
 
 /**
- * Credits dialog.
- * Shows current and prior contributors with links to their GitHub contributor pages.
+ * Who made the manager: current and prior contributors, each linking to their GitHub contributor
+ * page.
  */
 @Composable
-fun CreditsDialog(onDismiss: () -> Unit) {
-    val uriHandler = LocalUriHandler.current
-    val showLicensesDialog = remember { mutableStateOf(false) }
+fun DialogHostScope.CreditsDialog(onDismiss: () -> Unit) {
+    val openUrl = rememberOpenUrl()
+    val accent = MaterialTheme.colorScheme.primary
 
-    if (showLicensesDialog.value) {
-        LicensesDialog(onDismiss = { showLicensesDialog.value = false })
-    }
-
-    AppDialog(
+    ListDialog(
         onDismissRequest = onDismiss,
-        title = stringResource(R.string.credits),
+        header = {
+            ListDialogHeader(
+                icon = { modifier ->
+                    ListDialogHeaderIcon(icon = MaterialSymbols.Rounded.Group, color = accent, modifier = modifier)
+                },
+                title = stringResource(R.string.credits),
+                subtitle = listOf(
+                    stringResource(R.string.app_name),
+                    BuildConfig.VERSION_NAME.withVersionPrefix().isolateLtr()
+                ).joinToString(" · "),
+                accentColor = accent,
+                alwaysShowBand = true
+            )
+        },
         footer = {
             AppDialogOutlinedButton(
                 text = stringResource(R.string.close),
@@ -80,54 +87,45 @@ fun CreditsDialog(onDismiss: () -> Unit) {
             )
         }
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)
+        DialogScrollColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)
         ) {
             ContributorSection(
-                label = stringResource(R.string.credits_current_development),
+                title = stringResource(R.string.credits_current_development),
+                icon = MaterialSymbols.Rounded.Code,
                 contributors = currentContributors,
-                onContributorClick = { uriHandler.openUri(it.url) }
+                onContributorClick = { openUrl(it.url) }
             )
             ContributorSection(
-                label = stringResource(R.string.credits_prior_development),
+                title = stringResource(R.string.credits_prior_development),
+                icon = MaterialSymbols.Rounded.History,
                 contributors = priorContributors,
-                onContributorClick = { uriHandler.openUri(it.url) }
+                onContributorClick = { openUrl(it.url) }
             )
-            SettingsGroup {
-                SettingsItem(
-                    onClick = { showLicensesDialog.value = true },
-                    icon = Icons.AutoMirrored.Outlined.Article,
-                    title = stringResource(R.string.opensource_licenses)
-                )
-            }
         }
     }
 }
 
+/** [contributors] under one titled section, laid out as the settings pages lay out theirs. */
 @Composable
 private fun ContributorSection(
-    label: String,
+    title: String,
+    icon: ImageVector,
     contributors: List<Contributor>,
     onContributorClick: (Contributor) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = dialogSecondaryTextColor()
-        )
+    SettingsSection(title = title, icon = icon) {
         SettingsGroup {
-            contributors.forEachIndexed { index, contributor ->
+            contributors.forEach { contributor ->
                 SettingsItem(
                     onClick = { onContributorClick(contributor) },
-                    icon = FontAwesomeIcons.Brands.Github,
+                    icon = FontAwesome.Brands.Github,
                     title = contributor.name,
-                    subtitle = "github.com/${contributor.organisation}"
+                    subtitle = "github.com/${contributor.organisation}",
+                    // Leaves for the browser rather than going on within the dialog
+                    trailingContent = { ThemedIcon(icon = MaterialSymbols.Rounded.Open_in_new.autoMirrored) }
                 )
-                if (index < contributors.lastIndex) {
-                    SettingsDivider()
-                }
             }
         }
     }

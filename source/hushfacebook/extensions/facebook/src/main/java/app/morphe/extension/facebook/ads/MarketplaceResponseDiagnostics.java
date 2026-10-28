@@ -28,11 +28,23 @@ import app.morphe.extension.shared.settings.BaseSettings;
  * describe fields actually present, not a promise of fulfillment or distance semantics.
  */
 final class MarketplaceResponseDiagnostics {
-    static final int MAX_PAYLOAD_CHARS = 256 * 1024;
+    // One search page on the S22 (2026-10-20) was a single payload past 256 KB, so its capture
+    // stopped before reading anything. Debug-only, and still under the whole-response budget.
+    static final int MAX_PAYLOAD_CHARS = 1024 * 1024;
     static final int MAX_RESPONSE_CHARS = 2 * 1024 * 1024;
     static final int MAX_REQUESTS = 16;
-    static final int MAX_SHAPES = 32;
+    // A search page of listings walks past 256 objects and 32 shapes, so the S22's
+    // 2026-10-20 search capture stopped early and said incomplete. Once the seller and price
+    // children had names, Home filled 96 shapes too, and so did the search pages between them.
+    static final int MAX_SHAPES = 192;
+    // 584's search pages of 27 and 48 listings (emulator, 2026-10-23) carry ad story trees that
+    // nest past level 14 under node.story, so both pages said incomplete. Depth stays under the
+    // parser's MAX_PARSE_DEPTH, and each limit names itself in the summary.
+    static final int MAX_VISITS = 8192;
+    static final int MAX_LEVEL = 32;
     private static final String PREFIX = "Marketplace shape: ";
+    // The last three are a listing's own page, from Facebook 583's code: the listing route times
+    // MarketplacePDPSurfaceQuery (react_native_routes.json), and the other two are in its dex.
     private static final String[] QUERIES = {
             "MarketplaceHomeFeedAdsThemedQuery",
             "MarketplaceProductDetailsPageRelatedAdsDetailQuery",
@@ -44,19 +56,45 @@ final class MarketplaceResponseDiagnostics {
             "MarketplacePlainHomeAppQuery",
             "MarketplaceSearchApp_MarketplaceSearchFeedHeadQuery",
             "MarketplaceSearchFeedPaginationQuery",
+            "MarketplacePDPSurfaceQuery",
+            "MarketplaceProductDetailsPageAppQuery",
+            "MarketplaceListingAvailabilityQuery",
     };
+    // The last group is what a listing's seller may be. The S22's 2026-10-20 capture had every
+    // seller object unrecognized, so whether a page or business sells it couldn't be told.
     private static final String[] MODELS = {
             "MarketplaceFeedGeneralListingObject", "MarketplaceFeedListingStoryObject",
             "MarketplaceFeedAdStory", "GroupCommerceProductItem", "MarketplaceSearch",
             "MarketplaceSearchFeedStoriesEdge",
+            "User", "Page", "Group", "Business", "MarketplaceSeller",
     };
     // Structural fields used by the existing filter; the selection variables come from the fixture
     // query configs, including PlainHome's radius. Shipping names occur in stock app serializers,
-    // without proven semantics on returned results.
+    // without proven semantics on returned results. The listing names come from Facebook 583's own
+    // code: its GraphQL model reader for product items (prices, title, photos, subtitles), the
+    // composer's listing serializer (delivery) and Marketplace's React Native route params (listing
+    // price, seller id, local pickup). Naming one says it was present, not what it means. The last
+    // group is candidates from Facebook's web Marketplace listings (price amount, place, seller,
+    // sold or pending state); the S22's 2026-10-20 capture saw id, location_text,
+    // marketplace_listing_seller and marketplace_listing_category_id among them. The names after
+    // those are guesses for what Android's listing_price (two strings) and location_text (one)
+    // hold, since none of the web names arrived inside them. The final line is the web listing
+    // page's description, age, map point and inventory kind: a listing's own page on the S22 came
+    // back with 35 unnamed strings and 19 unnamed objects, and 583's dex names none of these.
     private static final Set<String> FIELDS = new HashSet<>(Arrays.asList(
             "__typename", "data", "edges", "node", "listing", "story", "sponsored_data", "ad_id",
             "marketplace_search", "feed_units", "location", "is_shipping_offered", "shipping_offer_type",
-            "localOnly", "shippedOnly", "radius", "search_radius_in_meters"));
+            "localOnly", "shippedOnly", "radius", "search_radius_in_meters",
+            "listing_price", "formatted_price", "strikethrough_price", "current_product_price",
+            "product_item_price", "product_sale_price", "is_on_sale", "marketplace_listing_title",
+            "description", "custom_sub_titles", "primary_listing_photo", "listing_photos",
+            "delivery_types", "pickup_delivery_info", "local_pickup", "seller_id",
+            "id", "amount", "formatted_amount", "reverse_geocode", "city", "state", "city_page",
+            "display_name", "location_text", "marketplace_listing_seller", "name", "is_sold", "is_pending",
+            "is_hidden", "is_live", "custom_title", "marketplace_listing_category_id",
+            "text", "currency", "amount_with_offset", "amount_with_offset_in_currency",
+            "formatted_amount_zeros_stripped", "offset",
+            "redacted_description", "creation_time", "latitude", "longitude", "listing_inventory_type"));
     private static final Map<Object, Observer> observers = new WeakHashMap<>();
     private static final Map<String, Set<String>> shapes = new HashMap<>();
     private static final Set<String> summaryBudgetNotices = new HashSet<>();
@@ -153,7 +191,8 @@ final class MarketplaceResponseDiagnostics {
         private boolean inString;
         private boolean escaped;
         private boolean stopped;
-        private boolean complete = true;
+        /** Why the capture is incomplete, the first reason only, or null while it's complete. */
+        @Nullable private String gap;
         private int payloads;
         private int unrecognizedModels;
         private final Map<String, Integer> models = new TreeMap<>();
@@ -187,7 +226,7 @@ final class MarketplaceResponseDiagnostics {
                 waiting.setLength(0);
                 if (waiting.capacity() > 65_536) waiting.trimToSize();
                 try {
-                    inspect(text, MarketplaceSearchAds.Parser.whole(text), "response", 0, new int[] {256});
+                    inspect(text, MarketplaceSearchAds.Parser.whole(text), "response", 0, new int[] {MAX_VISITS});
                     payloads++;
                 } catch (Exception unreadable) {
                     stop("unreadable payload");
@@ -197,16 +236,18 @@ final class MarketplaceResponseDiagnostics {
         }
 
         private void inspect(String text, MarketplaceSearchAds.Value value, String path, int level, int[] visits) {
-            if (--visits[0] < 0 || level > 10) {
-                complete = false;
-                record(query, "shape traversal budget");
+            if (--visits[0] < 0 || level > MAX_LEVEL) {
+                String reason = visits[0] < 0 ? "shape traversal budget" : "shape depth budget";
+                missing(reason);
+                record(query, reason);
                 return;
             }
             if (value.kind == '{') {
                 String model = model(text, value);
                 if (model.equals("unrecognized")) unrecognizedModels++;
                 else if (!model.equals("none")) models.put(model, models.getOrDefault(model, 0) + 1);
-                if (!record(query, path + " model=" + model + " " + fields(text, value))) complete = false;
+                // The walk goes on, so the model counts stay whole; only this shape's line is dropped.
+                if (!record(query, path + " model=" + model + " " + fields(text, value))) missing("shape budget");
                 for (int i = 0; i < value.items.size(); i++) {
                     MarketplaceSearchAds.Value child = value.items.get(i);
                     if (child.kind != '{' && child.kind != '[') continue;
@@ -221,13 +262,17 @@ final class MarketplaceResponseDiagnostics {
             if (!stopped && waiting.length() > 0) stop("unfinished payload");
             Set<String> counts = new TreeSet<>();
             for (Map.Entry<String, Integer> model : models.entrySet()) counts.add(model.getKey() + ":" + model.getValue());
-            record(query, "response summary payloads=" + payloads + " capture=" + (complete ? "complete" : "incomplete")
+            record(query, "response summary payloads=" + payloads + " capture=" + (gap == null ? "complete" : "incomplete(" + gap + ")")
                     + " models={" + String.join(",", counts) + "} unrecognized_models=" + unrecognizedModels, true);
+        }
+
+        private void missing(String reason) {
+            if (gap == null) gap = reason;
         }
 
         private void stop(String reason) {
             stopped = true;
-            complete = false;
+            missing(reason);
             waiting.setLength(0);
             waiting.trimToSize();
             record(query, reason + "; observer stopped");

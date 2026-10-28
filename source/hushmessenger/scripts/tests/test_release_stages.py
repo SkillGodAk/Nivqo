@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -19,6 +20,10 @@ class ReleaseStages(unittest.TestCase):
         release.parent.mkdir(parents=True)
         shutil.copyfile(
             Path(__file__).resolve().parents[1] / "release/release.ps1", release
+        )
+        shutil.copyfile(
+            Path(__file__).resolve().parents[1] / "walk-receipt.ps1",
+            self.root / "scripts/walk-receipt.ps1",
         )
         self.release = release
         (self.root / ".gitignore").write_text("build/\ntrace.jsonl\nfrozen.mpp\n")
@@ -182,6 +187,74 @@ class ReleaseStages(unittest.TestCase):
                 self.assertIn("only available for the local preflight", result.stderr)
                 self.assertEqual(self.original_state, self.public_state.read_bytes())
         self.assertFalse(self.trace.exists())
+
+    def test_publish_refuses_without_a_passing_walk_of_the_built_bundle(self):
+        head = subprocess.run(
+            ["git", "-C", str(self.root), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        assets = self.public_state.parent / "assets"
+        assets.mkdir()
+        bundle = assets / "patches-0.23.1.mpp"
+        bundle.write_bytes(b"the built bundle")
+        for name in ("SHA256SUMS.txt", "SHA256SUMS.txt.sig"):
+            (assets / name).write_bytes(name.encode())
+        bundle_hash = hashlib.sha256(bundle.read_bytes()).hexdigest()
+        self.public_state.write_text(
+            json.dumps({"build": {"commit": head, "sha256": bundle_hash}})
+        )
+        walk = self.root / "build/walk-receipt.json"
+
+        def receipt(**change):
+            return json.dumps(
+                {
+                    "schema": 2,
+                    "result": "PASS",
+                    "full": True,
+                    "serial": "TESTPHONE01",
+                    "device": "SM-S908U1",
+                    "emulator": False,
+                    "appVersion": "584.1.0.61.98",
+                    "bundleSha256": bundle_hash,
+                    "installedApkSha256": "4" * 64,
+                    "started": "2026-10-21T16:00:00Z",
+                    "finished": "2026-10-21T16:30:00Z",
+                    "screens": 40,
+                    "crashes": 0,
+                    "problems": [],
+                }
+                | change
+            )
+
+        for name, written, expected in (
+            ("no walk", None, "-Walk names the walk-receipt.json"),
+            ("missing receipt", "", "there's no walk receipt at"),
+            ("count-only receipt", receipt(schema=1), "isn't schema 2"),
+            ("partial walk", receipt(result="PARTIAL", full=False), "the walk ended PARTIAL, not PASS"),
+            ("crash", receipt(crashes=1), "recorded a Messenger crash"),
+            ("another bundle", receipt(bundleSha256="5" * 64), "patched with bundle"),
+        ):
+            with self.subTest(name):
+                walk.unlink(missing_ok=True)
+                if written:
+                    walk.write_text(written)
+                result = self.run_stage("publish", () if written is None else ("-Walk", str(walk)))
+                self.assertNotEqual(0, result.returncode)
+                # pwsh wraps a long error at the console width, behind "| " on each line, and colors
+                # the error view when TERM is set (Git Bash), which puts escape codes inside the wrap.
+                plain = re.sub(r"\x1b\[[0-9;]*m", "", result.stderr + result.stdout)
+                said = re.sub(r"\s*\n\s*\|\s*", " ", plain)
+                self.assertIn(expected, said)
+                self.assertFalse((self.public_state.parent / "notes.md").exists())
+                tags = subprocess.run(
+                    ["git", "-C", str(self.root), "tag", "--list"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout
+                self.assertEqual("", tags)
 
     def test_public_build_cannot_reuse_a_development_preflight(self):
         self.development_state.write_text(

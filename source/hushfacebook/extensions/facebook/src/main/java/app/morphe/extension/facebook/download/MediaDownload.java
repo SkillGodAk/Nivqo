@@ -100,6 +100,11 @@ public final class MediaDownload {
         return reservation;
     }
 
+    /** Whether a save holds a slot now, so Close Facebook when you leave it waits for it (#202). */
+    public static boolean saving() {
+        return SAVE_SLOTS.availablePermits() < MAX_IN_FLIGHT;
+    }
+
     /**
      * Whether every save slot is taken, saying so on screen when it is. The post menu items ask this
      * before they save, so a tap while saves fill every slot hears why nothing started instead of a
@@ -183,6 +188,23 @@ public final class MediaDownload {
             }
             if (manifest != null) return beginDash(context, "the story video", manifest, urls, details);
 
+            // A still card can carry a video all the same: a story that reshares a reel shows the
+            // reel as a sticker over a photo, and the reel's video, manifest and all, sits in that
+            // overlay (#207). The save takes it: the person tapped Save on a playing reel. A card
+            // with no video anywhere is logged, so the next shape can be read where it keeps one.
+            if (RenditionPicker.bestVideo(metaOnly(urls), DownloadQuality.BEST) == null) {
+                StoryOverlayVideo reel = StoryOverlayVideo.in(host);
+                if (reel != null) {
+                    info(() -> "the story shows a reshared reel over a still, so the save takes the reel's video"
+                        + (reel.manifest != null ? " from its manifest" : " from its one file"));
+                    PostDetails named = details.hasVideoId() || reel.videoId == null
+                        ? details : PostDetails.ofCard(reel.videoId, host);
+                    addIfUsable(urls, reel.url);
+                    if (reel.manifest != null) return beginDash(context, "the story video", reel.manifest, urls, named);
+                    return begin(context, urls, false, named);
+                }
+                StoryCardShape.log(host, media);
+            }
             return begin(context, urls, true, details);
         } catch (Throwable t) {
             // Throwable and not Exception. A renamed field surfaces as NoSuchFieldError, and a
@@ -361,8 +383,10 @@ public final class MediaDownload {
         try {
             Thread chain = thread(() -> {
                 Reservation pending = first;
+                AtomicBoolean batchCancelled = new AtomicBoolean();
                 try {
                     for (int i : usable) {
+                        if (batchCancelled.get()) return;
                         try {
                             PostDetails known = i < details.size() ? details.get(i) : PostDetails.NONE;
                             if (pending == null) pending = awaitReservation();
@@ -370,7 +394,7 @@ public final class MediaDownload {
                             Job job = fileJob(safe, urls.get(i), Downloader.Kind.IMAGE);
                             Reservation owned = pending;
                             pending = null;
-                            startReserved(safe, false, known, job, owned).join();
+                            startReserved(safe, false, known, job, owned, batchCancelled).join();
                         } catch (InterruptedException stop) {
                             Thread.currentThread().interrupt();
                             return;
@@ -471,8 +495,8 @@ public final class MediaDownload {
         if (safe == null) return false;
 
         saving(isVideo, chosen, urls, quality, Dash.SINGLE_FILE, null);
-        Downloader.Kind kind = isVideo ? Downloader.Kind.VIDEO : Downloader.Kind.IMAGE;
-        return start(safe, isVideo, details, fileJob(safe, chosen, kind)) != null;
+        Job job = isVideo ? fileJob(safe, chosen, urls) : fileJob(safe, chosen, Downloader.Kind.IMAGE);
+        return start(safe, isVideo, details, job) != null;
     }
 
     /**
@@ -577,6 +601,20 @@ public final class MediaDownload {
     }
 
     /**
+     * Whether the save starting now converts a VP9, AV1 or H.265 picture larger than its best H.264
+     * one rather than keep the smaller ({@link Settings#DOWNLOAD_CONVERT}), which acts only beside
+     * {@link #compatibleSaves}. Read when the save starts. Never throws: before the settings are
+     * ready, or when they can't be read, it's off.
+     */
+    static boolean convertSaves() {
+        try {
+            return compatibleSaves() && Settings.DOWNLOAD_CONVERT.get();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
      * Whether the save starting now goes without the toasts that only say how it went
      * ({@link Settings#DOWNLOAD_QUIET}). Read when the save starts, so one save's toasts follow one
      * setting. Never throws: before the settings are ready, or when they can't be read, it's off.
@@ -646,6 +684,62 @@ public final class MediaDownload {
         DownloadQuality quality = quality();
         return (writer, progress) -> saveFile(application, url, kind, null, java.util.Collections.emptyList(), null,
             quality, writer, progress);
+    }
+
+    /**
+     * The save of the video file at [url], picked from [candidates], with the next smaller of
+     * them in its place while the one tried is over the cap ({@link #saveVideoFile}).
+     */
+    static Job fileJob(Context application, String url, List<String> candidates) {
+        DownloadQuality quality = quality();
+        List<String> kept = new ArrayList<>(candidates);
+        return (writer, progress) -> saveVideoFile(application, url, kept, null, java.util.Collections.emptyList(),
+            null, quality, writer, progress);
+    }
+
+    /**
+     * {@link #saveFile} of the video file [video], then, while the file tried is over the cap, of
+     * the best smaller one of [candidates] for [quality] ({@link #smallerVideo}), so a long video
+     * saves at a lower quality rather than not at all. The report says which file it fell back to,
+     * and a smaller file's result carries its quality for the toast. Not after a failed gallery
+     * publication, which is terminal, as in {@link #dashJob}.
+     */
+    private static Downloader.Result saveVideoFile(Context application, String video, List<String> candidates,
+            String why, List<DashManifest.Track> offered, DashManifest.Track writable, DownloadQuality quality,
+            MediaStoreWriter writer, Downloader.Progress progress) {
+        Downloader.Result result = saveFile(application, video, Downloader.Kind.VIDEO, why, offered, writable,
+            quality, writer, progress);
+        String tried = video;
+        while (result.status == Downloader.Status.TOO_LARGE) {
+            if (progress instanceof SaveControl.Save
+                    && ((SaveControl.Save) progress).state() == SaveControl.State.FAILED) break;
+            String smaller = smallerVideo(candidates, tried, quality);
+            if (smaller == null) break;
+            final String over = tried;
+            final Downloader.Result refused = result;
+            info(() -> "the " + describe(over) + " file is over the cap (" + refused + "), saving the smaller "
+                + describe(smaller) + " instead");
+            result = saveFile(application, smaller, Downloader.Kind.VIDEO, why, offered, writable, quality, writer,
+                progress);
+            if (result.ok()) result = result.smaller(RenditionPicker.qualityOf(smaller));
+            tried = smaller;
+        }
+        return result;
+    }
+
+    /**
+     * The best of [candidates] for [quality] whose stated quality is below [tried]'s, or null. Never
+     * one that states no quality, nor any when [tried] states none: nothing says it's smaller.
+     */
+    static String smallerVideo(List<String> candidates, String tried, DownloadQuality quality) {
+        int over = RenditionPicker.qualityOf(tried);
+        if (over <= 0) return null;
+        List<String> smaller = new ArrayList<>();
+        for (String url : candidates) {
+            int stated = RenditionPicker.qualityOf(url);
+            if (stated > 0 && stated < over) smaller.add(url);
+        }
+        return RenditionPicker.bestVideo(smaller, quality);
     }
 
     /**
@@ -847,8 +941,24 @@ public final class MediaDownload {
         // With the switch on, a phone that can make xHE-AAC sound AAC-LC keeps the H.264 picture
         // of a video that has no other sound, and one that can make VP9, AV1 or H.265 H.264 keeps
         // the picture of a video that has no H.264 track (#77).
+        // With convert to keep the full size on too, so does one whose H.264 track is smaller (#189).
+        // Not a picture the manifest says runs longer than VideoTranscode converts: it was fetched,
+        // then refused, and two error toasts came before the single file (a 13:38 AV1 reel on the S22).
+        long lengthUs = DashManifest.durationUs(manifest);
+        boolean convertible = compatible && lengthUs <= VideoTranscode.MAX_DURATION_US;
+        if (compatible && !convertible) {
+            info(() -> "the manifest of " + label + " runs " + lengthUs / 1_000_000 + " s, over the "
+                + VideoTranscode.MAX_DURATION_US / 60_000_000 + " minutes a picture is converted for, so none is");
+        }
+        boolean convertLarger = convertible && convertSaves();
         DashManifest.Pick converted = DashManifest.pick(tracks, allowAv1, quality, compatible,
-            compatible && AacReencode.available(), compatible ? VideoTranscode::canConvert : null);
+            compatible && AacReencode.available(), convertible ? VideoTranscode::canConvert : null, convertLarger);
+        if (convertLarger && converted != null && converted.transcodeVideo
+                && !beatsFile(converted.video, fallback, fallbackQuality, quality)) {
+            // A larger picture the single file already matches isn't worth converting: the H.264 pick stands.
+            converted = DashManifest.pick(tracks, allowAv1, quality, true, AacReencode.available(),
+                VideoTranscode::canConvert);
+        }
         // Converting takes a while, so it's only worth it for a picture better than the single file.
         DashManifest.Pick kept = converted != null && converted.transcodeVideo
             && !beatsFile(converted.video, fallback, fallbackQuality, quality) ? null : converted;
@@ -937,7 +1047,7 @@ public final class MediaDownload {
         }
         DashManifest.Track better = better(tracks, RenditionPicker.qualityOf(video), quality);
         saving(true, video, meta, quality, dash, better);
-        return saveFile(application, video, Downloader.Kind.VIDEO, why, tracks, writable, quality, writer, progress);
+        return saveVideoFile(application, video, meta, why, tracks, writable, quality, writer, progress);
     }
 
     /**
@@ -1036,11 +1146,11 @@ public final class MediaDownload {
     /** As above, naming the video from whatever of the post [details] holds and the file name asks for. */
     static Thread start(Context application, boolean video, PostDetails details, Job job) {
         Reservation reservation = reserveNow();
-        return reservation == null ? null : startReserved(application, video, details, job, reservation);
+        return reservation == null ? null : startReserved(application, video, details, job, reservation, null);
     }
 
     private static Thread startReserved(Context application, boolean video, PostDetails details, Job job,
-            Reservation reservation) {
+            Reservation reservation, AtomicBoolean batchCancelled) {
         // Until the worker runs, whatever throws here gives back the slot and the save it began, or
         // enough such failures would block every save.
         SaveControl.Save begun = null;
@@ -1078,7 +1188,7 @@ public final class MediaDownload {
                         save.failed(result.cause);
                     }
                     String text = message(application, result.status, result.cause, writer.savedLocation(),
-                        result.lower);
+                        result.lower, result.smaller);
                     boolean refused = result.ok() && result.refused && !compatibleSaves();
                     boolean carded = result.ok() && SaveControl.showCompleted(save, writer, refused ? text : null);
                     boolean failed = !result.ok() && !cancelled;
@@ -1100,6 +1210,7 @@ public final class MediaDownload {
                     try {
                         save.end();
                     } finally {
+                        if (batchCancelled != null && save.cancelled()) batchCancelled.set(true);
                         reservation.close();
                     }
                 }
@@ -1117,6 +1228,7 @@ public final class MediaDownload {
                 try {
                     if (begun != null) begun.end();
                 } finally {
+                    if (batchCancelled != null && begun != null && begun.cancelled()) batchCancelled.set(true);
                     reservation.close();
                 }
             }
@@ -1135,8 +1247,24 @@ public final class MediaDownload {
      */
     static String message(Context application, Downloader.Status status, Downloader.Cause cause, String location,
             boolean lower) {
+        return message(application, status, cause, location, lower, 0);
+    }
+
+    /**
+     * As above, with [smaller] the quality of the smaller file saved because the picked one was over
+     * the cap, such as 480, or 0. That quality is what the person saving is told, ahead of [lower].
+     */
+    static String message(Context application, Downloader.Status status, Downloader.Cause cause, String location,
+            boolean lower, int smaller) {
         switch (status) {
             case OK:
+                if (smaller > 0) {
+                    String picture = smaller + "p";
+                    return location == null
+                        ? L10n.f(application, "Saved to the gallery at %1$s, since the bigger file is over 512 MB", picture)
+                        : L10n.f(application, "Saved to %1$s at %2$s, since the bigger file is over 512 MB",
+                            L10n.isolate(location), picture);
+                }
                 if (lower) {
                     return location == null
                         ? L10n.t(application, "Saved to the gallery in lower quality than on Facebook")

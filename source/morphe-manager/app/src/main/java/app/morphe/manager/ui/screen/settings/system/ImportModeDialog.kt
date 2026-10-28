@@ -7,18 +7,16 @@ package app.morphe.manager.ui.screen.settings.system
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.MergeType
-import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.domain.repository.PatchBundleRepository.ImportMode
 import app.morphe.manager.ui.screen.shared.*
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 
 /**
  * Two-choice dialog that asks the user how an import should be applied:
@@ -26,7 +24,7 @@ import app.morphe.manager.ui.screen.shared.*
  * Merge only adds missing entries and preserves everything that already exists.
  */
 @Composable
-fun ImportModeDialog(
+fun DialogHostScope.ImportModeDialog(
     @StringRes titleRes: Int,
     @StringRes descriptionRes: Int,
     onDismiss: () -> Unit,
@@ -44,9 +42,9 @@ fun ImportModeDialog(
             )
         }
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge)) {
             ImportModeOption(
-                icon = Icons.Outlined.SwapVert,
+                icon = MaterialSymbols.Rounded.Swap_vert,
                 title = stringResource(R.string.import_mode_replace_title),
                 description = stringResource(R.string.import_mode_replace_description),
                 isDestructive = true,
@@ -54,7 +52,7 @@ fun ImportModeDialog(
             )
 
             ImportModeOption(
-                icon = Icons.AutoMirrored.Outlined.MergeType,
+                icon = MaterialSymbols.Rounded.Merge_type.autoMirrored,
                 title = stringResource(R.string.import_mode_merge_title),
                 description = stringResource(R.string.import_mode_merge_description),
                 isDestructive = false,
@@ -84,7 +82,7 @@ private fun ImportModeOption(
         }
     ) {
         IconTextRow(
-            modifier = Modifier.padding(Defaults.ContentPadding),
+            modifier = Modifier.padding(Defaults.SpaceLarge),
             leadingContent = {
                 ThemedIcon(
                     icon = icon,

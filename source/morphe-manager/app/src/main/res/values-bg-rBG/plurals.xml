@@ -4,6 +4,11 @@
         <item quantity="one">%s пач</item>
         <item quantity="other">%s пачове</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">Библиотеката <b>%s</b></item>
+        <item quantity="other">Библиотеки <b>%s</b></item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s пач опция</item>
         <item quantity="other">%s пач опции</item>
@@ -26,6 +31,10 @@
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Източници на кръпки за %s приложение</item>
         <item quantity="other">Източници на кръпки за %s приложения</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">Източникът %s е скрит за това приложение. Изберете приложението на раздела \"Приложения\" и отворете \"Поправяне на източници\", за да го върнете</item>
+        <item quantity="other">Източниците %s са скрити за това приложение. Изберете приложението на раздела \"Приложения\" и отворете \"Поправяне на източници\", за да ги върнете</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s източник е скрит. Докоснете, за да се покаже</item>
@@ -55,6 +64,10 @@
         <item quantity="one">Инсталирано %s приложение</item>
         <item quantity="other">Инсталирани %s приложения</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Монтирано %s приложение</item>
+        <item quantity="other">Монтирани %s приложения</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Преинсталирано %s приложение</item>
         <item quantity="other">Преинсталирани %s приложения</item>
@@ -70,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">%s приложение е готово за поправяне</item>
         <item quantity="other">%s приложения са готови за поправяне</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">Приложението %s е опашано за патчиране</item>
+        <item quantity="other">Приложенията %s са опашани за патчиране</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s скрита известие, докоснете, за да я покажете</item>
+        <item quantity="other">%s скрити известия, докоснете, за да ги покажете</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s приложение може да бъде повторно пачвано</item>
@@ -87,9 +108,17 @@
         <item quantity="one">%s инсталиран източник</item>
         <item quantity="other">%s инсталирани източници</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s филтриран</item>
-        <item quantity="other">%1$s · %2$s филтрирани</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s скриин</item>
+        <item quantity="other">%s скриине</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s скриен</item>
+        <item quantity="other">%s скриени</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Покажи пак %s приложение?</item>
+        <item quantity="other">Покажи пак %s приложения?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s скрито приложение</item>
@@ -126,6 +155,11 @@
     <plurals name="changelog_change_count">
         <item quantity="one">%s промяна</item>
         <item quantity="other">%s промени</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d ново</item>
+        <item quantity="other">%1$s · %2$d нови</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s нова версия</item>

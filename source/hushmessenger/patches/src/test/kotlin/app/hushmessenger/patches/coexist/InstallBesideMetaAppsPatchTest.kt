@@ -1,5 +1,6 @@
 package app.hushmessenger.patches.coexist
 
+import app.hushmessenger.patches.MessengerTarget
 import app.morphe.patcher.patch.PatchException
 import org.w3c.dom.Document
 import org.w3c.dom.Element
@@ -8,6 +9,8 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class InstallBesideMetaAppsPatchTest {
     private val appCommunication = "com.facebook.permission.prod.FB_APP_COMMUNICATION"
@@ -17,21 +20,24 @@ class InstallBesideMetaAppsPatchTest {
 
     @Test
     fun acceptsAllCheckedVersionCodes() {
-        validateVersionCode("346611369")
-        validateVersionCode("346611351")
-        validateVersionCode("346611440")
+        for (code in MessengerTarget.VERSION_CODES) validateVersionCode(code.toString())
     }
 
     @Test
     fun rejectsAnotherBuildWithTheSameVersionName() {
-        val failure = assertFailsWith<PatchException> { validateVersionCode("346611400") }
-        assertContains(failure.message.orEmpty(), "version code 346611400 is not supported")
+        val failure = assertFailsWith<PatchException> { validateVersionCode("346814900") }
+        // Manager prints another patch's name above this line, so the build comes first.
+        assertTrue(
+            failure.message.orEmpty().startsWith("This Messenger build (version code 346814900) isn't supported yet"),
+            failure.message,
+        )
+        assertFalse(failure.message.orEmpty().contains("Install beside Meta apps"), failure.message)
+        assertEquals(1, failure.message.orEmpty().lines().size)
         assertActionable(failure)
     }
 
     private fun assertActionable(failure: PatchException) {
-        assertContains(failure.message.orEmpty(), "Use an unmodified arm64 Messenger 583.0.0.29.95 APK")
-        assertContains(failure.message.orEmpty(), "version code 346611351 or 346611369 or 346611423")
+        assertContains(failure.message.orEmpty(), "Use an unmodified Messenger ${MessengerTarget.supportedApks()}")
     }
 
     private fun manifest(): Document {

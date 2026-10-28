@@ -4,6 +4,11 @@
         <item quantity="one">%s patch</item>
         <item quantity="other">%s patches</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s bibliotek</item>
+        <item quantity="other">%s biblioteker</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s patch valgmulighed</item>
         <item quantity="other">%s patch valgmuligheder</item>
@@ -26,6 +31,10 @@
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Patchkilder til %s app</item>
         <item quantity="other">Patchkilder til %s apps</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s kilde er skjult for denne app. Vælg appen på fanen Apps, og åbn Patch sources for at få den tilbage</item>
+        <item quantity="other">%s kilder er skjult for denne app. Vælg appen på fanen Apps, og åbn Patch sources for at få dem tilbage</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s skjult kilde. Tryk for at vise</item>
@@ -55,6 +64,10 @@
         <item quantity="one">Installeret %s app</item>
         <item quantity="other">Installeret %s apps</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Monterede %s app</item>
+        <item quantity="other">Monterede %s apps</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Geninstalleret %s app</item>
         <item quantity="other">Geninstalleret %s apps</item>
@@ -70,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">%s app klar til patching</item>
         <item quantity="other">%s apps klar til patching</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s app køer til patchning</item>
+        <item quantity="other">%s apps køer til patchning</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s skjult underretning, tryk for at vise den</item>
+        <item quantity="other">%s skjulte underretninger, tryk for at vise dem</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s app kan genpatches</item>
@@ -87,9 +108,17 @@
         <item quantity="one">%s kilde installeret</item>
         <item quantity="other">%s kilder installeret</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s filtreret</item>
-        <item quantity="other">%1$s · %2$s filtrerede</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s app skjult</item>
+        <item quantity="other">%s apps skjulte</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s app vist</item>
+        <item quantity="other">%s apps viste</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Vis %s app?</item>
+        <item quantity="other">Vis %s apps?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s skjult app</item>
@@ -126,6 +155,11 @@
     <plurals name="changelog_change_count">
         <item quantity="one">%s ændring</item>
         <item quantity="other">%s ændringer</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d ny</item>
+        <item quantity="other">%1$s · %2$d nye</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s ny udgivelse</item>

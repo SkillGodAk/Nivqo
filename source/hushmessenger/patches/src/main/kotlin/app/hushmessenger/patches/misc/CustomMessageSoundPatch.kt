@@ -13,9 +13,9 @@ internal const val MESSAGE_SOUND_KEY = "soundFile"
 internal const val MESSAGE_SOUND_LIMIT = 1_048_576L
 
 /**
- * SHA-256 of Messenger's raw/new_message, the same 11,615-byte Ogg file in every supported 583 build.
- * Its path inside the APK is obfuscated and differs between builds (res/ezh.ogg, res/ezl.ogg and
- * res/ezo.ogg), so the patch finds it by its bytes and refuses when there isn't exactly one copy.
+ * SHA-256 of Messenger's raw/new_message, the same 11,615-byte Ogg file in 583 and 584.
+ * Its path inside the APK is obfuscated and moves between builds (res/ezh.ogg, res/ezl.ogg and res/ezo.ogg
+ * across 583's, res/e0c.ogg in 584), so the patch finds it by its bytes and refuses when there isn't exactly one copy.
  */
 internal const val STOCK_NEW_MESSAGE_SHA256 = "724eedfb0f57edff1b82468d3f9f9076f790a7041e55c2df42113053ed7c10c2"
 
@@ -56,7 +56,7 @@ internal fun findMessageSound(entries: List<String>, expected: String = STOCK_NE
     val matches = entries.filter { it.startsWith("res/") && it.endsWith(".ogg") }.filter { sha256(read(it)) == expected }
     return when (matches.size) {
         1 -> matches.single()
-        0 -> refuse("this APK doesn't have Messenger's original new-message sound. Use an unmodified arm64 Messenger ${MessengerTarget.supportedApks()}")
+        0 -> refuse("this APK doesn't have Messenger's original new-message sound. Use an unmodified Messenger ${MessengerTarget.supportedApks()}")
         else -> refuse("this APK has ${matches.size} copies of Messenger's new-message sound (${matches.joinToString()}), so it can't tell which to replace")
     }
 }

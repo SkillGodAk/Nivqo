@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s llibreria</item>
+        <item quantity="other">%s llibreries</item>
+    </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
     <!-- Button that confirms the files checked in the file picker -->
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="core_count">
+        <item quantity="one">%s nucli</item>
+        <item quantity="other">%s nuclis</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
 </resources>

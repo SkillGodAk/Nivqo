@@ -16,14 +16,14 @@ import java.io.File
  *
  * The patcher fills its class pool from an APK's dex files, and what takes a pool directly is
  * internal to it: the context's constructor, the pool's class and its setter. They are reached by
- * their JVM names, pinned to morphe-patcher 1.15.1. A bump that renames one fails here, naming it,
+ * their JVM names, pinned to morphe-patcher 2.0.0. A bump that renames one fails here, naming it,
  * rather than leaving a test that never ran the patch. Nothing is written to disk: the context only
  * names its work folders until something compiles the dex, which no test here asks for.
  */
 internal object PatchContexts {
-    fun of(classes: Collection<ClassDef>): BytecodePatchContext {
+    fun of(classes: Collection<ClassDef>, validate: Boolean = false): BytecodePatchContext {
         val work = File(System.getProperty("java.io.tmpdir"), "hushfacebook-patch-context")
-        val config = PatcherConfig(apkFile = File(work, "none.apk"), temporaryFilesPath = work)
+        val config = PatcherConfig(apkFile = File(work, "none.apk"), temporaryFilesPath = work, validate = validate)
         val metadataType = Class.forName("app.morphe.patcher.PackageMetadata")
         val metadata = metadataType.getConstructor(
             String::class.java, String::class.java, String::class.java,

@@ -65,8 +65,8 @@ class SystemBarLiteralTest {
         ImmutableClassDef(type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;",
             null, null, null, fields, methods.toList())
 
-    /** StatusBarUtil, SystemBarsController, the navigation bar's util, the Video tab and the extension's fields. */
-    private fun app(): BytecodePatchContext = PatchContexts.of(listOf(
+    /** StatusBarUtil, SystemBarsController, the navigation bar's util, the Video tab, the extension's fields and [more]. */
+    private fun app(vararg more: ClassDef): BytecodePatchContext = PatchContexts.of(listOf(
         classDef(STATUS_BAR_UTIL, method(STATUS_BAR_UTIL, "paint", listOf(window, "I"), "V", """
             invoke-virtual { p0, p1 }, $SET_STATUS_BAR_COLOR
             return-void
@@ -112,7 +112,7 @@ class SystemBarLiteralTest {
         classDef(MATERIAL_YOU, fields = SURFACE_FIELDS.values.map {
             ImmutableField(MATERIAL_YOU, it, "I", AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, null)
         }),
-    ))
+    ) + more)
 
     /** What the first colour instruction of the Video tab's [name] writes: a `const`'s value, or the field it reads. */
     private fun BytecodePatchContext.written(name: String): String {
@@ -133,7 +133,7 @@ class SystemBarLiteralTest {
         val app = app()
         assertEquals("literals rewritten", 1, with(app) { blackenColourLiterals() })
         for (bar in bars) assertEquals(bar, facebooks, app.written(bar))
-        assertEquals("the control", "const FF000000", app.written("card"))
+        assertEquals("the control", "read $PAGE_FIELD", app.written("card"))
     }
 
     @Test
@@ -152,6 +152,38 @@ class SystemBarLiteralTest {
             readSurfaceLiterals()
         }
         for (bar in bars) assertEquals(bar, facebooks, app.written(bar))
-        assertEquals("the control", "const FF000000", app.written("card"))
+        assertEquals("the control", "read $PAGE_FIELD", app.written("card"))
+    }
+
+    /**
+     * The extension's greys are its own (#206): swept, Lines between posts' #1D1E23 came out black on
+     * the S22, and Black cards' button fill, #262627, became the page (#191). CommentTimeColour's
+     * #252728 is one of Material You's surfaces as well.
+     */
+    @Test
+    fun `neither theme's route three rewrites the extension's own colours`() {
+        val feedGaps = "Lapp/morphe/extension/facebook/theme/FeedGaps;"
+        val commentTime = "Lapp/morphe/extension/facebook/theme/CommentTimeColour;"
+        fun BytecodePatchContext.first(type: String) =
+            "const %08X".format((mutableClassDefBy(type).methods.single().implementation!!.instructions.first() as NarrowLiteralInstruction).narrowLiteral)
+        val sweeps = mapOf<String, BytecodePatchContext.() -> Int>(
+            "AMOLED" to { blackenColourLiterals() },
+            "Material You" to { readSurfaceLiterals() },
+        )
+        for ((theme, sweep) in sweeps) {
+            val app = app(
+                classDef(feedGaps, method(feedGaps, "colour", emptyList(), "I", """
+                    const v0, ${0xFF1D1E23.toInt()}
+                    return v0
+                """)),
+                classDef(commentTime, method(commentTime, "page", emptyList(), "I", """
+                    const v0, $videoGrey
+                    return v0
+                """)),
+            )
+            assertEquals("$theme: Facebook's card alone", 1, app.sweep())
+            assertEquals("$theme: the line's step", "const FF1D1E23", app.first(feedGaps))
+            assertEquals("$theme: the comment sheet's page", facebooks, app.first(commentTime))
+        }
     }
 }

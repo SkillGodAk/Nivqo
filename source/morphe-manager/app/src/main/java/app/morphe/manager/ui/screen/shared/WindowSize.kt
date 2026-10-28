@@ -7,8 +7,11 @@ package app.morphe.manager.ui.screen.shared
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -92,13 +95,32 @@ fun rememberWindowSize(): WindowSize {
 }
 
 /**
+ * Keeps this within a centered content column of [maxWidth], filling a screen narrower than that,
+ * so a page's or dialog's header, content and bars all line up.
+ */
+fun Modifier.contentColumn(maxWidth: Dp = Defaults.ContentMaxWidth): Modifier =
+    widthIn(max = maxWidth).fillMaxWidth()
+
+/**
+ * Gutter each side of a list running the full [width], which centers a [Defaults.ContentMaxWidth]
+ * column in it with its own [gutter] inside. The list itself stays as wide as the screen, so it
+ * scrolls from anywhere on it and keeps its scrollbar at the edge.
+ */
+fun centeredGutter(width: Dp, gutter: Dp): Dp =
+    maxOf(gutter, (width - Defaults.ContentMaxWidth) / 2 + gutter)
+
+/** Whether the window is wide enough for a dialog to set its panes side by side, see [ListDialog]. */
+@Composable
+fun hasRoomForPanes(): Boolean = rememberWindowSize().widthSizeClass == WindowWidthSizeClass.Expanded
+
+/**
  * Get recommended content padding based on window size
  */
 val WindowSize.contentPadding: Dp
     get() = when (widthSizeClass) {
-        WindowWidthSizeClass.Compact -> Defaults.ContentPadding
-        WindowWidthSizeClass.Medium -> Defaults.ContentPaddingMedium
-        WindowWidthSizeClass.Expanded -> Defaults.ContentPaddingExpanded
+        WindowWidthSizeClass.Compact -> Defaults.SpaceLarge
+        WindowWidthSizeClass.Medium -> Defaults.SpaceExtraLarge
+        WindowWidthSizeClass.Expanded -> Defaults.SpaceExtraExtraLarge
     }
 
 /**

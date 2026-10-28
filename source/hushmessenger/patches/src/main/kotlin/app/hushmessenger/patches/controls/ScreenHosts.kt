@@ -10,9 +10,13 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 internal const val HOST_SCREENS = "Lapp/hushmessenger/extension/HostScreens;"
@@ -70,8 +74,8 @@ internal fun MutableMethod.writeBundledControls(keys: Collection<String>) {
 }
 
 /**
- * "583.0.0.29.95|346611369|base": the build being patched and the mapping its hooks come from ("base", or the version
- * code of the one build with a profile of its own). Settings' reports show it, since Spoof package version changes
+ * "584.1.0.61.98|346816935|base": the build being patched and the mapping its hooks come from ("base", or the lowest
+ * version code of the builds that share another profile). Settings' reports show it, since Spoof package version changes
  * Android's version code and a Root Mount install has no patched manifest to read. A name or code of any other shape
  * gives "", which the reports show as unknown; a report line never stops a patch.
  */
@@ -108,3 +112,57 @@ internal fun BytecodePatchContext.hookScreenHosts() {
     val application = factory.methods.singleOrNull { it.hookId() == INSTANTIATE_APPLICATION } ?: factoryChanged()
     injectFactory(activity, application)
 }
+
+private const val SHORTCUT_MANAGER = "Landroid/content/pm/ShortcutManager;"
+
+/** Messenger's launcher shortcut writes, each with the HostScreens call that makes it and then puts the pair back on top. */
+internal val SHORTCUT_WRITES = mapOf(
+    "$SHORTCUT_MANAGER->pushDynamicShortcut(Landroid/content/pm/ShortcutInfo;)V" to
+        "$HOST_SCREENS->messengerPushed(${SHORTCUT_MANAGER}Landroid/content/pm/ShortcutInfo;)V",
+    "$SHORTCUT_MANAGER->addDynamicShortcuts(Ljava/util/List;)Z" to "$HOST_SCREENS->messengerAdded(${SHORTCUT_MANAGER}Ljava/util/List;)Z",
+    "$SHORTCUT_MANAGER->setDynamicShortcuts(Ljava/util/List;)Z" to "$HOST_SCREENS->messengerSet(${SHORTCUT_MANAGER}Ljava/util/List;)Z",
+)
+
+/** The shortcut writes in this method by index, each with its replacement on the same registers. */
+internal fun Method.shortcutWrites(): Map<Int, String> {
+    val writes = linkedMapOf<Int, String>()
+    for ((index, instruction) in implementation?.instructions?.toList().orEmpty().withIndex()) {
+        if (instruction.opcode != Opcode.INVOKE_VIRTUAL && instruction.opcode != Opcode.INVOKE_VIRTUAL_RANGE) continue
+        val helper = SHORTCUT_WRITES[(instruction as ReferenceInstruction).reference.toString()] ?: continue
+        writes[index] = when (instruction) {
+            is RegisterRangeInstruction ->
+                "invoke-static/range {v${instruction.startRegister} .. v${instruction.startRegister + instruction.registerCount - 1}}, $helper"
+            is FiveRegisterInstruction -> "invoke-static {v${instruction.registerC}, v${instruction.registerD}}, $helper"
+            else -> continue
+        }
+    }
+    return writes
+}
+
+/** Each shortcut write in this method goes through HostScreens instead. The call keeps its size, so nothing moves. */
+internal fun MutableMethod.followShortcutWrites(): Int {
+    val writes = shortcutWrites()
+    for ((index, call) in writes) replaceInstruction(index, call)
+    return writes.size
+}
+
+/**
+ * Messenger pushes a conversation shortcut on top of its icon for each message, in the background too, and the pair
+ * slipped down until Messenger next left the screen. Every write outside the extension now puts it back right after.
+ * A build without any still patches, and the pair then goes back on top at each start and leave as before.
+ */
+internal fun BytecodePatchContext.followShortcutWrites(classes: Iterable<ClassDef>) {
+    var count = 0
+    for ((type, writers) in shortcutWriters(classes))
+        for (method in mutableClassDefBy(type).methods) if (method.hookId() in writers) count += method.followShortcutWrites()
+    java.util.logging.Logger.getLogger("").info("Launcher shortcuts: $count of Messenger's writes keep the pair on top")
+}
+
+/** The methods outside the extension that write launcher shortcuts, by class. HostScreens' own writes stay as they are. */
+internal fun shortcutWriters(classes: Iterable<ClassDef>): Map<String, Set<String>> = classes
+    .filterNot { it.type.startsWith("Lapp/hushmessenger/extension/") }
+    .mapNotNull { cls ->
+        val writers = cls.methods.filter { it.shortcutWrites().isNotEmpty() }.map { it.hookId() }.toSet()
+        if (writers.isEmpty()) null else cls.type to writers
+    }
+    .toMap()

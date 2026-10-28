@@ -13,6 +13,7 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.Switch;
+import android.widget.TextView;
 import java.util.Map;
 import java.util.Set;
 import org.junit.Before;
@@ -154,9 +155,16 @@ public class NativeBubbleModeTest {
         assertFalse(ChoiceCodec.encode(Settings.preferences, Set.of("stories")).contains("bubble_chat_heads"));
         try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
             Settings.installed = Set.of("stories");
-            importChoices(screen.get().getWindow().getDecorView(), ChoiceCodec.HEADER + "\nbubble_chat_heads=false\n");
+            View root = screen.get().getWindow().getDecorView();
+            int toasts = ShadowToast.shownToastCount();
+            importChoices(root, ChoiceCodec.HEADER + "\nbubble_chat_heads=false\n");
             assertTrue(Settings.preferences.getBoolean(Settings.BUBBLE_CHAT_HEADS, false));
-            assertTrue(ShadowToast.getTextOfLatestToast().contains("patch isn't installed"));
+            // The toast holds only the headline; why the choice was skipped stays on the line under the backup buttons.
+            assertEquals(toasts + 1, ShadowToast.shownToastCount());
+            assertTrue(ShadowToast.getTextOfLatestToast().startsWith("Nothing to restore"));
+            TextView status = root.findViewWithTag("choices_restore_status");
+            assertEquals(View.VISIBLE, status.getVisibility());
+            assertTrue(status.getText().toString().contains("patch isn't installed"));
         }
     }
 

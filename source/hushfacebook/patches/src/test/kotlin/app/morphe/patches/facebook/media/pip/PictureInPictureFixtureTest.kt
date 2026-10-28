@@ -49,7 +49,9 @@ import java.io.File
  * extension in the read's own register. And the Video tab's arming: the one method loading its
  * deep-dive surface's name that calls the check, its inlined copy of the gate (the gate's own
  * settings fetch and lambda cases) before the check, and the flag after the name whose no falls
- * into a disarm, both answered through the extension in their own registers.
+ * into a disarm, both answered through the extension in their own registers. And the viewer
+ * opening's hide of each view of the screen, heard by the extension first, and the one method that
+ * shows them again, through the extension (#126).
  */
 class PictureInPictureFixtureTest {
     private fun Method.code(): List<Instruction> = implementation!!.instructions.toList()
@@ -180,6 +182,21 @@ class PictureInPictureFixtureTest {
                 val originalPlay = play.code()
                 val originalRun = run.code()
                 val originalOpening = opening.code()
+
+                // #126: the viewer hides each view of the screen as it opens, and one method shows them again.
+                val hidden = hideAt(originalOpening)
+                val newViewId = originalOpening.indexOfFirst { it.call?.name == "generateViewId" }
+                assertTrue("$name: the viewer opening hides no view of the screen after its new view id", hidden > newViewId)
+                val branchesTo = originalOpening.indices.filter { originalOpening[it] is OffsetInstruction }.map { originalOpening.target(it) }
+                assertTrue("$name: a branch lands on the viewer's hide, past the extension", hidden !in branchesTo)
+                val showers = viewers.flatMap { viewer -> viewer.methods.filter { !isViewerOpening(it) && showAt(it.code()) >= 0 } }
+                assertEquals("$name: methods showing the screen again", 1, showers.size)
+                val shower = showers.single()
+                val originalShower = shower.code()
+                val shownAt = showAt(originalShower)
+                val shownView = originalShower[shownAt] as FiveRegisterInstruction
+                assertTrue("$name: the show takes its view or visibility from past v15", shownView.registerC <= 15 && shownView.registerD <= 15)
+
                 val context = PatchContexts.of((listOf(util, holder, owner, runnable, topic, homeClass, paramsClass) + viewers + listOf(
                     ExtensionDex.classDef(PICTURE_IN_PICTURE), ExtensionDex.classDef(SETTINGS_STATUS))).distinctBy { it.type })
                 pictureInPicturePatch.execute(context)
@@ -194,11 +211,17 @@ class PictureInPictureFixtureTest {
                 assertEquals("$name: the register handed over is the activity", activity, (first as RegisterRangeInstruction).startRegister)
                 assertEquals("$name: one register handed over", 1, first.registerCount)
                 assertEquals("$name: the yes branch", Opcode.IF_EQZ, patched[2].opcode)
-                assertEquals("$name: a no runs Facebook's first instruction", 5, patched.target(2))
-                assertEquals("$name: Facebook's first instruction moved", originalCheck[0].opcode, patched[5].opcode)
                 assertEquals("$name: the yes answers true", 1, (patched[3] as NarrowLiteralInstruction).narrowLiteral)
                 assertEquals("$name: the yes returns", Opcode.RETURN, patched[4].opcode)
-                assertEquals("$name: the rest of Facebook's check", originalCheck.size + 5, patched.size)
+                // #252, #256: with the switch off, the check says no to Facebook's own window too.
+                assertEquals("$name: a no asks whether the switch refuses", 5, patched.target(2))
+                assertEquals("$name: the refusal's call", REFUSED, patched[5].call.toString())
+                assertEquals("$name: the refusal's branch", Opcode.IF_EQZ, patched[7].opcode)
+                assertEquals("$name: a refusal answers false", 0, (patched[8] as NarrowLiteralInstruction).narrowLiteral)
+                assertEquals("$name: a refusal returns", Opcode.RETURN, patched[9].opcode)
+                assertEquals("$name: neither runs Facebook's first instruction", 10, patched.target(7))
+                assertEquals("$name: Facebook's first instruction moved", originalCheck[0].opcode, patched[10].opcode)
+                assertEquals("$name: the rest of Facebook's check", originalCheck.size + 10, patched.size)
 
                 val gated = context.mutableClassDefBy(gate.definingClass).methods.single {
                     it.name == gate.name && it.shape() == gate.shape() && it.returnType == "Z"
@@ -284,14 +307,28 @@ class PictureInPictureFixtureTest {
                 assertEquals("$name: the rest of Facebook's runnable", originalRun.size + 4, ran.size)
 
                 val opened = patchedOf(opening).code()
-                val newId = originalOpening.indexOfFirst { it.call?.name == "generateViewId" }
+                val newId = newViewId
                 val idRegister = (originalOpening[newId + 1] as OneRegisterInstruction).registerA
                 val swap = opened[newId + 2] as FiveRegisterInstruction
                 assertEquals("$name: the call after the new view id", VIEWER_ID, opened[newId + 2].call.toString())
                 assertEquals("$name: the activity and the id handed over", listOf(opening.localRegisterCount(), idRegister),
                     listOf(swap.registerC, swap.registerD))
                 assertEquals("$name: the answer is the id", idRegister, (opened[newId + 3] as OneRegisterInstruction).registerA)
-                assertEquals("$name: the rest of Facebook's opening", originalOpening.size + 2, opened.size)
+                // The hide sits two instructions further down, after the view id's.
+                val heard = opened[hidden + 2] as RegisterRangeInstruction
+                assertEquals("$name: the call before the hide", HIDING, opened[hidden + 2].call.toString())
+                assertEquals("$name: the view handed over is the one hidden",
+                    listOf((originalOpening[hidden] as FiveRegisterInstruction).registerC, 1), listOf(heard.startRegister, heard.registerCount))
+                assertEquals("$name: Facebook's hide follows", originalOpening[hidden].call.toString(), opened[hidden + 3].call.toString())
+                assertEquals("$name: the rest of Facebook's opening", originalOpening.size + 3, opened.size)
+
+                val shown = patchedOf(shower).code()
+                val showing = shown[shownAt] as FiveRegisterInstruction
+                assertEquals("$name: the show goes to the extension", SHOWN_AGAIN, shown[shownAt].call.toString())
+                assertEquals("$name: as a static call", Opcode.INVOKE_STATIC, shown[shownAt].opcode)
+                assertEquals("$name: the view and visibility handed over", listOf(shownView.registerC, shownView.registerD),
+                    listOf(showing.registerC, showing.registerD))
+                assertEquals("$name: the rest of Facebook's handler", originalShower.size, shown.size)
 
                 val resumed = patchedOf(resume).code()
                 val swapped = resumed[resumeAt + 1] as RegisterRangeInstruction
@@ -332,7 +369,8 @@ class PictureInPictureFixtureTest {
                     "set aside in ${runnable.type}, viewer ${opening.definingClass}->${opening.name}, " +
                     "watch viewer ${topic.type}->onResume flag at $resumeAt in v$flagRegister of ${resume.localRegisterCount()} locals, " +
                     "video tab ${home.definingClass}->${home.name} gate copy (cases $gateCases) at $copyAt in v$homeGateRegister " +
-                    "and flag at $homeFlag in v$homeFlagRegister of ${home.localRegisterCount()} locals")
+                    "and flag at $homeFlag in v$homeFlagRegister of ${home.localRegisterCount()} locals, " +
+                    "screen hidden at $hidden, shown again in ${shower.definingClass}->${shower.name} at $shownAt")
                 checked += version
             }
         }

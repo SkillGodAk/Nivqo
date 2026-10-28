@@ -51,7 +51,6 @@ private const val CONFIRM_NOTIFICATION_ID = 2006
  *
  * Shizuku silent installation is handled via [ShizukuInstaller].
  */
-@Suppress("RedundantSuppression")
 class SessionInstaller(private val app: Application) {
 
     private val notificationManager = app.getSystemService(NotificationManager::class.java)
@@ -146,6 +145,7 @@ class SessionInstaller(private val app: Application) {
         }
 
         return suspendCancellableCoroutine { cont ->
+            var registered: BroadcastReceiver? = null
             try {
                 installer.openSession(sessionId).use { session ->
                     val pi = statusPendingIntent(ACTION_INSTALL_STATUS, EXTRA_SESSION_ID, sessionId)
@@ -205,6 +205,7 @@ class SessionInstaller(private val app: Application) {
                     }
 
                     registerReceiverCompat(receiver, IntentFilter(ACTION_INSTALL_STATUS))
+                    registered = receiver
 
                     cont.invokeOnCancellation {
                         runCatching { app.unregisterReceiver(receiver) }
@@ -214,6 +215,7 @@ class SessionInstaller(private val app: Application) {
                     session.commit(pi.intentSender)
                 }
             } catch (e: Exception) {
+                registered?.let { runCatching { app.unregisterReceiver(it) } }
                 runCatching { installer.abandonSession(sessionId) }
                 throw e
             }
@@ -407,7 +409,12 @@ class SessionInstaller(private val app: Application) {
             runCatching { app.unregisterReceiver(receiver) }
         }
 
-        installer.uninstall(packageName, pi.intentSender)
+        try {
+            installer.uninstall(packageName, pi.intentSender)
+        } catch (e: Exception) {
+            runCatching { app.unregisterReceiver(receiver) }
+            throw e
+        }
     }
 
     /**
@@ -419,14 +426,10 @@ class SessionInstaller(private val app: Application) {
     /** Returns true if Shizuku, Shizuku+ or Sui is installed on the device. */
     fun isShizukuInstalled(): Boolean = shizuku.isInstalled()
 
-    /** Returns the current [InstallerManager.Availability] of Shizuku for the given [target]. */
-    fun shizukuAvailability(
-        target: InstallerManager.InstallTarget
-    ): InstallerManager.Availability = shizukuStatus(target).availability
+    /** Returns the current [InstallerManager.Availability] of Shizuku. */
+    fun shizukuAvailability(): InstallerManager.Availability = shizukuStatus().availability
 
-    fun shizukuStatus(
-        @Suppress("UNUSED_PARAMETER") target: InstallerManager.InstallTarget
-    ): ShizukuStatus {
+    fun shizukuStatus(): ShizukuStatus {
         val flavor = shizuku.flavor()
         // Resolved once and passed on: settling the flavor costs a round trip to the server.
         val packageName = shizuku.providerPackageName(flavor)
@@ -464,11 +467,9 @@ class SessionInstaller(private val app: Application) {
      * [Shizuku.OnRequestPermissionResultListener] is registered here.
      */
     fun requestShizukuPermission(): Boolean {
-        val status = shizukuStatus(InstallerManager.InstallTarget.PATCHER)
-        if (!status.installed || !status.supported || !status.running || status.permissionGranted) {
-            return false
-        }
-        return runCatching {
+        val status = shizukuStatus()
+        val canAsk = status.installed && status.supported && status.running && !status.permissionGranted
+        return canAsk && runCatching {
             Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE)
             true
         }.onFailure { error ->

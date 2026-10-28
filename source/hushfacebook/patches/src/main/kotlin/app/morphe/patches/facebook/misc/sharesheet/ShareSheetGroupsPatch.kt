@@ -37,9 +37,11 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
  * footer builds that button only when every pick is a person rather than a group chat, and keeps it
  * in one register where its guards meet. Its tap is SharesheetMessagingActionsImpl's
  * onSendToGroupCtaButtonClicked, which makes a new group chat of the picks. The footer is the one
- * render that loads "private_sharing_forward_super_share_sheet" and SharesheetMessagingActionsImpl,
- * and the Send to group button is the first FDSButton it builds (581 string 0x7f1443a2); the send
- * button is the second.
+ * render that loads "private_sharing_forward_super_share_sheet", asks the kept ThreadKey whether a
+ * pick is a group chat (a static boolean over one ThreadKey, `A0V` on 583 and 584) and builds
+ * FDSButtons. The Send to group button is the first FDSButton it builds (581 string 0x7f1443a2); the
+ * send button is the second. Through 583 the footer also named SharesheetMessagingActionsImpl, but
+ * 584 renamed that class (`LX/I9d;`), so the pick question is what tells the footer apart.
  *
  * The sheet also offers a new group of its own, each place behind its own MobileConfig flag and
  * drawn with the FDS icon GROUP_PLUS: a "Send to group" row above the people and an icon on their
@@ -59,8 +61,9 @@ internal const val SEND_TO_GROUP_BUTTON = "$SHARE_SHEET_GROUPS->sendToGroupButto
 internal const val OFFER_NEW_GROUP = "$SHARE_SHEET_GROUPS->offerNewGroup(Z)Z"
 
 internal const val FDS_BUTTON = "Lcom/facebook/fds/FDSButton;"
-internal const val SHARESHEET_MESSAGING_ACTIONS =
-    "Lcom/facebook/messaginginblue/sharesheet/environment/SharesheetMessagingActionsImpl;"
+
+/** Kept name. Each pick in the share sheet is one, a person's chat or a group's. */
+internal const val THREAD_KEY = "Lcom/facebook/messaging/model/threadkey/ThreadKey;"
 
 /** A literal only the share sheet footer's render loads among renders. */
 internal const val SHARE_FOOTER_ANCHOR = "private_sharing_forward_super_share_sheet"
@@ -152,12 +155,17 @@ private fun Method.code(): List<Instruction> = implementation?.instructions?.toL
 
 private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference
 
-/** Whether [method] is the share sheet footer's render: it asks SharesheetMessagingActionsImpl and builds FDSButtons. */
+/**
+ * Whether [method] is the share sheet footer's render: it asks [THREAD_KEY] a static boolean
+ * question about one ThreadKey, whether a pick is a group chat, and builds FDSButtons.
+ */
 internal fun isShareFooter(method: Method): Boolean {
     val code = method.code()
-    return code.any { (it.reference() as? MethodReference)?.definingClass == SHARESHEET_MESSAGING_ACTIONS ||
-        (it.reference() as? FieldReference)?.definingClass == SHARESHEET_MESSAGING_ACTIONS } &&
-        code.any { it.isFdsButtonInit() }
+    return code.any { instruction ->
+        val call = instruction.reference() as? MethodReference
+        instruction.opcode == Opcode.INVOKE_STATIC && call?.definingClass == THREAD_KEY && call.returnType == "Z" &&
+            call.parameterTypes.map { it.toString() } == listOf(THREAD_KEY)
+    } && code.any { it.isFdsButtonInit() }
 }
 
 private fun Instruction.isFdsButtonInit(): Boolean {
@@ -173,7 +181,8 @@ private fun Instruction.isFdsButtonInit(): Boolean {
  * register, which the constructor call reaches through a copy, is the one a later null test reads
  * (nothing writes it in between), so the hook goes right after the constructor and takes that
  * register. Either way it sits at its control flow label, so the paths that skip the button run it
- * too, with the register still null. Null when the first FDSButton isn't kept either way.
+ * too, with the register still null (584's skip sets it null further down and jumps back there).
+ * Null when the first FDSButton isn't kept either way.
  */
 internal fun sendToGroupButton(footer: Method): GroupButton? {
     val code = footer.code()

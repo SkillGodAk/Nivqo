@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "0.9.0",
+    [string]$Version = "1.0.0",
     [string]$OutputPath,
     [string]$AndroidSdk = ""
 )
@@ -127,7 +127,31 @@ try {
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'controlPatch("app_icons", "Unlock app icons",' 'controlPatch("app_icons", "Messenger · Unlock app icons",'
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\coexist\RestoreTrustPatch.kt") 'name = "Restore screens on re-signed builds"' 'name = "Messenger · Restore screens on re-signed builds"'
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'name = "View stories anonymously"' 'name = "Messenger · View stories anonymously"'
+    # HushFacebook 0.19.0 also provides Hide tab badges; namespace the Messenger instance.
+    Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'controlPatch("tab_badges", "Hide tab badges",' 'controlPatch("tab_badges", "Messenger · Hide tab badges",'
 
+    # First generate patch metadata: this modifies patches-list.json and must precede the clean commit.
+    Push-Location $temp
+    try {
+        $oldEap = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        try {
+            & .\gradlew.bat :patches:generatePatchesList -PallowMavenLocal=true --dependency-verification off --no-daemon --max-workers=1 "-Dorg.gradle.jvmargs=-Xmx1650m -XX:MaxMetaspaceSize=700m -XX:ActiveProcessorCount=2"
+        } finally {
+            $ErrorActionPreference = $oldEap
+        }
+        if ($LASTEXITCODE -ne 0) { throw "Combined patch catalog generation failed: $LASTEXITCODE" }
+    } finally {
+        Pop-Location
+    }
+    # Source-state stamp is required by Patcher 2.x before a formal combined MPP is accepted.
+    # The Git repository is disposable and never touches the canonical branch.
+    & git -C $temp init -q
+    if ($LASTEXITCODE -ne 0) { throw "Combined staging git init failed" }
+    & git -C $temp add -A
+    if ($LASTEXITCODE -ne 0) { throw "Combined staging git add failed" }
+    & git -C $temp -c user.name="Nivqo Combined Build" -c user.email="local-only@invalid.example" commit -qm "Stamp formal Nivqo 1.0.0 combined source"
+    if ($LASTEXITCODE -ne 0) { throw "Combined staging git commit failed" }
     Push-Location $temp
     try {
         # Windows PowerShell may promote native Gradle SDK warnings on stderr to errors.
@@ -135,7 +159,7 @@ try {
         $previousErrorPreference = $ErrorActionPreference
         $ErrorActionPreference = "Continue"
         try {
-            & .\gradlew.bat :patches:generatePatchesList :patches:buildAndroid -PallowMavenLocal=true --dependency-verification off --no-daemon --max-workers=2 "-Dorg.gradle.jvmargs=-Xmx1536m -XX:MaxMetaspaceSize=384m"
+            & .\gradlew.bat :patches:buildAndroid -PallowMavenLocal=true --dependency-verification off --no-daemon --max-workers=1 "-Dorg.gradle.jvmargs=-Xmx1650m -XX:MaxMetaspaceSize=700m -XX:ActiveProcessorCount=2"
         } finally {
             $ErrorActionPreference = $previousErrorPreference
         }
@@ -155,6 +179,13 @@ try {
     $otherCount = 0
     foreach ($patch in $patches) {
         $packages = @($patch.compatiblePackages.PSObject.Properties.Name)
+        # Patcher 2.x lists Messenger compatibility as an object array.
+        foreach ($compatible in @($patch.compatiblePackages)) {
+            if ($null -ne $compatible -and $compatible.PSObject.Properties['packageName']) { $packages += $compatible.packageName }
+        }
+        if ($patch.PSObject.Properties['compatibility'] -and $patch.compatibility -and $patch.compatibility.PSObject.Properties['packageName']) {
+            $packages += $patch.compatibility.packageName
+        }
         if ($packages -contains "com.facebook.katana") {
             $facebookCount++
         } elseif ($packages -contains "com.facebook.orca") {
@@ -165,7 +196,7 @@ try {
     }
 
     $duplicates = @($patches | Group-Object name | Where-Object { $_.Count -gt 1 })
-    if ($patches.Count -ne 148 -or $facebookCount -ne 91 -or $messengerCount -ne 57 -or $otherCount -ne 0) {
+    if ($patches.Count -ne 171 -or $facebookCount -ne 105 -or $messengerCount -ne 66 -or $otherCount -ne 0) {
         throw "Unexpected catalog split: total=$($patches.Count), Facebook=$facebookCount, Messenger=$messengerCount, other=$otherCount"
     }
     if ($duplicates.Count -ne 0) {

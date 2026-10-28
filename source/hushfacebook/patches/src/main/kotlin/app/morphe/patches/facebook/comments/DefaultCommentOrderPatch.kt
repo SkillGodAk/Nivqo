@@ -6,6 +6,7 @@ package app.morphe.patches.facebook.comments
 
 import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
@@ -14,6 +15,7 @@ import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.classDefForEachReferencing
 import app.morphe.util.findMutableMethodOf
 
 /**
@@ -30,7 +32,7 @@ val defaultCommentOrderPatch = bytecodePatch(
     name = "Default comment order",
     description = "Opens comments in the order you choose, Most relevant, Newest or All comments, instead of the " +
         "one Facebook picks. Handy if you always want the newest first. Starts off. Turn it on and pick an order " +
-        "in Hushfacebook settings > Comments.",
+        "in Hushfacebook settings > Comments and writing.",
 ) {
     category("Comments")
     dependsOn(settingsPatch)
@@ -78,8 +80,61 @@ val defaultCommentOrderPatch = bytecodePatch(
             it.name == "<init>" && it.parameterTypes.map { type -> type.toString() } == header.parameterTypes.map { type -> type.toString() }
         } ?: throw PatchException("$PATCH: ${header.definingClass} has no constructor ${header.parameterTypes}")
         headerConstructor.tellTheMenu()
+        hookPostPage()
         enableStatus("defaultCommentOrder")
     }
+}
+
+/**
+ * A post's own page asks the extension too (#192): right before the one link-to-page builder
+ * constructs the page's request params, the order the link names goes to the extension and its
+ * answer takes that parameter's place. See CommentOrderAnchors.kt for the shapes.
+ */
+internal fun BytecodePatchContext.hookPostPage() {
+    val storyBuilders = classDefByStrings(ORDER_VARIABLE, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_CLASSES) }
+        .flatMap { owner -> owner.methods.mapNotNull { method -> storyOrderField(method)?.let { method to it } } }
+    val (storyBuilder, orderField) = storyBuilders.singleOrNull() ?: throw PatchException(
+        "$PATCH: expected one request builder taking $FETCH_SINGLE_STORY_PARAMS that reads \"$ORDER_VARIABLE\" " +
+            "from one of its fields, found ${storyBuilders.size}",
+    )
+    val storyParams = classDefByOrNull(FETCH_SINGLE_STORY_PARAMS)
+        ?: throw PatchException("$PATCH: this build has no $FETCH_SINGLE_STORY_PARAMS")
+    val constructors = storyParams.methods.mapNotNull { method -> storyOrderParameter(method, orderField)?.let { method to it } }
+    val (constructor, parameter) = constructors.singleOrNull() ?: throw PatchException(
+        "$PATCH: expected one constructor of $FETCH_SINGLE_STORY_PARAMS storing the field ${storyBuilder.definingClass}->" +
+            "${storyBuilder.name} reads the order from, from one of its parameters, found ${constructors.size}",
+    )
+    val builds = mutableListOf<PageBuild>()
+    // A page build calls the constructor.
+    classDefForEachReferencing(types = listOf(constructor.definingClass)) { classDef ->
+        if (classDef.type.startsWith(EXTENSION_CLASSES)) return@classDefForEachReferencing
+        classDef.methods.forEach { method -> pageBuildIn(method, constructor, parameter)?.let { builds += it } }
+    }
+    val build = builds.singleOrNull() ?: throw PatchException(
+        "$PATCH: expected one method taking $PERMALINK_PARAMS that builds $FETCH_SINGLE_STORY_PARAMS with its " +
+            "${constructor.parameterTypes.size}-parameter constructor, found ${builds.size}",
+    )
+    mutableClassDefBy(build.method.definingClass).findMutableMethodOf(build.method).askForThePageOrder(build)
+}
+
+/**
+ * Right before the link-to-page builder calls the params' constructor, the order the link names
+ * goes to the extension and its answer goes back into the same register, which the call then
+ * reads. The range form names any register, and the answer's move takes one up to v255.
+ */
+internal fun MutableMethod.askForThePageOrder(build: PageBuild) {
+    // 583 keeps it in v31. Guarded in case a build pushes the constructor's registers past what move-result-object names.
+    if (build.order > 255) {
+        throw PatchException("$PATCH: $definingClass->$name keeps the page's order past v255: v${build.order}")
+    }
+    addInstructions(
+        build.index,
+        """
+            invoke-static/range { v${build.order} .. v${build.order} }, $PAGE_ORDER
+            move-result-object v${build.order}
+        """,
+    )
 }
 
 /**

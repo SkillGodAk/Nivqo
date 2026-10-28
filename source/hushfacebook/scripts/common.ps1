@@ -53,9 +53,21 @@ function Remove-GeneratedPath {
     )
     try {
         $safe = Resolve-WithinRoot -Path $Path -Root $Root
+        $rootPath = [IO.Path]::GetFullPath($Root).TrimEnd('\')
+        # The leaf can be removed as a link. An ancestor link would make even a
+        # nonrecursive leaf deletion reach outside this run's directory.
+        $parent = [IO.Path]::GetDirectoryName($safe)
+        while ($parent.Length -gt $rootPath.Length) {
+            try { $attributes = [IO.File]::GetAttributes($parent) }
+            catch [IO.FileNotFoundException], [IO.DirectoryNotFoundException] { $attributes = 0 }
+            if ($attributes -band [IO.FileAttributes]::ReparsePoint) {
+                throw "Refusing to remove a generated path through a linked ancestor: $parent"
+            }
+            $parent = [IO.Path]::GetDirectoryName($parent)
+        }
         if (-not (Test-Path -LiteralPath $safe)) { return }
         if ($NoRecurse) { Remove-Item -LiteralPath $safe -Force -ErrorAction Stop }
-        else { Remove-Item -LiteralPath $safe -Recurse -Force -ErrorAction Stop }
+        else { Remove-TreeWithoutFollowingLinks -Path $safe }
     } catch {
         Write-Warning "Could not remove generated path: $($_.Exception.Message)"
     }
@@ -430,6 +442,74 @@ function Resolve-DesktopCli {
             'HUSHFACEBOOK_WORKDIR, or put the jar in build/morphe-tools.')
     }
     return $found
+}
+
+function Get-DesktopPatcherVersion {
+    <#
+    .SYNOPSIS
+        The morphe-patcher version a desktop CLI jar bundles, or $null when the jar doesn't say.
+    .DESCRIPTION
+        Read from the app/morphe/patcher/version.properties the patcher packs into the fat jar. The
+        CLI's --version names only its own release (1.18.1 bundles patcher 1.15.1, 1.19.0 bundles
+        2.0.0), and the jar carries no Maven metadata for the patcher. A file that isn't a zip throws.
+    #>
+    param([Parameter(Mandatory = $true)][string]$Jar)
+
+    # ZipFile reads a relative path against the process directory, not PowerShell's location.
+    $Jar = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Jar)
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    try {
+        $archive = [System.IO.Compression.ZipFile]::OpenRead($Jar)
+    } catch {
+        throw "The Morphe desktop CLI at $Jar is not a readable jar: $($_.Exception.Message)"
+    }
+    try {
+        $entry = $archive.GetEntry('app/morphe/patcher/version.properties')
+        if (-not $entry) { return $null }
+        $reader = New-Object System.IO.StreamReader($entry.Open())
+        try { $text = $reader.ReadToEnd() } finally { $reader.Dispose() }
+    } finally { $archive.Dispose() }
+    $match = [regex]::Match($text, '(?m)^[ \t]*version[ \t]*[=:][ \t]*(\S+?)[ \t]*\r?$')
+    if ($match.Success) { return $match.Groups[1].Value }
+    return $null
+}
+
+function Assert-DesktopPatcherVersion {
+    <#
+    .SYNOPSIS
+        Throws unless the desktop CLI jar bundles a patcher of -Expected's major version, and
+        returns the version it bundles.
+    .DESCRIPTION
+        A bundle built for one morphe-patcher major fails on the other only once the CLI loads it:
+        the 0.17.0 push ran its whole 17-minute gate with a 1.18.1 jar on the 2.0 pin and died at the
+        end on NoSuchMethodError: Compatibility.<init>. So the callers ask before anything heavy runs.
+        The message names HUSHFACEBOOK_DESKTOP_JAR's User value when it names another jar, since a
+        shell opened before that value moved is how the old jar got there.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Jar,
+        [Parameter(Mandatory = $true)][string]$Expected,
+        [Parameter(Mandatory = $true)][string]$ExpectedFrom
+    )
+
+    $bundled = Get-DesktopPatcherVersion -Jar $Jar
+    if (-not $bundled) {
+        throw ("The Morphe desktop CLI at $Jar has no app/morphe/patcher/version.properties, so the patcher " +
+            "it bundles is unknown. $ExpectedFrom needs morphe-patcher $Expected.")
+    }
+    if (($bundled -split '\.')[0] -eq ($Expected -split '\.')[0]) { return $bundled }
+    # The hint only when this process's HUSHFACEBOOK_DESKTOP_JAR is where the jar came from.
+    $Jar = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Jar)
+    $userJar = [Environment]::GetEnvironmentVariable('HUSHFACEBOOK_DESKTOP_JAR', [EnvironmentVariableTarget]::User)
+    $processJar = $env:HUSHFACEBOOK_DESKTOP_JAR
+    if ($processJar) { $processJar = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($processJar) }
+    $hint = ''
+    if ($userJar -and $processJar -and $processJar -eq $Jar -and
+            $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($userJar) -ne $Jar) {
+        $hint = " HUSHFACEBOOK_DESKTOP_JAR's User value is $userJar, so a shell opened before it moved still names the old jar."
+    }
+    throw ("The Morphe desktop CLI at $Jar bundles morphe-patcher $bundled, but $ExpectedFrom needs " +
+        "$Expected, and a bundle built for one major version fails on the other.$hint")
 }
 
 function Select-FixtureBuild {

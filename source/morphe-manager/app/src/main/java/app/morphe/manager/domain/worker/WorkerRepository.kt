@@ -15,6 +15,9 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequest
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -33,6 +36,12 @@ class WorkerRepository(app: Application) {
         val data = workerInputs.remove(worker.id) ?: throw IllegalStateException("Worker was not launched via WorkerRepository")
         return data as A
     }
+
+    /** Whether a [W] launched through [launchExpedited] is still queued or running. */
+    inline fun <reified W : Worker<*>> activeFlow(): Flow<Boolean> =
+        workManager.getWorkInfosForUniqueWorkFlow(W::class.java.simpleName)
+            .map { infos -> infos.any { !it.state.isFinished } }
+            .distinctUntilChanged()
 
     inline fun <reified W : Worker<A>, A : Any> launchExpedited(input: A): UUID {
         val request =

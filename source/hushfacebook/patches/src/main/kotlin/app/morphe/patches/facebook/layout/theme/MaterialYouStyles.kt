@@ -7,7 +7,7 @@ package app.morphe.patches.facebook.layout.theme
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
-import com.android.tools.smali.dexlib2.AccessFlags
+import app.morphe.util.classDefForEachReferencing
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
@@ -134,12 +134,8 @@ internal var plainTokens: Set<String> = emptySet()
 internal var integerReadAttributeIds: Set<Int> = emptySet()
 
 /** The token enum FDSColors resolves, and its constants. */
-private fun BytecodePatchContext.fdsTokens(): Pair<ClassDef, TokenConstants> {
-    val source = classDefBy(FDS_COLORS).methods.singleOrNull { method ->
-        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Ljava/lang/Integer;" &&
-            method.parameterTypes.size == 3 && method.parameterTypes[0].toString() == "Landroid/content/Context;"
-    } ?: error("FDSColors has no single Integer colour source taking a Context, a token and a palette")
-    val tokenType = source.parameterTypes[1].toString()
+internal fun BytecodePatchContext.fdsTokens(): Pair<ClassDef, TokenConstants> {
+    val tokenType = fdsColourSource(classDefBy(fdsColors()))!!.parameterTypes[1].toString()
     val tokenClass = classDefBy(tokenType)
     return tokenClass to tokenConstants(tokenClass.methods.single { it.name == "<clinit>" }, tokenType)
 }
@@ -167,7 +163,9 @@ internal val fdsTokenAttributesPatch = bytecodePatch {
 
     execute {
         val (tokenClass, constants) = fdsTokens()
-        plainTokens = dataReadTokens({ visit -> classDefForEach { visit(it) } }, constants, tokenAttributeField(tokenClass)).tokens
+        plainTokens = dataReadTokens({ visit -> classDefForEach { visit(it) } }, constants, tokenAttributeField(tokenClass)) { names, visit ->
+            classDefForEachReferencing(names = names) { visit(it) }
+        }.tokens
         integerReadAttributeIds = integerReadAttributes { visit -> classDefForEach { visit(it) } }.attributes
     }
 }
@@ -245,7 +243,17 @@ internal fun tokenAttributeField(tokenClass: ClassDef): String {
 }
 
 private const val RESOLVE_ATTRIBUTE = "Landroid/content/res/Resources\$Theme;->resolveAttribute(ILandroid/util/TypedValue;Z)Z"
+private const val RESOLVE_ATTRIBUTE_NAME = "resolveAttribute"
 private const val TYPED_VALUE = "Landroid/util/TypedValue;"
+
+/**
+ * Whether this calls [RESOLVE_ATTRIBUTE]. The name goes first: writing every reference of the app out
+ * as text to compare was most of this scan's time on a phone (#236).
+ */
+private fun Instruction.resolvesAttribute(): Boolean {
+    val call = (this as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+    return call.name == RESOLVE_ATTRIBUTE_NAME && call.key() == RESOLVE_ATTRIBUTE
+}
 
 /** Where a register's value came from, as far as a look back up the method goes. */
 private sealed interface Origin {
@@ -284,12 +292,15 @@ internal class DataReadScan(
  * on each path to the call, so both arms of a branch) is a token's literal, a token constant's
  * [attributeField], or a parameter, which makes the method a helper whose callers are looked at the
  * same way, a token constant passed in included, and a helper's helpers after them until no new one
- * turns up. [forEachClass] walks every class, once per round.
+ * turns up. [forEachClass] walks every class, once per round. [forEachNaming], when given, walks only
+ * the classes that may call a method of one of the names it gets (the reference index), which is
+ * every class this scan can find anything in (#236).
  */
 internal fun dataReadTokens(
     forEachClass: ((ClassDef) -> Unit) -> Unit,
     constants: TokenConstants,
     attributeField: String,
+    forEachNaming: (Collection<String>, (ClassDef) -> Unit) -> Unit = { _, visit -> forEachClass(visit) },
 ): DataReadScan {
     val byAttribute = constants.attributes.entries.associate { (name, attribute) -> attribute to name }
     val readers = sortedMapOf<String, MutableSet<String>>()
@@ -318,18 +329,18 @@ internal fun dataReadTokens(
         }
     }
 
-    forEachClass { classDef ->
-        if (classDef.type.startsWith(EXTENSION_PACKAGE)) return@forEachClass
+    forEachNaming(listOf(RESOLVE_ATTRIBUTE_NAME)) { classDef ->
+        if (classDef.type.startsWith(EXTENSION_PACKAGE)) return@forEachNaming
         for (method in classDef.methods) {
             val instructions = method.implementation?.instructions ?: continue
-            val calls = instructions.count { (it as? ReferenceInstruction)?.reference?.toString() == RESOLVE_ATTRIBUTE }
+            val calls = instructions.count { it.resolvesAttribute() }
             if (calls == 0) continue
             val read = reads(instructions, calls)
             if (read == Read.TYPE) continue
             val flow = Flow(method)
             val key = method.key()
             for ((index, instruction) in flow.instructions.withIndex()) {
-                if ((instruction as? ReferenceInstruction)?.reference?.toString() != RESOLVE_ATTRIBUTE) continue
+                if (!instruction.resolvesAttribute()) continue
                 note(origins(flow, index, instruction.arguments()[1], constants, attributeField), read, key, index)
             }
         }
@@ -340,8 +351,9 @@ internal fun dataReadTokens(
         val round = fresh
         fresh = mutableMapOf()
         val roundTypes = round.keys.map { it.substringBefore("->") }.toSet()
-        forEachClass { classDef ->
-            if (classDef.type.startsWith(EXTENSION_PACKAGE)) return@forEachClass
+        val roundNames = round.keys.map { it.substringAfter("->").substringBefore('(') }.toSet()
+        forEachNaming(roundNames) { classDef ->
+            if (classDef.type.startsWith(EXTENSION_PACKAGE)) return@forEachNaming
             for (method in classDef.methods) {
                 val instructions = method.implementation?.instructions ?: continue
                 var flow: Flow? = null
@@ -503,6 +515,19 @@ internal fun Element.childElements(): List<Element> =
 private fun Element.parentName(): String? = getAttribute("parent").substringAfter('/', "").ifEmpty { null }
 
 /**
+ * Facebook's light and dark FDS styles out of one of the decoder's default style files, or null when
+ * [styles] doesn't hold them. The light one names no parent, the dark one names the light one, and
+ * each sets more than [FULL_THEME_ITEMS] of the tokens [tokens] names.
+ */
+internal fun fdsThemeStyles(styles: Document, tokens: Map<String, String>): Pair<Element, Element>? {
+    val all = styles.documentElement.childElements().filter { it.tagName.startsWith("style") }
+    fun fullTheme(style: Element) = style.childElements().count { it.getAttribute("name") in tokens } > FULL_THEME_ITEMS
+    val light = all.singleOrNull { it.parentName() == null && fullTheme(it) } ?: return null
+    val dark = all.singleOrNull { it.parentName() == light.getAttribute("name") && fullTheme(it) } ?: return null
+    return light to dark
+}
+
+/**
  * The FDS dark style and every style under it, the dark one first, out of one of the decoder's
  * default style files, or nothing when [styles] doesn't hold Facebook's light and dark FDS styles.
  * The light one names no parent, the dark one names the light one, and each sets more than
@@ -510,9 +535,7 @@ private fun Element.parentName(): String? = getAttribute("parent").substringAfte
  */
 internal fun darkFdsStyles(styles: Document, tokens: Map<String, String>): List<Element> {
     val all = styles.documentElement.childElements().filter { it.tagName.startsWith("style") }
-    fun fullTheme(style: Element) = style.childElements().count { it.getAttribute("name") in tokens } > FULL_THEME_ITEMS
-    val light = all.singleOrNull { it.parentName() == null && fullTheme(it) } ?: return emptyList()
-    val dark = all.singleOrNull { it.parentName() == light.getAttribute("name") && fullTheme(it) } ?: return emptyList()
+    val dark = fdsThemeStyles(styles, tokens)?.second ?: return emptyList()
 
     val family = mutableListOf(dark)
     val names = mutableSetOf(dark.getAttribute("name"))
@@ -634,7 +657,7 @@ private fun fromLab(l: Double, a: Double, b: Double): Int {
  * [colours], or null for anything else: a theme attribute, a colour Facebook gives a night value of
  * its own (route two's, or Facebook's own choice at night), a loop.
  */
-private fun defaultColour(value: String, colours: Map<String, String>, nightColours: Set<String>, depth: Int = 0): Int? {
+internal fun defaultColour(value: String, colours: Map<String, String>, nightColours: Set<String>, depth: Int = 0): Int? {
     val text = value.trim()
     if (text.startsWith("#")) return argb(text)
     if (!text.startsWith("@color/") || depth > 4) return null

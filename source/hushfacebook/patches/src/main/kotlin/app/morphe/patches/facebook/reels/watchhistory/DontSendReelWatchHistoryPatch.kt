@@ -41,7 +41,7 @@ val dontSendReelWatchHistoryPatch = bytecodePatch(
             owner.methods.mapNotNull { method -> sendPoint(method) { classDefByOrNull(it) }?.let { method to it } }
         }
         val (flush, index) = points.singleOrNull() ?: throw PatchException(
-            "$PATCH: expected one method holding \"$SEEN_STATE_MUTATION\" and \"$VIDEO_IDS\" that hands the runnable " +
+            "$PATCH: expected one method holding \"$SEEN_STATE_MUTATION\" and filling \"$VIDEO_IDS\" that hands the runnable " +
                 "Redex names $SEEN_STATE_SEND to an Executor after naming the mutation, found ${points.size}",
         )
         mutableClassDefBy(flush.definingClass).methods.single {

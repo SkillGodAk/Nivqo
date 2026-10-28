@@ -298,19 +298,24 @@ public final class L10n {
      * resource against the whole language list rather than the first entry alone, and reading
      * the table by hand has to do the same or a second choice language never shows.
      */
-    static List<String> tags(Context context) {
+    public static List<String> tags(Context context) {
         List<String> tags = new ArrayList<>(4);
         for (Locale locale : locales(context)) {
             String language = locale.getLanguage().toLowerCase(Locale.ROOT);
             if (language.isEmpty()) {
                 continue;
             }
-            // A second region of a language already listed still counts: with Portugal's
-            // Portuguese first and Brazil's second, the Brazilian table is the one that answers.
-            String country = locale.getCountry();
-            if (country != null && !country.isEmpty()) {
-                String regional = language + "-r" + country.toLowerCase(Locale.ROOT);
-                if (!tags.contains(regional)) tags.add(regional);
+            if ("zh".equals(language)) {
+                // A script wins over a conflicting region before either Chinese table is tried.
+                String chinese = chineseTable(locale);
+                if (chinese != null && !tags.contains(chinese)) tags.add(chinese);
+            } else {
+                // A second region still counts: Portugal first and Brazil second can use Brazil's table.
+                String country = locale.getCountry();
+                if (country != null && !country.isEmpty()) {
+                    String regional = language + "-r" + country.toLowerCase(Locale.ROOT);
+                    if (!tags.contains(regional)) tags.add(regional);
+                }
             }
             if (!tags.contains(language)) tags.add(language);
         }
@@ -318,6 +323,29 @@ public final class L10n {
             tags.add(Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT));
         }
         return tags;
+    }
+
+    private static final String SIMPLIFIED_CHINESE = "zh-rcn";
+    private static final String TRADITIONAL_CHINESE = "zh-rtw";
+
+    /**
+     * Explicit Hans/Hant selects its script even when the country says otherwise. Without a
+     * script, TW/HK/MO use Taiwan wording and CN/SG/MY or plain zh keep Simplified. Unrecognised
+     * scripts or countries try the next language rather than guessing a different script.
+     */
+    private static String chineseTable(Locale locale) {
+        String script = locale.getScript();
+        if (script != null && !script.isEmpty()) {
+            if ("Hans".equalsIgnoreCase(script)) return SIMPLIFIED_CHINESE;
+            if ("Hant".equalsIgnoreCase(script)) return TRADITIONAL_CHINESE;
+            return null;
+        }
+        String country = locale.getCountry();
+        if (country == null || country.isEmpty() || "CN".equalsIgnoreCase(country)
+                || "SG".equalsIgnoreCase(country) || "MY".equalsIgnoreCase(country)) return SIMPLIFIED_CHINESE;
+        if ("TW".equalsIgnoreCase(country) || "HK".equalsIgnoreCase(country)
+                || "MO".equalsIgnoreCase(country)) return TRADITIONAL_CHINESE;
+        return null;
     }
 
     /**

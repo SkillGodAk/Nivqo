@@ -46,6 +46,9 @@ class ReelWatchHistoryFixtureTest {
 
         /** Every class Redex left the send's name on, by type. */
         val sends = mutableMapOf<String, ClassDef>()
+
+        /** Every class with a method loading [VIDEO_IDS], by type: 584 fills it in the input's constructor. */
+        val inputs = mutableMapOf<String, ClassDef>()
     }
 
     private val paramSet = "Lcom/facebook/graphql/query/GraphQlQueryParamSet;"
@@ -58,7 +61,7 @@ class ReelWatchHistoryFixtureTest {
     private fun scan(bundle: File): Found {
         val found = Found()
         FixtureDex.forEach(bundle) { dex ->
-            val strings = dex.stringSection.filterTo(HashSet()) { it == SEEN_STATE_MUTATION || it == SEEN_STATE_SEND }
+            val strings = dex.stringSection.filterTo(HashSet()) { it == SEEN_STATE_MUTATION || it == SEEN_STATE_SEND || it == VIDEO_IDS }
             if (strings.isEmpty()) return@forEach
             for (classDef in dex.classes) {
                 if (SEEN_STATE_MUTATION in strings) {
@@ -70,6 +73,9 @@ class ReelWatchHistoryFixtureTest {
                 }
                 if (SEEN_STATE_SEND in strings && redexOriginalName(classDef) == SEEN_STATE_SEND) {
                     found.sends[classDef.type] = ImmutableClassDef.of(classDef)
+                }
+                if (VIDEO_IDS in strings && classDef.methods.any { holdsString(it, VIDEO_IDS) }) {
+                    found.inputs[classDef.type] = ImmutableClassDef.of(classDef)
                 }
             }
         }
@@ -103,7 +109,9 @@ class ReelWatchHistoryFixtureTest {
                 assertEquals("$name: methods loading \"$SEEN_STATE_MUTATION\"", 1, found.holdingMethods)
                 assertEquals("$name: classes Redex named $SEEN_STATE_SEND", 1, found.sends.size)
                 val points = found.holders.flatMap { owner ->
-                    owner.methods.mapNotNull { method -> sendPoint(method) { found.sends[it] }?.let { Triple(owner, method, it) } }
+                    owner.methods.mapNotNull { method ->
+                        sendPoint(method) { found.sends[it] ?: found.inputs[it] }?.let { Triple(owner, method, it) }
+                    }
                 }
                 assertEquals("$name: send points", 1, points.size)
                 val (owner, flush, send) = points.single()

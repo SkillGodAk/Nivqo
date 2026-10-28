@@ -4,13 +4,46 @@
         <item quantity="one">%s ta tuzatish</item>
         <item quantity="other">%s ta tuzatishlar</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s ta kutubxona</item>
+        <item quantity="other">%s ta kutubxona</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s ta tuzatish imkoniyati</item>
         <item quantity="other">%s ta tuzatish imkoniyatlari</item>
     </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s ta element</item>
+        <item quantity="other">%s ta element</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">%s ta faylni tanlang</item>
+        <item quantity="other">%s ta faylni tanlang</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">%s ta manbani qo\'shing</item>
+        <item quantity="other">%s ta manbani qo\'shing</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">%s ta ilova uchun yamoq manbalari</item>
+        <item quantity="other">%s ta ilova uchun yamoq manbalari</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s ta manba bu ilova uchun yashirilgan. Ilovalar yorlig\'ida ilovani tanlang va uni qaytarish uchun yamoq manbalarini oching.</item>
+        <item quantity="other">%s ta manba bu ilova uchun yashirilgan. Ilovalar yorlig\'ida ilovani tanlang va ularni qaytarish uchun yamoq manbalarini oching.</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s ta manba yashirilgan. Ko\'rsatish uchun teging</item>
+        <item quantity="other">%s ta manba yashirilgan. Ko\'rsatish uchun teging</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s ta mos yamoq</item>
+        <item quantity="other">%s ta mos yamoq</item>
+    </plurals>
     <plurals name="source_count">
         <item quantity="one">%s manba</item>
         <item quantity="other">%s manbalar</item>
@@ -31,6 +64,10 @@
         <item quantity="one">%s ilova o‘rnatildi</item>
         <item quantity="other">%s ta ilova o‘rnatildi</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">%s ta ilova ulandi</item>
+        <item quantity="other">%s ta ilova ulandi</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">%s ilova qayta o‘rnatildi</item>
         <item quantity="other">%s ta ilova qayta o‘rnatildi</item>
@@ -46,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">%s ilova yangilanishga tayyor</item>
         <item quantity="other">%s ta ilova yangilanishga tayyor</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s ta ilova yamoqlash uchun navbatga qo\'yilgan</item>
+        <item quantity="other">%s ta ilova yamoqlash uchun navbatga qo\'yilgan</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s ta yashirilgan bildirishnoma, uni ko\'rsatish uchun teging</item>
+        <item quantity="other">%s ta yashirilgan bildirishnoma, ularni ko\'rsatish uchun teging</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s ta ilova qayta yamoqlanishi mumkin</item>
@@ -63,6 +108,18 @@
         <item quantity="one">%s manba oʻrnatildi</item>
         <item quantity="other">%s manbalar oʻrnatildi</item>
     </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s ta ilova yashirilgan</item>
+        <item quantity="other">%s ta ilova yashirilgan</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s ta ilova ko\'rsatilgan</item>
+        <item quantity="other">%s ta ilova ko\'rsatilgan</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">%s ta ilovani qayta ko\'rsatish kerakmi?</item>
+        <item quantity="other">%s ta ilovani qayta ko\'rsatish kerakmi?</item>
+    </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s ta yashirin ilova</item>
         <item quantity="other">%s ta yashirin ilovalar</item>
@@ -71,8 +128,49 @@
         <item quantity="one">%s ta ilova</item>
         <item quantity="other">%s ta ilova</item>
     </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s ta tanlangan</item>
+        <item quantity="other">%s ta tanlangan</item>
+    </plurals>
     <plurals name="expert_mode_copy_from_bundle_done">
         <item quantity="one">Tanlangan to\'plamdan %s qo\'shimcha nusxalandi</item>
         <item quantity="other">Tanlangan to\'plamdan %s qo\'shimcha nusxalandi</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s ta yadro</item>
+        <item quantity="other">%s ta yadro</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s ta xususiyat</item>
+        <item quantity="other">%s ta xususiyat</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s ta tuzatish</item>
+        <item quantity="other">%s ta tuzatish</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s ta optimallashtirish</item>
+        <item quantity="other">%s ta optimallashtirish</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s ta o\'zgarish</item>
+        <item quantity="other">%s ta o\'zgarish</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d ta yangi</item>
+        <item quantity="other">%1$s · %2$d ta yangi</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s ta yangi reliz</item>
+        <item quantity="other">%s ta yangi reliz</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d ta havola yoqilgan</item>
+        <item quantity="other">%d ta havola yoqilgan</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d ta tasdiqlanmagan havola</item>
+        <item quantity="other">%d ta tasdiqlanmagan havola</item>
     </plurals>
 </resources>

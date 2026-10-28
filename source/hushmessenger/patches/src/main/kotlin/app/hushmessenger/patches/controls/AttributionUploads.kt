@@ -11,7 +11,7 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 internal const val ATTRIBUTION_UPLOADS = "attribution_uploads"
 
 /**
- * Messenger's ad attribution job. It keeps its name in every 583 build, and its one static worker does the whole job:
+ * Messenger's ad attribution job. It keeps its name in 584, and its one static worker does the whole job:
  * it reads the saved attribution state, gets the Advertising ID through Google's library or, failing that, a direct
  * Binder call to Play services' IAdvertisingIdService, reads the Facebook app's attribution, then sends all of it as an
  * AttributionIdUpdate request and saves the answer. Startup's background job list and one Runnable call it and wait for

@@ -29,7 +29,13 @@
                worktree is removed whatever happens.
     publish    A copy of the five assets, held to SHA256SUMS.txt and the receipt (the bundle, SBOM
                and tooling report it names, at the source commit) before anything else runs, and
-               the bundle in it to the rebuild stage's note by its hash. Then
+               the bundle in it to the rebuild stage's note by its hash, and -Walk to that bundle:
+               the walk-receipt.json scripts/device-audit.ps1 left after walking an APK patched
+               from it, which has to be a full PASS with no crash, on a release phone or an
+               emulator, naming the patch build identity this bundle carries, and -Verifier to it
+               as well: the verifier-receipt.json scripts/verify-injected-registers.ps1 -Serial
+               -ReceiptPath left for an APK patched from it, whose device verifier raised exactly
+               the messages Meta's build raises, and a refusal names the ones that differ. Then
                notes from the whole CHANGELOG section with -Checked as What was checked, a
                lightweight tag, and the GitHub release with that checked copy, each file downloaded
                back and compared. -Checked must say "applied ... to Facebook <version>" with
@@ -48,7 +54,7 @@
     scripts/release/release.ps1 -Stage preflight -Version 0.9.0
     scripts/release/release.ps1 -Stage bundle -Version 0.9.0
     scripts/release/release.ps1 -Stage rebuild -Version 0.9.0
-    scripts/release/release.ps1 -Stage publish -Version 0.9.0 -Checked checked.txt
+    scripts/release/release.ps1 -Stage publish -Version 0.9.0 -Checked checked.txt -Walk <audit folder>/walk-receipt.json -Verifier verifier-receipt.json
     scripts/release/release.ps1 -Stage index -Version 0.9.0 -ReadmeSummary readme.txt -BundleSummary bundle.txt
 #>
 [CmdletBinding()]
@@ -60,6 +66,10 @@ param(
     [string]$Date,
     # publish: a file holding the What was checked paragraph.
     [string]$Checked,
+    # publish: the walk-receipt.json of the whole-app walk on an APK patched from the staged bundle.
+    [string]$Walk,
+    # publish: the verifier-receipt.json of the device register check on an APK patched from it.
+    [string]$Verifier,
     # index: files holding the README's line about the release and Manager's text for the bundle.
     [string]$ReadmeSummary,
     [string]$BundleSummary,
@@ -71,6 +81,7 @@ $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 . (Join-Path $root 'scripts/common.ps1')
 . (Join-Path $root 'scripts/patch-target.ps1')
 . (Join-Path $root 'scripts/release-receipt.ps1')
+. (Join-Path $root 'scripts/walk-receipt.ps1')
 
 $tag = "v$Version"
 $assets = Join-Path $root "build/release-assets/$Version"
@@ -388,6 +399,8 @@ try {
         'publish' {
             $head = Assert-PushedHead
             Assert-File $Checked '-Checked, the file holding the What was checked paragraph,'
+            Assert-File $Walk '-Walk, the walk-receipt.json the whole-app walk of this bundle left,'
+            Assert-File $Verifier '-Verifier, the verifier-receipt.json the device register check of this bundle left,'
             foreach ($name in $assetNames + 'SHA256SUMS.txt') {
                 if (-not (Test-Path -LiteralPath (Join-Path $assets $name) -PathType Leaf)) { throw "No $name in $assets. Run -Stage bundle first." }
             }
@@ -440,6 +453,24 @@ try {
                     throw ("The staged $($builtNames[0]) isn't the bundle a rebuild of $head was compared with, so nothing " +
                         'was tagged. Run -Stage rebuild again.')
                 }
+                # Nothing goes out that hasn't been walked: the whole app, on an APK patched from
+                # this very bundle, with the app's own word for which bundle that was.
+                $bundleBuild = Get-BundlePatchBuild -BundlePath (Join-Path $publishing $builtNames[0])
+                $walked = Test-WalkReceipt -Path $Walk -PatchBuild $bundleBuild
+                if (-not $walked.Valid) {
+                    throw ("The whole-app walk doesn't back the staged $($builtNames[0]), so nothing was tagged: $($walked.Reason). " +
+                        'Patch an APK from this bundle, run scripts/device-audit.ps1 on a release phone or an emulator, and pass its walk-receipt.json as -Walk.')
+                }
+                Step "walked on $($walked.Receipt.device): $($walked.Receipt.familiesRan) of $($walked.Receipt.families) hook families ran, no crash"
+                # Nor anything the Android verifier rejects. A method that fails it assembles and
+                # applies without a word and breaks whichever screen reaches its class first.
+                $verified = Test-VerifierReceipt -Path $Verifier -PatchBuild $bundleBuild
+                if (-not $verified.Valid) {
+                    throw ("The device register check doesn't back the staged $($builtNames[0]), so nothing was tagged: $($verified.Reason). " +
+                        'Run scripts/verify-injected-registers.ps1 -PatchedApk <an APK patched from this bundle> -Serial <phone> ' +
+                        '-ReceiptPath verifier-receipt.json under a lease, and pass that receipt as -Verifier.')
+                }
+                Step "verified on $($verified.Receipt.device): the patched build's verifier raised $($verified.Receipt.patchedMessages) message(s), as Meta's does"
 
                 $notes = Join-Path $assets 'notes.md'
                 Invoke-ReleaseText 'The release notes' @('github-notes', '--version', $Version, '--checked', $Checked, '--out', $notes)
@@ -447,10 +478,42 @@ try {
                 if (([string](& git -C $root rev-parse "$tag^{commit}")).Trim() -ne $head) { throw "$tag doesn't point at $head." }
                 Invoke-Native 'The tag push' { & git -C $root push --quiet origin $tag }
 
-                Step "publishing $tag"
-                Invoke-Native 'gh release create' {
-                    & gh release create $tag -R $Repository --verify-tag --title $tag --notes-file $notes `
-                        (($assetNames + 'SHA256SUMS.txt') | ForEach-Object { Join-Path $publishing $_ })
+                # Create may have succeeded before an interrupted download-back. Reuse that
+                # release without uploading again, and hold its hosted bytes to the same checks.
+                $preference = $ErrorActionPreference
+                try {
+                    $ErrorActionPreference = 'Continue'
+                    $global:LASTEXITCODE = -1
+                    $releaseOutput = @(& gh release view $tag -R $Repository --json 'tagName,isDraft,publishedAt' 2>&1 |
+                        ForEach-Object { [string]$_ })
+                    $releaseExit = $LASTEXITCODE
+                } finally { $ErrorActionPreference = $preference }
+                $releaseMetadataText = $releaseOutput -join "`n"
+                if ($releaseExit -eq 0) {
+                    try { $publishedRelease = $releaseMetadataText | ConvertFrom-Json }
+                    catch { throw "gh returned no readable release metadata for ${tag}: $($_.Exception.Message)" }
+                    if ($publishedRelease.isDraft -is [bool] -and $publishedRelease.isDraft) {
+                        throw "$tag is a draft. Publish it explicitly before retrying verification."
+                    }
+                    $publishedAt = [DateTimeOffset]::MinValue
+                    $hasPublishedTime = $publishedRelease.publishedAt -is [DateTime] -or $publishedRelease.publishedAt -is [DateTimeOffset]
+                    if ($publishedRelease.publishedAt -is [string]) {
+                        $hasPublishedTime = [DateTimeOffset]::TryParse($publishedRelease.publishedAt,
+                            [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AssumeUniversal, [ref]$publishedAt)
+                    }
+                    if ($publishedRelease.tagName -isnot [string] -or $publishedRelease.tagName -cne $tag -or
+                            $publishedRelease.isDraft -isnot [bool] -or -not $hasPublishedTime) {
+                        throw "gh returned no matching published release metadata for $tag."
+                    }
+                    Step "$tag is already published; verifying its existing assets"
+                } elseif ($releaseMetadataText -match '\brelease not found\b|\bHTTP 404\b') {
+                    Step "publishing $tag"
+                    Invoke-Native 'gh release create' {
+                        & gh release create $tag -R $Repository --verify-tag --title $tag --notes-file $notes `
+                            (($assetNames + 'SHA256SUMS.txt') | ForEach-Object { Join-Path $publishing $_ })
+                    }
+                } else {
+                    throw "gh could not check whether $tag is already published (exit ${releaseExit}): $releaseMetadataText"
                 }
                 # A name nobody knows ahead, like the publishing copy's, so nothing can wait there
                 # with good copies for the compare.

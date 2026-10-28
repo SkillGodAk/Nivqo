@@ -41,6 +41,7 @@ class ColourResolverFixtureTest {
     @After
     fun forgetMatches() {
         DarkSchemeResolveFingerprint.clearMatch()
+        LightSchemeResolveFingerprint.clearMatch()
         FdsSchemeResolveFingerprint.clearMatch()
         NavigationBarPainterFingerprint.clearMatch()
     }
@@ -73,7 +74,8 @@ class ColourResolverFixtureTest {
      * wrapper, the view resolver's class and the class of the resolver the view resolver asks.
      */
     private fun routeOneClasses(bundle: File): Map<String, ClassDef> {
-        val named = FixtureDex.classes(bundle, setOf(DARK_COLOR_SCHEME, FDS_COLORS, FDS_COLOR_SCHEME))
+        val named = FixtureDex.classes(bundle, setOf(DARK_COLOR_SCHEME, FDS_COLOR_SCHEME)) +
+            fdsColorsOf(bundle).let { mapOf(it.type to it) }
         val view = viewResolver(named.getValue(FDS_COLOR_SCHEME))
         val viewClass = FixtureDex.classes(bundle, setOf(view.definingClass))
         val asked = intCalls(viewClass.getValue(view.definingClass).methods.single { it.descriptor() == view.toString() }).single()
@@ -116,7 +118,47 @@ class ColourResolverFixtureTest {
         assertEquals("a declared build has no fixture", versions, checked)
     }
 
-    private val systemBarsController = "Lcom/facebook/navigation/statusbar/controller/SystemBarsController;"
+    /**
+     * Issue #214's Mig screens: the Light background color's hook on Mig's light scheme. One resolver
+     * and one return, reading its token from the parameter that still holds it, and that token is the
+     * Mig colour interface the dark scheme's hook reads too, so the enum names AmoledTheme lists are
+     * the ones it gets. The sibling that takes an Integer and asks the scheme again isn't hooked.
+     */
+    @Test
+    fun `Mig's light scheme takes the light hook on one resolver and one return, its token intact, on each declared build`() {
+        val versions = AppCompatibilities.facebook().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
+                forgetMatches()
+                val name = bundle.name
+                val classes = FixtureDex.classes(bundle, setOf(DARK_COLOR_SCHEME, LIGHT_COLOR_SCHEME))
+                val context = PatchContexts.of(classes.values)
+
+                val darkToken = with(context) {
+                    hookLightSchemeResolver()
+                    DarkSchemeResolveFingerprint.method.parameterTypes.single().toString()
+                }
+
+                val hooked = context.mutableClassDefBy(LIGHT_COLOR_SCHEME).methods.filter { it.calls(APPLY_LIGHT) }
+                assertEquals("$name: light scheme methods hooked, ${hooked.map { it.descriptor() }}", 1, hooked.size)
+                val resolver = hooked.single()
+                assertFalse("$name: the light resolver is static", AccessFlags.STATIC.isSet(resolver.accessFlags))
+                assertEquals("$name: the light resolver's token", darkToken, resolver.parameterTypes.single().toString())
+                val body = resolver.implementation!!
+                val calls = body.instructions.filter { it.calls(APPLY_LIGHT) }
+                assertEquals("$name: returns hooked", 1, calls.size)
+                assertEquals("$name: the hook reads the token from its parameter", body.registerCount - 1,
+                    (calls.single() as FiveRegisterInstruction).registerD)
+                assertTrue("$name: the dark scheme takes no light hook",
+                    context.mutableClassDefBy(DARK_COLOR_SCHEME).methods.none { it.calls(APPLY_LIGHT) })
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    private val systemBarsController ="Lcom/facebook/navigation/statusbar/controller/SystemBarsController;"
 
     private fun Method.calls(descriptor: String) = implementation?.instructions?.any {
         (it as? ReferenceInstruction)?.reference?.toString() == descriptor
@@ -250,10 +292,7 @@ class ColourResolverFixtureTest {
                 forgetMatches()
                 val name = bundle.name
                 val painters = FixtureDex.methodsWhere(bundle, { dex -> dex.methodSection.any { it.toString() == setNavigationBarColor } }) {
-                    AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
-                        it.parameterTypes.map(CharSequence::toString) ==
-                        listOf("Landroid/app/Activity;", "Landroid/view/Window;", "I") &&
-                        it.calls(setNavigationBarColor)
+                    it.isNavigationPainter()
                 }
                 assertEquals("$name: SystemNavigationBarUtil painters, ${painters.map { it.descriptor() }}", 1, painters.size)
                 val painted = painters.single().implementation!!.instructions.toList()
@@ -294,16 +333,6 @@ class ColourResolverFixtureTest {
         assertEquals("a declared build has no fixture", versions, checked)
     }
 
-    /** The one static (Activity, Window, int) method of [bundle] that calls setNavigationBarColor: the navigation bar's painter. */
-    private fun navigationPainterOf(bundle: File): Method {
-        val setNavigationBarColor = "Landroid/view/Window;->setNavigationBarColor(I)V"
-        return FixtureDex.methodsWhere(bundle, { dex -> dex.methodSection.any { it.toString() == setNavigationBarColor } }) {
-            AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
-                it.parameterTypes.map(CharSequence::toString) == listOf("Landroid/app/Activity;", "Landroid/view/Window;", "I") &&
-                it.calls(setNavigationBarColor)
-        }.single()
-    }
-
     /**
      * The navigation bar's painter takes the bar hook on each declared build, on its window and its
      * colour: AMOLED's, Material You's, and Material You's in place of AMOLED's when both are in.
@@ -329,7 +358,7 @@ class ColourResolverFixtureTest {
                     }
                     val hooked = context.mutableClassDefBy(painter.definingClass).methods.single { it.descriptor() == painter.descriptor() }
                     assertStatusBarHook(name, hooked, darkCheck, painter.implementation!!.instructions.toList(),
-                        if (you) NAVIGATION_BAR_YOU else NAVIGATION_BAR, 1, 2, setOf(NAVIGATION_BAR, NAVIGATION_BAR_YOU))
+                        if (you) NAVIGATION_BAR_YOU else NAVIGATION_BAR, 1, painter.parameterTypes.size - 1, setOf(NAVIGATION_BAR, NAVIGATION_BAR_YOU))
                 }
                 checked += version
             }
@@ -404,4 +433,26 @@ class ColourResolverFixtureTest {
         }
         assertEquals("a declared build has no fixture", versions, checked)
     }
+}
+
+/** The one static (Activity, Window, int) method of [bundle] that calls setNavigationBarColor: the navigation bar's painter. */
+internal fun navigationPainterOf(bundle: File): Method {
+    val setNavigationBarColor = "Landroid/view/Window;->setNavigationBarColor(I)V"
+    return FixtureDex.methodsWhere(bundle, { dex -> dex.methodSection.any { it.toString() == setNavigationBarColor } }) {
+        it.isNavigationPainter()
+    }.single()
+}
+
+/**
+ * A static (Activity, Window, int) method that calls setNavigationBarColor. 584 (LX/2LF;->A00)
+ * also takes its own class as the third parameter, so it is (Activity, Window, LX/2LF, int).
+ */
+private fun Method.isNavigationPainter(): Boolean {
+    val parameters = parameterTypes.map(CharSequence::toString)
+    return AccessFlags.STATIC.isSet(accessFlags) && returnType == "V" &&
+        parameters.size in 3..4 && parameters[0] == "Landroid/app/Activity;" && parameters[1] == "Landroid/view/Window;" &&
+        parameters.last() == "I" && (parameters.size == 3 || parameters[2] == definingClass) &&
+        implementation?.instructions?.any {
+            (it as? ReferenceInstruction)?.reference?.toString() == "Landroid/view/Window;->setNavigationBarColor(I)V"
+        } == true
 }

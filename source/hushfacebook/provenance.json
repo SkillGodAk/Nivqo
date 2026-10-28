@@ -8,6 +8,13 @@
       "license": "GPL-3.0-only"
     },
     {
+      "paths": ["patches/src/main/kotlin/app/morphe/util/ReferenceIndex.kt"],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook for issue #216. One pass over the app's classes records which types, member names and strings each one names, so a patch's search visits only the classes that could match, in the order classDefForEach visits them. Classes a patch has changed are always visited."
+    },
+    {
       "paths": ["patches/src/main/kotlin/app/morphe/patches/facebook/shared/MobileConfigReads.kt"],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
@@ -152,8 +159,27 @@
     },
     {
       "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/StoryOverlayVideo.java"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook from Facebook 584 (#207): reads the reel a story reshares from the story tree's overlays, so Save on that still card takes the reel's video."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/StoryCardShape.java"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook from Facebook 583 (#207): with Debug logging on, logs a value-free outline of a story card's trees and its media fields' kinds when a story save finds no video, so a report shows where a shared video's address sits."
+    },
+    {
+      "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/DownloadQuality.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/FileNameTemplate.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/OpenInAnotherApp.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/PostDetails.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/SaveFolder.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/SaveTo.java",
@@ -219,6 +245,7 @@
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/ReactColours.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/ReactionRing.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/TonePalette.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme/BloksSheetColours.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme/CommentTimeColours.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme/LinkBoxFallbacks.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme/MaterialYouThemePatch.kt",
@@ -230,7 +257,7 @@
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook: the Material You theme. Dark-mode colours move to the wallpaper palette (Android 12 and newer) or to a fixed tonal palette of Facebook's blue (Android 11) at the same lightness, through the four colour routes the AMOLED patch uses and after it, and through night copies of Facebook's dark FDS styles for the views it inflates from its own layouts. React Native screens such as Marketplace home, whose colours come from their JavaScript, go through React's own background, border and image tint setters and its text colour span, which both themes hook. The colour tokens and dark surfaces it recolours were read off Facebook's own light and dark themes in the 577 and 580 builds, not taken from another patch source. For issue #65, the colour the tab bar asks for its selected tab, which draws the line over that tab and tints its icon, takes the wallpaper accent at tone 80 in dark mode; it's found through TabBarContainerLayout's colour setter and its Paint, and has exactly two readers on each build. For issue #138, the time on Facebook's older comment row, which TimestampPlugin (a class Redex keeps) colours from one theme attribute read, goes through a check both themes share: in dark mode a colour too close to the page to read becomes Facebook's dark secondary text, themed like the rest. For issue #37, a link box whose MobileConfig colour comes back empty takes its dark colour from a prop, from a second config's grey enum or from FDS's light or dark chooser. The first two, found by the register the config's parse answers into, and the chooser's dark answer go through the same dark-branch rule as the colours Facebook writes after its own dark check. For issue #141, once Facebook says its light mode is on, the grays, blues and pale tints its light FDS style gives those same tokens, read from both 582 inputs, take the palette at the same lightness too, as do the shared and server blues and the selected tab. For issue #147, the ring between a post's overlapping reaction icons goes through a check both themes share: FDSInlineReactions, found by its own component name, resolves the ring from its style's clipColor (a field name Redex keeps) through FDSColors, and in dark mode an opaque answer becomes a clear one, which makes Facebook's own facepile cut the ring out so the page shows through."
+      "changes": "Written for Hushfacebook: the Material You theme. Dark-mode colours move to the wallpaper palette (Android 12 and newer) or to a fixed tonal palette of Facebook's blue (Android 11) at the same lightness, through the four colour routes the AMOLED patch uses and after it, and through night copies of Facebook's dark FDS styles for the views it inflates from its own layouts. React Native screens such as Marketplace home, whose colours come from their JavaScript, go through React's own background, border and image tint setters and its text colour span, which both themes hook. The colour tokens and dark surfaces it recolours were read off Facebook's own light and dark themes in the 577 and 580 builds, not taken from another patch source. For issue #65, the colour the tab bar asks for its selected tab, which draws the line over that tab and tints its icon, takes the wallpaper accent at tone 80 in dark mode; it's found through TabBarContainerLayout's colour setter and its Paint, and has exactly two readers on each build. For issue #138, the time on Facebook's older comment row, which TimestampPlugin (a class Redex keeps) colours from one theme attribute read, goes through a check both themes share: in dark mode a colour too close to the page to read becomes Facebook's dark secondary text, themed like the rest. For issue #37, a link box whose MobileConfig colour comes back empty takes its dark colour from a prop, from a second config's grey enum or from FDS's light or dark chooser. The first two, found by the register the config's parse answers into, and the chooser's dark answer go through the same dark-branch rule as the colours Facebook writes after its own dark check. For issue #141, once Facebook says its light mode is on, the grays, blues and pale tints its light FDS style gives those same tokens, read from both 582 inputs, take the palette at the same lightness too, as do the shared and server blues and the selected tab. For issue #147, the ring between a post's overlapping reaction icons goes through a check both themes share: FDSInlineReactions, found by its own component name, resolves the ring from its style's clipColor (a field name Redex keeps) through FDSColors, and in dark mode an opaque answer becomes a clear one, which makes Facebook's own facepile cut the ring out so the page shows through. For issue #37 again, a Bloks bottom sheet such as the account switcher paints its rounded background and its corner view from the dark half of a light and dark colour pair the screen sends; its container is found as the one FrameLayout built from two of Facebook's ColorData and a float array of radii, read from a heap dump of the open sheet on 584, and a dark grey there takes the palette's neutral at the same lightness."
     },
     {
       "paths": [
@@ -246,12 +273,13 @@
       "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/misc/ShareSheetItems.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/misc/ShareSheetGroups.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/misc/ShareSheetPeople.java",
         "patches/src/main/kotlin/app/morphe/patches/facebook/misc/sharesheet/**"
       ],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook from Facebook 581: Share sheet items, the idea of the Share sheet modification patch in icysymmetra/tiktok-patches-for-morphe with none of its TikTok code. Every list of share sheet item types the item picker returns goes through the extension, which takes out the types picked under Links and keeps the rest in Facebook's order, and remembers the types it has seen so the list can offer them. The hook is its own nameless patch, which Hide Meta upsells uses for its Threads switch too. Its group switch, the idea of HushGram's Hide group buttons on the share sheet, hands the share sheet footer's Send to group FDSButton to the extension where its guards meet, and the boolean in front of each GROUP_PLUS new-group entry in the sheet's body and search row, so the switch leaves the footer without the button and answers each entry off."
+      "changes": "Written for Hushfacebook from Facebook 581: Share sheet items, the idea of the Share sheet modification patch in icysymmetra/tiktok-patches-for-morphe with none of its TikTok code. Every list of share sheet item types the item picker returns goes through the extension, which takes out the types picked under Links and keeps the rest in Facebook's order, and remembers the types it has seen so the list can offer them. The hook is its own nameless patch, which Hide Meta upsells uses for its Threads switch too. Its group switch, the idea of HushGram's Hide group buttons on the share sheet, hands the share sheet footer's Send to group FDSButton to the extension where its guards meet, and the boolean in front of each GROUP_PLUS new-group entry in the sheet's body and search row, so the switch leaves the footer without the button and answers each entry off. Its people switch, written from Facebook 583 for issue #169, hands the extension each add of the sheet body's row of people to send to and of that row's loading placeholder, and skips the add while the switch is on."
     },
     {
       "paths": [
@@ -330,12 +358,22 @@
     },
     {
       "paths": [
+        "extensions/shared/library/src/main/l10n/zh-rTW.tsv"
+      ],
+      "origin": "ported",
+      "upstream": "https://github.com/JhouHank/HushFacebook",
+      "commit": "be766e7e629931d376974c642435de22f8970c26",
+      "license": "GPL-3.0-only",
+      "changes": "Traditional Chinese (Taiwan) translation contributed by JhouHank in pull request 227. The submitted translations are preserved, with contributor credit and one added Save video row for the later Story menu change. The contributor credits their Piko Instagram translations for terminology; no Piko source revision was supplied."
+    },
+    {
+      "paths": [
         "extensions/shared/library/src/main/java/app/morphe/extension/shared/L10nTranslations.java"
       ],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Generated for Hushfacebook by scripts/gen-l10n.py from its own translation tables in extensions/shared/library/src/main/l10n."
+      "changes": "Generated for Hushfacebook by scripts/gen-l10n.py from the translation tables in extensions/shared/library/src/main/l10n, including the separately credited Traditional Chinese contribution."
     },
     {
       "paths": [
@@ -555,7 +593,7 @@
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook: Meta AI in Facebook's search. On Facebook 577 and 580 the patch finds three of Facebook's own decisions from kept names and literals. The results page's question of whether to add a Meta AI answer is the one boolean over FbUserSession and SearchResultsMutableContext that both callers of the meta_ai_answer_entities page builder ask first, and the patch answers no there. A page of results is built by one constructor from a list of result modules, whose role is a constant of the enum Facebook loads where it logs a failed GraphQLGraphSearchResultRole parse, and the extension leaves out Meta AI's answer and prompt roles (SEARCH_META_AI_ANSWER with its body, full body and loading state, HCM_SEARCH_META_AI_ANSWER, HCM_RELATED_META_AI_PROMPTS with its loading state, and HCM_SEARCH_AI_MODE) and keeps every other role. The page's name comes along, so the Meta AI tab's own page, the one its builder names search_meta_ai_answer_module, keeps its answer. A suggestion's flag to open Meta AI is the boolean the results router asks GraphSearchQuerySpec before it sends a search to META_AI_TAB, and the patch hands it to the extension where the suggestion parser stores it from the server's reply. The Meta AI button and the results page's Meta AI tab go around all three."
+      "changes": "Written for Hushfacebook: Meta AI in Facebook's search. On Facebook 577 and 580 the patch finds three of Facebook's own decisions from kept names and literals. The results page's question of whether to add a Meta AI answer is the one boolean over FbUserSession and SearchResultsMutableContext that both callers of the meta_ai_answer_entities page builder ask first, and the patch answers no there. A page of results is built by one constructor from a list of result modules, whose role is a constant of the enum Facebook loads where it logs a failed GraphQLGraphSearchResultRole parse, and the extension leaves out Meta AI's answer and prompt roles (SEARCH_META_AI_ANSWER with its body, full body and loading state, HCM_SEARCH_META_AI_ANSWER, HCM_RELATED_META_AI_PROMPTS with its loading state, and HCM_SEARCH_AI_MODE) and keeps every other role. The page's name comes along, so the Meta AI tab's own page, the one its builder names search_meta_ai_answer_module, keeps its answer. A suggestion's flag to open Meta AI is the boolean the results router asks GraphSearchQuerySpec before it sends a search to META_AI_TAB, and the patch hands it to the extension where the suggestion parser stores it from the server's reply. The Meta AI button and the results page's Meta AI tab go around all three. The same folder holds the search screen before anything is typed: on 583 the section naming itself SearchTypeaheadPaginableSection draws each entry of null_state_results_paginating from a module tree it reads off the entry's node, and an empty row when that is null. The patch hands the node and the module to the extension right after the read and keeps its answer, which is null for the entry whose node type is SearchNullStateNativeTemplatesResult and whose rendered_modules string lists TRENDING_QUERY_SUGGESTION, the For you section, while that switch is on. With Debug logging on, the extension also logs each entry's type and module names."
     },
     {
       "paths": [
@@ -583,6 +621,28 @@
     },
     {
       "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/profile/ProfileNotes.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/profile/HideProfileNotesPatch.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: the note bubble on profile pictures. Facebook 584 lays the top of a profile out with Bloks, and its two Bloks node classes are the only concrete classes keeping their attributes in an instance SparseArray that implement getBoolean, getId, getInt, getLong, getString and put under those names. Their child getters are their instance methods taking an int and answering a List, and the main node's layout getter wraps a lone child in Collections.singletonList. The patch hands every list they return to the extension, which leaves out a node whose own string attributes name com.bloks.www.bloks.profile.note. (the bubble's tap action) or com.bloks.www.bloks.profile.async.fetch.note_bubble (the action that loads its content)."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/PostDownloadButton.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/feed/PostSaveButton.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/actionrow/ActionRowAnchors.kt",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/actionrow/PostActionButtonsPatch.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: Save and Download buttons in the row under a post. In Facebook 584 the row's button types come from the one static method answering a List that loads XFBUFIButtonWithFallbackOptions, and its class builds one button from a type enum, the row's state and a Map in the static method whose cases load \"Save\". Every list the type method returns goes through the extension, which adds the enum's SAVE constant while its switch is on. The row method seals its lists of buttons with a static call taking a List and answering an ImmutableList, the last argument of a constructor taking only ImmutableLists; before each seal a generated helper reads the post from the state the way Save's case reads it, asks the extension for a Download button, and builds it with the constructors Save's case uses: the icon from the icon enum's DOWNLOAD and the style enum's OUTLINE, the two texts, the label taking a String and a Function1, the tag, and the button."
+    },
+    {
+      "paths": [
         "patches/src/main/kotlin/app/morphe/patches/facebook/feed/suggested/ProfileSuggestionAnchors.kt"
       ],
       "origin": "original",
@@ -598,6 +658,60 @@
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
       "changes": "Written for Hushfacebook: the list of more posts under a post opened from a notification. A post opened from Notifications is fetched with a query whose builder sets show_notification_permalink_footer to a MobileConfig answer, once per query variant, and with it true the server adds a footer of more posts that never passes the feed's edge filter. The patch hands each answer to the extension right where the builder reads it, and the extension answers false while the switch is on."
+    },
+    {
+      "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/suggested/FindFriendsCard.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: the Find friends card where the feed runs out of friends' posts. In Facebook 583 the end of the feed is one section whose children builder adds a part for each of its pieces, and the card is the one that names itself EndOfFeedCIUnitSection. The builder reads a string off the section's settings and builds the card only when that string isn't null. The patch finds the one String field read guarded by a null check right before the card's section is created, and hands the string to the extension, which answers null while the switch is on so the card is skipped the way some feed types already skip it."
+    },
+    {
+      "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/suggested/GroupJoinState.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: posts from groups you aren't in. In Facebook 583 a post in a group carries the group as its to field, a Profile model that answers the type name Group, and that model reads viewer_join_state through getCachedEnum as an enum naming CAN_JOIN, CAN_REQUEST, MEMBER and the rest. Facebook's Join button shows for CAN_JOIN and CAN_REQUEST. The patch finds the one GraphQLStory accessor of to by its field key and type tag, the one accessor of viewer_join_state on that model by its key, and the enum by the names its static initializer holds, and fills two extension stubs with calls to them. The extension hides a post whose group answers either Join button state while the switch is on."
+    },
+    {
+      "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/suggested/RelatedPosts.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: the Related posts list under a post's buttons. In Facebook 584 it is InlineRelatedPostsPlugin, a plugin of the socket that names itself FeedStoryBelowUFIFooterSocket, and the socket's static name table names it along with the Meta AI comment summary. The patch finds that table and the socket's per-plugin check the way Hide Meta AI comment summaries does, and goes first in the check with the plugin's name from the table. The extension answers no for the Related posts plugin while the switch is on, so the socket moves on to its next plugin."
+    },
+    {
+      "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/postprompts/PostCounts.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: the numbers on a post's Like, Comment and Share buttons. In Facebook 583 one static builder turns a button's count into its text, answering an empty text for a missing or zero count, and the Share button plugin (a kept class name) calls it. The patch finds the builder through that plugin by its shape and holds it to the empty answer and its plural lookup, then has it ask the extension first thing. While the switch is on the builder answers its own empty text, so each button shows its word."
+    },
+    {
+      "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/postprompts/ReactionPreview.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: the reaction preview under a post. Two draw methods paint it, the facepile drawable that the FDSInlineReactions component's static factory returns and the onDraw of PillsBlingBarView (a kept class name). The patch finds each by its shape and has it ask the extension first thing, returning before it paints while the switch is on, so the views keep their size and their taps."
+    },
+    {
+      "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/postprompts/CommentReactionPreview.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: the reaction preview on comments. Comments draw the same facepile drawable as posts, so the patch marks the FDSInlineReactions component a comment builds (found by the kept strings FDSComment and inline_reaction_transition_key) and copies that mark onto the drawable the one paired method makes from it, letting the drawable's draw ask the comment switch instead of the post switch."
     },
     {
       "paths": [
@@ -724,6 +838,15 @@
     },
     {
       "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/posttext/**"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: showing a post's whole text in the feed. In Facebook 584 one method takes a Spannable and a CharacterStyle, returns a Spannable, and reads the post line limit key (0x32d58eae). It calls a static helper that answers the cut text as a SpannableString, or null when the text fits, and branches on that answer right away. The patch finds that method by its shape and the key, checks there's one such call followed by its move-result and the null check, and hands the answer to the extension, which answers null while the switch is on so the whole text goes out."
+    },
+    {
+      "paths": [
         "patches/src/main/kotlin/app/morphe/patches/facebook/feed/seen/**"
       ],
       "origin": "original",
@@ -775,6 +898,16 @@
     },
     {
       "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/media/PinchZoom.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/media/pinch/PinchToZoomPatch.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: Pinch to zoom, for issue #220, from Facebook 584. The patch puts a call first in FbFragmentActivity.dispatchTouchEvent, the override every Facebook screen shares and the one Tap to play already finds, and first in the kept-name ProfileFragment.onViewCreated(View, Bundle), which hands the extension each profile's root view. The extension zooms only in the story viewer, known by its kept class name, and under a registered profile root, since the news feed has its own pinch in the same activity. When a second finger lands on the topmost ImageView with a picture, TextureView, SurfaceView or Litho host that mounts no text and no child views, it copies that view with PixelCopy (a SurfaceView from its own surface) or draws it, lays the copy over a dim scrim in the window's decor view, follows the fingers' span and midpoint up to four times, and turns the rest of the gesture into a cancel for Facebook. Once fewer than two fingers are down the copy eases back over 200 ms to where the photo sits and goes. Inside a profile or the story viewer the search looks past views that hold no media, like the story viewer's clear tap layer. Above a profile's root it looks past only views that draw nothing at the fingers (Facebook keeps an empty layer over every screen) and stops at anything that does. A Litho host found first gives way to a picture right under it that spans all of it, like the band a profile's cover draws over its photo. Pages opened from a link run in an activity whose dispatchTouchEvent goes through a delegate, and that delegate calls back into FbFragmentActivity's, so the one call covers them too."
+    },
+    {
+      "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/media/SkipSilence.java",
         "patches/src/main/kotlin/app/morphe/patches/facebook/media/silence/SkipSilentPartsPatch.kt"
       ],
@@ -782,6 +915,16 @@
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
       "changes": "Written for Hushfacebook: Skip silent parts, for issue #144, from Facebook 582. Each of the two ExoPlayer copies Facebook ships has a DefaultAudioSink that hands its processor chain, a field of its own, the skip-silence flag and then calls the kept-name AudioSink.Listener method onSkipSilenceEnabledChanged. The patch finds each method calling that name after handing one boolean to such a chain, asks the extension for the flag into a register nothing reads there, and hands the chain that answer, leaving the sink's stored flag alone. The listener's own dispatch, which hands nothing on, is left out. The extension answers yes while its switch is on."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/media/FeedSound.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/media/feedsound/KeepFeedVideosMutedPatch.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: Keep feed videos muted, a Reddit request, from Facebook 583. Facebook's feed sound state is the one class with a kept-name startNewSession method, which hands a flag to a setter of its own taking a reason enum and a flag. The same class has one setter taking that reason, a String and a flag, which first reads the sound flag both setters store and compares it with the one it's asked for. The patch asks the extension for the session setter's flag before anything reads it, and for the reasoned setter's flag right after its read, each answer going back in the flag's own register. While the switch is on a new session starts muted, and a sound-on whose reason name doesn't start with BY_USER, and that doesn't come through onKeyUp or the kept-name maybeUnmuteOnDeviceVolumeIncrease, keeps the flag the state holds."
     },
     {
       "paths": [
@@ -795,6 +938,16 @@
     },
     {
       "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/stories/StoryMusic.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/stories/music/LongerStoryMusicPatch.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: Longer music on photo stories, for issue #156, from Facebook 584. The Story composer's music clip length is the one static method taking FbUserSession and the composer state, answering an int, that asks the composer configuration for its FeedAttachmentConfig and holds 30000 and 15000. For a photo it returns a MobileConfig double turned into an int when that is above zero, else 15000. The patch asks the extension right before both of those returns, into the returned register, and leaves the rest of the method alone. The extension answers at least 30000 while its switch is on."
+    },
+    {
+      "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/reels/DoubleTapLike.java",
         "patches/src/main/kotlin/app/morphe/patches/facebook/reels/doubletap/DoubleTapAnchors.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/reels/doubletap/TurnOffDoubleTapLikePatch.kt"
@@ -803,6 +956,26 @@
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
       "changes": "Written for Hushfacebook: the switch on liking a reel or a video with a double tap. The patch finds, in Facebook 577 and 580, the reel like helper by its kept trace FbShortsMutationUtil.mutateViewerLikeReaction, its double-tap like as its one instance method taking two objects and a boolean, GestureReactionComponent by the name its constructor gives it, that component's gesture view through onCreateMountContent, the view's heart by the shortFormVideoUnit key it logs, and the feed attachment's own double tap as the one onDoubleTap animating translationY. It hands the extension the gesture view's double-tap handler after every read of it, the double-tap like's key for the reel, the helper like's source and the attachment's double tap. While the switch is on the extension answers that there's no handler and no key, holds back a like whose source is DOUBLE_TAP and leaves the attachment's double tap unhandled, and otherwise hands back what Facebook handed over."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/reels/DoubleTapSkip.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/reels/doubletapskip/DoubleTapSkipPatch.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: Double tap to skip, for issue #225, from Facebook 584. Facebook's players carry a double-tap skip of their own, a Kotlin lambda found by its kept captured names $edgeWidthPercent, $skipDuration and $videoDurationInMs and its invoke taking a MotionEvent and the view, which seeks on a double tap at the left or right edge only when one MobileConfig boolean is on. The patch takes that flag's id from the lambda's one read, finds every read of the id in the classes naming MobileConfigUnsafeContext (the lambda and the player builders that pick the skip and the edge from it), refuses when a load of the id isn't a read it knows, and hands each answer to the extension right after its move-result. The extension answers yes while its switch is on and Facebook's own answer otherwise."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/reels/TapShowsControls.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/reels/tapcontrols/TapShowsControlsPatch.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: Tap shows the controls, for issue #225, from Facebook 584. Facebook's reel tap handler, found as the one method holding both the tap_to_show_player_control and reels_controls_tap_unmute log names, holds a dormant answer to a tap that shows the controls with a pause button and lets the reel play on, behind one config boolean Facebook ships off. The patch finds that boolean as the interface read guarded by an if-eqz and an if-ne landing on the same label, hands it to the extension after its move-result, and passes both of Facebook's waits before the controls hide (the unified player's int read in the handler, and the wide constant the controls' controller posts with its hide runnable next to announceControlsShowingForScreenReaders) through the extension too. The unified reel player skips posting any hide, through a static boolean check right before the handler's int read, so that check's answer goes through the extension as well. It refuses when a site isn't found exactly once or a branch lands inside it. The extension answers yes, a 3 second wait and no skip while its switch is on, and Facebook's own answers otherwise."
     },
     {
       "paths": [
@@ -818,13 +991,14 @@
     {
       "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/reels/ReelHold.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/reels/FeedVideoHold.java",
         "patches/src/main/kotlin/app/morphe/patches/facebook/reels/hold/HoldReelFor2xPatch.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/reels/hold/ReelHoldAnchors.kt"
       ],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook: hold a reel for 2x, using the hold-to-speed-up Facebook's Reels controls already have behind server flags. The patch finds, in Facebook 577 and 580, the long-press handlers as the lambdas keeping $shouldDispatchLongPressEventDirectly and $immersiveFeedPlayerConfig and holding \"speed_up\", the release listeners as the lambdas keeping $isInLongPress2xPlaybackSpeed and that config, the speed-up flag as the one flag the handlers ask the config, the release flag as the one the listeners ask straight before it, the renders of FbShortsVideoControlComponent and FbShortsViewerOverlayComponent that make those lambdas, the edge check as the one method of its shape the handlers call, and FbFragmentActivity.dispatchTouchEvent. Each flag answer the handlers, the listeners and the renders take, and each answer of the edge check, goes through the extension, which says yes while the switch is on, the listeners' yes only until a lift they hear after a hold, which it tells from the touches it reads. The hold speed both speed-ups read goes through the extension too, which makes one no faster than normal 2x. FbGrootPlayer's speed setter hands the extension the player and the speed first thing and goes on with the speed it answers, and the extension's stub is filled with the player's speed getter, the one the listeners read, so a hold's lift puts back the speed the reel played at before the hold."
+      "changes": "Written for Hushfacebook: hold a reel for 2x, using the hold-to-speed-up Facebook's Reels controls already have behind server flags. The patch finds, in Facebook 577 and 580, the long-press handlers as the lambdas keeping $shouldDispatchLongPressEventDirectly and $immersiveFeedPlayerConfig and holding \"speed_up\", the release listeners as the lambdas keeping $isInLongPress2xPlaybackSpeed and that config, the speed-up flag as the one flag the handlers ask the config, the release flag as the one the listeners ask straight before it, the renders of FbShortsVideoControlComponent and FbShortsViewerOverlayComponent that make those lambdas, the edge check as the one method of its shape the handlers call, and FbFragmentActivity.dispatchTouchEvent. Each flag answer the handlers, the listeners and the renders take, and each answer of the edge check, goes through the extension, which says yes while the switch is on, the listeners' yes only until a lift they hear after a hold, which it tells from the touches it reads. The hold speed both speed-ups read goes through the extension too, which makes one no faster than normal 2x. FbGrootPlayer's speed setter hands the extension the player and the speed first thing and goes on with the speed it answers, and the extension's stub is filled with the player's speed getter, the one the listeners read, so a hold's lift puts back the speed the reel played at before the hold. Its second switch, Hold a feed video for 2x (issue #229), finds FbGrootPlayer's attach of its view in Facebook 584 by its attachPlayerViewInternal trace and the one ViewGroup field of the player it writes. The attach hands the extension the container and the player first thing, the touch dispatch hands it the activity and the event, and the extension's stubs are filled with that field and the speed setter, so a hold it times on a video playing in a feed list sets 2x and the lift puts back the speed before."
     },
     {
       "paths": [
@@ -855,13 +1029,58 @@
     {
       "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/ads/GameAds.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/ads/GameBridge.java",
         "patches/src/main/kotlin/app/morphe/patches/facebook/ads/games/BlockInstantGamesAdsPatch.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/ads/games/GameAdAnchors.kt"
       ],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook: Block Instant Games ads, an idea De-Vanced also has, written here from Facebook 577, 580 and 581. The game bridge's postMessage(String, String), kept by name for the WebView, holds the five ad message types; the hook goes first in it and, for an ad message with the switch on, rejects the game's promise through the bridge's own (String, String, String) reject method, the one calling the call that holds \"Unexpected exception while constructing JSONObject to be dispatched to Javascript: rejectPromise\", with the SDK's code for an ad it can't serve. De-Vanced drops the message instead."
+      "changes": "Written for Hushfacebook: Block Instant Games ads, an idea De-Vanced also has, written here from Facebook 577, 580 and 581. The game bridge's postMessage(String, String), kept by name for the WebView, holds the five ad message types; the hook goes first in it and, for an ad message with the switch on, rejects the game's promise through the bridge's own (String, String, String) reject method, the one calling the call that holds \"Unexpected exception while constructing JSONObject to be dispatched to Javascript: rejectPromise\", with the SDK's code for an ad it can't serve. De-Vanced drops the message instead. Games opened from Facebook 583's main screen run from a downloaded module that registers a QuicksilverAndroid bridge of its own, so the game WebView's base class wraps that bridge as it's added, and the wrapper answers its ad messages with no ad, or as watched for a rewarded one."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/ads/AudienceNetwork.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/ads/audiencenetwork/AudienceNetworkAnchors.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook, for the ported Disable Audience Network: keeping its components off in Facebook 583 after an install and at every start. The manifest gives each disabled component the default-state=false meta-data Facebook's component manager checks before it turns manifest-disabled components back on, the startup task that enables the ipc components in a state the server picks passes its calls through the extension, and the extension sets any component an earlier install left on back to disabled."
+    },
+    {
+      "paths": ["extensions/facebook/src/main/java/app/morphe/extension/facebook/misc/CloseWhenLeft.java"],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: Close Facebook when you leave it. Three seconds after the last Facebook screen stops, it stops Facebook's own started services, takes its tasks out of the recent apps and ends its processes, and it waits while a Facebook process is in use, a Hushfacebook save is running or another app's screen sits on a Facebook task. The screen turning off with Facebook in front isn't a leave."
+    },
+    {
+      "paths": ["extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/FeedGaps.java"],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: the gray line between feed posts on the AMOLED theme. A hook first in Litho's ComponentHost.dispatchDraw paints the strip Facebook leaves under each row of android:id/list a step above the black page, behind a switch that starts off. The hook itself sits in AmoledThemePatch.kt under that file's rule."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/AmoledBackground.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/AmoledResources.java"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook, for issue #214: the AMOLED theme's Background color row, which changes the dark background after patching. AmoledBackground is the patch's Background colour option rule in Java, so the row takes the colours the option takes and gives each the same surfaces. AmoledResources gives each activity's resources a colour table for the colour resources the patch wrote its background over, listed by the patch, through a ResourcesLoader on the Resources Accent color's route five keeps for the same assets, so views inflated from layout XML take the row's colour too."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/AmoledLightBackground.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/FdsTokens.java"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook, for issue #214: the AMOLED theme's Light background color row, which swaps light mode's white for a light colour after patching. AmoledLightBackground takes a colour only when Facebook's light secondary text can be darkened to 4.5:1 on it and still stay apart from the primary text, and moves Facebook's light greys down from it by as much as they sit below white. FdsTokens parses the FDS colour tables MaterialYouTheme declares, so the AMOLED theme can read them without loading Material You's class."
     },
     {
       "paths": [
@@ -884,6 +1103,44 @@
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
       "changes": "Written for Hushfacebook: Unlock app icons, based on the idea of HushMessenger's patch with the same name and traced here on Facebook 582 for issues #109 and #160. The subscription benefit provider is found by the strings SUBSBenefitDataProvider and subs_active_benefits. Its one (String)Z instance method checks a benefit name against its Set. The hook goes first and answers true for CUSTOM_APP_ICON while the switch is on. The App icon page's (Set)V callback also loads CUSTOM_APP_ICON and calls Set.contains. Its answer passes through the extension. The Home header hook follows Facebook's stock wordmark load and replaces that drawable with the explicitly enabled non-default launcher alias."
+    },
+    {
+      "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/facebook/misc/appicons/LauncherIconStyle.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: the Icon style option of Hushfacebook settings for issue #278, after the idea of Hushfeed's two plain app icons. No artwork ships. The resource patch reads the application icon from the manifest, finds its one adaptive-icon configuration and the themed-icon vector its monochrome layer names, and writes a solid background color and a one-color copy of that vector inline into the adaptive icon. The monochrome layer stays."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/SaveStorage.java"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook for issue #274: lists the SD cards Android's StorageManager and MediaStore both report as mounted, picks the one the Save on setting names, and falls back to the phone's storage while it's out of the phone."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/media/PauseUnderComments.java"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook for issue #266: pauses the reel playing on screen when a comment sheet opens, through Tap to play's player bridge, holds the reel's own restarts while the sheet is up, and plays it on once the sheet's views leave the window."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/misc/HeaderPicture.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/misc/HeaderText.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/misc/headertext/HomeHeaderTextPatch.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook, for issue #230: Home header text. The hook sits at the same site Unlock app icons uses, right after the Home header's builder loads Facebook's stock wordmark, and hands the logo to HeaderText. That swaps the wordmark for a drawable that draws the saved words at the wordmark's height, in bold sans serif, through the color filter the header gives its wordmark, so the words follow Facebook's light and dark colors. A picture picked in the settings is shrunk to at most 1024 by 256 pixels with ImageDecoder, kept as a PNG in Facebook's files by HeaderPicture, and drawn at the wordmark's height in its own colors in place of the words. A pre-draw listener puts the words or the picture back when Facebook loads its wordmark again, and the picked app icon steps aside while there are either."
     },
     {
       "paths": [
@@ -969,9 +1226,12 @@
     },
     {
       "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/CommentGif.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/PhotoFormat.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/MenuTop.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/PhotoMenuItem.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/PhotoSave.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/downloads/photo/CommentGifAnchors.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/downloads/photo/DownloadPhotoPatch.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/downloads/photo/PhotoSaveAnchors.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/downloads/photo/PhotoSizeAnchors.kt"
@@ -979,7 +1239,7 @@
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook from Facebook 577, 580 and 581: the photo viewer's two reads of can_viewer_download ask the switch, and Save photo's kept newSavePhotoAction hands its listener to the extension, which saves the photo's biggest image through Hushfacebook's downloader and falls back to Facebook's own save; and, behind a second switch, Save photo in the menu of a post holding photos, added through the same post menu hook as Download to phone, reading the post's attachments, an album's subattachments and the post a share wraps through the kept GraphQL models' getters found by their field hashes, and saving each photo in turn. A save asks Meta's CDN for the biggest copy through the same resize call Facebook's own Save photo makes, and a picture the CDN sends as AVIF or WebP is written out as a JPEG."
+      "changes": "Written for Hushfacebook from Facebook 577, 580 and 581: the photo viewer's two reads of can_viewer_download ask the switch, and Save photo's kept newSavePhotoAction hands its listener to the extension, which saves the photo's biggest image through Hushfacebook's downloader and falls back to Facebook's own save; and, behind a second switch, Save photo in the menu of a post holding photos, added through the same post menu hook as Download to phone, reading the post's attachments, an album's subattachments and the post a share wraps through the kept GraphQL models' getters found by their field hashes, and saving each photo in turn; and Save GIF in a GIF comment's long-press sheet, built with the sheet's own Save photo row builder and icon from the comment's animated image. A save asks Meta's CDN for the biggest copy through the same resize call Facebook's own Save photo makes, and a picture the CDN sends as AVIF or WebP is written out as a JPEG."
     },
     {
       "paths": [
@@ -991,6 +1251,16 @@
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
       "changes": "Written for Hushfacebook from Facebook 577, 580 and 581: a Download row in a reel's More sheet, for accounts whose reels lack the sidebar Download any reel puts its button in. The sheet builder is found by the Clear mode row id it holds, the row constructor, click interface and icon wrap by their shapes, and the download icon by the enum constant Facebook's own download row reads; the builder's first call adds the row through a helper that looks up the reel's player and hands it to the same save the sidebar button uses. A private, bounded missing-sidebar diagnostic for Facebook 582 reads component paths around count nodes after a verified reel start with Debug logging and downloads on. Known sidebar hooks suppress the read, and no screen text, count values, resource ids or URLs reach its report."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/ReelCaption.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/downloads/reel/ReelCaptionRow.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook from Facebook 584: a Copy caption row in a reel's More sheet. The reel caption's render is found by the component name it gives its text and the tap lambda whose kept Kotlin names give the caption and the reel's type; right after the render builds that lambda, a helper added to its class reads the reel and the whole caption off it and hands them to the extension, which keeps a bounded set of captions by video id. The sheet builder's first call adds the row through a helper, drawn with the copy icon Facebook's own icon enum names, only for a reel whose caption was seen. The tap copies the text to the clipboard."
     },
     {
       "paths": [
@@ -1079,14 +1349,17 @@
       "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/misc/ScreenTransitions.java",
         "patches/src/main/kotlin/app/morphe/patches/facebook/misc/transitions/Fingerprints.kt",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/misc/transitions/FragmentSlides.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/misc/transitions/PagerTabs.kt",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/misc/transitions/PhotoPage.kt",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/misc/transitions/PhotoZoom.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/misc/transitions/TransitionAnchors.kt",
         "patches/src/main/kotlin/app/morphe/patches/facebook/misc/transitions/TurnOffScreenTransitionsPatch.kt"
       ],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook: Turn off screen transitions, an idea from De-Vanced's Facebook clean-up patch, written here from Facebook 577, 580 and 581. The activity callbacks the settings patch registers ask Android for no transition as a screen comes to the front and as it closes, and the tab bar's pager controller and the sliding panel ask the extension before they decide to slide. Tab strips inside a screen ask too: the listener Facebook's TabbedViewPagerIndicator puts on each tab, found from the Redex name of the strip's onPageSelected runnable, hands its slide flag to the extension first, and the composer's kept MinutiaeTabbedPickerActivity.setTab calls the pager's two-argument setCurrentItem with no slide while the switch is on."
+      "changes": "Written for Hushfacebook: Turn off screen transitions, an idea from De-Vanced's Facebook clean-up patch, written here from Facebook 577, 580 and 581. The activity callbacks the settings patch registers ask Android for no transition as a screen comes to the front and as it closes, and the tab bar's pager controller and the sliding panel ask the extension before they decide to slide. Tab strips inside a screen ask too: the listener Facebook's TabbedViewPagerIndicator puts on each tab, found from the Redex name of the strip's onPageSelected runnable, hands its slide flag to the extension first, and the composer's kept MinutiaeTabbedPickerActivity.setTab calls the pager's two-argument setCurrentItem with no slide while the switch is on. From Facebook 583, screens opened inside the app ask too: the fragment transaction's setter of its four custom animations, found from the field labels in BackStackRecord's dump, hands each one to the extension, which answers none. The photo viewer's open and close zoom, the Rebound spring the kept SutroPhotoAnimationDialogFragment sets going, is put at its end value at once while the switch is on. The page a multi-photo post's photo opens on, the kept PhotoAnimationDialogFragment, grows its photo with a ValueAnimator method that takes its length as a Long, and its open, close and slide-away methods hand their animators and background fade a long length; each goes through the extension, which answers 0 while the switch is on."
     },
     {
       "paths": [
@@ -1121,6 +1394,16 @@
     },
     {
       "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/theme/MarkColors.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/layout/theme/MarkColorsPatch.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: Badge and logo colors. It hooks the themes' FDS colour resolvers (each resolver on FDSColors and the view code's theme resolver) with its own target, after theirs, and the extension swaps the colour of the NOTIFICATION_BADGE token for the Badge color row's code and of FB_WORDMARK and FB_LOGO for the Logo color row's, keeping Facebook's alpha. Every other token, a blank row and Pause leave Facebook's colour. The patch refuses to apply when the FDS token enum lacks any of the three names."
+    },
+    {
+      "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/navigation/TabBadges.java",
         "patches/src/main/kotlin/app/morphe/patches/facebook/navigation/tabbadges/HideTabBadgesPatch.kt"
       ],
@@ -1137,6 +1420,17 @@
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
       "changes": "Written for Hushfacebook: the floating ad button on a feed ad's comments. Hide sponsored posts puts its own question in front of the comment pill's check that AdPills.kt hooks for Hide sponsored reels, and this answers no for the permalink and flyout ad plugins while the sponsored posts switch is on. Each patch finds the check whether or not the other asked first."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/reels/NewestReels.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/reels/order/NewestReelsFirstPatch.kt",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/reels/order/ReelOrder.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: Newest reels first, for issue #134, from Facebook 584. The Reels ranker that logs as FbShortsUDDCSRRanker reranks the loaded pool in place each time it places the next reel, and its callers take the head of the list. The patch finds that rerank by the tag, its (object, List, int) shape and its one static (List, Comparator) sort, checks that the sort's list register holds the List parameter at every return, and hands the list to the extension before each return, branches into a return included. Every kept-name createSignalForModel, which makes a pool item's ranking signal, gets a hook before each return: it casts the parameter to the model class the method casts to, reads that class's one FeedType field and, when the extension says the feed is one of the fb_shorts feeds, the parameter interface's one no-argument Object getter, the reel's GraphQL edge. The extension reads the edge's node creation_time, keeps it by the signal (whose equals follows its key) in a weak map, and at the rerank's return puts the timed signals in their own slots newest first with a stable sort, leaving untimed items where they are."
     }
   ]
 }

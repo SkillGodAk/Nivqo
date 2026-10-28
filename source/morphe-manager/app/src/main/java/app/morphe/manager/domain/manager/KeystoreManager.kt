@@ -111,10 +111,15 @@ class KeystoreManager(app: Application, private val prefs: PreferencesManager) {
     suspend fun import(alias: String, pass: String, keystorePw: String = "", keystore: InputStream): Boolean {
         val keystoreData = withContext(Dispatchers.IO) { keystore.readBytes() }
 
-        try {
+        // BKS looks aliases up by exact case, while keytool stores a JKS alias in lowercase, so
+        // "MyKey" typed for a key saved as "mykey" is matched to the alias the file holds
+        val storedAlias = try {
             val ks = ApkSigner.readKeyStore(ByteArrayInputStream(keystoreData), null)
+            val resolved = if (ks.containsAlias(alias)) alias
+            else ks.aliases().asSequence().firstOrNull { it.equals(alias, ignoreCase = true) } ?: alias
 
-            ApkSigner.readPrivateKeyCertificatePair(ks, alias, pass)
+            ApkSigner.readPrivateKeyCertificatePair(ks, resolved, pass)
+            resolved
         } catch (_: UnrecoverableKeyException) {
             return false
         } catch (_: IllegalArgumentException) {
@@ -125,7 +130,7 @@ class KeystoreManager(app: Application, private val prefs: PreferencesManager) {
             Files.write(keystorePath.toPath(), keystoreData)
         }
 
-        updatePrefs(alias, pass, keystorePw)
+        updatePrefs(storedAlias, pass, keystorePw)
         return true
     }
 

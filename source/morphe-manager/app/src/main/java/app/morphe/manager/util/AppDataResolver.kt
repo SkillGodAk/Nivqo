@@ -98,14 +98,31 @@ class AppDataResolver(
 
     // In-memory cache - keyed by packageName + preferredSource.
     // Avoids redundant IO when multiple composables resolve the same package simultaneously.
-    // Entries are never evicted: the resolver is a singleton and package data rarely changes
-    // during a single session.
+    // Entries live until the package is invalidated.
     private val cache = ConcurrentHashMap<Pair<String, AppDataSource>, ResolvedAppData>()
 
     // Per-source lookups keyed by the source they came from rather than the caller's preference.
     // The same APK is otherwise re-read once per preferredSource, and every archive read costs a
     // full PackageManager parse that leaks an ApkAssets object until the finalizer runs.
     private val sourceCache = ConcurrentHashMap<Pair<String, AppDataSource>, Optional<ResolvedAppData>>()
+
+    // Bumped by every invalidation, so a lookup that started before one does not cache what it read
+    private val generations = ConcurrentHashMap<String, Long>()
+    @Volatile
+    private var globalGeneration = 0L
+
+    private fun generationOf(packageName: String) = globalGeneration to (generations[packageName] ?: 0L)
+
+    /** Stores [value] under [key] unless [packageName] was invalidated since [generation] was read. */
+    private fun <V : Any> ConcurrentHashMap<Pair<String, AppDataSource>, V>.putUnlessInvalidated(
+        key: Pair<String, AppDataSource>,
+        value: V,
+        packageName: String,
+        generation: Pair<Long, Long>
+    ) {
+        put(key, value)
+        if (generationOf(packageName) != generation) remove(key, value)
+    }
 
     init {
         // An original is kept partway through patching, after its app may already have been looked
@@ -132,12 +149,14 @@ class AppDataResolver(
      * that affects what source the package data comes from.
      */
     fun invalidate(packageName: String) {
+        generations.merge(packageName, 1L, Long::plus)
         cache.keys.removeAll { it.first == packageName }
         sourceCache.keys.removeAll { it.first == packageName }
     }
 
     /** Invalidate all cached data. Call this when a global refresh is needed. */
     fun invalidateAll() {
+        globalGeneration++
         cache.clear()
         sourceCache.clear()
     }
@@ -147,9 +166,8 @@ class AppDataResolver(
      *
      * Display name and icon are resolved **independently**:
      * - Icon/packageInfo: best available APK source ordered by [preferredSource]
-     * - Name: [AppDataSource.BUNDLE_METADATA] always wins when available, because patched APK
-     *   labels may contain internal class names instead of the real product name.
-     *   Falls back to APK label → constants.
+     * - Name: the label of that APK, cleaned of the class names a patched one may carry, then
+     *   [AppDataSource.BUNDLE_METADATA], then constants.
      *
      * @param packageName Package name to resolve
      * @param preferredSource Preferred data source for icon/packageInfo (will still fallback)
@@ -163,6 +181,7 @@ class AppDataResolver(
         records: ResolverRecords? = null
     ): ResolvedAppData = withContext(Dispatchers.IO) {
         cache[packageName to preferredSource]?.let { return@withContext it }
+        val generation = generationOf(packageName)
 
         // APK sources ordered by preference - provide icon, packageInfo and raw label
         val apkSources = when (preferredSource) {
@@ -223,7 +242,12 @@ class AppDataResolver(
             source = apkResult?.source
                 ?: if (bundleName != null) AppDataSource.BUNDLE_METADATA else AppDataSource.CONSTANTS,
             loadIcon = { apkResult?.icon ?: fallbackIcon?.loadIcon(packageManager) }
-        ).also { cache[packageName to preferredSource] = it }
+        ).also {
+            // Bundle metadata may not have loaded yet, so a constants name is not worth keeping
+            if (it.source != AppDataSource.CONSTANTS) {
+                cache.putUnlessInvalidated(packageName to preferredSource, it, packageName, generation)
+            }
+        }
     }
 
     /**
@@ -256,8 +280,14 @@ class AppDataResolver(
         packageName: String,
         source: AppDataSource,
         read: () -> ResolvedAppData?
-    ): ResolvedAppData? =
-        sourceCache.getOrPut(packageName to source) { Optional.ofNullable(read()) }.orElse(null)
+    ): ResolvedAppData? {
+        val key = packageName to source
+        sourceCache[key]?.let { return it.orElse(null) }
+        val generation = generationOf(packageName)
+        val value = Optional.ofNullable(read())
+        sourceCache.putUnlessInvalidated(key, value, packageName, generation)
+        return value.orElse(null)
+    }
 
     /**
      * Try to get app data from installed app.
@@ -272,7 +302,7 @@ class AppDataResolver(
 
             ResolvedAppData(
                 packageName = packageName,
-                displayName = appInfo.loadLabel(packageManager).toString(),
+                displayName = cleanPackageLabel(appInfo.loadLabel(packageManager).toString(), packageName),
                 version = packageInfo.versionName,
                 packageInfo = packageInfo,
                 source = AppDataSource.INSTALLED,
@@ -332,20 +362,14 @@ class AppDataResolver(
         version: String?,
         source: AppDataSource
     ): ResolvedAppData? {
-        val packageInfo = packageManager.getPackageArchiveInfo(
-            file.absolutePath,
-            PackageManager.GET_META_DATA
-        ) ?: return null
-
-        // Set source paths so we can load icon
-        val appInfo = packageInfo.applicationInfo?.apply {
-            sourceDir = file.absolutePath
-            publicSourceDir = file.absolutePath
-        }
+        // Activities are not parsed, as nothing here reads them
+        val packageInfo = pm.getPackageInfo(file, PackageManager.GET_META_DATA) ?: return null
+        val appInfo = packageInfo.applicationInfo
 
         return ResolvedAppData(
             packageName = packageName,
-            displayName = appInfo?.loadLabel(packageManager)?.toString() ?: packageName,
+            displayName = appInfo?.loadLabel(packageManager)?.toString()
+                ?.let { cleanPackageLabel(it, packageName) } ?: packageName,
             version = version,
             packageInfo = packageInfo,
             source = source,
@@ -375,16 +399,12 @@ class AppDataResolver(
             ?.let { icon -> runCatching { icon.toBitmap().toDrawable(resources) }.getOrNull() }
 
     /**
-     * Try to get app display name from patch bundle metadata.
-     * Uses [PatchBundleRepository.appMetadata] snapshot, no allocations.
-     * Returns null if bundles are not yet loaded or package isn't in any bundle.
+     * Try to get app display name from patch bundle metadata, see
+     * [PatchBundleRepository.appDisplayNames]. Returns null if bundles are not yet loaded or
+     * package isn't in any bundle.
      */
     private fun tryGetFromBundleMetadata(packageName: String): ResolvedAppData? {
-        // Disabled bundles are still consulted, because a name is worth more than the package of
-        // an app whose source the user has since turned off
-        val displayName = patchBundleRepository.appMetadata.value[packageName]?.displayName
-            ?: patchBundleRepository.allAppMetadata.value[packageName]?.displayName
-            ?: return null
+        val displayName = patchBundleRepository.appDisplayNames.value[packageName] ?: return null
         return ResolvedAppData(
             packageName = packageName,
             displayName = displayName,

@@ -5,9 +5,6 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
-import com.facebook.messaging.business.inboxads.common.InboxAdsItem;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,6 +22,7 @@ public class ExpandedControlsTest {
     @Before public void reset() {
         Settings.initialize(RuntimeEnvironment.getApplication());
         Settings.preferences.edit().clear().commit();
+        OpenSections.all();
     }
 
     @Test public void everyControlIsIndependentAndPauseKeepsItsChoice() {
@@ -53,33 +51,6 @@ public class ExpandedControlsTest {
         Settings.preferences.edit().putBoolean("paused", false).commit();
         Settings.installed = Set.of("anonymous_stories");
         assertFalse(Settings.saveAnyStory());
-    }
-
-    @Test public void adFilterPreservesOrdinaryRowsTheirOrderAndTheInput() {
-        Settings.preferences.edit().putBoolean("ads", true).commit();
-        Object businessConversation = new Object();
-        Object safetyNotice = new Object();
-        List<?> original = Arrays.asList(businessConversation, new InboxAdsItem(), "Sponsored is ordinary text", null,
-            safetyNotice, new InboxAdsItem() { });
-        List<?> filtered = Settings.filterInboxAds(original);
-        assertEquals(Arrays.asList(businessConversation, "Sponsored is ordinary text", null, safetyNotice), filtered);
-        assertEquals(6, original.size());
-        assertSame(businessConversation, filtered.get(0));
-        assertSame(safetyNotice, filtered.get(3));
-        assertEquals(List.of(), Settings.filterInboxAds(List.of(new InboxAdsItem(), new InboxAdsItem())));
-    }
-
-    @Test public void inactivePausedUnavailableAndNoAdsReturnTheUnchangedSentinel() {
-        List<?> ads = List.of(new InboxAdsItem());
-        assertNull(Settings.filterInboxAds(ads));
-        Settings.preferences.edit().putBoolean("ads", true).putBoolean("paused", true).commit();
-        assertNull(Settings.filterInboxAds(ads));
-        Settings.preferences.edit().putBoolean("paused", false).commit();
-        assertNull(Settings.filterInboxAds(List.of("ordinary", "ad")));
-        assertNull(Settings.filterInboxAds(List.of()));
-        assertNull(Settings.filterInboxAds(null));
-        Settings.installed = Set.of();
-        assertNull(Settings.filterInboxAds(ads));
     }
 
     private void installedFeatures(String... keys) throws Exception {
@@ -116,7 +87,8 @@ public class ExpandedControlsTest {
             assertNotNull(root.findViewWithTag("open_messenger"));
             // Nothing to search, and no "try another search" panel contradicting the status line.
             assertEquals(View.GONE, root.findViewWithTag("find_control").getVisibility());
-            assertEquals(View.GONE, ((View) root.findViewWithTag("category_all").getParent()).getVisibility());
+            // No empty section headers either.
+            assertNull(root.findViewWithTag("section_inbox"));
             assertEquals(View.GONE, root.findViewWithTag("empty_state").getVisibility());
         }
     }

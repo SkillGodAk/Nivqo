@@ -151,6 +151,38 @@ final class DashManifest {
         return tracks;
     }
 
+    private static final Pattern PRESENTATION_LENGTH = Pattern.compile("<MPD\\b[^>]*?\\bmediaPresentationDuration"
+        + "\\s*=\\s*\"P(?:(\\d+)D)?(?:T(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+(?:\\.\\d+)?)S)?)?\"");
+
+    /**
+     * How long [manifest] says its video runs, in microseconds, from the {@code MPD}'s
+     * {@code mediaPresentationDuration} ({@code PT64.814812S} in Facebook's), or -1 when it doesn't
+     * say or isn't read. Never throws. A save weighs a conversion by it before it fetches anything
+     * ({@link VideoTranscode#MAX_DURATION_US}).
+     */
+    static long durationUs(String manifest) {
+        if (!withinLimits(manifest)) return -1;
+        try {
+            Matcher length = PRESENTATION_LENGTH.matcher(manifest);
+            if (!length.find()) return -1;
+            if (length.group(1) == null && length.group(2) == null && length.group(3) == null && length.group(4) == null) {
+                return -1;
+            }
+            long seconds = 0;
+            long[] unit = {86_400, 3_600, 60};
+            for (int i = 0; i < unit.length; i++) {
+                String part = length.group(i + 1);
+                if (part != null) seconds = Math.addExact(seconds, Math.multiplyExact(Long.parseLong(part), unit[i]));
+            }
+            long us = Math.multiplyExact(seconds, 1_000_000L);
+            String rest = length.group(4);
+            return rest == null ? us : Math.addExact(us, Math.round(Double.parseDouble(rest) * 1_000_000));
+        } catch (Throwable ignored) {
+            // A length too large to hold, or of an unexpected shape, says nothing.
+            return -1;
+        }
+    }
+
     /**
      * The best video track a save can write into an MP4, or {@code null}.
      *
@@ -374,6 +406,17 @@ final class DashManifest {
      */
     static Pick pick(List<Track> tracks, boolean allowAv1, DownloadQuality quality, boolean compatible,
             boolean reencodable, Converter converter) {
+        return pick(tracks, allowAv1, quality, compatible, reencodable, converter, false);
+    }
+
+    /**
+     * As above. With [convertLarger] too, the picture to convert is picked over the H.264 one
+     * whenever it suits [quality] better, not only when there's no H.264 track: Facebook often lists
+     * a reel's full size only as VP9 or AV1 and its H.264 a size or two down (#189). On a tie the
+     * H.264 track stays, since it needs no converting.
+     */
+    static Pick pick(List<Track> tracks, boolean allowAv1, DownloadQuality quality, boolean compatible,
+            boolean reencodable, Converter converter, boolean convertLarger) {
         if (!compatible) {
             Track video = pickVideo(tracks, allowAv1, quality);
             Track audio = bestAudio(tracks);
@@ -384,9 +427,12 @@ final class DashManifest {
 
         Track video = pickCompatibleVideo(tracks, quality);
         boolean convert = false;
-        if (video == null && converter != null) {
-            video = pickConvertibleVideo(tracks, quality, converter);
-            convert = video != null;
+        if (converter != null && (video == null || convertLarger)) {
+            Track converted = pickConvertibleVideo(tracks, quality, converter);
+            if (converted != null && (video == null || suitsBetter(converted, video, quality))) {
+                video = converted;
+                convert = true;
+            }
         }
         if (video == null) return null;
 
@@ -409,6 +455,12 @@ final class DashManifest {
             if (converter.canConvert(track)) convertible.add(track);
         }
         return pickVideo(convertible, true, quality);
+    }
+
+    /** Whether [video] suits [quality] better than [other]: at the best quality a larger picture, below it a nearer fit. */
+    static boolean suitsBetter(Track video, Track other, DownloadQuality quality) {
+        if (quality == null || quality == DownloadQuality.BEST) return video.shortSide() > other.shortSide();
+        return quality.compare(video.quality(), other.quality()) < 0;
     }
 
     /** The xHE-AAC track with the highest bitrate, or {@code null}. */

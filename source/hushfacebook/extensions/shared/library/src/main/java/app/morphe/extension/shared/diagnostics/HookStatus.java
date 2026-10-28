@@ -39,7 +39,7 @@ public final class HookStatus {
     /** Enough detail to describe a broken build; past this a family says it stopped counting. */
     private static final int MAX_ENTRIES_PER_FAMILY = 200;
     /** Named counts a family keeps; a caller has a handful of fixed ones, never a growing set. */
-    private static final int MAX_COUNTS_PER_FAMILY = 16;
+    private static final int MAX_COUNTS_PER_FAMILY = 24;
     /** Serializes first observations with diagnostic snapshot, clear, and restore. */
     private static final Object STATE_LOCK = new Object();
 
@@ -223,7 +223,7 @@ public final class HookStatus {
      * nothing else is counted, such as a button that was never drawn and so never tapped (#18).
      *
      * <p>The name is written into the report as it is, so it is fixed text, never anything read
-     * from Facebook. A family keeps sixteen names at most. Like
+     * from Facebook. A family keeps twenty-four names at most. Like
      * {@link #invoked}, a repeat costs a hash lookup and an increment, and it never throws.
      */
     public static void counted(String family, String what) {

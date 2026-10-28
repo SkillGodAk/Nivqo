@@ -11,7 +11,7 @@ function Assert-That([bool]$Condition, [string]$Message) {
 }
 
 function New-Report([string[]]$Hooks, [string]$State = 'hushfacebook: running', [string[]]$Crash = @()) {
-    $lines = @('MORPHE DIAGNOSTIC REPORT', 'schema: 1', 'app: com.facebook.katana 583.0.0.39.55 (2147483647)', $State,
+    $lines = @('MORPHE DIAGNOSTIC REPORT', 'schema: 1', 'app: com.facebook.katana 584.0.0.51.56 (2147483647)', $State,
         'debug_logging: off', '', '[APP STATE]', 'locale -> en-US')
     if ($Crash.Count -gt 0) { $lines += @('', '[LATEST JAVA CRASH]') + $Crash }
     if ($Hooks.Count -gt 0) { $lines += @('', '[HOOK STATUS]') + $Hooks }
@@ -76,8 +76,23 @@ Assert-That ($null -ne $smokeAst.Find({ param($node)
             $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Read-SmokeReport' }, $true)) `
     'device-audit.ps1 looks for Read-SmokeReport in phone-smoke.ps1 and it is gone.'
 $settingsSource = Join-Path $PSScriptRoot '..\extensions\facebook\src\main\java\app\morphe\extension\facebook\settings'
-Assert-That ([regex]::Matches([IO.File]::ReadAllText((Join-Path $settingsSource 'SettingsNavigation.java')), 'section\("([^"]+)"').Count -ge 10) `
-    'device-audit.ps1 reads the settings pages as section("..." in SettingsNavigation.java and found fewer than 10.'
+$declaredSections = [regex]::Matches([IO.File]::ReadAllText((Join-Path $settingsSource 'SettingsNavigation.java')), 'section\("([^"]+)"')
+Assert-That ($declaredSections.Count -eq 21) `
+    'device-audit.ps1 reads the accordion sections as section("..." in SettingsNavigation.java and did not find all 21.'
+$pageReader = $audit.Find({ param($node)
+    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-SettingsPages' }, $true)
+Assert-That ($null -ne $pageReader) 'The settings route reader is missing.'
+if ($pageReader) {
+    $testScriptRoot = $PSScriptRoot
+    . ([scriptblock]::Create($pageReader.Extent.Text.Replace('$PSScriptRoot', '$testScriptRoot')))
+    $sweptPages = @(Get-SettingsPages)
+    Assert-That ($sweptPages.Count -eq 23 -and $sweptPages[0] -ceq '' -and $sweptPages[-1] -ceq 'support' -and
+        $sweptPages -cnotcontains 'more') 'The audit sweep does not cover the home list, all 21 categories and Support directly.'
+    foreach ($section in $declaredSections) {
+        Assert-That (@($sweptPages | Where-Object { $_ -ceq $section.Groups[1].Value }).Count -eq 1) `
+            "The audit did not sweep section $($section.Groups[1].Value) exactly once."
+    }
+}
 Assert-That ([regex]::Matches([IO.File]::ReadAllText((Join-Path $settingsSource 'FamilyNames.java')), 'public static final String \w+ = "([^"]+)"').Count -ge 50) `
     'device-audit.ps1 reads the family names out of FamilyNames.java and found fewer than 50.'
 $expectations = Join-Path $PSScriptRoot 'device-audit-expectations.json'
@@ -86,8 +101,34 @@ if (Test-Path -LiteralPath $expectations) {
     Assert-That (@($baseline.ranOnWalk).Count -gt 0 -and $baseline.facebook) 'device-audit-expectations.json has no families or no Facebook version.'
 }
 
+# The launcher entry the smoke walk starts: default, alternate icon, none and several.
+. (Join-Path $PSScriptRoot 'device-install.ps1')
+$pkg = 'com.facebook.katana'
+$main = 'com.facebook.katana.LoginActivity'
+$alias = 'com.facebook.katana.LoginActivity.fab_ic'
+function Get-TestLauncher([string[]]$Lines) { Select-AndroidLauncher -Lines $Lines -PackageName $pkg -LauncherClass $main }
+function Test-LauncherRefused([string[]]$Lines) {
+    try { Get-TestLauncher $Lines | Out-Null; return $false } catch { return $true }
+}
+Assert-That ((Get-TestLauncher @('1 activities found:', "  $pkg/.LoginActivity")) -ceq $main) 'The default launcher was not resolved.'
+Assert-That ((Get-TestLauncher @('1 activities found:', "  $pkg/$alias")) -ceq $alias) 'The enabled alternate launcher alias was not resolved.'
+Assert-That ((Get-TestLauncher @("  $pkg/.LoginActivity.fab_ic")) -ceq $alias) 'A short alias name was not expanded.'
+Assert-That ((Get-TestLauncher @("1 activities found:`r", "  $pkg/$alias`r")) -ceq $alias) 'A CRLF launcher line was not resolved.'
+Assert-That (Test-LauncherRefused @('No activities found')) 'A missing launcher passed.'
+Assert-That (Test-LauncherRefused @()) 'An empty launcher query passed.'
+Assert-That (Test-LauncherRefused @("  $pkg/com.facebook.katana.OtherActivity", '  com.other.app/.Main')) 'Unrelated activities passed as a launcher.'
+Assert-That (Test-LauncherRefused @("  $pkg/.LoginActivity", "  $pkg/$alias")) 'Two enabled launchers passed as one.'
+$smokeText = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'phone-smoke.ps1'))
+Assert-That (-not $smokeText.Contains('/.LoginActivity"')) 'phone-smoke.ps1 hardcodes the default launcher again.'
+Assert-That ($smokeText.IndexOf('Select-AndroidLauncher') -lt $smokeText.IndexOf('am force-stop')) 'The launcher is not resolved before Facebook is started.'
+Assert-That ([regex]::Matches($smokeText, 'am start -W (--activity-clear-top )?-n \$Entry').Count -eq 2) 'A launch in phone-smoke.ps1 bypasses the resolved launcher.'
+# The walk can end on a reel or another full-screen page, and a launcher intent that only adds an
+# extra matches the task's root, so Android drops it there unless the screens above are cleared.
+Assert-That ([regex]::IsMatch($smokeText, 'am start -W --activity-clear-top -n \$Entry --ez app\.morphe\.extension\.facebook\.OPEN_SETTINGS true')) `
+    'The settings request after the walk can be dropped under another screen.'
 if ($failures.Count -gt 0) {
     $failures | ForEach-Object { Write-Host "[phone-smoke] FAIL $_" }
     throw "$($failures.Count) phone-smoke report check(s) failed."
 }
 Write-Host '[phone-smoke] report reading checks passed'
+& (Join-Path $PSScriptRoot 'test-device-audit.ps1')

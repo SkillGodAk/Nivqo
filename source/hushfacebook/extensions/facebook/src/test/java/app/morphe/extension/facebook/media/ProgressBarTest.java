@@ -15,6 +15,7 @@ import android.os.Looper;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
+import android.widget.TextView;
 
 import org.junit.After;
 import org.junit.Before;
@@ -29,6 +30,7 @@ import org.robolectric.shadows.ShadowSystemClock;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
@@ -64,6 +66,7 @@ public class ProgressBarTest {
         ProgressBar.updateAgainForTests = null;
         ProgressBar.forgetWatchesForTests();
         ProgressBar.forgetFootersForTests();
+        ProgressBar.forgetHandOversForTests();
         HookStatus.clear();
     }
 
@@ -248,6 +251,96 @@ public class ProgressBarTest {
         assertTrue("two start-overs weren't counted: " + line,
                 line.contains(ProgressBar.NEXT_REEL_STARTED_OVER + " 2"));
         assertFalse("the hook threw: " + line, line.contains("threw"));
+    }
+
+    /**
+     * Facebook builds the next reel's bar info right before the scrubber takes it (S22, #120), so
+     * the time label shows 0:00 and that reel's length at once, as Facebook's writer puts them,
+     * instead of hiding until the reel plays. A bar info that's old, taken already or from another
+     * thread isn't the next reel's, and the label hides as before.
+     */
+    @Test
+    public void theNextReelShowsItsStartAndLengthRightAway() throws InterruptedException {
+        LinearLayout reel = new LinearLayout(RuntimeEnvironment.getApplication());
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        TextView elapsed = new TextView(RuntimeEnvironment.getApplication());
+        TextView slash = new TextView(RuntimeEnvironment.getApplication());
+        TextView total = new TextView(RuntimeEnvironment.getApplication());
+        label.addView(elapsed);
+        label.addView(slash);
+        label.addView(total);
+        elapsed.setText("0:41");
+        slash.setText("/");
+        total.setText("0:44");
+        SeekBar bar = new SeekBar(RuntimeEnvironment.getApplication());
+        reel.addView(label);
+        reel.addView(bar);
+        Locale was = Locale.getDefault();
+        Locale.setDefault(Locale.US);
+        try {
+            Settings.KEEP_PROGRESS_BAR.save(true);
+            bar.setProgress(47);
+            assertTrue(ProgressBar.refreshesTime(label, bar));
+            assertTrue("the bar info's answer changed", ProgressBar.hasBar(true, 808_320));
+            ProgressBar.nextReel(label, bar);
+            assertEquals(0, bar.getProgress());
+            assertEquals("the time hid until the reel plays", View.VISIBLE, label.getVisibility());
+            assertEquals("0:00", elapsed.getText().toString());
+            assertEquals("/", slash.getText().toString());
+            assertEquals("the length isn't written as Facebook writes it", "13:28", total.getText().toString());
+            assertTrue("the reel's first update waited on the last reel's refresh", ProgressBar.refreshesTime(label, bar));
+
+            // Taken once: the next reel without a new bar info hides its time as before.
+            ProgressBar.nextReel(label, bar);
+            assertEquals(View.INVISIBLE, label.getVisibility());
+
+            // Built too long ago to be the next reel's.
+            label.setVisibility(View.VISIBLE);
+            ProgressBar.hasBar(true, 10_016);
+            ShadowSystemClock.advanceBy(ProgressBar.BAR_INFO_FRESH_MS + 1, TimeUnit.MILLISECONDS);
+            ProgressBar.nextReel(label, bar);
+            assertEquals(View.INVISIBLE, label.getVisibility());
+            assertEquals("an old bar info's length was shown", "13:28", total.getText().toString());
+
+            // A label hidden before comes back with the bar up, and an hour long reel reads h:mm:ss.
+            ProgressBar.hasBar(false, 10_892_365);
+            ProgressBar.nextReel(label, bar);
+            assertEquals(View.VISIBLE, label.getVisibility());
+            assertEquals("3:01:32", total.getText().toString());
+
+            // A label Facebook took out of the layout isn't the patch's to show.
+            label.setVisibility(View.GONE);
+            ProgressBar.hasBar(true, 22_000);
+            ProgressBar.nextReel(label, bar);
+            assertTrue("a gone label came back", label.getVisibility() != View.VISIBLE);
+            label.setVisibility(View.VISIBLE);
+            total.setText("3:01:32");
+
+            // Built on another thread: some other player's.
+            Thread other = new Thread(() -> ProgressBar.hasBar(true, 22_000));
+            other.start();
+            other.join();
+            ProgressBar.nextReel(label, bar);
+            assertEquals(View.INVISIBLE, label.getVisibility());
+            assertEquals("another thread's bar info was shown", "3:01:32", total.getText().toString());
+
+            // A label without its two times hides as before.
+            LinearLayout bare = new LinearLayout(RuntimeEnvironment.getApplication());
+            reel.addView(bare);
+            ProgressBar.hasBar(true, 22_000);
+            ProgressBar.nextReel(bare, bar);
+            assertEquals(View.INVISIBLE, bare.getVisibility());
+
+            assertEquals("0:00", ProgressBar.time(999));
+            assertEquals("59:59", ProgressBar.time(3_599_999));
+            assertEquals("1:00:00", ProgressBar.time(3_600_000));
+            String line = statusLine();
+            assertTrue("two shown times weren't counted: " + line,
+                    line.contains(ProgressBar.NEXT_REEL_TIME_SHOWN + " 2"));
+            assertFalse("the hook threw: " + line, line.contains("threw"));
+        } finally {
+            Locale.setDefault(was);
+        }
     }
 
     @Test
@@ -528,6 +621,75 @@ public class ProgressBarTest {
         assertEquals(View.VISIBLE, bar.getVisibility());
         String line = statusLine();
         assertFalse("a finished hand-over hid the bar: " + line, line != null && line.contains(ProgressBar.LAST_REEL_HIDDEN));
+    }
+
+    @Test
+    public void aReelTheRegistryHasNoScrubberForHidesTheLastReelsBarUntilItsReelIsBack() {
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        SeekBar bar = new SeekBar(RuntimeEnvironment.getApplication());
+        scrubberViews(label, bar);
+        // Reel a is handed the scrubber and plays to 18%.
+        ProgressBar.registryAsks(false, 1);
+        ProgressBar.handsOver(label, bar, null, "a");
+        ProgressBar.mounts(label, null);
+        ProgressBar.leftOnLastReel();
+        bar.setProgress(18);
+        assertEquals(View.VISIBLE, bar.getVisibility());
+        // #120: the registry has no scrubber for the next reel and returns before any hand-over.
+        ProgressBar.registryAsks(false, 2);
+        ProgressBar.noScrubber();
+        assertEquals("the last reel's bar stayed on screen", View.INVISIBLE, bar.getVisibility());
+        assertEquals("the last reel's time stayed on screen", View.INVISIBLE, label.getVisibility());
+        assertNull("a look could show the last reel's bar", ProgressBar.lookFor(label, 1));
+        // Back to a: the registry picks the scrubber, which still holds a.
+        ProgressBar.registryAsks(false, 1);
+        ProgressBar.handsOver(label, bar, "a", "a");
+        assertEquals("the bar didn't come back with its own reel", View.VISIBLE, bar.getVisibility());
+        Integer active = 1;
+        assertSame("a look was held back with the bar's own reel back", active, ProgressBar.lookFor(label, active));
+        String line = statusLine();
+        assertTrue(line, line.contains(ProgressBar.NO_SCRUBBER_HIDDEN + " 1"));
+        assertTrue(line, line.contains(ProgressBar.LAST_REEL_BACK + " 1"));
+        assertFalse(line, line.contains(ProgressBar.REGISTRY_HID_EVERY_BAR));
+
+        // Hidden again, then another reel takes the scrubber: its light mount brings the bar back.
+        ProgressBar.noScrubber();
+        assertEquals(View.INVISIBLE, bar.getVisibility());
+        ProgressBar.handsOver(label, bar, "a", "c");
+        ProgressBar.mounts(label, null);
+        assertEquals("the bar didn't come back once a reel took it", View.VISIBLE, bar.getVisibility());
+    }
+
+    @Test
+    public void theRegistrysHideIsCountedAndNothingChangesOffOrPaused() {
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        ProgressBar.registryAsks(true, 3);
+        String line = statusLine();
+        assertTrue(line, line.contains(ProgressBar.REGISTRY_HID_EVERY_BAR + " 1"));
+        // Before any hand-over there's no scrubber to hide.
+        ProgressBar.noScrubber();
+        assertFalse(statusLine().contains(ProgressBar.NO_SCRUBBER_HIDDEN));
+
+        LinearLayout label = new LinearLayout(RuntimeEnvironment.getApplication());
+        SeekBar bar = new SeekBar(RuntimeEnvironment.getApplication());
+        scrubberViews(label, bar);
+        ProgressBar.handsOver(label, bar, null, "a");
+        ProgressBar.mounts(label, null);
+        HookStatus.clear();
+        Settings.KEEP_PROGRESS_BAR.save(false);
+        ProgressBar.registryAsks(true, 3);
+        ProgressBar.noScrubber();
+        Settings.KEEP_PROGRESS_BAR.save(true);
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        ProgressBar.registryAsks(true, 3);
+        ProgressBar.noScrubber();
+        PauseForTests.resume();
+        assertEquals("the bar was hidden with the switch off or paused", View.VISIBLE, bar.getVisibility());
+        assertEquals(View.VISIBLE, label.getVisibility());
+        line = statusLine();
+        assertFalse("counted with the switch off or paused: " + line, line != null
+                && (line.contains(ProgressBar.REGISTRY_HID_EVERY_BAR) || line.contains(ProgressBar.NO_SCRUBBER_HIDDEN)));
     }
 
     private static void idle(long ms) {

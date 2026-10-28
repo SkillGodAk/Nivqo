@@ -1,0 +1,312 @@
+/*
+ * Copyright 2026 Hushfacebook contributors
+ * https://github.com/SysAdminDoc/Hushfacebook
+ */
+package app.morphe.extension.facebook.search;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
+
+import app.morphe.extension.facebook.settings.FamilyNames;
+import app.morphe.extension.facebook.settings.PatchFamily;
+import app.morphe.extension.facebook.settings.Settings;
+import app.morphe.extension.shared.SettingsContextRule;
+import app.morphe.extension.shared.diagnostics.HookStatus;
+import app.morphe.extension.shared.settings.BaseSettings;
+import app.morphe.extension.shared.settings.HushfacebookPause;
+import app.morphe.extension.shared.settings.PauseForTests;
+import app.morphe.extension.shared.settings.preference.LogBufferManager;
+
+/**
+ * The search screen before typing (#80): For you and People you may know are each drawn as an empty
+ * row while their switch is on, and with Debug logging on the rows are named, only by type and module
+ * names.
+ */
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = 30)
+public class PreSearchSectionsTest {
+    @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
+
+    /** Stands in for a tree: answers its type, whether it's valid, and its strings by key. */
+    public static class Tree {
+        private final String type;
+        private final boolean valid;
+        private final String modules;
+        int stringReads;
+
+        Tree(String type, boolean valid, String modules) {
+            this.type = type;
+            this.valid = valid;
+            this.modules = modules;
+        }
+
+        public String getTypeName() {
+            return type;
+        }
+
+        public boolean isValidGraphServicesJNIModel() {
+            return valid;
+        }
+
+        public String getCachedNullableString(int key) {
+            stringReads++;
+            return key == "rendered_modules".hashCode() ? modules : "1000123456789 at another key";
+        }
+    }
+
+    @Before
+    public void prepare() {
+        PreSearchSections.forget();
+        BaseSettings.DEBUG.save(true);
+        LogBufferManager.clearLogBuffer();
+    }
+
+    @After
+    public void restore() {
+        PauseForTests.resume();
+        PreSearchSections.forget();
+        BaseSettings.DEBUG.resetToDefault();
+        Settings.HIDE_SEARCH_FOR_YOU.resetToDefault();
+        Settings.HIDE_SEARCH_PEOPLE_YOU_MAY_KNOW.resetToDefault();
+        LogBufferManager.clearLogBuffer();
+        HookStatus.clear();
+    }
+
+    private static Tree forYou() {
+        return new Tree(PreSearchSections.NULL_STATE_NODE, true, PreSearchSections.FOR_YOU_MODULE);
+    }
+
+    private static String statusLine() {
+        for (String line : HookStatus.report()) {
+            if (line.startsWith(FamilyNames.SUGGESTED_POSTS + ":")) return line;
+        }
+        return "";
+    }
+
+    @Test
+    public void theSwitchStartsOffAndOffDrawsForYou() {
+        BaseSettings.DEBUG.save(false);
+        assertFalse(Settings.HIDE_SEARCH_FOR_YOU.defaultValue);
+        assertTrue(PatchFamily.SUGGESTED_POSTS.switches.contains(Settings.HIDE_SEARCH_FOR_YOU));
+        Tree node = forYou();
+        Object module = new Tree("NativeTemplateView", true, null);
+        assertSame(module, PreSearchSections.entry(node, module));
+        assertEquals("off reads nothing off the node", 0, node.stringReads);
+        assertFalse(statusLine().contains(PreSearchSections.HIDDEN));
+    }
+
+    @Test
+    public void onDrawsForYouAsAnEmptyRow() {
+        Settings.HIDE_SEARCH_FOR_YOU.save(true);
+        assertNull(PreSearchSections.entry(forYou(), new Tree("NativeTemplateView", true, null)));
+        // For you among a few module names is enough.
+        assertNull(PreSearchSections.entry(new Tree(PreSearchSections.NULL_STATE_NODE, true,
+                "SEARCH_HEADER, " + PreSearchSections.FOR_YOU_MODULE), new Tree("NativeTemplateView", true, null)));
+        String line = statusLine();
+        assertTrue(line, line.contains(PreSearchSections.HIDDEN + " 2"));
+        // Debug logging still names the row Facebook would have drawn.
+        assertTrue(log(), log().contains("node=" + PreSearchSections.NULL_STATE_NODE + " module=NativeTemplateView rendered_modules="
+                + PreSearchSections.FOR_YOU_MODULE));
+    }
+
+    @Test
+    public void everyOtherRowStays() {
+        Settings.HIDE_SEARCH_FOR_YOU.save(true);
+        Object module = new Tree("NativeTemplateView", true, null);
+        assertSame(module, PreSearchSections.entry(new Tree(PreSearchSections.NULL_STATE_NODE, true, "RECENT_SEARCHES"), module));
+        assertSame(module, PreSearchSections.entry(new Tree(PreSearchSections.NULL_STATE_NODE, true, null), module));
+        assertSame(module, PreSearchSections.entry(new Tree(PreSearchSections.NULL_STATE_NODE, true,
+                PreSearchSections.FOR_YOU_MODULE + "_V2"), module));
+        assertSame(module, PreSearchSections.entry(new Tree("SearchNullStateUnit", true, PreSearchSections.FOR_YOU_MODULE), module));
+        // A released node can't be read, so its row is Facebook's.
+        Tree released = new Tree(PreSearchSections.NULL_STATE_NODE, false, PreSearchSections.FOR_YOU_MODULE);
+        assertSame(module, PreSearchSections.entry(released, module));
+        assertEquals(0, released.stringReads);
+        // An empty row stays empty.
+        assertNull(PreSearchSections.entry(forYou(), null));
+        assertFalse(statusLine().contains(PreSearchSections.HIDDEN));
+    }
+
+    @Test
+    public void peopleYouMayKnowGoesOnlyWithItsOwnSwitch() {
+        assertFalse(Settings.HIDE_SEARCH_PEOPLE_YOU_MAY_KNOW.defaultValue);
+        assertTrue(PatchFamily.SUGGESTED_POSTS.switches.contains(Settings.HIDE_SEARCH_PEOPLE_YOU_MAY_KNOW));
+        // The shape a reporter's Debug log named on 583: the null state node, NativeTemplateView, PEOPLE_YOU_MAY_KNOW.
+        Tree people = new Tree(PreSearchSections.NULL_STATE_NODE, true, PreSearchSections.PEOPLE_YOU_MAY_KNOW_MODULE);
+        Object module = new Tree("NativeTemplateView", true, null);
+        Settings.HIDE_SEARCH_FOR_YOU.save(true);
+        assertSame("For you's switch leaves People you may know", module, PreSearchSections.entry(people, module));
+        Settings.HIDE_SEARCH_FOR_YOU.save(false);
+        Settings.HIDE_SEARCH_PEOPLE_YOU_MAY_KNOW.save(true);
+        assertNull(PreSearchSections.entry(people, module));
+        assertNull("584 hands over the node alone", PreSearchSections.node(people));
+        assertSame("its switch leaves For you", module, PreSearchSections.entry(forYou(), module));
+        Tree longer = new Tree(PreSearchSections.NULL_STATE_NODE, true, PreSearchSections.PEOPLE_YOU_MAY_KNOW_MODULE + "_V2");
+        assertSame(module, PreSearchSections.entry(longer, module));
+        String line = statusLine();
+        assertTrue(line, line.contains(PreSearchSections.HIDDEN_PEOPLE + " 2"));
+        assertFalse(line, line.contains(PreSearchSections.HIDDEN + " "));
+    }
+
+    @Test
+    public void bothSwitchesOnHideBothRows() {
+        Settings.HIDE_SEARCH_FOR_YOU.save(true);
+        Settings.HIDE_SEARCH_PEOPLE_YOU_MAY_KNOW.save(true);
+        Object module = new Tree("NativeTemplateView", true, null);
+        assertNull(PreSearchSections.entry(forYou(), module));
+        assertNull(PreSearchSections.entry(new Tree(PreSearchSections.NULL_STATE_NODE, true,
+                PreSearchSections.PEOPLE_YOU_MAY_KNOW_MODULE), module));
+        assertSame(module, PreSearchSections.entry(new Tree(PreSearchSections.NULL_STATE_NODE, true, "RECENT_SEARCHES"), module));
+        String line = statusLine();
+        assertTrue(line, line.contains(PreSearchSections.HIDDEN + " 1"));
+        assertTrue(line, line.contains(PreSearchSections.HIDDEN_PEOPLE + " 1"));
+    }
+
+    @Test
+    public void fiveEightyFourHandsTheNodeAloneAndANullNodeIsTheEmptyRow() {
+        Tree node = forYou();
+        assertSame("off draws the node", node, PreSearchSections.node(node));
+        Settings.HIDE_SEARCH_FOR_YOU.save(true);
+        assertNull(PreSearchSections.node(forYou()));
+        Tree other = new Tree(PreSearchSections.NULL_STATE_NODE, true, "RECENT_SEARCHES");
+        assertSame(other, PreSearchSections.node(other));
+        Tree unit = new Tree("SearchNullStateUnit", true, PreSearchSections.FOR_YOU_MODULE);
+        assertSame(unit, PreSearchSections.node(unit));
+        assertNull(PreSearchSections.node(null));
+        String line = statusLine();
+        assertTrue(line, line.contains(PreSearchSections.HIDDEN + " 1"));
+        // The log names the node and its module names, and no module it wasn't handed.
+        String log = log();
+        assertTrue(log, log.contains("node=SearchNullStateUnit rendered_modules=" + PreSearchSections.FOR_YOU_MODULE));
+        assertFalse(log, log.contains("module=none"));
+        assertFalse(log, log.contains("node=unreadable"));
+    }
+
+    @Test
+    public void pausedOrBeforeTheSettingsAreReadyDrawsTheNode() {
+        Settings.HIDE_SEARCH_FOR_YOU.save(true);
+        Tree node = forYou();
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertSame(node, PreSearchSections.node(node));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertSame(node, PreSearchSections.node(node)));
+        assertNull(PreSearchSections.node(node));
+    }
+
+    @Test
+    public void pausedOrBeforeTheSettingsAreReadyDrawsForYou() {
+        Settings.HIDE_SEARCH_FOR_YOU.save(true);
+        Object module = new Tree("NativeTemplateView", true, null);
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertSame(module, PreSearchSections.entry(forYou(), module));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertSame(module, PreSearchSections.entry(forYou(), module)));
+        assertNull(PreSearchSections.entry(forYou(), module));
+    }
+
+    private static String log() {
+        return LogBufferManager.buildExportText();
+    }
+
+    @Test
+    public void namesTheNodeTheModuleAndItsModuleNames() {
+        PreSearchSections.entry(new Tree("SearchNullStateUnit", true, "RECENT_SEARCHES, PYMK2"),
+                new Tree("NTSearchModule", true, null));
+        String log = log();
+        assertTrue(log, log.contains(PreSearchSections.PREFIX
+                + "node=SearchNullStateUnit module=NTSearchModule rendered_modules=RECENT_SEARCHES,PYMK2"));
+    }
+
+    @Test
+    public void idsAndTextNeverGetOut() {
+        PreSearchSections.entry(new Tree("Search Unit", true, "100012345678901,People you may know,"),
+                new Tree("https://example.com/x", true, null));
+        String log = log();
+        assertTrue(log, log.contains("node=other module=other rendered_modules=other,other,other"));
+        assertFalse(log, log.contains("100012345678901"));
+        assertFalse(log, log.contains("People you may know"));
+        assertFalse(log, log.contains("example.com"));
+    }
+
+    @Test
+    public void anEmptyRowAndNoModuleNamesSaySo() {
+        PreSearchSections.entry(new Tree("SearchNullStateUnit", true, null), null);
+        String log = log();
+        assertTrue(log, log.contains("node=SearchNullStateUnit module=none rendered_modules=none"));
+    }
+
+    @Test
+    public void aReleasedNodeIsNeverAskedForItsStrings() {
+        Tree released = new Tree("SearchNullStateUnit", false, "RECENT_SEARCHES");
+        PreSearchSections.entry(released, null);
+        assertEquals(0, released.stringReads);
+        String log = log();
+        assertTrue(log, log.contains("node=unreadable module=none rendered_modules=unread"));
+    }
+
+    @Test
+    public void debugOffLogsNothingAndTouchesNothing() {
+        BaseSettings.DEBUG.save(false);
+        Tree node = new Tree("SearchNullStateUnit", true, "RECENT_SEARCHES");
+        Object module = new Tree("NTSearchModule", true, null);
+        assertSame(module, PreSearchSections.entry(node, module));
+        assertEquals(0, node.stringReads);
+        assertFalse(log(), log().contains(PreSearchSections.PREFIX));
+    }
+
+    @Test
+    public void longModuleListsAreCut() {
+        StringBuilder modules = new StringBuilder("A");
+        for (int i = 1; i < PreSearchSections.MAX_MODULES + 3; i++) modules.append(",A");
+        PreSearchSections.entry(new Tree("SearchNullStateUnit", true, modules.toString()), null);
+        String log = log();
+        assertTrue(log, log.contains("rendered_modules=A,A,A,A,A,A,A,A,more"));
+    }
+
+    @Test
+    public void eachLineOnceAndABudget() {
+        Tree module = new Tree("NTSearchModule", true, null);
+        for (int round = 0; round < 2; round++) {
+            for (int i = 0; i < PreSearchSections.MAX_SHAPES + 5; i++) {
+                PreSearchSections.entry(new Tree("Unit" + (char) ('a' + i % 26) + (char) ('a' + i / 26), true, null), module);
+            }
+        }
+        String log = log();
+        assertEquals(PreSearchSections.MAX_SHAPES + 1, log.split(PreSearchSections.PREFIX, -1).length - 1);
+        assertEquals(1, log.split("more rows than the log keeps", -1).length - 1);
+    }
+
+    @Test
+    public void aSpentBudgetStopsReadingEntries() {
+        for (int i = 0; i <= PreSearchSections.MAX_SHAPES; i++) {
+            PreSearchSections.entry(new Tree("Unit" + (char) ('a' + i % 26) + (char) ('a' + i / 26), true, null), null);
+        }
+        assertTrue(log(), log().contains("more rows than the log keeps"));
+        Tree late = new Tree("SearchNullStateUnit", true, "RECENT_SEARCHES");
+        PreSearchSections.entry(late, null);
+        assertEquals(0, late.stringReads);
+        assertFalse(log(), log().contains("RECENT_SEARCHES"));
+    }
+
+    @Test
+    public void namesAreLettersUnderscoresAndAFewDigits() {
+        assertEquals("PaginatedPeopleYouMayKnow", PreSearchSections.name("PaginatedPeopleYouMayKnow"));
+        assertEquals("FB_Module_2026", PreSearchSections.name("FB_Module_2026"));
+        assertEquals("other", PreSearchSections.name("Module_20261"));
+        assertEquals("other", PreSearchSections.name("2026Module"));
+        assertEquals("other", PreSearchSections.name(""));
+        assertEquals("other", PreSearchSections.name("Caf" + (char) 0xe9));
+        assertEquals("unreadable", PreSearchSections.name(null));
+    }
+}

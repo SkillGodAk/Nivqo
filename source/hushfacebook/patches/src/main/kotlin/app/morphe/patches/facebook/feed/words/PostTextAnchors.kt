@@ -6,13 +6,18 @@ package app.morphe.patches.facebook.feed.words
 
 import app.morphe.patches.facebook.feed.BASE_MODEL_WITH_TREE
 import app.morphe.patches.facebook.feed.GRAPHQL_STORY
+import app.morphe.patches.facebook.feed.aidetected.GRAPHQL_STORY_ATTACHMENT
+import app.morphe.patches.facebook.feed.aidetected.isModelListAccessor
 import app.morphe.patches.facebook.feed.storyModelAccessors
 import app.morphe.patches.facebook.feed.treeFieldKey
 import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -30,9 +35,9 @@ internal const val GRAPHQL_TEXT_WITH_ENTITIES = "Lcom/facebook/graphql/model/Gra
  * GraphQLStory.toString, a kept method, calls it, labels what it reads "message.text", and reads
  * that with a static helper (`LX/18a;->A0n` in 580, `LX/19u;->A0r` in 577) that is
  * `getCachedString("text".hashCode())` (0x36452d), the same helper GraphQLTextWithEntities' own
- * String getter calls. The words are the author's own: Facebook's translation of a post is another
- * field (`translated_message`), and none of the header text Facebook writes in the reader's
- * language ("shared a memory") is in it.
+ * String getter calls (584 inlines that helper into toString). The words are the author's own:
+ * Facebook's translation of a post is another field (`translated_message`), and none of the header
+ * text Facebook writes in the reader's language ("shared a memory") is in it.
  */
 internal const val MESSAGE_FIELD = "message"
 internal const val TEXT_WITH_ENTITIES_TYPE = "TextWithEntities"
@@ -49,6 +54,23 @@ internal const val STORY_TYPE = "Story"
 
 /** Kept literal. The label GraphQLStory.toString gives the text of its message. */
 internal const val MESSAGE_TEXT_LABEL = "message.text"
+
+/**
+ * Where a link card's headline is on 584 (2026-10-27, #255): Facebook's headline reader
+ * (`LX/7KC;->A00`, behind the card's bold line in `LX/7KD;->A01`) takes the `link_title` (0x46b9d1d3)
+ * of the first of the attachment's `action_links` (0x6de93070) as `StoryActionLink` (0x0bb0e195),
+ * read as the renamed `LX/45D;` through `GraphQLStoryAttachment.A06()`, and falls back on the
+ * attachment's own `title` only when that's empty. Its other reader takes `title_with_entities`
+ * (0x10c04173). The extension reads both of those by key; only the list's accessor needs a stub,
+ * because the class the list is read as is renamed every build.
+ */
+internal const val ACTION_LINKS_FIELD = "action_links"
+internal const val ACTION_LINK_TYPE = "StoryActionLink"
+
+/** Every accessor [attachment] declares of its action links. The patch wants exactly one. */
+internal fun actionLinksAccessors(attachment: ClassDef): List<Method> = attachment.methods.filter {
+    isModelListAccessor(it, GRAPHQL_STORY_ATTACHMENT, ACTION_LINKS_FIELD, ACTION_LINK_TYPE)
+}
 
 private fun Method.body(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 
@@ -101,17 +123,44 @@ internal fun messageTextReaders(toString: Method, accessor: Method): List<Method
 }
 
 /**
+ * Whether [toString] reads the [TEXT_FIELD] of the model from [accessor] itself, right after the
+ * label [MESSAGE_TEXT_LABEL]: 584 inlined the static reader, so the key and `getCachedString(int)`
+ * sit in toString, called on the register the accessor's answer went into.
+ */
+internal fun readsMessageTextInline(toString: Method, accessor: Method): Boolean {
+    val body = toString.body()
+    return body.indices.any { index ->
+        val call = body[index].methodReference()
+        if (call == null || call.definingClass != GRAPHQL_STORY || call.name != accessor.name ||
+            call.returnType != accessor.returnType || call.parameterTypes.isNotEmpty()
+        ) return@any false
+        val model = (body.getOrNull(index + 1) as? OneRegisterInstruction)
+            ?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT }?.registerA ?: return@any false
+        val after = body.subList(index + 2, minOf(body.size, index + 8))
+        val label = after.indexOfFirst { it.string() == MESSAGE_TEXT_LABEL }
+        if (label < 0) return@any false
+        val rest = after.drop(label + 1)
+        val read = rest.indexOfFirst { it.methodReference()?.isCachedStringRead() == true }
+        if (read < 0) return@any false
+        val key = rest.take(read).lastOrNull { it.literal() == treeFieldKey(TEXT_FIELD) } as? OneRegisterInstruction
+        val reads = rest[read] as FiveRegisterInstruction
+        key != null && rest[read].opcode == Opcode.INVOKE_VIRTUAL && reads.registerCount == 2 &&
+            reads.registerC == model && reads.registerD == key.registerA
+    }
+}
+
+private fun MethodReference.isCachedStringRead() =
+    definingClass == BASE_MODEL_WITH_TREE && name == "getCachedString" && returnType == "Ljava/lang/String;" &&
+        parameterTypes.map { type -> type.toString() } == listOf("I")
+
+/**
  * Whether [reader] reads the field [TEXT_FIELD] of the model it's handed: it loads the key and calls
  * `getCachedString(int)`, the reader the extension calls by reflection.
  */
 internal fun readsTextField(reader: Method): Boolean {
     val body = reader.body()
     val loaded = body.indexOfFirst { it.literal() == treeFieldKey(TEXT_FIELD) }
-    return loaded >= 0 && body.drop(loaded + 1).any {
-        val call = it.methodReference() ?: return@any false
-        call.definingClass == BASE_MODEL_WITH_TREE && call.name == "getCachedString" &&
-            call.returnType == "Ljava/lang/String;" && call.parameterTypes.map { type -> type.toString() } == listOf("I")
-    }
+    return loaded >= 0 && body.drop(loaded + 1).any { it.methodReference()?.isCachedStringRead() == true }
 }
 
 /** Whether [treeModel] has the public `getCachedString(int)` the extension reads a post's text with. */

@@ -1,4 +1,6 @@
 import os
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -50,11 +52,25 @@ class BuildQueueCommands(unittest.TestCase):
             command = queue.gradle(self.root, tasks)
         self.assertEqual("-Command", command[-2])
         script = command[-1]
-        self.assertTrue(script.startswith("& '" + str(self.wrapper).replace("'", "''") + "' -ProjectDir "))
+        self.assertTrue(script.startswith("$ErrorActionPreference = 'Stop'; & '" + str(self.wrapper).replace("'", "''") + "' -ProjectDir "))
         self.assertIn("-PvalidationApk=C:/a b/it''s.apk", script)
         self.assertIn("'-Dorg.gradle.jvmargs=-Xmx1024m -XX:ActiveProcessorCount=2'", script)
         self.assertTrue(script.endswith("); exit $LASTEXITCODE"))
         self.assertIn("-Tasks @(':patches:checkRebuiltApk', ", script)
+
+    @unittest.skipUnless(shutil.which("pwsh") or shutil.which("powershell"), "needs PowerShell")
+    def test_a_wrapper_that_fails_before_gradle_fails_the_command(self):
+        def run(body):
+            self.wrapper.write_text("param($ProjectDir, $Tasks)\n" + body + "\n")
+            with self.environment(wrapper=self.wrapper):
+                command = queue.gradle(self.root, [":patches:test"])
+            return subprocess.run(command, capture_output=True, text=True, timeout=120,
+                                  creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).returncode
+
+        # A non-terminating error and no native call used to leave $LASTEXITCODE empty, which exits 0.
+        self.assertNotEqual(0, run("Write-Error 'no Java here'"))
+        self.assertEqual(0, run("exit 0"))
+        self.assertEqual(3, run("exit 3"))
 
     def test_queue_runs_the_command_line_inside_a_labelled_slot(self):
         job = ["java", "-jar", "desktop.jar", "--enable=Hide People You May Know", "C:/it's.apk"]

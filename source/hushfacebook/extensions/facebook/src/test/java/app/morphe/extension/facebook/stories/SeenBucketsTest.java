@@ -88,6 +88,23 @@ public class SeenBucketsTest {
     }
 
     @Test
+    public void theCardStoreKeepsItsOwnLimit() {
+        // The cards' file holds more than the buckets' (#218), and a limit is kept both while
+        // watching and when an over-full file is read.
+        assertTrue(SeenBuckets.MAX_CARDS > SeenBuckets.MAX_BUCKETS);
+        SeenBuckets cards = new SeenBuckets(file, 3);
+        for (int index = 0; index < 5; index++) cards.watched("c" + index, "b", NOW + index);
+        assertEquals(3, cards.size(NOW + 10));
+        assertNull(cards.newestWatched("c1", NOW + 10));
+        assertEquals("b", cards.newestWatched("c2", NOW + 10));
+        assertEquals(3, file.getAll().size());
+
+        file.edit().putString("c0", SeenBuckets.encode("b", NOW)).commit();
+        assertEquals(3, new SeenBuckets(file, 3).size(NOW + 10));
+        assertFalse(file.contains("c0"));
+    }
+
+    @Test
     public void aBucketPastItsAgeIsForgotten() {
         SeenBuckets seen = new SeenBuckets(file);
         seen.watched("old", "s", NOW);

@@ -6,6 +6,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.Field
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -44,6 +45,33 @@ internal fun fixtureClass(
     return MutableClass(ImmutableClassDef(type, flags, superclass,
         interfaces, null, emptySet(), fields, methods))
 }
+
+/** getTranscodeConfig cut down to the native transcoder's switch going into the map it returns. */
+internal val TRANSCODE_CONFIG_BODY = """
+    new-instance v2, Ljava/util/HashMap;
+    invoke-direct {v2}, Ljava/util/HashMap;-><init>()V
+    sget-object v1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;
+    const-string v0, "ENABLE_UIT_TRANSCODING"
+    if-eqz v1, :done
+    invoke-virtual {v2, v0, v1}, Ljava/util/AbstractMap;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    :done
+    return-object v2
+""".trimIndent()
+
+/** decodeBitmap (22 registers, so p1 is v17) cut down to its whole-file decode of v11 and the shrink to its limits. */
+internal val DECODE_BITMAP_BODY = """
+    move-object/from16 v11, p1
+    invoke-static {v11}, Landroid/graphics/BitmapFactory;->decodeFile(Ljava/lang/String;)Landroid/graphics/Bitmap;
+    move-result-object v1
+    move-wide/from16 v2, p2
+    double-to-int v2, v2
+    move-wide/from16 v4, p4
+    double-to-int v4, v4
+    const/4 v5, 0x1
+    invoke-static {v1, v2, v4, v5}, Landroid/graphics/Bitmap;->createScaledBitmap(Landroid/graphics/Bitmap;IIZ)Landroid/graphics/Bitmap;
+    move-result-object v1
+    return-object v1
+""".trimIndent()
 
 /** The stock app component factory's two entry points, cut down to the shape the screen-host hooks check. */
 internal fun factoryActivity(registers: Int = 12, id: String = INSTANTIATE_ACTIVITY) = fixtureMethod(id, """
@@ -121,10 +149,14 @@ internal fun nativeBubbleModeMethod(body: String? = null) = fixtureMethod(active
 internal fun inboxRefreshRouteMethod(body: String = "const-string v0, \"\"\nreturn-object v0", flags: Int = AccessFlags.STATIC.value) =
     fixtureMethod(INBOX_REFRESH_ROUTE, body, 1, flags)
 
+internal fun logoutRouteMethod(body: String = "const-string v0, \"\"\nreturn-object v0", flags: Int = AccessFlags.STATIC.value) =
+    fixtureMethod(LOGOUT_ROUTE, body, 1, flags)
+
 /** The factory and the extension classes every settings run touches, as a supported APK plus the extension has them. */
 internal fun screenHostClasses() = listOf(
     fixtureClass(FACTORY_TYPE, listOf(factoryActivity(), factoryApplication())),
-    fixtureClass(HOST_SCREENS, listOf(bundledControlsMethod(), originalBuildMethod(), nativeBubbleRoutesMethod(), inboxRefreshRouteMethod())),
+    fixtureClass(HOST_SCREENS, listOf(bundledControlsMethod(), originalBuildMethod(), nativeBubbleRoutesMethod(), inboxRefreshRouteMethod(),
+        logoutRouteMethod())),
     fixtureClass(INBOX_REFRESH, listOf(fixtureMethod(INBOX_ITEMS_CALL, "return-void", 1, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value))),
 )
 
@@ -286,23 +318,23 @@ internal fun peopleStoryMethod(
 
 /**
  * Instructions 0-20 match the supported APKs; one instruction stands in for the list reset. The suggestions logger
- * comes first, so the owner is p1, and false lives in v3 of eight registers, with the [logger] load in v4. The older
+ * comes first, so the owner is p1, and false lives in v5 of ten registers, with the [logger] load in v3. The older
  * shapes are only there to be refused: with [inlinedReset] one call replaces the two at 14-15, so the server flag moves
  * from 17 to 16, and without [logged] the reader takes only its owner and keeps false in v4 of six registers.
  */
 internal fun peopleJewelMethod(
     key: String = "LX/JTx;->A01:LX/1BL;",
     resultRegister: String = "v0",
-    serverFlag: String = "72344188615735036L",
+    serverFlag: String = "72344171435866083L",
     serverTarget: String = ":shown",
     flags: Int = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value,
     inlinedReset: Boolean = false,
     extraFlag: Boolean = false,
     extraFlagValue: String = serverFlag,
     logged: Boolean = true,
-    default: String = if (logged) "v3" else "v4",
-    registers: Int = if (logged) 8 else 6,
-    logger: String = if (logged) "v4" else "v3",
+    default: String = if (logged) "v5" else "v4",
+    registers: Int = if (logged) 10 else 6,
+    logger: String = "v3",
 ) = fixtureMethod(if (logged) PEOPLE_JEWEL_HOOK else PEOPLE_JEWEL_HOOK.replace("(LX/3nt;", "("), """
     iget-object v0, ${if (logged) "p1" else "p0"}, LX/HAR;->A07:LX/17Z;
     invoke-static {v0}, LX/17Z;->A0F(LX/17Z;)Ljava/lang/Object;
@@ -550,4 +582,30 @@ internal fun storyPreviewClass(
         (0 until cards).map { ImmutableField(MONTAGE_BUCKET_PREVIEW, "A0${5 + it}", MONTAGE_CARD, final, null, null, null) }
     val methods = listOf(fixtureMethod(STORY_PREVIEW_INIT, init, registers = 23), fixtureMethod(STORY_PREVIEW_RING, ring, registers = 5)) + extraMethods
     return MutableClass(ImmutableClassDef(MONTAGE_BUCKET_PREVIEW, final, "Ljava/lang/Object;", emptyList(), null, emptySet(), fields, methods))
+}
+
+/** 584's shape: the observer callback only forwards its list to a static supplier method that holds the count logic. */
+internal fun inboxForwardedClasses(
+    forwardTarget: String = "A06",
+    callsite: String = "invoke-static {v0, p1}, $INBOX_SUPPLIER->$forwardTarget($INBOX_SUPPLIER" + "Ljava/util/List;)V",
+    guard: String = "if-eqz p1, :end",
+): List<ClassDef> {
+    val logic = fixtureMethod("$INBOX_SUPPLIER->A06($INBOX_SUPPLIER" + "Ljava/util/List;)V", listOf(
+        "invoke-interface {p1}, Ljava/util/List;->size()I",
+        "move-result v4",
+        "iget v3, p0, $INBOX_SUPPLIER->A02:I",
+        "iput v4, p0, $INBOX_SUPPLIER->A03:I",
+        "const/4 v2, 0x5",
+        "if-lt v4, v3, :listed",
+        "const/4 v2, 0x1",
+        ":listed",
+        "iput v2, p0, $INBOX_SUPPLIER->A00:I",
+        "return-void",
+    ).joinToString("\n"), 7, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)
+    val observer = fixtureClass(INBOX_OBSERVER, listOf(
+        fixtureMethod("$INBOX_OBSERVER-><init>($INBOX_SUPPLIER)V", "invoke-direct {p0}, Ljava/lang/Object;-><init>()V\nreturn-void", 2),
+        fixtureMethod("$INBOX_OBSERVER->CjP(Ljava/util/List;)V", listOf(
+            "iget-object v0, p0, $INBOX_OBSERVER->A00:$INBOX_SUPPLIER", guard, callsite, ":end", "return-void").joinToString("\n"), 3),
+    ), flags = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value)
+    return listOf(inboxSupplierClass(subscribe = listOf(inboxSubscribeMethod(), logic)), observer)
 }

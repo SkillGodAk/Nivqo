@@ -6,25 +6,16 @@
 package app.morphe.manager.ui.screen.home
 
 import android.annotation.SuppressLint
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -34,15 +25,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
@@ -60,13 +45,12 @@ import app.morphe.manager.ui.model.HomeAppItem
 import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.ui.viewmodel.HomeAppSourceGroup
 import app.morphe.manager.util.KnownApps
-import app.morphe.manager.util.isRtl
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 import kotlinx.coroutines.delay
+import org.koin.compose.koinInject
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.time.Duration.Companion.milliseconds
-
-/** Cards get more room where the layout splits into two columns and each holds only it's half. */
-private val LandscapeMaxCardWidth = 700.dp
 
 internal fun HomeCategoryGroup.selectionKey(): String =
     sourceUid?.let { "source_$it" } ?: id?.let { "category_$it" } ?: "uncategorized"
@@ -82,8 +66,11 @@ data class HomeAppListUi(
     val filterMode: HomeAppFilterMode,
     val categoryState: HomeAppCategoryState,
     val categoryViewMode: HomeAppCategoryViewMode,
-    val showCategoryViewSwitcher: Boolean,
-    val sourceGroups: List<HomeAppSourceGroup>
+    val sourceGroups: List<HomeAppSourceGroup>,
+    /** Whether a batch queue is waiting to be started, which patching a selection adds to. */
+    val batchQueuePending: Boolean = false,
+    /** Whether the list ends on the card leading to the community patches. */
+    val showMoreAppsCard: Boolean = false
 )
 
 /** Callbacks fired from an app card. */
@@ -115,467 +102,96 @@ class HomeAppActions(
     val onAssignAppsToCategory: (Set<String>, String?) -> Unit
 )
 
-/** Callbacks for surrounding chrome elements. */
+/** Callbacks of what stands around the apps: the header, the greeting, the empty state and the card closing the list. */
 @Stable
 class HomeChromeActions(
     val onOtherAppsClick: () -> Unit,
-    val onBundlesClick: () -> Unit,
-    val onSettingsClick: () -> Unit,
-    val onRefreshGreeting: (() -> Unit)?
-)
-
-/** Flags that control which chrome elements are shown. */
-@Immutable
-data class HomeChromeFlags(
-    val showSearchButton: Boolean,
-    val showSortButton: Boolean,
-    val showOtherAppsButton: Boolean,
-    val isExpertModeEnabled: Boolean
-)
-
-/** Search bar visibility, query and mutation callbacks. */
-@Stable
-class HomeSearchState(
-    val visible: Boolean,
-    val query: String,
-    val onQueryChange: (String) -> Unit,
-    val onToggle: () -> Unit,
-    val onClose: () -> Unit
+    val onOpenSources: () -> Unit,
+    val onRefreshGreeting: (() -> Unit)?,
+    val onHideMoreAppsCard: () -> Unit
 )
 
 /**
- * Home screen layout with dynamic app buttons:
- * 1. Notifications section
- * 2. Greeting message section
- * 3. Dynamic app buttons
- * 4. Other apps button
- * 5. Bottom action bar
+ * The apps page of the main screen: the list of apps under the page's header, opened by the
+ * greeting, with the bars of a selection or a reorder docked over its lower edge.
+ *
+ * @param state The list's selection and reorder, held by the screen, whose navigation gives way to
+ *   the docked bars.
+ * @param bottomBarHeight Height of the navigation floating over the page, which the list ends clear of.
+ * @param alerts The alerts of the main screen, those swiped aside brought back from the header.
+ * @param alertsHeight How far down those alerts reach under the header, which the list starts below.
+ * @param onHeaderHeightChange Told the header's height, for the alerts floating over the page below it.
  */
 @Composable
-fun SectionsLayout(
-    notifications: HomeNotificationsUi,
+internal fun SectionsLayout(
     apps: HomeAppListUi,
     appActions: HomeAppActions,
     chromeActions: HomeChromeActions,
-    chromeFlags: HomeChromeFlags,
     greetingMessage: String?,
-    onboardingState: OnboardingState? = null
+    state: HomeAppsSectionState,
+    bottomBarHeight: Dp,
+    alerts: HomeAlerts,
+    alertsHeight: () -> Dp = { 0.dp },
+    onboardingState: OnboardingState? = null,
+    onHeaderHeightChange: (Dp) -> Unit = {}
 ) {
     val windowSize = rememberWindowSize()
-
-    // Search state hoisted here so both AdaptiveContent and HomeBottomActionBar share it
-    val searchVisible = remember { mutableStateOf(false) }
-    val searchQuery = remember { mutableStateOf("") }
-    LaunchedEffect(searchVisible.value) { if (!searchVisible.value) searchQuery.value = "" }
-    // Auto-close search if the button disappears
-    LaunchedEffect(chromeFlags.showSearchButton) {
-        if (!chromeFlags.showSearchButton) searchVisible.value = false
-    }
-
-    // Back gesture closes search (registered before the footer bars' own back handling, so an open bar takes priority)
-    BackHandler(enabled = searchVisible.value) { searchVisible.value = false }
-
-    val searchState = HomeSearchState(
-        visible = searchVisible.value,
-        query = searchQuery.value,
-        onQueryChange = { searchQuery.value = it },
-        onToggle = { searchVisible.value = !searchVisible.value },
-        onClose = { searchVisible.value = false }
-    )
-    var showListOptionsDialog by remember { mutableStateOf(false) }
-    // The saved filter applies only while the sort button is there to undo it. Not written back
-    // when the button goes, since it is also absent while the list is still loading
-    val filterMode = if (chromeFlags.showSortButton) apps.filterMode else HomeAppFilterMode.ALL
-    val onClearFilter = { appActions.onFilterModeChange(HomeAppFilterMode.ALL) }
-
-    // Held here rather than in the section, since the footer bar docks over the bottom action
-    // bar, which hides while it is up
-    val sectionState = rememberHomeAppsSectionState(
-        initialOrder = apps.visible.map { it.id },
-        initialSourceGroupOrder = apps.sourceGroups.map { it.uid },
-        initialCategoryOrder = apps.categoryState.categories.map { it.id },
-        hasContent = apps.visible.isNotEmpty() || apps.hidden.isNotEmpty(),
-    )
+    val search = rememberSearchFieldState()
+    // Registered before the footer bars' own back handling, so an open bar takes priority
+    SearchFieldBackHandler(search)
     val footerBar = remember { HomeFooterBarHost() }
-
-    if (showListOptionsDialog) {
-        HomeAppListOptionsDialog(
-            sortMode = apps.sortMode,
-            filterMode = filterMode,
-            onSortModeChange = appActions.onSortModeChange,
-            onFilterModeChange = appActions.onFilterModeChange,
-            onDismiss = { showListOptionsDialog = false }
-        )
+    // The options share the footer slot, so they make way for a selection or a reorder started
+    // under them
+    LaunchedEffect(state.isEditing) {
+        if (state.isEditing) state.isListOptionsOpen = false
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Main layout structure
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .navigationBarsPadding()
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                AdaptiveContent(
-                    windowSize = windowSize,
-                    greetingMessage = greetingMessage,
-                    apps = apps,
-                    appActions = appActions,
-                    searchState = searchState,
-                    chromeActions = chromeActions,
-                    chromeFlags = chromeFlags,
-                    filterMode = filterMode,
-                    onClearFilter = onClearFilter,
-                    onSortClick = { showListOptionsDialog = true },
-                    state = sectionState,
-                    footerBar = footerBar,
-                    onboardingState = onboardingState
-                )
-            }
+    // Opens the list rather than sitting over it, so it scrolls away with the cards
+    val greeting: (@Composable () -> Unit)? = greetingMessage?.takeIf { it.isNotEmpty() }?.let { message ->
+        { GreetingSection(message = message, onRefresh = chromeActions.onRefreshGreeting) }
+    }
 
-            // Section 5: Bottom action bar
-            if (!isLandscape()) {
-                HomeBottomActionBar(
-                    modifier = Modifier.coveredByFooterBar(sectionState.isFooterBarVisible),
-                    onBundlesClick = chromeActions.onBundlesClick,
-                    onSettingsClick = chromeActions.onSettingsClick,
-                    isExpertModeEnabled = chromeFlags.isExpertModeEnabled,
-                    showSearchButton = chromeFlags.showSearchButton,
-                    showSortButton = chromeFlags.showSortButton,
-                    sortMode = apps.sortMode,
-                    filterMode = filterMode,
-                    searchActive = searchState.visible,
-                    onSearchClick = searchState.onToggle,
-                    onSortClick = { showListOptionsDialog = true },
-                    onSourcesPositioned = onboardingState?.let { s -> { b -> s.sourcesButtonBounds = b } },
-                    onSettingsPositioned = onboardingState?.let { s -> { b -> s.settingsButtonBounds = b } }
-                )
-            }
-        }
-
-        // In landscape the bar docks inside the list pane instead, clear of the sidebar
-        if (!isLandscape()) {
+    PinnedHeaderPage(
+        header = {
+            HomeHeader(
+                apps = apps,
+                appActions = appActions,
+                search = search,
+                alerts = alerts,
+                sortEnabled = !state.isEditing,
+                sortOpen = state.isListOptionsOpen,
+                onSortClick = { state.isListOptionsOpen = !state.isListOptionsOpen },
+                onPatchFileClick = chromeActions.onOtherAppsClick,
+                tour = onboardingState
+            )
+        },
+        scrollState = state.listState,
+        bottomBar = {
             HomeFooterBarDock(
                 host = footerBar,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .widthIn(max = Defaults.ContentMaxWidth)
-                    .fillMaxWidth()
+                modifier = Modifier.fillMaxWidth()
             )
-        }
-
-        val maxCardWidth = if (isLandscape()) LandscapeMaxCardWidth else Defaults.ContentMaxWidth
-        NotificationsOverlay(
-            notifications = notifications,
-            modifier = Modifier
-                .widthIn(max = maxCardWidth)
-                .align(Alignment.TopCenter)
-                .statusBarsPadding()
-        )
-    }
-}
-
-/**
- * Adaptive content layout that switches between portrait and landscape modes.
- */
-@Composable
-private fun AdaptiveContent(
-    windowSize: WindowSize,
-    greetingMessage: String?,
-    apps: HomeAppListUi,
-    appActions: HomeAppActions,
-    searchState: HomeSearchState,
-    chromeActions: HomeChromeActions,
-    chromeFlags: HomeChromeFlags,
-    filterMode: HomeAppFilterMode,
-    onClearFilter: () -> Unit,
-    onSortClick: () -> Unit,
-    state: HomeAppsSectionState,
-    footerBar: HomeFooterBarHost,
-    onboardingState: OnboardingState? = null
-) {
-    val contentPadding = windowSize.contentPadding
-    val itemSpacing = windowSize.itemSpacing
-    val useTwoColumns = isLandscape()
-    val maxCardWidth = if (useTwoColumns) LandscapeMaxCardWidth else Defaults.ContentMaxWidth
-
-    // True empty state: loaded and no items from any bundle: all disabled or no sources
-    val isAppsEmpty by remember(apps.visible, apps.installedAppsLoading) {
-        derivedStateOf { !apps.installedAppsLoading && apps.visible.isEmpty() }
-    }
-    val showGroupingFooter = !isAppsEmpty && apps.showCategoryViewSwitcher
-    val showOtherAppsFooter = !isAppsEmpty && chromeFlags.showOtherAppsButton
-    // Grouped views reserve the full list area so the footer keeps a stable position when
-    // groups expand or collapse; the flat All-apps view lets the list wrap to its content
-    // so the greeting and cards center together as one block
-    val isGroupedAppView = apps.categoryViewMode != HomeAppCategoryViewMode.ALL_APPS
-    val trackContentBottom = Modifier.onGloballyPositioned {
-        footerBar.contentBottom = it.boundsInWindow().bottom
-    }
-
-    // Horizontal swipe on the background cycles through the visible grouping modes
-    val modes = HomeAppCategoryViewMode.entries
-    val currentModeIndex = modes.indexOf(apps.categoryViewMode)
-    val canSwipeMode = apps.showCategoryViewSwitcher &&
-            !state.isMultiSelectMode &&
-            !state.isReorderMode &&
-            !state.isCategoryBarVisible &&
-            !searchState.visible
-    val swipeThresholdPx = with(LocalDensity.current) { 64.dp.toPx() }
-    val rtl = isRtl()
-    val modeSwipe = if (canSwipeMode) {
-        Modifier.pointerInput(currentModeIndex, rtl) {
-            var accumulator = 0f
-            detectHorizontalDragGestures(
-                onDragStart = { accumulator = 0f },
-                onDragEnd = {
-                    val direction = if (rtl) -1 else 1
-                    val delta = accumulator * direction
-                    when {
-                        delta <= -swipeThresholdPx && currentModeIndex < modes.lastIndex ->
-                            appActions.onCategoryViewModeChange(modes[currentModeIndex + 1])
-                        delta >= swipeThresholdPx && currentModeIndex > 0 ->
-                            appActions.onCategoryViewModeChange(modes[currentModeIndex - 1])
-                    }
-                    accumulator = 0f
-                },
-                onDragCancel = { accumulator = 0f }
-            ) { _, dragAmount -> accumulator += dragAmount }
-        }
-    } else {
-        Modifier
-    }
-
-    // Both layouts feed the list the same and only set it in their own padding
-    val appsSection = @Composable { horizontalPadding: Dp, showFadeOverlay: Boolean ->
+        },
+        onHeaderHeightChange = onHeaderHeightChange
+    ) { insets ->
         MainAppsSection(
             apps = apps,
             appActions = appActions,
             state = state,
-            searchState = searchState,
-            filterMode = filterMode,
-            onClearFilter = onClearFilter,
-            onFilterClick = onSortClick,
-            onBundlesClick = chromeActions.onBundlesClick,
-            itemSpacing = itemSpacing,
-            horizontalPadding = horizontalPadding,
-            maxCardWidth = maxCardWidth,
-            onboardingState = onboardingState,
+            search = search,
+            onOpenSources = chromeActions.onOpenSources,
+            onHideMoreAppsCard = chromeActions.onHideMoreAppsCard,
             footerBar = footerBar,
-            showFadeOverlay = showFadeOverlay,
-            fillHeight = isGroupedAppView,
-            modifier = if (isGroupedAppView) Modifier.fillMaxSize() else Modifier.fillMaxWidth()
-        )
-    }
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        if (useTwoColumns) {
-            // Sidebar layout for landscape
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .statusBarsPadding(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                HomeSidebarPanel(
-                    showSearchButton = chromeFlags.showSearchButton && !isAppsEmpty,
-                    searchActive = searchState.visible,
-                    isExpertModeEnabled = chromeFlags.isExpertModeEnabled,
-                    showSortButton = chromeFlags.showSortButton,
-                    sortMode = apps.sortMode,
-                    filterMode = filterMode,
-                    onSearchClick = searchState.onToggle,
-                    onSortClick = onSortClick,
-                    onBundlesClick = chromeActions.onBundlesClick,
-                    onSettingsClick = chromeActions.onSettingsClick,
-                    onSourcesPositioned = onboardingState?.let { s -> { b -> s.sourcesButtonBounds = b } },
-                    onSettingsPositioned = onboardingState?.let { s -> { b -> s.settingsButtonBounds = b } }
-                )
-                VerticalDivider(modifier = Modifier.padding(vertical = 20.dp))
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .padding(horizontal = contentPadding)
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .then(trackContentBottom)
-                                .then(modeSwipe),
-                            verticalArrangement = if (isGroupedAppView) Arrangement.Top else Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            if (!greetingMessage.isNullOrEmpty()) {
-                                GreetingSection(
-                                    message = greetingMessage,
-                                    modifier = Modifier.widthIn(max = maxCardWidth).fillMaxWidth(),
-                                    onRefresh = chromeActions.onRefreshGreeting
-                                )
-                                Spacer(modifier = Modifier.height(itemSpacing))
-                            }
-                            Box(modifier = Modifier.weight(1f, fill = isGroupedAppView)) {
-                                appsSection(0.dp, false)
-                            }
-                        }
-                        // Footer stays pinned to the bottom of the pane regardless of view mode
-                        HomeFooterControls(
-                            showOtherApps = showOtherAppsFooter,
-                            showGroupingSelector = showGroupingFooter,
-                            mode = apps.categoryViewMode,
-                            onOtherAppsClick = chromeActions.onOtherAppsClick,
-                            onModeChange = appActions.onCategoryViewModeChange,
-                            itemSpacing = itemSpacing,
-                            modifier = Modifier
-                                .widthIn(max = maxCardWidth)
-                                .fillMaxWidth()
-                                .coveredByFooterBar(state.isFooterBarVisible)
-                        )
-                    }
-                    HomeFooterBarDock(
-                        host = footerBar,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .widthIn(max = maxCardWidth)
-                            .fillMaxWidth()
-                    )
-                }
-            }
-        } else {
-            // Single-column layout for compact windows (portrait)
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .then(trackContentBottom)
-                    .then(modeSwipe),
-                verticalArrangement = if (isGroupedAppView) Arrangement.Top else Arrangement.Center
-            ) {
-                // Section 2: Greeting - when disabled, show a small top spacer so
-                // the app cards don't sit flush against the top of the screen
-                if (!greetingMessage.isNullOrEmpty()) {
-                    GreetingSection(
-                        message = greetingMessage,
-                        modifier = Modifier.padding(horizontal = contentPadding),
-                        onRefresh = chromeActions.onRefreshGreeting
-                    )
-                    Spacer(modifier = Modifier.height(itemSpacing))
-                } else if (isGroupedAppView) {
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-
-                // Section 3: Scrollable app buttons
-                Box(modifier = Modifier.weight(1f, fill = isGroupedAppView)) {
-                    appsSection(contentPadding, true)
-                }
-            }
-            // Section 4: footer controls - pinned to the bottom of the screen,
-            // hidden when no apps are available
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                HomeFooterControls(
-                    showOtherApps = showOtherAppsFooter,
-                    showGroupingSelector = showGroupingFooter,
-                    mode = apps.categoryViewMode,
-                    onOtherAppsClick = chromeActions.onOtherAppsClick,
-                    onModeChange = appActions.onCategoryViewModeChange,
-                    itemSpacing = itemSpacing,
-                    modifier = Modifier
-                        .padding(horizontal = contentPadding)
-                        .widthIn(max = maxCardWidth - contentPadding * 2)
-                        .fillMaxWidth()
-                        .coveredByFooterBar(state.isFooterBarVisible)
-                )
-            }
-        }
-    }
-}
-
-/**
- * Fixed area below the app list that hosts the "Other apps" button and the optional
- * grouping-mode switcher. Kept as one composable so both children share a single Column
- * and animate in step.
- */
-@Composable
-private fun HomeFooterControls(
-    showOtherApps: Boolean,
-    showGroupingSelector: Boolean,
-    mode: HomeAppCategoryViewMode,
-    onOtherAppsClick: () -> Unit,
-    onModeChange: (HomeAppCategoryViewMode) -> Unit,
-    itemSpacing: Dp,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        AnimatedVisibility(
-            visible = showOtherApps,
-            enter = Animations.expandFadeEnter,
-            exit = Animations.shrinkFadeExit
-        ) {
-            Column {
-                Spacer(modifier = Modifier.height(itemSpacing))
-                GlassButton(
-                    label = stringResource(R.string.home_other_apps_action),
-                    selected = false,
-                    onClick = onOtherAppsClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    role = Role.Button,
-                    pressScale = true,
-                    hapticFeedback = true
-                )
-            }
-        }
-        AppGroupingFooter(
-            visible = showGroupingSelector,
-            mode = mode,
-            onModeChange = onModeChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    top = if (showOtherApps) 0.dp else 8.dp,
-                    bottom = 12.dp
-                )
-        )
-    }
-}
-
-/**
- * Thin wrapper that fades [AppGroupingToolbar] in and out with the standard home animations.
- */
-@Composable
-private fun AppGroupingFooter(
-    visible: Boolean,
-    mode: HomeAppCategoryViewMode,
-    onModeChange: (HomeAppCategoryViewMode) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = Animations.expandFadeEnter,
-        exit = Animations.shrinkFadeExit
-    ) {
-        AppGroupingToolbar(
-            mode = mode,
-            onModeChange = onModeChange,
-            modifier = modifier
+            footerBarHeight = insets.bottom,
+            bottomBarHeight = bottomBarHeight,
+            itemSpacing = windowSize.itemSpacing,
+            // The gutters keep the scrollbar at the list's edge clear of the cards
+            horizontalPadding = insets.horizontal,
+            onboardingState = onboardingState,
+            showFadeOverlay = !isLandscape(),
+            header = greeting,
+            topPadding = insets.top + Defaults.SpaceMedium,
+            alertsHeight = alertsHeight
         )
     }
 }
@@ -584,12 +200,11 @@ private fun AppGroupingFooter(
  * Section 2: Greeting message.
  */
 @Composable
-fun GreetingSection(
-    message: String?,
+private fun GreetingSection(
+    message: String,
     modifier: Modifier = Modifier,
     onRefresh: (() -> Unit)? = null
 ) {
-    if (message.isNullOrEmpty()) return
     val refreshLabel = stringResource(R.string.refresh)
     Box(
         modifier = modifier.then(
@@ -601,21 +216,17 @@ fun GreetingSection(
         ),
         contentAlignment = Alignment.Center
     ) {
-        AnimatedContent(
-            targetState = message,
+        CrossfadeText(
+            text = message,
             transitionSpec = Animations.slideUpContentTransitionSpec,
+            // A step below a headline, so a long phrase still fits in a line or two
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
             label = "greeting_transition"
-        ) { targetMessage ->
-            Text(
-                text = targetMessage,
-                // Sized as a dialog title, so the home screen heads itself the way its dialogs do
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        )
     }
 }
 
@@ -628,27 +239,32 @@ internal fun MainAppsSection(
     apps: HomeAppListUi,
     appActions: HomeAppActions,
     state: HomeAppsSectionState,
-    searchState: HomeSearchState,
-    filterMode: HomeAppFilterMode,
-    onClearFilter: () -> Unit,
-    onFilterClick: () -> Unit,
-    onBundlesClick: () -> Unit,
+    search: SearchFieldState,
+    onOpenSources: () -> Unit,
+    onHideMoreAppsCard: () -> Unit,
     footerBar: HomeFooterBarHost,
     modifier: Modifier = Modifier,
+    // Height of the bar docked over the list's lower edge, such as a selection's
+    footerBarHeight: Dp = 0.dp,
+    // Height of the navigation floating over the list's lower edge
+    bottomBarHeight: Dp = 0.dp,
     itemSpacing: Dp = 16.dp,
     horizontalPadding: Dp = 0.dp,
-    maxCardWidth: Dp = 500.dp,
     onboardingState: OnboardingState? = null,
     showFadeOverlay: Boolean = true,
-    // When false, the section wraps its content vertically so the parent can center it as a
-    // single block together with the greeting; when true, it takes the full available height
-    // so the footer keeps a stable position while groups expand or collapse.
-    fillHeight: Boolean = true
+    // Opens the list and scrolls away with it, such as the greeting
+    header: (@Composable () -> Unit)? = null,
+    // Room above the first row, for the page's header the list scrolls on under
+    topPadding: Dp = 0.dp,
+    // Further room for the alerts hanging under the header, read as the list is laid out
+    alertsHeight: () -> Dp = { 0.dp }
 ) {
     // Aliases for values used many times in the body
     val homeAppItems = apps.visible
     val hiddenAppItems = apps.hidden
-    val searchQuery = searchState.query
+    val searchQuery = search.query
+    val filterMode = apps.filterMode
+    val onClearFilter = { appActions.onFilterModeChange(HomeAppFilterMode.ALL) }
     val isFilterActive = filterMode.isActive
     val isFilteringList = searchQuery.isNotBlank() || isFilterActive
     val appGrouping = apps.categoryViewMode
@@ -661,22 +277,9 @@ internal fun MainAppsSection(
 
     val isSourceCategoryView = appGrouping == HomeAppCategoryViewMode.SOURCES
 
-    // The footer slot stays reserved until the bar has finished sliding out. The bar is anchored
-    // to the bottom of a column that wraps its content, so releasing the space the moment the
-    // mode flips shortens that column and throws the still-sliding bar up over the last card
-    val footerBarVisible = state.isFooterBarVisible
-    var isFooterSlotReserved by remember { mutableStateOf(footerBarVisible) }
-    LaunchedEffect(footerBarVisible) {
-        if (footerBarVisible) {
-            isFooterSlotReserved = true
-        } else {
-            delay(Animations.SLIDE_DOWN_EXIT_DURATION.milliseconds)
-            isFooterSlotReserved = false
-        }
-    }
-    // Only the part of the bar that reaches into the list's own area needs clearing, and it
-    // follows the height the bar was last measured at, which its actions and font scale move
-    val footerBarOverlap = with(LocalDensity.current) { footerBar.listOverlapPx.toDp() }
+    // Clears whichever bar reaches into the list: the floating navigation, or the docked bar that
+    // takes its place
+    val footerBarOverlap = maxOf(footerBarHeight, bottomBarHeight)
 
     // Retire stale header action state when switching grouping modes.
     LaunchedEffect(appGrouping) { state.closeCategoryBar() }
@@ -726,8 +329,8 @@ internal fun MainAppsSection(
     val placeholderGradients = remember { KnownApps.DEFAULT_SHIMMER_GRADIENTS }
 
     // Resolved outside the LazyColumn DSL scope since @Composable calls aren't allowed there
-    val context = LocalContext.current
-    val categoryActionsUnavailableToast = stringResource(R.string.home_category_actions_unavailable)
+    val messages = koinInject<UserMessages>()
+    val categoryActionsUnavailableMessage = stringResource(R.string.home_category_actions_unavailable)
 
     HomeAppsSectionDialogs(
         state = state,
@@ -906,7 +509,7 @@ internal fun MainAppsSection(
             ?.mapTo(linkedSetOf()) { it.id }
     }
 
-    val listState = rememberLazyListState()
+    val listState = state.listState
 
     fun movePackagesInOrder(
         order: List<String>,
@@ -956,10 +559,13 @@ internal fun MainAppsSection(
         }
     }
 
+    // Rows above the cards, which the reorder indices count
+    val leadingItemCount = if (header != null) 1 else 0
     val reorderableState = rememberReorderableLazyListState(listState) { from, to ->
-        moveReorderOrder(from.index, to.index)
+        moveReorderOrder(from.index - leadingItemCount, to.index - leadingItemCount)
     }
-    fun headerGroupAtListIndex(index: Int): HomeCategoryGroup? {
+    fun headerGroupAtListIndex(listIndex: Int): HomeCategoryGroup? {
+        val index = listIndex - leadingItemCount
         val groups = when (appGrouping) {
             HomeAppCategoryViewMode.SOURCES -> displayedSourceCategoryGroups
             HomeAppCategoryViewMode.CUSTOM -> displayedCategoryGroups
@@ -1102,7 +708,7 @@ internal fun MainAppsSection(
             val targets = state.reorderFocusPackages
             if (targets.isNotEmpty()) {
                 val topIndex = reorderItems.indexOfFirst { it.id in targets }
-                if (topIndex >= 0) listState.scrollToItem(topIndex)
+                if (topIndex >= 0) listState.scrollToItem(topIndex + leadingItemCount)
             }
             state.reorderFocusPackages = emptySet()
         }
@@ -1124,16 +730,11 @@ internal fun MainAppsSection(
     // An active filter takes the empty state, since clearing it is the way out the user needs
     val isFilterEmpty = isListEmpty && isFilterActive
     val isSearchEmpty = isListEmpty && !isFilterActive && searchQuery.isNotBlank()
-    // Counted apart from the query, so the filter row tells what the filter alone keeps out of view
-    val filterHiddenCount = remember(homeAppItems, filterMode) {
-        if (filterMode.isActive) homeAppItems.count { !filterMode.matches(it) } else 0
-    }
+    val showMoreAppsCard = apps.showMoreAppsCard && !isFilteringList && !state.isEditing
+    val openCommunityPatches = { state.showCommunityNotice = true }
 
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            // A wrapped list is centered, so its height eases with the cards rather than jumping
-            .then(if (fillHeight) Modifier else Modifier.animateContentSize()),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         // Hidden polite live region used to announce the result of TalkBack Move up/down actions
@@ -1150,118 +751,78 @@ internal fun MainAppsSection(
             label = "home_empty_state"
         ) { empty ->
             if (empty) {
-                if (isAllHiddenState) {
-                    EmptyState(
-                        message = stringResource(R.string.home_all_apps_hidden_title),
-                        icon = Icons.Outlined.VisibilityOff,
-                        subtitle = stringResource(R.string.home_all_apps_hidden_subtitle),
-                        action = CardAction(
-                            icon = Icons.Outlined.Visibility,
-                            label = pluralStringResource(R.plurals.home_app_show_hidden_count, hiddenAppItems.size, hiddenAppItems.size.toString()),
-                            onClick = { state.showHiddenAppsDialog = true }
-                        ),
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    EmptyState(
-                        message = stringResource(R.string.home_no_apps_title),
-                        icon = Icons.Outlined.Inbox,
-                        subtitle = stringResource(R.string.home_no_apps_subtitle, stringResource(R.string.sources_management_title)),
-                        action = CardAction(
-                            icon = Icons.Outlined.Source,
-                            label = stringResource(R.string.sources_management_title),
-                            onClick = onBundlesClick
-                        ),
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Column(
+                    modifier = Modifier.padding(top = topPadding),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(itemSpacing)
+                ) {
+                    header?.invoke()
+                    if (isAllHiddenState) {
+                        EmptyState(
+                            message = stringResource(R.string.home_all_apps_hidden_title),
+                            icon = MaterialSymbols.Rounded.Visibility_off,
+                            subtitle = stringResource(R.string.home_all_apps_hidden_subtitle),
+                            action = CardAction(
+                                icon = MaterialSymbols.Rounded.Visibility,
+                                label = pluralStringResource(R.plurals.home_app_show_hidden_count, hiddenAppItems.size, hiddenAppItems.size.toString()),
+                                onClick = { state.showHiddenAppsDialog = true }
+                            ),
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        EmptyState(
+                            message = stringResource(R.string.home_no_apps_title),
+                            icon = MaterialSymbols.Rounded.Inbox,
+                            subtitle = stringResource(R.string.home_no_apps_subtitle, stringResource(R.string.sources_management_title)),
+                            action = CardAction(
+                                icon = MaterialSymbols.Rounded.Folder_code,
+                                label = stringResource(R.string.sources_management_title),
+                                onClick = onOpenSources
+                            ),
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             } else {
-                Box(
-                    modifier = Modifier
-                        .widthIn(max = maxCardWidth)
-                        .then(if (fillHeight) Modifier.fillMaxSize() else Modifier.fillMaxWidth())
-                ) {
-                    Column(
-                        modifier = if (fillHeight) Modifier.fillMaxSize() else Modifier.fillMaxWidth()
-                    ) {
-                        // Search bar
-                        AnimatedVisibility(
-                            visible = searchState.visible,
-                            enter = Animations.expandFadeEnter,
-                            exit = Animations.shrinkFadeExit
-                        ) {
-                            HomeSearchTextField(
-                                value = searchQuery,
-                                onValueChange = searchState.onQueryChange,
-                                requestFocus = searchState.visible,
-                                modifier = Modifier
-                                    .padding(horizontal = horizontalPadding)
-                                    .padding(bottom = 8.dp)
-                            )
-                        }
-
-                        // Active filter, kept above the list so a trimmed list never reads as the full one
-                        AnimatedVisibility(
-                            visible = isFilterActive && !isFilterEmpty && !state.isLoading,
-                            enter = Animations.expandFadeEnter,
-                            exit = Animations.shrinkFadeExit
-                        ) {
-                            HomeActiveFilterRow(
-                                filterMode = filterMode,
-                                hiddenCount = filterHiddenCount,
-                                onClick = onFilterClick,
-                                onClear = onClearFilter,
-                                modifier = Modifier
-                                    .padding(horizontal = horizontalPadding)
-                                    .padding(bottom = 8.dp)
-                            )
-                        }
-
-                        // Vertical fade overlay drawn on top of LazyColumn.
-                        // The overlay is pointer-transparent so swipe gestures pass through
-                        Box(
-                            modifier = if (fillHeight) {
-                                Modifier.weight(1f).fillMaxWidth()
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Vertical fade overlay drawn on top of LazyColumn.
+                    // The overlay is pointer-transparent so swipe gestures pass through
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Clears the action bar, plus itemSpacing for a consistent card gap.
+                        // Eased rather than switched, so the last cards settle with the bar
+                        // rather than jumping
+                        val footerClearance by animateDpAsState(
+                            targetValue = if (footerBarOverlap > 0.dp) {
+                                footerBarOverlap + itemSpacing
                             } else {
-                                Modifier.fillMaxWidth()
-                            }
-                        ) {
-                            // Clears the action bar, plus itemSpacing for a consistent card gap.
-                            // Eased rather than switched, since a centered list that wraps its
-                            // content moves by half of it and would jump the cards
-                            val footerClearance by animateDpAsState(
-                                targetValue = if (isFooterSlotReserved) {
-                                    footerBarOverlap + itemSpacing
-                                } else {
-                                    0.dp
-                                },
-                                animationSpec = tween(Defaults.ANIMATION_DURATION, easing = FastOutSlowInEasing),
-                                label = "footerClearance"
+                                0.dp
+                            },
+                            animationSpec = tween(Defaults.ANIMATION_DURATION, easing = FastOutSlowInEasing),
+                            label = "footerClearance"
+                        )
+                        // Cached so the LazyColumn doesn't allocate a new PaddingValues on
+                        // every recomposition (which can be per-frame under scroll)
+                        val listContentPadding = remember(horizontalPadding, topPadding, alertsHeight, footerClearance) {
+                            ListContentPadding(
+                                horizontal = horizontalPadding,
+                                top = topPadding,
+                                bottom = footerClearance,
+                                extraTop = alertsHeight
                             )
-                            // Cached so the LazyColumn doesn't allocate a new PaddingValues on
-                            // every recomposition (which can be per-frame under scroll)
-                            val listContentPadding = remember(horizontalPadding, footerClearance) {
-                                PaddingValues(
-                                    start = horizontalPadding,
-                                    end = horizontalPadding,
-                                    bottom = footerClearance
-                                )
-                            }
-                            val listArrangement = remember(itemSpacing, isGroupedAppView) {
-                                if (isGroupedAppView) Arrangement.spacedBy(itemSpacing)
-                                else Arrangement.spacedBy(itemSpacing, Alignment.CenterVertically)
-                            }
+                        }
+                        // A focused row comes out from under the header, the alerts and the footer bar
+                        ProvideBringIntoViewInsets(top = topPadding, bottom = footerClearance, extraTop = alertsHeight) {
                             LazyColumn(
                                 state = listState,
-                                modifier = (if (fillHeight) Modifier.fillMaxSize() else Modifier.fillMaxWidth())
+                                modifier = Modifier
+                                    .fillMaxSize()
                                     .nestedScroll(pullToRefreshGuard),
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                // Center items vertically in the flat All-apps view when the list
-                                // is shorter than the viewport; grouped views stay top-aligned so
-                                // headers keep a stable position when groups expand/collapse
-                                verticalArrangement = listArrangement,
+                                verticalArrangement = Arrangement.spacedBy(itemSpacing),
                                 contentPadding = listContentPadding
                             ) {
+                                if (header != null) item(key = "header") { header() }
+
                                 // Cold start: homeAppItems still empty - show placeholder shimmer cards
                                 if (state.isLoading && homeAppItems.isEmpty()) {
                                     items(3, key = { "placeholder_$it" }) { index ->
@@ -1287,14 +848,21 @@ internal fun MainAppsSection(
                                         appActions = appActions,
                                         categoryReorderableState = categoryReorderableState,
                                         haptic = haptic,
-                                        context = context,
-                                        categoryActionsUnavailableToast = categoryActionsUnavailableToast
+                                        messages = messages,
+                                        categoryActionsUnavailableMessage = categoryActionsUnavailableMessage
                                     )
 
                                     filterEmptyState(
                                         isFilterEmpty = isFilterEmpty,
                                         filterMode = filterMode,
                                         onClearFilter = onClearFilter,
+                                        keyPrefix = "category_"
+                                    )
+
+                                    moreAppsCard(
+                                        visible = showMoreAppsCard,
+                                        onOpen = openCommunityPatches,
+                                        onHide = onHideMoreAppsCard,
                                         keyPrefix = "category_"
                                     )
 
@@ -1305,6 +873,7 @@ internal fun MainAppsSection(
                                         isSearchEmpty = isSearchEmpty,
                                         appActions = appActions,
                                         onShowHiddenApps = { state.showHiddenAppsDialog = true },
+                                        onOpenCommunityPatches = openCommunityPatches,
                                         keyPrefix = "category_"
                                     )
                                 } else {
@@ -1329,212 +898,101 @@ internal fun MainAppsSection(
                                         onClearFilter = onClearFilter
                                     )
 
+                                    moreAppsCard(
+                                        visible = showMoreAppsCard,
+                                        onOpen = openCommunityPatches,
+                                        onHide = onHideMoreAppsCard
+                                    )
+
                                     hiddenSearchAndShowHiddenItems(
                                         hiddenAppItems = hiddenAppItems,
                                         filteredHiddenItems = filteredHiddenItems,
                                         searchQuery = searchQuery,
                                         isSearchEmpty = isSearchEmpty,
                                         appActions = appActions,
-                                        onShowHiddenApps = { state.showHiddenAppsDialog = true }
+                                        onShowHiddenApps = { state.showHiddenAppsDialog = true },
+                                        onOpenCommunityPatches = openCommunityPatches
                                     )
                                 }
                             }
+                        }
 
-                            // Vertical fade overlay drawn on top of LazyColumn.
-                            // The overlay is pointer-transparent so swipe gestures pass through.
-                            // Derived, so a scroll recomposes only when an edge starts or stops
-                            // hiding rows rather than on every frame the offset moves
-                            val canScrollUp by remember(listState) {
-                                derivedStateOf {
-                                    listState.firstVisibleItemIndex > 0 ||
-                                            listState.firstVisibleItemScrollOffset > 0
-                                }
-                            }
-                            val canScrollDown by remember(listState) {
-                                derivedStateOf { listState.canScrollForward }
-                            }
-                            val topAlpha by animateFloatAsState(
-                                targetValue = if (canScrollUp) 1f else 0f,
-                                animationSpec = tween(150),
-                                label = "fade_top_alpha"
-                            )
-                            val bottomAlpha by animateFloatAsState(
-                                targetValue = if (canScrollDown) 1f else 0f,
-                                animationSpec = tween(150),
-                                label = "fade_bottom_alpha"
-                            )
-                            if (showFadeOverlay) {
-                                val bgColor = MaterialTheme.colorScheme.background
-                                val fadePx = with(LocalDensity.current) { 8.dp.toPx() } // Fade size
-                                Box(
-                                    modifier = Modifier
-                                        .matchParentSize()
-                                        .drawWithContent {
-                                            drawContent()
-                                            // Each rect is bound to its own band. Left unbounded it
-                                            // covers the whole list, and the clamped tail of the
-                                            // gradient still costs a blend pass over every pixel
-                                            if (topAlpha > 0f) {
-                                                drawRect(
-                                                    brush = Brush.verticalGradient(
-                                                        colors = listOf(bgColor, Color.Transparent),
-                                                        startY = 0f,
-                                                        endY = fadePx
-                                                    ),
-                                                    size = Size(size.width, fadePx),
-                                                    alpha = topAlpha
-                                                )
-                                            }
-                                            if (bottomAlpha > 0f) {
-                                                drawRect(
-                                                    brush = Brush.verticalGradient(
-                                                        colors = listOf(Color.Transparent, bgColor),
-                                                        startY = size.height - fadePx,
-                                                        endY = size.height
-                                                    ),
-                                                    topLeft = Offset(0f, size.height - fadePx),
-                                                    size = Size(size.width, fadePx),
-                                                    alpha = bottomAlpha
-                                                )
-                                            }
+                        // Vertical fade overlay drawn on top of LazyColumn.
+                        // The overlay is pointer-transparent so swipe gestures pass through.
+                        // Derived, so a scroll recomposes only when an edge starts or stops
+                        // hiding rows rather than on every frame the offset moves
+                        val canScrollDown by remember(listState) {
+                            derivedStateOf { listState.canScrollForward }
+                        }
+                        val bottomAlpha by animateFloatAsState(
+                            targetValue = if (canScrollDown) 1f else 0f,
+                            animationSpec = tween(150),
+                            label = "fade_bottom_alpha"
+                        )
+                        if (showFadeOverlay) {
+                            val bgColor = MaterialTheme.colorScheme.background
+                            val fadePx = with(LocalDensity.current) { 8.dp.toPx() } // Fade size
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .drawWithContent {
+                                        drawContent()
+                                        // Each rect is bound to its own band. Left unbounded it
+                                        // covers the whole list, and the clamped tail of the
+                                        // gradient still costs a blend pass over every pixel
+                                        if (bottomAlpha > 0f) {
+                                            drawRect(
+                                                brush = Brush.verticalGradient(
+                                                    colors = listOf(Color.Transparent, bgColor),
+                                                    startY = size.height - fadePx,
+                                                    endY = size.height
+                                                ),
+                                                topLeft = Offset(0f, size.height - fadePx),
+                                                size = Size(size.width, fadePx),
+                                                alpha = bottomAlpha
+                                            )
                                         }
-                                )
-                            }
-
-                            val controlClearance = if (isFooterSlotReserved) {
-                                footerBarOverlap
-                            } else {
-                                0.dp
-                            }
-                            ListScrollbar(
-                                listState = listState,
-                                alphabetTargets = scrollTargets,
-                                alphabetMode = alphabetScrollMode,
-                                extraBottomPadding = controlClearance
-                            )
-
-                            // Lift extra space for the MultiSelectBar when it's visible
-                            ScrollToTopButton(
-                                listState = listState,
-                                extraBottomPadding = controlClearance
+                                    }
                             )
                         }
 
-                    }
-
-                    val footerBarContent: @Composable (Modifier) -> Unit = { barModifier ->
-                        HomeAppsFooterBars(
-                            state = state,
-                            apps = apps,
-                            appActions = appActions,
-                            searchState = searchState,
-                            listedItems = filteredItems,
-                            reorderItems = reorderItems,
-                            orderedItems = orderedItems,
-                            itemsByPackage = homeItemsByPackage,
-                            groupedSelectionGroup = groupedSelectionGroup,
-                            groupedSelectionPackages = groupedSelectionPackages,
-                            sourceGroups = displayedSourceCategoryGroups,
-                            isCustomCategoryView = isCustomCategoryView,
-                            isSourceCategoryView = isSourceCategoryView,
+                        ListScrollbar(
                             listState = listState,
-                            scope = scope,
-                            modifier = barModifier
+                            modifier = Modifier.scrollbarSystemBarsPadding(),
+                            alphabetTargets = scrollTargets,
+                            alphabetMode = alphabetScrollMode
+                        )
+
+                        // Lifted clear of whichever bar covers the bottom of the list
+                        ScrollToTopButton(
+                            listState = listState,
+                            extraBottomPadding = footerBarOverlap
                         )
                     }
-                    SideEffect { footerBar.bar = footerBarContent }
-                    DisposableEffect(footerBar) { onDispose { footerBar.bar = null } }
+
+                    val footerBarContent = HomeFooterBarContent(
+                        state = state,
+                        apps = apps,
+                        appActions = appActions,
+                        search = search,
+                        listedItems = filteredItems,
+                        reorderItems = reorderItems,
+                        orderedItems = orderedItems,
+                        itemsByPackage = homeItemsByPackage,
+                        groupedSelectionGroup = groupedSelectionGroup,
+                        groupedSelectionPackages = groupedSelectionPackages,
+                        sourceGroups = displayedSourceCategoryGroups,
+                        isCustomCategoryView = isCustomCategoryView,
+                        isSourceCategoryView = isSourceCategoryView,
+                        listState = listState,
+                        leadingItemCount = leadingItemCount,
+                        scope = scope
+                    )
+                    SideEffect { footerBar.content = footerBarContent }
+                    DisposableEffect(footerBar) { onDispose { footerBar.content = null } }
                 }
             }
         }
-    }
-}
-
-/**
- * Fades out home chrome the docked footer bar stands in for while it is [covered], and keeps
- * taps and screen readers off it meanwhile. It keeps its place in the layout, so nothing above
- * it moves when the bar comes and goes.
- */
-@Composable
-private fun Modifier.coveredByFooterBar(covered: Boolean): Modifier {
-    val alpha by animateFloatAsState(
-        targetValue = if (covered) 0f else 1f,
-        animationSpec = tween(Defaults.ANIMATION_DURATION_SHORT),
-        label = "footer_chrome_alpha"
-    )
-    return graphicsLayer { this.alpha = alpha }.then(
-        if (covered) {
-            Modifier
-                .clearAndSetSemantics {}
-                .pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
-                        }
-                    }
-                }
-        } else {
-            Modifier
-        }
-    )
-}
-
-/**
- * The filter in effect with how many apps it keeps out of view, in the glass of the home chrome.
- * Tinted as the highlighted sort button is, so both read as the same state. Tapping it reopens
- * the list options to change the filter; the close button beside it drops it.
- */
-@Composable
-private fun HomeActiveFilterRow(
-    filterMode: HomeAppFilterMode,
-    hiddenCount: Int,
-    onClick: () -> Unit,
-    onClear: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    // Holds the last active filter through the exit animation, once the live one is back to ALL
-    var shownMode by remember { mutableStateOf(filterMode) }
-    var shownCount by remember { mutableIntStateOf(hiddenCount) }
-    if (filterMode.isActive) {
-        shownMode = filterMode
-        shownCount = hiddenCount
-    }
-
-    val highlight = BottomActionTone.Highlight.colors()
-
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        GlassButton(
-            label = pluralStringResource(
-                R.plurals.home_app_filter_active,
-                shownCount,
-                stringResource(shownMode.labelRes),
-                shownCount.toString()
-            ),
-            selected = true,
-            onClick = onClick,
-            modifier = Modifier.weight(1f),
-            icon = Icons.Outlined.FilterList,
-            containerColor = highlight.container,
-            contentColor = highlight.content,
-            borderColor = highlight.border,
-            role = Role.Button,
-            pressScale = true,
-            hapticFeedback = true
-        )
-        GlassButton(
-            label = stringResource(R.string.clear),
-            selected = false,
-            onClick = onClear,
-            modifier = Modifier.width(48.dp),
-            icon = Icons.Outlined.Close,
-            role = Role.Button,
-            pressScale = true,
-            hapticFeedback = true
-        )
     }
 }
 
@@ -1549,13 +1007,13 @@ private fun LazyListScope.filterEmptyState(
     item(key = "${keyPrefix}filter_empty") {
         EmptyState(
             message = stringResource(R.string.home_no_apps_filter_title),
-            icon = Icons.Outlined.FilterListOff,
+            icon = MaterialSymbols.Rounded.Filter_list_off,
             subtitle = stringResource(
                 R.string.home_no_apps_filter_subtitle,
                 stringResource(filterMode.labelRes)
             ),
             action = CardAction(
-                icon = Icons.Outlined.FilterList,
+                icon = MaterialSymbols.Rounded.Filter_list,
                 label = stringResource(R.string.clear),
                 onClick = onClearFilter
             ),

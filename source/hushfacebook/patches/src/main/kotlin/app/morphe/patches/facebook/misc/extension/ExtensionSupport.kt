@@ -165,6 +165,10 @@ internal fun Method.liveAcrossInjection(index: Int, targets: Collection<Int> = e
  *
  * @param highest the highest register the code's operands can name, v15 for an `invoke` or an
  *        `iget`, v255 for a `move-result` or an `if-eqz`
+ * @param parameters whether, once the free locals run out, the parameters nothing reads from
+ *        [index] on make up the rest, lowest first. Their values are gone by then, so writing them
+ *        is as safe as writing a free local, and Facebook's own code does it: 584's inlined Reels
+ *        hand-over (`LX/9UY;->A00`) has three locals beside ten parameters and writes over `this`.
  */
 internal fun Method.freeLocalsAt(
     what: String,
@@ -172,16 +176,20 @@ internal fun Method.freeLocalsAt(
     count: Int,
     targets: Collection<Int> = emptyList(),
     highest: Int = 15,
+    parameters: Boolean = false,
 ): List<Int> {
     val live = liveAcrossInjection(index, targets)
-    val free = (0 until minOf(localRegisterCount(), highest + 1)).filter { it !in live }
-    if (free.size < count) {
+    val locals = localRegisterCount()
+    val free = (0 until minOf(locals, highest + 1)).filter { it !in live }
+    val spare = if (!parameters) emptyList() else (locals until minOf(implementation!!.registerCount, highest + 1)).filter { it !in live }
+    if (free.size + spare.size < count) {
+        val also = if (parameters) " and ${spare.size} parameter(s)" else ""
         throw PatchException(
-            "$what: $definingClass->$name has ${free.size} local register(s) up to v$highest that nothing reads " +
+            "$what: $definingClass->$name has ${free.size} local register(s)$also up to v$highest that nothing reads " +
                 "after instruction $index, needs $count",
         )
     }
-    return free.take(count)
+    return (free + spare).take(count)
 }
 
 /**

@@ -59,7 +59,6 @@ class HomeCardCacheTest {
     private fun cards(vararg items: HomeAppItem) = HomeCards(
         visible = items.toList(),
         hidden = emptyList(),
-        sortMode = prefs.sortMode,
         sourceGroups = listOf(HomeAppSourceGroup(0, "Morphe", setOf("a"), listOf("a"), false, null, null))
     )
 
@@ -95,6 +94,17 @@ class HomeCardCacheTest {
         val read = assertNotNull(HomeCardCache(file).read()).toCards(emptyList(), prefs)
 
         assertNull(read.visible.single().savedApkFile)
+    }
+
+    @Test
+    fun `cards are split by the apps hidden now rather than when they were cached`() {
+        HomeCardCache(file).write(cards(item("a"), item("b")))
+
+        val read = assertNotNull(HomeCardCache(file).read())
+            .toCards(emptyList(), prefs.copy(hiddenPackages = setOf("a")))
+
+        assertEquals(listOf("b"), read.visible.map { it.id })
+        assertEquals(listOf("a"), read.hidden.map { it.id })
     }
 
     @Test

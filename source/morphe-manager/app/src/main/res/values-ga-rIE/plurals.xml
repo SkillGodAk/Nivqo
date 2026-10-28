@@ -7,6 +7,14 @@
         <item quantity="many">%s paistí</item>
         <item quantity="other">%s paistí</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s leabharlann</item>
+        <item quantity="two">%s leabharlann</item>
+        <item quantity="few">%s leabharlanna</item>
+        <item quantity="many">%s leabharlanna</item>
+        <item quantity="other">%s leabharlanna</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s rogha paiste</item>
         <item quantity="two">%s roghanna paiste</item>
@@ -44,6 +52,13 @@
         <item quantity="few">Foinsí paiste le haghaidh %s aip</item>
         <item quantity="many">Foinsí paiste le haghaidh %s n-aip</item>
         <item quantity="other">Foinsí paiste le haghaidh %s aip</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">Tá an fhoinse %s i bhfolach don aip seo. Roghnaigh an aip ar an gcluaisín Aipeanna agus oscail Foinsí paisteála chun í a thabhairt ar ais.</item>
+        <item quantity="two">Tá foinsí %s i bhfolach don aip seo. Roghnaigh an aip ar an gcluaisín Aipeanna agus oscail Foinsí paiste chun iad a thabhairt ar ais.</item>
+        <item quantity="few">Tá foinsí %s i bhfolach don aip seo. Roghnaigh an aip ar an gcluaisín Aipeanna agus oscail Foinsí paiste chun iad a thabhairt ar ais.</item>
+        <item quantity="many">Tá foinsí %s i bhfolach don aip seo. Roghnaigh an aip ar an gcluaisín Aipeanna agus oscail Foinsí paiste chun iad a thabhairt ar ais.</item>
+        <item quantity="other">Tá foinsí %s i bhfolach don aip seo. Roghnaigh an aip ar an gcluaisín Aipeanna agus oscail Foinsí paiste chun iad a thabhairt ar ais.</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s fhoinse i bhfolach. Tapáil chun taispeáint.</item>
@@ -94,6 +109,13 @@
         <item quantity="many">%s aipanna suiteáilte</item>
         <item quantity="other">%s aipanna suiteáilte</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Gléasadh %s aip</item>
+        <item quantity="two">Aip %s feistithe</item>
+        <item quantity="few">Gléasadh %s aip</item>
+        <item quantity="many">Gléasadh %s n-aip</item>
+        <item quantity="other">Gléasadh %s aip</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Athshuiteáladh %s aip</item>
         <item quantity="two">Athshuiteáladh %s aipeanna</item>
@@ -121,6 +143,20 @@
         <item quantity="few">%s aipeanna réidh le paisteáil</item>
         <item quantity="many">%s aipeanna réidh le paisteáil</item>
         <item quantity="other">%s aipeanna réidh le paisteáil</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">Cuardaíonn %s aip le paisteáil</item>
+        <item quantity="two">Cuardaíonn %s aipeanna le paisteáil</item>
+        <item quantity="few">Cuardaíonn %s aipeanna le paisteáil</item>
+        <item quantity="many">Cuardaíonn %s aipeanna le paisteáil</item>
+        <item quantity="other">Cuardaíonn %s aipeanna le paisteáil</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">Faoi cheil %s fógra, tapáil chun é a thaispeáint</item>
+        <item quantity="two">Faoi cheil %s fógra, tapáil chun iad a thaispeáint</item>
+        <item quantity="few">Faoi cheil %s fógra, tapáil chun iad a thaispeáint</item>
+        <item quantity="many">Faoi cheil %s fógra, tapáil chun iad a thaispeáint</item>
+        <item quantity="other">Faoi cheil %s fógra, tapáil chun iad a thaispeáint</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">Is féidir %s aip a phaisteáil arís</item>
@@ -150,12 +186,26 @@
         <item quantity="many">%s foinsí suiteáilte</item>
         <item quantity="other">%s foinsí suiteáilte</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s scagtha</item>
-        <item quantity="two">%1$s · %2$s scagtha</item>
-        <item quantity="few">%1$s · %2$s scagtha</item>
-        <item quantity="many">%1$s · %2$s scagtha</item>
-        <item quantity="other">%1$s · %2$s scagtha</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s aip i bhfolach</item>
+        <item quantity="two">%s aip i bhfolach</item>
+        <item quantity="few">%s aip i bhfolach</item>
+        <item quantity="many">%s aip i bhfolach</item>
+        <item quantity="other">%s aip i bhfolach</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s aip á dtaispeáint</item>
+        <item quantity="two">%s aip á dtaispeáint</item>
+        <item quantity="few">%s aip á dtaispeáint</item>
+        <item quantity="many">%s aip á dtaispeáint</item>
+        <item quantity="other">%s aip á dtaispeáint</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Nocht %s aip?</item>
+        <item quantity="two">Nocht %s aip?</item>
+        <item quantity="few">Nocht %s aip?</item>
+        <item quantity="many">Nocht %s aip?</item>
+        <item quantity="other">Nocht %s aip?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s aip i bhfolach</item>
@@ -219,6 +269,14 @@
         <item quantity="few">%s athrú</item>
         <item quantity="many">%s n-athrú</item>
         <item quantity="other">%s athrú</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d nua</item>
+        <item quantity="two">%1$s · %2$d nua</item>
+        <item quantity="few">%1$s · %2$d nua</item>
+        <item quantity="many">%1$s · %2$d nua</item>
+        <item quantity="other">%1$s · %2$d nua</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s leagan nua</item>

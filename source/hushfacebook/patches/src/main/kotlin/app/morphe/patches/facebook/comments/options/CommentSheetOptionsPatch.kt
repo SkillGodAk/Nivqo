@@ -13,6 +13,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.facebook.comments.summaries.POST_SOCKET
 import app.morphe.patches.facebook.comments.summaries.PluginSocket
 import app.morphe.patches.facebook.comments.summaries.descriptor
 import app.morphe.patches.facebook.comments.summaries.isNameTable
@@ -31,6 +32,7 @@ import app.morphe.util.ControlFlow
 import app.morphe.util.RegisterLiveness
 import app.morphe.util.namedRegisters
 import app.morphe.util.readsAfter
+import app.morphe.util.writersReaching
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -66,12 +68,40 @@ internal const val VIEWER_STICKER = "FbShortsComposerAttachmentComponentSpec_STI
 /** The name the same bar gives its GIF button. */
 internal const val VIEWER_GIF = "FbShortsComposerAttachmentComponentSpec_GIF"
 
+/** The transition key the whole of that bar, the Add a comment box and its buttons, is laid out under, in its render. */
+internal const val VIDEO_COMMENT_BAR = "comment_bar_layout_transition_key"
+
 /** The name the socket under a post's comments gives itself, in the methods that go through its plugins. */
 internal const val BOTTOM_SOCKET = "FeedbackSurfaceBottomContentSocket"
 
 /** The Related groups list under a group post's comments, a kept class name the socket's name table loads. */
 internal const val RELATED_GROUPS =
     "com.facebook.feedback.comments.plugins.bottomcontent.impl.relatedgroups.RelatedGroupsPlugin"
+
+/**
+ * The few comments a feed post shows under its buttons, a kept class name the name table of the
+ * socket under those buttons ([POST_SOCKET]) loads, next to Meta AI's inline summary (#253).
+ */
+internal const val INLINE_COMMENTS =
+    "com.facebook.feed.plugins.belowufifooter.impl.inlinecommentwithreactivex.InlineCommentWithReactiveXPlugin"
+
+/** The same inline comments picked by how long the post stayed on screen, in the same name table. */
+internal const val INLINE_COMMENTS_DWELL_TIME =
+    "com.facebook.feed.plugins.belowufifooter.impl.inlinecommentwithdwelltime.InlineCommentWithDwellTimePlugin"
+
+/** The same inline comments ranked on the phone, in the same name table. */
+internal const val INLINE_COMMENTS_CLIENT_RANKING =
+    "com.facebook.feed.plugins.belowufifooter.impl.inlinecommentwithclientranking.InlineCommentWithClientRankingPlugin"
+
+/** The name the socket of the buttons under each comment gives itself, in the methods that go through its plugins. */
+internal const val COMMENT_UFI_SOCKET = "CommentUfiSocket"
+
+/** The thumbs-down under a comment, next to Like, a kept class name that socket's name table loads (#241). */
+internal const val COMMENT_DOWNVOTE =
+    "com.facebook.feedback.comments.plugins.commentufi.commentsdownvote.CommentsUFIInlineDownvotePlugin"
+
+/** A comment's Like button, in the same name table. */
+internal const val COMMENT_LIKE = "com.facebook.feedback.comments.plugins.commentufi.like.LikePlugin"
 
 /** The name the reaction picker's popup logs itself under, in the method that opens it. */
 internal const val DOCK_NAME = "reactions_dock"
@@ -97,6 +127,15 @@ internal const val EXPANDED_REPLIES = "ExpandedReplySection"
 /** The name the list of a post's comments, or of a thread's replies, gives itself in its constructor. */
 internal const val COMMENT_LIST = "CommentListSection"
 
+/** The name the View more replies row gives its render, a string in it. */
+internal const val VIEW_MORE_REPLIES = "ViewMoreRepliesComponent.render"
+
+/**
+ * The name the View more replies row under a feed post's inline comments gives itself, in its
+ * constructor, its render and one other method.
+ */
+internal const val FEED_VIEW_MORE_REPLIES = "FeedViewMoreRepliesComponent"
+
 private const val VIEW = "Landroid/view/View;"
 
 private const val OBJECTS = "[Ljava/lang/Object;"
@@ -104,11 +143,15 @@ private const val OBJECTS = "[Ljava/lang/Object;"
 internal const val COMMENT_SHEET_OPTIONS = "$EXTENSION_PACKAGE/comments/CommentSheetOptions;"
 internal const val HOLDS_BUTTON = "$COMMENT_SHEET_OPTIONS->holdsButton(Ljava/lang/String;)Z"
 internal const val HOLDS_VIEWER_BUTTONS = "$COMMENT_SHEET_OPTIONS->holdsViewerButtons()Z"
+internal const val HIDES_VIDEO_COMMENT_COMPOSER = "$COMMENT_SHEET_OPTIONS->hidesVideoCommentComposer()Z"
 internal const val HOLDS_BOTTOM_CONTENT = "$COMMENT_SHEET_OPTIONS->holdsBottomContent(Ljava/lang/String;)Z"
+internal const val HOLDS_POST_COMMENTS = "$COMMENT_SHEET_OPTIONS->holdsPostComments(Ljava/lang/String;)Z"
+internal const val HOLDS_COMMENT_BUTTON = "$COMMENT_SHEET_OPTIONS->holdsCommentButton(Ljava/lang/String;)Z"
 internal const val SKIP_PICKER = "$COMMENT_SHEET_OPTIONS->skipReactionPicker()Z"
 internal const val OPEN_REPLY_THREADS = "$COMMENT_SHEET_OPTIONS->openReplyThreads(Z)Z"
 internal const val HIDES_COMMENT = "$COMMENT_SHEET_OPTIONS->hidesComment(Ljava/lang/Object;)Z"
 internal const val LOAD_WHOLE_REPLY_THREADS = "$COMMENT_SHEET_OPTIONS->loadWholeReplyThreads(Z)Z"
+internal const val VIEW_MORE_REPLIES_TEXT_ONLY = "$COMMENT_SHEET_OPTIONS->viewMoreRepliesTextOnly(Z)Z"
 
 /** Facebook's comment model, a kept class the comment section casts its comment to. */
 internal const val GRAPHQL_COMMENT = "Lcom/facebook/graphql/model/GraphQLComment;"
@@ -131,6 +174,11 @@ internal const val GRAPHQL_COMMENT = "Lcom/facebook/graphql/model/GraphQLComment
  * `LX/9xu;->A1H` into `LX/1bP;->A00`). Once the GIF button is built the extension is asked, and
  * while the switch is on both buttons' registers are cleared, so the bar keeps only mention.
  *
+ * Hide the video comment box (#213): those buttons are only the box's inner row. The whole bar is
+ * another component, the one class naming [VIDEO_COMMENT_BAR] that builds the row's class (583
+ * `LX/98j;`, whose `A0G` builds `LX/ALy`). First thing in its render the extension is asked, and
+ * while the switch is on the render returns nothing, so the box is gone with its outline.
+ *
  * Hide related groups: what comes after a post's comments is drawn through another socket, the one
  * that names itself [BOTTOM_SOCKET] in the two comment surfaces' methods going through its plugins
  * (581 `LX/Aco;->A0j` and `LX/BIE;->A0j`, 580 `LX/B8E;->A1S` and `LX/BLp;->A1S`, 577 `LX/AeD;->A3Y`
@@ -139,6 +187,21 @@ internal const val GRAPHQL_COMMENT = "Lcom/facebook/graphql/model/GraphQLComment
  * (581 `LX/2Ap;->A24`) sits in the table's class here. It's found the same way as the button check
  * and hooked the same way: while the switch is on the Related groups plugin gets a no, and the
  * socket goes on to its next plugin. Comments, the comment box and the other plugins stay.
+ *
+ * Hide comments under posts (#253): the few comments a feed post shows under its buttons come
+ * through the socket that names itself [POST_SOCKET], the one Hide Meta AI comment summaries asks
+ * about its inline summary. Its name table (584 `LX/228;->A0k`) names three variants of them,
+ * [INLINE_COMMENTS], [INLINE_COMMENTS_DWELL_TIME] and [INLINE_COMMENTS_CLIENT_RANKING], and its
+ * check sits in the table's class. It's found and hooked the same way as the other two sockets:
+ * while the switch is on the three get a no, and the socket goes on to its next plugin, so the
+ * comment box under a post, Meta AI's summary switch and the post's Comment button stay as they were.
+ *
+ * Hide dislike on comments (#241): the buttons under each comment, Like, Reply and the thumbs-down
+ * among them, come through the socket that names itself [COMMENT_UFI_SOCKET] (584 `LX/4Fu;->A03`
+ * and `LX/5yK;->render`). Its name table (584 `LX/228;->A0t`) names [COMMENT_DOWNVOTE] next to
+ * [COMMENT_LIKE], and its check (584 `LX/228;->A2C`) sits in the table's class. It's found and hooked
+ * the same way as the other sockets: while the switch is on the thumbs-down gets a no, so Like,
+ * Reply and the comment's other buttons stay.
  *
  * Like only: a long press on Like opens the reaction picker through one method that builds
  * [UFI_DOCK] in a popup and logs [DOCK_NAME] (581 `LX/3FO;->A06`, each an instance (View, View)V
@@ -166,6 +229,27 @@ internal const val GRAPHQL_COMMENT = "Lcom/facebook/graphql/model/GraphQLComment
  * as it's scrolled with no further taps. It loads a page at a time, as far as the reader scrolls,
  * so a thread with thousands of replies can't hold the sheet up.
  *
+ * Tap anywhere on View more replies (#219): the row's render names [VIEW_MORE_REPLIES] (584
+ * `LX/BbN;->render`). It reads one server-set boolean (584 `LX/4EB;->A09` into v16) and builds its
+ * tap target with one static call on either side of a check of it (584 `LX/2C8;->A01`). True, the
+ * call wraps only the row's icon and words, which then sit in a plain row, so a tap past the words
+ * does nothing. False, the plain row is built first and the call wraps all of it, and the tap
+ * target puts its click straight on that row's own node (584 `LX/2C9;->A1e`). Both sides hand the
+ * same load-more handler (584 `LX/CiR`) the tap. The same boolean also picks a few paddings and the row's height. Right after Facebook
+ * reads it, the extension is handed it, and while the switch is on the answer is false, so the
+ * row is built the way Facebook builds it for everyone the flag is off for.
+ * The row under a feed post's inline comments names [FEED_VIEW_MORE_REPLIES] (584 `LX/5yr;->A0l`)
+ * and reads the same boolean (into v21). True, it wraps the icon and words in the tap target and
+ * finishes the outer row bare; false, it finishes the row and wraps all of it. The call on either
+ * side of that check is the row's finishing call (584 `LX/4B4;->A0K`), the words' side again first,
+ * so the same search finds it and the same hook goes in.
+ * The View more replies pager under an open reply thread, the one with the down arrow, is another
+ * component again (584 `LX/DXS;->render`), drawn by the thread's [COMMENT_LIST] and naming nothing.
+ * It reads the same boolean (into v21): true, it wraps the arrow and words in its tap target and sets
+ * that in a plain row; false, the tap target is the whole padded row. It's found as the one thing
+ * the list makes whose render asks that answer, and the same hook goes in after it (#219, where the
+ * switch reached View 7 replies but not this row).
+ *
  * Hide comments with shop links and Hide comments with your words (#118): the same comment section
  * draws its one comment, with its replies, in the one method of it besides the constructor that
  * names [COMMENT_SECTION] (582 `LX/5mz;->A2F`). Its comment sits in a props holder kept in one field
@@ -173,7 +257,10 @@ internal const val GRAPHQL_COMMENT = "Lcom/facebook/graphql/model/GraphQLComment
  * [GRAPHQL_COMMENT]. First thing there, the extension is handed that comment, and a yes returns
  * no children, as Facebook's own comment list section does when it has nothing to draw.
  *
- * In the default selection with all seven switches off, so nothing changes until one is turned on.
+ * Hide who is typing in comments (#170) and Hide the new comments pop-up (#185) are nameless patches
+ * this one carries, [incomingCommentTypingPatch] and [newCommentsPillPatch].
+ *
+ * In the default selection with every switch off, so nothing changes until one is turned on.
  */
 @Suppress("unused")
 val commentSheetOptionsPatch = bytecodePatch(
@@ -181,11 +268,11 @@ val commentSheetOptionsPatch = bytecodePatch(
     name = "Comment sheet options",
     description = "Small fixes for comments. Stop a long press on Like from opening reactions, hide the GIF and " +
         "sticker buttons, show every reply without tapping View replies, load a whole reply thread as you " +
-        "scroll, hide Related groups under group posts, and hide comments with shop links or your words. Starts off. Turn on the parts you want in " +
-        "Hushfacebook settings > Comments.",
+        "scroll, open more replies with a tap anywhere on their row, hide the comments under feed posts or the thumbs-down on comments, hide Related groups under group posts, hide comments with shop links or your words, hide who is typing and the new comments pop-up, and hide the comment box under full-screen videos. Starts off. Turn on the parts you want in " +
+        "Hushfacebook settings > Comments and writing.",
 ) {
     category("Comments")
-    dependsOn(settingsPatch, facebookExtensionPatch)
+    dependsOn(settingsPatch, facebookExtensionPatch, incomingCommentTypingPatch, newCommentsPillPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {
@@ -202,6 +289,20 @@ val commentSheetOptionsPatch = bytecodePatch(
         if (bottom.check.descriptor() == buttons.check.descriptor()) {
             refuse("the comment box and the bottom of the comments lead to one check, ${bottom.check.descriptor()}")
         }
+        val post = postSocket(
+            holders(INLINE_COMMENTS),
+            holders(POST_SOCKET).flatMap { methodsHolding(it, POST_SOCKET) },
+        ) { types -> types.mapNotNull { classDefByOrNull(it) }.associateBy { it.type } }
+        if (post.check.descriptor() == buttons.check.descriptor() || post.check.descriptor() == bottom.check.descriptor()) {
+            refuse("the socket under a post's buttons leads to another socket's check, ${post.check.descriptor()}")
+        }
+        val ufi = commentUfiSocket(
+            holders(COMMENT_DOWNVOTE),
+            holders(COMMENT_UFI_SOCKET).flatMap { methodsHolding(it, COMMENT_UFI_SOCKET) },
+        ) { types -> types.mapNotNull { classDefByOrNull(it) }.associateBy { it.type } }
+        if (ufi.check.descriptor() in listOf(buttons, bottom, post).map { it.check.descriptor() }) {
+            refuse("the socket of a comment's buttons leads to another socket's check, ${ufi.check.descriptor()}")
+        }
         val dock = reactionPicker(holders(DOCK_NAME))
         val threads = replyThreads(
             holders(COMMENT_SECTION),
@@ -209,12 +310,22 @@ val commentSheetOptionsPatch = bytecodePatch(
         ) { types -> types.mapNotNull { classDefByOrNull(it) }.associateBy { it.type } }
         val drawn = commentDraw(holders(COMMENT_SECTION))
         val replyList = replyList(holders(EXPANDED_REPLIES), holders(COMMENT_LIST))
+        val replyRow = replyRowTap(holders(VIEW_MORE_REPLIES))
+        val feedReplyRow = replyRowTap(holders(FEED_VIEW_MORE_REPLIES), FEED_VIEW_MORE_REPLIES)
+        val threadPager = threadPagerTap(holders(COMMENT_LIST), replyRow) { types ->
+            types.mapNotNull { classDefByOrNull(it) }.associateBy { it.type }
+        }
         val viewer = viewerButtons(holders(VIEWER_GIF))
+        val videoBar = videoCommentBar(holders(VIDEO_COMMENT_BAR), viewer.render)
 
         mutableClassDefBy(buttons.check.definingClass).methods.single { it.descriptor() == buttons.check.descriptor() }
             .holdButtons(buttons.table)
         mutableClassDefBy(bottom.check.definingClass).methods.single { it.descriptor() == bottom.check.descriptor() }
             .holdButtons(bottom.table, HOLDS_BOTTOM_CONTENT)
+        mutableClassDefBy(post.check.definingClass).methods.single { it.descriptor() == post.check.descriptor() }
+            .holdButtons(post.table, HOLDS_POST_COMMENTS)
+        mutableClassDefBy(ufi.check.definingClass).methods.single { it.descriptor() == ufi.check.descriptor() }
+            .holdButtons(ufi.table, HOLDS_COMMENT_BUTTON)
         mutableClassDefBy(dock.definingClass).methods.single { it.descriptor() == dock.descriptor() }
             .skipPicker()
         mutableClassDefBy(threads.initialState.definingClass).methods
@@ -224,8 +335,18 @@ val commentSheetOptionsPatch = bytecodePatch(
             .hideComments(drawn)
         mutableClassDefBy(replyList.build.definingClass).methods.single { it.descriptor() == replyList.build.descriptor() }
             .loadWholeReplyThreads(replyList)
+        mutableClassDefBy(replyRow.render.definingClass).methods.single { it.descriptor() == replyRow.render.descriptor() }
+            .tapWholeReplyRow(replyRow)
+        mutableClassDefBy(feedReplyRow.render.definingClass).methods
+            .single { it.descriptor() == feedReplyRow.render.descriptor() }
+            .tapWholeReplyRow(feedReplyRow)
+        mutableClassDefBy(threadPager.render.definingClass).methods
+            .single { it.descriptor() == threadPager.render.descriptor() }
+            .tapWholeReplyRow(threadPager)
         mutableClassDefBy(viewer.render.definingClass).methods.single { it.descriptor() == viewer.render.descriptor() }
             .holdViewerButtons(viewer)
+        mutableClassDefBy(videoBar.definingClass).methods.single { it.descriptor() == videoBar.descriptor() }
+            .hideVideoCommentComposer()
         enableStatus("commentSheetOptions")
     }
 }
@@ -263,6 +384,28 @@ internal fun bottomSocket(
     sockets: List<Method>,
     classes: (Set<String>) -> Map<String, ClassDef>,
 ): PluginSocket = pluginCheck(holders, sockets, classes, BOTTOM_SOCKET, RELATED_GROUPS)
+
+/**
+ * The socket under a post's buttons, from [holders], the classes loading [INLINE_COMMENTS], and
+ * [sockets], the methods loading [POST_SOCKET]. The table is the one name table naming the inline
+ * comments and their client-ranked variant; see [pluginCheck] for the check.
+ */
+internal fun postSocket(
+    holders: List<ClassDef>,
+    sockets: List<Method>,
+    classes: (Set<String>) -> Map<String, ClassDef>,
+): PluginSocket = pluginCheck(holders, sockets, classes, POST_SOCKET, INLINE_COMMENTS, INLINE_COMMENTS_CLIENT_RANKING)
+
+/**
+ * The socket of the buttons under each comment, from [holders], the classes loading
+ * [COMMENT_DOWNVOTE], and [sockets], the methods loading [COMMENT_UFI_SOCKET]. The table is the one
+ * name table naming the thumbs-down and Like; see [pluginCheck] for the check.
+ */
+internal fun commentUfiSocket(
+    holders: List<ClassDef>,
+    sockets: List<Method>,
+    classes: (Set<String>) -> Map<String, ClassDef>,
+): PluginSocket = pluginCheck(holders, sockets, classes, COMMENT_UFI_SOCKET, COMMENT_DOWNVOTE, COMMENT_LIKE)
 
 /**
  * A socket named [socket] whose name table names [plugin], and [alsoNamed] when it's given. The
@@ -670,6 +813,152 @@ internal fun MutableMethod.loadWholeReplyThreads(list: ReplyList) {
 }
 
 /**
+ * Where the View more replies row picks which part of itself takes a tap: its [render], the
+ * `move-result` that keeps Facebook's answer, [kept], and the answer's register, [flag].
+ */
+internal class ReplyRowTap(val render: Method, val kept: Int, val flag: Int)
+
+/**
+ * A View more replies row, from [holders], the classes loading [name] ([VIEW_MORE_REPLIES] or
+ * [FEED_VIEW_MORE_REPLIES]). Its render is the one method naming it that answers an object, the
+ * constructor and the feed row's other method answering nothing. It finishes the row with one
+ * static call made in two places, one on each side of checks of the same boolean: an `if-eqz`
+ * that falls through to the call (the boolean true, where only the words take a tap) and an
+ * `if-eqz` that jumps to it (the boolean false, where the whole row is wrapped as the tap
+ * target), the fall-through's call coming first in the method. That boolean reaches both checks
+ * from one write only, the `move-result` of a call answering it, and the hook goes right after
+ * that write, so the write must run straight into the next instruction and nothing may jump
+ * there. Refuses unless each holds.
+ */
+internal fun replyRowTap(holders: List<ClassDef>, name: String = VIEW_MORE_REPLIES): ReplyRowTap {
+    val renders = holders.flatMap { methodsHolding(it, name) }.filter { it.returnType.startsWith("L") }
+        .distinctBy { it.descriptor() }
+    val render = renders.singleOrNull()
+        ?: refuse("expected one method naming \"$name\" that answers an object, found ${renders.size}")
+    val where = render.descriptor()
+    val code = render.implementation!!.instructions.toList()
+    val flow = ControlFlow.of(render)
+
+    /** The static call at [index] that answers an object, or null. */
+    fun builderAt(index: Int) = code.getOrNull(index)?.takeIf { it.opcode == Opcode.INVOKE_STATIC }?.methodCall()
+        ?.takeIf { it.returnType.startsWith("L") }?.toString()
+
+    val falls = mutableSetOf<Pair<Int, String>>()
+    val jumps = mutableSetOf<Pair<Int, String>>()
+    val checksOf = mutableMapOf<Int, MutableList<Int>>()
+    for ((index, instruction) in code.withIndex()) {
+        if (instruction.opcode != Opcode.IF_EQZ) continue
+        val register = (instruction as OneRegisterInstruction).registerA
+        checksOf.getOrPut(register) { mutableListOf() } += index
+        builderAt(index + 1)?.let { falls += register to it }
+        builderAt(flow.normal[index].first())?.let { jumps += register to it }
+    }
+    val sides = falls.intersect(jumps)
+    val (flag, builder) = sides.singleOrNull()
+        ?: refuse("$where builds a tap target on both sides of ${sides.size} checks, not one")
+    val made = code.count { it.opcode == Opcode.INVOKE_STATIC && it.methodCall()?.toString() == builder }
+    if (made != 2) refuse("$where builds its tap target $made times, not twice")
+    // The words are wrapped before the row holding them is built, so the call a check falls into
+    // comes first and the one a check jumps to wraps the finished row. A build that swapped the two
+    // would turn the switch into words-only taps for everyone.
+    val wordsAt = checksOf.getValue(flag).map { it + 1 }.filter { builderAt(it) == builder }.distinct()
+    val rowAt = checksOf.getValue(flag).map { flow.normal[it].first() }.filter { builderAt(it) == builder }.distinct()
+    if (wordsAt.size != 1 || rowAt.size != 1 || wordsAt[0] >= rowAt[0]) {
+        refuse("$where doesn't wrap the words before the whole row")
+    }
+
+    val checks = checksOf.getValue(flag).filter { builderAt(it + 1) == builder || builderAt(flow.normal[it].first()) == builder }
+    val writers = checks.flatMap { render.writersReaching(it, flag) }.distinct()
+    val kept = writers.singleOrNull() ?: refuse("$where sets v$flag ${writers.size} ways before its checks, not one")
+    if (kept < 1 || code[kept].opcode != Opcode.MOVE_RESULT || code[kept - 1].methodCall()?.returnType != "Z") {
+        refuse("$where doesn't take v$flag from a call answering a boolean")
+    }
+    if (flag > 255) refuse("$where keeps its flag in v$flag, out of a move-result's reach")
+    val at = kept + 1
+    if (flow.normal[kept] != listOf(at)) refuse("$where doesn't run straight on from v$flag's write")
+    for (index in code.indices) {
+        for (next in flow.normal[index] + flow.exceptional[index]) {
+            if (next == at && index != kept) refuse("$where has a jump to instruction $at, where the hook goes")
+        }
+    }
+    return ReplyRowTap(render, kept, flag)
+}
+
+/**
+ * The View more replies pager at the end of an open reply thread, from [lists], the classes loading
+ * [COMMENT_LIST], [sheetRow], the comment sheet's View more replies row, and [classes], which reads
+ * the classes it's handed. The pager names nothing, so it's found through the list that draws it:
+ * the one class whose constructor names [COMMENT_LIST], the classes its methods make, and of those
+ * the one with a one-argument method answering an object that asks the same server answer
+ * [sheetRow] keeps. That ask runs straight into its `move-result`, the hook goes right after it, so
+ * nothing may jump there, and at least two checks of the answer must be reached by that write alone.
+ * Refuses unless each holds.
+ */
+internal fun threadPagerTap(
+    lists: List<ClassDef>,
+    sheetRow: ReplyRowTap,
+    classes: (Set<String>) -> Map<String, ClassDef>,
+): ReplyRowTap {
+    val named = lists.filter { holder -> holder.methods.any { it.name == "<init>" && holdsString(it, COMMENT_LIST) } }
+        .distinctBy { it.type }
+    val list = named.singleOrNull() ?: refuse("expected one class naming itself \"$COMMENT_LIST\", found ${named.size}")
+    val ask = sheetRow.render.implementation!!.instructions.toList()[sheetRow.kept - 1].methodCall()?.toString()
+        ?: refuse("${sheetRow.render.descriptor()} keeps an answer no call gave it")
+
+    val made = list.methods.flatMap { method ->
+        method.implementation?.instructions?.mapNotNull { instruction ->
+            if (instruction.opcode != Opcode.NEW_INSTANCE) return@mapNotNull null
+            ((instruction as ReferenceInstruction).reference as TypeReference).type
+        }.orEmpty()
+    }.toSet() - list.type - sheetRow.render.definingClass
+    val renders = classes(made).values.flatMap { it.methods }.filter { method ->
+        method.parameterTypes.size == 1 && method.returnType.startsWith("L") &&
+            method.implementation?.instructions?.any { it.methodCall()?.toString() == ask } == true
+    }.distinctBy { it.descriptor() }
+    val render = renders.singleOrNull()
+        ?: refuse("expected one renderer ${list.type} makes that asks $ask, found ${renders.size}")
+    val where = render.descriptor()
+    val code = render.implementation!!.instructions.toList()
+    val asks = code.indices.filter { code[it].methodCall()?.toString() == ask }
+    val asked = asks.singleOrNull() ?: refuse("$where asks $ask ${asks.size} times, not once")
+    val kept = asked + 1
+    if (code.getOrNull(kept)?.opcode != Opcode.MOVE_RESULT) refuse("$where doesn't keep the answer of $ask")
+    val flag = (code[kept] as OneRegisterInstruction).registerA
+    if (flag > 255) refuse("$where keeps its flag in v$flag, out of a move-result's reach")
+
+    val flow = ControlFlow.of(render)
+    val checks = code.indices.filter {
+        code[it].opcode in setOf(Opcode.IF_EQZ, Opcode.IF_NEZ) && (code[it] as OneRegisterInstruction).registerA == flag &&
+            kept in render.writersReaching(it, flag)
+    }
+    if (checks.size < 2) refuse("$where checks v$flag ${checks.size} times after the answer, not two or more")
+    if (checks.any { render.writersReaching(it, flag) != listOf(kept) }) refuse("$where sets v$flag another way before a check")
+    val at = kept + 1
+    if (flow.normal[kept] != listOf(at)) refuse("$where doesn't run straight on from v$flag's write")
+    for (index in code.indices) {
+        for (next in flow.normal[index] + flow.exceptional[index]) {
+            if (next == at && index != kept) refuse("$where has a jump to instruction $at, where the hook goes")
+        }
+    }
+    return ReplyRowTap(render, kept, flag)
+}
+
+/**
+ * Right after the View more replies row reads which part of itself takes a tap, hand the
+ * extension Facebook's answer and keep its own instead. The call takes the register as a range,
+ * which reaches past v15.
+ */
+internal fun MutableMethod.tapWholeReplyRow(tap: ReplyRowTap) {
+    addInstructions(
+        tap.kept + 1,
+        """
+            invoke-static/range { v${tap.flag} .. v${tap.flag} }, $VIEW_MORE_REPLIES_TEXT_ONLY
+            move-result v${tap.flag}
+        """,
+    )
+}
+
+/**
  * Where the video viewer's comment bar builds its buttons: its [render], the registers its sticker
  * and GIF buttons land in, [sticker] and [gif], the instruction the hook goes in front of, [at], and
  * a register nothing reads from there, [free].
@@ -746,5 +1035,50 @@ internal fun MutableMethod.holdViewerButtons(buttons: ViewerButtons) {
             ${clear(buttons.gif)}
         """,
         ExternalLabel("bar", getInstruction(buttons.at)),
+    )
+}
+
+/**
+ * The render of the video viewer's whole comment bar: among [holders], the classes loading
+ * [VIDEO_COMMENT_BAR], the one with a method building [buttons]' class, the box's inner row. Its
+ * render names [VIDEO_COMMENT_BAR] and has the row render's name, parameters and return. Refuses
+ * unless there's exactly one.
+ */
+internal fun videoCommentBar(holders: List<ClassDef>, buttons: Method): Method {
+    val row = buttons.definingClass
+    fun builds(method: Method) = method.implementation?.instructions?.any {
+        it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as TypeReference).type == row
+    } == true
+    val renders = holders.filter { holder -> holder.methods.any(::builds) }
+        .flatMap { methodsHolding(it, VIDEO_COMMENT_BAR) }
+        .filter {
+            it.name == buttons.name && it.returnType == buttons.returnType &&
+                it.parameterTypes.map(CharSequence::toString) == buttons.parameterTypes.map(CharSequence::toString)
+        }
+        .distinctBy { it.descriptor() }
+    return renders.singleOrNull()
+        ?: refuse("expected one render naming \"$VIDEO_COMMENT_BAR\" in a class building $row, found ${renders.size}")
+}
+
+/**
+ * First thing where the video viewer's comment bar renders: on a yes from the extension it returns
+ * nothing, so the Add a comment box under a full-screen video is gone with its outline (#213, from
+ * @dijitalcozum's patch, which cleared only the box's button row). Asking at the start covers every
+ * way out of the render, including the returns its jumps land on, which code put in front of a
+ * return would be stepped past. Nothing local is live yet there, so v0 holds the answer.
+ */
+internal fun MutableMethod.hideVideoCommentComposer() {
+    if (!returnType.startsWith("L")) refuse("${descriptor()} doesn't return an object")
+    if (localRegisterCount() < 1) refuse("${descriptor()} has no local register for the hook")
+    addInstructionsWithLabels(
+        0,
+        """
+            invoke-static {}, $HIDES_VIDEO_COMMENT_COMPOSER
+            move-result v0
+            if-eqz v0, :bar
+            const/4 v0, 0x0
+            return-object v0
+        """,
+        ExternalLabel("bar", getInstruction(0)),
     )
 }

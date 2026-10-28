@@ -5,52 +5,62 @@
 
 package app.morphe.manager.ui.screen.home
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.morphe.manager.R
 import app.morphe.manager.domain.bundles.BundleSourceType
-import app.morphe.manager.domain.bundles.PatchBundleSource
+import app.morphe.manager.domain.bundles.BundledAppTarget
+import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.bundleAvatarUrl
+import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.ownerAvatarUrl
 import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.sourceType
 import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.usesPrerelease
-import app.morphe.manager.domain.bundles.RemotePatchBundle
 import app.morphe.manager.domain.bundles.recommended
 import app.morphe.manager.domain.repository.PatchBundleRepository
+import app.morphe.manager.domain.repository.PatchBundleRepository.LocalFileCheck
+import app.morphe.manager.domain.repository.SourceMuteRepository
+import app.morphe.manager.patcher.patch.PatchBundleInfo
 import app.morphe.manager.patcher.patch.PatchInfo
 import app.morphe.manager.ui.model.HomeAppItem
+import app.morphe.manager.ui.model.SourceScope
 import app.morphe.manager.ui.screen.patcher.UnusableOptionPathsDialog
+import app.morphe.manager.ui.screen.settings.SettingsNavigation
+import app.morphe.manager.ui.screen.settings.SettingsSubpage
+import app.morphe.manager.ui.screen.settings.system.PrePatchInstallerDialog
 import app.morphe.manager.ui.screen.shared.*
-import app.morphe.manager.ui.viewmodel.HomeViewModel
-import app.morphe.manager.ui.viewmodel.InstalledAppInfoViewModel
+import app.morphe.manager.ui.screen.sources.*
+import app.morphe.manager.ui.viewmodel.*
 import app.morphe.manager.util.*
-import kotlinx.coroutines.delay
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
-import java.net.URI
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Container for all home screen dialogs.
+ *
+ * @param settingsNavigation Where a dialog leads out to the settings. The dialogs are put away
+ *   while the settings are open and come back as they stood once they close.
  */
 @Composable
 fun HomeDialogs(
@@ -58,472 +68,38 @@ fun HomeDialogs(
     storagePickerLauncher: () -> Unit,
     openBundlePicker: () -> Unit,
     patchesItem: MutableState<HomeAppItem?>,
-    globalOnboardingState: GlobalOnboardingState? = null
+    onSourceAdded: () -> Unit,
+    settingsNavigation: SettingsNavigation
 ) {
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-    // Kept outside the dialog so the picker state survives the download dialog's exit animation
-    val openApkDownloadHelper = rememberApkDownloadHelperAction(
-        host = homeViewModel,
-        enabled = homeViewModel.showDownloadInstructionsDialog
-    )
+    val messages = koinInject<UserMessages>()
+    val flow = homeViewModel.patchFlow
 
     // APK selection processing overlay - blocks interaction while APK is loaded/validated in background
-    Overlay(visible = homeViewModel.processingApkSelection) {
+    Overlay(visible = flow.processingApkSelection) {
         PulsingLogoWithCaption(caption = stringResource(R.string.processing_apk))
     }
 
-    // Dialog 1: APK availability
-    AnimatedVisibility(
-        visible = homeViewModel.showApkAvailabilityDialog &&
-                homeViewModel.pendingPackageName != null &&
-                homeViewModel.pendingAppName != null,
-        enter = Animations.fadeIn,
-        exit = Animations.fadeOut(if (homeViewModel.showDownloadInstructionsDialog) 0 else Defaults.ANIMATION_DURATION)
-    ) {
-        val appName = homeViewModel.pendingAppName ?: return@AnimatedVisibility
-        // Remembered so the color holds through the exit animation, as the download dialog's does
-        val packageName = remember { homeViewModel.pendingPackageName }
-        val recommendedVersion = homeViewModel.pendingRecommendedVersion
-        val compatibleVersions = homeViewModel.pendingCompatibleVersions
-        val selectedDownloadVersion = homeViewModel.pendingSelectedDownloadVersion
-        val usingMountInstall = homeViewModel.usingMountInstall
-        val isExpertMode = homeViewModel.prefs.useExpertMode.getBlocking()
-        val savedApkInfo = homeViewModel.pendingSavedApkInfo
-        val installedApkInfo = homeViewModel.pendingInstalledApkInfo
-        val installedAppVersion = homeViewModel.pendingInstalledAppVersion
-        val stockAppInstalled = homeViewModel.pendingStockAppInstalled == true
-
-        ApkAvailabilityDialog(
-            appName = appName,
-            packageName = packageName,
-            recommendedVersion = recommendedVersion,
-            compatibleVersions = compatibleVersions,
-            selectedDownloadVersion = selectedDownloadVersion,
-            onVersionSelect = { homeViewModel.pendingSelectedDownloadVersion = it },
-            usingMountInstall = usingMountInstall,
-            stockAppInstalled = stockAppInstalled,
-            isExpertMode = isExpertMode,
-            savedApkInfo = savedApkInfo,
-            installedApkInfo = installedApkInfo,
-            installedAppVersion = installedAppVersion,
-            onDismiss = {
-                homeViewModel.showApkAvailabilityDialog = false
-                homeViewModel.cleanupPendingData()
-            },
-            onHaveApk = {
-                homeViewModel.showApkAvailabilityDialog = false
-                storagePickerLauncher()
-            },
-            onNeedApk = {
-                homeViewModel.showApkAvailabilityDialog = false
-                scope.launch {
-                    delay(50.milliseconds)
-                    homeViewModel.showDownloadInstructionsDialog = true
-                    homeViewModel.resolveDownloadRedirect()
-                }
-            },
-            onUseSaved = {
-                homeViewModel.handleSavedApkSelection()
-            },
-            onUseInstalled = {
-                homeViewModel.handleInstalledApkSelection()
-            }
-        )
-    }
-
-    // Dialog 2: Download instructions
-    AnimatedVisibility(
-        visible = homeViewModel.showDownloadInstructionsDialog &&
-                homeViewModel.pendingPackageName != null &&
-                homeViewModel.pendingAppName != null,
-        enter = Animations.overlayEnter,
-        exit = Animations.fadeOut(if (homeViewModel.showFilePickerPromptDialog) 0 else Defaults.ANIMATION_DURATION)
-    ) {
-        val usingMountInstall = homeViewModel.usingMountInstall
-        // Remember packageName to prevent color flickering during exit animation
-        val packageName = remember { homeViewModel.pendingPackageName }
-        // Remembered for the same reason, since the pending data is cleared as the dialog leaves
-        val appName = remember { homeViewModel.pendingAppName.orEmpty() }
-        // Settled in dialog 1 and remembered for the same reason, so the steps stay put on the way out
-        val requestedVersion = remember {
-            (homeViewModel.pendingSelectedDownloadVersion ?: homeViewModel.pendingRecommendedVersion)?.version
-        }
-
-        // Resolve download button color: bundle declared → default
-        val bundleMetadata by homeViewModel.bundleAppMetadataFlow.collectAsStateWithLifecycle()
-        val downloadColor = remember(packageName, bundleMetadata) {
-            bundleMetadata[packageName ?: ""]?.downloadColor
-                ?: KnownApps.DEFAULT_DOWNLOAD_COLOR
-        }
-        // True when the patch bundle explicitly requires a split archive (APKM/APKS/XAPK).
-        // In that case the APKMirror button label becomes "DOWNLOAD APK BUNDLE" to match the site.
-        val isApkBundle = remember(packageName, bundleMetadata) {
-            bundleMetadata[packageName ?: ""]?.apkFileType?.isApk == false
-        }
-
-        DownloadInstructionsDialog(
-            appName = appName,
-            packageName = packageName,
-            downloadUrl = homeViewModel.resolvedDownloadUrl,
-            requestedVersion = requestedVersion,
-            usingMountInstall = usingMountInstall,
-            stockAppInstalled = homeViewModel.pendingStockAppInstalled == true,
-            downloadColor = downloadColor,
-            isApkBundle = isApkBundle,
-            onDismiss = {
-                homeViewModel.showDownloadInstructionsDialog = false
-                homeViewModel.cleanupPendingData()
-            },
-            onOpenApkDownloadHelper = openApkDownloadHelper,
-            onContinue = homeViewModel::handleDownloadInstructionsContinue
-        )
-    }
-
-    // Dialog 3: File picker prompt
-    AnimatedVisibility(
-        visible = homeViewModel.showFilePickerPromptDialog && homeViewModel.pendingAppName != null,
-        enter = Animations.overlayEnter,
-        exit = Animations.overlayExit
-    ) {
-        val appName = homeViewModel.pendingAppName ?: return@AnimatedVisibility
-        val packageName = remember { homeViewModel.pendingPackageName }
-        val isOtherApps = packageName == null
-
-        FilePickerPromptDialog(
-            appName = appName,
-            packageName = packageName,
-            isOtherApps = isOtherApps,
-            isLoadingInstalledApps = homeViewModel.loadingInstalledApps,
-            onDismiss = {
-                homeViewModel.showFilePickerPromptDialog = false
-                homeViewModel.cleanupPendingData()
-            },
-            onOpenFilePicker = {
-                homeViewModel.showFilePickerPromptDialog = false
-                storagePickerLauncher()
-            },
-            onUseInstalledApp = if (isOtherApps) {
-                { homeViewModel.loadInstalledAppsForPicker() }
-            } else null
-        )
-    }
-
-    // Dialog 3.5: Installed app picker (universal patches)
-    AnimatedVisibility(
-        visible = homeViewModel.showInstalledAppPickerDialog,
-        enter = Animations.overlayEnter,
-        exit = Animations.overlayExit
-    ) {
-        InstalledAppPickerDialog(
-            items = homeViewModel.installedAppsForPicker,
-            isLoading = homeViewModel.loadingInstalledApps,
-            onDismiss = {
-                homeViewModel.showInstalledAppPickerDialog = false
-                homeViewModel.cleanupPendingData()
-            },
-            onSelect = { homeViewModel.handleInstalledAppPickerSelection(it) }
-        )
-    }
-
-    // Unsupported version dialog
-    AnimatedVisibility(
-        visible = homeViewModel.showUnsupportedVersionDialog != null,
-        enter = Animations.overlayEnter,
-        exit = Animations.overlayExit
-    ) {
-        val dialogState = homeViewModel.showUnsupportedVersionDialog ?: return@AnimatedVisibility
-        val isExpertMode = homeViewModel.prefs.useExpertMode.getBlocking()
-
-        UnsupportedVersionWarningDialog(
-            packageName = dialogState.packageName,
-            version = dialogState.version,
-            versionCode = dialogState.versionCode,
-            recommendedVersion = dialogState.recommendedVersion?.version,
-            allCompatibleVersions = dialogState.compatibleVersionNames,
-            versionDescriptions = dialogState.compatibleVersionDescriptions,
-            compatibleVersionCodes = dialogState.compatibleVersionCodes,
-            experimentalVersions = homeViewModel.getExperimentalVersionsForPackage(dialogState.packageName),
-            isExperimental = dialogState.isExperimental,
-            isExpertMode = isExpertMode,
-            onDismiss = { homeViewModel.dismissUnsupportedVersionDialog() },
-            onProceed = { homeViewModel.proceedWithUnsupportedVersion() }
-        )
-    }
-
-    // Experimental version warning dialog
-    AnimatedVisibility(
-        visible = homeViewModel.showExperimentalVersionDialog != null,
-        enter = Animations.overlayEnter,
-        exit = Animations.overlayExit
-    ) {
-        val dialogState = homeViewModel.showExperimentalVersionDialog ?: return@AnimatedVisibility
-
-        ExperimentalVersionWarningDialog(
-            appName = dialogState.packageName.let { homeViewModel.bundleAppMetadataFlow.value[it]?.displayName ?: it },
-            packageName = dialogState.packageName,
-            onDismiss = { homeViewModel.dismissExperimentalVersionDialog() },
-            onProceed = { homeViewModel.proceedWithExperimentalVersion() }
-        )
-    }
-
-    // Wrong package dialog
-    AnimatedVisibility(
-        visible = homeViewModel.showWrongPackageDialog != null,
-        enter = Animations.overlayEnter,
-        exit = Animations.overlayExit
-    ) {
-        val dialogState = homeViewModel.showWrongPackageDialog ?: return@AnimatedVisibility
-
-        WrongPackageDialog(
-            expectedPackage = dialogState.expectedPackage,
-            actualPackage = dialogState.actualPackage,
-            onDismiss = { homeViewModel.dismissWrongPackageDialog() }
-        )
-    }
-
-    // No compatible versions dialog - shown when every declared version requires a higher SDK
-    AnimatedVisibility(
-        visible = homeViewModel.showNoCompatibleVersionsDialog != null,
-        enter = Animations.overlayEnter,
-        exit = Animations.overlayExit
-    ) {
-        val packageName = homeViewModel.showNoCompatibleVersionsDialog ?: return@AnimatedVisibility
-        val appName = homeViewModel.bundleAppMetadataFlow.value[packageName]?.displayName
-            ?: KnownApps.getAppName(packageName)
-        NoCompatibleVersionsDialog(
-            appName = appName,
-            packageName = packageName,
-            onDismiss = { homeViewModel.showNoCompatibleVersionsDialog = null }
-        )
-    }
-
-    // Split APK Warning Dialog - shown when user picks a split APK for an app that prefers full APK
-    if (homeViewModel.showSplitApkWarningDialog) {
-        val appName = homeViewModel.pendingAppName ?: ""
-        SplitApkWarningDialog(
-            appName = appName,
-            packageName = homeViewModel.pendingPackageName,
-            onProceed = { homeViewModel.proceedWithSplitApk() },
-            onPickAnother = {
-                homeViewModel.dismissSplitApkWarning()
-                storagePickerLauncher()
-            },
-            onDismiss = { homeViewModel.dismissSplitApkWarning() }
-        )
-    }
-
-    // Invalid Signature Dialog - shown when the APK is not signed by the expected certificate
-    homeViewModel.showInvalidSignatureDialog?.let { dialogState ->
-        InvalidSignatureDialog(
-            appName = dialogState.appName,
-            packageName = homeViewModel.pendingPackageName,
-            onPickAnother = {
-                homeViewModel.dismissInvalidSignatureDialog()
-                storagePickerLauncher()
-            },
-            onProceed = { homeViewModel.proceedIgnoringSignature() },
-            onDismiss = { homeViewModel.dismissInvalidSignatureDialog() }
-        )
-    }
-
-    // Metered Data dialog
-    if (homeViewModel.showMeteredPatchingDialog) {
-        MeteredPatchingDialog(
-            packageName = homeViewModel.pendingPackageName,
-            onDismiss = { homeViewModel.dismissMeteredPatchingDialog() },
-            onRefreshAndPatch = { homeViewModel.refreshBundlesAndContinuePatching() },
-            onPatchAnyway = { homeViewModel.dismissMeteredPatchingDialogAndProceed() }
-        )
-    }
-
-    // Low Disk Space warning dialog
-    if (homeViewModel.showLowDiskSpaceDialog) {
-        LowDiskSpaceDialog(
-            packageName = homeViewModel.pendingPackageName,
-            freeBytes = homeViewModel.lowDiskSpaceFreeBytes,
-            thresholdBytes = homeViewModel.lowDiskSpaceThresholdBytes,
-            onDismiss = { homeViewModel.dismissLowDiskSpaceDialog() },
-            onPatchAnyway = { homeViewModel.dismissLowDiskSpaceDialogAndProceed() }
-        )
-    }
-
-    // Installed App Info Dialog
-    homeViewModel.showInstalledAppInfoDialog?.let { packageName ->
-        key(packageName, homeViewModel.installedAppDialogToken) {
-            val installedAppInfoViewModel: InstalledAppInfoViewModel = koinViewModel(
-                key = "${packageName}_${homeViewModel.installedAppDialogToken}",
-                parameters = { parametersOf(packageName) }
-            )
-            InstalledAppInfoDialog(
-                packageName = packageName,
-                onDismiss = homeViewModel::dismissInstalledAppInfo,
-                onTriggerPatchFlow = { originalPackageName, repatchedPackageName ->
-                    homeViewModel.showPatchDialog(
-                        packageName = originalPackageName,
-                        repatchedPackageName = repatchedPackageName
-                    )
-                },
+    // Kept outside the dialogs so the picker state survives the download dialog's exit animation
+    WithApkDownloadHelpers(
+        host = flow,
+        enabled = flow.dialogs.top.let { it == HomeDialog.ApkAvailability || it == HomeDialog.DownloadInstructions }
+    ) { apkDownloadHelpers ->
+        // The patch flow over the app information it may have started from, in the order they opened
+        DialogStack(flow.dialogs.entries) { dialog ->
+            PatchFlowDialog(
+                dialog = dialog,
+                flow = flow,
                 homeViewModel = homeViewModel,
-                viewModel = installedAppInfoViewModel
+                storagePickerLauncher = storagePickerLauncher,
+                apkDownloadHelpers = apkDownloadHelpers,
+                onTrustApkDownloadHelpers = { settingsNavigation.openSubpage(SettingsSubpage.APK_DOWNLOAD_HELPERS) }
             )
         }
-    }
-
-    // Simple mode bundle selection dialog - shown when 2+ bundles have patches for the same app
-    if (homeViewModel.showSimpleBundleSelectDialog) {
-        val candidates = homeViewModel.simpleBundleSelectCandidates
-        val versionsBySource = homeViewModel.pendingPackageName
-            ?.let { homeViewModel.compatibleVersions[it] }
-            .orEmpty()
-            .groupBy { it.bundleUid }
-        SimpleBundleSelectDialog(
-            packageName = homeViewModel.pendingPackageName,
-            candidates = candidates.map { (bundle, patches) ->
-                val source = homeViewModel.getPatchSource(bundle.uid)
-                SimpleBundleCandidate(
-                    uid = bundle.uid,
-                    displayTitle = source?.displayTitle
-                        ?: homeViewModel.getBundleDisplayName(bundle.uid)
-                        ?: bundle.name,
-                    patchCount = patches.size,
-                    recommendedVersion = versionsBySource[bundle.uid].orEmpty().recommended()?.version,
-                    patchVersion = source?.version ?: bundle.version,
-                    sourceType = source?.sourceType
-                )
-            },
-            onSelect = { uid, rememberChoice ->
-                homeViewModel.proceedWithSelectedBundle(uid, rememberChoice)
-            },
-            onDismiss = { homeViewModel.dismissSimpleBundleSelectDialog() },
-            canRemember = true
-        )
-    }
-
-    // Expert Mode Dialog
-    if (homeViewModel.showExpertModeDialog) {
-        // The dialogs raised over the selection wear the app's color, as the selection does
-        ProvideAccent(rememberAppColor(homeViewModel.expertModeSelectedApp?.packageName)) {
-            ExpertModeDialog(
-                packageName = homeViewModel.expertModeSelectedApp?.packageName.orEmpty(),
-                appIcon = homeViewModel.expertModeAppIcon,
-                selection = ExpertPatchSelection(
-                    allPatchesInfo = homeViewModel.expertModeAllPatchesInfo,
-                    options = homeViewModel.expertModeOptions,
-                    totalSelectedCount = homeViewModel.expertModeTotalSelectedCount,
-                    newPatches = homeViewModel.expertModeNewPatches,
-                    savedPatches = homeViewModel.expertModeInitialPatches,
-                    lockStateOf = homeViewModel::expertModeLockState,
-                    holdsUniversalPatches = homeViewModel::expertModeSelectAllHoldsUniversal
-                ),
-                hasMultipleBundles = homeViewModel.expertModeHasMultipleBundles,
-                patchActions = ExpertPatchActions(
-                    onPatchToggle = homeViewModel::togglePatchInExpertMode,
-                    onSelectAll = homeViewModel::expertModeSelectAll,
-                    onDeselectAll = homeViewModel::expertModeDeselectAll,
-                    onResetToDefault = homeViewModel::expertModeResetToDefault,
-                    onRestoreSaved = homeViewModel::expertModeRestoreSaved,
-                    onCopyFromBundle = homeViewModel::openExpertModeCopyDialog,
-                    onOptionChange = homeViewModel::updateOptionInExpertMode,
-                    onResetOptions = homeViewModel::resetOptionsInExpertMode
-                ),
-                usesPrerelease = { homeViewModel.getPatchSource(it)?.usesPrerelease == true },
-                hiddenSourceCount = homeViewModel.expertModeHiddenSources,
-                onShowHiddenSources = homeViewModel::revealHiddenExpertModeSources,
-                onDismiss = homeViewModel::cleanupExpertModeData,
-                onProceed = homeViewModel::proceedExpertMode
-            )
-
-            // Raised over the selection, so closing it puts the user back in the dialog with the
-            // offending option still there rather than dropping them out of the flow entirely
-            homeViewModel.expertModeUnreadablePaths.takeIf { it.isNotEmpty() }?.let { failures ->
-                UnusableOptionPathsDialog(
-                    failures = failures,
-                    onRetryAfterPermission = { homeViewModel.proceedExpertMode() },
-                    canClearPaths = true,
-                    onClearPaths = { homeViewModel.clearExpertModeUnreadablePaths() },
-                    onDismiss = { homeViewModel.dismissExpertModeUnreadablePaths() }
-                )
-            }
-
-            homeViewModel.expertModeCopy.targetBundleUid?.let { targetUid ->
-                val selectedApp = homeViewModel.expertModeSelectedApp ?: return@let
-                val targetBundle = homeViewModel.expertModeBundles.firstOrNull { it.uid == targetUid }
-                    ?: return@let
-                val appDisplayName = targetBundle.displayName ?: selectedApp.packageName
-                CopySelectionFromBundleDialog(
-                    target = CopySelectionTarget(
-                        packageName = selectedApp.packageName,
-                        bundleUid = targetUid,
-                        bundleName = targetBundle.name,
-                        appDisplayName = appDisplayName
-                    ),
-                    candidates = homeViewModel.expertModeCopy.candidates,
-                    onConfirm = { homeViewModel.applyExpertModeCopy(it) },
-                    onDismiss = { homeViewModel.expertModeCopy.close() }
-                )
-            }
-        }
-    }
-
-    // Replacing the file of a local source keeps its uid, so the patch selection and options
-    // stay attached instead of being stranded on a freshly added second source
-    val openLocalBundleUpdatePicker = rememberAdaptiveFilePicker(
-        mimeTypes = MPP_FILE_MIME_TYPES,
-        onResult = { uri ->
-            val uid = homeViewModel.localBundleUpdateUid
-            homeViewModel.localBundleUpdateUid = null
-            if (uri != null && uid != null) homeViewModel.updateLocalSource(uid, uri)
-        }
-    )
-
-    // Bundle management sheet
-    if (homeViewModel.showBundleManagementSheet) {
-        BundleManagementSheet(
-            onDismissRequest = { homeViewModel.showBundleManagementSheet = false },
-            // The sheet stays under the dialog, so nothing shows through while it opens
-            onAddSource = { homeViewModel.showAddSourceDialog = true },
-            onDelete = { bundle ->
-                scope.launch {
-                    homeViewModel.patchBundleRepository.remove(bundle)
-                }
-            },
-            onDisable = { bundle ->
-                scope.launch {
-                    homeViewModel.patchBundleRepository.disable(bundle)
-                }
-            },
-            onUpdate = { bundle ->
-                if (bundle is RemotePatchBundle) {
-                    scope.launch {
-                        // A source that failed to load may hold a broken jar of the current version,
-                        // which a plain version check would keep
-                        homeViewModel.patchBundleRepository.update(
-                            bundle,
-                            force = bundle.state is PatchBundleSource.State.Failed,
-                            showToast = true
-                        )
-                    }
-                } else {
-                    homeViewModel.localBundleUpdateUid = bundle.uid
-                    openLocalBundleUpdatePicker()
-                }
-            },
-            onRename = { bundle ->
-                homeViewModel.bundleToRename = bundle
-                homeViewModel.showRenameBundleDialog = true
-            },
-            onReorder = { orderedUids ->
-                scope.launch {
-                    homeViewModel.patchBundleRepository.reorderBundles(orderedUids)
-                }
-            },
-            globalOnboardingState = globalOnboardingState
-        )
     }
 
     // Add bundle dialog
-    if (homeViewModel.showAddSourceDialog) {
+    DialogHost(visible = homeViewModel.showAddSourceDialog) {
         AddSourceDialog(
             onDismiss = {
                 homeViewModel.showAddSourceDialog = false
@@ -531,13 +107,13 @@ fun HomeDialogs(
             },
             onRemoteSubmit = { urls, chooseApps ->
                 homeViewModel.showAddSourceDialog = false
-                homeViewModel.showBundleManagementSheet = false
                 homeViewModel.createRemoteSources(urls, chooseApps)
+                onSourceAdded()
             },
             onLocalSubmit = { chooseApps ->
                 homeViewModel.showAddSourceDialog = false
-                homeViewModel.showBundleManagementSheet = false
                 homeViewModel.importPickedBundles(chooseApps)
+                onSourceAdded()
             },
             onLocalPick = openBundlePicker,
             onLocalRemove = homeViewModel::unpickBundle,
@@ -546,41 +122,53 @@ fun HomeDialogs(
         )
     }
 
-    // Deep link: Add bundle confirmation dialog
-    homeViewModel.deepLinkPendingBundle?.let { bundle ->
+    // Deep link: Add source confirmation dialog
+    DialogHost(target = homeViewModel.deepLinkPendingSource) { source ->
+        val sourceMuteRepository: SourceMuteRepository = koinInject()
+        val appMetadata by homeViewModel.patchBundleRepository.allAppMetadata.collectAsStateWithLifecycle()
+        val keptFrom by sourceMuteRepository.mutedSources.collectAsStateWithLifecycle(emptyMap())
+        // Read again as the sources load, since a link that starts the app arrives before they do
+        val sources by homeViewModel.patchBundleRepository.sources.collectAsStateWithLifecycle()
+        val existingUid = remember(source, sources) {
+            homeViewModel.patchBundleRepository.existingSourceUid(source.url)
+        }
+        val app = source.scope as? SourceScope.App
         DeepLinkAddSourceDialog(
-            url = bundle.url,
-            name = bundle.name,
-            onConfirm = { chooseApps -> homeViewModel.confirmDeepLinkBundle(chooseApps) },
-            onDismiss = { homeViewModel.dismissDeepLinkBundle() }
+            url = source.url,
+            name = source.name,
+            scope = source.scope,
+            // The source is not read yet, so a name another source knows wins over the one the link gives
+            appName = app?.let { appMetadata[it.packageName]?.displayName ?: it.appName ?: it.packageName },
+            appGradientColors = app?.let { appMetadata[it.packageName]?.gradientColors },
+            isAdded = existingUid != null,
+            isAppLeftOut = app != null && existingUid != null && existingUid in keptFrom[app.packageName].orEmpty(),
+            onConfirm = { chooseApps -> homeViewModel.confirmDeepLinkSource(chooseApps) },
+            onDismiss = { homeViewModel.dismissDeepLinkSource() }
         )
     }
 
-    // .mpp file opened from file manager: Add bundle confirmation dialog
-    homeViewModel.pendingMppUri?.let {
+    // .mpp file opened from file manager: Add or update bundle confirmation dialog
+    DialogHost(target = homeViewModel.pendingMpp) { pending ->
         MppImportDialog(
-            manifest = homeViewModel.pendingMppManifest,
-            fileName = homeViewModel.pendingMppFileName,
+            manifest = pending.manifest,
+            fileName = pending.fileName,
+            check = pending.check,
             onConfirm = { chooseApps -> homeViewModel.confirmMppImport(chooseApps) },
             onDismiss = { homeViewModel.dismissMppImport() }
         )
     }
 
     // App list of a source just added with "Choose apps" on
-    homeViewModel.sourceAppsDialogUid?.let { uid ->
-        val sources by homeViewModel.patchBundleRepository.sources.collectAsStateWithLifecycle()
-        val source = sources.firstOrNull { it.uid == uid }
-        if (source != null) {
-            SourceAppsDialog(
-                onDismissRequest = homeViewModel::dismissSourceApps,
-                src = source
-            )
-        }
+    val sources by homeViewModel.patchBundleRepository.sources.collectAsStateWithLifecycle()
+    DialogHost(target = sources.firstOrNull { it.uid == homeViewModel.sourceAppsDialogUid }) { source ->
+        SourceAppsDialog(
+            onDismissRequest = homeViewModel::dismissSourceApps,
+            src = source
+        )
     }
 
     // Rename bundle dialog
-    if (homeViewModel.showRenameBundleDialog && homeViewModel.bundleToRename != null) {
-        val bundle = homeViewModel.bundleToRename!!
+    DialogHost(target = homeViewModel.bundleToRename?.takeIf { homeViewModel.showRenameBundleDialog }) { bundle ->
         val duplicateNameError = stringResource(R.string.sources_dialog_duplicate_name_error)
         val missingBundleError = stringResource(R.string.sources_dialog_missing_error)
 
@@ -603,10 +191,10 @@ fun HomeDialogs(
                             homeViewModel.bundleToRename = null
                         }
                         PatchBundleRepository.DisplayNameUpdateResult.DUPLICATE -> {
-                            context.toast(duplicateNameError)
+                            messages.show(duplicateNameError)
                         }
                         PatchBundleRepository.DisplayNameUpdateResult.NOT_FOUND -> {
-                            context.toast(missingBundleError)
+                            messages.show(missingBundleError)
                         }
                     }
                 }
@@ -615,7 +203,7 @@ fun HomeDialogs(
     }
 
     // Patches preview dialog (swipe-right on home app card)
-    patchesItem.value?.let { item ->
+    DialogHost(target = patchesItem.value) { item ->
         // Cards without bundle metadata were patched via "Other apps" with universal patches -
         // show what was actually applied instead of an empty "available" list
         val isUniversalOnly = remember(item.packageName) {
@@ -649,11 +237,274 @@ fun HomeDialogs(
 }
 
 /**
+ * The [dialog] of the patch flow, or the app information it may have started from.
+ *
+ * @param onTrustApkDownloadHelpers Opens the settings where an installed helper is trusted.
+ */
+@Composable
+private fun DialogHostScope.PatchFlowDialog(
+    dialog: HomeDialog,
+    flow: PatchFlow,
+    homeViewModel: HomeViewModel,
+    storagePickerLauncher: () -> Unit,
+    apkDownloadHelpers: ApkDownloadHelperOffer,
+    onTrustApkDownloadHelpers: () -> Unit
+) {
+    // Held so a dialog leaves as it stood, color included, as the run is let go of while it closes
+    val session = held(flow.session)
+    val dismiss = flow::dismiss
+    // A file shared to the app starts the run without a session, so the app is named by package.
+    // Observed, as the sources may still be naming their apps when the first dialog opens
+    val appNames by homeViewModel.appDisplayNamesFlow.collectAsStateWithLifecycle()
+    fun appName(packageName: String) = session?.appName ?: flow.appNameFor(packageName, appNames)
+
+    when (dialog) {
+        is HomeDialog.AppInfo -> {
+            val installedAppInfoViewModel: InstalledAppInfoViewModel = koinViewModel(
+                key = "${dialog.packageName}_${dialog.token}",
+                parameters = { parametersOf(dialog.packageName) }
+            )
+            InstalledAppInfoDialog(
+                packageName = dialog.packageName,
+                onDismiss = flow::dismissInstalledAppInfo,
+                onTriggerPatchFlow = flow::showPatchDialog,
+                homeViewModel = homeViewModel,
+                viewModel = installedAppInfoViewModel
+            )
+        }
+
+        // Dialog 1: APK availability
+        HomeDialog.ApkAvailability -> ApkAvailabilityDialog(
+            appName = (session ?: return).appName,
+            packageName = session.packageName,
+            recommendedVersion = session.recommendedVersion,
+            compatibleVersions = session.compatibleVersions,
+            selectedDownloadVersion = session.selectedVersion,
+            onVersionSelect = flow::selectVersion,
+            usingMountInstall = flow.usingMountInstall,
+            stockAppInstalled = session.stockAppInstalled == true,
+            isExpertMode = homeViewModel.prefs.useExpertMode.getBlocking(),
+            savedApkInfo = session.savedApk,
+            installedApkInfo = session.installedApk,
+            installedAppVersion = session.installedVersion,
+            hiddenSourceCount = session.hiddenSources,
+            onDismiss = flow::backFromApkSource,
+            onHaveApk = storagePickerLauncher,
+            onNeedApk = { apkDownloadHelpers.showInstructions(flow::showDownloadInstructions) },
+            onUseSaved = flow::handleSavedApkSelection,
+            onUseInstalled = flow::handleInstalledApkSelection
+        )
+
+        // Dialog 2: Download instructions
+        HomeDialog.DownloadInstructions -> {
+            session ?: return
+            // Resolve download button color: bundle declared → default
+            val bundleMetadata by homeViewModel.bundleAppMetadataFlow.collectAsStateWithLifecycle()
+            val metadata = session.packageName?.let { bundleMetadata[it] }
+
+            DownloadInstructionsDialog(
+                appName = session.appName,
+                packageName = session.packageName,
+                downloadUrl = session.downloadUrl,
+                requestedVersion = session.requestedVersion,
+                usingMountInstall = flow.usingMountInstall,
+                stockAppInstalled = session.stockAppInstalled == true,
+                downloadColor = metadata?.downloadColor ?: KnownApps.DEFAULT_DOWNLOAD_COLOR,
+                // True when the patch bundle explicitly requires a split archive (APKM/APKS/XAPK).
+                // In that case the APKMirror button label becomes "DOWNLOAD APK BUNDLE" to match the site.
+                isApkBundle = metadata?.apkFileType?.isApk == false,
+                onDismiss = flow::backFromApkSource,
+                onOpenApkDownloadHelper = apkDownloadHelpers.open,
+                onTrustApkDownloadHelpers = onTrustApkDownloadHelpers.takeIf { apkDownloadHelpers.hasUntrusted },
+                onContinue = flow::handleDownloadInstructionsContinue
+            )
+        }
+
+        // Dialog 3: File picker prompt
+        HomeDialog.FilePickerPrompt -> {
+            session ?: return
+            val isOtherApps = session.packageName == null
+
+            FilePickerPromptDialog(
+                appName = session.appName,
+                packageName = session.packageName,
+                isOtherApps = isOtherApps,
+                isLoadingInstalledApps = flow.loadingInstalledApps,
+                onDismiss = flow::backFromApkSource,
+                onOpenFilePicker = storagePickerLauncher,
+                onUseInstalledApp = if (isOtherApps) flow::loadInstalledAppsForPicker else null
+            )
+        }
+
+        // Dialog 3.5: Installed app picker (universal patches)
+        HomeDialog.InstalledAppPicker -> InstalledAppPickerDialog(
+            items = flow.installedAppsForPicker,
+            isLoading = flow.loadingInstalledApps,
+            onDismiss = flow::backFromApkSource,
+            onSelect = flow::handleInstalledAppPickerSelection
+        )
+
+        is HomeDialog.UnsupportedVersion -> {
+            val dialogState = dialog.state
+            UnsupportedVersionWarningDialog(
+                packageName = dialogState.packageName,
+                version = dialogState.version,
+                versionCode = dialogState.versionCode,
+                recommendedVersion = dialogState.recommendedVersion,
+                compatibleVersions = dialogState.compatibleVersions,
+                isExperimental = dialogState.isExperimental,
+                isExpertMode = homeViewModel.prefs.useExpertMode.getBlocking(),
+                onDismiss = dismiss,
+                onProceed = { flow.proceedDespiteVersion(dialog) }
+            )
+        }
+
+        is HomeDialog.ExperimentalVersion -> ExperimentalVersionWarningDialog(
+            appName = appName(dialog.state.packageName),
+            packageName = dialog.state.packageName,
+            onDismiss = dismiss,
+            onProceed = { flow.proceedDespiteVersion(dialog) }
+        )
+
+        is HomeDialog.WrongPackage -> WrongPackageDialog(
+            expectedPackage = dialog.state.expectedPackage,
+            actualPackage = dialog.state.actualPackage,
+            onDismiss = dismiss
+        )
+
+        // Shown when every declared version requires a higher SDK
+        is HomeDialog.NoCompatibleVersions -> NoCompatibleVersionsDialog(
+            appName = appName(dialog.packageName),
+            packageName = dialog.packageName,
+            onDismiss = dismiss
+        )
+
+        // Shown when user picks a split APK for an app that prefers full APK
+        is HomeDialog.SplitApkWarning -> SplitApkWarningDialog(
+            packageName = dialog.packageName,
+            onProceed = flow::proceedWithSplitApk,
+            onPickAnother = storagePickerLauncher,
+            onDismiss = dismiss
+        )
+
+        // Shown when the APK is not signed by the expected certificate
+        is HomeDialog.InvalidSignature -> InvalidSignatureDialog(
+            appName = dialog.state.appName,
+            packageName = dialog.state.packageName,
+            onPickAnother = storagePickerLauncher,
+            onProceed = flow::proceedIgnoringSignature,
+            onDismiss = dismiss
+        )
+
+        HomeDialog.MeteredPatching -> MeteredPatchingDialog(
+            packageName = session?.packageName,
+            onDismiss = dismiss,
+            onRefreshAndPatch = flow::refreshBundlesAndContinuePatching,
+            onPatchAnyway = flow::dismissMeteredPatchingDialogAndProceed
+        )
+
+        is HomeDialog.LowDiskSpace -> LowDiskSpaceDialog(
+            packageName = session?.packageName,
+            freeBytes = dialog.freeBytes,
+            thresholdBytes = LOW_DISK_SPACE_THRESHOLD_BYTES,
+            onDismiss = dismiss,
+            onPatchAnyway = flow::dismissLowDiskSpaceDialogAndProceed
+        )
+
+        // Shown in simple mode when 2+ bundles have patches for the same app
+        is HomeDialog.SimpleBundleSelect -> SimpleBundleSelectDialog(
+            packageName = dialog.packageName,
+            choices = dialog.candidates,
+            versions = homeViewModel.compatibleVersions[dialog.packageName].orEmpty(),
+            onSelect = { uid, rememberChoice -> flow.proceedWithSelectedBundle(dialog, uid, rememberChoice) },
+            onDismiss = dismiss
+        )
+
+        // The dialogs raised over the selection wear the app's color, as the selection does
+        HomeDialog.ExpertMode -> {
+            val selection = flow.expertMode
+            val selectedApp = held(selection.app) ?: return
+            ProvideAccent(rememberAppColor(selectedApp.packageName)) {
+                ExpertModeDialog(
+                    packageName = selectedApp.packageName,
+                    appName = appName(selectedApp.packageName),
+                    appIcon = flow.expertModeAppIcon,
+                    selection = ExpertPatchSelection(
+                        allPatchesInfo = selection.allPatchesInfo,
+                        options = selection.options,
+                        totalSelectedCount = selection.totalSelectedCount,
+                        newPatches = selection.newPatches,
+                        savedPatches = selection.savedPatches,
+                        lockStateOf = selection::lockState,
+                        holdsUniversalPatches = selection::selectAllHoldsUniversal
+                    ),
+                    hasMultipleBundles = selection.hasMultipleBundles,
+                    patchActions = ExpertPatchActions(
+                        onPatchToggle = selection::toggle,
+                        onSelectAll = selection::selectAll,
+                        onDeselectAll = selection::deselectAll,
+                        onResetToDefault = selection::resetToDefault,
+                        onRestoreSaved = selection::restoreSaved,
+                        onCopyFromBundle = selection::openCopy,
+                        onOptionChange = selection::updateOption,
+                        onResetOptions = selection::resetOptions
+                    ),
+                    usesPrerelease = { homeViewModel.getPatchSource(it)?.usesPrerelease == true },
+                    hiddenSourceCount = selection.hiddenSources,
+                    onShowHiddenSources = selection::revealHiddenSources,
+                    onDismiss = flow::dismissExpertMode,
+                    onProceed = flow::proceedExpertMode
+                )
+
+                // Raised over the selection, so closing it puts the user back in the dialog with the
+                // offending option still there rather than dropping them out of the flow entirely
+                DialogHost(target = selection.unreadablePaths.takeIf { it.isNotEmpty() }) { failures ->
+                    UnusableOptionPathsDialog(
+                        failures = failures,
+                        onRetryAfterPermission = flow::proceedExpertMode,
+                        canClearPaths = true,
+                        onClearPaths = flow::proceedExpertModeWithoutUnreadablePaths,
+                        onDismiss = selection::dismissUnreadablePaths
+                    )
+                }
+
+                val copyTarget = selection.bundles
+                    .firstOrNull { it.uid == selection.copy.targetBundleUid }
+                    ?.let { targetBundle ->
+                        CopySelectionTarget(
+                            packageName = selectedApp.packageName,
+                            bundleUid = targetBundle.uid,
+                            bundleName = targetBundle.name,
+                            appDisplayName = targetBundle.displayName ?: selectedApp.packageName
+                        )
+                    }
+                DialogHost(target = copyTarget) { target ->
+                    CopySelectionFromBundleDialog(
+                        target = target,
+                        candidates = selection.copy.candidates,
+                        onConfirm = selection::applyCopy,
+                        onDismiss = selection.copy::close
+                    )
+                }
+            }
+        }
+
+        // Asked on a rooted device before patching, as the patch mode decides which patches apply
+        HomeDialog.PrePatchInstaller -> PrePatchInstallerDialog(
+            packageName = session?.packageName,
+            onSelectMount = { flow.resolvePrePatchInstallerChoice(useMount = true) },
+            onSelectStandard = { flow.resolvePrePatchInstallerChoice(useMount = false) },
+            onDismiss = dismiss
+        )
+    }
+}
+
+/**
  * Warning dialog shown before patching starts when the device has less free storage than
  * [thresholdBytes].
  */
 @Composable
-fun LowDiskSpaceDialog(
+fun DialogHostScope.LowDiskSpaceDialog(
     packageName: String?,
     freeBytes: Long,
     thresholdBytes: Long,
@@ -681,13 +532,13 @@ fun LowDiskSpaceDialog(
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding),
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Notice(
                 text = stringResource(R.string.home_low_disk_space_dialog_warning),
                 tone = SemanticTone.Warning,
-                icon = Icons.Outlined.Warning
+                icon = MaterialSymbols.Rounded.Warning
             )
         }
     }
@@ -698,7 +549,7 @@ fun LowDiskSpaceDialog(
  * that has not been downloaded yet because the device is on a metered (mobile data).
  */
 @Composable
-fun MeteredPatchingDialog(
+fun DialogHostScope.MeteredPatchingDialog(
     packageName: String?,
     onDismiss: () -> Unit,
     onRefreshAndPatch: () -> Unit,
@@ -712,13 +563,13 @@ fun MeteredPatchingDialog(
         footer = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
             ) {
                 AppDialogButton(
                     text = stringResource(R.string.home_outdated_patches_dialog_update_and_patch),
                     onClick = onRefreshAndPatch,
                     modifier = Modifier.fillMaxWidth(),
-                    icon = Icons.Outlined.SystemUpdateAlt
+                    icon = MaterialSymbols.Rounded.System_update_alt
                 )
                 AppDialogButtonRow(
                     primaryText = stringResource(R.string.home_dialog_unsupported_version_dialog_proceed),
@@ -732,283 +583,417 @@ fun MeteredPatchingDialog(
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding),
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Notice(
                 text = stringResource(R.string.home_outdated_patches_dialog_warning),
                 tone = SemanticTone.Warning,
-                icon = Icons.Outlined.Warning
+                icon = MaterialSymbols.Rounded.Warning
             )
         }
     }
 }
 
 /**
- * Confirmation dialog shown when the app is opened via a deep link to add a patch bundle.
- * Displays the URL (and optional name) and asks the user to confirm before adding.
+ * Asks before adding a source handed over from outside Morphe, or updating one, by a link or by
+ * a file opened in a file manager. Laid out like the result of a patching run: [icon] over
+ * [heading] and the [question], then [details] on what would be added.
+ *
+ * [offersChooseApps] asks under the details whether to open the app list once the source has
+ * loaded, for a source added whole. [warns] says to trust the source, which one already added was
+ * trusted for. [confirmText] and [confirmIcon] name what confirming does, adding by default.
  */
 @Composable
-fun DeepLinkAddSourceDialog(
-    url: String,
-    name: String?,
+private fun DialogHostScope.AddSourceConfirmDialog(
+    heading: String,
+    subheading: String?,
+    question: String,
+    icon: @Composable () -> Unit,
+    details: (@Composable () -> Unit)?,
+    offersChooseApps: Boolean,
+    warns: Boolean,
     onConfirm: (chooseApps: Boolean) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    confirmText: String = stringResource(R.string.add),
+    confirmIcon: ImageVector = MaterialSymbols.Rounded.Extension,
+    confirmEnabled: Boolean = true
 ) {
     var chooseApps by rememberSaveable { mutableStateOf(false) }
 
     AppDialog(
         onDismissRequest = onDismiss,
-        title = stringResource(R.string.deep_link_add_source_title),
-        padding = DialogPadding.Compact,
         footer = {
             AppDialogButtonRow(
-                primaryText = stringResource(R.string.add),
+                primaryText = confirmText,
                 onPrimaryClick = { onConfirm(chooseApps) },
-                primaryIcon = Icons.Outlined.Extension,
+                primaryIcon = confirmIcon,
+                primaryEnabled = confirmEnabled,
                 secondaryText = stringResource(android.R.string.cancel),
                 onSecondaryClick = onDismiss
             )
         }
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding),
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge),
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
         ) {
-            val avatarUrl = remember(url) {
-                runCatching {
-                    val uri = URI(url)
-                    val owner = uri.path.trim('/').split('/').firstOrNull()
-                    val isGitLab = uri.host?.contains("gitlab.com", ignoreCase = true) == true
-                    if (owner != null) {
-                        if (isGitLab) "https://unavatar.io/gitlab/$owner"
-                        else "https://github.com/$owner.png"
-                    } else null
-                }.getOrNull()
-            }
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(56.dp)
+            icon()
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraSmall),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                if (avatarUrl != null) {
-                    RemoteAvatar(
-                        url = avatarUrl,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Outlined.Extension,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp)
+                Text(
+                    text = heading,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = dialogTextColor(),
+                    textAlign = TextAlign.Center
+                )
+                subheading?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = dialogSecondaryTextColor(),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
-            }
-
-            Text(
-                text = stringResource(R.string.deep_link_add_source_message),
-                style = MaterialTheme.typography.bodyLarge,
-                color = dialogSecondaryTextColor(),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // Bundle details card
-            LabeledSection(title = name) {
                 Text(
-                    text = url,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontFamily = FontFamily.Monospace,
+                    text = question,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = dialogSecondaryTextColor(),
-                    modifier = Modifier.padding(horizontal = Defaults.ContentPadding)
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = Defaults.SpaceSmall)
                 )
             }
 
-            Notice(
-                text = stringResource(R.string.deep_link_add_source_warning),
-                tone = SemanticTone.Warning,
-                icon = Icons.Outlined.Warning
-            )
+            details?.invoke()
 
-            ChooseAppsToggle(
-                checked = chooseApps,
-                onCheckedChange = { chooseApps = it },
-                modifier = Modifier.fillMaxWidth()
+            // A choice about what happens next, so it stays out of what is added
+            if (offersChooseApps) {
+                SelectionCheckRow(
+                    text = stringResource(R.string.sources_dialog_choose_apps_description),
+                    checked = chooseApps,
+                    onCheckedChange = { chooseApps = it }
+                )
+            }
+
+            if (warns) {
+                // A line rather than a card, so it reads as a reminder and not as a second question
+                val color = SemanticTone.Warning.accent
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Defaults.SpaceSmall)
+                ) {
+                    Icon(
+                        imageVector = MaterialSymbols.Rounded.Warning,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.deep_link_add_source_warning),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = color
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Size of the source's icon, the one a patching run's result gives the app's on a phone. */
+private val SourceIconSize = 112.dp
+
+/** Size of an app's icon in a row of what a link adds. */
+private val SourceRowIconSize = 40.dp
+
+/**
+ * [icon] on a disc, covered by the picture at [pictureUrl], or at [fallbackPictureUrl] where that one
+ * fails, once it loads, with [mark] cut into its corner the way the result of a patching run marks
+ * the app's icon.
+ */
+@Composable
+private fun SourceIcon(
+    icon: ImageVector,
+    mark: ImageVector,
+    markColor: Color,
+    pictureUrl: String? = null,
+    fallbackPictureUrl: String? = null
+) {
+    MarkedIcon(
+        mark = mark,
+        markColor = markColor,
+        iconSize = SourceIconSize,
+        modifier = Modifier.padding(bottom = IconMarkOverhang)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+        ) {
+            // Stands in until the picture loads, and for good when it does not
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.fillMaxSize(0.45f)
+            )
+            // Opaque, so an avatar with a transparent background does not show the host through it
+            pictureUrl?.let {
+                RemoteAvatar(
+                    url = it,
+                    fallbackUrl = fallbackPictureUrl,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Confirmation dialog shown when the app is opened via a deep link to add a patch source, headed
+ * by the repository under its owner's avatar as on the page the link comes from.
+ *
+ * A link that narrows the source by [scope] lists what it adds instead of offering to choose: the
+ * app named [appName], in [appGradientColors] while its icon is not on the device, or the universal
+ * patches. From a source that [isAdded] already, that app is all there is left to do, and
+ * [isAppLeftOut] says whether it needs bringing back.
+ */
+@Composable
+fun DialogHostScope.DeepLinkAddSourceDialog(
+    url: String,
+    name: String?,
+    scope: SourceScope,
+    appName: String?,
+    appGradientColors: List<Color>?,
+    isAdded: Boolean,
+    isAppLeftOut: Boolean,
+    onConfirm: (chooseApps: Boolean) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val bringsAppBack = scope is SourceScope.App && isAdded
+    // Links reach here for a repository only, which reads as owner/repo
+    val repository = remoteLinkTitle(url)
+    val patchBundleRepository: PatchBundleRepository = koinInject()
+    // The picture a source ships beside its bundle, as an added source shows it
+    val bundlePicture = remember(url) {
+        runCatching { patchBundleRepository.normalizeRemoteBundleUrl(url) }.getOrNull()?.let(::bundleAvatarUrl)
+    }
+
+    AddSourceConfirmDialog(
+        heading = name ?: repository.substringAfter('/'),
+        subheading = url.bareLink().substringBefore('/') + "/" + repository.substringBefore('/'),
+        question = stringResource(
+            if (bringsAppBack) R.string.deep_link_add_source_app_back else R.string.deep_link_add_source_message
+        ),
+        icon = {
+            SourceIcon(
+                icon = remoteLinkIcon(url),
+                mark = if (isAdded) MaterialSymbols.Rounded.Check else remoteLinkIcon(url),
+                markColor = if (isAdded) SemanticTone.Success.accent else MaterialTheme.colorScheme.inverseSurface,
+                pictureUrl = bundlePicture ?: ownerAvatarUrl(url),
+                fallbackPictureUrl = ownerAvatarUrl(url).takeIf { bundlePicture != null }
+            )
+        },
+        // The header names the source, so only what the link narrows it to is listed
+        details = when (scope) {
+            SourceScope.Whole -> null
+            is SourceScope.App -> {
+                {
+                    DeepLinkScopeRow(
+                        leadingContent = {
+                            AppIcon(
+                                packageName = scope.packageName,
+                                contentDescription = null,
+                                modifier = Modifier.size(SourceRowIconSize),
+                                placeholderGradientColors = appGradientColors
+                                    ?: AppCardColorDefaults.defaultGradientColors
+                            )
+                        },
+                        title = appName ?: scope.packageName,
+                        description = stringResource(
+                            when {
+                                !isAdded -> R.string.deep_link_add_source_only_app
+                                isAppLeftOut -> R.string.sources_apps_left_out
+                                else -> R.string.sources_apps_brought
+                            }
+                        )
+                    )
+                }
+            }
+            // Universal patches are never left out, so an added source brings them already
+            SourceScope.Universal -> {
+                {
+                    DeepLinkScopeRow(
+                        leadingContent = {
+                            Icon(
+                                imageVector = MaterialSymbols.Rounded.Public,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(SourceRowIconSize)
+                            )
+                        },
+                        title = stringResource(R.string.expert_mode_universal_patches),
+                        description = stringResource(
+                            if (isAdded) R.string.sources_apps_brought else R.string.deep_link_add_source_only_universal
+                        )
+                    )
+                }
+            }
+        },
+        offersChooseApps = scope == SourceScope.Whole,
+        warns = !bringsAppBack,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss
+    )
+}
+
+/** The one row a narrowed deep link lists, for the part of the source it adds. */
+@Composable
+private fun DeepLinkScopeRow(
+    leadingContent: @Composable () -> Unit,
+    title: String,
+    description: String
+) {
+    SettingsGroup {
+        SettingsItemCard(onClick = null) {
+            IconTextRow(
+                modifier = Modifier.padding(Defaults.SpaceLarge),
+                leadingContent = leadingContent,
+                title = title,
+                description = description
             )
         }
     }
 }
 
 /**
- * Confirmation dialog shown when a .mpp file is opened from a file manager.
+ * Confirmation dialog shown when a .mpp file is opened from a file manager, headed by the name its
+ * manifest gives, or the file's while it is read.
+ *
+ * As in the add source dialog, a file that [check] finds to be another version of a local source
+ * updates it, and one already added has nothing to confirm.
  */
 @Composable
-fun MppImportDialog(
+fun DialogHostScope.MppImportDialog(
     manifest: MppManifest?,
     fileName: String?,
+    check: LocalFileCheck?,
     onConfirm: (chooseApps: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var chooseApps by rememberSaveable { mutableStateOf(false) }
-
-    AppDialog(
-        onDismissRequest = onDismiss,
-        title = stringResource(R.string.deep_link_add_source_title),
-        description = stringResource(R.string.deep_link_add_source_message),
-        padding = DialogPadding.Compact,
-        footer = {
-            AppDialogButtonRow(
-                primaryText = stringResource(R.string.add),
-                onPrimaryClick = { onConfirm(chooseApps) },
-                primaryIcon = Icons.Outlined.Extension,
-                secondaryText = stringResource(android.R.string.cancel),
-                onSecondaryClick = onDismiss
-            )
+    val versionLabel = stringResource(R.string.version)
+    val authorLabel = stringResource(R.string.author)
+    val sourceLabel = stringResource(R.string.patcher_field_source)
+    val fileLabel = stringResource(R.string.file)
+    val rows = buildList<@Composable () -> Unit> {
+        manifest?.version?.let { version ->
+            add { InfoRow(icon = MaterialSymbols.Rounded.Update, label = versionLabel, value = version.withVersionPrefix()) }
         }
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPadding),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            // Bundle details card, without a body when the name is all there is
-            val displayName = manifest?.name ?: fileName
-            val hasDetails = manifest?.description != null || manifest?.version != null ||
-                    manifest?.author != null || manifest?.source != null ||
-                    (fileName != null && manifest?.name != null)
-            SectionCard(accentColor = LocalAccent.current) {
-                Column {
-                    if (displayName != null) CardHeader(title = displayName)
-                    if (hasDetails) Column(
-                        modifier = Modifier.padding(Defaults.ContentPadding),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        // Description
-                        manifest.description?.let {
-                            Text(
-                                text = it,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = dialogSecondaryTextColor(),
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+        manifest?.author?.let { author ->
+            add { InfoRow(icon = MaterialSymbols.Rounded.Person, label = authorLabel, value = author) }
+        }
+        manifest?.source?.let { source ->
+            add { InfoRow(icon = MaterialSymbols.Rounded.Folder_code, label = sourceLabel, value = source.bareLink()) }
+        }
+        // The file only tells something the heading does not once the manifest names the bundle
+        if (fileName != null && manifest?.name != null) add {
+            InfoRow(icon = MaterialSymbols.Rounded.Description, label = fileLabel, value = fileName)
+        }
+    }
 
-                        // Metadata row: version, author
-                        if (manifest.version != null || manifest.author != null) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                manifest.version?.let { version ->
-                                    StatusBadge(
-                                        text = "v$version",
-                                        icon = Icons.Outlined.NewReleases,
-                                        tone = SemanticTone.Primary
-                                    )
-                                }
-                                manifest.author?.let { author ->
-                                    StatusBadge(
-                                        text = author,
-                                        icon = Icons.Outlined.Person,
-                                        tone = SemanticTone.Neutral
-                                    )
-                                }
-                            }
-                        }
+    val isUpdate = check is LocalFileCheck.Update
+    val isAdded = check == LocalFileCheck.Duplicate
 
-                        // Source URL
-                        manifest.source?.let { source ->
-                            Text(
-                                text = source,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = FontFamily.Monospace,
-                                color = dialogSecondaryTextColor(),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        // Filename (always shown as secondary info)
-                        if (fileName != null && manifest.name != null) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Description,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Text(
-                                    text = fileName,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = dialogSecondaryTextColor(),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
+    AddSourceConfirmDialog(
+        heading = manifest?.name ?: fileName ?: stringResource(R.string.deep_link_add_source_title),
+        subheading = manifest?.description,
+        question = when (check) {
+            is LocalFileCheck.Update -> stringResource(R.string.mpp_import_update_message, check.title)
+            LocalFileCheck.Duplicate -> stringResource(R.string.sources_management_already_exists)
+            LocalFileCheck.NotBundle -> stringResource(R.string.mpp_import_unreadable)
+            else -> stringResource(R.string.deep_link_add_source_message)
+        },
+        icon = {
+            SourceIcon(
+                icon = MaterialSymbols.Rounded.Extension,
+                mark = when {
+                    isUpdate -> MaterialSymbols.Rounded.Update
+                    isAdded -> MaterialSymbols.Rounded.Check
+                    else -> MaterialSymbols.Rounded.Draft.autoMirrored
+                },
+                markColor = if (isAdded) SemanticTone.Success.accent else MaterialTheme.colorScheme.inverseSurface
+            )
+        },
+        details = if (rows.isEmpty()) null else {
+            {
+                InfoPanel {
+                    rows.forEachIndexed { index, row ->
+                        if (index > 0) SettingsDivider()
+                        row()
                     }
                 }
             }
-
-            Notice(
-                text = stringResource(R.string.deep_link_add_source_warning),
-                tone = SemanticTone.Warning,
-                icon = Icons.Outlined.Warning
-            )
-
-            ChooseAppsToggle(
-                checked = chooseApps,
-                onCheckedChange = { chooseApps = it },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
+        },
+        // Shown while the file is read too, as most files opened add a source
+        offersChooseApps = check == null || check is LocalFileCheck.New,
+        warns = !isAdded,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+        confirmText = stringResource(if (isUpdate) R.string.update else R.string.add),
+        confirmIcon = if (isUpdate) MaterialSymbols.Rounded.Update else MaterialSymbols.Rounded.Extension,
+        confirmEnabled = check is LocalFileCheck.New || isUpdate
+    )
 }
-
-/** A single selectable bundle entry for [SimpleBundleSelectDialog]. */
-data class SimpleBundleCandidate(
-    val uid: Int,
-    val displayTitle: String,
-    val patchCount: Int,
-    val recommendedVersion: String? = null,
-    val patchVersion: String? = null,
-    val sourceType: BundleSourceType? = null
-)
 
 /**
  * Dialog shown in Simple mode when 2+ patch sources have patches for the selected app.
  * Lets the user pick exactly one source to apply.
  *
- * [canRemember] offers to settle the question for this app rather than only for this run, which
- * the caller answers by keeping the app from the sources that were turned down. Callers picking a
- * source for one run of their own leave it off.
+ * The remember option settles the question for this app rather than only for this run, which the
+ * caller answers by keeping the app from the sources that were turned down.
+ *
+ * @param choices Each source on offer with the patches it would apply.
+ * @param versions The versions the sources cover, which tell each source's recommended one.
+ * @param initiallySelected The source picked when the dialog opens, the first one otherwise.
  */
 @Composable
-fun SimpleBundleSelectDialog(
+fun DialogHostScope.SimpleBundleSelectDialog(
     packageName: String?,
-    candidates: List<SimpleBundleCandidate>,
+    choices: List<Pair<PatchBundleInfo.Scoped, Set<String>>>,
+    versions: List<BundledAppTarget>,
     onSelect: (uid: Int, rememberChoice: Boolean) -> Unit,
     onDismiss: () -> Unit,
-    canRemember: Boolean = false
+    initiallySelected: Int? = null
 ) {
-    val selected = remember { mutableStateOf(candidates.firstOrNull()?.uid) }
-    val rememberChoice = remember { mutableStateOf(false) }
+    // Keyed by app: a dialog reopened for another one starts over rather than offer a source it lacks
+    val selected = remember(packageName) {
+        mutableStateOf(
+            initiallySelected?.takeIf { uid -> choices.any { (bundle, _) -> bundle.uid == uid } }
+                ?: choices.firstOrNull()?.first?.uid
+        )
+    }
+    val rememberChoice = remember(packageName) { mutableStateOf(false) }
     val sourcesByUid = rememberSourcesByUid()
+    val versionsBySource = remember(versions) { versions.groupBy { it.bundleUid } }
 
     AppDialog(
         onDismissRequest = onDismiss,
         accentColor = rememberAppColor(packageName),
         title = stringResource(R.string.home_simple_bundle_select_title),
-        padding = DialogPadding.Compact,
         footer = {
             AppDialogButtonRow(
                 primaryText = stringResource(R.string.continue_),
@@ -1019,34 +1004,32 @@ fun SimpleBundleSelectDialog(
             )
         }
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
-            modifier = Modifier
-                .fillMaxWidth()
-                .selectableGroup()
-        ) {
+        SettingsGroup(modifier = Modifier.selectableGroup()) {
             val preInstalledLabel = stringResource(R.string.sources_dialog_preinstalled)
             val remoteLabel = stringResource(R.string.sources_dialog_remote)
             val localLabel = stringResource(R.string.sources_dialog_local)
             val patchLabel = stringResource(R.string.patches)
             val recommendedVersionLabel = stringResource(R.string.home_recommended_version)
-            candidates.forEach { candidate ->
-                val isSelected = selected.value == candidate.uid
+            choices.forEach { (bundle, patches) ->
+                val isSelected = selected.value == bundle.uid
                 // Drawn and colored the way the source list draws it, so the source is recognized
                 // at a glance
-                val source = sourcesByUid[candidate.uid]
+                val source = sourcesByUid[bundle.uid]
                 val accentColor = source?.let { rememberBundleAccent(it) }
+                val displayTitle = source?.displayTitle ?: bundle.name
+                val sourceType = source?.sourceType
                 val patchCountText = pluralStringResource(
                     R.plurals.patch_count,
-                    candidate.patchCount,
-                    candidate.patchCount.toString()
+                    patches.size,
+                    patches.size.toString()
                 )
-                val patchVersionText = candidate.patchVersion
+                val patchVersionText = (source?.version ?: bundle.version)
                     ?.takeIf { it.isNotBlank() }
-                    ?.let { "$patchLabel v${it.removePrefix("v")}" }
-                val recommendedVersionText = candidate.recommendedVersion
+                    ?.let { "$patchLabel ${it.withVersionPrefix()}" }
+                val recommendedVersionText = versionsBySource[bundle.uid].orEmpty().recommended()
+                    ?.version
                     ?.let { "$recommendedVersionLabel v$it" }
-                val sourceTypeLabel = candidate.sourceType?.let { type ->
+                val sourceTypeLabel = sourceType?.let { type ->
                     when (type) {
                         BundleSourceType.PreInstalled -> preInstalledLabel
                         BundleSourceType.Remote -> remoteLabel
@@ -1054,7 +1037,7 @@ fun SimpleBundleSelectDialog(
                     }
                 }
                 val cardContentDescription = buildString {
-                    append(candidate.displayTitle)
+                    append(displayTitle)
                     sourceTypeLabel?.let { append(", $it") }
                     append(", $patchCountText")
                     patchVersionText?.let { append(", $it") }
@@ -1063,7 +1046,7 @@ fun SimpleBundleSelectDialog(
 
                 RadioSelectionCard(
                     selected = isSelected,
-                    onSelect = { selected.value = candidate.uid },
+                    onSelect = { selected.value = bundle.uid },
                     contentDescription = cardContentDescription,
                     accentColor = accentColor
                 ) {
@@ -1072,19 +1055,19 @@ fun SimpleBundleSelectDialog(
                     }
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraSmall)
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(Defaults.ContentPaddingSmall),
+                            horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = candidate.displayTitle,
+                                text = displayTitle,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = dialogTextColor(),
                                 modifier = Modifier.weight(1f, fill = false)
                             )
-                            candidate.sourceType?.let { type ->
+                            sourceType?.let { type ->
                                 BundleTypeBadge(type)
                             }
                         }
@@ -1113,17 +1096,15 @@ fun SimpleBundleSelectDialog(
         }
 
         // Outside the group above, since this answers what to do with the sources that were not
-        // picked rather than being one more of them
-        if (canRemember) {
-            // The cards above carry the same round indicator, so the two kinds of choice in
-            // this dialog are told apart by their shape rather than by two styles of box
-            SelectionCheckRow(
-                text = stringResource(R.string.home_simple_bundle_select_remember),
-                checked = rememberChoice.value,
-                onCheckedChange = { rememberChoice.value = it },
-                modifier = Modifier.padding(top = Defaults.ContentPaddingSmall)
-            )
-        }
+        // picked rather than being one more of them. The cards above carry the same round
+        // indicator, so the two kinds of choice in this dialog are told apart by their shape
+        // rather than by two styles of box
+        SelectionCheckRow(
+            text = stringResource(R.string.home_simple_bundle_select_remember),
+            checked = rememberChoice.value,
+            onCheckedChange = { rememberChoice.value = it },
+            modifier = Modifier.padding(top = Defaults.SpaceSmall)
+        )
     }
 }
 
@@ -1131,7 +1112,7 @@ fun SimpleBundleSelectDialog(
  * Dialog shown on Android 11+ when install apps permission is needed.
  */
 @Composable
-fun Android11Dialog(
+fun DialogHostScope.Android11Dialog(
     onDismissRequest: () -> Unit,
     onContinue: () -> Unit
 ) {

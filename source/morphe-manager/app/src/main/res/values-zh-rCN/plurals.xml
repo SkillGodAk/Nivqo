@@ -3,6 +3,10 @@
     <plurals name="patch_count">
         <item quantity="other">%s 个补丁</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="other">%s 个库</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="other">%s 个补丁选项</item>
     </plurals>
@@ -20,6 +24,9 @@
     </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="other">适用于 %s 个应用的补丁源</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="other">%s个来源对此应用已隐藏。在“应用”选项卡上选择该应用并打开“修补来源”以将其恢复</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="other">已隐藏 %s 个来源。点按以显示</item>
@@ -42,6 +49,9 @@
     <plurals name="batch_install_summary">
         <item quantity="other">已安装 %s 个应用</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="other">已挂载 %s 个应用</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="other">已重新安装 %s 个应用</item>
     </plurals>
@@ -53,6 +63,12 @@
     </plurals>
     <plurals name="batch_patch_ready_count">
         <item quantity="other">有 %s 个应用可供补丁</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="other">排队等待修补的应用 %s 个</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="other">%s 条隐藏通知，点击显示</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="other">%s 个应用可以重新修补</item>
@@ -66,8 +82,14 @@
     <plurals name="sources_management_subtitle">
         <item quantity="other">已安装 %s 个源</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="other">%1$s · %2$s 已筛选</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="other">%s apps hidden</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="other">%s apps shown</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="other">是否取消隐藏 %s 个应用？</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="other">%s 个隐藏的应用</item>
@@ -95,6 +117,10 @@
     </plurals>
     <plurals name="changelog_change_count">
         <item quantity="other">%s 项更改</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="other">%1$s · %2$d 新应用</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="other">%s 个新版本</item>

@@ -149,6 +149,35 @@ class PostTextShapesTest {
         assertTrue(messageTextReaders(toString("A07", readerOpcode = Opcode.INVOKE_VIRTUAL), message).isEmpty())
     }
 
+    /** 584's toString: the accessor, a null check, the label, then the text key and getCachedString on the model. */
+    private fun inlineToString(accessorName: String, label: String = MESSAGE_TEXT_LABEL, field: String = TEXT_FIELD, receiver: Int = 2) =
+        method(
+            "toString",
+            call(Opcode.INVOKE_VIRTUAL, GRAPHQL_STORY, accessorName, emptyList(), GRAPHQL_TEXT_WITH_ENTITIES, 5),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 2),
+            ImmutableInstruction21t(Opcode.IF_EQZ, 2, 8),
+            string(1, label),
+            literal(0, treeFieldKey(field)),
+            call(Opcode.INVOKE_VIRTUAL, BASE_MODEL_WITH_TREE, "getCachedString", listOf("I"), "Ljava/lang/String;", receiver, 0),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+            ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+            returnType = "Ljava/lang/String;",
+        )
+
+    @Test
+    fun `or toString reads the text of that accessor's model itself, as 584 does`() {
+        val message = accessor("A07", MESSAGE_FIELD, TEXT_WITH_ENTITIES_TYPE)
+        assertTrue(readsMessageTextInline(inlineToString("A07"), message))
+        assertTrue("a static reader found in the inline form", messageTextReaders(inlineToString("A07"), message).isEmpty())
+        // Controls: the title's label, another accessor, another field, a read of another register,
+        // and the static form.
+        assertFalse(readsMessageTextInline(inlineToString("A07", label = "title.text"), message))
+        assertFalse(readsMessageTextInline(inlineToString("A0A"), message))
+        assertFalse(readsMessageTextInline(inlineToString("A07", field = "name"), message))
+        assertFalse(readsMessageTextInline(inlineToString("A07", receiver = 5), message))
+        assertFalse(readsMessageTextInline(toString("A07"), message))
+    }
+
     @Test
     fun `the reader has to read the text field with getCachedString`() {
         assertTrue(readsTextField(reader()))
@@ -207,6 +236,7 @@ class PostTextShapesTest {
     fun `the patch fills both stubs on a build like Facebook's`() {
         assertEquals("A07", stubCall(build(), MESSAGE_STUB))
         assertEquals("A04", stubCall(build(), ATTACHED_STORY_STUB))
+        assertEquals("584's inline read", "A07", stubCall(build(toString = inlineToString("A07")), MESSAGE_STUB))
     }
 
     @Test
@@ -215,6 +245,7 @@ class PostTextShapesTest {
             "the title's label" to build(toString = toString("A07", label = "title.text")),
             "another accessor" to build(toString = toString("A0A")),
             "a reader of another field" to build(reader = reader(field = "name")),
+            "an inline read of another field" to build(toString = inlineToString("A07", field = "name")),
         )) {
             val refusal = assertThrows(what, PatchException::class.java) {
                 hidePostsByWordsPatch.execute(PatchContexts.of(classes))

@@ -52,6 +52,11 @@ public final class ReelSpeedForTests {
             public boolean live(Object videoParams) {
                 return false;
             }
+
+            @Override
+            public float currentSpeed(Object player) {
+                return ReelSpeed.NORMAL;
+            }
         };
         try {
             ReelSpeed.speedSet(new Object(), 1.5f);
@@ -100,6 +105,11 @@ public final class ReelSpeedForTests {
             @Override
             public boolean live(Object videoParams) {
                 return false;
+            }
+
+            @Override
+            public float currentSpeed(Object player) {
+                return ReelSpeed.NORMAL;
             }
         };
         try {

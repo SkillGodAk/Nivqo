@@ -6,6 +6,7 @@ package app.morphe.patches.facebook.chats
 
 import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.feed.tableStringAt
+import app.morphe.patches.facebook.misc.extension.freeLocalsAt
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -16,6 +17,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -33,9 +35,16 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
  * list. The component that draws the row and the section builder both read
  * that field, so the patch hands the constructor an empty list while the switch is on and nothing
  * downstream has a tile to draw. That empties the list the row is built from: friends' notes and
- * who's active now. Your own "Your note" tile isn't in that list (seen on the 582 emulator), so the
- * row stays with that one tile. The state class and its builder are Redex names (`EB8` and
+ * who's active now. Your own "Your note" tile isn't in that list (seen on the 582 emulator): on 583
+ * the section merges it back in after the state is built, so emptying the list alone left the row
+ * with that one tile at full height. The state class and its builder are Redex names (`EB8` and
  * `EB7` on 582, renamed every build); only the literal and the constructor's shape find them.
+ *
+ * So the section that draws the row is gated too. Its render names itself `ActiveNowSection` and
+ * keys its tiles `active_now_tiles_key`, and when the server's thresholds aren't met, or the row is
+ * set to hide while it has no tiles, it takes one early way out that builds an empty result and
+ * returns it. The patch jumps to that same way out first thing while the switch is on, so the
+ * whole row goes, your own note and the row's height with it, the way Facebook drops it itself.
  *
  * Chats also builds a group of top banners, each its own plugin answering a show question. Two of
  * them are promotions: the one asking you to turn on notifications (its builder tags the banner
@@ -123,8 +132,19 @@ internal fun opensMetaAiFromSearchRow(owner: ClassDef): Boolean = owner.methods.
 /**
  * Where the search row's builder gets its Meta AI button: the `move-result-object` at [result] in
  * [method] puts the built button in [register], as the builder's own return type [type].
+ *
+ * On 584 Redex outlined the build, the null check and the add into one static [helper]
+ * (`LX/19e;->A1D` on arm64). Then [result] is the row's call to it, [register] holds the button's
+ * builder it's handed, and [answer] is a local free across that call for the hook's answer.
  */
-internal class MetaAiButtonSite(val method: Method, val result: Int, val register: Int, val type: String)
+internal class MetaAiButtonSite(
+    val method: Method,
+    val result: Int,
+    val register: Int,
+    val type: String,
+    val helper: Method? = null,
+    val answer: Int? = null,
+)
 
 /** What the search row's button build takes: nothing, or on 583's 32-bit build the row's CallerContext. */
 private val BUILD_PARAMETERS = listOf(emptyList<String>(), listOf(CALLER_CONTEXT))
@@ -133,10 +153,15 @@ private val BUILD_PARAMETERS = listOf(emptyList<String>(), listOf(CALLER_CONTEXT
  * The Meta AI button site of [method] when it's the search row's builder: it tags its search box
  * [SEARCH_BAR_TAG] and creates one tap action of the [openers] types. The first build after that,
  * a call taking nothing (or a CallerContext) and answering the builder's own return type, puts the button in a
- * register that is checked for null and then added to the row's children. Null for any other
- * method.
+ * register that is checked for null and then added to the row's children. On 584 that first build
+ * is a call to the static helper [outlinedBuild] finds through [resolve], handed the button's
+ * builder. Null for any other method.
  */
-internal fun metaAiButtonSite(method: Method, openers: Set<String>): MetaAiButtonSite? {
+internal fun metaAiButtonSite(
+    method: Method,
+    openers: Set<String>,
+    resolve: (MethodReference) -> Method? = { null },
+): MetaAiButtonSite? {
     if (!holdsString(method, SEARCH_BAR_TAG)) return null
     val code = method.implementation?.instructions?.toList() ?: return null
     val created = code.indices.filter { at ->
@@ -146,8 +171,14 @@ internal fun metaAiButtonSite(method: Method, openers: Set<String>): MetaAiButto
     val build = (created.single() + 1 until code.size).firstOrNull { at ->
         val call = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
         code[at].opcode == Opcode.INVOKE_VIRTUAL && call != null && call.returnType == method.returnType &&
-            call.parameterTypes.map { it.toString() } in BUILD_PARAMETERS
+            call.parameterTypes.map { it.toString() } in BUILD_PARAMETERS ||
+            outlinedBuild(code[at], method.returnType, resolve) != null
     } ?: return null
+    outlinedBuild(code[build], method.returnType, resolve)?.let { helper ->
+        val builder = (code[build] as FiveRegisterInstruction).registerD
+        val answer = method.freeLocalsAt(CHAT_LIST_PATCH, build, 1, listOf(build + 1), highest = 255).single()
+        return MetaAiButtonSite(method, build, builder, method.returnType, helper, answer)
+    }
     val result = code.getOrNull(build + 1)
     if (result?.opcode != Opcode.MOVE_RESULT_OBJECT) return null
     val register = (result as OneRegisterInstruction).registerA
@@ -158,6 +189,46 @@ internal fun metaAiButtonSite(method: Method, openers: Set<String>): MetaAiButto
     if (add !is FiveRegisterInstruction || adds?.name != "add" || !adds.definingClass.startsWith("Ljava/util/") ||
         add.registerCount != 2 || add.registerD != register) return null
     return MetaAiButtonSite(method, build + 1, register, method.returnType)
+}
+
+/**
+ * The static helper [instruction] calls, found through [resolve], when it's 584's outlined button
+ * build: a void over a CallerContext, a builder and a `java.util` collection whose whole body
+ * builds the builder's [returnType] with that CallerContext, checks it for null and adds it to the
+ * collection. Null for any other instruction.
+ */
+private fun outlinedBuild(instruction: Instruction, returnType: String, resolve: (MethodReference) -> Method?): Method? {
+    if (instruction.opcode != Opcode.INVOKE_STATIC) return null
+    val call = (instruction as ReferenceInstruction).reference as? MethodReference ?: return null
+    val types = call.parameterTypes.map { it.toString() }
+    if (call.returnType != "V" || types.size != 3 || types[0] != CALLER_CONTEXT || !types[2].startsWith("Ljava/util/")) {
+        return null
+    }
+    val helper = resolve(call) ?: return null
+    val body = helper.implementation?.instructions?.toList() ?: return null
+    if (body.size != 5) return null
+    // A static method's three parameters are its last three registers.
+    val context = helper.implementation!!.registerCount - 3
+    val build = body[0]
+    val builds = (build as? ReferenceInstruction)?.reference as? MethodReference
+    if (build.opcode != Opcode.INVOKE_VIRTUAL || builds == null || builds.returnType != returnType ||
+        builds.parameterTypes.map { it.toString() } != listOf(CALLER_CONTEXT) ||
+        (build as FiveRegisterInstruction).registerCount != 2 || build.registerC != context + 1 || build.registerD != context
+    ) return null
+    val result = body[1]
+    if (result.opcode != Opcode.MOVE_RESULT_OBJECT) return null
+    val button = (result as OneRegisterInstruction).registerA
+    val check = body[2]
+    val add = body[3]
+    val adds = (add as? ReferenceInstruction)?.reference as? MethodReference
+    if (check.opcode != Opcode.IF_EQZ || (check as OneRegisterInstruction).registerA != button ||
+        (check as OffsetInstruction).codeOffset != check.codeUnits + add.codeUnits
+    ) return null
+    if (add !is FiveRegisterInstruction || add.opcode != Opcode.INVOKE_VIRTUAL || adds?.name != "add" ||
+        !adds.definingClass.startsWith("Ljava/util/") || add.registerCount != 2 || add.registerC != context + 2 ||
+        add.registerD != button
+    ) return null
+    return helper.takeIf { body[4].opcode == Opcode.RETURN_VOID }
 }
 
 /** What the Chats search screen's Meta AI tap names as where the chat was opened from. */
@@ -242,6 +313,59 @@ private val LITERAL_CONSTS = setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST
 /** The tile state constructor of [owner], or null when it isn't the state class. */
 internal fun notesTrayOf(owner: ClassDef): NotesTrayStore? =
     owner.methods.mapNotNull { notesTrayStore(owner, it) }.singleOrNull()
+
+/** What the section drawing the notes row names itself, and the key it keeps its tiles under. */
+internal const val NOTES_SECTION = "ActiveNowSection"
+internal const val NOTES_SECTION_KEY = "active_now_tiles_key"
+
+/** Where the notes row's render leaves with nothing to draw: the `new-instance` at [exit] in [method]. */
+internal class NotesRowExit(val method: Method, val exit: Int)
+
+/**
+ * Facebook's own empty way out of the notes row, when [method] is the section's render: an
+ * instance method of one parameter that loads [NOTES_SECTION] and [NOTES_SECTION_KEY], where a jump
+ * lands on the first run of `new-instance` B, `B.<init>()`, an `iget-object` of B's field of the
+ * render's return type from that object and `return-object` of it. Null for any other method.
+ */
+internal fun notesRowExit(method: Method): NotesRowExit? {
+    if (method.parameterTypes.size != 1 || !method.isInstanceWithBody()) return null
+    if (!holdsString(method, NOTES_SECTION) || !holdsString(method, NOTES_SECTION_KEY)) return null
+    val code = method.implementation!!.instructions.toList()
+    val exit = (0 until code.size - 3).firstOrNull { emptyReturnAt(code, it, method.returnType) } ?: return null
+    val address = IntArray(code.size + 1)
+    for (at in code.indices) address[at + 1] = address[at] + code[at].codeUnits
+    val lands = code.indices.any { at ->
+        val jump = code[at] as? OffsetInstruction
+        jump != null && code[at].opcode !in PAYLOAD_JUMPS && address[at] + jump.codeOffset == address[exit]
+    }
+    // A handler reached from the hook's call or the new jump would see locals stock code had set by
+    // then, so a render with a try block over its first instruction or its way out is refused.
+    val guarded = method.implementation!!.tryBlocks.any { block ->
+        val covered = block.startCodeAddress until block.startCodeAddress + block.codeUnitCount
+        0 in covered || (exit..exit + 3).any { address[it] in covered }
+    }
+    return if (lands && !guarded) NotesRowExit(method, exit) else null
+}
+
+private val PAYLOAD_JUMPS = setOf(Opcode.PACKED_SWITCH, Opcode.SPARSE_SWITCH, Opcode.FILL_ARRAY_DATA)
+
+/** Whether [at] starts a new object of no arguments whose field of type [returns] is read and returned. */
+private fun emptyReturnAt(code: List<Instruction>, at: Int, returns: String): Boolean {
+    val made = code[at]
+    if (made.opcode != Opcode.NEW_INSTANCE) return false
+    val type = ((made as ReferenceInstruction).reference as? TypeReference)?.type ?: return false
+    val self = (made as OneRegisterInstruction).registerA
+    val init = code[at + 1] as? FiveRegisterInstruction
+    val built = (init as? ReferenceInstruction)?.reference as? MethodReference
+    if (init?.opcode != Opcode.INVOKE_DIRECT || init.registerCount != 1 || init.registerC != self || built == null ||
+        built.definingClass != type || built.name != "<init>" || built.parameterTypes.isNotEmpty()) return false
+    val read = code[at + 2] as? TwoRegisterInstruction
+    val field = (read as? ReferenceInstruction)?.reference as? FieldReference
+    if (read?.opcode != Opcode.IGET_OBJECT || read.registerB != self || field == null ||
+        field.definingClass != type || field.type != returns) return false
+    val back = code[at + 3]
+    return back.opcode == Opcode.RETURN_OBJECT && (back as OneRegisterInstruction).registerA == read.registerA
+}
 
 private fun Method.isInstanceWithBody(): Boolean =
     implementation != null && !AccessFlags.STATIC.isSet(accessFlags) && !AccessFlags.ABSTRACT.isSet(accessFlags)

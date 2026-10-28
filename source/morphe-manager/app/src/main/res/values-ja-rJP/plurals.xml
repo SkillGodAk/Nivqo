@@ -3,6 +3,10 @@
     <plurals name="patch_count">
         <item quantity="other">%s 個のパッチ</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="other">%s 件のライブラリ</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="other">%s 個のパッチ オプション</item>
     </plurals>
@@ -20,6 +24,9 @@
     </plurals>
     <plurals name="home_app_patch_sources_title">
         <item quantity="other">%s 個のアプリのパッチソース</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="other">このアプリでは %s 個のソースが非表示になっています。再表示するには、「アプリ」タブで対象のアプリを選び、「パッチソース」を開いてください</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="other">%s 件のソースは非表示になっています。タップして表示してください</item>
@@ -42,6 +49,9 @@
     <plurals name="batch_install_summary">
         <item quantity="other">%s 個のアプリをインストールしました</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="other">マウント済みアプリ %s 個</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="other">%s 個のアプリを再インストールしました</item>
     </plurals>
@@ -54,6 +64,12 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="other">%s 個のアプリがパッチ適用可能です</item>
     </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="other">%s 個のアプリがパッチ適用待ちです</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="other">%s 件の非表示通知があります。タップして表示します</item>
+    </plurals>
     <plurals name="repatch_available_count">
         <item quantity="other">%s 個のアプリが再パッチ可能です</item>
     </plurals>
@@ -64,10 +80,16 @@
         <item quantity="other">保存済みセレクションから互換性を失った %s 個のパッチを削除しました</item>
     </plurals>
     <plurals name="sources_management_subtitle">
-        <item quantity="other">インストール済みのソース %s 件</item>
+        <item quantity="other">%s 件のインストール済みのソース</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="other">%1$s · %2$s 件フィルター済み</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="other">%s 個のアプリを非表示中</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="other">%s 個のアプリを表示中</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="other">%s 個のアプリを再表示しますか？</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="other">%s 個のアプリが非表示</item>
@@ -96,11 +118,15 @@
     <plurals name="changelog_change_count">
         <item quantity="other">%s 件の変更</item>
     </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="other">%1$s · %2$d 新規</item>
+    </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="other">%s 件の新規リリース</item>
     </plurals>
     <plurals name="app_links_count_enabled">
-        <item quantity="other">%d 件のアプリリンクが有効です</item>
+        <item quantity="other">%d 件のアプリリンクが有効</item>
     </plurals>
     <plurals name="app_links_count_unverified">
         <item quantity="other">%d 件の未検証のアプリリンク</item>

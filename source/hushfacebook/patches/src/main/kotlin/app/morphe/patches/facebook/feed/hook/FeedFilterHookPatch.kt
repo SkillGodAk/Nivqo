@@ -127,7 +127,7 @@ internal val feedFilterHookPatch = bytecodePatch {
         )
 
         mutableClassDefBy(swap.method.definingClass).methods.single {
-            it.name == swap.method.name && it.returnType == "V" && it.parameterTypes.isEmpty()
+            it.name == swap.method.name && it.returnType == swap.method.returnType && it.parameterTypes.isEmpty()
         }.guardEdgeSwap(swap, categoryGetter, feedUnit)
     }
 }

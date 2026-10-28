@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
+import app.morphe.extension.facebook.settings.FreeStuffShortcut;
 import app.morphe.extension.facebook.settings.SavedShortcut;
 import app.morphe.extension.facebook.settings.SettingsEntry;
 import app.morphe.extension.facebook.settings.WatchHistoryShortcut;
@@ -28,8 +29,9 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
 /**
  * The Hushfacebook row at the end of the Settings and privacy group in Facebook's Menu.
  *
- * <p>The group's rows come from one list builder, and every list it hands back passes through
- * {@link #withRow}, which adds this row once, after Facebook's own. The row is one of Facebook's
+ * <p>The group's rows come from one list, built by a builder of its own or, on 584, by the group's
+ * section itself, and every such list passes through {@link #withRow} before the group uses it,
+ * which adds this row once, after Facebook's own. The row is one of Facebook's
  * own row items, made by a factory the patch adds to the item class ({@value #FACTORY}), with the
  * first row's icon, the title "Hushfacebook settings" in the phone's language, no address to open
  * and the id {@link #ROW_ID}. The row is known by that id, never by its title. A tap on a row asks
@@ -37,15 +39,17 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * press does. The row's two loggers ask {@link #isRow} and skip it, so Facebook never records a
  * row it didn't make.
  *
- * <p>Like the logo and the launcher shortcut, the row has no switch and stays while Hushfacebook
- * is paused: the settings screen is where a pause is lifted. Any failure in here leaves Facebook's
- * list as it was.
+ * <p>Like the logo and the launcher shortcut, the row has a switch ({@code SETTINGS_MENU_ROW},
+ * read by {@link SettingsEntry#menuRowOn}) and stays while Hushfacebook is paused: the settings
+ * screen is where a pause is lifted. Off, the row isn't added and is taken out of a list that
+ * still has it. Any failure in here leaves Facebook's list as it was.
  *
  * <p>With the Saved shortcut switch on, a Saved row ({@link #SAVED_ROW_ID}) goes just before it and
  * opens Facebook's own Saved route. One UI's launcher hides the appended launcher entry, so this
  * row is the way to Saved that every phone shows. Pause turns the switch off, and the row with it.
  * The Watch history shortcut switch adds a Watch history row ({@link #WATCH_HISTORY_ROW_ID}) the
- * same way, after Saved, which opens the videos you've watched.
+ * same way, after Saved, which opens the videos you've watched, and the Free stuff shortcut switch
+ * a Free stuff row ({@link #FREE_STUFF_ROW_ID}) after that, which opens Marketplace's free listings.
  */
 public final class MenuSettingsRow {
     /**
@@ -59,6 +63,9 @@ public final class MenuSettingsRow {
 
     /** The Watch history row's id, next to the Saved row's. */
     public static final long WATCH_HISTORY_ROW_ID = -0x4855534846420003L;
+
+    /** The Free stuff row's id, next to the Watch history row's. */
+    public static final long FREE_STUFF_ROW_ID = -0x4855534846420004L;
 
     /** The static factory the patch adds to the row item class: (template, title, id) to a new row. */
     static final String FACTORY = "hushfacebookRow";
@@ -98,7 +105,7 @@ public final class MenuSettingsRow {
     }
 
     /**
-     * Injection point, on each list the Settings and privacy group's builder hands back. Answers
+     * Injection point, on each list the Settings and privacy group's rows are built into. Answers
      * the list with the Hushfacebook row after Facebook's rows, the Saved row before it when that's
      * wanted, or the list as it was when a row of ours is already there, the list is empty or
      * anything fails. Never null and never throws.
@@ -118,17 +125,19 @@ public final class MenuSettingsRow {
                         FACTORY + " or " + ID_READER);
                 return rows;
             }
+            boolean wanted = SettingsEntry.menuRowOn();
             for (Object row : rows) {
                 if (row != null && row.getClass() == found.type && isRow((long) found.idReader.invoke(null, row))) {
-                    return rows;
+                    return wanted ? rows : withoutSettingsRow(rows, found);
                 }
             }
             Context context = Utils.getContext();
             if (context == null) return rows;
-            Object ours = found.factory.invoke(null, template, L10n.t(context, "Hushfacebook settings"), ROW_ID);
-            if (ours == null) return rows;
+            // Switched off, the row stays out and the Saved, Watch history and Free stuff rows go in as they would.
+            Object ours = wanted ? found.factory.invoke(null, template, L10n.t(context, "Hushfacebook settings"), ROW_ID) : null;
+            if (wanted && ours == null) return rows;
             HookStatus.bound(FamilyNames.MENU_SETTINGS_ROW, LIST_HOOK);
-            List<Object> withOurs = new ArrayList<>(rows.size() + 3);
+            List<Object> withOurs = new ArrayList<>(rows.size() + 4);
             withOurs.addAll(rows);
             if (SavedShortcut.wanted(context)) {
                 Object saved = found.factory.invoke(null, template, L10n.t(context, "Saved"), SAVED_ROW_ID);
@@ -139,12 +148,30 @@ public final class MenuSettingsRow {
                         WATCH_HISTORY_ROW_ID);
                 if (watched != null) withOurs.add(watched);
             }
-            withOurs.add(ours);
-            return withOurs;
+            if (FreeStuffShortcut.wanted(context)) {
+                Object free = found.factory.invoke(null, template, L10n.t(context, "Free stuff"), FREE_STUFF_ROW_ID);
+                if (free != null) withOurs.add(free);
+            }
+            if (ours != null) withOurs.add(ours);
+            return withOurs.size() == rows.size() ? rows : withOurs;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.MENU_SETTINGS_ROW, LIST_HOOK, failure);
             return rows;
         }
+    }
+
+    /**
+     * [rows] without the Hushfacebook row, for a list Facebook hands back with it still in, after
+     * its switch went off. The list as it was when the row isn't there.
+     */
+    private static List<?> withoutSettingsRow(List<?> rows, Helpers found) throws ReflectiveOperationException {
+        List<Object> kept = new ArrayList<>(rows.size());
+        for (Object row : rows) {
+            boolean ours = row != null && row.getClass() == found.type
+                    && (long) found.idReader.invoke(null, row) == ROW_ID;
+            if (!ours) kept.add(row);
+        }
+        return kept.size() == rows.size() ? rows : kept;
     }
 
     /**
@@ -170,6 +197,12 @@ public final class MenuSettingsRow {
                     Logger.printInfo(() -> "Watch history shortcut: the Menu row couldn't open the videos you've watched");
                     if (context != null) Utils.showToastShort(WatchHistoryShortcut.unavailable());
                 }
+            } else if (id == FREE_STUFF_ROW_ID) {
+                Context context = activity != null ? activity : Utils.getContext();
+                if (context == null || !FreeStuffShortcut.open(context)) {
+                    Logger.printInfo(() -> "Free stuff shortcut: the Menu row couldn't open Marketplace's free listings");
+                    if (context != null) Utils.showToastShort(FreeStuffShortcut.unavailable());
+                }
             } else if (activity == null || !SettingsEntry.open(activity)) {
                 Logger.printInfo(() -> "Hushfacebook in the Menu: the settings didn't open over "
                         + (activity == null ? "no activity" : activity.getClass().getSimpleName()));
@@ -187,7 +220,7 @@ public final class MenuSettingsRow {
 
     /** Injection point, first thing in the row's loggers. True for the rows of ours, which they skip. */
     public static boolean isRow(long id) {
-        return id == ROW_ID || id == SAVED_ROW_ID || id == WATCH_HISTORY_ROW_ID;
+        return id == ROW_ID || id == SAVED_ROW_ID || id == WATCH_HISTORY_ROW_ID || id == FREE_STUFF_ROW_ID;
     }
 
     /** The activity a view's context wraps, or null. The depth guards against a wrapper that wraps itself. */

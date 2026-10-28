@@ -20,7 +20,7 @@ import java.util.function.Predicate;
 final class QuickSetups {
     /** Fewer ads, promotions, suggestions and nags. */
     static final List<String> QUIET = Collections.unmodifiableList(Arrays.asList(
-        "ads", "people", "growth", "inbox_promotions", "chat_promotions", "ad_context_banner", "suggested_replies",
+        "people", "growth", "inbox_promotions", "chat_promotions", "ad_context_banner", "suggested_replies",
         "business_suggestions", "event_prompts", "reels_badge"));
     /** Less sent to Meta: usage statistics, the advertising ID, ad and inbox logging, and MQTT health reports. */
     static final List<String> PRIVACY = Collections.unmodifiableList(Arrays.asList(

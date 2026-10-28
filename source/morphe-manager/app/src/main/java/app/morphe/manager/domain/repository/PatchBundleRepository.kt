@@ -12,6 +12,7 @@ package app.morphe.manager.domain.repository
 
 import android.app.Application
 import android.content.Context
+import android.database.SQLException
 import android.util.Log
 import androidx.annotation.StringRes
 import app.morphe.manager.BuildConfig
@@ -34,6 +35,7 @@ import app.morphe.manager.patcher.patch.BundleAppMetadata
 import app.morphe.manager.patcher.patch.PatchBundle
 import app.morphe.manager.patcher.patch.PatchBundleInfo
 import app.morphe.manager.patcher.patch.PatchInfo
+import app.morphe.manager.ui.screen.shared.UserMessages
 import app.morphe.manager.ui.viewmodel.BundleSnapshot
 import app.morphe.manager.util.*
 import io.ktor.client.plugins.ResponseException
@@ -63,6 +65,8 @@ import app.morphe.manager.data.room.bundles.Source as SourceInfo
 
 class PatchBundleRepository(
     private val app: Application,
+    private val messages: UserMessages,
+    private val remoteBundleServices: RemoteBundleServices,
     private val networkInfo: NetworkInfo,
     private val prefs: PreferencesManager,
     private val blocklistRepository: BlocklistRepository,
@@ -156,6 +160,11 @@ class PatchBundleRepository(
             .map { BundleAppMetadata.buildFrom(it) }
             .stateIn(scope, SharingStarted.Eagerly, emptyMap())
 
+    /** What the sources call each app, see [BundleAppMetadata.displayNames]. */
+    val appDisplayNames: StateFlow<Map<String, String>> =
+        combine(appMetadata, allAppMetadata, BundleAppMetadata::displayNames)
+            .stateIn(scope, SharingStarted.Eagerly, emptyMap())
+
     fun scopedBundleInfoFlow(packageName: String, version: String?, versionCode: Long? = null) = enabledBundlesInfoFlow.map {
         it.map { (_, bundleInfo) ->
             bundleInfo.forPackage(packageName, version, versionCode)
@@ -178,10 +187,48 @@ class PatchBundleRepository(
             bundles.withoutMutedSources(muted) { it.uid }
         }
 
-    val patchCountsFlow = allBundlesInfoFlow.map { it.mapValues { (_, info) -> info.patches.size } }
+    /**
+     * The enabled sources an APK of [version] is resolved against. A chosen source answers for
+     * the version alone, while one no longer offered leaves the choice with nothing to stand for.
+     */
+    suspend fun resolvingBundleInfo(
+        packageName: String,
+        version: String?,
+        versionCode: Long?,
+        chosenBundleUid: Int?
+    ): List<PatchBundleInfo.Scoped> =
+        offeredBundleInfoFlow(packageName, version, versionCode).first()
+            .filter { it.enabled }
+            .let { offered -> offered.filter { it.uid == chosenBundleUid }.ifEmpty { offered } }
 
-    private val manualUpdateInfoFlow = MutableStateFlow<Map<Int, ManualBundleUpdateInfo>>(emptyMap())
-    val manualUpdateInfo: StateFlow<Map<Int, ManualBundleUpdateInfo>> = manualUpdateInfoFlow.asStateFlow()
+    /**
+     * The sources simple mode asks the user to choose between for [packageName], each with the
+     * patches it would apply. Asked before the APK is known, so every version a source covers
+     * counts.
+     */
+    suspend fun simpleSourceChoices(packageName: String): List<Pair<PatchBundleInfo.Scoped, Set<String>>> =
+        offeredBundleInfoFlow(packageName, version = null).first()
+            .filter { it.enabled }
+            .map { bundle ->
+                bundle to bundle.patchSequence(allowIncompatible = true)
+                    .filter { it.include }
+                    .mapTo(mutableSetOf()) { it.name }
+            }
+            .filter { (_, patches) -> patches.isNotEmpty() }
+
+    /**
+     * How many sources with patches for [packageName] it is kept from, which every point
+     * offering a choice leaves out. Counted the way [offeredBundleInfoFlow] drops them, so an
+     * app kept from every source hides none.
+     */
+    suspend fun hiddenSourceCount(packageName: String): Int {
+        val covering = scopedBundleInfoFlow(packageName, version = null).first()
+            .filter { it.enabled && it.patchSequence(allowIncompatible = true).any() }
+        val muted = sourceMuteRepository.getMutedFor(packageName)
+        return covering.size - covering.withoutMutedSources(muted) { it.uid }.size
+    }
+
+    val patchCountsFlow = allBundlesInfoFlow.map { it.mapValues { (_, info) -> info.patches.size } }
 
     private val metadataFetchErrorsFlow = MutableStateFlow<Map<Int, Throwable>>(emptyMap())
     val metadataFetchErrors: StateFlow<Map<Int, Throwable>> = metadataFetchErrorsFlow.asStateFlow()
@@ -479,13 +526,6 @@ class PatchBundleRepository(
             sources[officialSource.uid] = officialSource.copy(displayName = SOURCE_NAME)
         }
 
-        manualUpdateInfoFlow.update { current ->
-            current.filterKeys { uid ->
-                val bundle = sources[uid] as? RemotePatchBundle
-                bundle != null && !bundle.autoUpdate
-            }
-        }
-
         return BundleState.Ready(sources.toPersistentMap(), info.toPersistentMap())
     }
 
@@ -649,6 +689,14 @@ class PatchBundleRepository(
             }
         }.toMap()
 
+        // Recorded before the patches are published, so an app a source leaves out never gets a
+        // card first. A failure here costs the leaving out, not the source
+        try {
+            sourceMuteRepository.leaveOutNewApps(metadata)
+        } catch (e: SQLException) {
+            Log.e(tag, "Failed to leave out new apps", e)
+        }
+
         if (failures.isNotEmpty()) {
             dispatchAction("Mark bundles as failed") { state ->
                 val ready = state as? BundleState.Ready ?: return@dispatchAction state
@@ -710,8 +758,8 @@ class PatchBundleRepository(
                 null,
                 dir,
                 SourceInfo.API.SENTINEL,
-                true, // Morphe always auto updates
                 enabled,
+                remoteBundleServices,
                 usePrerelease = prefs.bundlePrereleasesEnabled.getBlocking().contains(uid.toString()),
             )
 
@@ -725,8 +773,8 @@ class PatchBundleRepository(
                 null,
                 dir,
                 source.url.toString(),
-                autoUpdate,
                 enabled,
+                remoteBundleServices,
                 usePrerelease = shouldUsePrerelease(uid, source.url.toString()),
             )
             is SourceInfo.GitHubPullRequest -> GitHubPullRequestBundle(
@@ -739,8 +787,8 @@ class PatchBundleRepository(
                 null,
                 dir,
                 source.url.toString(),
-                autoUpdate,
-                enabled
+                enabled,
+                remoteBundleServices
             )
         }
     }
@@ -776,7 +824,6 @@ class PatchBundleRepository(
     private suspend fun createEntity(
         name: String,
         source: Source,
-        autoUpdate: Boolean = false,
         displayName: String? = null,
         uid: Int? = null,
         sortOrder: Int? = null,
@@ -813,7 +860,6 @@ class PatchBundleRepository(
             displayName = normalizedDisplayName,
             versionHash = null,
             source = source,
-            autoUpdate = autoUpdate,
             enabled = resolvedEnabled,
             sortOrder = assignedSortOrder,
             createdAt = resolvedCreatedAt,
@@ -839,7 +885,6 @@ class PatchBundleRepository(
                 displayName = new.displayName?.takeUnless { it.isBlank() },
                 versionHash = new.versionHash,
                 source = new.source,
-                autoUpdate = new.autoUpdate,
                 enabled = new.enabled,
                 sortOrder = new.sortOrder,
                 createdAt = new.createdAt,
@@ -857,29 +902,25 @@ class PatchBundleRepository(
         doReload()
     }
 
-    /** An update pass also runs without a screen, where a toast belongs to nobody. */
-    private suspend fun toast(@StringRes id: Int, vararg args: Any?) =
-        withContext(Dispatchers.Main) { app.toastIfInForeground(app.getString(id, *args)) }
-
     /**
      * The bundles an update pass covers. Described declaratively rather than as a bare predicate
      * so a new request can be compared against the pass already in flight. [custom] is an opaque
      * selection for one-off callers - a request carrying one is never folded into another.
      */
     private data class UpdateTarget(
-        val autoUpdatable: Boolean = false,
+        val allEnabled: Boolean = false,
         val uids: Set<Int> = emptySet(),
         val custom: ((RemotePatchBundle) -> Boolean)? = null,
     ) {
         fun covers(other: UpdateTarget) =
             custom == null && other.custom == null &&
-                    (autoUpdatable || !other.autoUpdatable) &&
+                    (allEnabled || !other.allEnabled) &&
                     uids.containsAll(other.uids)
 
         operator fun plus(other: UpdateTarget): UpdateTarget {
             val customs = listOfNotNull(custom, other.custom)
             return UpdateTarget(
-                autoUpdatable = autoUpdatable || other.autoUpdatable,
+                allEnabled = allEnabled || other.allEnabled,
                 uids = uids + other.uids,
                 custom = if (customs.isEmpty()) null else ({ bundle -> customs.any { it(bundle) } }),
             )
@@ -889,32 +930,35 @@ class PatchBundleRepository(
     private data class UpdateRequest(
         val target: UpdateTarget,
         val force: Boolean = false,
-        val showToast: Boolean = false,
+        val showMessage: Boolean = false,
         val allowUnsafeNetwork: Boolean = false,
+        val reportUpToDate: Boolean = true,
     ) {
         /**
          * True when running this request already does everything [other] asks for. A request
-         * carrying a toast or a forced redownload has an observable effect of its own, so it
+         * carrying a message or a forced redownload has an observable effect of its own, so it
          * always runs even when its bundles are already being updated.
          */
         fun covers(other: UpdateRequest) =
             !other.force &&
-                    !other.showToast &&
+                    !other.showMessage &&
                     (allowUnsafeNetwork || !other.allowUnsafeNetwork) &&
+                    (reportUpToDate || !other.reportUpToDate) &&
                     target.covers(other.target)
     }
 
     private fun predicateFor(target: UpdateTarget): (RemotePatchBundle) -> Boolean = { bundle ->
         bundle.uid in target.uids ||
                 target.custom?.invoke(bundle) == true ||
-                (target.autoUpdatable && bundle.autoUpdate && bundle.enabled && !isSourceBlocked(bundle))
+                (target.allEnabled && bundle.enabled && !isSourceBlocked(bundle))
     }
 
     private fun mergeUpdateRequests(requests: List<UpdateRequest>): UpdateRequest {
         return UpdateRequest(
             force = requests.any { it.force },
-            showToast = requests.any { it.showToast },
+            showMessage = requests.any { it.showMessage },
             allowUnsafeNetwork = requests.all { it.allowUnsafeNetwork },
+            reportUpToDate = requests.any { it.reportUpToDate },
             target = requests.map { it.target }.reduce(UpdateTarget::plus),
         )
     }
@@ -1052,7 +1096,6 @@ class PatchBundleRepository(
                     displayName = normalized,
                     versionHash = props.versionHash,
                     source = props.source,
-                    autoUpdate = props.autoUpdate,
                     enabled = props.enabled,
                     sortOrder = props.sortOrder,
                     createdAt = props.createdAt,
@@ -1081,7 +1124,7 @@ class PatchBundleRepository(
     /**
      * Toggle prerelease (dev branch) for an [APIPatchBundle] or [JsonPatchBundle].
      * Persists in preferences, updates in-memory state, and triggers a bundle update.
-     * Reverts the change and shows a toast if the update fails (e.g. branch does not exist).
+     * Reverts the change and shows a message if the update fails (e.g. branch does not exist).
      */
     suspend fun setUsePrerelease(uid: Int, usePrerelease: Boolean) {
         val current = prefs.bundlePrereleasesEnabled.get().toMutableSet()
@@ -1153,6 +1196,11 @@ class PatchBundleRepository(
         var copyRead = 0L
         var displayName: String? = null
         var importedUid: Int? = null
+        fun reportFailure(e: Exception) {
+            if (e is CancellationException) throw e
+            Log.e(tag, "Got exception while importing bundle", e)
+            messages.showIfInForeground(R.string.home_app_info_patches_replace_fail, e.simpleMessage())
+        }
         enqueueLocalImport()
         localImportMutex.withLock {
             val baseProcessed = localImportBaseSteps()
@@ -1170,38 +1218,44 @@ class PatchBundleRepository(
                     File.createTempFile("local_bundle", ".jar", app.cacheDir)
                 }
                 try {
-                    val precomputedDigest = withContext(Dispatchers.IO) {
-                        tempFile.outputStream().use { output ->
-                            createStream().use { input ->
-                                if (copyTotal == null) {
-                                    copyTotal = when (input) {
-                                        is FileInputStream -> runCatching { input.channel.size() }.getOrNull()
-                                        else -> runCatching { input.available().takeIf { it > 0 }?.toLong() }.getOrNull()
+                    // A provider that went away or a read cut short ends the import, not the app
+                    val precomputedDigest = try {
+                        withContext(Dispatchers.IO) {
+                            tempFile.outputStream().use { output ->
+                                createStream().use { input ->
+                                    if (copyTotal == null) {
+                                        copyTotal = when (input) {
+                                            is FileInputStream -> runCatching { input.channel.size() }.getOrNull()
+                                            else -> runCatching { input.available().takeIf { it > 0 }?.toLong() }.getOrNull()
+                                        }
                                     }
-                                }
-                                setLocalImportProgress(
-                                    baseProcessed = baseProcessed,
-                                    offset = 0,
-                                    displayName = displayName,
-                                    phase = BundleImportPhase.Downloading,
-                                    bytesRead = 0L,
-                                    bytesTotal = copyTotal,
-                                )
-
-                                sha256Of(input) { buffer, read ->
-                                    output.write(buffer, 0, read)
-                                    copyRead += read
                                     setLocalImportProgress(
                                         baseProcessed = baseProcessed,
                                         offset = 0,
                                         displayName = displayName,
                                         phase = BundleImportPhase.Downloading,
-                                        bytesRead = copyRead,
+                                        bytesRead = 0L,
                                         bytesTotal = copyTotal,
                                     )
+
+                                    sha256Of(input) { buffer, read ->
+                                        output.write(buffer, 0, read)
+                                        copyRead += read
+                                        setLocalImportProgress(
+                                            baseProcessed = baseProcessed,
+                                            offset = 0,
+                                            displayName = displayName,
+                                            phase = BundleImportPhase.Downloading,
+                                            bytesRead = copyRead,
+                                            bytesTotal = copyTotal,
+                                        )
+                                    }
                                 }
                             }
                         }
+                    } catch (e: Exception) {
+                        reportFailure(e)
+                        return null
                     }
                     if (copyTotal == null && copyRead > 0L) {
                         copyTotal = copyRead
@@ -1270,17 +1324,12 @@ class PatchBundleRepository(
                         }
                         importedUid = uid
                     } catch (e: Exception) {
-                        if (e is CancellationException) throw e
-                        Log.e(tag, "Got exception while importing bundle", e)
-                        toast(R.string.home_app_info_patches_replace_fail, e.simpleMessage())
+                        reportFailure(e)
 
-                        withContext(Dispatchers.IO) {
-                            runCatching {
-                                localBundle.patchesJarFile.setWritable(true, true)
-                            }
-                            runCatching {
-                                localBundle.patchesJarFile.delete()
-                            }
+                        // Both writes swap the file in one step, so a replaced bundle is still intact
+                        if (existingProps == null) withContext(Dispatchers.IO) {
+                            dao.remove(uid)
+                            directoryOf(uid).deleteRecursively()
                         }
                     }
                 } finally {
@@ -1355,11 +1404,14 @@ class PatchBundleRepository(
     /**
      * Adds a remote source for each of [urls] and downloads them in one update pass, so a batch
      * reports as one download rather than one per source. A URL that is invalid, blocked or
-     * already added is skipped, with one toast per kind of refusal.
+     * already added is skipped, with one message per kind of refusal.
+     *
+     * With [keptApps] each added source leaves out every other app it names, the ones it adds later
+     * included. It is recorded before the download starts, so the others never reach the home screen.
      *
      * @return The uid of each source added, in the order of [urls].
      */
-    suspend fun createRemotes(urls: List<String>, autoUpdate: Boolean): List<Int> {
+    suspend fun createRemotes(urls: List<String>, keptApps: Set<String>? = null): List<Int> {
         val added = CompletableDeferred<List<Int>>()
         dispatchAction("Add bundles (${urls.size})") { state ->
             val ready = state as? BundleState.Ready
@@ -1381,7 +1433,7 @@ class PatchBundleRepository(
                         is RemoteUrlCheck.Accepted -> {
                             // The same repository pasted twice is one source
                             takenKeys += check.endpoint.lowercase(Locale.US)
-                            created += createRemoteEntity(check.endpoint, autoUpdate)
+                            created += createRemoteEntity(check.endpoint)
                         }
                     }
                 }
@@ -1390,9 +1442,12 @@ class PatchBundleRepository(
                 added.complete(created.map { it.uid })
             }
 
-            rejections.forEach { toast(it.messageRes) }
+            rejections.forEach { messages.showIfInForeground(it.messageRes) }
             if (created.isEmpty()) return@dispatchAction state
 
+            keptApps?.let { apps ->
+                created.forEach { sourceMuteRepository.setBringsNewApps(it.uid, false, apps) }
+            }
             update(*created.toTypedArray(), allowUnsafeNetwork = prefs.allowMeteredUpdates.get())
             ready.copy(sources = ready.sources.mutate { sources -> created.forEach { sources[it.uid] = it } })
         }
@@ -1431,16 +1486,26 @@ class PatchBundleRepository(
      * endpoint, lowercased. The built-in source's endpoint is an API identifier no link reads as,
      * so it is also known by the repository it publishes, in the form [toBlocklistKey] gives.
      */
-    private fun BundleState.Ready.remoteSourceKeys(): Set<String> = buildSet {
-        sources.values.filterIsInstance<RemotePatchBundle>().forEach { source ->
-            add(source.endpoint.lowercase(Locale.US))
-            if (source is APIPatchBundle) toBlocklistKey(normalizeRemoteBundleUrl(SOURCE_REPO_URL))?.let(::add)
-        }
+    private fun BundleState.Ready.remoteSourceKeys(): Set<String> =
+        sources.values.filterIsInstance<RemotePatchBundle>().flatMapTo(mutableSetOf()) { it.sourceKeys() }
+
+    private fun RemotePatchBundle.sourceKeys(): Set<String> = buildSet {
+        add(endpoint.lowercase(Locale.US))
+        if (this@sourceKeys is APIPatchBundle) toBlocklistKey(normalizeRemoteBundleUrl(SOURCE_REPO_URL))?.let(::add)
+    }
+
+    /** The source [url] would duplicate, by the same rule [createRemotes] turns it down with. */
+    fun existingSourceUid(url: String): Int? {
+        val ready = store.state.value as? BundleState.Ready ?: return null
+        val duplicate = RemoteUrlCheck.Rejected(RemoteSourceRejection.Duplicate)
+        return ready.sources.values.filterIsInstance<RemotePatchBundle>()
+            .firstOrNull { checkRemoteUrl(url, it.sourceKeys()) == duplicate }
+            ?.uid
     }
 
     /** Saves and loads a new remote source for [endpoint]. Do not use this outside an action. */
-    private suspend fun createRemoteEntity(endpoint: String, autoUpdate: Boolean): RemotePatchBundle {
-        val src = createEntity("", SourceInfo.from(endpoint), autoUpdate).load() as RemotePatchBundle
+    private suspend fun createRemoteEntity(endpoint: String): RemotePatchBundle {
+        val src = createEntity("", SourceInfo.from(endpoint)).load() as RemotePatchBundle
 
         // Auto-enable prerelease if the URL explicitly targets the "dev" branch
         if (src is JsonPatchBundle && src.endpointBranch == "dev") {
@@ -1472,17 +1537,17 @@ class PatchBundleRepository(
     }
 
     /**
-     * Shows an appropriate toast for a per-bundle download failure.
+     * Shows an appropriate message for a per-bundle download failure.
      */
-    private suspend fun handleBundleDownloadError(e: Exception, bundle: RemotePatchBundle) {
+    private fun handleBundleDownloadError(e: Exception, bundle: RemotePatchBundle) {
         val code = e.httpCodeOrNull()
         Log.e(tag, "Failed to update bundle ${bundle.name} (HTTP $code)", e)
         if (code != null && code in 400..499
             && bundle is JsonPatchBundle && bundle.supportsPrerelease
         ) {
-            toast(R.string.sources_download_endpoint_not_found, bundle.displayTitle)
+            messages.showIfInForeground(R.string.sources_download_endpoint_not_found, bundle.displayTitle)
         } else {
-            toast(R.string.sources_download_fail_named, bundle.displayTitle)
+            messages.showIfInForeground(R.string.sources_download_fail_named, bundle.displayTitle)
         }
     }
 
@@ -1715,7 +1780,7 @@ class PatchBundleRepository(
     suspend fun update(
         vararg sources: RemotePatchBundle,
         force: Boolean = false,
-        showToast: Boolean = false,
+        showMessage: Boolean = false,
         allowUnsafeNetwork: Boolean = false,
     ) {
         val uids = sources.map { it.uid }.toSet()
@@ -1724,7 +1789,7 @@ class PatchBundleRepository(
                 UpdateRequest(
                     target = UpdateTarget(uids = uids),
                     force = force,
-                    showToast = showToast,
+                    showMessage = showMessage,
                     allowUnsafeNetwork = allowUnsafeNetwork,
                 )
             )
@@ -1742,20 +1807,24 @@ class PatchBundleRepository(
     /**
      * Same as [updateCheck] but suspends until the update job fully completes.
      * Waits for any in-progress update to finish first, then runs its own update directly.
+     *
+     * @param reportUpToDate False for a check whose caller already shows it ran, which then ends
+     *   without a progress result when nothing was new.
      */
-    suspend fun updateCheckAndAwait(allowUnsafeNetwork: Boolean = false) {
+    suspend fun updateCheckAndAwait(allowUnsafeNetwork: Boolean = false, reportUpToDate: Boolean = true) {
         awaitReady()
         awaitCurrentUpdateJob()
         performRemoteUpdateWithResult(
             UpdateRequest(
-                target = UpdateTarget(autoUpdatable = true),
+                target = UpdateTarget(allEnabled = true),
                 allowUnsafeNetwork = allowUnsafeNetwork,
+                reportUpToDate = reportUpToDate,
             )
         )
     }
 
     /**
-     * Updates all bundles that should be automatically updated AND are currently enabled.
+     * Updates every remote bundle that is currently enabled.
      * Disabled bundles are skipped - they will be updated automatically when re-enabled.
      * Blocked sources are skipped even if enabled.
      * Respects [PreferencesManager.allowMeteredUpdates]: if the network is metered and the
@@ -1773,11 +1842,10 @@ class PatchBundleRepository(
         awaitReady()
         startRemoteUpdateJob(
             UpdateRequest(
-                target = UpdateTarget(autoUpdatable = true),
+                target = UpdateTarget(allEnabled = true),
                 allowUnsafeNetwork = allowUnsafeNetwork,
             )
         )
-        scope.launch { checkManualUpdates() }
     }
 
     /** A remote source that has an update waiting, and the version waiting for it. */
@@ -1799,9 +1867,11 @@ class PatchBundleRepository(
         if (!allowMeteredUpdates && networkInfo.isMetered()) return null
 
         return try {
+            // Only sources an update can reach, or the notification points at one that never comes
             val remoteBundles = (store.state.value as? BundleState.Ready)?.sources?.values
                 .orEmpty()
                 .filterIsInstance<RemotePatchBundle>()
+                .filter { it.enabled && !isSourceBlocked(it) }
 
             if (remoteBundles.isEmpty()) return null
 
@@ -1811,14 +1881,11 @@ class PatchBundleRepository(
                     .map { bundle ->
                         async {
                             try {
-                                val info = bundle.fetchLatestReleaseInfo()
-                                val latestSignature = info.version
-                                    .removePrefix("v")
-                                    .takeUnless { it.isBlank() }
-                                val installedSignature = bundle.installedVersionSignature
-                                // Report the bundle when signatures differ (or installed is null)
-                                if (latestSignature != null && installedSignature != latestSignature)
-                                    AvailableBundleUpdate(bundle.uid, latestSignature)
+                                val latest = bundle.fetchLatestReleaseInfo().version.normalizeVersion()
+                                // The installed signature keeps the tag's prefix, so both sides are normalized
+                                val installed = bundle.installedVersionSignature?.normalizeVersion()
+                                if (latest.isNotEmpty() && installed != latest)
+                                    AvailableBundleUpdate(bundle.uid, latest)
                                 else
                                     null
                             } catch (e: Exception) {
@@ -1836,76 +1903,6 @@ class PatchBundleRepository(
         }
     }
 
-    /**
-     * Looks up the latest release of the sources that are not updated automatically, or of
-     * [bundleUids] when given, and publishes what is waiting in [manualUpdateInfo].
-     *
-     * Runs outside the store: it only reads the sources, and holding the queue for as long as
-     * the network takes to answer would stall every change to them in the meantime.
-     */
-    suspend fun checkManualUpdates(vararg bundleUids: Int) = coroutineScope {
-        val targetUids = bundleUids.toSet().takeIf { it.isNotEmpty() }
-        val ready = awaitReady()
-        val manualBundles = ready.sources.values
-            .filterIsInstance<RemotePatchBundle>()
-            .filter {
-                targetUids?.contains(it.uid) ?: !it.autoUpdate
-            }
-
-        if (manualBundles.isEmpty()) {
-            if (targetUids != null) {
-                manualUpdateInfoFlow.update { it - targetUids }
-            } else {
-                manualUpdateInfoFlow.update { map ->
-                    map.filterKeys { uid ->
-                        val bundle = ready.sources[uid] as? RemotePatchBundle
-                        bundle != null && !bundle.autoUpdate
-                    }
-                }
-            }
-            return@coroutineScope
-        }
-
-        val allowMeteredUpdates = prefs.allowMeteredUpdates.get()
-        if (!allowMeteredUpdates && networkInfo.isMetered()) {
-            Log.d(tag, "Skipping manual update check because the network is down or metered.")
-            return@coroutineScope
-        }
-
-        val results = manualBundles
-            .map { bundle ->
-                async {
-                    try {
-                        val info = bundle.fetchLatestReleaseInfo()
-                        val latestSignature = info.version.takeUnless { it.isBlank() }
-                        val installedSignature = bundle.installedVersionSignature
-                        val hasUpdate = latestSignature == null || installedSignature != latestSignature
-                        if (!hasUpdate) return@async bundle.uid to null
-                        bundle.uid to ManualBundleUpdateInfo(
-                            latestVersion = latestSignature ?: bundle.version,
-                            pageUrl = info.pageUrl
-                        )
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (t: Throwable) {
-                        Log.e(tag, "Failed to check manual update for ${bundle.name}", t)
-                        bundle.uid to null
-                    }
-                }
-            }
-            .awaitAll()
-
-        manualUpdateInfoFlow.update { map ->
-            val next = map.toMutableMap()
-            val manualUids = manualBundles.map(RemotePatchBundle::uid).toSet()
-            next.keys.retainAll(manualUids)
-            results.forEach { (uid, info) ->
-                if (info == null) next.remove(uid) else next[uid] = info
-            }
-            next
-        }
-    }
-
     private inner class Update(private val request: UpdateRequest) : Action<BundleState> {
         override fun toString() = if (request.force) "Redownload remote bundles" else "Update check"
 
@@ -1918,7 +1915,7 @@ class PatchBundleRepository(
 
         override suspend fun catch(exception: Exception) {
             Log.e(tag, "Failed to update patches", exception)
-            toast(R.string.sources_download_fail, exception.simpleMessage())
+            messages.showIfInForeground(R.string.sources_download_fail, exception.simpleMessage())
         }
     }
 
@@ -1960,7 +1957,7 @@ class PatchBundleRepository(
 
     private suspend fun performRemoteUpdateWithResult(request: UpdateRequest) = coroutineScope {
         val force = request.force
-        val showToast = request.showToast
+        val showMessage = request.showMessage
         val allowUnsafeNetwork = request.allowUnsafeNetwork
         val predicate = predicateFor(request.target)
         try {
@@ -2011,7 +2008,7 @@ class PatchBundleRepository(
                 .filter { predicate(it) }
 
             if (targets.isEmpty()) {
-                if (showToast) toast(R.string.sources_update_unavailable)
+                if (showMessage) messages.showIfInForeground(R.string.sources_update_unavailable)
                 bundleUpdateProgressFlow.value = null
                 return@coroutineScope
             }
@@ -2118,12 +2115,16 @@ class PatchBundleRepository(
                     }
                 }
 
-                toast(R.string.sources_download_fail, e.simpleMessage())
+                messages.showIfInForeground(R.string.sources_download_fail, e.simpleMessage())
                 return@coroutineScope
             }
 
             if (updated.isEmpty()) {
-                if (showToast) toast(R.string.sources_update_unavailable)
+                if (showMessage) messages.showIfInForeground(R.string.sources_update_unavailable)
+                if (!request.reportUpToDate) {
+                    bundleUpdateProgressFlow.value = null
+                    return@coroutineScope
+                }
 
                 // No updates available - already up to date
                 val noUpdatesProgress = BundleUpdateProgress(
@@ -2165,9 +2166,7 @@ class PatchBundleRepository(
                 doReload()
             }
 
-            val updatedUids = updated.keys.map(RemotePatchBundle::uid).toSet()
-            manualUpdateInfoFlow.update { currentMap -> currentMap - updatedUids }
-            if (showToast) toast(R.string.sources_update_success)
+            if (showMessage) messages.showIfInForeground(R.string.sources_update_success)
 
             // Show success state
             val successProgress = BundleUpdateProgress(
@@ -2276,11 +2275,6 @@ class PatchBundleRepository(
         Finalizing,
     }
 
-    data class ManualBundleUpdateInfo(
-        val latestVersion: String?,
-        val pageUrl: String?,
-    )
-
     /**
      * Adds or removes [uid] from a set of bundle UID preference keys, reporting whether it changed.
      */
@@ -2303,7 +2297,7 @@ class PatchBundleRepository(
                     name = entity.name,
                     displayName = entity.displayName,
                     source = entity.source.toString(),
-                    autoUpdate = entity.autoUpdate,
+                    autoUpdate = true,
                     enabled = entity.enabled,
                     sortOrder = entity.sortOrder,
                     createdAt = entity.createdAt,
@@ -2385,7 +2379,8 @@ class PatchBundleRepository(
             val keptCustoms = customRemotes.filter {
                 mode == ImportMode.Merge || it.endpoint.lowercase(Locale.US) in incomingEndpoints
             }
-            val keptEndpoints = keptCustoms.map { it.endpoint.lowercase(Locale.US) }.toSet()
+            // Grows as sources are added, so a backup listing one twice adds it once
+            val knownEndpoints = keptCustoms.mapTo(mutableSetOf()) { it.endpoint.lowercase(Locale.US) }
 
             // Replace mode also reconciles the enabled toggle; Merge preserves the local state.
             if (mode == ImportMode.Replace) {
@@ -2417,12 +2412,12 @@ class PatchBundleRepository(
                     normalizeRemoteBundleUrl(snapshot.source)
                 }.getOrNull() ?: return@forEach
 
-                if (normalizedUrl.lowercase(Locale.US) in keptEndpoints) return@forEach
+                if (!knownEndpoints.add(normalizedUrl.lowercase(Locale.US))) return@forEach
+                if (toBlocklistKey(normalizedUrl)?.let(blocklistRepository::isBlocked) == true) return@forEach
 
                 val created = createEntity(
                     name = snapshot.name,
                     source = Source.from(normalizedUrl),
-                    autoUpdate = snapshot.autoUpdate,
                     displayName = snapshot.displayName,
                     sortOrder = snapshot.sortOrder,
                     createdAt = snapshot.createdAt,
@@ -2481,9 +2476,9 @@ class PatchBundleRepository(
         internal const val HUSHMESSENGER_SOURCE_UID = -1_260_439_702
 
         internal const val HUSHFACEBOOK_BUNDLED_ASSET =
-            "morphe-hush/hushfacebook-0.14.0.mpp"
+            "morphe-hush/hushfacebook-0.19.0.mpp"
         internal const val HUSHMESSENGER_BUNDLED_ASSET =
-            "morphe-hush/hushmessenger-0.24.0.mpp"
+            "morphe-hush/hushmessenger-0.27.0.mpp"
 
         internal const val HUSHFACEBOOK_UPDATE_ENDPOINT =
             "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook.json"
@@ -2497,7 +2492,6 @@ class PatchBundleRepository(
             displayName = null,
             versionHash = null,
             source = Source.API,
-            autoUpdate = false,
             enabled = true,
             sortOrder = 0,
             createdAt = now,

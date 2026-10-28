@@ -5,13 +5,8 @@
 
 package app.morphe.manager.ui.screen.settings.appearance
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -22,17 +17,21 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.ui.screen.shared.*
+import app.morphe.manager.util.MORPHE_WEBSITE_URL
+import com.composables.icons.materialsymbols.MaterialSymbols
+import com.composables.icons.materialsymbols.rounded.*
 
 /**
  * Language picker dialog with searchable list.
  */
 @Composable
-fun LanguagePickerDialog(
+fun DialogHostScope.LanguagePickerDialog(
     currentLanguage: String,
     onLanguageSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val openUrl = rememberOpenUrl()
     val search = rememberSearchFieldState()
 
     val allLanguages = remember(context) {
@@ -51,10 +50,21 @@ fun LanguagePickerDialog(
         }
     }
 
-    val listState = rememberLazyListState()
-
-    AppDialog(
+    val accent = MaterialTheme.colorScheme.primary
+    ListDialog(
         onDismissRequest = onDismiss,
+        header = {
+            ListDialogHeader(
+                icon = { modifier ->
+                    ListDialogHeaderIcon(icon = MaterialSymbols.Rounded.Language, color = accent, modifier = modifier)
+                },
+                title = stringResource(R.string.settings_appearance_app_language),
+                // The language in effect, so the choice reads before the list is scrolled to it
+                subtitle = LanguageRepository.getLanguage(currentLanguage, context).displayName,
+                search = search,
+                accentColor = accent
+            )
+        },
         footer = {
             AppDialogOutlinedButton(
                 text = stringResource(android.R.string.cancel),
@@ -62,53 +72,36 @@ fun LanguagePickerDialog(
                 modifier = Modifier.fillMaxWidth()
             )
         },
-        padding = DialogPadding.Compact,
-        scrollable = false,
-        contentArrangement = Arrangement.Top,
-        fillContentHeight = true,
         hideFooterWhileTyping = true
     ) {
         SearchFieldBackHandler(search)
 
-        val accent = MaterialTheme.colorScheme.primary
-        ListDialogHeader(
-            icon = { modifier ->
-                ListDialogHeaderIcon(icon = Icons.Outlined.Language, color = accent, modifier = modifier)
-            },
-            title = stringResource(R.string.settings_appearance_app_language),
-            // The language in effect, so the choice reads before the list is scrolled to it
-            subtitle = LanguageRepository.getLanguage(currentLanguage, context).displayName,
-            search = search,
-            searchLabel = stringResource(R.string.search),
-            accentColor = accent
-        )
-
         DialogLazyList(
             modifier = Modifier.fillMaxWidth(),
-            state = listState,
-            verticalArrangement = Arrangement.spacedBy(Defaults.ItemSpacing),
-            pinnedFirstRow = true
+            verticalArrangement = Arrangement.spacedBy(DialogListSpacing)
         ) {
-            // Kept while the field is closed, so its share of the spacing makes the gap under
-            // the header
-            stickyHeader(key = "search") {
-                AppDialogSearchHeader(
-                    visible = search.visible,
-                    value = search.query,
-                    onValueChange = { search.query = it },
-                    label = stringResource(R.string.search),
-                    // Opaque, so rows scrolled under the gap stay hidden
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(top = Defaults.ItemSpacing)
-                )
+            // Offered ahead of the languages rather than in a dialog of its own before them, and
+            // left out of a search, which looks for a language rather than how to add one
+            if (search.query.isBlank()) {
+                item(key = "translate") {
+                    SettingsItem(
+                        onClick = { openUrl("$MORPHE_WEBSITE_URL/translate") },
+                        showBorder = true,
+                        icon = MaterialSymbols.Rounded.Translate,
+                        title = stringResource(R.string.settings_appearance_translate),
+                        subtitle = stringResource(R.string.settings_appearance_translations_info_title),
+                        // Leaves for the browser rather than going on within the dialog
+                        trailingContent = { ThemedIcon(icon = MaterialSymbols.Rounded.Open_in_new.autoMirrored) },
+                        modifier = Modifier.animatedListItem(this)
+                    )
+                }
             }
 
             if (filteredLanguages.isEmpty()) {
                 item(key = "empty_state") {
                     EmptyState(
                         message = stringResource(R.string.search_no_results),
-                        icon = Icons.Outlined.SearchOff,
+                        icon = MaterialSymbols.Rounded.Search_off,
                         modifier = Modifier.animatedListItem(this)
                     )
                 }
@@ -137,7 +130,7 @@ private fun LanguageItem(
     modifier: Modifier = Modifier
 ) {
     val stateDescription = stringResource(
-        if (isSelected) R.string.selected else R.string.not_selected
+        if (isSelected) R.string.state_selected else R.string.state_not_selected
     )
     RadioSelectionCard(
         selected = isSelected,

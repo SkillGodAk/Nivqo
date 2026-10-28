@@ -4,6 +4,11 @@
         <item quantity="one">%s patch</item>
         <item quantity="other">%s patches</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s biblioteca</item>
+        <item quantity="other">%s bibliotecas</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s Opção de patch</item>
         <item quantity="other">%s Opções de patch</item>
@@ -26,6 +31,10 @@
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Fontes de patches para %s aplicativo</item>
         <item quantity="other">Fontes de patches para %s aplicativos</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">A fonte %s está oculta para este aplicativo. Selecione o aplicativo na guia Aplicativos e abra Patch sources para trazê-la de volta</item>
+        <item quantity="other">As fontes %s estão ocultas para este aplicativo. Selecione o aplicativo na guia Aplicativos e abra Patch sources para trazê-las de volta</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s fonte oculta. Toque para exibir</item>
@@ -55,6 +64,10 @@
         <item quantity="one">%s aplicativo instalado</item>
         <item quantity="other">%s aplicativos instalados</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">%s aplicativo montado</item>
+        <item quantity="other">%s aplicativos montados</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">%s aplicativo reinstalado</item>
         <item quantity="other">%s apps reinstalados</item>
@@ -70,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">%s aplicativo pronto para aplicar patch</item>
         <item quantity="other">%s aplicativos prontos para aplicar patch</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s app em espera para patching</item>
+        <item quantity="other">%s apps em espera para patching</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s notificação oculta, toque para exibi-la</item>
+        <item quantity="other">%s notificações ocultas, toque para exibí-las</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s aplicativo pode ter o patch reaplicado</item>
@@ -87,9 +108,17 @@
         <item quantity="one">%s fonte instalada</item>
         <item quantity="other">%s fontes instaladas</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s filtrado</item>
-        <item quantity="other">%1$s · %2$s filtrados</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s aplicativo oculto</item>
+        <item quantity="other">%s aplicativos ocultos</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s aplicativo visível</item>
+        <item quantity="other">%s aplicativos visíveis</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Reexibir o aplicativo %s?</item>
+        <item quantity="other">Reexibir os aplicativos %s?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s aplicativo oculto</item>
@@ -126,6 +155,11 @@
     <plurals name="changelog_change_count">
         <item quantity="one">%s alteração</item>
         <item quantity="other">%s alterações</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d novo</item>
+        <item quantity="other">%1$s · %2$d novos</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s nova versão</item>

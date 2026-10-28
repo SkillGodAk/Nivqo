@@ -4,6 +4,11 @@
         <item quantity="one">%s patch</item>
         <item quantity="other">%s patches</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">bibliotheek %s</item>
+        <item quantity="other">%s bibliotheken</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s patch optie</item>
         <item quantity="other">%s patch opties</item>
@@ -26,6 +31,10 @@
     <plurals name="home_app_patch_sources_title">
         <item quantity="one">Patchbronnen voor %s app</item>
         <item quantity="other">Patchbronnen voor %s apps</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">Bron %s is verborgen voor deze app. Selecteer de app op het tabblad Apps en open Bronnen patchen om deze weer te tonen</item>
+        <item quantity="other">Bronnen %s zijn verborgen voor deze app. Selecteer de app op het tabblad Apps en open Bronnen patchen om ze weer te tonen</item>
     </plurals>
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s bron verborgen. Tik om te tonen</item>
@@ -55,6 +64,10 @@
         <item quantity="one">%s app geïnstalleerd</item>
         <item quantity="other">%s apps geïnstalleerd</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">%s app gekoppeld</item>
+        <item quantity="other">%s apps gekoppeld</item>
+    </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">%s app opnieuw geïnstalleerd</item>
         <item quantity="other">%s apps opnieuw geïnstalleerd</item>
@@ -70,6 +83,14 @@
     <plurals name="batch_patch_ready_count">
         <item quantity="one">%s app klaar om te patchen</item>
         <item quantity="other">%s apps klaar om te patchen</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s app in de wachtrij voor patchen</item>
+        <item quantity="other">%s apps in de wachtrij voor patchen</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s verborgen melding, tik om deze te tonen</item>
+        <item quantity="other">%s verborgen meldingen, tik om ze te tonen</item>
     </plurals>
     <plurals name="repatch_available_count">
         <item quantity="one">%s app kan opnieuw worden gepatcht</item>
@@ -87,9 +108,17 @@
         <item quantity="one">%s bron geïnstalleerd</item>
         <item quantity="other">%s bronnen geïnstalleerd</item>
     </plurals>
-    <plurals name="home_app_filter_active">
-        <item quantity="one">%1$s · %2$s gefilterd</item>
-        <item quantity="other">%1$s · %2$s gefilterd</item>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s app verborgen</item>
+        <item quantity="other">%s apps verborgen</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s app zichtbaar</item>
+        <item quantity="other">%s apps zichtbaar</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">App \'%s\' weer zichtbaar maken?</item>
+        <item quantity="other">Apps \'%s\' weer zichtbaar maken?</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s verborgen app</item>
@@ -126,6 +155,11 @@
     <plurals name="changelog_change_count">
         <item quantity="one">%s wijziging</item>
         <item quantity="other">%s wijzigingen</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d nieuw</item>
+        <item quantity="other">%1$s · %2$d nieuw</item>
     </plurals>
     <plurals name="changelog_new_releases">
         <item quantity="one">%s nieuwe release</item>

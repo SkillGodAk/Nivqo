@@ -24,19 +24,18 @@ private const val ROW_CHECKS = "LX/1yQ;"
 private const val ROW_PARAMS = "$FB_USER_SESSION$THREAD_KEY_TYPE$CAPABILITIES"
 internal const val SYNTHETIC_META_AI_ROW = "$ROW_CHECKS->A0Q()Z"
 internal const val SYNTHETIC_META_AI_CHATS_ROW = "$ROW_CHECKS->A13($FB_USER_SESSION$CAPABILITIES)Z"
-internal const val SYNTHETIC_META_AI_ENCRYPTED_ROW = "$ROW_CHECKS->A12($FB_USER_SESSION$CAPABILITIES)Z"
-private const val ENCRYPTED_SIBLING = "$ROW_CHECKS->A0d($FB_USER_SESSION)Z"
+internal const val SYNTHETIC_META_AI_ENCRYPTED_ROW = "$ROW_CHECKS->A0d($FB_USER_SESSION)Z"
 internal const val SYNTHETIC_IMAGINE_ROW = "$ROW_CHECKS->A0y(${ROW_PARAMS}ZZ)Z"
 internal const val SYNTHETIC_IMAGINE_YOURSELF_ROW = "$ROW_CHECKS->A0w($ROW_PARAMS)Z"
 
 /** One build's numbering of the five checks' flags. */
-private class AiRowFlags(val row: Set<Long>, val chat: Set<Long>, val encrypted: Long, val imagine: Long, val imagineYourself: Long)
-private val AI_ROW_FLAGS = AiRowFlags(META_AI_ROW_FLAGS, META_AI_CHAT_FLAGS, META_AI_ENCRYPTED_FLAG, IMAGINE_ROW_FLAG, IMAGINE_YOURSELF_ROW_FLAG)
-/** 582's numbering, which no 583 build reads. */
-private val AI_ROW_FLAGS_582 = AiRowFlags(setOf(0x81063b011b2d8aL, 0x81063b01042d83L), setOf(0x81063b011b2d8aL, 0x81063b00042d40L),
-    0x81063b00052d41L, 0x81063b00402d51L, 0x81063b00f92d7fL)
+private class AiRowFlags(val row: Set<Long>, val chat: Set<Long>, val shared: Long, val encrypted: Long, val imagine: Long, val imagineYourself: Long)
+private val AI_ROW_FLAGS = AiRowFlags(META_AI_ROW_FLAGS, META_AI_CHAT_FLAGS, META_AI_SHARED_FLAG, META_AI_ENCRYPTED_FLAG, IMAGINE_ROW_FLAG, IMAGINE_YOURSELF_ROW_FLAG)
+/** 583's numbering, which no 584 build reads. */
+private val AI_ROW_FLAGS_583 = AiRowFlags(setOf(0x810637011b2d49L, 0x81063701042d42L), setOf(0x810637011b2d49L, 0x81063700042cffL),
+    0x810637011b2d49L, 0x81063700052d00L, 0x81063700402d10L, 0x81063700f92d3eL)
 
-/** One server flag read the way 583 writes it, answered into v0. */
+/** One server flag read the way 584 writes it, answered into v0. */
 private fun flagRead(flag: Long) = """
     invoke-static {}, LX/19a;->A0B()LX/5dD;
     move-result-object v2
@@ -74,36 +73,18 @@ private fun metaAiChatsRow(id: String = SYNTHETIC_META_AI_CHATS_ROW, flags: List
     return v4
 """.trimIndent(), registers = 8)
 
-/** The encrypted-chat Meta AI check: a capability, then the sibling that reads the server flag. */
-private fun metaAiEncryptedRow(id: String = SYNTHETIC_META_AI_ENCRYPTED_ROW, capability: Boolean = true): MutableMethod {
-    val check = if (capability) """
-        const/16 v0, 0xb7
-        invoke-virtual {v5, v0}, $CAPABILITIES->A00(I)Z
-        move-result v0
+/** The encrypted-chat Meta AI check: the shared Meta AI flag, then the encrypted flag. */
+private fun metaAiEncryptedRow(id: String = SYNTHETIC_META_AI_ENCRYPTED_ROW, flags: List<Long> = listOf(META_AI_SHARED_FLAG, META_AI_ENCRYPTED_FLAG)) =
+    fixtureMethod(id, """
+        const/4 v3, 0x0
+        ${flagRead(flags[0])}
         if-eqz v0, :off
-    """.trimIndent() else ""
-    return fixtureMethod(id, """
-        const/4 v1, 0x0
-        $check
-        invoke-virtual {v3, v4}, ${id.substringBefore("->")}->A0d($FB_USER_SESSION)Z
-        move-result v0
+        ${flagRead(flags[1])}
         if-eqz v0, :off
-        const/4 v1, 0x1
+        const/4 v3, 0x1
         :off
-        return v1
+        return v3
     """.trimIndent(), registers = 6)
-}
-
-/** The sibling the encrypted-chat check defers to; it isn't hooked. */
-private fun encryptedSibling(type: String = ROW_CHECKS, flag: Long = META_AI_ENCRYPTED_FLAG) = fixtureMethod(
-    ENCRYPTED_SIBLING.replace(ROW_CHECKS, type), """
-    const/4 v3, 0x0
-    ${flagRead(flag)}
-    if-eqz v0, :off
-    const/4 v3, 0x1
-    :off
-    return v3
-""".trimIndent(), registers = 6)
 
 /** An imagine check: the row shows while its flag is on. */
 private fun imagineRow(id: String, flag: Long, flags: Int = AccessFlags.PUBLIC.value) = fixtureMethod(id, """
@@ -118,14 +99,13 @@ private fun imagineRow(id: String, flag: Long, flags: Int = AccessFlags.PUBLIC.v
 private fun rowChecks(type: String = ROW_CHECKS, build: AiRowFlags = AI_ROW_FLAGS) = listOf(
     metaAiRow(SYNTHETIC_META_AI_ROW.replace(ROW_CHECKS, type), build.row.toList()),
     metaAiChatsRow(SYNTHETIC_META_AI_CHATS_ROW.replace(ROW_CHECKS, type), build.chat.toList()),
-    metaAiEncryptedRow(SYNTHETIC_META_AI_ENCRYPTED_ROW.replace(ROW_CHECKS, type)),
+    metaAiEncryptedRow(SYNTHETIC_META_AI_ENCRYPTED_ROW.replace(ROW_CHECKS, type), listOf(build.shared, build.encrypted)),
     imagineRow(SYNTHETIC_IMAGINE_ROW.replace(ROW_CHECKS, type), build.imagine),
     imagineRow(SYNTHETIC_IMAGINE_YOURSELF_ROW.replace(ROW_CHECKS, type), build.imagineYourself),
 )
 
-/** The five checks and the sibling one of them defers to. */
-private fun rowClass(type: String = ROW_CHECKS, checks: List<Method> = rowChecks(type), sibling: Method? = encryptedSibling(type)) =
-    fixtureClass(type, checks + listOfNotNull(sibling))
+/** The five checks on one class. */
+private fun rowClass(type: String = ROW_CHECKS, checks: List<Method> = rowChecks(type)) = fixtureClass(type, checks)
 
 /** The five checks for the catalog-wide discovery fixture. */
 internal fun aiMentionRowsFixture() = listOf(rowClass())
@@ -153,49 +133,42 @@ class AiMentionRowsTest {
         checks.zip(before).forEach { (method, code) -> assertSwitched(code, method.code(), method.hookId()) }
     }
 
-    @Test fun messenger582sRowFlagsOrAMixOfTheTwoNumberingsAreRefused() {
-        val checks582 = rowChecks(build = AI_ROW_FLAGS_582)
-        val sibling582 = encryptedSibling(flag = AI_ROW_FLAGS_582.encrypted)
-        assertTrue(findAiMentionRows(listOf(rowClass(checks = checks582, sibling = sibling582))).isEmpty())
-        for (check in checks582.take(2) + checks582.drop(3)) assertNull(check.aiMentionRow(), check.hookId())
-        // 583's checks with 582's encrypted flag behind them, and five checks that mix the two numberings.
-        assertTrue(findAiMentionRows(listOf(rowClass(sibling = sibling582))).isEmpty())
-        val mixed = rowChecks().take(3) + checks582.drop(3)
+    @Test fun messenger583sRowFlagsOrAMixOfTheTwoNumberingsAreRefused() {
+        val checks583 = rowChecks(build = AI_ROW_FLAGS_583)
+        assertTrue(findAiMentionRows(listOf(rowClass(checks = checks583))).isEmpty())
+        for (check in checks583) assertNull(check.aiMentionRow(), check.hookId())
+        // Five checks that mix the two numberings.
+        val mixed = rowChecks().take(3) + checks583.drop(3)
         assertTrue(findAiMentionRows(listOf(rowClass(checks = mixed))).isEmpty())
-        assertTrue(findAiMentionRows(listOf(rowClass(checks = mixed, sibling = sibling582))).isEmpty())
     }
 
     @Test fun aCheckThatMovedOrRepeatsLeavesTheRowsUnhooked() {
         val checks = rowChecks()
         val (meta, chats, encrypted) = checks
         val (imagine, yourself) = checks.drop(3)
-        val sibling = { flag: Long -> { _: String -> encryptedSibling(flag = flag) } }
         // Each check is told apart by its parameters and the flag it reads.
-        assertEquals("meta_ai_encrypted", encrypted.aiMentionRow(sibling(META_AI_ENCRYPTED_FLAG)))
-        assertNull(encrypted.aiMentionRow(sibling(IMAGINE_ROW_FLAG)), "encrypted check's sibling reads another flag")
-        assertNull(encrypted.aiMentionRow { null }, "encrypted check's sibling is missing")
-        assertNull(metaAiEncryptedRow(capability = false).aiMentionRow(sibling(META_AI_ENCRYPTED_FLAG)), "encrypted check skips the capability")
+        assertEquals("meta_ai_encrypted", encrypted.aiMentionRow())
         val moved = mapOf(
             "Meta AI check reads one of its two flags" to metaAiRow(flags = META_AI_ROW_FLAGS.take(1)),
             "regular-chat check reads one of its two flags" to metaAiChatsRow(flags = META_AI_CHAT_FLAGS.take(1)),
+            "encrypted check misses the shared flag" to metaAiEncryptedRow(flags = listOf(IMAGINE_ROW_FLAG, META_AI_ENCRYPTED_FLAG)),
+            "encrypted check misses its own flag" to metaAiEncryptedRow(flags = listOf(META_AI_SHARED_FLAG, IMAGINE_ROW_FLAG)),
             "imagine reads another flag" to imagineRow(SYNTHETIC_IMAGINE_ROW, IMAGINE_YOURSELF_ROW_FLAG),
             "imagine yourself takes the imagine parameters" to imagineRow(SYNTHETIC_IMAGINE_ROW.replace("A0y", "A0z"), IMAGINE_YOURSELF_ROW_FLAG),
             "static check" to imagineRow(SYNTHETIC_IMAGINE_ROW, IMAGINE_ROW_FLAG, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value),
         )
         for ((case, method) in moved) assertNull(method.aiMentionRow(), case)
-        // All five or none: a missing check, a second look-alike, checks split across classes, or the encrypted-chat
-        // check without the sibling that reads its flag.
+        // All five or none: a missing check, a second look-alike, or checks split across classes.
         assertTrue(findAiMentionRows(listOf(rowClass(checks = listOf(meta, chats, encrypted, imagine)))).isEmpty())
         assertTrue(findAiMentionRows(aiMentionRowsFixture() + fixtureClass("LX/1yR;", rowChecks("LX/1yR;").take(1))).isEmpty())
         assertTrue(findAiMentionRows(listOf(rowClass(checks = listOf(meta, chats, encrypted, imagine)),
             fixtureClass("LX/1yR;", listOf(rowChecks("LX/1yR;")[4])))).isEmpty())
-        assertTrue(findAiMentionRows(listOf(rowClass(sibling = null))).isEmpty())
         assertEquals(5, findAiMentionRows(listOf(rowClass(checks = listOf(meta, chats, encrypted, imagine, yourself)))).size)
     }
 
     @Test fun anUnexpectedMethodStopsTheControlBeforeAnyEdit() {
         val checks = rowChecks()
-        val stranger = imagineRow(SYNTHETIC_IMAGINE_ROW.replace("A0y", "A0z"), 0x81063b00000001L)
+        val stranger = imagineRow(SYNTHETIC_IMAGINE_ROW.replace("A0y", "A0z"), 0x81062d00000001L)
         val before = checks.map { it.code() }
         val failure = assertFailsWith<PatchException> { injectControl(AI_MENTION_ROWS, mapOf(AI_MENTION_ROWS to checks + stranger)) }
         assertContains(failure.message.orEmpty(), "Meta AI checks moved")

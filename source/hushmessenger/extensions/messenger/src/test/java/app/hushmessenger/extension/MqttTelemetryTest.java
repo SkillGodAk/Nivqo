@@ -60,7 +60,7 @@ public class MqttTelemetryTest {
     @Test public void theSwitchSitsUnderPrivacyAndStartsOff() {
         assertTrue(Settings.installed.contains("mqtt_telemetry"));
         String[] row = Arrays.stream(SettingsActivity.CONTROLS).filter(c -> c[0].equals("mqtt_telemetry")).findFirst().orElseThrow();
-        assertEquals("Stop MQTT logging", row[1]);
+        assertEquals("Stop live connection logging", row[1]);
         assertEquals("privacy", row[3]);
         assertFalse(Settings.preferences.contains("mqtt_telemetry"));
         assertFalse(Settings.wouldUse("mqtt_telemetry"));

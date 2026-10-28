@@ -11,6 +11,7 @@ import android.icu.text.NumberFormat
 import android.icu.util.Measure
 import android.icu.util.MeasureUnit
 import android.text.format.DateUtils
+import java.text.FieldPosition
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
@@ -20,7 +21,7 @@ private const val BYTES_PER_MEGABYTE = 1_000_000.0
 private const val BYTES_PER_GIGABYTE = 1_000_000_000.0
 
 /** Memory counts in binary, which is what the kernel and the JVM mean by a megabyte. */
-private const val BYTES_PER_MEBIBYTE = 1024 * 1024
+private const val KIBIBYTES_PER_MEBIBYTE = 1024
 
 /** Whole bytes get none of them: "512.00 B" reads like a mistake. */
 private const val SIZE_DECIMALS = 2
@@ -36,13 +37,7 @@ private val SIZE_MEASURE_UNITS = arrayOf(
 
 /** Building one costs more than the reading it prints, and a list formats every row it shows. */
 private val sizeFormats = ConcurrentHashMap<Pair<Locale, Int>, MeasureFormat>()
-
-/**
- * Format a "used / free" pair as `"{used} / {free}"`. If [free] is zero or negative,
- * returns just [used] so callers do not have to guard against unavailable device stats.
- */
-fun Context.formatUsedFree(used: Long, free: Long): String =
-    if (free <= 0L) formatBytes(used) else "${formatBytes(used)} / ${formatBytes(free)}"
+private val numberFormats = ConcurrentHashMap<Pair<Locale, Int>, NumberFormat>()
 
 /**
  * Size of a file or a volume, named in the reader's language.
@@ -54,7 +49,6 @@ fun Context.formatUsedFree(used: Long, free: Long): String =
  */
 fun Context.formatBytes(bytes: Long): String {
     val (value, unit) = scaleBytes(bytes)
-    val locale = resources.configuration.locales[0]
 
     return sizeFormat(locale, if (unit == 0) 0 else SIZE_DECIMALS)
         .format(Measure(value, SIZE_MEASURE_UNITS[unit]))
@@ -84,12 +78,15 @@ private fun scaleBytes(bytes: Long): Pair<Double, Int> = when {
 
 private fun sizeFormat(locale: Locale, decimals: Int): MeasureFormat =
     sizeFormats.getOrPut(locale to decimals) {
-        val numbers = NumberFormat.getInstance(locale).apply {
+        MeasureFormat.getInstance(locale, MeasureFormat.FormatWidth.SHORT, numberFormat(locale, decimals))
+    }
+
+private fun numberFormat(locale: Locale, decimals: Int): NumberFormat =
+    numberFormats.getOrPut(locale to decimals) {
+        NumberFormat.getInstance(locale).apply {
             minimumFractionDigits = decimals
             maximumFractionDigits = decimals
         }
-
-        MeasureFormat.getInstance(locale, MeasureFormat.FormatWidth.SHORT, numbers)
     }
 
 /**
@@ -114,21 +111,61 @@ private fun bytesToGigabytes(bytes: Long): Float =
     if (bytes <= 0) 0f else (bytes / BYTES_PER_GIGABYTE).toFloat()
 
 /**
- * Bytes as whole mebibytes: megabytes counted in binary, which is what a heap limit, the RAM of
- * a device and every memory reading in the log mean by a megabyte. Files never use this.
+ * The unit amounts of memory are named in. Readings shown together share one, picked by the largest
+ * of them through [of], so a reading and the limit it climbs towards never name different units.
  */
-fun bytesToMebibytes(bytes: Long): Long =
-    if (bytes <= 0) 0L else bytes / BYTES_PER_MEBIBYTE
+enum class MemoryUnit(
+    internal val measureUnit: MeasureUnit,
+    internal val mebibytes: Int,
+    internal val decimals: Int
+) {
+    Megabytes(MeasureUnit.MEGABYTE, 1, 0),
+    // A whole number of gigabytes would hide most of what a heap does
+    Gigabytes(MeasureUnit.GIGABYTE, 1024, 1);
+
+    companion object {
+        fun of(largestMebibytes: Int) =
+            if (largestMebibytes >= Gigabytes.mebibytes) Gigabytes else Megabytes
+    }
+}
 
 /**
  * An amount of memory, named the way a device names it. The label reads megabyte where the count
- * is mebibytes, because that is the word on every RAM spec and in every heap setting.
+ * is mebibytes, and gigabyte for 1024 of them, because those are the words on every RAM spec and
+ * in every heap setting.
  */
-fun Context.formatMebibytes(mebibytes: Int): String {
-    val locale = resources.configuration.locales[0]
+fun Context.formatMebibytes(mebibytes: Int, unit: MemoryUnit = MemoryUnit.Megabytes): String =
+    sizeFormat(locale, unit.decimals).format(Measure(mebibytes.inUnit(unit), unit.measureUnit))
 
-    return sizeFormat(locale, 0).format(Measure(mebibytes, MeasureUnit.MEGABYTE))
+/**
+ * The count of [formatMebibytes] without its unit, for a reading that the amount following it
+ * names the unit of.
+ */
+fun Context.formatMebibyteCount(mebibytes: Int, unit: MemoryUnit): String =
+    numberFormat(locale, unit.decimals).format(mebibytes.inUnit(unit))
+
+/**
+ * A storage throughput, named the way [formatMebibytes] names memory: kibibytes as kilobytes, and
+ * megabytes at one decimal once there are 1024 of them.
+ */
+fun Context.formatKibibytesPerSecond(kibibytes: Int): String {
+    val megabytes = kibibytes >= KIBIBYTES_PER_MEBIBYTE
+    val measure = if (megabytes) {
+        Measure(kibibytes.toFloat() / KIBIBYTES_PER_MEBIBYTE, MeasureUnit.MEGABYTE)
+    } else {
+        Measure(kibibytes, MeasureUnit.KILOBYTE)
+    }
+
+    return sizeFormat(locale, if (megabytes) 1 else 0)
+        .formatMeasurePerUnit(measure, MeasureUnit.SECOND, StringBuilder(), FieldPosition(0))
+        .toString()
 }
+
+private fun Int.inUnit(unit: MemoryUnit): Number =
+    if (unit.mebibytes == 1) this else toFloat() / unit.mebibytes
+
+private val Context.locale: Locale
+    get() = resources.configuration.locales[0]
 
 /**
  * Get relative time string (e.g., "2 hours ago")

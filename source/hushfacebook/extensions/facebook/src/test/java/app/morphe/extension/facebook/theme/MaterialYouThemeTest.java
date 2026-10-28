@@ -495,6 +495,26 @@ public class MaterialYouThemeTest {
     }
 
     /**
+     * Issue #37: the account switcher sheet is a Bloks bottom sheet whose dark colour, #1F1F20 on 584,
+     * comes with the screen rather than from a token. In dark mode it takes the palette's neutral, as
+     * the Menu behind it does. Light mode's white, a colour, a see-through scrim and an AMOLED build
+     * keep theirs.
+     */
+    @Test
+    public void aBloksSheetsDarkGreyTakesThePalette() {
+        DarkMode.answer(true);
+        assertEquals(palette.sameLightness(TonePalette.NEUTRAL, 0xFF1F1F20), MaterialYouTheme.sheetBackground(0xFF1F1F20, false));
+        assertNotEquals("the palette moves it", 0xFF1F1F20, MaterialYouTheme.sheetBackground(0xFF1F1F20, false));
+        assertEquals("a colour", 0xFF2B3036, MaterialYouTheme.sheetBackground(0xFF2B3036, false));
+        assertEquals("a scrim", 0x991F1F20, MaterialYouTheme.sheetBackground(0x991F1F20, false));
+        assertEquals("white", 0xFFFFFFFF, MaterialYouTheme.sheetBackground(0xFFFFFFFF, false));
+        assertEquals("with AMOLED in the build", 0xFF1F1F20, MaterialYouTheme.sheetBackground(0xFF1F1F20, true));
+
+        DarkMode.answer(false);
+        assertEquals("light mode", 0xFF1F1F20, MaterialYouTheme.sheetBackground(0xFF1F1F20, false));
+    }
+
+    /**
      * Issue #37's link box when MobileConfig sends no colour: the second config's GRAY_25 and GRAY_10
      * and the grey a parent or the attachment's model hands it go through the same stand-in, as does
      * what FDS's chooser answers on its dark side. Each takes the palette in dark mode; the model's
@@ -1347,6 +1367,40 @@ public class MaterialYouThemeTest {
                 MaterialYouTheme.reportLine(PalettesForTests.palette(PalettesForTests.GALAXY_S25)));
         assertFalse(TonePalette.fallback().accentReplaced);
         assertTrue(MaterialYouTheme.reportLine(TonePalette.fallback()).startsWith("Facebook's blue palette: "));
+    }
+
+    /**
+     * The Accent color row's pick takes the wallpaper accent's place and the wallpaper's greys stay
+     * (#272). Facebook blue, there the wallpaper's accent, leaves the palette as it is, and a pick
+     * also beats the blue that stands in for a grey wallpaper accent.
+     */
+    @Test
+    public void aPickedAccentTakesTheWallpaperAccentsPlace() {
+        DarkMode.answer(true);
+        TonePalette phone = PalettesForTests.palette(PalettesForTests.GALAXY_S25);
+        TonePalette green = AccentColor.palette(AccentColor.Preset.GREEN);
+        TonePalette picked = AccentColor.onWallpaper(phone, AccentColor.Preset.GREEN);
+        assertTrue(picked.accentPicked);
+        assertTrue(picked.dynamic);
+        for (int tone : TonePalette.TONES) {
+            assertEquals("accent " + tone, green.tone(TonePalette.ACCENT, tone), picked.tone(TonePalette.ACCENT, tone));
+            assertEquals("neutral " + tone, phone.tone(TonePalette.NEUTRAL, tone), picked.tone(TonePalette.NEUTRAL, tone));
+            assertEquals("neutral variant " + tone, phone.tone(TonePalette.NEUTRAL_VARIANT, tone),
+                    picked.tone(TonePalette.NEUTRAL_VARIANT, tone));
+        }
+        MaterialYouTheme.use(picked, false);
+        assertEquals(green.sameLightness(TonePalette.ACCENT, UNSEEN_BLUE), MaterialYouTheme.fds(UNSEEN_BLUE, Ring.STORY_UNSEEN));
+        assertEquals("wallpaper palette; the Accent color row's accent in place of the phone's",
+                MaterialYouTheme.reportLine(picked));
+
+        assertTrue(AccentColor.onWallpaper(phone, AccentColor.Preset.FACEBOOK) == phone);
+        assertTrue(AccentColor.onWallpaper(phone, null) == phone);
+
+        TonePalette grey = AccentColor.onWallpaper(PalettesForTests.palette(PalettesForTests.NEAR_GREY), AccentColor.Preset.PURPLE);
+        assertFalse(grey.accentReplaced);
+        assertEquals(AccentColor.palette(AccentColor.Preset.PURPLE).tone(TonePalette.ACCENT, 40), grey.tone(TonePalette.ACCENT, 40));
+        assertEquals("Facebook's palette; the Accent color row's accent in place of the phone's",
+                MaterialYouTheme.reportLine(AccentColor.onWallpaper(TonePalette.fallback(), AccentColor.Preset.RED)));
     }
 
     /** CIELAB distance between two colours. */

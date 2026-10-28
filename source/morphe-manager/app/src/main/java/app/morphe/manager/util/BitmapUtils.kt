@@ -23,6 +23,18 @@ fun calculateSampleSize(width: Int, height: Int, maxDimension: Int): Int {
 }
 
 /**
+ * The largest power of two that keeps both sides at [minDimension] or over, for a thumbnail that
+ * is as small as it can be while still filling its slot.
+ */
+fun thumbnailSampleSize(width: Int, height: Int, minDimension: Int): Int {
+    var sampleSize = 1
+    while (width / (sampleSize * 2) >= minDimension && height / (sampleSize * 2) >= minDimension) {
+        sampleSize *= 2
+    }
+    return sampleSize
+}
+
+/**
  * Decodes the image at [uri] no larger than [maxDimension] on a side. A photo straight off a
  * camera runs to 100 MB or more decoded, which is more than the heap allows on many devices.
  */

@@ -195,7 +195,7 @@ class HideMetaAiQuestionsFixtureTest {
 
     /** Where each declared build's default way keeps the pill's type, and the stars name's register. */
     private val expectedPill = mapOf(
-        AppCompatibilities.FACEBOOK_TARGET_VERSION to (3 to 0),
+        AppCompatibilities.FACEBOOK_TARGET_VERSION to (2 to 0),
     )
 
     /**

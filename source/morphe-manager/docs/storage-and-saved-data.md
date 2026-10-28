@@ -2,12 +2,13 @@
 
 Morphe keeps more than the app itself: the original APKs it patched, the patched results,
 downloaded patch bundles, your keystore, and the patch selections you made per app. All of it
-is visible, and most of it can be cleared, from **Settings → System → Files & storage**.
+is visible, and most of it can be cleared, from **Settings → Storage management**, and the
+patch selections from **Settings → Patch selections** in Expert mode.
 
 ## Storage management
 
 <p align="center">
-  <img src="images/storage-and-saved-data/01-storage-management.jpg" width="320" alt="Storage management dialog with usage by category" />
+  <img src="images/storage-and-saved-data/01-storage-management.jpg" width="320" alt="Storage management page with usage by category" />
 </p>
 
 **Storage management** shows where the space went, broken down by category:
@@ -24,7 +25,8 @@ is visible, and most of it can be cleared, from **Settings → System → Files 
 | **Patcher workspace** | Patcher runtime files and orphaned scratch data |
 | **Temporary files** | Working files created during patching |
 
-The last four are caches and clear individually. **Clear all caches** frees them in one go,
+The last four are caches, listed under **Caches** further down with a **Clear** button each.
+**Clear all caches** frees them in one go,
 and Morphe spells out what that means: cached network responses, staged installer copies, and
 temporary files go, while **original and patched APKs are kept**.
 
@@ -38,8 +40,9 @@ everything, including the keystore, see
 
 ## Saved APKs
 
-**Original APKs** and **Patched APKs** each open a list with per-app entries and their sizes,
-plus the total at the top.
+The **Saved APKs** section of the same page holds two switches and, under each, a row that
+opens the saved copies. **Original APKs** and **Patched APKs** each open a list with per-app
+entries and their sizes, plus the total at the top.
 
 Each entry offers what makes sense for it: **Export** to write the APK somewhere, **Share**,
 **Install** or **Reinstall** for a patched build, **Mount** for a root mount install,
@@ -47,7 +50,7 @@ Each entry offers what makes sense for it: **Export** to write the APK somewhere
 and you can export a selection as a zip, `morphe-patched-apks.zip` or
 `morphe-original-apks.zip`.
 
-Whether these copies are kept at all is controlled from the same dialogs:
+Whether these copies are kept at all is up to the two switches, both on by default:
 
 - **Keep original APKs** - saves the pre-patch APK so repatching does not ask for the file
   again. One version per app is kept.
@@ -59,8 +62,8 @@ Whether these copies are kept at all is controlled from the same dialogs:
 
 ## Patch selections
 
-**Patch selections** lists the patches and patch options you saved per app, grouped by the
-source they came from. These survive uninstalling the patched app, which is what lets a
+**Settings → Patch selections**, shown in place of **Patch options** while Expert mode is on,
+lists the patches and patch options you saved per app, grouped by the source they came from. These survive uninstalling the patched app, which is what lets a
 repatch reproduce your previous build.
 
 Each entry expands into two sections, **Selected patches** and **Patch options**, so you can

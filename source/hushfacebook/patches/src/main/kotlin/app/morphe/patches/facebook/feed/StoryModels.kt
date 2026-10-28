@@ -73,6 +73,22 @@ internal fun storyModelAccessors(story: ClassDef, field: String, type: String): 
     story.methods.filter { isStoryModelAccessor(it, field, type) }
 
 /**
+ * Whether [method] is a model's accessor of the enum held under [field]: public, no arguments,
+ * returning an object, and a body that asks `getCachedEnum(int, Class, Enum)` for that field key.
+ * Callers look among one model class's own methods, where the key alone picks it.
+ */
+internal fun isModelEnumAccessor(method: Method, field: String): Boolean {
+    if (method.parameterTypes.isNotEmpty()) return false
+    if (!AccessFlags.PUBLIC.isSet(method.accessFlags) || AccessFlags.STATIC.isSet(method.accessFlags)) return false
+    if (method.returnType.length < 3 || !method.returnType.startsWith("L")) return false
+    val body = method.body()
+    return body.any { it.literal() == treeFieldKey(field) } &&
+        body.any {
+            it.methodReference()?.isTreeCall("getCachedEnum", listOf("I", "Ljava/lang/Class;", "Ljava/lang/Enum;")) == true
+        }
+}
+
+/**
  * Whether [method] calls [accessor] and then, within a few instructions, loads the key of [flag]
  * and reads it with `getCachedBoolean`. That is how Facebook's own code reads a story flag.
  */

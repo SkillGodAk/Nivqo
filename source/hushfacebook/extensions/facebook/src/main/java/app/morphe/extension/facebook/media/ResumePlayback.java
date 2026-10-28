@@ -243,10 +243,15 @@ public final class ResumePlayback {
 
     // ------------------------------------------------------------------ hooks
 
-    /** The hook, first thing in FbGrootPlayer's maybeTrackVideoStart. */
+    /**
+     * The hook, first thing in FbGrootPlayer's maybeTrackVideoStart. Recently watched and Skip
+     * silent parts' menu row share it.
+     */
     public static void started(Object player, Object trigger) {
         try {
             HookStatus.invoked(FAMILY);
+            RecentlyWatched.started(player);
+            SkipSilence.started(player, trigger);
             if (!on() || player == null) return;
             HookStatus.bound(FAMILY, "player start");
             start(player, trigger, SystemClock.uptimeMillis(), System.currentTimeMillis());
@@ -487,10 +492,13 @@ public final class ResumePlayback {
         return length;
     }
 
-    /** The constant of the start's own trigger enum the resume seeks with, or null when there's none. */
+    /**
+     * The constant of the start's own trigger enum the resume seeks with, or null when there's none.
+     * Skip silent parts' row seeks with it too.
+     */
     @Nullable
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private static Object seekTrigger(@Nullable Object trigger) {
+    static Object seekTrigger(@Nullable Object trigger) {
         if (!(trigger instanceof Enum)) return null;
         Class<?> type = ((Enum<?>) trigger).getDeclaringClass();
         synchronized (SEEK_TRIGGERS) {

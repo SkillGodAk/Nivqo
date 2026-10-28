@@ -4,6 +4,11 @@
         <item quantity="one">%s Mellora</item>
         <item quantity="other">%s Melloras</item>
     </plurals>
+    <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s biblioteca</item>
+        <item quantity="other">%s bibliotecas</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s Opción de parche</item>
         <item quantity="other">%s Opcións de parche</item>
@@ -40,4 +45,9 @@
         <item quantity="one">%s Aplicación oculta</item>
         <item quantity="other">%s Aplicacións ocultas</item>
     </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s núcleo</item>
+        <item quantity="other">%s núcleos</item>
+    </plurals>
+    <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
 </resources>
