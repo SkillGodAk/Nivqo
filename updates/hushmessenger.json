@@ -1,8 +1,9 @@
 {
-  "created_at": "2026-10-28T16:30:57",
-  "description": "HushMessenger 0.27.0 正式核心（66 個補丁、59 個控制項），適用 Messenger 584.1.0.61.98 相容原版 APK。新增安靜來電、標記已讀及相簿選取，整合繁中介面。",
+  "created_at": "2026-11-03T06:41:51",
+  "description": "Nivqo 正式 HushMessenger 0.28.0（71 個補丁、63 個控制項），支援 Messenger 585.0.0.53.94 相容 ARM64/ARMv7 建置。新增語音儲存、相簿選取、指定聯絡人安靜來電，並使用獨立 Nivqo 補丁簽章。",
   "changelog_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushmessenger-changelog.md",
   "signature_download_url": "",
-  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/f73d113663d5f264909eacc5ac54ce3d700e0502/updates/bundles/hushmessenger.mpp",
-  "version": "0.27.0-nivqo.1"
+  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/679ae2159fbab4d95721f05aaf9c98b1364657ff/updates/bundles/hushmessenger.mpp",
+  "version": "0.28.0-nivqo.1",
+  "public_key": "fMGzMRGjstF23zuh75Ik2udYy4iBfajArK08d+qHd2U="
 }
